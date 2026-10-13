@@ -76,6 +76,15 @@ public final class Engine {
         return Simulator.applyOutcome(rules, profile, state, action, outcome);
     }
 
+    /**
+     * Every legal productive action for {@code state.slot} as a labeled {@link Plan.Step} (Chinese
+     * title, subtitle, location, reason and forecast), best first. For "改做别的"; the list is empty
+     * when the slot is locked or nothing productive is possible.
+     */
+    public static List<Plan.Step> alternatives(Rules rules, Profile profile, SimState state) {
+        return Planner.alternatives(rules, profile, state);
+    }
+
     /** Plan every slot from {@code observed.slot} to the end of the calendar. */
     public static Plan plan(Rules rules, Profile profile, SimState observed, Plan previous, Options options) {
         return Planner.plan(rules, profile, observed, previous, options == null ? new Options() : options);

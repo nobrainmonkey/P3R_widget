@@ -321,6 +321,51 @@ final class Planner {
         }
     }
 
+    // ------------------------------------------------------------------ alternatives (改做别的)
+
+    /**
+     * Every legal productive action for {@code observed.slot} as a labeled step (best first by the
+     * base policy), for the "改做别的" list. Steps carry the same fields as plan steps.
+     */
+    static List<Plan.Step> alternatives(Rules rules, Profile profile, SimState observed) {
+        Model m = new Model(rules, profile, null);
+        SimState st = Kernel.normalize(m, observed);
+        Heuristics h = new Heuristics(m, st, null);
+        Labels labels = new Labels(m, h);
+        int[] codes = new int[Kernel.maxLegal(m)];
+        int n = Kernel.legal(m, st, codes);
+        double[] scores = new double[n];
+        h.prepare(st);
+        List<Integer> order = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            scores[i] = h.score(st, codes[i]);
+            order.add(i);
+        }
+        order.sort((a, b) -> scores[a] != scores[b] ? Double.compare(scores[b], scores[a]) : Integer.compare(a, b));
+        List<Plan.Step> out = new ArrayList<>(n);
+        Kernel.Effect fx = new Kernel.Effect();
+        for (int i : order) out.add(describe(m, labels, st, codes[i], fx));
+        return out;
+    }
+
+    /** A labeled step for {@code code} taken in {@code st} (which is not modified). */
+    private static Plan.Step describe(Model m, Labels labels, SimState st, int code, Kernel.Effect fx) {
+        Plan.Step step = new Plan.Step();
+        step.slot = st.slot;
+        SimState after = st.copy();
+        Kernel.effect(m, after, code, fx);
+        step.action = Kernel.decode(code).key(m.rules);
+        labels.describe(step, st, code, fx);
+        if (code != Kernel.FREE) {
+            step.predicted = Simulator.predicted(fx);
+            step.estimate = fx.estimate;
+            fx.addAssumptionIds(step.assumptions);
+        } else {
+            step.predicted.cashAfter = st.cash;
+        }
+        return step;
+    }
+
     // ------------------------------------------------------------------ plan assembly
 
     static Plan assemble(Model m, Heuristics h, SimState start, int[] codes) {
@@ -341,9 +386,10 @@ final class Planner {
         for (int i = 0; i < codes.length; i++) {
             int slot = st.slot;
             int code = codes[i];
-            Plan.Step step = new Plan.Step();
-            step.slot = slot;
+            Plan.Step step;
             if (!t.open(slot)) {
+                step = new Plan.Step();
+                step.slot = slot;
                 String reason = t.lock[slot] != null ? t.lock[slot] : "out_of_range";
                 step.action = Action.locked(reason).key(rules);
                 labels.describeLocked(step, reason);
@@ -351,22 +397,14 @@ final class Planner {
                 Kernel.apply(m, st, Kernel.FREE, null);
                 sum.lockedSlots++;
             } else {
-                SimState pre = st.copy();
-                Kernel.effect(m, st, code, fx);
-                Action action = Kernel.decode(code);
-                step.action = action.key(rules);
-                labels.describe(step, pre, code, fx);
+                step = describe(m, labels, st, code, fx);
                 if (code != Kernel.FREE) {
-                    step.predicted = Simulator.predicted(fx);
-                    step.estimate = fx.estimate;
-                    fx.addAssumptionIds(step.assumptions);
                     sum.usefulActions++;
                     sum.lastUsefulSlot = slot;
                 } else {
-                    step.predicted.cashAfter = st.cash;
                     sum.freeSlots++;
                 }
-                Kernel.advance(m, st);
+                Kernel.apply(m, st, code, null);
             }
             for (int l = 0; l < t.nLinks && l < sum.maxSlot.length; l++) {
                 if (sum.maxSlot[l] < 0 && st.rank[l] >= h.target[l]) sum.maxSlot[l] = slot;

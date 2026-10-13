@@ -348,8 +348,28 @@ final class PlanValidator {
                 }
             }
             Rules.Day day = rules.day(d);
-            return evening() && day != null && day.tartarus && day.block >= 0 && day.block < nBlocks
-                    && visits[day.block] < profile.towerCapPerBlock;
+            if (!evening() || day == null || !day.tartarus || day.block < 0 || day.block >= nBlocks) return false;
+            // A visit that would use the cap a pending rescue later in this block needs is not counted.
+            return visits[day.block] + 1 + pendingRescues(day.block) <= profile.towerCapPerBlock;
+        }
+
+        /** Rescues of links that still matter whose window has an enterable evening later in this block. */
+        private int pendingRescues(int block) {
+            int pending = 0;
+            for (int i = 0; i < rules.rescues.length; i++) {
+                Rules.Rescue r = rules.rescues[i];
+                if (((rescued | failed) & (1L << i)) != 0 || r.link < 0 || r.link >= nLinks || rank[r.link] >= 10) continue;
+                if (!isGoal(r.link) && !profile.otherLinks) continue;
+                for (int s = slot + 1; s <= Math.min(rules.lastSlot(), r.toDay * 2 + 1); s++) {
+                    Rules.Day day = rules.day(s >> 1);
+                    if ((s & 1) == 1 && s >> 1 >= r.fromDay && day != null && day.tartarus && day.block == block
+                            && rules.lockOf(s) == null) {
+                        pending++;
+                        break;
+                    }
+                }
+            }
+            return pending;
         }
 
         private void advance() {

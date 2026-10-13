@@ -66,7 +66,7 @@ public class PlannerTest {
         assertEquals("满月作战", plan.at(Rules.slot(38, true)).titleZh);
         assertEquals(9, plan.summary.lockedSlots);
         assertTrue(plan.summary.usefulActions > 50);
-        assertEquals("", "", plan.rulesVersion.isEmpty() ? "missing" : "");
+        assertEquals(rules.version, plan.rulesVersion);
     }
 
     @Test
@@ -162,7 +162,8 @@ public class PlannerTest {
         if (othersPlan.summary.endRanks[lovers] >= 10) {
             assertTrue("the goal is reached earlier", mustPlan.summary.maxSlot[lovers] <= othersPlan.summary.maxSlot[lovers]);
         }
-        assertTrue(mustPlan.summary.notesZh.get(0).startsWith("恋爱：预计"));
+        String note = mustPlan.summary.notesZh.get(0);
+        assertTrue(note, note.startsWith("恋爱：预计") && note.endsWith("练满"));
     }
 
     @Test
@@ -390,6 +391,32 @@ public class PlannerTest {
         s.rescued = 1; // Bunkichi was rescued
         s.towerVisits[6] = 1;
         return s;
+    }
+
+    // ------------------------------------------------------------------ alternatives (改做别的)
+
+    @Test
+    public void alternativesAreTheLegalActionsWithLabels() {
+        Rules rules = RulesFixtures.small();
+        Profile profile = RulesFixtures.others();
+        SimState monday = RulesFixtures.newGame(rules, Rules.slot(26, true));
+        monday.cash = 2_000;
+        List<Plan.Step> alts = Engine.alternatives(rules, profile, monday);
+        List<Action> legal = Engine.legalActions(rules, profile, monday);
+        assertEquals(legal.size(), alts.size());
+        for (Plan.Step s : alts) {
+            assertTrue(legal.contains(Action.parse(rules, s.action)));
+            assertEquals(monday.slot, s.slot);
+            assertFalse(s.titleZh.isEmpty());
+            assertNotNull(s.whyZh);
+        }
+        Plan.Step job = null;
+        for (Plan.Step s : alts) if (s.action.equals("act:job_chagall")) job = s;
+        assertNotNull(job);
+        assertEquals("咖啡店「夏卡尔」打工", job.titleZh);
+        assertEquals("打工 · 预计 +2,500 日元", job.subtitleZh);
+        assertEquals(2_500, job.predicted.cashDelta);
+        assertTrue(Engine.alternatives(rules, profile, RulesFixtures.newGame(rules, Rules.slot(21, false))).isEmpty());
     }
 
     // ------------------------------------------------------------------ copy

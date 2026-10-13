@@ -126,7 +126,7 @@ final class Labels {
         if (fx.rankUp) {
             core = fx.rankTo >= 10 ? "这次见面就能练满" : fx.certain ? "这次见面一定能升级" : "预计这次见面能升级";
         } else {
-            core = "好感还差一点，先多见面";
+            core = "好感还不够升级，先多见面";
         }
         return goal == null ? core : goal + "，" + core;
     }
@@ -182,7 +182,7 @@ final class Labels {
         step.entity = link.id;
         step.titleZh = linkLabel(l);
         String what = s.zh != null && !s.zh.isEmpty() ? s.zh : "开启社群";
-        step.subtitleZh = cost > 0 ? what + " · 花费 " + yen(cost) : what;
+        step.subtitleZh = cost > 0 && !what.contains("日元") ? what + " · 花费 " + yen(cost) : what;
         step.locationZh = s.locationZh != null ? s.locationZh : link.locationZh;
         int establish = h.t.establishIdx[l];
         if (from <= establish && establish <= last) {
@@ -322,8 +322,9 @@ final class Labels {
             int target = h.target[l];
             int reachedSlot = plan.summary.maxSlot[l];
             if (end.rank[l] >= target) {
-                String when = reachedSlot >= 0 ? "预计" + date(reachedSlot >> 1) + "达到 RANK " + rankName(target) : "已达到 RANK " + rankName(target);
-                out.add(arcana(l) + "：" + when);
+                String reach = target >= 10 ? "练满" : "达到 RANK " + target;
+                boolean already = start.rank[l] >= target;
+                out.add(arcana(l) + "：" + (already ? "已经" + reach : "预计" + date(reachedSlot >> 1) + reach));
                 continue;
             }
             int endDay = Math.min(rules.lastDay, end.slot >> 1);
@@ -351,7 +352,7 @@ final class Labels {
             }
         }
         if (p.personaBonus) out.add("已按约会时携带同阿尔卡那人格面具估算（好感 ×1.51）");
-        if (m.goal.length > 0 && p.hasAnyGoal() && p.goalBuffer) {
+        if (p.hasAnyGoal() && p.goalBuffer) {
             out.add("升级时间是估算的，「必须」「想要」目标已多留一次见面的余量");
         } else {
             out.add("升级时间是按普通见面约 " + m.ordinaryGain + " 点好感估算的");

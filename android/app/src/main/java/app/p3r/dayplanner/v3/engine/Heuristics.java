@@ -406,7 +406,7 @@ final class Heuristics {
                 }
             }
         }
-        prepareCharmGate(st, mult);
+        prepareCharmGate(st);
         double statYen = 0;
         long training = 0;
         for (int s = 0; s < t.nStats && s < 3; s++) {
@@ -463,7 +463,7 @@ final class Heuristics {
      * Charm Lv6 multiplies all affinity gains: worth the meetings it saves, as far as the calendar
      * is overbooked (otherwise the saved meetings would not be missed).
      */
-    private void prepareCharmGate(SimState st, double mult) {
+    private void prepareCharmGate(SimState st) {
         int ci = t.charmIdx;
         if (ci < 0 || m.charmMult <= 1 || st.statPts[ci] >= t.statCap[ci]) return;
         double needed = 0;
@@ -503,7 +503,7 @@ final class Heuristics {
                 h = meetScore(st, Kernel.target(code));
                 break;
             case Kernel.T_UNLOCK:
-                h = 1.2 * linkScore(st, Kernel.target(code), false);
+                h = 1.2 * linkScore(st, Kernel.target(code));
                 break;
             case Kernel.T_ACT:
                 h = activityScore(st, Kernel.target(code));
@@ -551,11 +551,11 @@ final class Heuristics {
             // Held indefinitely, or nothing left to gain: harmless filler only.
             return up ? 0.5 * wRank(l, st.rank[l] + 1) : 0.02;
         }
-        return linkScore(st, l, up) * (up ? 1.1 : 1.0);
+        return linkScore(st, l) * (up ? 1.1 : 1.0);
     }
 
     /** Value per meeting × urgency (link scarcity × slot-kind contention). */
-    private double linkScore(SimState st, int l, boolean rankUp) {
+    private double linkScore(SimState st, int l) {
         if (demand[l] <= 0) return 0.05;
         int remain = Math.max(1, t.meetRemain[l][st.slot]);
         double ratio = demand[l] / (double) remain;

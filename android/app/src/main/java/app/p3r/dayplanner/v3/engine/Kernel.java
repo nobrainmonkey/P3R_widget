@@ -262,32 +262,6 @@ final class Kernel {
         return m.t.nLinks * 2 + m.t.nActs + 1;
     }
 
-    static boolean isLegal(Model m, SimState st, int code) {
-        Tables t = m.t;
-        int slot = st.slot;
-        if (!t.open(slot)) return false;
-        int day = slot >> 1;
-        boolean eve = (slot & 1) == 1;
-        int target = target(code);
-        switch (type(code)) {
-            case T_MEET:
-                return target < t.nLinks && (t.meetMask[slot] & (1 << target)) != 0 && meetLegal(m, st, target, day);
-            case T_UNLOCK:
-                return target < t.nLinks && unlockGroup(m, st, target, day, eve) == step(code);
-            case T_ACT:
-                return target < t.nActs && contains(t.actsAt[slot], target) && activityLegal(m, st, target);
-            case T_TOWER:
-                return t.towerBlock[slot] == target && st.towerVisits[target] < m.towerCap;
-            default:
-                return false;
-        }
-    }
-
-    private static boolean contains(int[] a, int v) {
-        for (int x : a) if (x == v) return true;
-        return false;
-    }
-
     static boolean meetLegal(Model m, SimState st, int link, int day) {
         int r = st.rank[link];
         return r >= 1 && r < 10 && !blocked(m, st, link, day);
