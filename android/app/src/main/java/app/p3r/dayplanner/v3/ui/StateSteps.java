@@ -177,8 +177,8 @@ final class StateSteps {
     // ------------------------------------------------------------------ 目标
 
     private View goals() {
-        LinearLayout column = page("想把哪些社群练到 MAX？",
-            "点一下是「想要」，再点一下是「必须」。不选也可以，规划会尽量提升所有社群。");
+        LinearLayout column = page("想把哪些社群升到 MAX？",
+            "点一下是「想要」，再点是「必须」，第三下取消。不选也行，会尽量提升所有社群。");
         LinearLayout presets = Ui.row(c);
         TextView all = Ui.chip(c, "尽量全部 MAX", false);
         all.setOnClickListener(v -> {
@@ -210,7 +210,7 @@ final class StateSteps {
                 row.setBaselineAligned(false);
                 column.addView(row, top(link.idx == 0 ? 14 : 8));
             }
-            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, Ui.dp(c, 76), 1);
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1);
             if (link.idx % 2 == 1) {
                 p.leftMargin = Ui.dp(c, 8);
             }
@@ -236,6 +236,7 @@ final class StateSteps {
             bg.stroke(Ui.col(c, R.color.p3r_cyan_400), Ui.dp(c, 1.5f));
         }
         card.setBackground(bg);
+        card.setMinimumHeight(Ui.dp(c, 76));
         Ui.pad(card, 12, 8, 8, 8);
         LinearLayout top = Ui.row(c);
         top.addView(Ui.numeral(c, Zh.roman(link.arcanaNo), 17, Ui.col(c, R.color.p3r_cyan_400)), Ui.wrap());
@@ -258,7 +259,7 @@ final class StateSteps {
         }
         card.addView(top);
         TextView person = Ui.text(c, link.personZh + " · " + link.genderZh, 12, Ui.col(c, R.color.p3r_ink_muted), false);
-        person.setSingleLine(true);
+        person.setMaxLines(2);
         person.setEllipsize(android.text.TextUtils.TruncateAt.END);
         card.addView(person, top(2));
         if (link.kind == Rules.LinkKind.STORY) {
@@ -266,8 +267,7 @@ final class StateSteps {
         }
         card.setClickable(true);
         card.setFocusable(true);
-        card.setContentDescription(link.labelZh + "，" + (tier == Profile.Tier.NONE ? "不是目标" : Goals.label(tier))
-            + "，点按切换");
+        card.setContentDescription(link.labelZh + "，目标：" + Goals.label(tier) + "，点按切换");
         card.setOnClickListener(v -> {
             draft.cycleTier(link.idx);
             callbacks.changed();
@@ -279,34 +279,36 @@ final class StateSteps {
     // ------------------------------------------------------------------ 人格面具
 
     private View persona() {
-        LinearLayout column = page("约会时通常带着同阿尔卡那的人格面具吗？",
-            "带着和社群同阿尔卡那的人格面具时，社群点数会多一些（×1.51），升级更快。拿不准就选「不一定」，计划会更保守。");
-        boolean on = draft.profile.personaBonus;
-        column.addView(option("通常带着", "按 ×1.51 计算社群点数", on, () -> {
-            draft.profile.personaBonus = true;
-            callbacks.changed();
-            callbacks.next();
-        }), top(20));
-        column.addView(option("不一定 / 不带", "按保守估计（推荐）", !on, () -> {
-            draft.profile.personaBonus = false;
-            callbacks.changed();
-            callbacks.next();
-        }), top(10));
+        LinearLayout column = page("见面时通常带着同阿尔卡那的人格面具吗？",
+            "见面时带着和社群同阿尔卡那的人格面具，点数 ×1.51，升级更快。拿不准就选「不带/不一定」，安排会更保守。");
+        Profile.PersonaMode mode = draft.profile.effectivePersonaMode();
+        column.addView(option("基本都带", "所有社群的点数都按 ×1.51 算", mode == Profile.PersonaMode.ALL,
+            () -> persona(Profile.PersonaMode.ALL)), top(20));
+        column.addView(option("只给目标社群带", "只有目标社群按 ×1.51 算。每次见目标前，安排会提醒你带上哪个阿尔卡那的人格面具",
+            mode == Profile.PersonaMode.GOALS, () -> persona(Profile.PersonaMode.GOALS)), top(10));
+        column.addView(option("不带/不一定", "都按不带算，最保守（默认）", mode == Profile.PersonaMode.NONE,
+            () -> persona(Profile.PersonaMode.NONE)), top(10));
         column.addView(Ui.muted(c, "之后可以在「我的 → 规划设置」里随时修改。"), top(16));
         return column;
+    }
+
+    private void persona(Profile.PersonaMode mode) {
+        draft.setPersonaMode(mode);
+        callbacks.changed();
+        callbacks.next();
     }
 
     // ------------------------------------------------------------------ 同步：这段时间
 
     private View syncIntro() {
         String last = Zh.lastRecorded(draft.rules, draft.base.slot);
-        LinearLayout column = page("这段时间基本按计划了吗？", "上次记录：" + last + "。选一个，后面的数值会帮你预先填好。");
+        LinearLayout column = page("这段时间基本照着安排玩了吗？", "上次记录：" + last + "。选一个，后面的数值会帮你预先填好。");
         StateDraft.SyncAnswer answer = draft.sync();
-        column.addView(option("是", "按计划推算现在的状态，你只需核对", answer == StateDraft.SyncAnswer.YES,
+        column.addView(option("是", "按安排推算出现在的进度，你核对一下就行", answer == StateDraft.SyncAnswer.YES,
             () -> answer(StateDraft.SyncAnswer.YES)), top(20));
-        column.addView(option("一部分", "从上次记录开始，旁边会提示计划的预计值", answer == StateDraft.SyncAnswer.PARTLY,
+        column.addView(option("一部分", "从上次记录开始，旁边会提示安排的预计值", answer == StateDraft.SyncAnswer.PARTLY,
             () -> answer(StateDraft.SyncAnswer.PARTLY)), top(10));
-        column.addView(option("否", "按上次记录填写，你改动不一样的地方", answer == StateDraft.SyncAnswer.NO,
+        column.addView(option("否", "先填上次记录的数值，你只改不一样的地方", answer == StateDraft.SyncAnswer.NO,
             () -> answer(StateDraft.SyncAnswer.NO)), top(10));
         return column;
     }
@@ -371,11 +373,11 @@ final class StateSteps {
     private View cash() {
         String hint;
         if (draft.isForecastCash()) {
-            hint = "按计划推算大约是 " + Zh.yen(draft.cash()) + "，和游戏里一样就直接下一步。";
+            hint = "按安排推算大约是 " + Zh.yen(draft.cash()) + "，和游戏里一样就直接下一步。";
         } else if (draft.observed != null && draft.observed.cashExact) {
             hint = "上次记录：" + Zh.yen(draft.observed.cash) + "。和游戏里一样就直接下一步。";
         } else {
-            hint = "游戏菜单里能看到。不确定也没关系，规划会按保守的数字算。";
+            hint = "游戏菜单里能看到。不确定也没关系，会按保守的数字算。";
         }
         LinearLayout column = page("现在有多少钱？", hint);
         CashPad.Options options = new CashPad.Options();
@@ -424,7 +426,7 @@ final class StateSteps {
                 }
             }
             card.addView(head);
-            List<String> labels = Arrays.asList("1", "2", "3", "4", "5", "6");
+            List<String> labels = Arrays.asList("1", "2", "3", "4", "5", "MAX");
             SegmentedControl seg = new SegmentedControl(c, labels);
             seg.setSelected(draft.statLv(stat.idx) - 1);
             for (int i = 0; i < 6; i++) {
@@ -456,13 +458,15 @@ final class StateSteps {
     // ------------------------------------------------------------------ 社群 RANK
 
     private View links() {
-        LinearLayout column = page("社群 RANK", "点一格打开 RANK 小键盘，选完会自动跳到下一个。选「?」会保留原来的记录。");
+        LinearLayout column = page("社群 RANK", draft.mode == StateDraft.Mode.ONBOARDING
+            ? "点一格打开 RANK 小键盘，选完会自动跳到下一个。不记得就选「?」。"
+            : "点一格打开 RANK 小键盘，选完会自动跳到下一个。选「?」会保留原来的记录。");
         boolean anyUnknown = false;
         for (Rules.Link link : draft.rules.links) {
             anyUnknown |= draft.rank(link.idx) == StateDraft.UNKNOWN;
         }
         if (anyUnknown) {
-            TextView rest = Ui.chip(c, "不确定的都设为未建立", false);
+            TextView rest = Ui.chip(c, "不确定的都设为未解锁", false);
             rest.setTextSize(13);
             rest.setOnClickListener(v -> {
                 for (Rules.Link link : draft.rules.links) {
@@ -515,7 +519,7 @@ final class StateSteps {
         cell.addView(roman, Ui.wrap());
         LinearLayout texts = Ui.column(c);
         texts.addView(Ui.text(c, link.arcanaZh, 14, Ui.col(c, R.color.p3r_white), true));
-        String value = r == StateDraft.UNKNOWN ? "?" : r == 0 ? "未建立" : Zh.rank(r);
+        String value = r == StateDraft.UNKNOWN ? "?" : Zh.rank(r);
         int color = r == StateDraft.UNKNOWN ? Ui.col(c, R.color.ui_gold)
             : r == 0 ? Ui.col(c, R.color.p3r_ink_faint) : Ui.col(c, R.color.p3r_cyan_300);
         LinearLayout valueRow = Ui.row(c);
@@ -538,7 +542,7 @@ final class StateSteps {
         cell.addView(texts, tp);
         cell.setClickable(true);
         cell.setFocusable(true);
-        cell.setContentDescription(link.arcanaZh + "，" + (r == StateDraft.UNKNOWN ? "不确定" : r == 0 ? "未建立" : Zh.rank(r))
+        cell.setContentDescription(link.arcanaZh + "，" + (r == StateDraft.UNKNOWN ? "不确定" : Zh.rank(r))
             + "，点按修改");
         cell.setOnClickListener(v -> RankPad.show(c, draft.rules, order, link.idx, new RankPad.Listener() {
             @Override
@@ -559,7 +563,7 @@ final class StateSteps {
     // ------------------------------------------------------------------ 解锁进度
 
     private View unlock() {
-        LinearLayout column = page("解锁进度", "这些社群还没建立，但需要提前做准备。告诉我已经做到哪一步了。");
+        LinearLayout column = page("解锁进度", "这些社群还没解锁，但需要提前做准备。告诉我已经做到哪一步了。");
         for (int linkIdx : draft.unlockLinks()) {
             Rules.Link link = draft.rules.links[linkIdx];
             LinearLayout card = Ui.column(c);
@@ -590,24 +594,27 @@ final class StateSteps {
 
     private View tower() {
         Rules.Block block = draft.block();
-        String hint = block == null ? "这个日期还没有可以探索的区块。"
-            : "当前区块按日期是「" + block.zh + "」（" + block.floorsZh + "）。";
+        String hint = block == null ? "这个日期还没有能探索的区块。"
+            : "这个日期能去的区块是「" + block.zh + "」（" + block.floorsZh + "）。";
         LinearLayout column = page("塔尔塔罗斯", hint);
-        int top = 1;
-        for (Rules.Block b : draft.rules.blocks) {
-            top = Math.max(top, b.top);
-        }
+        int top = draft.towerTop();
         LinearLayout floorCard = Ui.column(c);
         floorCard.setBackground(Ui.card(c));
         Ui.pad(floorCard, 16, 12, 16, 14);
         floorCard.addView(Ui.text(c, "最高到达层", 16, Ui.col(c, R.color.p3r_white), true));
-        Stepper floor = new Stepper(c, 0, top, draft.floor());
+        Stepper floor = new Stepper(c, 0, Math.max(0, top), draft.floor());
         floor.setFormatter(v -> v == 0 ? "还没去过" : v + "F");
         floor.setListener(v -> {
             draft.setFloor(v);
             callbacks.changed();
         });
+        floor.setEnabled(top > 0);
+        floor.setAlpha(top > 0 ? 1f : 0.45f);
         floorCard.addView(floor, top(8));
+        if (top > 0) {
+            floorCard.addView(Ui.mixed(c, "这个日期最高能到 " + top + "F。", 13, Ui.col(c, R.color.p3r_ink_muted), false),
+                top(4));
+        }
         column.addView(floorCard, top(20));
         if (block != null) {
             Profile profile = draft.profile;
@@ -615,7 +622,7 @@ final class StateSteps {
             visitCard.setBackground(Ui.card(c));
             Ui.pad(visitCard, 16, 12, 16, 14);
             visitCard.addView(Ui.text(c, "这个区块已经去了几次", 16, Ui.col(c, R.color.p3r_white), true));
-            visitCard.addView(Ui.mixed(c, "上限 " + profile.towerCapPerBlock + " 次，可在规划设置里修改。", 13,
+            visitCard.addView(Ui.mixed(c, "上限 " + profile.towerCapPerBlock + " 次，可在「规划设置」里修改。", 13,
                 Ui.col(c, R.color.p3r_ink_muted), false));
             Stepper visits = new Stepper(c, 0, Math.max(profile.towerCapPerBlock, draft.towerVisits()), draft.towerVisits());
             visits.setFormatter(v -> v + " 次");
@@ -626,7 +633,45 @@ final class StateSteps {
             visitCard.addView(visits, top(8));
             column.addView(visitCard, top(10));
         }
+        for (int index : draft.rescuesToAsk()) {
+            column.addView(rescueCard(index), top(10));
+        }
         return column;
+    }
+
+    /** "北村文吉救出来了吗？ 救出了 / 没救出 / 不确定" ("救出了 / 还没" while the window is open). */
+    private View rescueCard(int index) {
+        Rules.Rescue rescue = draft.rules.rescues[index];
+        boolean open = draft.rescueOpen(index);
+        LinearLayout card = Ui.column(c);
+        card.setBackground(Ui.card(c));
+        Ui.pad(card, 16, 12, 16, 14);
+        card.addView(Ui.text(c, rescue.zh + "救出来了吗？", 16, Ui.col(c, R.color.p3r_white), true));
+        String about = rescue.link >= 0 && rescue.link < draft.rules.links.length
+            ? "关系到" + draft.rules.links[rescue.link].arcanaZh + "社群能不能继续。" : "";
+        String when = open ? Zh.date(rescue.toDay) + "前要救出。" : "期限是" + Zh.date(rescue.toDay) + "。";
+        card.addView(Ui.mixed(c, about + when, 13, Ui.col(c, R.color.p3r_ink_muted), false));
+        List<String> labels = open ? Arrays.asList("救出了", "还没") : Arrays.asList("救出了", "没救出", "不确定");
+        int[] values = open ? new int[]{StateDraft.RESCUE_DONE, StateDraft.RESCUE_UNSURE}
+            : new int[]{StateDraft.RESCUE_DONE, StateDraft.RESCUE_FAILED, StateDraft.RESCUE_UNSURE};
+        SegmentedControl seg = new SegmentedControl(c, labels);
+        int answer = draft.rescueAnswer(index);
+        int selected = labels.size() - 1;
+        for (int i = 0; i < values.length; i++) {
+            if (values[i] == answer) {
+                selected = i;
+            }
+        }
+        seg.setSelected(selected);
+        for (int i = 0; i < labels.size(); i++) {
+            seg.segment(i).setContentDescription(rescue.zh + "：" + labels.get(i));
+        }
+        seg.setListener(i -> {
+            draft.setRescue(index, values[i]);
+            callbacks.changed();
+        });
+        card.addView(seg, top(10));
+        return card;
     }
 
     // ------------------------------------------------------------------ 确认
@@ -642,7 +687,7 @@ final class StateSteps {
         } else {
             question = "将更新 " + changes.size() + " 项";
         }
-        LinearLayout column = page(question, first ? "保存后会立刻开始安排到 1月31日 的日程。"
+        LinearLayout column = page(question, first ? "保存后会立刻开始安排到1月31日的日程。"
             : "带「预计」的数值请对照游戏核对，保存就算确认。");
         LinearLayout card = Ui.column(c);
         card.setBackground(Ui.card(c));

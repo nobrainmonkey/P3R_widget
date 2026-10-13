@@ -13,7 +13,7 @@ import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.model.Rules;
 
 /**
- * RANK keypad for the 社群 grid: 未建立 1–9 MAX ?. Picking a value records it and moves straight
+ * RANK keypad for the 社群 grid: 未解锁 1–9 MAX ?. Picking a value records it and moves straight
  * to the next link in game order, so the whole Social Link list can be copied from the game's
  * screen with one tap per link.
  */
@@ -27,7 +27,7 @@ public final class RankPad {
     }
 
     private static final String[][] KEYS = {
-        {"未建立", "1", "2"}, {"3", "4", "5"}, {"6", "7", "8"}, {"9", "MAX", "?"},
+        {"未解锁", "1", "2"}, {"3", "4", "5"}, {"6", "7", "8"}, {"9", "MAX", "?"},
     };
 
     private final Rules rules;
@@ -91,7 +91,7 @@ public final class RankPad {
         previous = Ui.secondary(context, "上一个");
         previous.setOnClickListener(v -> move(-1));
         actions.addView(previous, Ui.weight(1));
-        TextView done = Ui.primary(context, "完成");
+        TextView done = Ui.primary(context, "好了");
         done.setOnClickListener(v -> dialog().dismiss());
         LinearLayout.LayoutParams doneParams = Ui.weight(1);
         doneParams.leftMargin = Ui.dp(context, 12);
@@ -113,7 +113,7 @@ public final class RankPad {
 
     static int valueOf(String label) {
         switch (label) {
-            case "未建立":
+            case "未解锁":
                 return 0;
             case "MAX":
                 return 10;

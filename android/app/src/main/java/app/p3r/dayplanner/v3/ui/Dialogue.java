@@ -17,7 +17,7 @@ final class Dialogue {
 
     /** "推荐回答：A / B" for a social step, the fallback for other social steps, null otherwise. */
     static String line(Rules rules, Plan.Step step) {
-        if (step == null || !"social".equals(step.kind)) {
+        if (step == null || !"social".equals(step.kind) || !StepKind.of(step).social()) {
             return null;
         }
         Rules.Link link = rules == null || step.entity == null ? null : rules.link(step.entity);

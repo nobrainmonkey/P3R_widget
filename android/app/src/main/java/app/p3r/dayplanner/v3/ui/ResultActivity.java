@@ -19,6 +19,7 @@ import java.util.List;
 
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.Intents;
+import app.p3r.dayplanner.v3.engine.Action;
 import app.p3r.dayplanner.v3.engine.Outcome;
 import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.engine.SimState;
@@ -29,17 +30,20 @@ import app.p3r.dayplanner.v3.service.PlannerApi;
 /**
  * Translucent quick result sheet, opened from the widget or the app (docs/DESIGN_v3.md §7.1).
  *
- * <p>Shows a panel targeted at the action: social rank-up ("已升到 RANK 7" / "没升级" / 其他结果…),
- * ordinary meeting, unlock step, training/job ("按预期完成" with a correction path), Tartarus
- * (floor + exactly one cash field), story locks; plus 做不了 reasons, 改做别的 alternatives and
- * the catch-up question when "完成" is pressed on a future item. A plan id / revision that no
- * longer matches shows "安排已更新" and the current item instead; nothing stale is ever saved.
+ * <p>Shows a panel targeted at the action: social rank-up ("升到 RANK 7 了" / "没升级" / 其他结果…),
+ * ordinary meeting, unlock step, 结缘网站的字条, 羁绊剧情, training/job ("完成了，和预计一样" with a
+ * correction path), Tartarus (floor + exactly one cash field), story locks; plus 做不了 reasons,
+ * 改做别的 alternatives and the catch-up question when "完成" is pressed on a future item. Every
+ * panel carries the step's 人格面具 reminder, its how-to and its "顺便" side steps (with the
+ * "顺便的事也做了" checkbox). A plan id / revision that no longer matches shows "安排已更新" and
+ * the current item instead; nothing stale is ever saved.
  */
 public final class ResultActivity extends Activity {
     private static final String STATE_SLOT = "slot";
     private static final String STATE_ACTION = "action";
     private static final String STATE_MODE = "mode";
     private static final String STATE_QUEUE = "queue";
+    private static final String STATE_QUEUE_TOTAL = "queueTotal";
     private static final String STATE_CHECKED = "checked";
     private static final String STATE_BANNER = "banner";
     private static final String STATE_TOWER = "tower";
@@ -63,6 +67,7 @@ public final class ResultActivity extends Activity {
     private boolean fromApp;
     private boolean staleChecked;
     private int queueTarget = -1;
+    /** Open slots the 逐项核对 queue started with (before the target). */
     private int queueTotal;
     private String banner;
     private boolean busy;
@@ -70,6 +75,8 @@ public final class ResultActivity extends Activity {
     private Plan.Step substitute;
     private TowerPanel towerPanel;
     private Bundle pendingTowerState;
+    /** "顺便的事也做了" on the current panel, or null when the step has no side steps. */
+    private CheckRow sideRow;
 
     // ------------------------------------------------------------------ lifecycle
 
@@ -83,6 +90,7 @@ public final class ResultActivity extends Activity {
             actionKey = savedInstanceState.getString(STATE_ACTION, actionKey);
             mode = savedInstanceState.getString(STATE_MODE, mode);
             queueTarget = savedInstanceState.getInt(STATE_QUEUE, -1);
+            queueTotal = savedInstanceState.getInt(STATE_QUEUE_TOTAL, 0);
             staleChecked = savedInstanceState.getBoolean(STATE_CHECKED, false);
             banner = savedInstanceState.getString(STATE_BANNER);
             pendingTowerState = savedInstanceState.getBundle(STATE_TOWER);
@@ -134,6 +142,7 @@ public final class ResultActivity extends Activity {
         out.putString(STATE_ACTION, actionKey);
         out.putString(STATE_MODE, mode);
         out.putInt(STATE_QUEUE, queueTarget);
+        out.putInt(STATE_QUEUE_TOTAL, queueTotal);
         out.putBoolean(STATE_CHECKED, staleChecked);
         out.putString(STATE_BANNER, banner);
         if (towerPanel != null) {
@@ -253,6 +262,10 @@ public final class ResultActivity extends Activity {
             showNotSetUp();
             return;
         }
+        if (Slots.finished(rules, obs)) {
+            showFinished();
+            return;
+        }
         if (!staleChecked) {
             staleChecked = true;
             boolean planMoved = planIdExtra != null && (plan == null || !planIdExtra.equals(plan.planId));
@@ -310,11 +323,20 @@ public final class ResultActivity extends Activity {
         return plan == null ? null : plan.at(slot);
     }
 
+    /**
+     * True when the step's visible predictions can be trusted: a chosen alternative (forecast
+     * from the current record) or a step of a plan that matches the latest record.
+     */
+    private boolean predictionCurrent() {
+        return substitute != null || snap.planCurrent;
+    }
+
     // ------------------------------------------------------------------ rendering
 
     private void render() {
         body.removeAllViews();
         towerPanel = null;
+        sideRow = null;
         SimState obs = snap.observed;
         Plan.Step step = step();
         if (slot < obs.slot) {
@@ -326,7 +348,7 @@ public final class ResultActivity extends Activity {
             body.addView(bannerView(banner), top(10));
         }
         if (step == null) {
-            body.addView(Ui.body(this, "计划正在更新，稍后再记录这一项。"), top(16));
+            body.addView(Ui.body(this, "安排正在更新，稍后再记录这一项。"), top(16));
             body.addView(closeButton("好的"), top(20));
             return;
         }
@@ -352,7 +374,8 @@ public final class ResultActivity extends Activity {
         plate.bind(rules, slot);
         row.addView(plate, Ui.weight(1));
         if (queueTarget >= 0 && queueTotal > 0) {
-            int done = queueTotal - (queueTarget - snap.observed.slot);
+            int left = Slots.openBetween(rules, snap.observed.slot, queueTarget);
+            int done = Math.max(0, queueTotal - left);
             TextView progress = Ui.mixed(this, "补记 " + (done + 1) + "/" + (queueTotal + 1), 13,
                 Ui.col(this, R.color.p3r_cyan_300), true);
             row.addView(progress, Ui.wrap());
@@ -375,6 +398,9 @@ public final class ResultActivity extends Activity {
             body.addView(title, top(10));
             if (step.locationZh != null && !step.locationZh.isEmpty() && kind != StepKind.LOCKED) {
                 body.addView(Ui.muted(this, step.locationZh), top(2));
+            }
+            if (StepViews.hasHint(step) && kind != StepKind.LOCKED) {
+                body.addView(StepViews.hintChip(this, step.hintZh), top(10));
             }
         }
     }
@@ -399,6 +425,10 @@ public final class ResultActivity extends Activity {
 
     private TextView question(String text) {
         return Ui.mixed(this, text, 20, Ui.col(this, R.color.p3r_cyan_400), true);
+    }
+
+    private TextView note(String text) {
+        return Ui.mixed(this, text, 14, Ui.col(this, R.color.p3r_ink_muted), false);
     }
 
     private TextView closeButton(String label) {
@@ -438,6 +468,14 @@ public final class ResultActivity extends Activity {
         body.addView(go, top(20));
     }
 
+    /** Every slot up to Jan 31 is recorded: nothing left to record. */
+    private void showFinished() {
+        body.removeAllViews();
+        body.addView(Ui.title(this, "日程已经全部结束"));
+        body.addView(Ui.body(this, "1月31日之前的时段都记录完了，没有要记录的事了。"), top(8));
+        body.addView(closeButton("好的"), top(20));
+    }
+
     private void showAlreadyRecorded() {
         header(null);
         body.addView(Ui.title(this, "这一项已经记录过了"), top(12));
@@ -451,10 +489,76 @@ public final class ResultActivity extends Activity {
         body.addView(closeButton("关闭"), top(20));
     }
 
+    // ------------------------------------------------------------------ shared panel parts
+
+    /**
+     * The step's how-to ("怎么做", collapsible) and its "顺便" side steps with the
+     * "顺便的事也做了" checkbox, placed above the panel's buttons.
+     */
+    private void stepExtras(Plan.Step step, boolean howToOpen, boolean sideDoneByDefault) {
+        if (StepViews.hasHowTo(step)) {
+            body.addView(StepViews.howToSection(this, step.detailZh, true, howToOpen), top(10));
+        }
+        addSide(step, sideDoneByDefault);
+    }
+
+    /** "顺便：…" lines and the checkbox (only for steps that have side steps). */
+    private void addSide(Plan.Step step, boolean doneByDefault) {
+        if (!StepViews.hasSide(step)) {
+            return;
+        }
+        LinearLayout box = Ui.column(this);
+        box.setBackground(Ui.card(this).accent(Ui.col(this, R.color.ui_gold), Ui.dp(this, 4)));
+        Ui.pad(box, 16, 10, 12, 4);
+        box.addView(StepViews.sideBlock(this, step, 14));
+        sideRow = new CheckRow(this, "顺便的事也做了", doneByDefault);
+        LinearLayout.LayoutParams rp = Ui.matchWrap();
+        rp.topMargin = Ui.dp(this, 4);
+        box.addView(sideRow, rp);
+        body.addView(box, top(12));
+    }
+
+    /** Applies the side checkbox to an outcome (side steps count as done unless unchecked). */
+    private Outcome withSide(Plan.Step step, Outcome outcome) {
+        if (sideRow != null && StepViews.hasSide(step)) {
+            outcome.sideDone = sideRow.isChecked();
+        }
+        return outcome;
+    }
+
+    /** Index of the link a meeting / note is about, or -1. */
+    private int linkOf(Plan.Step step) {
+        Action action = Action.parse(rules, step.action);
+        if (action != null && (action.type == Action.Type.MEET || action.type == Action.Type.NOTE)
+            && action.target >= 0 && action.target < rules.links.length) {
+            return action.target;
+        }
+        Rules.Link link = step.entity == null ? null : rules.link(step.entity);
+        return link == null ? -1 : link.idx;
+    }
+
+    /**
+     * RANK before the meeting: the recorded rank (a record is only accepted at the observed slot),
+     * so a plan that lags behind never shifts the buttons.
+     */
+    private int rankBefore(Plan.Step step) {
+        int link = linkOf(step);
+        if (link >= 0 && link < snap.observed.rank.length) {
+            return snap.observed.rank[link];
+        }
+        return Math.max(0, step.predicted.rankFrom);
+    }
+
+    /** The visible prediction of this meeting still describes the recorded state. */
+    private boolean rankPredictionCurrent(Plan.Step step, int from) {
+        return predictionCurrent() && (step.predicted.rankFrom < 0 || step.predicted.rankFrom == from);
+    }
+
     // ------------------------------------------------------------------ result panels
 
     private void resultPanel(Plan.Step step) {
-        switch (StepKind.of(step)) {
+        StepKind kind = StepKind.of(step);
+        switch (kind) {
             case SOCIAL_RANK_UP:
                 socialRankUp(step);
                 break;
@@ -463,6 +567,12 @@ public final class ResultActivity extends Activity {
                 break;
             case UNLOCK:
                 unlockPanel(step);
+                break;
+            case NOTE:
+                notePanel(step);
+                break;
+            case EPISODE:
+                episodePanel(step);
                 break;
             case STAT:
             case JOB:
@@ -478,17 +588,17 @@ public final class ResultActivity extends Activity {
                 freePanel(step);
                 break;
         }
-        if (StepKind.of(step).deviatable() && StepKind.of(step) != StepKind.TOWER) {
-            body.addView(deviationLinks(step), top(14));
+        if (kind.deviatable() && kind != StepKind.TOWER) {
+            body.addView(deviationLinks(), top(14));
         }
     }
 
     private void socialRankUp(Plan.Step step) {
-        int from = Math.max(0, step.predicted.rankFrom);
-        int to = step.predicted.rankTo > 0 ? step.predicted.rankTo : from + 1;
-        body.addView(question("升到 " + Zh.rank(to) + " 了吗？"), top(4));
-        body.addView(Ui.mixed(this, "现在是 " + Zh.rank(from) + "，这次见面预计会升级。", 14,
-            Ui.col(this, R.color.p3r_ink_muted), false), top(2));
+        int from = rankBefore(step);
+        int to = Math.min(10, from + 1);
+        boolean current = rankPredictionCurrent(step, from);
+        body.addView(question("升到 " + Zh.rank(to) + " 了吗？"), top(14));
+        body.addView(note("现在是 " + Zh.rank(from) + "，这次见面预计会升级。"), top(2));
         String dialogue = Dialogue.line(rules, step);
         if (dialogue != null) {
             body.addView(Ui.body(this, dialogue), top(6));
@@ -496,51 +606,60 @@ public final class ResultActivity extends Activity {
         if (!step.predicted.certain) {
             body.addView(Ui.muted(this, "升级是按估计排的，结果以游戏为准。"), top(4));
         }
-        ToggleRow ready = new ToggleRow(this, "游戏提示下次可升级", "没升级但看到了提示时打开。", false);
-        TextView up = Ui.primary(this, "已升到 " + Zh.rank(to));
-        up.setOnClickListener(v -> submit(step, Outcomes.asPredicted(step)));
+        stepExtras(step, false, true);
+        ToggleRow ready = readyToggle();
+        body.addView(ready, top(12));
+        TextView up = Ui.primary(this, "升到 " + Zh.rank(to) + " 了");
+        // A matching current prediction is recorded as such (the plan stays valid); otherwise the
+        // player's answer is recorded explicitly.
+        up.setOnClickListener(v -> submit(step, current ? Outcomes.asPredicted(step) : Outcomes.rankUp(to)));
         TextView no = Ui.secondary(this, "没升级");
         no.setOnClickListener(v -> submit(step, Outcomes.noRankUp(from, ready.isChecked())));
+        LinearLayout more = otherResults(step, from, ready);
+        more.setVisibility(View.GONE);
         if (step.predicted.certain) {
-            body.addView(up, top(18));
+            body.addView(up, top(16));
             TextView other = Ui.secondary(this, "其他结果…");
             body.addView(pair(no, other), top(12));
-            LinearLayout more = otherResults(step, from, ready);
-            more.setVisibility(View.GONE);
-            other.setOnClickListener(v -> more.setVisibility(more.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
-            body.addView(more, top(4));
+            other.setOnClickListener(v -> toggle(more));
         } else {
-            body.addView(pair(no, up), top(18));
+            body.addView(pair(no, up), top(16));
             TextView other = Ui.quiet(this, "其他结果…");
             body.addView(other, top(6));
-            LinearLayout more = otherResults(step, from, ready);
-            more.setVisibility(View.GONE);
-            other.setOnClickListener(v -> more.setVisibility(more.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
-            body.addView(more, top(4));
+            other.setOnClickListener(v -> toggle(more));
         }
-        body.addView(ready, top(12));
+        body.addView(more, top(4));
+    }
+
+    private ToggleRow readyToggle() {
+        return new ToggleRow(this, "游戏提示下次就能升级", "没升级，但游戏提示下次就能升级时打开。", false);
+    }
+
+    private static void toggle(View view) {
+        view.setVisibility(view.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
     }
 
     /** "其他结果…": rank chips around the current rank, 没见到, and the story-hold answer. */
     private LinearLayout otherResults(Plan.Step step, int from, ToggleRow ready) {
         LinearLayout box = Ui.column(this);
-        box.addView(Ui.text(this, "游戏里现在是？", 14, Ui.col(this, R.color.p3r_white), true), top(10));
+        box.addView(Ui.text(this, "游戏里现在是 RANK 几？", 14, Ui.col(this, R.color.p3r_white), true), top(10));
         FlowLayout chips = new FlowLayout(this, 8, 8);
         for (int r = Math.max(0, from - 1); r <= Math.min(10, from + 2); r++) {
             final int rank = r;
-            TextView chip = Ui.chip(this, r == 0 ? "未建立" : Zh.rank(r), r == from);
+            TextView chip = Ui.chip(this, Zh.rank(r), r == from);
             chip.setOnClickListener(v -> submit(step, Outcomes.observedRank(from, rank, ready.isChecked())));
             chips.addView(chip);
         }
         box.addView(chips, top(6));
         LinearLayout row = Ui.row(this);
+        row.setBaselineAligned(false);
         TextView absent = Ui.secondary(this, "没见到");
         absent.setOnClickListener(v -> submit(step, Outcomes.notMet()));
-        TextView hold = Ui.secondary(this, "游戏提示暂时无法升级");
+        TextView hold = Ui.secondary(this, "剧情原因暂时升不了");
         hold.setTextSize(14);
         hold.setOnClickListener(v -> submit(step, Outcomes.hold()));
-        row.addView(absent, Ui.weight(1));
-        LinearLayout.LayoutParams hp = Ui.weight(1.5f);
+        row.addView(absent, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1));
+        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1.5f);
         hp.leftMargin = Ui.dp(this, 12);
         row.addView(hold, hp);
         box.addView(row, top(12));
@@ -548,53 +667,102 @@ public final class ResultActivity extends Activity {
     }
 
     private void socialMeet(Plan.Step step) {
-        int from = Math.max(0, step.predicted.rankFrom);
-        body.addView(question("完成会面了吗？"), top(4));
-        body.addView(Ui.mixed(this, "预计这次不升级，" + Zh.rank(from) + " 继续积累点数。", 14,
-            Ui.col(this, R.color.p3r_ink_muted), false), top(4));
+        int from = rankBefore(step);
+        int to = Math.min(10, from + 1);
+        boolean current = rankPredictionCurrent(step, from);
+        int link = linkOf(step);
+        String who = link >= 0 ? rules.links[link].personZh : Outcomes.shortName(rules, step);
+        body.addView(question("和" + who + "见面了吗？"), top(14));
+        body.addView(note("预计这次不会升级，好感会继续累积（现在 " + Zh.rank(from) + "）。"), top(4));
         String dialogue = Dialogue.line(rules, step);
         if (dialogue != null) {
             body.addView(Ui.body(this, dialogue), top(6));
         }
-        ToggleRow ready = new ToggleRow(this, "游戏提示下次可升级", "会面后看到可以升级的提示时打开。", false);
-        TextView met = Ui.primary(this, "完成会面");
-        met.setOnClickListener(v -> submit(step, Outcomes.met(step, ready.isChecked())));
-        body.addView(met, top(18));
-        TextView up = Ui.secondary(this, "升级了！→ " + Zh.rank(Math.min(10, from + 1)));
-        up.setOnClickListener(v -> submit(step, Outcomes.rankUp(Math.min(10, from + 1))));
+        stepExtras(step, false, true);
+        ToggleRow ready = readyToggle();
+        body.addView(ready, top(12));
+        TextView met = Ui.primary(this, "见面了");
+        met.setOnClickListener(v -> submit(step, current ? Outcomes.met(step, ready.isChecked())
+            : Outcomes.noRankUp(from, ready.isChecked())));
+        body.addView(met, top(16));
+        TextView up = Ui.secondary(this, "升到 " + Zh.rank(to) + " 了");
+        up.setOnClickListener(v -> submit(step, Outcomes.rankUp(to)));
         TextView absent = Ui.secondary(this, "没见到");
         absent.setOnClickListener(v -> submit(step, Outcomes.notMet()));
         body.addView(pair(up, absent), top(12));
-        body.addView(ready, top(12));
-        TextView hold = Ui.quiet(this, "游戏提示暂时无法升级");
+        TextView hold = Ui.quiet(this, "剧情原因暂时升不了");
         hold.setOnClickListener(v -> submit(step, Outcomes.hold()));
         body.addView(hold, top(4));
     }
 
     private void unlockPanel(Plan.Step step) {
-        body.addView(question(step.subtitleZh == null || step.subtitleZh.isEmpty() ? "完成了吗？" : step.subtitleZh), top(4));
-        if (step.whyZh != null) {
-            body.addView(Ui.mixed(this, step.whyZh, 14, Ui.col(this, R.color.p3r_ink_muted), false), top(4));
+        String sub = step.subtitleZh == null || step.subtitleZh.isEmpty() ? null : step.subtitleZh;
+        body.addView(question(sub == null ? "完成了吗？" : sub + "，完成了吗？"), top(14));
+        if (step.whyZh != null && !step.whyZh.isEmpty()) {
+            body.addView(note(step.whyZh), top(4));
         }
-        TextView done = Ui.primary(this, "已完成");
-        done.setOnClickListener(v -> submit(step, Outcomes.asPredicted(step)));
+        stepExtras(step, true, true);
+        TextView done = Ui.primary(this, "完成了");
+        done.setOnClickListener(v -> submit(step, Outcomes.asPredicted(step, predictionCurrent())));
         TextView notDone = Ui.secondary(this, "没完成");
         notDone.setOnClickListener(v -> submit(step, Outcomes.notDone()));
-        body.addView(pair(notDone, done), top(18));
+        body.addView(pair(notDone, done), top(16));
+    }
+
+    /** 结缘网站的字条: bought at the club and used on the dorm PC for one established link. */
+    private void notePanel(Plan.Step step) {
+        int link = linkOf(step);
+        String who = link >= 0 ? rules.links[link].personZh : Outcomes.shortName(rules, step);
+        body.addView(question("用结缘网站的字条给" + who + "加好感了吗？"), top(14));
+        body.addView(note("字条只加好感，不会直接升级。"), top(4));
+        stepExtras(step, true, true);
+        TextView used = Ui.primary(this, "用了");
+        used.setOnClickListener(v -> submit(step, Outcomes.asPredicted(step, false)));
+        TextView not = Ui.secondary(this, "没买到/没用");
+        not.setOnClickListener(v -> submit(step, Outcomes.notDone()));
+        body.addView(pair(not, used), top(16));
+    }
+
+    /** The next 羁绊剧情 of an opted-in track. */
+    private void episodePanel(Plan.Step step) {
+        Rules.Episode track = Outcomes.episodeOf(rules, step);
+        String what;
+        if (track != null) {
+            int watched = track.idx < snap.observed.episodes.length ? snap.observed.episodes[track.idx] : 0;
+            what = "羁绊剧情 · " + track.personZh + " 第 " + Math.min(track.count, watched + 1) + " 话";
+        } else {
+            what = SlotRows.title(rules, step);
+        }
+        body.addView(question("看完" + what + "了吗？"), top(14));
+        String reward = track != null && track.rewardZh != null && !track.rewardZh.isEmpty()
+            ? "看完全部能拿到" + track.rewardZh + "。" : "";
+        body.addView(note("羁绊剧情不加社群点数。" + reward), top(4));
+        stepExtras(step, true, true);
+        TextView watched = Ui.primary(this, "看完了");
+        watched.setOnClickListener(v -> submit(step, Outcomes.asPredicted(step, false)));
+        TextView missed = Ui.secondary(this, "没看成");
+        missed.setOnClickListener(v -> submit(step, Outcomes.notDone()));
+        body.addView(pair(missed, watched), top(16));
     }
 
     private void statJobPanel(Plan.Step step) {
         StepKind kind = StepKind.of(step);
-        body.addView(question(expectedText(step)), top(4));
-        TextView asPlanned = Ui.primary(this, "按预期完成");
-        asPlanned.setContentDescription("按预期完成：" + expectedText(step));
-        asPlanned.setOnClickListener(v -> submit(step, Outcomes.asPredicted(step)));
-        body.addView(asPlanned, top(18));
-        TextView differ = Ui.secondary(this, "结果不同…");
+        body.addView(question("完成了吗？"), top(14));
+        String expected = expectedText(step);
+        if (expected != null) {
+            body.addView(Ui.mixed(this, "预计 " + expected, 17, Ui.col(this, R.color.p3r_white), true), top(4));
+        }
+        stepExtras(step, false, true);
+        boolean current = predictionCurrent();
+        TextView asPlanned = Ui.primary(this, "完成了，和预计一样");
+        asPlanned.setContentDescription("完成了，和预计一样" + (expected == null ? "" : "：" + expected));
+        asPlanned.setOnClickListener(v -> submit(step, Outcomes.asPredicted(step, current)));
+        body.addView(asPlanned, top(16));
+        TextView differ = Ui.secondary(this, "结果不一样…");
         body.addView(differ, top(12));
         LinearLayout more = Ui.column(this);
         more.setVisibility(View.GONE);
-        differ.setOnClickListener(v -> more.setVisibility(more.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
+        differ.setOnClickListener(v -> toggle(more));
         SimState obs = snap.observed;
         int[] chosen = {-1, -1, -1};
         long[] balance = {-1};
@@ -608,7 +776,8 @@ public final class ResultActivity extends Activity {
             }
             any = true;
             int now = rules.stats[i].levelFor(obs.statPts[i]);
-            more.addView(Ui.text(this, rules.stats[i].zh + " 现在是？", 14, Ui.col(this, R.color.p3r_white), true), top(10));
+            more.addView(Ui.text(this, "现在" + rules.stats[i].zh + "是几级？", 14, Ui.col(this, R.color.p3r_white), true),
+                top(10));
             List<String> labels = new ArrayList<>();
             List<Integer> values = new ArrayList<>();
             for (int lv = now; lv <= Math.min(6, now + 1); lv++) {
@@ -617,18 +786,21 @@ public final class ResultActivity extends Activity {
             }
             SegmentedControl seg = new SegmentedControl(this, labels);
             final int stat = i;
-            // Preselect the current level: saving unchanged means "done, but no level-up".
-            seg.setSelected(0);
-            chosen[stat] = now;
+            // Preselect the forecast level (the prediction), never silently "no level-up".
+            int predicted = current ? step.predicted.statLvAfter[i] : -1;
+            int preset = predicted > 0 && values.contains(predicted) ? values.indexOf(predicted) : 0;
+            seg.setSelected(preset);
+            chosen[stat] = values.get(preset);
             seg.setListener(index -> chosen[stat] = values.get(index));
             more.addView(seg, top(6));
         }
         if (kind == StepKind.JOB) {
-            more.addView(Ui.text(this, "现在的余额", 14, Ui.col(this, R.color.p3r_white), true), top(any ? 14 : 10));
+            more.addView(Ui.text(this, "打工后手上有多少钱？", 14, Ui.col(this, R.color.p3r_white), true),
+                top(any ? 14 : 10));
             TextView amount = Ui.secondary(this, "点这里输入");
             amount.setOnClickListener(v -> {
                 CashPad.Options options = new CashPad.Options();
-                options.title = "打工后的现在余额";
+                options.title = "打工后手上有多少钱？";
                 options.initial = obs.cashExact ? obs.cash + step.predicted.cashDelta : null;
                 options.allowUnknown = false;
                 CashPad.show(this, options, value -> {
@@ -655,7 +827,7 @@ public final class ResultActivity extends Activity {
         return false;
     }
 
-    /** "学力 +2" / "+2,500 日元 · 魅力 +1". */
+    /** "学力 +2" / "+2,500 日元 · 魅力 +1", or null when nothing is predicted. */
     private String expectedText(Plan.Step step) {
         if (step.subtitleZh != null && !step.subtitleZh.isEmpty()) {
             return step.subtitleZh;
@@ -669,7 +841,7 @@ public final class ResultActivity extends Activity {
                 parts.add(rules.stats[i].zh + " +" + step.predicted.statDelta[i]);
             }
         }
-        return parts.isEmpty() ? "完成了吗？" : String.join(" · ", parts);
+        return parts.isEmpty() ? null : String.join(" · ", parts);
     }
 
     private void towerPanel(Plan.Step step) {
@@ -687,11 +859,27 @@ public final class ResultActivity extends Activity {
             String visits = "本区块第 " + (obs.towerVisits[block] + 1) + " 次 · 上限 " + profile.towerCapPerBlock + " 次";
             body.addView(Ui.mixed(this, visits, 13, Ui.col(this, R.color.p3r_ink_muted), false), top(2));
         }
+        if (StepViews.hasHowTo(step)) {
+            body.addView(StepViews.howToSection(this, step.detailZh, true, false), top(10));
+        }
+        boolean sideRecordable = Outcomes.towerSideSupported();
+        if (sideRecordable) {
+            addSide(step, true);
+        } else if (StepViews.hasSide(step)) {
+            body.addView(StepViews.sideBlock(this, step, 14), top(10));
+        }
         towerPanel = new TowerPanel(this, rules, obs, step.slot, block, null, false, rememberedLevel,
             new TowerPanel.Listener() {
                 @Override
                 public void onSave(PlannerApi.TowerReturn tower, String summaryZh) {
-                    submitTower(step, tower, summaryZh);
+                    String summary = summaryZh;
+                    if (sideRow != null) {
+                        Outcomes.setTowerSideDone(tower, sideRow.isChecked());
+                        if (!sideRow.isChecked()) {
+                            summary += " · 顺便的事没做";
+                        }
+                    }
+                    submitTower(tower, summary);
                 }
 
                 @Override
@@ -709,7 +897,7 @@ public final class ResultActivity extends Activity {
     }
 
     private void lockedPanel(Plan.Step step) {
-        String sub = step.subtitleZh == null || step.subtitleZh.isEmpty() ? "这个时段由剧情安排。" : step.subtitleZh;
+        String sub = step.subtitleZh == null || step.subtitleZh.isEmpty() ? "这段时间不能自由行动。" : step.subtitleZh;
         body.addView(Ui.body(this, sub), top(6));
         TextView go = Ui.primary(this, "继续");
         go.setOnClickListener(v -> submit(step, Outcomes.asPredicted(step)));
@@ -717,13 +905,13 @@ public final class ResultActivity extends Activity {
     }
 
     private void freePanel(Plan.Step step) {
-        body.addView(Ui.body(this, "这个时段没有能推进进度的安排。想做点什么，可以点「改做别的」。"), top(6));
+        body.addView(Ui.body(this, "这个时段是自由活动，没有能推进进度的事。想做点什么，可以点「改做别的…」。"), top(10));
         TextView go = Ui.primary(this, "继续");
         go.setOnClickListener(v -> submit(step, Outcomes.asPredicted(step)));
         body.addView(go, top(18));
     }
 
-    private View deviationLinks(Plan.Step step) {
+    private View deviationLinks() {
         LinearLayout row = Ui.row(this);
         TextView cannot = Ui.quiet(this, "做不了");
         cannot.setOnClickListener(v -> {
@@ -732,7 +920,7 @@ public final class ResultActivity extends Activity {
             render();
         });
         row.addView(cannot, Ui.weight(1));
-        TextView other = Ui.quiet(this, "改做别的");
+        TextView other = Ui.quiet(this, "改做别的…");
         other.setOnClickListener(v -> switchToOther());
         row.addView(other, Ui.weight(1));
         return row;
@@ -751,15 +939,17 @@ public final class ResultActivity extends Activity {
     // ------------------------------------------------------------------ 做不了 / 改做别的
 
     private void cannotPanel(Plan.Step step) {
-        body.addView(question("这个时段没能按计划进行？"), top(4));
+        body.addView(question("这个时段没能照安排做？"), top(14));
         body.addView(Ui.muted(this, "选一个原因，这个时段就算过去了，后面会重新安排。"), top(4));
+        // Side steps of a slot that fell through are only counted when the player says so.
+        addSide(step, false);
         List<TextView> buttons = new ArrayList<>();
         for (String reason : Outcomes.SKIP_REASONS.keySet()) {
             TextView button = Ui.secondary(this, Outcomes.SKIP_REASONS.get(reason));
             button.setOnClickListener(v -> onSkipReason(step, reason));
             buttons.add(button);
         }
-        TextView other = Ui.secondary(this, "改做了别的…");
+        TextView other = Ui.secondary(this, "改做别的…");
         other.setTextColor(Ui.col(this, R.color.p3r_cyan_300));
         other.setOnClickListener(v -> switchToOther());
         buttons.add(other);
@@ -772,7 +962,7 @@ public final class ResultActivity extends Activity {
         if ("money".equals(reason)) {
             CashPad.Options options = new CashPad.Options();
             options.title = "现在有多少钱？";
-            options.hint = "填了余额，后面的花费会按实际的钱重新安排。";
+            options.hint = "填了现金，后面要花钱的事会按实际的钱重新安排。";
             options.initial = snap.observed.cashExact ? snap.observed.cash : null;
             CashPad.show(this, options, value -> submit(step, Outcomes.skipped(reason, value == null ? -1 : value)));
             return;
@@ -784,20 +974,22 @@ public final class ResultActivity extends Activity {
         submit(step, Outcomes.skipped(reason, -1));
     }
 
-    /** "以后不再安排「X」？" after 我不想做 on a training/job step. */
+    /** "以后还安排「X」吗？" after 我不想做 on a training/job step. */
     private void askExclude(Plan.Step step) {
+        boolean sideDone = sideRow != null && sideRow.isChecked();
         body.removeAllViews();
         header(step);
         body.addView(question("以后还安排「" + step.titleZh + "」吗？"), top(8));
         body.addView(Ui.muted(this, "选「以后不再安排」后，可以在「我的 → 规划设置」里恢复。"), top(4));
         TextView once = Ui.secondary(this, "只是这次");
-        once.setOnClickListener(v -> submit(step, Outcomes.skipped("unwilling", -1)));
+        once.setOnClickListener(v -> submit(step, Outcomes.withSide(Outcomes.skipped("unwilling", -1), sideDone)));
         TextView never = Ui.primary(this, "以后不再安排");
         never.setOnClickListener(v -> {
             String id = step.action.substring(4);
-            submitThen(step, Outcomes.skipped("unwilling", -1), () -> excludeActivity(id));
+            submitThen(step, Outcomes.withSide(Outcomes.skipped("unwilling", -1), sideDone), () -> excludeActivity(id));
         });
         body.addView(pair(once, never), top(18));
+        sideRow = null;
     }
 
     private void excludeActivity(String activityId) {
@@ -813,8 +1005,8 @@ public final class ResultActivity extends Activity {
     }
 
     private void otherPanel(Plan.Step planned) {
-        body.addView(question("这个时段做了什么？"), top(4));
-        body.addView(Ui.muted(this, "标着「原计划」的是规划认为最划算的一项。选你实际做的那件事，后面会照着重新安排。"), top(4));
+        body.addView(question("这个时段做了什么？"), top(14));
+        body.addView(Ui.muted(this, "标着「原安排」的是本来排的那项。选你实际做的事，后面会据此重新安排。"), top(4));
         List<Plan.Step> list = alternatives == null ? new ArrayList<>() : alternatives;
         if (list.isEmpty()) {
             body.addView(Ui.body(this, "这个时段没有其他能推进进度的事。"), top(12));
@@ -828,9 +1020,10 @@ public final class ResultActivity extends Activity {
             }
             body.addView(alternativeRow(alt, planned), top(6));
         }
-        TextView nothing = Ui.secondary(this, "做了别的事（不影响规划）");
+        TextView nothing = Ui.secondary(this, "做了列表以外的事（没有数值变化）");
         nothing.setTextSize(15);
-        nothing.setOnClickListener(v -> submit(planned, Outcomes.skipped(Outcomes.REASON_OTHER, -1)));
+        nothing.setOnClickListener(v -> submit(planned, Outcomes.withSide(
+            Outcomes.skipped(Outcomes.REASON_OTHER, -1), false)));
         body.addView(nothing, top(18));
     }
 
@@ -839,13 +1032,16 @@ public final class ResultActivity extends Activity {
             case SOCIAL_RANK_UP:
             case SOCIAL_MEET:
             case UNLOCK:
+            case NOTE:
                 return "社群";
             case STAT:
                 return "个人能力值";
             case JOB:
                 return "打工";
             case TOWER:
-                return "塔尔塔罗斯";
+                return "探索塔尔塔罗斯";
+            case EPISODE:
+                return "羁绊剧情";
             default:
                 return "其他";
         }
@@ -867,7 +1063,7 @@ public final class ResultActivity extends Activity {
         tp.leftMargin = Ui.dp(this, 12);
         row.addView(texts, tp);
         if (planned != null && alt.action.equals(planned.action)) {
-            TextView tag = Ui.text(this, "原计划", 11, Ui.col(this, R.color.p3r_navy_950), true);
+            TextView tag = Ui.text(this, "原安排", 11, Ui.col(this, R.color.p3r_navy_950), true);
             tag.setBackground(new SlantedPanelDrawable().fill(Ui.col(this, R.color.p3r_cyan_400)).skew(Ui.dp(this, 4)));
             Ui.pad(tag, 7, 1, 7, 1);
             row.addView(tag, Ui.wrap());
@@ -885,18 +1081,31 @@ public final class ResultActivity extends Activity {
 
     // ------------------------------------------------------------------ catch-up
 
-    private void catchUpPanel(Plan.Step target) {
-        SimState obs = snap.observed;
-        Plan plan = snap.plan;
+    /** Open slots before {@code target} that still need a record, in order (locked slots excluded). */
+    private List<Plan.Step> pendingBefore(int target) {
         List<Plan.Step> pending = new ArrayList<>();
-        for (int s = obs.slot; s < target.slot; s++) {
-            Plan.Step p = plan.at(s);
-            if (p != null && p.productive()) {
+        Plan plan = snap.plan;
+        for (int s = Slots.firstOpen(rules, snap.observed.slot); s < target; s = Slots.firstOpen(rules, s + 1)) {
+            Plan.Step p = plan == null ? null : plan.at(s);
+            if (p != null && !"locked".equals(p.kind)) {
                 pending.add(p);
             }
         }
+        return pending;
+    }
+
+    private void catchUpPanel(Plan.Step target) {
+        SimState obs = snap.observed;
+        Plan plan = snap.plan;
+        List<Plan.Step> pending = pendingBefore(target.slot);
         int count = pending.size();
-        body.addView(question(count == 0 ? "前面还有剧情时段没记录" : "前面还有 " + count + " 项没记录"), top(4));
+        body.addView(question(count == 0 ? "前面只剩剧情时段，确认一下就好" : "前面还有 " + count + " 项没记录"), top(14));
+        if (count == 0) {
+            TextView go = Ui.primary(this, "继续");
+            go.setOnClickListener(v -> catchUp(target.slot, true));
+            body.addView(go, top(18));
+            return;
+        }
         LinearLayout list = Ui.column(this);
         list.setBackground(Ui.card(this));
         Ui.pad(list, 14, 8, 12, 8);
@@ -912,50 +1121,62 @@ public final class ResultActivity extends Activity {
             list.addView(line);
             shown++;
         }
-        if (count > 0) {
-            body.addView(list, top(10));
-        }
-        TextView all = Ui.primary(this, "都按计划完成了");
+        body.addView(list, top(10));
+        TextView all = Ui.primary(this, "都照安排做完了");
         all.setOnClickListener(v -> catchUp(target.slot, true));
         body.addView(all, top(18));
         TextView each = Ui.secondary(this, "逐项核对");
         each.setOnClickListener(v -> {
             queueTarget = target.slot;
-            queueTotal = target.slot - obs.slot;
+            queueTotal = count;
             slot = obs.slot;
             Plan.Step first = plan.at(slot);
             actionKey = first == null ? null : first.action;
             render();
         });
-        TextView fromHere = Ui.secondary(this, "从这里开始");
-        fromHere.setContentDescription("前面的都没做，从这一项开始");
-        fromHere.setOnClickListener(v -> catchUp(target.slot, false));
-        body.addView(pair(each, fromHere), top(12));
-        body.addView(Ui.muted(this, "「从这里开始」表示前面的安排都没做。"), top(8));
+        TextView none = Ui.secondary(this, "前面的都没做");
+        none.setContentDescription("前面的都没做，从这一项开始");
+        none.setOnClickListener(v -> catchUp(target.slot, false));
+        body.addView(pair(each, none), top(12));
     }
 
-    /** Records every slot before {@code target} as planned (or as skipped), then shows the target. */
+    /**
+     * Records every open slot before {@code target} as planned (or as skipped), then shows the
+     * target. Locked slots are never sent: the store moves past them on its own, so the loop
+     * follows the store's observed slot after each record.
+     */
     private void catchUp(int target, boolean asPlanned) {
         setBusy(true);
         PlannerApi a = api;
+        Rules r = rules;
         Plan plan = snap.plan;
         int from = snap.observed.slot;
         long startRev = snap.stateRevision;
+        boolean current = snap.planCurrent;
         String planId = plan.planId;
         Async.run(this, () -> {
             long rev = startRev;
-            for (int s = from; s < target; s++) {
+            int s = Slots.firstOpen(r, from);
+            while (s < target) {
                 Plan.Step p = plan.at(s);
                 if (p == null) {
+                    break;
+                }
+                if ("locked".equals(p.kind)) {
+                    s = Slots.firstOpen(r, s + 1);
                     continue;
                 }
-                Outcome o = asPlanned || !p.productive() ? Outcomes.asPredicted(p) : Outcomes.skipped(Outcomes.REASON_OTHER, -1);
-                String id = CommandIds.of("catchup", rev, planId, s, p.action, o.code);
-                PlannerApi.Receipt r = a.recordOutcome(id, rev, s, p.action, o);
-                if (!r.ok) {
-                    return r;
+                Outcome o = asPlanned || !p.productive() ? Outcomes.asPredicted(p, current)
+                    : Outcomes.withSide(Outcomes.skipped(Outcomes.REASON_OTHER, -1), false);
+                String id = CommandIds.of("catchup", rev, planId, s, p.action, outcomeKey(o));
+                PlannerApi.Receipt receipt = a.recordOutcome(id, rev, s, p.action, o);
+                if (!receipt.ok) {
+                    return receipt;
                 }
-                rev = r.stateRevision;
+                rev = receipt.stateRevision;
+                PlannerApi.Snapshot now = a.snapshot();
+                int next = Slots.firstOpen(r, s + 1);
+                s = now.observed == null ? next : Math.max(next, now.observed.slot);
             }
             PlannerApi.Receipt done = new PlannerApi.Receipt();
             done.ok = true;
@@ -966,7 +1187,7 @@ public final class ResultActivity extends Activity {
             if (!receipt.ok) {
                 banner = Messages.receiptError(receipt);
             } else {
-                banner = asPlanned ? "已补记前面的安排。" : "前面的时段已跳过。";
+                banner = asPlanned ? "已补记前面的安排。" : "前面的时段记为没做。";
             }
             slot = target;
             reloadAndRoute();
@@ -987,6 +1208,7 @@ public final class ResultActivity extends Activity {
         if (busy) {
             return;
         }
+        withSide(step, outcome);
         setBusy(true);
         String summary = Outcomes.summary(rules, step, outcome);
         PlannerApi a = api;
@@ -997,7 +1219,7 @@ public final class ResultActivity extends Activity {
             receipt -> onReceipt(receipt, summary, after), error -> onFailure());
     }
 
-    private void submitTower(Plan.Step step, PlannerApi.TowerReturn tower, String summary) {
+    private void submitTower(PlannerApi.TowerReturn tower, String summary) {
         if (busy) {
             return;
         }
@@ -1005,7 +1227,7 @@ public final class ResultActivity extends Activity {
         PlannerApi a = api;
         long rev = snap.stateRevision;
         String id = CommandIds.of("tower", rev, tower.slot, tower.block, tower.floor, tower.balanceMode, tower.amount,
-            tower.level, tower.rescuedId);
+            tower.level, tower.rescuedId, sideRow == null || sideRow.isChecked());
         Async.run(this, () -> a.recordTower(id, rev, tower), receipt -> onReceipt(receipt, summary, null),
             error -> onFailure());
     }
@@ -1013,7 +1235,7 @@ public final class ResultActivity extends Activity {
     /** Stable key of an outcome's content, so different answers never share a command id. */
     static String outcomeKey(Outcome o) {
         return o.code + ":" + o.rank + ":" + o.readyCue + ":" + Arrays.toString(o.statLv) + ":" + o.cashBalance + ":"
-            + o.reason;
+            + o.reason + (o.sideDone ? "" : ":noside");
     }
 
     private void onReceipt(PlannerApi.Receipt receipt, String summary, Runnable after) {
@@ -1087,5 +1309,10 @@ public final class ResultActivity extends Activity {
 
     String bannerText() {
         return banner;
+    }
+
+    /** The "顺便的事也做了" checkbox of the current panel, or null (tests). */
+    CheckRow sideRow() {
+        return sideRow;
     }
 }

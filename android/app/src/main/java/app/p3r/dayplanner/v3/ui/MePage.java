@@ -10,8 +10,8 @@ import android.widget.TextView;
 import app.p3r.dayplanner.R;
 
 /**
- * 我的 tab: entry points to 同步现状, 完整修改状态, 规划设置, 记录历史, 备份与恢复, 规划说明,
- * 固定攻略, 添加桌面小组件 and 关于.
+ * 我的 tab: entry points to 同步现状, 逐项修改进度, 记录历史, 规划设置, 规划说明, 备份与恢复,
+ * 逐日攻略, 添加桌面小组件 and 关于.
  */
 final class MePage {
     /** Callbacks for the entries that need the activity. */
@@ -66,6 +66,8 @@ final class MePage {
         String status;
         if (!d.hasState()) {
             status = "还没有设置游戏进度";
+        } else if (Slots.finished(d.rules, d.observed())) {
+            status = "游戏进度：日程已经全部结束 · 已记录 " + d.snap.eventsSinceCheckpoint + " 条";
         } else {
             status = "游戏进度：" + Zh.slot(d.rules, d.currentSlot()) + " · 已记录 " + d.snap.eventsSinceCheckpoint + " 条";
         }
@@ -75,22 +77,22 @@ final class MePage {
         boolean has = d.hasState();
         column.addView(entry(R.drawable.ui_ic_sync, "同步现状", "离开一段时间后，对照游戏核对进度",
             has, () -> host.openState("sync")), spaced(4));
-        column.addView(entry(R.drawable.ui_ic_edit, has ? "完整修改状态" : "开始设置",
+        column.addView(entry(R.drawable.ui_ic_edit, has ? "逐项修改进度" : "开始设置",
             has ? "逐项修改日期、现金、个人能力值和社群" : "选目标并填写现在的游戏进度",
             true, () -> host.openState(has ? "edit" : "onboarding")), spaced(8));
         column.addView(entry(R.drawable.ui_ic_history, "记录历史", "撤销或修改之前的记录",
             has, actions::openHistory), spaced(8));
 
         column.addView(Ui.sectionHeader(c, "规划", null), spaced(16));
-        column.addView(entry(R.drawable.ui_ic_settings, "规划设置", "人格面具、魅力加成、进塔次数、现金余量",
+        column.addView(entry(R.drawable.ui_ic_settings, "规划设置", "人格面具、结缘网站的字条、进塔次数、留底现金",
             true, actions::openSettings), spaced(4));
-        column.addView(entry(R.drawable.ui_ic_info, "规划说明", "计划是怎么估算的、依据从哪里来",
+        column.addView(entry(R.drawable.ui_ic_info, "规划说明", "怎么排的、数据从哪来",
             true, actions::openExplain), spaced(8));
 
         column.addView(Ui.sectionHeader(c, "其他", null), spaced(16));
         column.addView(entry(R.drawable.ui_ic_backup, "备份与恢复", "导出全部记录，或从备份恢复",
             true, actions::openBackup), spaced(4));
-        column.addView(entry(R.drawable.ui_ic_guide, "固定攻略", "打开原来的逐日攻略和进度",
+        column.addView(entry(R.drawable.ui_ic_guide, "逐日攻略", "打开原来的攻略和进度",
             true, actions::openGuide), spaced(8));
         column.addView(entry(R.drawable.ui_ic_widget, "添加桌面小组件", "在桌面上看下一步，点「完成」直接记录",
             true, actions::addWidget), spaced(8));

@@ -14,7 +14,7 @@ import app.p3r.dayplanner.v3.model.Rules;
  */
 public final class LinkStatus {
     public final int link;
-    /** Rank the player confirmed (0 = 未建立). */
+    /** Rank the player confirmed (0 = 未解锁). */
     public final int observed;
     /** Forecast rank at the end of the plan. */
     public final int projected;

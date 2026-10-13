@@ -109,6 +109,53 @@ final class StepViews {
         return out;
     }
 
+    /** "怎么做 · 3 步" — the label of the how-to section. */
+    static String howToLabel(String detail) {
+        int n = howToLines(detail).size();
+        return n > 1 ? "怎么做 · " + n + " 步" : "怎么做";
+    }
+
+    /**
+     * The how-to as a section: a header and the numbered lines. With {@code collapsible} the header
+     * is a ≥ 48 dp toggle ("怎么做 · 3 步 ▾") that shows or hides the lines, starting {@code expanded}.
+     */
+    static View howToSection(Context c, String detail, boolean collapsible, boolean expanded) {
+        LinearLayout box = Ui.column(c);
+        View lines = howTo(c, detail, 14);
+        String label = howToLabel(detail);
+        if (!collapsible) {
+            box.addView(Ui.sectionHeader(c, label, null));
+            LinearLayout.LayoutParams lp = Ui.matchWrap();
+            lp.topMargin = Ui.dp(c, 6);
+            box.addView(lines, lp);
+            return box;
+        }
+        LinearLayout head = Ui.row(c);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.setMinimumHeight(Ui.dp(c, Ui.TOUCH));
+        head.setBackground(new SlantedPanelDrawable().fill(0).pressedFill(Ui.col(c, R.color.ui_cyan_faint)));
+        TextView title = Ui.mixed(c, label, 15, Ui.col(c, R.color.p3r_cyan_300), true);
+        head.addView(title, Ui.weight(1));
+        TextView arrow = Ui.text(c, expanded ? "收起" : "展开", 13, Ui.col(c, R.color.p3r_cyan_300), false);
+        head.addView(arrow, Ui.wrap());
+        head.setClickable(true);
+        head.setFocusable(true);
+        box.addView(head, Ui.matchWrap());
+        LinearLayout.LayoutParams lp = Ui.matchWrap();
+        lp.topMargin = Ui.dp(c, 2);
+        lp.bottomMargin = Ui.dp(c, 4);
+        box.addView(lines, lp);
+        lines.setVisibility(expanded ? View.VISIBLE : View.GONE);
+        head.setContentDescription(label + (expanded ? "，已展开" : "，已收起"));
+        head.setOnClickListener(v -> {
+            boolean open = lines.getVisibility() != View.VISIBLE;
+            lines.setVisibility(open ? View.VISIBLE : View.GONE);
+            arrow.setText(open ? "收起" : "展开");
+            head.setContentDescription(label + (open ? "，已展开" : "，已收起"));
+        });
+        return box;
+    }
+
     /** Numbered how-to ("怎么做"); a single line is shown as a plain paragraph. */
     static View howTo(Context c, String detail, float sp) {
         List<String> lines = howToLines(detail);

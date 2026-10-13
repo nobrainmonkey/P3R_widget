@@ -5,10 +5,12 @@ import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -36,6 +38,9 @@ import app.p3r.dayplanner.v3.widget.PlanWidget;
  * <p>Intents: {@link Intents#EXTRA_TAB} selects a tab; {@link Intents#EXTRA_OPEN_SLOT} opens the
  * detail sheet of that slot once data is loaded. Back closes the sheet first, then sub-pages,
  * then returns to 今天, then leaves. All planner calls run through {@link Async}.
+ *
+ * <p>The undo / message bar is drawn above every layer (tabs, sub-pages, sheets): above the tab
+ * bar normally, at the top while a sheet is open or when it would cover the 今天 hero buttons.
  */
 public final class HomeActivity extends Activity implements HomeHost, PlannerApi.Listener {
     static final int TAB_TODAY = 0;
@@ -152,8 +157,9 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent result) {
         super.onActivityResult(requestCode, resultCode, result);
+        // No UiData needed: after process death the result can arrive before the first load.
         if (requestCode == BackupPage.REQUEST_IMPORT && resultCode == RESULT_OK && result != null
-            && result.getData() != null && data != null) {
+            && result.getData() != null) {
             BackupPage.importFromUri(this, result.getData());
         }
     }
@@ -239,6 +245,10 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         schedule.bind(data);
         links.bind(data);
         me.bind(data);
+        if (undo.isShowing()) {
+            // The hero card may have moved: re-check that the bar does not cover its buttons.
+            root.post(this::placeUndo);
+        }
     }
 
     private void showLoadError() {
@@ -271,12 +281,6 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         loading.setGravity(Gravity.CENTER);
         contentFrame.addView(loading, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
-        undo = new UndoBar(this);
-        FrameLayout.LayoutParams undoParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
-        int m = Ui.dp(this, 12);
-        undoParams.setMargins(m, 0, m, m);
-        contentFrame.addView(undo, undoParams);
         column.addView(contentFrame, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
         tabBar = new SlantTabBar(this, new String[]{"今天", "日程", "社群", "我的"}, new int[]{
             R.drawable.ui_ic_tab_today, R.drawable.ui_ic_tab_schedule, R.drawable.ui_ic_tab_links, R.drawable.ui_ic_tab_me});
@@ -290,6 +294,12 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         sheets = new SheetHost(this);
         root.addView(sheets, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
+        undo = new UndoBar(this);
+        FrameLayout.LayoutParams undoParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+        int m = Ui.dp(this, 12);
+        undoParams.setMargins(m, 0, m, Ui.dp(this, 76));
+        root.addView(undo, undoParams);
         setContentView(root);
         EdgeToEdge.listen(root, (left, top, right, bottom, ime) -> {
             topInset = top;
@@ -300,7 +310,79 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             for (View page : pages) {
                 page.setPadding(left, top, right, 0);
             }
+            placeUndo();
         });
+    }
+
+    /**
+     * Puts the undo / message bar on top of every layer: above the tab bar on the tabs, near the
+     * bottom edge on sub-pages, at the top while a sheet is open (it would cover the sheet's
+     * buttons) and at the top on 今天 when it would cover the hero card's buttons.
+     */
+    void placeUndo() {
+        if (!undo.isShowing()) {
+            return;
+        }
+        int m = Ui.dp(this, 12);
+        int width = root.getWidth() > 0 ? root.getWidth() - 2 * m : getResources().getDisplayMetrics().widthPixels - 2 * m;
+        undo.measure(View.MeasureSpec.makeMeasureSpec(Math.max(0, width), View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int barHeight = undo.getMeasuredHeight();
+        boolean atTop;
+        int bottomMargin;
+        if (sheets.isShowing()) {
+            atTop = true;
+            bottomMargin = 0;
+        } else if (!pages.isEmpty()) {
+            atTop = false;
+            bottomMargin = bottomInset + m;
+        } else {
+            int tabHeight = tabBar.getHeight() > 0 ? tabBar.getHeight() : Ui.dp(this, 64) + bottomInset;
+            bottomMargin = tabHeight + m;
+            atTop = tab == TAB_TODAY && coversHeroButtons(bottomMargin, barHeight, m);
+        }
+        FrameLayout.LayoutParams p = (FrameLayout.LayoutParams) undo.getLayoutParams();
+        p.gravity = atTop ? Gravity.TOP : Gravity.BOTTOM;
+        p.topMargin = atTop ? topInset + m : 0;
+        p.bottomMargin = atTop ? 0 : bottomMargin;
+        p.leftMargin = m;
+        p.rightMargin = m;
+        undo.setLayoutParams(p);
+        undo.bringToFront();
+    }
+
+    /** True when the bar at the bottom would cover the hero buttons and at the top would not. */
+    private boolean coversHeroButtons(int bottomMargin, int barHeight, int m) {
+        View buttons = today.heroButtons();
+        Rect r = buttons == null || !buttons.isShown() ? null : boundsIn(buttons, root);
+        if (r == null || root.getHeight() <= 0) {
+            return false;
+        }
+        int barBottom = root.getHeight() - bottomMargin;
+        boolean coversBottom = r.bottom > barBottom - barHeight && r.top < barBottom;
+        int topY = topInset + m;
+        boolean coversTop = r.bottom > topY && r.top < topY + barHeight;
+        return coversBottom && !coversTop;
+    }
+
+    /** Bounds of {@code view} in {@code ancestor}'s coordinates (scrolling included), or null. */
+    static Rect boundsIn(View view, View ancestor) {
+        int x = 0;
+        int y = 0;
+        View v = view;
+        while (v != ancestor) {
+            x += v.getLeft() + Math.round(v.getTranslationX());
+            y += v.getTop() + Math.round(v.getTranslationY());
+            ViewParent parent = v.getParent();
+            if (!(parent instanceof View)) {
+                return null;
+            }
+            View p = (View) parent;
+            x -= p.getScrollX();
+            y -= p.getScrollY();
+            v = p;
+        }
+        return new Rect(x, y, x + view.getWidth(), y + view.getHeight());
     }
 
     @Override
@@ -310,6 +392,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             tabViews[i].setVisibility(i == tab ? View.VISIBLE : View.GONE);
         }
         tabBar.setSelectedTab(tab);
+        placeUndo();
     }
 
     int currentTab() {
@@ -365,13 +448,15 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         if (data == null || api == null) {
             return;
         }
-        Outcome outcome = Outcomes.asPredicted(step);
+        // A lagging plan's visible predictions (stat Lv) are left out: the engine works the result
+        // out from the latest record instead.
+        Outcome outcome = Outcomes.asPredicted(step, data.snap.planCurrent);
         String summary = Outcomes.summary(data.rules, step, outcome);
         String planId = data.plan() == null ? "" : data.plan().planId;
         PlannerApi target = api;
         Async.run(this, () -> {
             long rev = stateRevision.get();
-            String id = CommandIds.of("result", rev, planId, step.slot, step.action, outcome.code);
+            String id = CommandIds.of("result", rev, planId, step.slot, step.action, ResultActivity.outcomeKey(outcome));
             return target.recordOutcome(id, rev, step.slot, step.action, outcome);
         }, receipt -> {
             if (receipt.ok) {
@@ -387,6 +472,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     /** "已记录：… · 撤销". */
     void showUndo(long eventSeq, String summary) {
         undo.show("已记录：" + summary, eventSeq >= 0 ? "撤销" : null, () -> undoEvent(eventSeq, summary));
+        placeUndo();
     }
 
     private void undoEvent(long eventSeq, String summary) {
@@ -439,6 +525,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         pageLayer.addView(page, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
         pages.push(page);
+        placeUndo();
         if (Ui.animationsEnabled()) {
             page.setTranslationX(Ui.dp(this, 48));
             page.setAlpha(0f);
@@ -453,6 +540,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             return false;
         }
         pageLayer.removeView(page);
+        placeUndo();
         return true;
     }
 
@@ -463,7 +551,8 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
 
     @Override
     public void showSheet(View content) {
-        sheets.show(content, null);
+        sheets.show(content, this::placeUndo);
+        placeUndo();
     }
 
     @Override
@@ -526,6 +615,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     @Override
     public void showMessage(String text) {
         undo.show(text, null, null);
+        placeUndo();
     }
 
     @Override

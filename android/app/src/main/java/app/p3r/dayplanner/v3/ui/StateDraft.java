@@ -9,7 +9,7 @@ import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 
 /**
- * Editing model behind the state wizard (onboarding / 同步现状 / 完整修改).
+ * Editing model behind the state wizard (onboarding / 同步现状 / 修改进度).
  *
  * <p>Every field starts from a prefill — the last confirmed value, or in sync mode after "是" the
  * plan's forecast — and only edits are stored (null = untouched). {@link #build()} produces the
@@ -524,7 +524,7 @@ public final class StateDraft {
             case GOALS:
                 return "只给目标社群带";
             default:
-                return "不带或不一定";
+                return "不带/不一定";
         }
     }
 

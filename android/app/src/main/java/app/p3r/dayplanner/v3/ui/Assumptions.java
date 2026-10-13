@@ -67,18 +67,6 @@ public final class Assumptions {
         return out;
     }
 
-    /** Settings-page wording for each 人格面具 choice (also used on the confirm page). */
-    static String personaSummary(Profile.PersonaMode mode) {
-        switch (mode) {
-            case ALL:
-                return "基本都带，见面点数都按 ×1.51 算";
-            case GOALS:
-                return "只给目标社群带，目标社群按 ×1.51 算";
-            default:
-                return "不带或不一定，都按不带算";
-        }
-    }
-
     /** The global assumptions for the 规划说明 page, reflecting the player's settings. */
     public static List<String> global(Profile profile) {
         List<String> out = new ArrayList<>();

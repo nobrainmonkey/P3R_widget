@@ -178,10 +178,19 @@ final class BackupPage {
         Activity activity = host.activity();
         ConfirmDialog.show(activity, "用这份备份替换现在的记录？",
             "现在的目标、设置和全部记录都会被替换，替换后无法撤销。", "替换", () -> {
-                String id = CommandIds.of("import", json.length(), json.hashCode());
+                // Unique per confirmed restore of this state: a retry of the same tap stays idempotent,
+                // while restoring the same file again after any later record really replaces the data.
+                UiData d = host.data();
+                long stateRev = d == null || d.snap == null ? -1 : d.snap.stateRevision;
+                long profileRev = d == null || d.snap == null ? -1 : d.snap.profileRevision;
+                String id = CommandIds.of("import", stateRev, profileRev, json.length(), json.hashCode());
                 Async.run(activity, () -> Api.get(activity).importBackup(id, json), receipt -> {
                     host.dismissSheet();
-                    host.showMessage(receipt.ok ? "已从备份恢复。" : backupError(receipt));
+                    if (receipt.ok) {
+                        host.showMessage(receipt.duplicate ? "这份备份已经恢复过了，记录没有变化。" : "已从备份恢复。");
+                    } else {
+                        host.showMessage(backupError(receipt));
+                    }
                     host.reload();
                 }, error -> host.showMessage("恢复失败：备份内容无法识别。"));
             });
