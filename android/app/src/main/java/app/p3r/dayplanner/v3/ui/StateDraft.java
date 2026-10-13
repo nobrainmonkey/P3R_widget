@@ -49,6 +49,11 @@ public final class StateDraft {
     /** RANK value meaning "?" (not sure — keep what was stored). */
     public static final int UNKNOWN = -1;
 
+    /** How the first-run summary lists a link left at "?" (saved as 未解锁). */
+    public static final String UNSURE_RANK = "不确定（先按未解锁安排）";
+    /** Shown under a rescue the record says failed, while that answer is preselected. */
+    public static final String RECORDED_FAILURE_NOTE = "上次记录的结果，如果其实救出了请改。";
+
     /** One line of the confirmation diff ("皇帝 RANK 6 → 7"). */
     public static final class Change {
         public final String labelZh;
@@ -89,6 +94,8 @@ public final class StateDraft {
     final Integer[] rescue;
     /** 羁绊剧情 watched per track (index into {@code rules.episodes}), null = untouched. */
     final Integer[] episodes;
+    /** 平安夜 answer: null = untouched, "" = 都婉拒了, else the id of the link whose invitation was accepted. */
+    String christmas;
     String step;
 
     private int cachedPrefillSlot = Integer.MIN_VALUE;
@@ -106,18 +113,6 @@ public final class StateDraft {
         this.base = observed != null ? observed.copy() : newGame(rules);
         this.rescue = new Integer[rules.rescues.length];
         this.episodes = new Integer[rules.episodes.length];
-    }
-
-    /**
-     * A copy of {@code state} fit to be saved as a new checkpoint without asking about rescues:
-     * {@code rescueFailed} bits are dropped. Such a bit in an observed state may come from a
-     * deadline the replay passed without a recorded rescue, and a checkpoint stores it as the
-     * player's own "没救出" (PlannerApi#saveCheckpoint); only an answer given now may set it.
-     */
-    public static SimState withoutUnconfirmedFailures(SimState state) {
-        SimState s = state.copy();
-        s.rescueFailed = 0;
-        return s;
     }
 
     /** A new-game state at the first free slot: everything at the bottom, cash unknown. */
@@ -266,21 +261,29 @@ public final class StateDraft {
 
     /**
      * Displayed answer: the edit, else "救出了" when the record (or the forecast) says so, else
-     * "不确定". A "没救出" in the prefill is never preselected: it may only come from a deadline the
-     * replay passed without a recorded rescue, and saving it would make it the player's answer.
+     * "没救出" when the record says so (its window has closed), else "不确定". A recorded result is
+     * kept unless the player changes it here ({@link #build}).
      */
     public int rescueAnswer(int index) {
         if (rescue[index] != null) {
             return rescue[index];
         }
         long bit = 1L << index;
-        return (prefill().rescued & bit) != 0 ? RESCUE_DONE : RESCUE_UNSURE;
+        if ((prefill().rescued & bit) != 0) {
+            return RESCUE_DONE;
+        }
+        return recordSaysFailed(index) ? RESCUE_FAILED : RESCUE_UNSURE;
     }
 
-    /** True when the record says 没救出 for this rescue and the player has not answered here yet. */
+    /**
+     * True when the record says 没救出 for this rescue (its window has closed by the chosen date)
+     * and the player has not answered here yet: 没救出 is preselected with
+     * {@link #RECORDED_FAILURE_NOTE}.
+     */
     public boolean recordSaysFailed(int index) {
-        return rescue[index] == null && (prefill().rescueFailed & (1L << index)) != 0
-            && (prefill().rescued & (1L << index)) == 0;
+        long bit = 1L << index;
+        return rescue[index] == null && (base.rescueFailed & bit) != 0 && (prefill().rescued & bit) == 0
+            && !rescueOpen(index);
     }
 
     // ------------------------------------------------------------------ 羁绊剧情
@@ -330,6 +333,27 @@ public final class StateDraft {
 
     public void setRescue(int index, int answer) {
         rescue[index] = Math.max(RESCUE_UNSURE, Math.min(RESCUE_FAILED, answer));
+    }
+
+    // ------------------------------------------------------------------ 平安夜
+
+    /** The wizard asks about 12/24 from 12/20 on, and always in 修改进度. */
+    public boolean asksChristmas() {
+        return mode == Mode.EDIT || Rules.dayOf(slot()) >= ChristmasChoice.askFromDay();
+    }
+
+    /** Link id of the accepted 12/24 invitation (the edit, else the profile's), null = 都婉拒了. */
+    public String christmasLink() {
+        if (christmas != null) {
+            return christmas.isEmpty() ? null : christmas;
+        }
+        return profile.christmasLink;
+    }
+
+    /** Records the 平安夜 answer (null = 都婉拒了); it is saved with the profile. */
+    public void setChristmasLink(String linkId) {
+        christmas = linkId == null ? "" : linkId;
+        profile.christmasLink = linkId;
     }
 
     public String currentStep() {
@@ -438,22 +462,25 @@ public final class StateDraft {
         for (int i = 0; i < Math.min(3, rules.stats.length); i++) {
             int lv = statLv(i);
             if (lv != rules.stats[i].levelFor(p.statPts[i])) {
-                s.statPts[i] = rules.stats[i].thresholds[lv];
+                // Back to the recorded Lv (the forecast differed): the record's points stay.
+                boolean recorded = lv == rules.stats[i].levelFor(base.statPts[i]);
+                s.statPts[i] = recorded ? base.statPts[i] : rules.stats[i].thresholds[lv];
             }
         }
         for (Rules.Link link : rules.links) {
             int i = link.idx;
             int r = rank(i);
-            if (r == UNKNOWN) {
-                // "?" keeps the confirmed record, never the forecast shown after "是".
+            if (r == p.rank[i]) {
+                continue;
+            }
+            if (r == UNKNOWN || r == base.rank[i]) {
+                // "?" or the recorded RANK keeps the confirmed record (points, cue, unlock
+                // progress), never the forecast shown after "是".
                 s.rank[i] = base.rank[i];
                 s.pts[i] = base.pts[i];
                 s.ready[i] = base.ready[i];
                 s.unlockStep[i] = base.unlockStep[i];
                 s.lastStepDay[i] = base.lastStepDay[i];
-                continue;
-            }
-            if (r == p.rank[i]) {
                 continue;
             }
             s.rank[i] = r;
@@ -473,16 +500,19 @@ public final class StateDraft {
             s.towerVisits[b.idx] = towerVisits();
         }
         s.floor = floor();
-        // "没救出" is saved only when the player chose it on this run of the wizard: a failure in
-        // the prefill may come from a deadline the replay passed without a recorded rescue
-        // (PlannerApi#saveCheckpoint), so unanswered rescues go as "不确定" and the service infers.
-        s.rescueFailed = 0;
+        // A recorded result (救出了 / 没救出) stays unless the player changes it here; a window that
+        // is still open on the chosen date cannot have failed yet.
+        int day = Rules.dayOf(s.slot);
         for (int i = 0; i < rescue.length && i < 63; i++) {
+            long bit = 1L << i;
             if (rescue[i] == null) {
+                if (day <= rules.rescues[i].toDay) {
+                    s.rescueFailed &= ~bit;
+                }
                 continue;
             }
-            long bit = 1L << i;
             s.rescued &= ~bit;
+            s.rescueFailed &= ~bit;
             if (rescue[i] == RESCUE_DONE) {
                 s.rescued |= bit;
             } else if (rescue[i] == RESCUE_FAILED) {
@@ -506,9 +536,12 @@ public final class StateDraft {
         return s;
     }
 
-    /** The profile to save with the checkpoint (onboarding only), else null. */
+    /**
+     * The profile to save with the checkpoint: always on onboarding, otherwise only when it was
+     * changed here (the 平安夜 answer); else null.
+     */
     public Profile profileToSave() {
-        return mode == Mode.ONBOARDING ? profile : null;
+        return mode == Mode.ONBOARDING || profileChanged() ? profile : null;
     }
 
     /** What saving will change, compared with the confirmed record. */
@@ -563,6 +596,12 @@ public final class StateDraft {
         if (b != null && b.idx < before.towerVisits.length && before.towerVisits[b.idx] != after.towerVisits[b.idx]) {
             out.add(new Change(b.zh + " 已去", before.towerVisits[b.idx] + " 次", after.towerVisits[b.idx] + " 次"));
         }
+        String christmasBefore = originalProfile.christmasLink;
+        String christmasAfter = christmasLink();
+        if (christmasBefore == null ? christmasAfter != null : !christmasBefore.equals(christmasAfter)) {
+            out.add(new Change("平安夜", ChristmasChoice.answerText(rules, christmasBefore),
+                ChristmasChoice.answerText(rules, christmasAfter)));
+        }
         return out;
     }
 
@@ -587,12 +626,21 @@ public final class StateDraft {
         }
         out.add(new Change("个人能力值", null, stats.toString()));
         int established = 0;
-        for (int r : after.rank) {
-            if (r > 0) {
+        List<Integer> unsure = new ArrayList<>();
+        for (Rules.Link link : rules.links) {
+            if (rank(link.idx) == UNKNOWN) {
+                unsure.add(link.idx);
+            } else if (link.idx < after.rank.length && after.rank[link.idx] > 0) {
                 established++;
             }
         }
-        out.add(new Change("社群", null, established == 0 ? "都还没解锁" : "已解锁 " + established + " 个"));
+        String linksText = established > 0 ? "已解锁 " + established + " 个"
+            : unsure.isEmpty() ? "都还没解锁" : "没有确定已解锁的";
+        out.add(new Change("社群", null, linksText));
+        // "?" is saved as 未解锁 for now: say so for every such link, never silently.
+        for (int link : unsure) {
+            out.add(new Change(rules.links[link].arcanaZh, null, UNSURE_RANK));
+        }
         List<Integer> goals = LinkStatus.goalOrder(profile);
         out.add(new Change("目标", null, goals.isEmpty() ? "没有指定，所有社群尽量提升" : goalSummary(goals)));
         out.add(new Change("人格面具", null, personaShort(profile.effectivePersonaMode())));
@@ -603,6 +651,9 @@ public final class StateDraft {
         for (int track : episodeTracks()) {
             Rules.Episode e = rules.episodes[track];
             out.add(new Change(Outcomes.episodeName(e), null, episodesText(e, watched(rules, after, track))));
+        }
+        if (asksChristmas()) {
+            out.add(new Change("平安夜", null, ChristmasChoice.answerText(rules, christmasLink())));
         }
         return out;
     }
@@ -670,6 +721,9 @@ public final class StateDraft {
         towerVisits = other.towerVisits;
         System.arraycopy(other.rescue, 0, rescue, 0, Math.min(rescue.length, other.rescue.length));
         System.arraycopy(other.episodes, 0, episodes, 0, Math.min(episodes.length, other.episodes.length));
+        if (other.christmas != null) {
+            setChristmasLink(other.christmas.isEmpty() ? null : other.christmas);
+        }
         step = other.step;
         if (mode == Mode.ONBOARDING) {
             System.arraycopy(other.profile.tier, 0, profile.tier, 0, Profile.LINKS);

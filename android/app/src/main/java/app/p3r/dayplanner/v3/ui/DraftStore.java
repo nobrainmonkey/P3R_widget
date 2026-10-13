@@ -90,6 +90,10 @@ public final class DraftStore {
         if (prefs.contains(p + "others")) {
             draft.profile.otherLinks = prefs.getBoolean(p + "others", true);
         }
+        String christmas = prefs.getString(p + "christmas", null);
+        if (christmas != null) {
+            draft.setChristmasLink(christmas.isEmpty() ? null : christmas);
+        }
         if (rebased) {
             save(draft);
         }
@@ -140,6 +144,7 @@ public final class DraftStore {
             e.putString(p + "persona.mode", draft.profile.effectivePersonaMode().name());
             e.putBoolean(p + "others", draft.profile.otherLinks);
         }
+        putString(e, p + "christmas", draft.christmas);
         e.apply();
     }
 

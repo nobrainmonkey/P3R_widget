@@ -69,11 +69,12 @@ public final class NumeralSpan extends MetricAffectingSpan {
 
     private static boolean isLatinStart(char c) {
         return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
-            || c == '+' || c == '−' || c == '≈';
+            || c == '+' || c == '−' || c == '≈' || c == '×';
     }
 
+    /** Latin run characters; a word joiner (Zh#WJ) inside "RANK 7" does not split the run. */
     private static boolean isLatinPart(char c) {
         return isLatinStart(c) || c == ' ' || c == '.' || c == ',' || c == '/' || c == '→' || c == '-'
-            || c == '%' || c == ':' || c == '–';
+            || c == '%' || c == ':' || c == '–' || c == Zh.WJ;
     }
 }

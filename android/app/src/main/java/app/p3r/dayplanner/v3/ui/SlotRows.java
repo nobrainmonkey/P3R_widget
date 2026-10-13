@@ -16,6 +16,9 @@ final class SlotRows {
     /** Where a slot stands relative to the player's progress. */
     enum State { DONE, CURRENT, FUTURE }
 
+    /** Lock reason id of the 12/24 slots taken by an accepted invitation (shared contract). */
+    static final String CHRISTMAS_LOCK = "christmas_date";
+
     private SlotRows() {}
 
     /** Title for a step; story locks fall back to the rule pack's reason text. */
@@ -24,9 +27,14 @@ final class SlotRows {
             return step.titleZh;
         }
         if ("locked".equals(step.kind) && rules != null && step.action.startsWith("locked:")) {
-            String reason = rules.lockReasonsZh.get(step.action.substring(7));
+            String id = step.action.substring(7);
+            String reason = rules.lockReasonsZh.get(id);
             if (reason != null) {
                 return reason;
+            }
+            if (CHRISTMAS_LOCK.equals(id)) {
+                // An accepted 12/24 invitation (Profile.christmasLink) is not a lock of the pack.
+                return "平安夜约会";
             }
         }
         return "locked".equals(step.kind) ? "剧情" : "自由活动";

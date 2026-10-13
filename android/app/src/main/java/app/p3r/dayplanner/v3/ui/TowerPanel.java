@@ -20,8 +20,14 @@ import app.p3r.dayplanner.v3.service.PlannerApi;
  * question while a missing person can be saved. Used for new records and for corrections (which
  * never add a visit); a correction of a visit inside a rescue window asks the rescue question
  * again, preset from the record, so correcting the cash never drops a confirmed rescue.
+ *
+ * <p>A new record starts with an empty amount and 保存 disabled: the player types the amount, or
+ * taps 「不记得钱了」, which records a net change of 0 and says so. When the plan predicts the
+ * rescue on this visit, 「救出了」 is preselected.
  */
 final class TowerPanel extends LinearLayout {
+    /** Label of the "I don't remember the cash" action. */
+    static final String FORGOT = "不记得钱了";
     /** Panel callbacks. */
     interface Listener {
         void onSave(PlannerApi.TowerReturn tower, String summaryZh);
@@ -47,15 +53,19 @@ final class TowerPanel extends LinearLayout {
     /** Editing an earlier record: the cash before that visit is not known here. */
     private final boolean correction;
     private SegmentedControl rescueAnswer;
+    private final TextView forgotButton;
     private Long amount;
+    /** 「不记得钱了」: saved as a net change of 0. */
+    private boolean forgot;
     private boolean levelOn;
 
     /**
      * @param initial         values to edit (corrections), or null for a new record
      * @param rememberedLevel last protagonist level the player typed (read off the main thread)
+     * @param rescuePredicted the plan step predicts the rescue on this visit (new records)
      */
     TowerPanel(Context c, Rules rules, SimState observed, int slot, int block, PlannerApi.TowerReturn initial,
-               boolean correction, int rememberedLevel, Listener listener) {
+               boolean correction, int rememberedLevel, boolean rescuePredicted, Listener listener) {
         super(c);
         setOrientation(VERTICAL);
         this.rules = rules;
@@ -97,10 +107,30 @@ final class TowerPanel extends LinearLayout {
             .skew(Ui.dp(c, 10)));
         amountView.setClickable(true);
         amountView.setFocusable(true);
-        amountView.setOnClickListener(v -> openPad());
+        amountView.setOnClickListener(v -> {
+            if (forgot) {
+                forgot = false;
+                cashMode.setSelected(0);
+                render();
+            }
+            openPad();
+        });
         addView(amountView, spaced(c, 8));
         preview = Ui.mixed(c, "", 13, Ui.col(c, R.color.p3r_cyan_200), false);
         addView(preview, spaced(c, 6));
+        forgotButton = Ui.quiet(c, FORGOT);
+        forgotButton.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        forgotButton.setPadding(0, forgotButton.getPaddingTop(), 0, forgotButton.getPaddingBottom());
+        forgotButton.setContentDescription(FORGOT + "，现金按没变记");
+        forgotButton.setOnClickListener(v -> {
+            forgot = true;
+            amount = null;
+            // Neither cash field applies: the visit is saved as a net change of 0.
+            cashMode.setSelected(-1);
+            render();
+        });
+        forgotButton.setVisibility(correction ? GONE : VISIBLE);
+        addView(forgotButton, spaced(c, 2));
 
         boolean exactBefore = observed.cashExact || correction;
         cashMode.setSegmentEnabled(1, exactBefore);
@@ -108,12 +138,13 @@ final class TowerPanel extends LinearLayout {
             cashMode.setSelected(initial.balanceMode || !exactBefore ? 0 : 1);
             amount = initial.amount;
         } else {
+            // Nothing is assumed: the amount starts empty and 保存 waits for it (or 「不记得钱了」).
             cashMode.setSelected(0);
-            amount = observed.cashExact && !correction ? observed.cash : null;
+            amount = null;
         }
         cashMode.setListener(i -> {
-            boolean prefill = i == 0 && observed.cashExact && !correction;
-            amount = prefill ? Long.valueOf(observed.cash) : (i == 1 ? Long.valueOf(0L) : null);
+            forgot = false;
+            amount = correction && i == 1 ? Long.valueOf(0L) : null;
             render();
         });
 
@@ -121,7 +152,7 @@ final class TowerPanel extends LinearLayout {
         levelToggle.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         levelToggle.setPadding(0, levelToggle.getPaddingTop(), 0, levelToggle.getPaddingBottom());
         levelToggle.setOnClickListener(v -> setLevelOn(!levelOn));
-        addView(levelToggle, spaced(c, 12));
+        addView(levelToggle, spaced(c, correction ? 12 : 0));
         levelBox = Ui.column(c);
         int lastLevel = initial != null && initial.level != null ? initial.level : rememberedLevel;
         level = new Stepper(c, 1, 99, lastLevel);
@@ -135,8 +166,9 @@ final class TowerPanel extends LinearLayout {
         if (rescue != null) {
             addView(label(c, rescue.zh + "救出来了吗？"), spaced(c, 18));
             rescueAnswer = new SegmentedControl(c, Arrays.asList("救出了", correction ? "没救出" : "还没"));
+            // Preset: the record (corrections), else the plan's prediction for this visit.
             boolean saved = initial != null ? rescue.id.equals(initial.rescuedId)
-                : correction && rescuedBit(rules, observed, rescue);
+                : correction ? rescuedBit(rules, observed, rescue) : rescuePredicted;
             rescueAnswer.setSelected(saved ? 0 : 1);
             addView(rescueAnswer, spaced(c, 6));
         }
@@ -230,6 +262,7 @@ final class TowerPanel extends LinearLayout {
         CashPad.show(getContext(), options, value -> {
             if (value != null) {
                 amount = value;
+                forgot = false;
                 render();
             }
         });
@@ -237,7 +270,11 @@ final class TowerPanel extends LinearLayout {
 
     private void render() {
         Context c = getContext();
-        if (amount == null) {
+        if (forgot) {
+            amountView.setText(FORGOT);
+            amountView.setTextSize(16);
+            amountView.setTextColor(Ui.col(c, R.color.p3r_ice_100));
+        } else if (amount == null) {
             amountView.setText("点这里输入");
             amountView.setTextSize(16);
             amountView.setTextColor(Ui.col(c, R.color.p3r_cyan_300));
@@ -248,15 +285,25 @@ final class TowerPanel extends LinearLayout {
             String sign = balanceMode() ? "" : (amount < 0 ? "−" : "+");
             amountView.setText(Ui.money(c, sign + number));
         }
-        amountView.setContentDescription((balanceMode() ? "出塔后余额 " : "这次多了 ")
+        amountView.setContentDescription(forgot ? FORGOT + "，点按输入" : (balanceMode() ? "出塔后余额 " : "这次多了 ")
             + (amount == null ? "未填写，点按输入" : Zh.yen(amount)));
         preview.setText(Ui.latin(c, previewText()));
-        save.setEnabled(amount != null);
-        save.setAlpha(amount != null ? 1f : 0.5f);
+        boolean ready = ready();
+        save.setEnabled(ready);
+        save.setAlpha(ready ? 1f : 0.5f);
+        forgotButton.setVisibility(correction || forgot ? GONE : VISIBLE);
+    }
+
+    /** 保存 is possible: an amount was typed, or the player said 「不记得钱了」. */
+    boolean ready() {
+        return amount != null || forgot;
     }
 
     /** "进塔前 8,200 → 出塔后 14,750 日元（+6,550）". */
     String previewText() {
+        if (forgot) {
+            return "不记得钱了：这次的现金按没变记（+0），之后可以在「记录历史」里改。";
+        }
         if (correction) {
             if (amount == null) {
                 return "填写这次探索后的现金。";
@@ -281,17 +328,17 @@ final class TowerPanel extends LinearLayout {
         return (v < 0 ? "−" : "+") + Zh.number(Math.abs(v));
     }
 
-    /** The return as entered (null amount → not ready). */
+    /** The return as entered (null when not ready); 「不记得钱了」 is a net change of 0. */
     PlannerApi.TowerReturn value() {
-        if (amount == null) {
+        if (!ready()) {
             return null;
         }
         PlannerApi.TowerReturn t = new PlannerApi.TowerReturn();
         t.slot = slot;
         t.block = block;
         t.floor = floor.getValue();
-        t.balanceMode = balanceMode();
-        t.amount = amount;
+        t.balanceMode = !forgot && balanceMode();
+        t.amount = forgot ? 0L : amount;
         t.level = levelOn ? level.getValue() : null;
         t.rescuedId = rescue != null && rescueAnswer.getSelected() == 0 ? rescue.id : null;
         return t;
@@ -309,6 +356,9 @@ final class TowerPanel extends LinearLayout {
         if (t.rescuedId != null && rescue != null) {
             summary += " · 救出" + rescue.zh;
         }
+        if (forgot) {
+            summary += " · 现金按没变记";
+        }
         listener.onSave(t, summary);
     }
 
@@ -320,6 +370,7 @@ final class TowerPanel extends LinearLayout {
         if (amount != null) {
             b.putLong("amount", amount);
         }
+        b.putBoolean("forgot", forgot);
         b.putBoolean("levelOn", levelOn);
         b.putInt("level", level.getValue());
         if (rescueAnswer != null) {
@@ -335,6 +386,7 @@ final class TowerPanel extends LinearLayout {
         floor.setValue(b.getInt("floor", floor.getValue()));
         cashMode.setSelected(b.getInt("mode", 0));
         amount = b.containsKey("amount") ? b.getLong("amount") : null;
+        forgot = b.getBoolean("forgot", false);
         level.setValue(b.getInt("level", level.getValue()));
         setLevelOn(b.getBoolean("levelOn", false));
         if (rescueAnswer != null) {
@@ -345,8 +397,17 @@ final class TowerPanel extends LinearLayout {
 
     /** Test hook: sets the amount as if typed on the keypad. */
     void setAmountForTest(long value) {
+        if (forgot || cashMode.getSelected() < 0) {
+            cashMode.setSelected(0);
+        }
         amount = value;
+        forgot = false;
         render();
+    }
+
+    /** The rescue question's answer: 0 = 救出了, 1 = 还没/没救出, -1 when not asked (tests). */
+    int rescueSelection() {
+        return rescueAnswer == null ? -1 : rescueAnswer.getSelected();
     }
 
     SegmentedControl cashModeControl() {

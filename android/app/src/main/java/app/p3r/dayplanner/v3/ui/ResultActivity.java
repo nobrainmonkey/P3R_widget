@@ -254,6 +254,7 @@ public final class ResultActivity extends Activity {
         }, l -> {
             api = l.api;
             rules = l.rules;
+            Zh.useNames(rules);
             snap = l.snapshot;
             rememberedLevel = l.level;
             route();
@@ -455,7 +456,7 @@ public final class ResultActivity extends Activity {
         LinearLayout row = Ui.row(this);
         row.setBaselineAligned(false);
         for (TextView button : new TextView[]{left, right}) {
-            if (button.getText().length() > 6) {
+            if (Zh.plain(button.getText()).length() > 6) {
                 button.setTextSize(15);
                 Ui.pad(button, 10, 8, 10, 8);
             }
@@ -640,7 +641,7 @@ public final class ResultActivity extends Activity {
         boolean current = rankPredictionCurrent(step, from);
         body.addView(question("升到 " + Zh.rank(to) + " 了吗？"), top(14));
         body.addView(note("现在是 " + Zh.rank(from) + "，这次见面预计会升级。"), top(2));
-        String dialogue = Dialogue.line(rules, step);
+        String dialogue = Dialogue.line(rules, snap.profile, step);
         if (dialogue != null) {
             body.addView(Ui.body(this, dialogue), top(6));
         }
@@ -715,7 +716,7 @@ public final class ResultActivity extends Activity {
         String who = link >= 0 ? rules.links[link].personZh : Outcomes.shortName(rules, step);
         body.addView(question("和" + who + "见面了吗？"), top(14));
         body.addView(note("现在是 " + Zh.rank(from) + "，预计这次不会升级，好感会继续累积。"), top(4));
-        String dialogue = Dialogue.line(rules, step);
+        String dialogue = Dialogue.line(rules, snap.profile, step);
         if (dialogue != null) {
             body.addView(Ui.body(this, dialogue), top(6));
         }
@@ -918,8 +919,9 @@ public final class ResultActivity extends Activity {
         if (!sub.isEmpty()) {
             body.addView(Ui.mixed(this, sub, 15, Ui.col(this, R.color.p3r_cyan_300), true), top(8));
         }
-        if (block >= 0 && block < obs.towerVisits.length) {
-            String visits = "本区块第 " + (obs.towerVisits[block] + 1) + " 次 · 上限 " + profile.towerCapPerBlock + " 次";
+        if (block >= 0 && block < obs.towerVisits.length && block < rules.blocks.length) {
+            String visits = "本区块第 " + (obs.towerVisits[block] + 1) + " 次 · 上限 "
+                + profile.capFor(rules.blocks[block].id) + " 次";
             body.addView(Ui.mixed(this, visits, 13, Ui.col(this, R.color.p3r_ink_muted), false), top(2));
         }
         if (StepViews.hasHowTo(step)) {
@@ -932,7 +934,7 @@ public final class ResultActivity extends Activity {
             body.addView(StepViews.sideBlock(this, step, 14), top(10));
         }
         towerPanel = new TowerPanel(this, rules, obs, step.slot, block, null, false, rememberedLevel,
-            new TowerPanel.Listener() {
+            predictsRescue(rules, step), new TowerPanel.Listener() {
                 @Override
                 public void onSave(PlannerApi.TowerReturn tower, String summaryZh) {
                     String summary = summaryZh;
@@ -957,6 +959,27 @@ public final class ResultActivity extends Activity {
             pendingTowerState = null;
         }
         body.addView(towerPanel, top(16));
+    }
+
+    /**
+     * True when the plan step expects the missing person to be rescued on this visit (the
+     * engine's "rescue_on_visit" assumption, or a subtitle "… · 救出舞子").
+     */
+    static boolean predictsRescue(Rules rules, Plan.Step step) {
+        if (step == null) {
+            return false;
+        }
+        if (step.assumptions != null
+            && (step.assumptions.contains("rescue_on_visit") || step.assumptions.contains("rescue"))) {
+            return true;
+        }
+        String sub = step.subtitleZh == null ? "" : step.subtitleZh;
+        for (Rules.Rescue r : rules.rescues) {
+            if (r.zh != null && sub.contains("救出" + r.zh)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void lockedPanel(Plan.Step step) {

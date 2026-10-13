@@ -100,10 +100,13 @@ public final class Ui {
         }
     }
 
-    /** Plain text view (CJK-safe: never italic). */
+    /**
+     * Plain text view (CJK-safe: never italic). Names, venues and short tags are kept on one line
+     * ({@link Zh#keepTogether}) and a multiplier ("×1.51") is always set in the numeral face.
+     */
     public static TextView text(Context context, CharSequence value, float sp, int color, boolean bold) {
         TextView view = new TextView(context);
-        view.setText(value);
+        view.setText(prepare(context, value));
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp);
         view.setTextColor(color);
         view.setTypeface(bold ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
@@ -126,9 +129,35 @@ public final class Ui {
         return view;
     }
 
-    /** Applies the numeral face to Latin runs inside a mixed string. */
+    /**
+     * Applies the numeral face to Latin runs inside a mixed string; names, venues and short tags
+     * are kept on one line ({@link Zh#keepTogether}).
+     */
     public static CharSequence latin(Context context, CharSequence value) {
-        return NumeralSpan.styleLatinRuns(value, numerals(context), 1.14f);
+        return NumeralSpan.styleLatinRuns(Zh.keepTogether(value), numerals(context), 1.14f);
+    }
+
+    /** Multipliers ("×1.51") look the same in every text: numeral face, like in mixed text. */
+    private static final java.util.regex.Pattern MULTIPLIER = java.util.regex.Pattern.compile("×[\\s\\u2060]*[0-9][0-9.\\u2060]*");
+
+    /** What {@link #text} shows for {@code value}: kept-together names and a styled multiplier. */
+    static CharSequence prepare(Context context, CharSequence value) {
+        CharSequence kept = Zh.keepTogether(value);
+        if (kept == null || kept.length() == 0) {
+            return kept;
+        }
+        java.util.regex.Matcher m = MULTIPLIER.matcher(kept);
+        android.text.SpannableString out = null;
+        while (m.find()) {
+            if (kept instanceof Spanned && ((Spanned) kept).getSpans(m.start(), m.end(), NumeralSpan.class).length > 0) {
+                continue;
+            }
+            if (out == null) {
+                out = new android.text.SpannableString(kept);
+            }
+            out.setSpan(new NumeralSpan(numerals(context), 1.14f), m.start(), m.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return out != null ? out : kept;
     }
 
     /**

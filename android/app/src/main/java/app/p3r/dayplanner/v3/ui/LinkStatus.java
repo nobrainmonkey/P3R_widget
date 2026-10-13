@@ -24,9 +24,13 @@ public final class LinkStatus {
     public final int targetSlot;
     public final boolean story;
     public final boolean lost;
-    /** Short footer for the card, e.g. "预计 11/20 升到 MAX" or "时间不够，先让给了恋爱". */
+    /**
+     * Short footer for the card, e.g. "预计 11月20日 升到 MAX" or "这次的安排里没排到 MAX（先保证了皇帝）".
+     * A goal the plan does not reach is described as this plan's outcome, never as impossible: the
+     * planner is a heuristic search and another arrangement might still get there.
+     */
     public final String footZh;
-    /** Compact chip text, e.g. "皇帝 6→MAX · 预计 11/20". */
+    /** Compact chip text, e.g. "皇帝 6→MAX · 预计 11月20日". */
     public final String chipZh;
 
     private LinkStatus(int link, int observed, int projected, int target, int targetSlot, boolean story,
@@ -68,14 +72,14 @@ public final class LinkStatus {
                 : "还没记录救出" + missed.zh + "，可以在「修改进度」里补上";
             chip = name + " 无法继续";
         } else if (targetSlot >= 0) {
-            String when = Zh.shortDate(Rules.dayOf(targetSlot));
+            String when = Zh.date(Rules.dayOf(targetSlot));
             foot = "预计 " + when + " 升到 " + (target >= 10 ? "MAX" : Zh.rank(target));
             chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(target) + " · 预计 " + when;
         } else if (story) {
             foot = "剧情自动推进";
             chip = name + " " + Zh.rankValue(obs) + " · 剧情自动推进";
         } else if (plan == null) {
-            foot = "等待安排";
+            foot = "安排排好后显示";
             chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(target);
         } else if (projected >= target) {
             foot = target >= 10 ? "预计1月31日前升到 MAX" : "预计升到 " + Zh.rank(target);
@@ -84,12 +88,26 @@ public final class LinkStatus {
             foot = obs == 0 ? "暂时不安排解锁" : "暂时不安排提升";
             chip = name + " " + Zh.rankValue(obs);
         } else {
-            String end = "到" + Zh.date(Rules.dayOf(plan.toSlot)) + "预计只能到 " + Zh.rank(projected);
+            String goalText = target >= 10 ? "MAX" : Zh.rank(target);
             String blocker = goal ? higherPriorityBlocker(rules, profile, plan, linkIdx) : null;
-            foot = blocker == null ? end : "时间不够，先让给了" + blocker;
-            chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(projected) + " · 时间不够";
+            foot = shortfall(goalText, obs, projected, blocker);
+            chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(projected) + " · 没排到 " + goalText;
         }
         return new LinkStatus(linkIdx, obs, projected, target, targetSlot, story, lost, foot, chip);
+    }
+
+    /**
+     * "这次的安排里没排到 MAX（先保证了皇帝、恋爱）" / "这次的安排里排到 RANK 9，没排到 MAX": what this plan
+     * does, not a claim that the target cannot be reached.
+     */
+    static String shortfall(String goalText, int observed, int projected, String blocker) {
+        if (blocker != null) {
+            return "这次的安排里没排到 " + goalText + "（先保证了" + blocker + "）";
+        }
+        if (projected > observed) {
+            return "这次的安排里排到 " + Zh.rank(projected) + "，没排到 " + goalText;
+        }
+        return "这次的安排里没排到 " + goalText;
     }
 
     /** True when the link cannot continue: its rescue failed, or its window passed without one. */

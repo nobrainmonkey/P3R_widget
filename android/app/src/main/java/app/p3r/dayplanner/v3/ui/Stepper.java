@@ -61,6 +61,22 @@ public final class Stepper extends LinearLayout {
         this.listener = listener;
     }
 
+    /** Smaller value label (for a stepper that shares its row with a label). */
+    public Stepper compact() {
+        label.setMinWidth(Ui.dp(getContext(), 64));
+        label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 20);
+        int w = Ui.dp(getContext(), 46);
+        minus.getLayoutParams().width = w;
+        plus.getLayoutParams().width = w;
+        requestLayout();
+        return this;
+    }
+
+    /** Value label text (tests). */
+    CharSequence labelText() {
+        return label.getText();
+    }
+
     public void setRange(int min, int max) {
         this.min = min;
         this.max = Math.max(min, max);

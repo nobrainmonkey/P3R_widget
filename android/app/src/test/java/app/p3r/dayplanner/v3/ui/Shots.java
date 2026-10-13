@@ -105,7 +105,7 @@ final class Shots {
         }
         if (view instanceof TextView) {
             TextView t = (TextView) view;
-            String text = t.getText().toString();
+            String text = Zh.plain(t.getText());
             boolean cjk = text.codePoints().anyMatch(cp -> cp >= 0x2E80);
             boolean italic = t.getTypeface() != null && t.getTypeface().isItalic();
             assertTrue(where + ": CJK in italic face: " + text, !(cjk && (italic || t.getPaint().getTextSkewX() != 0)));
@@ -138,9 +138,9 @@ final class Shots {
         if (view.getVisibility() != View.VISIBLE) {
             return;
         }
-        if (view instanceof TextView && ((TextView) view).getText().toString().equals(text)) {
+        if (view instanceof TextView && Zh.plain(((TextView) view).getText()).equals(text)) {
             out.add(view);
-        } else if (view.getContentDescription() != null && view.getContentDescription().toString().equals(text)) {
+        } else if (view.getContentDescription() != null && Zh.plain(view.getContentDescription()).equals(text)) {
             out.add(view);
         }
         if (view instanceof ViewGroup) {
@@ -203,7 +203,7 @@ final class Shots {
             return;
         }
         if (view instanceof TextView) {
-            sb.append(((TextView) view).getText()).append('\n');
+            sb.append(Zh.plain(((TextView) view).getText())).append('\n');
         }
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;

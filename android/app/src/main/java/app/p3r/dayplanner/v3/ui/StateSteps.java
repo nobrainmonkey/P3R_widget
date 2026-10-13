@@ -46,10 +46,29 @@ final class StateSteps {
     }
 
     /**
-     * Pages for the draft's mode; 解锁进度 only when some link needs it, 羁绊剧情 only when a
-     * track is opted in.
+     * Pages that apply to the draft as it is now; 解锁进度 only when some link needs it, 羁绊剧情
+     * only when a track is opted in.
      */
     static List<Page> pagesFor(StateDraft draft) {
+        List<Page> pages = new ArrayList<>();
+        for (Page page : skeletonFor(draft)) {
+            if (applies(page, draft)) {
+                pages.add(page);
+            }
+        }
+        if (!pages.contains(Page.UNLOCK) && applies(Page.UNLOCK, draft)) {
+            pages.add(pages.indexOf(Page.LINKS) + 1, Page.UNLOCK);
+        }
+        return pages;
+    }
+
+    /**
+     * Every page this run of the wizard may show, fixed when it opens so the step counter
+     * ("5/10") never changes while the player answers: a page that does not apply (yet) keeps
+     * its number and is skipped. 解锁进度 is included when a link with several unlock steps is
+     * still locked in the record (or on first run); 羁绊剧情 when a track is opted in.
+     */
+    static List<Page> skeletonFor(StateDraft draft) {
         List<Page> pages = new ArrayList<>();
         switch (draft.mode) {
             case ONBOARDING:
@@ -66,7 +85,7 @@ final class StateSteps {
         pages.add(Page.CASH);
         pages.add(Page.STATS);
         pages.add(Page.LINKS);
-        if (!draft.unlockLinks().isEmpty()) {
+        if (mayAskUnlock(draft)) {
             pages.add(Page.UNLOCK);
         }
         if (!draft.episodeTracks().isEmpty()) {
@@ -75,6 +94,31 @@ final class StateSteps {
         pages.add(Page.TOWER);
         pages.add(Page.CONFIRM);
         return pages;
+    }
+
+    /** True when {@code page} has something to ask for the draft as it is now. */
+    static boolean applies(Page page, StateDraft draft) {
+        switch (page) {
+            case UNLOCK:
+                return !draft.unlockLinks().isEmpty();
+            case EPISODES:
+                return !draft.episodeTracks().isEmpty();
+            default:
+                return true;
+        }
+    }
+
+    /** 解锁进度 can come up in this run: first run, or a multi-step link still locked in the record. */
+    private static boolean mayAskUnlock(StateDraft draft) {
+        if (draft.mode == StateDraft.Mode.ONBOARDING || !draft.unlockLinks().isEmpty()) {
+            return true;
+        }
+        for (Rules.Link link : draft.rules.links) {
+            if (link.kind == Rules.LinkKind.MANUAL && link.unlock.steps.size() >= 2 && draft.base.rank[link.idx] == 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Short title for the top bar. */
@@ -273,7 +317,11 @@ final class StateSteps {
         person.setEllipsize(android.text.TextUtils.TruncateAt.END);
         card.addView(person, top(2));
         if (link.kind == Rules.LinkKind.STORY) {
-            card.addView(Ui.text(c, "剧情自动推进", 11, Ui.col(c, R.color.p3r_ink_faint), false));
+            // Story links advance with the story: shown for completeness, never a goal.
+            card.addView(Ui.text(c, LinksPage.STORY_TAG, 11, Ui.col(c, R.color.p3r_ink_faint), false));
+            card.setContentDescription(link.labelZh + "，" + LinksPage.STORY_TAG);
+            card.setAlpha(0.7f);
+            return card;
         }
         card.setClickable(true);
         card.setFocusable(true);
@@ -472,9 +520,13 @@ final class StateSteps {
     // ------------------------------------------------------------------ 社群 RANK
 
     private View links() {
-        LinearLayout column = page("社群 RANK", draft.mode == StateDraft.Mode.ONBOARDING
+        String hint = draft.mode == StateDraft.Mode.ONBOARDING
             ? "点一格打开 RANK 小键盘，选完会自动跳到下一个。不记得就选「?」。"
-            : "点一格打开 RANK 小键盘，选完会自动跳到下一个。选「?」会保留原来的记录。");
+            : "点一格打开 RANK 小键盘，选完会自动跳到下一个。选「?」会保留原来的记录。";
+        if (draft.asksChristmas()) {
+            hint += "最下面还要选平安夜接受了谁的邀约。";
+        }
+        LinearLayout column = page("社群 RANK", hint);
         boolean anyUnknown = false;
         for (Rules.Link link : draft.rules.links) {
             anyUnknown |= draft.rank(link.idx) == StateDraft.UNKNOWN;
@@ -511,6 +563,14 @@ final class StateSteps {
                 p.leftMargin = Ui.dp(c, 8);
             }
             row.addView(rankCell(link, order, forecast), p);
+        }
+        if (draft.asksChristmas()) {
+            column.addView(Ui.sectionHeader(c, "平安夜", null), top(20));
+            column.addView(ChristmasChoice.build(c, draft.rules, i -> Math.max(0, draft.rank(i)), draft.christmasLink(),
+                id -> {
+                    draft.setChristmasLink(id);
+                    callbacks.changed();
+                }), top(4));
         }
         return column;
     }
@@ -663,9 +723,10 @@ final class StateSteps {
             visitCard.setBackground(Ui.card(c));
             Ui.pad(visitCard, 16, 12, 16, 14);
             visitCard.addView(Ui.text(c, "这个区块已经去了几次", 16, Ui.col(c, R.color.p3r_white), true));
-            visitCard.addView(Ui.mixed(c, "上限 " + profile.towerCapPerBlock + " 次，可在「规划设置」里修改。", 13,
+            int cap = profile.capFor(block.id);
+            visitCard.addView(Ui.mixed(c, "这个区块最多去 " + cap + " 次，可在「规划设置 → 塔尔塔罗斯」里修改。", 13,
                 Ui.col(c, R.color.p3r_ink_muted), false));
-            Stepper visits = new Stepper(c, 0, Math.max(profile.towerCapPerBlock, draft.towerVisits()), draft.towerVisits());
+            Stepper visits = new Stepper(c, 0, Math.max(Math.max(cap, 4), draft.towerVisits()), draft.towerVisits());
             visits.setFormatter(v -> v + " 次");
             visits.setListener(v -> {
                 draft.setTowerVisits(v);
@@ -693,9 +754,8 @@ final class StateSteps {
         String when = open ? Zh.date(rescue.toDay) + "前要救出。" : "期限是" + Zh.date(rescue.toDay) + "。";
         card.addView(Ui.mixed(c, about + when, 13, Ui.col(c, R.color.p3r_ink_muted), false));
         if (!open && draft.recordSaysFailed(index)) {
-            // Only the player's own answer saves 没救出 (the record may have it from a missed deadline).
-            card.addView(Ui.mixed(c, "记录里是「没救出」，可能只是当时没记下救出。确实没救出的话请选「没救出」。", 13,
-                Ui.col(c, R.color.ui_gold), false), top(4));
+            // The recorded 没救出 is preselected and kept unless the player changes it.
+            card.addView(Ui.mixed(c, StateDraft.RECORDED_FAILURE_NOTE, 13, Ui.col(c, R.color.ui_gold), false), top(4));
         }
         List<String> labels = open ? Arrays.asList("救出了", "还没") : Arrays.asList("救出了", "没救出", "不确定");
         int[] values = open ? new int[]{StateDraft.RESCUE_DONE, StateDraft.RESCUE_UNSURE}
