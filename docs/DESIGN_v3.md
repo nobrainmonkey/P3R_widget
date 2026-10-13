@@ -157,6 +157,14 @@ Meeting (manual link, rank r ≥ 1, mult m = (persona?1.51:1)·(charmBonus && ch
 - else **ordinary meeting**: `pts += floor(ordinaryGain·m)` (estimate).
 Invitations behave like meetings on their D dates. Story links change rank by date only.
 Unlock steps follow `unlock.steps` in order with `minGapDays`; the `establishes` step sets rank 1.
+Steps with `consumesSlot=false` are **side steps** (Devil payments, Justice talks, Hanged Man gift,
+Sun ask/pen, Tower/Moon rumours): before the slot's action, every wanted link (goal, or every link
+with 其余社群) whose next step is non-consuming and legal in this slot (slot kind, day rule, fromDay,
+earliest day, stat/link requirements, `minGapDays`, fee after reserving the action's own fee) does
+that one step — at most one step per link per slot, none on locked slots. A non-consuming chain with
+`minGapDays` 0 and the slot kind of its consuming step folds into that step's action (Moon rumour +
+opening the same day). Plan steps list them in `side`/`sideZh` ("顺便：…"); outcomes apply them unless
+`sideDone` is false.
 Activities add `gain` to `statPts`, subtract `cost`; jobs add the tier pay for `jobShifts+1` and
 increment the shift counter. Tartarus increments `towerVisits[block]`; no cash/floor is forecast;
 a planned visit inside a rescue window marks that rescue planned (estimate) and the result sheet asks
@@ -186,7 +194,19 @@ with `w(MUST, order i) = 100 000 − 100 i`, `w(WANT, i) = 8 000 − 10 i`, `w(o
 2. **Fortified rollout**: walk slots in order; at each slot with ≥2 candidates take the top-K (K=4,
    at most one per category: best meeting, second meeting, best stat/job, tartarus) by `H`; for each,
    apply it and roll π to the end, score `J`. Keep the incumbent trajectory and switch only when a
-   candidate's rollout beats it (monotone improvement over π). Deterministic tie-breaks by index.
+   candidate's rollout beats it (monotone improvement over π); a daytime slot in which a wanted link
+   could be met goes to training/a job only for a clear gain (half a RANK, more for goals).
+   Deterministic tie-breaks by index.
+   **Portfolio**: π has knobs (stat/money/fee weights, patience, how early gated links must open,
+   evening share for training, admitted daytime demand). Every plan screens 16 tunings with π alone
+   (≈1 ms each on desktop) and fortifies the 3 best; the best `J` wins (stability preference below).
+   Implementation notes (2026-10-13, engine tune): H treats daytime as the overbooked resource —
+   stat gates are scheduled earliest-deadline-first against explicit evening capacity (open evenings
+   minus required Tartarus and Devil/Tower meetings) and earn daytime value only for trainings
+   evenings provably cannot fit before a hard deadline; link-rank prerequisites (Justice ← Emperor 1,
+   Tower ← Strength 4, …) carry part of the gated link's value; money is a list of near-term needs
+   (fees about to open, a small training float), so jobs stop once they are covered; admission
+   control keeps the densest links "planned to MAX" when a slot kind is overbooked.
 3. **Budget**: soft time budget (default 4 s on device, configurable in tests). When exhausted, follow
    the incumbent for the remaining slots — the plan still covers the full calendar.
 4. **Validation**: `PlanValidator` re-derives everything with its own independent accumulator and
@@ -201,7 +221,8 @@ Expected scale: ≤ 600 slots × K 4 × ≤ 600 rollout steps × ~15 actions ≈
 
 `{planId, stateRevision, profileRevision, rulesVersion, fromSlot, toSlot, createdMillis,
   steps:[{slot, type, target, step, titleZh, subtitleZh, locationZh, kind, predicted:{rankFrom,
-  rankTo, rankUp, certain, cashDelta, statDelta[3]}, estimate, assumptions:[ids]}],
+  rankTo, rankUp, certain, cashDelta, statDelta[3]}, estimate, assumptions:[ids],
+  side:["unlock:devil:0"], sideZh:["顺便：…"]}],   // side/sideZh omitted when empty; cashDelta includes side fees
   summary:{endRanks[22], maxed[], goalMaxSlot{link:slot}, usefulActions, lastUsefulSlot,
   freeSlots, notesZh[]}}` — one step per slot (locked slots included as `LOCKED`).
 
@@ -214,7 +235,8 @@ SQLite `p3r_v3.db`:
   route per link, excluded activities).
 - `checkpoints(id, created, json)`: full observed state written by onboarding / 同步现状 / full edit.
 - `events(seq, command_id UNIQUE, checkpoint_id, kind, json, voided, created)`: outcomes after the
-  checkpoint. Kinds: `outcome` (slot, action key, outcome code, extras), `tower` (slot, block, floor,
+  checkpoint. Kinds: `outcome` (slot, action key, outcome code, extras incl. `sideDone:false` when the
+  step's side steps were not done), `tower` (slot, block, floor,
   cashMode `net|balance`, amount, level?), `tower_fix` (target seq, new values — never adds a visit),
   `skip` (slot, reason), `void` (target seq).
 - `plan(id=1, state_rev, profile_rev, rules_version, json)`.

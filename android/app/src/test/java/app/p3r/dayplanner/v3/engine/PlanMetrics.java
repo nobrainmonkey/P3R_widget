@@ -38,6 +38,9 @@ final class PlanMetrics {
     /** Rescues (index) planned inside their window while the link still mattered. */
     long rescued;
     long rescueNeeded;
+    /** First slot of the plan and the forecast cash at the start of each of its slots. */
+    int fromSlot;
+    long[] cashAt = new long[0];
 
     private PlanMetrics(Rules rules) {
         this.rules = rules;
@@ -59,10 +62,21 @@ final class PlanMetrics {
         for (int i = 0; i < t.nRescues; i++) {
             int l = t.rescueLink[i];
             boolean open = ((st.rescued | st.rescueFailed) & (1L << i)) == 0 && st.slot <= t.rescueTo[i] * 2 + 1;
-            if (open && l >= 0 && l < t.nLinks && st.rank[l] < 10 && (m.goal[l] || profile.otherLinks)) pm.rescueNeeded |= 1L << i;
+            // Possible only if some evening of the window is enterable and its block has room under the cap.
+            boolean possible = false;
+            for (int s = Math.max(st.slot, t.rescueFrom[i] * 2); s <= Math.min(t.lastSlot, t.rescueTo[i] * 2 + 1); s++) {
+                int b = t.towerBlock[s];
+                if (b >= 0 && st.towerVisits[b] < profile.towerCapPerBlock) possible = true;
+            }
+            if (open && possible && l >= 0 && l < t.nLinks && st.rank[l] < 10 && (m.goal[l] || profile.otherLinks)) {
+                pm.rescueNeeded |= 1L << i;
+            }
         }
+        pm.fromSlot = st.slot;
+        pm.cashAt = new long[plan.steps.size()];
         for (Plan.Step step : plan.steps) {
             int slot = st.slot;
+            if (slot - pm.fromSlot < pm.cashAt.length) pm.cashAt[slot - pm.fromSlot] = st.cash;
             int code = Kernel.FREE;
             Action a = Action.parse(rules, step.action);
             if (a != null && a.isProductive()) code = Kernel.encode(a);
@@ -111,6 +125,13 @@ final class PlanMetrics {
             if (Kernel.meetLegal(m, st, l, day)) return true;
         }
         return false;
+    }
+
+    /** Forecast cash at the start of {@code slot} (the plan's first or last value outside it). */
+    long cashBefore(int slot) {
+        if (cashAt.length == 0) return endCash;
+        int i = Math.max(0, Math.min(cashAt.length - 1, slot - fromSlot));
+        return slot - fromSlot >= cashAt.length ? endCash : cashAt[i];
     }
 
     int rescuesMissed() {

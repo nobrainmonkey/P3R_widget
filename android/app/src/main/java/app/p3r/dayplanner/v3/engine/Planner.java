@@ -24,9 +24,10 @@ import java.util.List;
  * incumbent unless it is worse by more than {@link #STABILITY_MARGIN}, and a challenger must beat
  * it by that margin; the base policy also gives it a 2% bonus.
  *
- * <p>Portfolio: the whole search runs for up to three base-policy tunings ({@link #PORTFOLIO})
- * while the budget allows, and the plan with the best objective is kept (preferring, within
- * {@link #SWITCH_MARGIN}, one that keeps the previous plan's next three days).
+ * <p>Portfolio: every base-policy tuning of {@link #PORTFOLIO} is screened (its base policy alone,
+ * about one rollout each); the best {@link #FORTIFY} get the full fortified search while the budget
+ * allows, and the plan with the best objective is kept (preferring, within {@link #SWITCH_MARGIN},
+ * one that keeps the previous plan's next three days).
  */
 final class Planner {
     private Planner() {}
@@ -45,17 +46,61 @@ final class Planner {
      * are picked up by later replans, once those days are more than three days away).
      */
     static final double SWITCH_MARGIN = Heuristics.MAX_BONUS_RANKS * Heuristics.W_OTHER;
+    /**
+     * Objective gain (half a RANK of a non-goal link) a rollout must show before a daytime slot in
+     * which a wanted link could be met is given to training, a job or nothing: such gains are made
+     * of estimates (stat points, yen) while the meeting is certain progress.
+     */
+    static final double WASTE_MARGIN = Heuristics.W_OTHER / 2;
+    /** For goals: the waste margin is this share of the goal's weight (2.5 slots earlier MAX). */
+    static final double WASTE_GOAL_SHARE = 2.5 * Heuristics.EARLY_PER_SLOT;
+
+    static boolean social(int code) {
+        int type = Kernel.type(code);
+        return type == Kernel.T_MEET || type == Kernel.T_UNLOCK;
+    }
 
     /**
-     * Base-policy tunings tried in order while the budget allows; the plan with the best objective
-     * wins (ties keep the earlier tuning), so the result is never worse than the default tuning.
+     * Base-policy tunings screened on every plan (the base policy alone costs about one rollout).
+     * The first one is the default. They differ in how eagerly stats are trained, money is earned
+     * and saved for fees, how early gated links must open, how much of the evenings training may
+     * take and how much daytime demand is admitted (Heuristics.Tuning); which mix fits best depends
+     * on the state (new game, persona bonus, a 「必须」 goal, a late start), so the planner tries them
+     * all and fortifies the best few.
      */
     static final Heuristics.Tuning[] PORTFOLIO = {
             Heuristics.Tuning.DEFAULT,
-            new Heuristics.Tuning(1.6, 2.0, 0.3),
-            new Heuristics.Tuning(1.0, 1.0, 0.5)};
+            new Heuristics.Tuning(1.6, 2.0, 0.3, 4.0, 1.0, 4.0, 1.15),
+            new Heuristics.Tuning(0.7, 2.0, 0.3, 1.5, 1.0, 4.0, 1.15),
+            new Heuristics.Tuning(1.6, 2.0, 0.3, 1.5, 1.0, 1.0, 1.15),
+            new Heuristics.Tuning(0.7, 2.0, 0.5, 4.0, 1.0, 4.0, 1.15),
+            new Heuristics.Tuning(1.0, 2.0, 0.3, 1.5, 0.6, 1.0, 1.15),
+            new Heuristics.Tuning(0.7, 1.0, 0.5, 1.5, 1.0, 4.0, 0.9),
+            new Heuristics.Tuning(0.7, 2.0, 0.5, 4.0, 0.8, 4.0, 1.0),
+            new Heuristics.Tuning(1.6, 2.0, 0.5, 1.5, 0.6, 1.0, 0.9),
+            new Heuristics.Tuning(1.0, 2.0, 0.3, 2.5, 0.8, 4.0, 1.15),
+            new Heuristics.Tuning(1.6, 2.0, 0.3, 4.0, 0.6, 4.0, 1.15),
+            new Heuristics.Tuning(0.7, 1.0, 0.3, 4.0, 1.0, 1.0, 0.9),
+            new Heuristics.Tuning(0.7, 2.0, 0.5, 1.5, 0.6, 4.0, 0.9),
+            new Heuristics.Tuning(0.7, 2.0, 0.3, 4.0, 1.0, 1.0, 1.15),
+            new Heuristics.Tuning(1.0, 1.0, 0.3, 2.5, 0.8, 1.0, 1.0),
+            new Heuristics.Tuning(1.0, 1.0, 0.5, 4.0, 0.6, 4.0, 100)};
+
+    /** Screened tunings whose fortified rollout runs (best screened objective first) while the budget allows. */
+    static final int FORTIFY = 3;
 
     static Plan plan(Rules rules, Profile profile, SimState observed, Plan previous, Engine.Options options) {
+        return plan(rules, profile, observed, previous, options, PORTFOLIO);
+    }
+
+    /**
+     * Screens every tuning of {@code portfolio} with its base policy, then fortifies the best
+     * {@link #FORTIFY} (in screened order, while the budget allows) and keeps the plan with the best
+     * objective, preferring within {@link #SWITCH_MARGIN} one that keeps the previous plan's next
+     * three days. With a zero time budget only the first tuning's base policy runs.
+     */
+    static Plan plan(Rules rules, Profile profile, SimState observed, Plan previous, Engine.Options options,
+                     Heuristics.Tuning[] portfolio) {
         long t0 = System.nanoTime();
         Model m = new Model(rules, profile, options);
         SimState start = Kernel.normalize(m, observed);
@@ -63,19 +108,43 @@ final class Planner {
         Candidate best = null;
         Candidate bestStable = null;
         boolean exhausted = false;
-        int variants = options.timeBudgetMillis > 0 ? PORTFOLIO.length : 1;
+        boolean search = options.timeBudgetMillis > 0;
+        int variants = search ? portfolio.length : 1;
+        Candidate[] screened = new Candidate[variants];
         for (int v = 0; v < variants; v++) {
-            long now = System.nanoTime();
-            if (v > 0 && (cancelled(options) || now + (now - t0) / v > deadline)) {
-                exhausted = true; // not enough time left for another full tuning
+            if (v > 0 && (cancelled(options) || System.nanoTime() > deadline)) {
+                exhausted = true;
                 break;
             }
-            Heuristics h = new Heuristics(m, start, previous, PORTFOLIO[v]);
-            Search search = new Search(m, h, options, deadline, v / (float) variants, 1f / variants);
-            int[] codes = search.run(start);
-            exhausted |= search.exhausted;
-            Candidate c = new Candidate(h, codes, search.objectiveOf(start, codes));
+            Heuristics h = new Heuristics(m, start, previous, portfolio[v]);
+            Search base = new Search(m, h, options, deadline, 0f, 0f);
+            int[] codes = base.runBase(start);
+            screened[v] = new Candidate(h, codes, base.objectiveOf(start, codes), v);
+            if (options.progress != null) options.progress.onProgress(SCREEN_SHARE * (v + 1) / variants);
+        }
+        Candidate[] order = Arrays.stream(screened).filter(c -> c != null)
+                .sorted((a, b) -> a.j != b.j ? Double.compare(b.j, a.j) : Integer.compare(a.variant, b.variant))
+                .toArray(Candidate[]::new);
+        for (Candidate c : order) {
             if (best == null || c.j > best.j + EPS) best = c;
+            if (keepsPreviousWindow(c.h, start.slot, c.codes) && (bestStable == null || c.j > bestStable.j + EPS)) bestStable = c;
+        }
+        int fortify = search ? Math.min(FORTIFY, order.length) : 0;
+        long fortifyStart = System.nanoTime();
+        for (int k = 0; k < fortify; k++) {
+            long now = System.nanoTime();
+            if (k > 0 && (cancelled(options) || now + (now - fortifyStart) / k > deadline)) {
+                exhausted = true; // not enough time left for another full rollout
+                break;
+            }
+            Candidate base = order[k];
+            Heuristics h = new Heuristics(m, start, previous, portfolio[base.variant]);
+            float from = SCREEN_SHARE + (1 - SCREEN_SHARE) * k / fortify;
+            Search fortified = new Search(m, h, options, deadline, from, (1 - SCREEN_SHARE) / fortify);
+            int[] codes = fortified.run(start);
+            exhausted |= fortified.exhausted;
+            Candidate c = new Candidate(h, codes, fortified.objectiveOf(start, codes), base.variant);
+            if (c.j > best.j + EPS) best = c;
             if (keepsPreviousWindow(h, start.slot, codes) && (bestStable == null || c.j > bestStable.j + EPS)) bestStable = c;
         }
         Candidate chosen = bestStable != null && best.j <= bestStable.j + SWITCH_MARGIN ? bestStable : best;
@@ -88,16 +157,22 @@ final class Planner {
         return plan;
     }
 
+    /** Share of the progress bar used by the screening phase. */
+    private static final float SCREEN_SHARE = 0.1f;
+
     /** One tuning's complete result. */
     private static final class Candidate {
         final Heuristics h;
         final int[] codes;
         final double j;
+        /** Index of the tuning in the portfolio. */
+        final int variant;
 
-        Candidate(Heuristics h, int[] codes, double j) {
+        Candidate(Heuristics h, int[] codes, double j, int variant) {
             this.h = h;
             this.codes = codes;
             this.j = j;
+            this.variant = variant;
         }
     }
 
@@ -125,6 +200,8 @@ final class Planner {
         long rollouts;
         long rolloutSteps;
         private final int[] buf;
+        /** {@link #WASTE_MARGIN}, raised for goals whose earlier MAX is worth more per slot. */
+        private final double wasteMargin;
         private final int[] rolloutBuf;
         private final double[] scores;
         private int[] reachedScratch;
@@ -141,9 +218,27 @@ final class Planner {
             this.progressFrom = progressFrom;
             this.progressSpan = progressSpan;
             this.candidates = Math.max(1, options.candidates);
+            double goalWeight = 0;
+            for (int l = 0; l < h.wGoal.length; l++) goalWeight = Math.max(goalWeight, h.wGoal[l]);
+            this.wasteMargin = Math.max(WASTE_MARGIN, WASTE_GOAL_SHARE * goalWeight);
             this.buf = new int[Kernel.maxLegal(m)];
             this.rolloutBuf = new int[Kernel.maxLegal(m)];
             this.scores = new double[buf.length];
+        }
+
+        /** The base policy's action code per slot from {@code start.slot} to the last slot (no rollouts). */
+        int[] runBase(SimState start) {
+            Tables t = m.t;
+            int len = Math.max(0, t.lastSlot - start.slot + 1);
+            int[] chosen = new int[len];
+            SimState st = start.copy();
+            for (int i = 0; i < len; i++) {
+                int code = Kernel.FREE;
+                if (t.open(st.slot)) code = h.choose(st, rolloutBuf, Kernel.legal(m, st, rolloutBuf));
+                chosen[i] = code;
+                Kernel.apply(m, st, code, null);
+            }
+            return chosen;
         }
 
         /** Chosen action code per slot from {@code start.slot} to the last slot. */
@@ -182,6 +277,7 @@ final class Planner {
                         }
                         if (code == previous) margin = STABILITY_MARGIN;
                         if (improve && n >= 2) {
+                            boolean meetable = (slot & 1) == 0 && socialLegal(n);
                             for (int c : diverse(n, baseIdx)) {
                                 if (c == code) continue;
                                 if (System.nanoTime() > deadline || cancelled()) {
@@ -190,7 +286,9 @@ final class Planner {
                                     break;
                                 }
                                 double j = rollout(st, c, reached);
-                                if (j > incumbent + margin) {
+                                // A daytime slot spent on anything but a link while one could be met must pay off clearly.
+                                double need = meetable && !social(c) ? Math.max(margin, wasteMargin) : margin;
+                                if (j > incumbent + need) {
                                     incumbent = j;
                                     code = c;
                                     margin = EPS;
@@ -211,6 +309,14 @@ final class Planner {
                 }
             }
             return chosen;
+        }
+
+        /** A wanted link can be met or opened in this slot (a legal meeting/unlock with a real score). */
+        private boolean socialLegal(int n) {
+            for (int i = 0; i < n; i++) {
+                if (social(buf[i]) && scores[i] > 1.0) return true;
+            }
+            return false;
         }
 
         private boolean isLegal(int code, int n) {

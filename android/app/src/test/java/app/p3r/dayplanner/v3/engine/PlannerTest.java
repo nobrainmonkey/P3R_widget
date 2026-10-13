@@ -260,13 +260,15 @@ public class PlannerTest {
         int[] visits = towerVisits(rules, plan);
         assertTrue(visits[0] >= 2 && visits[0] <= 4);
         assertTrue(visits[1] >= 2 && visits[1] <= 4);
+        // The first visit inside the missing window is the rescue; later (spare) visits under the cap
+        // do not claim it again.
         boolean rescue = false;
         for (Plan.Step s : plan.steps) {
             int day = s.slot >> 1;
             if ("tower".equals(s.kind) && day >= 40 && day <= 45) {
+                assertEquals(!rescue, s.subtitleZh.contains("救出北村文吉"));
+                assertEquals(!rescue, s.assumptions.contains("rescue_on_visit"));
                 rescue = true;
-                assertTrue(s.subtitleZh.contains("救出北村文吉"));
-                assertTrue(s.assumptions.contains("rescue_on_visit"));
             }
         }
         assertTrue(rescue);
