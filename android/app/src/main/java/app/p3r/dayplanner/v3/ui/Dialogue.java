@@ -84,6 +84,21 @@ public final class Dialogue {
         return FALLBACK;
     }
 
+    /**
+     * {@link #line} for a separate row next to the how-to, or null when the step's 「怎么做」 already
+     * carries the guide's 「参考回答：…」 (the engine adds it; plans stored before it did not).
+     */
+    static String besideHowTo(Rules rules, Profile profile, Plan.Step step) {
+        if (step != null && step.detailZh != null) {
+            for (String l : step.detailZh.split("\\r?\\n")) {
+                if (l.trim().startsWith(PREFIX)) {
+                    return null;
+                }
+            }
+        }
+        return line(rules, profile, step);
+    }
+
     /** True when the player chose the 恋人 route for {@code link} (the default is 朋友). */
     static boolean romanceRoute(Profile profile, int link) {
         return profile != null && link >= 0 && link < profile.route.length

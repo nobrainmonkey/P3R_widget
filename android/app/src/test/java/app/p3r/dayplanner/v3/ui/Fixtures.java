@@ -435,7 +435,8 @@ final class Fixtures {
         plan.summary.endCash = 64_000;
         plan.summary.endStatLv = new int[]{6, 6, 6};
         plan.summary.notesZh.add("舞子要在11月2日前救出，已安排10月24日晚上探索塔尔塔罗斯。");
-        plan.summary.notesZh.add("女教皇：这次的安排里没排到 MAX（先保证了皇帝、恋爱）。");
+        plan.summary.tradedFor[2] = 4;
+        plan.summary.notesZh.add("女教皇：这次的安排里没排到 MAX（先保证了皇帝）。");
         return plan;
     }
 

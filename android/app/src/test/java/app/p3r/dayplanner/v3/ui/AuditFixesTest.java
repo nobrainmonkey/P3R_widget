@@ -242,7 +242,7 @@ public class AuditFixesTest extends UiTestBase {
         assertFalse(all, all.contains("11/20"));
         assertFalse(all, all.contains("时间不够"));
         assertFalse(all, all.contains("团体·男女"));
-        assertTrue(all, all.contains("这次的安排里没排到 MAX（先保证了皇帝、恋爱）"));
+        assertTrue(all, all.contains("这次的安排里没排到 MAX（先保证了皇帝）"));
         assertTrue(all, all.contains("团体 · 男女"));
         assertEquals("未解锁 → RANK 2", Zh.rankStep(0, 2));
         assertEquals("未解锁 → MAX", Zh.rankStep(0, 10));

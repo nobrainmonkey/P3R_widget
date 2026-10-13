@@ -79,17 +79,8 @@ public class ReauditWordingTest extends UiTestBase {
         JSONObject json = exhausted(NOTE_PENDING).toJson();
         json.put("followUp", true);
         Plan stored = Plan.fromJson(json);
-        boolean engineHasTheFlag = hasFollowUpField();
-        assertEquals(engineHasTheFlag, InfoPages.isFollowUp(stored));
-        assertEquals(engineHasTheFlag ? InfoPages.BUDGET_ROUGH : InfoPages.BUDGET_PENDING, InfoPages.budgetLine(stored));
-    }
-
-    private static boolean hasFollowUpField() {
-        try {
-            return Plan.class.getField("followUp").getType() == boolean.class;
-        } catch (NoSuchFieldException absent) {
-            return false;
-        }
+        assertTrue(InfoPages.isFollowUp(stored));
+        assertEquals(InfoPages.BUDGET_ROUGH, InfoPages.budgetLine(stored));
     }
 
     @Test
@@ -102,7 +93,7 @@ public class ReauditWordingTest extends UiTestBase {
         String text = Shots.allText(a.getWindow().getDecorView());
         assertEquals(text, 1, count(text, "这次没来得及算完"));
         assertTrue(Shots.has(a, InfoPages.BUDGET_PENDING));
-        assertTrue("the other notes are still listed", Shots.has(a, "女教皇：这次的安排里没排到 MAX（先保证了皇帝、恋爱）。"));
+        assertTrue("the other notes are still listed", Shots.has(a, "女教皇：这次的安排里没排到 MAX（先保证了皇帝）。"));
         Shots.shot(a, "explain_budget_pending");
     }
 

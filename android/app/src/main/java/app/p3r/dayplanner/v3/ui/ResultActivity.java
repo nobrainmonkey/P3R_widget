@@ -641,7 +641,7 @@ public final class ResultActivity extends Activity {
         boolean current = rankPredictionCurrent(step, from);
         body.addView(question("升到 " + Zh.rank(to) + " 了吗？"), top(14));
         body.addView(note("现在是 " + Zh.rank(from) + "，这次见面预计会升级。"), top(2));
-        String dialogue = Dialogue.line(rules, snap.profile, step);
+        String dialogue = Dialogue.besideHowTo(rules, snap.profile, step);
         if (dialogue != null) {
             body.addView(Ui.body(this, dialogue), top(6));
         }
@@ -716,7 +716,7 @@ public final class ResultActivity extends Activity {
         String who = link >= 0 ? rules.links[link].personZh : Outcomes.shortName(rules, step);
         body.addView(question("和" + who + "见面了吗？"), top(14));
         body.addView(note("现在是 " + Zh.rank(from) + "，预计这次不会升级，好感会继续累积。"), top(4));
-        String dialogue = Dialogue.line(rules, snap.profile, step);
+        String dialogue = Dialogue.besideHowTo(rules, snap.profile, step);
         if (dialogue != null) {
             body.addView(Ui.body(this, dialogue), top(6));
         }

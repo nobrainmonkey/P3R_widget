@@ -23,6 +23,8 @@ final class StepViews {
     private static final Pattern MARKER = Pattern.compile(
         "^(?:[0-9]{1,2}\\s*[.、．)）:：]\\s*|[\\u2460-\\u2473]\\s*|第\\s*[0-9一二三四五六七八九十]+\\s*步\\s*[:：]?\\s*|[·•\\-]\\s+)");
     private static final String SIDE_PREFIX = "顺便：";
+    /** How-to lines that annotate the steps instead of being one (engine Labels.NOTE_PREFIX, Dialogue.PREFIX). */
+    static final String NOTE_PREFIX = "注意：";
 
     private StepViews() {}
 
@@ -109,9 +111,36 @@ final class StepViews {
         return out;
     }
 
-    /** "怎么做 · 3 步" — the label of the how-to section. */
+    /** A how-to line shown under the numbered steps rather than as one: 「注意：…」 and 「参考回答：…」. */
+    static boolean isAnnotation(String line) {
+        return line.startsWith(NOTE_PREFIX) || line.startsWith(Dialogue.PREFIX);
+    }
+
+    /** The how-to lines that are steps (numbered). */
+    static List<String> howToSteps(String detail) {
+        List<String> out = new ArrayList<>();
+        for (String line : howToLines(detail)) {
+            if (!isAnnotation(line)) {
+                out.add(line);
+            }
+        }
+        return out;
+    }
+
+    /** The how-to lines shown under the steps ({@link #isAnnotation}), in their order. */
+    static List<String> howToNotes(String detail) {
+        List<String> out = new ArrayList<>();
+        for (String line : howToLines(detail)) {
+            if (isAnnotation(line)) {
+                out.add(line);
+            }
+        }
+        return out;
+    }
+
+    /** "怎么做 · 3 步" — the label of the how-to section; only real steps are counted. */
     static String howToLabel(String detail) {
-        int n = howToLines(detail).size();
+        int n = howToSteps(detail).size();
         return n > 1 ? "怎么做 · " + n + " 步" : "怎么做";
     }
 
@@ -156,36 +185,64 @@ final class StepViews {
         return box;
     }
 
-    /** Numbered how-to ("怎么做"); a single line is shown as a plain paragraph. */
+    /**
+     * Numbered how-to ("怎么做"); a single step is shown as a plain paragraph. 「参考回答：…」 and
+     * 「注意：…」 lines follow the steps as marked notes, not numbered.
+     */
     static View howTo(Context c, String detail, float sp) {
-        List<String> lines = howToLines(detail);
+        List<String> lines = howToSteps(detail);
         LinearLayout box = Ui.column(c);
         if (lines.size() == 1) {
             TextView text = Ui.mixed(c, lines.get(0), sp, Ui.col(c, R.color.p3r_ice_100), false);
             text.setLineSpacing(0f, 1.25f);
             box.addView(text);
-            return box;
+        } else {
+            for (int i = 0; i < lines.size(); i++) {
+                LinearLayout row = Ui.row(c);
+                row.setGravity(Gravity.TOP);
+                TextView number = Ui.numeral(c, String.valueOf(i + 1), sp + 2, Ui.col(c, R.color.p3r_navy_950));
+                number.setGravity(Gravity.CENTER);
+                number.setBackground(new SlantedPanelDrawable().fill(Ui.col(c, R.color.p3r_cyan_400)).skew(Ui.dp(c, 4)));
+                int size = Ui.dp(c, sp + 8);
+                LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(size + Ui.dp(c, 6), size);
+                np.topMargin = Ui.dp(c, 1);
+                row.addView(number, np);
+                TextView text = Ui.mixed(c, lines.get(i), sp, Ui.col(c, R.color.p3r_ice_100), false);
+                text.setLineSpacing(0f, 1.2f);
+                LinearLayout.LayoutParams tp = Ui.weight(1);
+                tp.leftMargin = Ui.dp(c, 10);
+                row.addView(text, tp);
+                row.setContentDescription("第 " + (i + 1) + " 步：" + lines.get(i));
+                LinearLayout.LayoutParams rp = Ui.matchWrap();
+                rp.topMargin = i == 0 ? 0 : Ui.dp(c, 8);
+                box.addView(row, rp);
+            }
         }
-        for (int i = 0; i < lines.size(); i++) {
-            LinearLayout row = Ui.row(c);
-            row.setGravity(Gravity.TOP);
-            TextView number = Ui.numeral(c, String.valueOf(i + 1), sp + 2, Ui.col(c, R.color.p3r_navy_950));
-            number.setGravity(Gravity.CENTER);
-            number.setBackground(new SlantedPanelDrawable().fill(Ui.col(c, R.color.p3r_cyan_400)).skew(Ui.dp(c, 4)));
-            int size = Ui.dp(c, sp + 8);
-            LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(size + Ui.dp(c, 6), size);
-            np.topMargin = Ui.dp(c, 1);
-            row.addView(number, np);
-            TextView text = Ui.mixed(c, lines.get(i), sp, Ui.col(c, R.color.p3r_ice_100), false);
-            text.setLineSpacing(0f, 1.2f);
-            LinearLayout.LayoutParams tp = Ui.weight(1);
-            tp.leftMargin = Ui.dp(c, 10);
-            row.addView(text, tp);
-            row.setContentDescription("第 " + (i + 1) + " 步：" + lines.get(i));
-            LinearLayout.LayoutParams rp = Ui.matchWrap();
-            rp.topMargin = i == 0 ? 0 : Ui.dp(c, 8);
-            box.addView(row, rp);
+        for (String note : howToNotes(detail)) {
+            box.addView(annotation(c, note, sp - 1), noteParams(c, box.getChildCount() == 0 ? 0 : 10));
         }
         return box;
+    }
+
+    /** One note under the steps: a thin bar (gold for 注意, cyan for 参考回答) and the line. */
+    private static View annotation(Context c, String line, float sp) {
+        LinearLayout row = Ui.row(c);
+        int accent = Ui.col(c, line.startsWith(NOTE_PREFIX) ? R.color.ui_gold : R.color.p3r_cyan_300);
+        View bar = new View(c);
+        bar.setBackgroundColor(accent);
+        row.addView(bar, new LinearLayout.LayoutParams(Ui.dp(c, 3), LinearLayout.LayoutParams.MATCH_PARENT));
+        TextView text = Ui.mixed(c, line, sp, Ui.col(c, R.color.p3r_ice_100), false);
+        text.setLineSpacing(0f, 1.2f);
+        LinearLayout.LayoutParams tp = Ui.weight(1);
+        tp.leftMargin = Ui.dp(c, 8);
+        row.addView(text, tp);
+        row.setContentDescription(line);
+        return row;
+    }
+
+    private static LinearLayout.LayoutParams noteParams(Context c, int topDp) {
+        LinearLayout.LayoutParams lp = Ui.matchWrap();
+        lp.topMargin = Ui.dp(c, topDp);
+        return lp;
     }
 }

@@ -122,31 +122,9 @@ final class InfoPages {
         return out;
     }
 
-    /** {@code Plan.followUp} where the engine has it (set on the service's second computation). */
-    private static final java.lang.reflect.Field FOLLOW_UP = followUpField();
-
-    private static java.lang.reflect.Field followUpField() {
-        try {
-            java.lang.reflect.Field f = Plan.class.getField("followUp");
-            return f.getType() == boolean.class ? f : null;
-        } catch (ReflectiveOperationException | RuntimeException absent) {
-            return null;
-        }
-    }
-
-    /**
-     * Whether this plan is the service's one follow-up computation. Read reflectively so the UI works
-     * with an engine that does not have {@code Plan.followUp} yet (then only the notes decide).
-     */
+    /** Whether this plan is the service's one follow-up computation ({@code Plan.followUp}). */
     static boolean isFollowUp(Plan plan) {
-        if (FOLLOW_UP == null || plan == null) {
-            return false;
-        }
-        try {
-            return FOLLOW_UP.getBoolean(plan);
-        } catch (ReflectiveOperationException | RuntimeException unreadable) {
-            return false;
-        }
+        return plan != null && plan.followUp;
     }
 
     /** 关于. */

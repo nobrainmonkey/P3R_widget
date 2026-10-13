@@ -89,7 +89,7 @@ public final class LinkStatus {
             chip = name + " " + Zh.rankValue(obs);
         } else {
             String goalText = target >= 10 ? "MAX" : Zh.rank(target);
-            String blocker = goal ? higherPriorityBlocker(rules, profile, plan, linkIdx) : null;
+            String blocker = goal ? higherPriorityBlocker(rules, plan, linkIdx) : null;
             foot = shortfall(goalText, obs, projected, blocker);
             chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(projected) + " · 没排到 " + goalText;
         }
@@ -149,22 +149,15 @@ public final class LinkStatus {
         return false;
     }
 
-    /** Arcana names of higher-priority goals that do reach their target (the likely reason). */
-    static String higherPriorityBlocker(Rules rules, Profile profile, Plan plan, int linkIdx) {
-        List<Integer> goals = goalOrder(profile);
-        List<String> names = new ArrayList<>();
-        for (int other : goals) {
-            if (other == linkIdx) {
-                break;
-            }
-            if (plan.summary.maxSlot[other] >= 0) {
-                names.add(rules.links[other].arcanaZh);
-            }
-            if (names.size() == 2) {
-                break;
-            }
-        }
-        return names.isEmpty() ? null : String.join("、", names);
+    /**
+     * The arcana of the goal this plan kept instead of {@code linkIdx} (engine Summary.tradedFor), or
+     * null when the planner did not trade it away: then no plan it compared reached the goal, and the
+     * footer names no reason it cannot back up.
+     */
+    static String higherPriorityBlocker(Rules rules, Plan plan, int linkIdx) {
+        int[] traded = plan.summary.tradedFor;
+        int other = traded != null && linkIdx < traded.length ? traded[linkIdx] : -1;
+        return other >= 0 && other < rules.links.length && other != linkIdx ? rules.links[other].arcanaZh : null;
     }
 
     /** Goal link indices, 必须 before 想要, each tier by its order then arcana order. */

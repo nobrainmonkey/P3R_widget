@@ -237,7 +237,8 @@ public final class Zh {
 
     /**
      * Short tags kept on one line: "本区块第 2 次", "第 3 话", "共 3 步", dates, "RANK 7", amounts,
-     * counts, short 「…」 names and a short （…） note together with the character before it.
+     * counts, short 「…」 names and a short （…） note (up to 5 characters, e.g. 「见面（预计不升级）」) together
+     * with the character before it; a longer note may wrap, or one unbreakable run would overflow a narrow column.
      */
     private static final Pattern TAGS = Pattern.compile(
         "本区块第\\s*\\d+\\s*次"
@@ -249,7 +250,7 @@ public final class Zh {
             + "|[+−-]?\\d[\\d,]*\\s*日元"
             + "|\\d[\\d,.]*\\s*[次话个点层件天项步级张]"
             + "|「[^「」\\n]{1,10}」"
-            + "|[^\\s（）\\n·、，。；：/]（[^（）\\n]{1,8}）");
+            + "|[^\\s（）\\n·、，。；：/]（[^（）\\n]{1,5}）");
 
     private static volatile Object namesOwner;
     private static volatile Pattern names = buildNames(new LinkedHashSet<>());
