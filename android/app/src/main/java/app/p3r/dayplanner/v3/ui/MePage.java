@@ -84,7 +84,7 @@ final class MePage {
             has, actions::openHistory), spaced(8));
 
         column.addView(Ui.sectionHeader(c, "规划", null), spaced(16));
-        column.addView(entry(R.drawable.ui_ic_settings, "规划设置", "人格面具、结缘网站的字条、进塔次数、留底现金",
+        column.addView(entry(R.drawable.ui_ic_settings, "规划设置", "人格面具、字条、进塔次数、留底现金",
             true, actions::openSettings), spaced(4));
         column.addView(entry(R.drawable.ui_ic_info, "规划说明", "怎么排的、数据从哪来",
             true, actions::openExplain), spaced(8));

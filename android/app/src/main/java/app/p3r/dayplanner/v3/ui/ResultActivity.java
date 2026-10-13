@@ -399,9 +399,6 @@ public final class ResultActivity extends Activity {
             if (step.locationZh != null && !step.locationZh.isEmpty() && kind != StepKind.LOCKED) {
                 body.addView(Ui.muted(this, step.locationZh), top(2));
             }
-            if (StepViews.hasHint(step) && kind != StepKind.LOCKED) {
-                body.addView(StepViews.hintChip(this, step.hintZh), top(10));
-            }
         }
     }
 
@@ -558,6 +555,9 @@ public final class ResultActivity extends Activity {
 
     private void resultPanel(Plan.Step step) {
         StepKind kind = StepKind.of(step);
+        if (StepViews.hasHint(step) && kind != StepKind.LOCKED) {
+            body.addView(StepViews.hintChip(this, step.hintZh), top(10));
+        }
         switch (kind) {
             case SOCIAL_RANK_UP:
                 socialRankUp(step);
@@ -696,8 +696,10 @@ public final class ResultActivity extends Activity {
     }
 
     private void unlockPanel(Plan.Step step) {
-        String sub = step.subtitleZh == null || step.subtitleZh.isEmpty() ? null : step.subtitleZh;
-        body.addView(question(sub == null ? "完成了吗？" : sub + "，完成了吗？"), top(14));
+        body.addView(question("完成了吗？"), top(14));
+        if (step.subtitleZh != null && !step.subtitleZh.isEmpty()) {
+            body.addView(Ui.mixed(this, step.subtitleZh, 17, Ui.col(this, R.color.p3r_white), true), top(4));
+        }
         if (step.whyZh != null && !step.whyZh.isEmpty()) {
             body.addView(note(step.whyZh), top(4));
         }

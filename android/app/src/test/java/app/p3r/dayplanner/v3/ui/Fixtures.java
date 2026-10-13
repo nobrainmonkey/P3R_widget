@@ -229,6 +229,12 @@ final class Fixtures {
         }
         day.block = block == null ? -1 : block.idx;
         day.tartarus = block != null && day.eveLock == null && date.getDayOfWeek() != DayOfWeek.SUNDAY;
+        if (date.equals(LocalDate.of(2009, 10, 25))) {
+            day.noteZh = "周日，商店街和商城白天都开着";
+        }
+        if (date.equals(LocalDate.of(2009, 11, 2))) {
+            day.noteZh = "今天是救出舞子的最后期限";
+        }
         return day;
     }
 

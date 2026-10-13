@@ -48,7 +48,8 @@ public final class Outcomes {
         if (step == null || step.predicted == null || !planCurrent) {
             return o;
         }
-        if ("social".equals(step.kind) || "unlock".equals(step.kind)) {
+        StepKind kind = StepKind.of(step);
+        if (kind.social() || kind == StepKind.UNLOCK) {
             if (step.predicted.rankTo >= 0) {
                 o.rank = step.predicted.rankTo;
             }

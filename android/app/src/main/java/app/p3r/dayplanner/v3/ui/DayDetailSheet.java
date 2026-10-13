@@ -10,9 +10,10 @@ import java.util.List;
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.Intents;
 import app.p3r.dayplanner.v3.engine.Plan;
+import app.p3r.dayplanner.v3.model.Rules;
 
 /**
- * Detail sheet for one slot: what to do, where, the 人格面具 reminder, dialogue hint, the "顺便"
+ * Detail sheet for one slot: the day's note, what to do, where, the 人格面具 reminder, dialogue hint, the "顺便"
  * side steps, the numbered how-to, why it was chosen, which estimates it relies on, and the
  * actions that make sense for its position (record now, change this slot, or "已经玩到这里" for
  * a future item).
@@ -31,6 +32,18 @@ final class DayDetailSheet {
         DatePlate plate = new DatePlate(c, false);
         plate.bind(d.rules, slot);
         column.addView(plate);
+        Rules.Day day = d.rules.day(Rules.dayOf(slot));
+        if (day != null && day.noteZh != null && !day.noteZh.trim().isEmpty()) {
+            LinearLayout note = Ui.row(c);
+            note.setBackground(Ui.card(c).accent(Ui.col(c, R.color.ui_gold), Ui.dp(c, 4)));
+            Ui.pad(note, 14, 8, 12, 8);
+            note.addView(Ui.icon(c, R.drawable.ui_ic_info, Ui.col(c, R.color.ui_gold), 16));
+            TextView text = Ui.mixed(c, "这天：" + day.noteZh.trim(), 13, Ui.col(c, R.color.p3r_ice_100), false);
+            LinearLayout.LayoutParams tp = Ui.weight(1);
+            tp.leftMargin = Ui.dp(c, 8);
+            note.addView(text, tp);
+            column.addView(note, top(c, 10));
+        }
         if (step == null) {
             column.addView(Ui.body(c, "这个时段不在现在的安排里。"), top(c, 12));
             return column;
