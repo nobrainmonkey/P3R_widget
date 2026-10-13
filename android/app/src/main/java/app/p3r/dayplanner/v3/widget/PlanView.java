@@ -155,7 +155,7 @@ final class PlanView {
             case EMPTY:
                 brandPlate(m);
                 m.title = "设置目标，从当前存档开始";
-                m.cue = "先填好现在的游戏进度，之后每天点「完成」就行";
+                m.cue = "填好进度后，每天点「完成」就行";
                 m.taskDescription = "还没有安排。点击开始设置";
                 m.currentVisible = false;
                 m.doneLabel = "开始设置";
@@ -215,6 +215,7 @@ final class PlanView {
         m.tag = compactTag(step.subtitleZh);
         m.location = blankToNull(step.locationZh);
         m.cue = cueFor(step, rules);
+        if (m.tag != null && m.cue != null && m.cue.contains(m.tag)) m.tag = null; // e.g. 剧情推进 twice
         m.taskDescription = describe(m) + "。点击查看详情";
         switch (done) {
             case COMMIT:

@@ -23,7 +23,7 @@ public enum WidgetPalette {
             R.color.widget_night_ink, R.color.widget_night_ink_soft, R.color.widget_night_plate_ink,
             R.color.widget_night_chip_ink, R.color.widget_night_tag_ink, R.color.widget_night_accent,
             R.color.widget_night_ghost_ink, R.color.widget_night_button_ink, R.color.widget_night_button_ink_disabled,
-            150, 120);
+            150, 150);
 
     public final int surface;
     public final int plate;

@@ -24,7 +24,7 @@ public class WidgetPaletteFadeTest {
    assertFalse(flipper.isFlipping());assertFalse(flipper.getAnimateFirstView());
    assertEquals(220,flipper.getInAnimation().getDuration());assertEquals(220,flipper.getOutAnimation().getDuration());
    assertEquals(PlannerStore.taskById(c,task).widgetTitle,((TextView)flipper.getCurrentView().findViewById(R.id.widget_task)).getText().toString());
-   assertEquals(task.equals("t016_03")?"夜":"昼",((TextView)flipper.getCurrentView().findViewById(R.id.widget_period_word)).getText().toString());
+   assertEquals(PlannerStore.taskById(c,task).period,((TextView)flipper.getCurrentView().findViewById(R.id.widget_period_word)).getText().toString());
    View settled=PlannerWidget.renderForTest(c,951,180,160).apply(c,new FrameLayout(c));
    assertNull(settled.findViewById(R.id.widget_palette_flipper));
    assertEquals(PlannerStore.taskById(c,task).widgetTitle,((TextView)settled.findViewById(R.id.widget_task)).getText().toString());

@@ -5,7 +5,7 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="31.6dp" android:height="77.4dp"
     android:viewportWidth="316" android:viewportHeight="774">
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="14" android:strokeAlpha="0.42"
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="14" android:strokeAlpha="0.36"
         android:strokeLineJoin="round"
         android:pathData="M124,41Q131,38 139,38L281,38Q286,38 289,41.5Q292,45 291,50L208,726Q207,731 203.5,734.5Q200,738 195,738L57,738Q52,738 49,734.5Q46,731 47,726L112,199Q112,194 108,194L35,198Q24,198 25,187L36,81Q37,71 47,68L124,41Z" />
 </vector>

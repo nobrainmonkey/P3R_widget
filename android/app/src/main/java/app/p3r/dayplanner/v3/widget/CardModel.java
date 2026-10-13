@@ -61,6 +61,8 @@ public final class CardModel {
     /** Legacy guide only: dialogue choices joined with " / "; null hides them. */
     public String dialogue;
     public String taskDescription = "";
+    /** Drop the body's vertical padding to make room (legacy dialogue choices). */
+    public boolean tightBody;
     /** Title line limit; the layout's autosize shrinks the text to fit within it. */
     public int titleMaxLines = 3;
 
@@ -107,6 +109,7 @@ public final class CardModel {
         m.cueEssential = cueEssential;
         m.dialogue = dialogue;
         m.taskDescription = taskDescription;
+        m.tightBody = tightBody;
         m.titleMaxLines = titleMaxLines;
         m.currentVisible = currentVisible;
         m.currentEnabled = currentEnabled;

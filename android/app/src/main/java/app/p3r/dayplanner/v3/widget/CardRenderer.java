@@ -3,6 +3,7 @@ package app.p3r.dayplanner.v3.widget;
 import android.content.Context;
 import android.graphics.Paint;
 import android.graphics.Typeface;
+import android.os.Build;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.util.DisplayMetrics;
@@ -65,6 +66,11 @@ public final class CardRenderer {
         }
     }
 
+    /** Top plus bottom padding of the body in dp. Mirrors the layout XML. */
+    public static float bodyVerticalPaddingDp(WidgetSize size) {
+        return size == WidgetSize.REGULAR ? 6 + 6 : 4 + 5;
+    }
+
     /** Text size (sp) of the tag and location in a bucket. Mirrors the layout XML. */
     static float metaTextSp(WidgetSize size) {
         return size == WidgetSize.REGULAR ? 12f : 11f;
@@ -92,12 +98,15 @@ public final class CardRenderer {
         paint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, metrics));
         paint.setTypeface(bold ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
         int width = Math.max(1, Math.round(widthDp * metrics.density));
-        StaticLayout layout = StaticLayout.Builder.obtain(text, 0, text.length(), paint, width)
+        StaticLayout.Builder builder = StaticLayout.Builder.obtain(text, 0, text.length(), paint, width)
                 .setIncludePad(false)
                 .setLineSpacing(lineSpacingExtraDp * metrics.density, 1f)
-                .setMaxLines(Math.max(1, maxLines))
-                .build();
-        return layout.getHeight() / metrics.density;
+                .setMaxLines(Math.max(1, maxLines));
+        if (Build.VERSION.SDK_INT >= 28) {
+            // TextView does the same for apps targeting P+: CJK fallback fonts make lines taller.
+            builder.setUseLineSpacingFromFallbacks(true);
+        }
+        return builder.build().getHeight() / metrics.density;
     }
 
     /** Height in dp of the tag/location row of {@code model}, including its top gap (0 if hidden). */
@@ -129,7 +138,7 @@ public final class CardRenderer {
      * itself when everything fits.
      */
     static CardModel fit(Context c, CardModel model, WidgetSize size, float widthDp, float heightDp) {
-        float body = heightDp - chromeHeightDp(size);
+        float body = heightDp - chromeHeightDp(size) + (model.tightBody ? bodyVerticalPaddingDp(size) : 0);
         float innerWidth = widthDp - 2 * bodyPaddingDp(size);
         float title = textHeightDp(c, model.title, MIN_TITLE_SP, true, innerWidth, Math.max(1, model.titleMaxLines));
         float dialogue = isBlank(model.dialogue) ? 0 : 3 + textHeightDp(c, model.dialogue, 12, false, innerWidth, 20, 1);
@@ -163,7 +172,7 @@ public final class CardRenderer {
         applyBackground(views, model, palette);
         applyPlate(context, views, model, palette, size);
         applyStatus(context, views, model, palette, size);
-        applyBody(context, views, model, palette);
+        applyBody(context, views, model, palette, size);
         applyActions(context, views, model, palette);
         return views;
     }
@@ -253,7 +262,11 @@ public final class CardRenderer {
         }
     }
 
-    private static void applyBody(Context c, RemoteViews views, CardModel model, WidgetPalette palette) {
+    private static void applyBody(Context c, RemoteViews views, CardModel model, WidgetPalette palette, WidgetSize size) {
+        if (model.tightBody) {
+            int side = Math.round(bodyPaddingDp(size) * c.getResources().getDisplayMetrics().density);
+            views.setViewPadding(R.id.widget_task_area, side, 0, side, 0);
+        }
         int ink = palette.ink(c);
         int soft = palette.inkSoft(c);
         views.setTextViewText(R.id.widget_task, model.title);

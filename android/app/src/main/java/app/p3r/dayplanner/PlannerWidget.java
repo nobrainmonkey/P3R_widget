@@ -98,6 +98,13 @@ public class PlannerWidget extends AppWidgetProvider {
         return makeViews(c, widgetId, width, height, null);
     }
 
+    /** The card content of the viewed record at a size (presentation tests). */
+    static CardModel cardModelForTest(Context c, int widgetId, float widthDp, float heightDp) {
+        PlannerStore.Task task = PlannerStore.viewedTask(c, widgetId);
+        PlannerStore.Day day = PlannerStore.viewedDay(c, widgetId);
+        return cardModel(c, widgetId, task, day, widthDp, heightDp, WidgetSize.of(widthDp, heightDp));
+    }
+
     private static RemoteViews makeViews(Context c, int widgetId, float width, float height, Boolean paletteNight) {
         PlannerStore.Task task = PlannerStore.viewedTask(c, widgetId);
         PlannerStore.Day day = PlannerStore.viewedDay(c, widgetId);
@@ -153,8 +160,22 @@ public class PlannerWidget extends AppWidgetProvider {
         m.location = task == null || task.locationLabel.isEmpty() ? null : task.locationLabel;
         m.titleMaxLines = size == WidgetSize.COMPACT ? 2 : 3;
         String choices = task == null ? "" : dialogueText(task);
-        boolean showChoices = !choices.isEmpty() && dialogueFits(c, task, width, height, choices);
+        boolean showChoices = false;
+        if (!choices.isEmpty()) {
+            // Choices matter more than body padding, and more than the location on a tiny card.
+            if (dialogueFits(c, task, width, height, choices, true, false)) {
+                showChoices = true;
+            } else if (dialogueFits(c, task, width, height, choices, true, true)) {
+                showChoices = true;
+                m.tightBody = true;
+            } else if (dialogueFits(c, task, width, height, choices, false, true)) {
+                showChoices = true;
+                m.tightBody = true;
+                m.location = null;
+            }
+        }
         m.dialogue = showChoices ? choices : null;
+        if (showChoices) m.watermarkDay = -1; // full-width choices stay clear of the outlined numeral
         m.cue = task != null && task.hasDetails ? "点开查看完整步骤" : null;
         if (task != null && (!task.dialogueChoices.isEmpty() || !task.dialogueCue.isEmpty())) {
             String cue = !task.dialogueCue.isEmpty() ? task.dialogueCue
@@ -185,21 +206,29 @@ public class PlannerWidget extends AppWidgetProvider {
         return alreadyInTitle ? "" : android.text.TextUtils.join(" / ", task.dialogueChoices);
     }
 
+    /** Whether the choices fit with the location row kept and the body padding kept. */
+    static boolean dialogueFits(Context c, PlannerStore.Task task, float width, float height, String choices) {
+        return dialogueFits(c, task, width, height, choices, true, false);
+    }
+
     /**
      * Whether the title (at its smallest autosize step), the full choices and the rows that stay on
-     * the card (location, dialogue cue) fit the card body.
+     * the card (location if {@code keepLocation}, dialogue cue) fit the card body; {@code tightBody}
+     * reclaims the body's vertical padding.
      */
-    static boolean dialogueFits(Context c, PlannerStore.Task task, float width, float height, String choices) {
+    static boolean dialogueFits(Context c, PlannerStore.Task task, float width, float height, String choices,
+                                boolean keepLocation, boolean tightBody) {
         WidgetSize size = WidgetSize.of(width, height);
         float innerWidth = width - 2 * CardRenderer.bodyPaddingDp(size);
         CardModel rows = new CardModel();
-        rows.location = task.locationLabel.isEmpty() ? null : task.locationLabel;
+        rows.location = keepLocation && !task.locationLabel.isEmpty() ? task.locationLabel : null;
         rows.cue = task.dialogueCue.isEmpty() ? null : task.dialogueCue;
         float needed = CardRenderer.textHeightDp(c, task.widgetTitle, CardRenderer.MIN_TITLE_SP, true, innerWidth, 3)
                 + 3 + CardRenderer.textHeightDp(c, choices, 12, false, innerWidth, 20, 1)
                 + CardRenderer.metaRowHeightDp(c, rows, size)
                 + CardRenderer.cueRowHeightDp(c, rows, size);
-        return needed <= height - CardRenderer.chromeHeightDp(size);
+        float body = height - CardRenderer.chromeHeightDp(size) + (tightBody ? CardRenderer.bodyVerticalPaddingDp(size) : 0);
+        return needed <= body;
     }
 
     /** Stable host tree: slot contents refresh, but the attached animator itself survives reapply. */

@@ -111,10 +111,9 @@ final class FakePlannerApi implements PlannerApi {
         throw new IllegalArgumentException(action);
     }
 
+    /** Installs a replan with the same steps under a new plan id. */
     void installPlan(String planId) {
-        Plan next = cannedPlan(planId);
-        next.fromSlot = observed.slot;
-        plan = next;
+        plan = cannedPlan(planId);
         planCurrent = true;
     }
 

@@ -151,7 +151,7 @@ public class PlanWidgetRenderTest {
         expected.put("stat", new String[]{"在宿舍房间学习", "学力 +2", "完成"});
         expected.put("future", new String[]{"探索塔尔塔罗斯", "本区块第 2 次", "做到这里"});
         expected.put("receipt", new String[]{"在宿舍房间学习", "学力 +2", "撤销"});
-        expected.put("locked", new String[]{"满月作战", "剧情推进", "完成"});
+        expected.put("locked", new String[]{"满月作战", null, "完成"});
         expected.put("empty", new String[]{"设置目标，从当前存档开始", null, "开始设置"});
         for (Map.Entry<String, String[]> e : expected.entrySet()) {
             state(e.getKey());
