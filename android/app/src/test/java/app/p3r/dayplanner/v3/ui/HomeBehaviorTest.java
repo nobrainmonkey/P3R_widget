@@ -135,7 +135,7 @@ public class HomeBehaviorTest extends UiTestBase {
         api.snap.plan.steps.set(1, Fixtures.social(api.rules, Fixtures.SLOT_NOW + 1, "hermit", 3, 4, true, false));
         api.fireChanged();
         Shots.idle();
-        assertTrue(Shots.has(a, "已重新安排：后面有 1 处变动"));
+        assertTrue(Shots.has(a, "已重新安排：这一周有 1 处变动"));
         Shots.shot(a, "home_today_change_summary");
     }
 

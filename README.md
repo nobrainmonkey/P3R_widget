@@ -4,6 +4,22 @@
 
 > 不追求“全局最优”，追求“相对优秀、靠得住”：先满足你选的目标，剩下的时间尽量把其他社群也拉满。
 
+## 截图
+
+<p>
+<img src="docs/screenshots/widget_home.png" width="420" alt="桌面小组件">
+</p>
+<p>
+<img src="docs/screenshots/today.png" width="230" alt="今天">
+<img src="docs/screenshots/result_sheet.png" width="230" alt="一下记录结果">
+<img src="docs/screenshots/step_detail.png" width="230" alt="步骤详情">
+</p>
+<p>
+<img src="docs/screenshots/schedule.png" width="230" alt="日程">
+<img src="docs/screenshots/links.png" width="230" alt="社群">
+<img src="docs/screenshots/rank_pad.png" width="230" alt="RANK 小键盘">
+</p>
+
 ## 下载
 
 到 [Releases](https://github.com/nobrainmonkey/P3R_widget/releases) 下载最新的 `P3R-Planner-<版本>.apk`，在手机上打开安装即可（需要允许“安装未知应用”）。
