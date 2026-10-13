@@ -22,6 +22,13 @@ public final class CardText {
     public static final char NBSP = '\u00A0';
     /** Separator between the parts of a title (「皇帝 · 小田桐秀利」). */
     static final String SEPARATOR = " · ";
+    /**
+     * The separator as a shaped title carries it: a line may break before the dot, never after it,
+     * so no line ends in 「·」 (and {@link CardRenderer} wraps a title there without the dot).
+     */
+    static final String SHAPED_SEPARATOR = " ·" + NBSP;
+    /** What a separator becomes where a drawn title wraps at it: the dot goes with the break. */
+    public static final char TITLE_BREAK = '\n';
     /** Separator between dialogue choices (「A / B」). */
     static final String CHOICE_SEPARATOR = " / ";
     /** The prefix of the plan widget's dialogue line, as the app writes it. */
@@ -42,7 +49,10 @@ public final class CardText {
     private static final List<String> WORDS = Collections.unmodifiableList(Arrays.asList(
             "费洛蒙咖啡", "塔尔塔罗斯", "人格面具", "阿尔卡那", "羁绊剧情", "结缘网站的字条", "自由活动",
             "设置", "目标", "当前", "存档", "开始", "生成", "安排", "暂时", "后面", "没有"));
-    private static final Pattern NUMBER_SPACE = Pattern.compile("(?<=\\d) (?=\\S)|(?<=\\S) (?=\\d)");
+    /** A space beside a number, except the one before a separator's dot (「RANK2 · 友近」 may break there). */
+    private static final Pattern NUMBER_SPACE = Pattern.compile("(?<=\\d) (?=[^\\s·])|(?<=\\S) (?=\\d)");
+    /** A title separator however its spaces are shaped (a space beside a number is already no-break). */
+    private static final Pattern ANY_SEPARATOR = Pattern.compile("[ " + NBSP + "]·[ " + NBSP + "]");
     /** Location parts: 「桐叶购物中心 · 夏卡尔咖啡店」, 「教室／田径社」. */
     private static final Pattern LOCATION_PARTS = Pattern.compile("\\s*[·/／、，,；;]\\s*|\\s+");
 
@@ -68,10 +78,50 @@ public final class CardText {
     }
 
     /**
+     * A drawn title as the card model holds it: {@link #plain}, with every {@link #TITLE_BREAK} read
+     * as the 「 · 」 it replaced.
+     */
+    public static String plainTitle(String text) {
+        return text == null ? null : plain(text).replace(String.valueOf(TITLE_BREAK), SEPARATOR);
+    }
+
+    /**
+     * {@code shaped} with each title separator that a drawn line ends at turned into a
+     * {@link #TITLE_BREAK}, the dot dropped: 「结缘网站的字条」/「山岸风花」, never 「结缘网站的字条 ·」/「山岸风花」
+     * or 「结缘网站的字条」/「· 山岸风花」. {@code lineEnds} are the offsets where the lines of
+     * {@code shaped} end (the last line's end may be included); every other break stays as it is.
+     */
+    static String breakAtSeparators(String shaped, int[] lineEnds) {
+        if (shaped == null) return null;
+        StringBuilder out = new StringBuilder(shaped);
+        // From the last break back, so the earlier offsets still hold.
+        for (int k = lineEnds.length - 1; k >= 0; k--) {
+            int at = separatorAt(shaped, lineEnds[k]);
+            if (at >= 0) out.replace(at, at + SEPARATOR.length(), String.valueOf(TITLE_BREAK));
+        }
+        return out.toString();
+    }
+
+    /**
+     * Start of the separator a line break at offset {@code end} falls on, or -1: the break comes after
+     * its first space (a shaped title, {@link #SHAPED_SEPARATOR}) or after the whole separator (a
+     * title the card did not shape).
+     */
+    private static int separatorAt(String s, int end) {
+        for (int at : new int[]{end - 1, end - SEPARATOR.length()}) {
+            if (at >= 0 && at + SEPARATOR.length() <= s.length()
+                    && ANY_SEPARATOR.matcher(s).region(at, at + SEPARATOR.length()).matches()) {
+                return at;
+            }
+        }
+        return -1;
+    }
+
+    /**
      * A card title. Every part between 「 · 」 separators is a name and stays whole (a line may still
-     * break before an opening bracket: 「伊织顺平」/「（第 2 话）」); the separator stays at the end of
-     * its line. A title without separators (an activity such as 「在夏卡尔咖啡店喝费洛蒙咖啡」) keeps
-     * {@code words} (e.g. the parts of the step's location), a few fixed names and anything in 「」
+     * break before an opening bracket: 「伊织顺平」/「（第 2 话）」); a line breaks before a separator's
+     * dot, never after it ({@link #SHAPED_SEPARATOR}: no line ends in 「·」). A title without
+     * separators (an activity such as 「在夏卡尔咖啡店喝费洛蒙咖啡」) keeps {@code words} (e.g. the parts of the step's location), a few fixed names and anything in 「」
      * whole, and may wrap between them. Applying it twice changes nothing.
      */
     public static String title(String text, Collection<String> words) {
@@ -115,15 +165,17 @@ public final class CardText {
 
     private static String shapeTitle(String text, Collection<String> words, boolean free, int maxQuoted) {
         if (text == null) return null;
-        String s = keepNumbersTogether(strip(text));
-        boolean named = s.contains(SEPARATOR) || s.contains(NBSP + "· ");
-        s = s.replace(SEPARATOR, NBSP + "· ");
+        // Every separator takes the shaped form, whatever keepNumbersTogether made of its spaces (「课堂 · 3」).
+        String s = ANY_SEPARATOR.matcher(keepNumbersTogether(strip(text))).replaceAll(SHAPED_SEPARATOR);
+        boolean named = s.contains(SHAPED_SEPARATOR);
         boolean[] join = new boolean[s.length() + 1];
         if (named) {
             int start = 0;
             for (int i = 0; i <= s.length(); i++) {
                 if (i == s.length() || s.charAt(i) == ' ') {
-                    if (visibleLength(s, start, i) <= MAX_NAME) joinName(s, join, start, i);
+                    // The dot that starts a part is the separator's, not the name's.
+                    int name = s.startsWith("·" + NBSP, start) ? start + 2 : start;
+                    if (visibleLength(s, name, i) <= MAX_NAME) joinName(s, join, start, i);
                     start = i + 1;
                 }
             }
@@ -259,7 +311,9 @@ public final class CardText {
      * line included: the parts that matter least go first. A trailing bracket (the floor range
      * 「（145–172F）」), then the area before 「 · 」 (the mall or school: 「桐叶购物中心 · 夏卡尔咖啡店」 →
      * 「夏卡尔咖啡店」), then the words before the last space (「奢豪之庭 茨尔阿」 → 「茨尔阿」; a space next
-     * to a number is part of the place: 「2 楼」). Each leg of a route 「A → B」 is shortened alike.
+     * to a number is part of the place: 「2 楼」) or the places before the last 「；」 of a list. Each leg
+     * of a route 「A → B」 is shortened alike. No form starts or ends with a separator: alternatives
+     * 「2楼教室外 / 运动社团附近」 may lose the first one, but 「宿舍2楼 / 3楼」 stays whole (never 「/ 3楼」).
      */
     public static List<String> locationForms(String location) {
         List<String> forms = new ArrayList<>();
@@ -274,14 +328,63 @@ public final class CardText {
         return forms;
     }
 
+    /**
+     * Shorter forms of a one-line note (the cue line) for a card too narrow for all of it, longest
+     * first, the full line included: the clauses before each 「，」「；」「。」 or 「 · 」, from the last
+     * one back, without the punctuation (「对方发来了休息日邀约，赴约也算一次见面」 → 「对方发来了休息日邀约」,
+     * 「去喷泉广场找那个胖乎乎的学生 · 花费 1,000 日元」 → 「去喷泉广场找那个胖乎乎的学生」). Never part of a
+     * clause, and never a clause that only leads into the next one (「填好进度后」「…交给顺平的话」).
+     */
+    public static List<String> clauseForms(String text) {
+        List<String> forms = new ArrayList<>();
+        if (text == null || text.trim().isEmpty()) return forms;
+        String full = plain(text).trim();
+        forms.add(full);
+        for (int i = full.length() - 1; i > 0; i--) {
+            boolean clause = CLAUSE_BREAKS.indexOf(full.charAt(i)) >= 0 || full.startsWith(SEPARATOR, i);
+            if (!clause) continue;
+            String head = full.substring(0, i).trim();
+            if (head.isEmpty() || forms.contains(head) || leadsOn(head) || !closed(head)) continue;
+            forms.add(head);
+        }
+        return forms;
+    }
+
+    /** Punctuation that ends a clause of a note. */
+    private static final String CLAUSE_BREAKS = "，；。";
+    /** Endings of a clause that only sets up the next one (a condition, a time). */
+    private static final List<String> LEADING_ENDS = Collections.unmodifiableList(Arrays.asList("的话", "后", "时", "前"));
+
+    private static boolean leadsOn(String clause) {
+        for (String end : LEADING_ENDS) {
+            if (clause.endsWith(end)) return true;
+        }
+        return false;
+    }
+
+    /** Whether every bracket or quote opened in {@code text} is closed again (a clause break inside one is none). */
+    private static boolean closed(String text) {
+        int depth = 0;
+        for (int i = 0; i < text.length(); i++) {
+            if (OPENING.indexOf(text.charAt(i)) >= 0) depth++;
+            else if (CLOSING_BRACKETS.indexOf(text.charAt(i)) >= 0) depth--;
+        }
+        return depth == 0;
+    }
+
     private static final String GAIN_SEPARATOR = "、";
     private static final String ROUTE_SEPARATOR = " → ";
     private static final Pattern AREA_SEPARATOR = Pattern.compile("\\s*·\\s*");
     private static final Pattern TRAILING_BRACKET = Pattern.compile("\\s*[（(][^（()）]*[）)]$");
 
+    /** Characters that separate places or alternatives; a shortened location never starts or ends with one. */
+    private static final String PLACE_SEPARATORS = "/／·、，,；;";
+
     private static void addForm(List<String> forms, String form) {
         String f = form.trim();
-        if (!f.isEmpty() && !forms.contains(f)) forms.add(f);
+        if (f.isEmpty() || forms.contains(f)) return;
+        if (PLACE_SEPARATORS.indexOf(f.charAt(0)) >= 0 || PLACE_SEPARATORS.indexOf(f.charAt(f.length() - 1)) >= 0) return;
+        forms.add(f);
     }
 
     private static String eachLeg(String route, java.util.function.UnaryOperator<String> shorten) {
@@ -304,12 +407,19 @@ public final class CardText {
         return parts.length == 0 ? leg : parts[parts.length - 1];
     }
 
-    /** The text after the last space that is not next to a number (「月光馆学园 3楼 学生会室」 → 「学生会室」). */
+    /**
+     * The text after the last space that is not next to a number (「月光馆学园 3楼 学生会室」 → 「学生会室」),
+     * or the last of a list of places (「天鹅绒房间入口；宿舍1楼大厅」 → 「宿舍1楼大厅」). A separator goes
+     * with the words before it: 「2楼教室外 / 运动社团附近」 → 「运动社团附近」, and where the space after it
+     * is part of the place (「宿舍2楼 / 3楼」) nothing is cut there.
+     */
     private static String lastWord(String leg) {
         for (int i = leg.length() - 1; i > 0; i--) {
+            if (leg.charAt(i) == '；' || leg.charAt(i) == ';') return leg.substring(i + 1);
             if (leg.charAt(i) != ' ') continue;
             boolean number = Character.isDigit(leg.charAt(i - 1)) || (i + 1 < leg.length() && Character.isDigit(leg.charAt(i + 1)));
-            if (!number) return leg.substring(i + 1);
+            boolean beforeSeparator = i + 1 < leg.length() && PLACE_SEPARATORS.indexOf(leg.charAt(i + 1)) >= 0;
+            if (!number && !beforeSeparator) return leg.substring(i + 1);
         }
         return leg;
     }

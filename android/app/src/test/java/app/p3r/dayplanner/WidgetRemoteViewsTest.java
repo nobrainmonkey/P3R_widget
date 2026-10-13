@@ -66,7 +66,7 @@ public class WidgetRemoteViewsTest {
                 PlannerStore.Task task = PlannerStore.taskById(c, id);
                 View root = render(id, size[0], size[1]);
                 // Title and location carry invisible word joiners; compare the text a reader sees.
-                assertEquals(task.widgetTitle, CardText.plain(text(root, R.id.widget_task)));
+                assertEquals(task.widgetTitle, CardText.plainTitle(text(root, R.id.widget_task)));
                 assertEquals(task.locationLabel, CardText.plain(text(root, R.id.widget_location)));
                 int ordinal = PlannerStore.viewedOrdinal(c, W);
                 int count = PlannerStore.viewedDay(c, W).tasks.size();

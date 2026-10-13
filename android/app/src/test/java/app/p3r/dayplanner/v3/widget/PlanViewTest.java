@@ -146,8 +146,38 @@ public class PlanViewTest {
         assertEquals(PlanView.Done.RESULT, PlanView.resolve(snapshot(fake), -1, null, NOW).done);
         fake.observeAt("locked:full_moon");
         PlanView locked = PlanView.resolve(snapshot(fake), -1, null, NOW);
-        assertEquals(PlanView.Done.NONE, locked.done);
-        assertFalse(locked.toCard(null).doneEnabled);
+        assertEquals("nothing to record: on to the next item", PlanView.Done.NEXT, locked.done);
+    }
+
+    /**
+     * Review: a story-locked pending item showed a dimmed 当前 beside a dimmed 完成, a dead row. It has
+     * one live button instead: 下一项 (or 查看日程 when the plan ends with the lock).
+     */
+    @Test
+    public void storyLockedItemsHaveOneLiveButton() {
+        FakePlannerApi fake = new FakePlannerApi();
+        fake.observeAt("locked:full_moon");
+        CardModel pending = PlanView.resolve(snapshot(fake), -1, null, NOW).toCard(null);
+        assertFalse("no dead 当前", pending.currentVisible);
+        assertTrue(pending.doneEnabled);
+        assertEquals("下一项", pending.doneLabel);
+        assertEquals(CardModel.DoneIcon.NONE, pending.doneIcon);
+        assertEquals("下一项：这段时间不能自由行动，不用记录，看之后要做的安排", pending.doneDescription);
+        // The merged story run after it, browsed to: 当前 goes back, 下一项 goes on.
+        PlanView run = PlanView.resolve(snapshot(fake), S + 6, null, NOW);
+        assertEquals(PlanView.Done.NEXT, run.done);
+        CardModel browsed = run.toCard(null);
+        assertTrue(browsed.currentVisible);
+        assertTrue(browsed.currentEnabled);
+        assertTrue(browsed.doneEnabled);
+        // A plan that ends with the lock: nothing comes after it but the whole schedule.
+        fake.plan.steps.subList(8, 10).clear();
+        PlanView last = PlanView.resolve(snapshot(fake), S + 6, null, NOW);
+        assertEquals(PlanView.Done.OPEN_SCHEDULE, last.done);
+        CardModel end = last.toCard(null);
+        assertEquals("查看日程", end.doneLabel);
+        assertTrue(end.doneEnabled);
+        assertTrue(end.currentEnabled);
     }
 
     /** Review: 当前 was drawn fully enabled on the pending item, where ‹ is already dimmed. */
@@ -311,7 +341,7 @@ public class PlanViewTest {
         assertEquals("满月作战", locked.title);
         assertNull("the lock is said once, on the cue line", locked.tag);
         assertEquals("这段时间不能自由行动", locked.cue);
-        assertEquals("这段时间不能自由行动，不用记录", locked.doneDescription);
+        assertEquals("下一项：这段时间不能自由行动，不用记录，看之后要做的安排", locked.doneDescription);
 
         // A run that spans days says until when.
         fake.plan.steps.set(8, FakePlannerApi.step(S + 8, "locked:story", "locked", "剧情事件", "剧情安排，不能自由行动", null, null));

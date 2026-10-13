@@ -165,6 +165,8 @@ public class PlanWidgetRealPackRenderTest {
                     RenderSupport.collectSqueezedLocation(root, tag, issues);
                     RenderSupport.collectWordSplits(root, tag, issues);
                     RenderSupport.collectCutText(root, tag, issues);
+                    RenderSupport.collectDotLineEnds(root, tag, issues);
+                    RenderSupport.collectLocationEdges(root, tag, issues);
                     if (root.findViewById(R.id.widget_dialogue_choices).getVisibility() == View.VISIBLE) answers++;
                     String title = ((TextView) root.findViewById(R.id.widget_task)).getText().toString();
                     assertFalse(tag + " blank title", title.trim().isEmpty());

@@ -299,7 +299,10 @@ directly with a "✓ 已记录 · 再点撤销" state; link meetings / Tartarus 
 Stale PendingIntents (plan id/revision mismatch) never commit. Rendering reads a cached widget
 projection (no rule loading on the main thread). Current is dimmed on the pending item (like ‹);
 status cards (planning, error, finished) show one button that opens the app (打开应用 / 查看日程)
-instead of a dead row. Chips and names are never cut with "…": the location shortens or goes first.
+instead of a dead row, and a story-locked item one that goes on to the next item (下一项; 查看日程 when
+the plan ends with it). Chips and names are never cut with "…": the location shortens or goes first,
+and the one-line note keeps its leading whole clauses or goes. A title that wraps at 「 · 」 wraps there
+without the dot (「结缘网站的字条」/「山岸风花」).
 
 ### 7.3 Visual language
 Dark royal/navy app theme (P3R menu blues), cyan accent `#3CE4FF`, white ink; sharp parallelograms

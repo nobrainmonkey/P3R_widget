@@ -39,11 +39,13 @@ final class PlanView {
         CATCHUP,
         /** Void the widget's last direct record. */
         UNDO,
+        /** Step on to the next item (a story-locked item has nothing to record). */
+        NEXT,
         /** Open onboarding. */
         ONBOARD,
         /** Open the app on 今天, where a failed or pending plan can be retried or followed (status cards). */
         OPEN_APP,
-        /** Open the app on 日程 (the plan has nothing left to show). */
+        /** Open the app on 日程 (the plan has nothing left to show, or nothing after a story-locked item). */
         OPEN_SCHEDULE
     }
 
@@ -56,6 +58,8 @@ final class PlanView {
     static final long UNDO_ARM_MS = 700L;
     /** The catch-up button (Done on a future item); the app's detail sheet says the same. */
     static final String CATCHUP_LABEL = "已经玩到这里";
+    /** The button of a story-locked item: on to the next thing to do. */
+    static final String NEXT_LABEL = "下一项";
 
     final Mode mode;
     final PlannerApi.Snapshot snapshot;
@@ -101,7 +105,7 @@ final class PlanView {
         }
         if (items.isEmpty()) return new PlanView(Mode.FINISHED, snap, items, -1, null, Done.OPEN_SCHEDULE);
         int index = cursorSlot < 0 ? 0 : Math.max(0, PlanItems.indexOf(items, cursorSlot));
-        return new PlanView(Mode.ITEM, snap, items, index, null, doneFor(snap, items.get(index)));
+        return new PlanView(Mode.ITEM, snap, items, index, null, doneFor(snap, items, index));
     }
 
     /** The planner could not be reached (service missing or failing). */
@@ -129,8 +133,10 @@ final class PlanView {
         return "stat".equals(step.kind) || "job".equals(step.kind);
     }
 
-    private static Done doneFor(PlannerApi.Snapshot snap, PlanItems.Item item) {
-        if (item.locked()) return Done.NONE;
+    private static Done doneFor(PlannerApi.Snapshot snap, List<PlanItems.Item> items, int index) {
+        PlanItems.Item item = items.get(index);
+        // Nothing to record while the story runs: the button moves on to what comes after it.
+        if (item.locked()) return index < items.size() - 1 ? Done.NEXT : Done.OPEN_SCHEDULE;
         if (item.slot > snap.observed.slot) return Done.CATCHUP;
         return isDirect(item.step) && snap.planCurrent ? Done.COMMIT : Done.RESULT;
     }
@@ -249,6 +255,8 @@ final class PlanView {
         // Already on the pending item (where ‹ is dimmed too): 当前 has nowhere to go.
         m.currentEnabled = index > 0;
         if (!m.currentEnabled) m.currentDescription = "当前：已经在显示下一项要做的安排";
+        // A story-locked pending item has nothing to record either: one live button, never a dead row.
+        m.currentVisible = m.currentEnabled || !item.locked();
         progress(m, item.slot, item.lastSlot, rules);
         StepCopy copy = StepCopy.of(step, rules, snapshot.observed, snapshot.plan);
         m.title = copy.title;
@@ -276,6 +284,16 @@ final class PlanView {
                 m.doneLabel = CATCHUP_LABEL;
                 m.doneIcon = CardModel.DoneIcon.NONE;
                 m.doneDescription = CATCHUP_LABEL + "：补记这一项前面还没记录的安排";
+                break;
+            case NEXT:
+                m.doneLabel = NEXT_LABEL;
+                m.doneIcon = CardModel.DoneIcon.NONE;
+                m.doneDescription = NEXT_LABEL + "：这段时间不能自由行动，不用记录，看之后要做的安排";
+                break;
+            case OPEN_SCHEDULE:
+                m.doneLabel = "查看日程";
+                m.doneIcon = CardModel.DoneIcon.NONE;
+                m.doneDescription = "查看日程：这段时间不能自由行动，不用记录，在应用里看完整的日程";
                 break;
             default:
                 m.doneEnabled = false;

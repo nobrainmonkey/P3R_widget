@@ -18,12 +18,41 @@ public class CardTextTest {
     private static final String WJ = String.valueOf(CardText.WJ);
     private static final String NBSP = String.valueOf(CardText.NBSP);
 
+    /** Review: 「结缘网站的字条 · / 山岸风花」: a line never ends in 「·」. */
     @Test
-    public void namesBetweenSeparatorsStayWholeAndTheDotEndsItsLine() {
+    public void namesBetweenSeparatorsStayWholeAndNoLineEndsWithTheDot() {
         String shaped = CardText.title("皇帝 · 小田桐秀利");
-        assertEquals("皇" + WJ + "帝" + NBSP + "· " + "小" + WJ + "田" + WJ + "桐" + WJ + "秀" + WJ + "利", shaped);
+        assertEquals("皇" + WJ + "帝" + " ·" + NBSP + "小" + WJ + "田" + WJ + "桐" + WJ + "秀" + WJ + "利", shaped);
         assertEquals("皇帝 · 小田桐秀利", CardText.plain(shaped));
-        assertEquals("one break opportunity: after the dot", 1, breakableSpaces(shaped));
+        assertEquals("one break opportunity: before the dot", 1, breakableSpaces(shaped));
+        // A space beside a number does not glue the dot to it: 「RANK2」/「· 友近」 may still wrap.
+        assertTrue(CardText.title("魔术师→RANK2 · 友近").contains("2 ·" + NBSP + "友"));
+        assertTrue(CardText.keepNumbersTogether("RANK 2 · 友近").endsWith("2 · 友近"));
+        // The 12 characters of a name do not count the separator's dot.
+        String twelve = CardText.title("带魔术师面具和友近对话吧 · RANK6");
+        assertTrue(twelve.startsWith("带" + WJ + "魔") && twelve.contains("话" + WJ + "吧 ·"));
+    }
+
+    /**
+     * Where the drawn title wraps at a separator, the separator becomes a line break and the dot goes:
+     * 「结缘网站的字条」/「山岸风花」. Other separators and breaks stay as they are.
+     */
+    @Test
+    public void aTitleThatWrapsAtTheSeparatorDropsTheDot() {
+        String shaped = CardText.title("结缘网站的字条 · 山岸风花");
+        int lineEnd = shaped.indexOf(" ·") + 1; // the line breaks after the separator's first space
+        String broken = CardText.breakAtSeparators(shaped, new int[]{lineEnd, shaped.length()});
+        assertEquals("结缘网站的字条" + CardText.TITLE_BREAK + "山岸风花", CardText.plain(broken));
+        assertEquals("结缘网站的字条 · 山岸风花", CardText.plainTitle(broken));
+        // An unshaped title may break after the whole separator.
+        assertEquals("皇帝\n小田桐秀利", CardText.breakAtSeparators("皇帝 · 小田桐秀利", new int[]{5}));
+        assertEquals("皇帝\n小田桐秀利", CardText.breakAtSeparators("皇帝 · 小田桐秀利", new int[]{3}));
+        // A break elsewhere leaves the separators alone.
+        String three = CardText.title("课堂 · 赫尔墨斯文集（3） · 学力");
+        String once = CardText.breakAtSeparators(three, new int[]{three.lastIndexOf(" ·") + 1});
+        assertEquals("课堂 · 赫尔墨斯文集（3）\n学力", CardText.plain(once));
+        assertEquals(three, CardText.breakAtSeparators(three, new int[]{three.indexOf("（")}));
+        assertEquals(three, CardText.breakAtSeparators(three, new int[0]));
     }
 
     @Test
@@ -106,7 +135,7 @@ public class CardTextTest {
 
         String rank = CardText.guide("和教室的友近对话 · 魔术师→RANK2", CardText.locationWords("学园"));
         assertTrue("「魔术师→RANK2」 stays whole", rank.contains("魔" + WJ + "术" + WJ + "师" + WJ + "→" + WJ + "R"));
-        assertTrue(rank.contains("话" + NBSP + "· 魔"));
+        assertTrue("a line may break before the dot, never after it", rank.contains("话 ·" + NBSP + "魔"));
 
         assertTrue("a name the dictionary splits stays whole",
                 CardText.guide("和山岸风花一起看书，学力+♪", null).contains("山" + WJ + "岸" + WJ + "风" + WJ + "花"));
@@ -214,6 +243,50 @@ public class CardTextTest {
                 CardText.locationForms("学园 · 1楼教职员室前 → 港湾人工岛 · 站前广场"));
         assertEquals(Arrays.asList("长鸣神社"), CardText.locationForms("长鸣神社"));
         assertTrue(CardText.locationForms(null).isEmpty());
+    }
+
+    /**
+     * Review: the legacy card showed 「／3楼、严户台、港湾人工岛站自动贩卖机」, the 「宿舍2楼」 of
+     * 「宿舍2楼／3楼、…」 shortened away. No form starts or ends with a separator; 「宿舍2楼 / 3楼」 stays
+     * together, and a list of places 「A；B」 may shorten to its last place.
+     */
+    @Test
+    public void shortenedLocationsNeverStartOrEndWithASeparator() {
+        assertEquals(Arrays.asList("桐叶购物中心 · 天鹅绒房间；宿舍2楼 / 3楼、严户台、港湾人工岛站自动贩卖机",
+                        "天鹅绒房间；宿舍2楼 / 3楼、严户台、港湾人工岛站自动贩卖机", "宿舍2楼 / 3楼、严户台、港湾人工岛站自动贩卖机"),
+                CardText.locationForms("桐叶购物中心 · 天鹅绒房间；宿舍2楼 / 3楼、严户台、港湾人工岛站自动贩卖机"));
+        assertEquals("alternatives of two places may lose the first",
+                Arrays.asList("学园 · 2楼教室外 / 运动社团附近", "2楼教室外 / 运动社团附近", "运动社团附近"),
+                CardText.locationForms("学园 · 2楼教室外 / 运动社团附近"));
+        assertEquals(Arrays.asList("桐叶购物中心 · 天鹅绒房间入口；宿舍1楼大厅", "天鹅绒房间入口；宿舍1楼大厅", "宿舍1楼大厅"),
+                CardText.locationForms("桐叶购物中心 · 天鹅绒房间入口；宿舍1楼大厅"));
+        for (String location : Arrays.asList("宿舍2楼 / 3楼", "学校 / 城镇", "宿舍 · 共用区域 / 天台", "港湾人工岛 · 站前广场角落 / 咖啡店门口 → 严户台商店街")) {
+            for (String form : CardText.locationForms(location)) {
+                assertFalse(form, form.matches("^[／/·、].*|.*[／/·、]$"));
+            }
+        }
+    }
+
+    /**
+     * Review: the note line of the 250-wide card ended in 「花费 1,000 日…」 and 「赴约也算一次见…」. A
+     * one-line note shortens to whole clauses (never a clause that only leads into the next one).
+     */
+    @Test
+    public void notesShortenToWholeClauses() {
+        assertEquals(Arrays.asList("对方发来了休息日邀约，赴约也算一次见面", "对方发来了休息日邀约"),
+                CardText.clauseForms("对方发来了休息日邀约，赴约也算一次见面"));
+        assertEquals(Arrays.asList("去喷泉广场找那个胖乎乎的学生 · 花费 1,000 日元", "去喷泉广场找那个胖乎乎的学生"),
+                CardText.clauseForms("去喷泉广场找那个胖乎乎的学生 · 花费 1,000 日元"));
+        assertEquals("a condition never stands alone", Arrays.asList("白色的花交给顺平的话，这天会有剧情"),
+                CardText.clauseForms("白色的花交给顺平的话，这天会有剧情"));
+        assertEquals(Arrays.asList("填好进度后，每天点「完成」就行"), CardText.clauseForms("填好进度后，每天点「完成」就行"));
+        assertEquals(Arrays.asList("舞子失踪了，11月5日前没救出的话，倒悬者社群就无法继续", "舞子失踪了"),
+                CardText.clauseForms("舞子失踪了，11月5日前没救出的话，倒悬者社群就无法继续"));
+        assertEquals("never inside quotes", Arrays.asList("选「好，走吧」"), CardText.clauseForms("选「好，走吧」"));
+        assertEquals(Arrays.asList("这段时间不能自由行动"), CardText.clauseForms("这段时间不能自由行动"));
+        assertEquals("shaped text reads plain", "对方发来了休息日邀约",
+                CardText.clauseForms(CardText.sentence("对方发来了休息日邀约，赴约也算一次见面")).get(1));
+        assertTrue(CardText.clauseForms(null).isEmpty());
     }
 
     @Test

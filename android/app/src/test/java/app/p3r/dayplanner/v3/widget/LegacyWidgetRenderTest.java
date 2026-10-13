@@ -56,14 +56,29 @@ public class LegacyWidgetRenderTest {
                 RenderSupport.collectTextIssues(root, tag, issues);
                 RenderSupport.collectOverflow(root, R.id.widget_plate, tag, issues);
                 RenderSupport.collectHeaderOverlap(root, tag, issues);
+                RenderSupport.collectDotLineEnds(root, tag, issues);
+                RenderSupport.collectLocationEdges(root, tag, issues);
                 // The title carries invisible word joiners; compare the text a reader sees.
-                assertEquals(PlannerStore.taskById(c, id).widgetTitle,
-                        CardText.plain(((TextView) root.findViewById(R.id.widget_task)).getText().toString()));
+                assertEquals(PlannerStore.taskById(c, id).widgetTitle, RenderSupport.titleText(root.findViewById(R.id.widget_task)));
                 assertEquals("当前", ((TextView) root.findViewById(R.id.button_spec_current_text)).getText().toString());
                 assertEquals("完成", ((TextView) root.findViewById(R.id.button_spec_done_text)).getText().toString());
                 assertTrue(tag + " header/background tap opens the guide", root.findViewById(R.id.widget_root).hasOnClickListeners());
             }
         }
         assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
+    /**
+     * Review: 「／3楼、严户台、港湾人工岛站自动贩卖机」, the 「宿舍2楼」 of 「宿舍2楼／3楼」 shortened away. The
+     * floors stay together: the last place of the list where it fits, no location where nothing does.
+     */
+    @Test
+    public void aShortenedLocationKeepsItsAlternativesTogether() {
+        PlannerStore.setWidgetCursor(c, ID, "t048_02");
+        View wide = RenderSupport.layout(c, PlannerWidget.renderForTest(c, ID, 320, 200), 320, 200);
+        assertEquals("宿舍2楼 / 3楼、严户台、港湾人工岛站自动贩卖机",
+                CardText.plain(((TextView) wide.findViewById(R.id.widget_location)).getText().toString()));
+        View narrow = RenderSupport.layout(c, PlannerWidget.renderForTest(c, ID, 250, 180), 250, 180);
+        assertEquals(android.view.View.GONE, narrow.findViewById(R.id.widget_location).getVisibility());
     }
 }

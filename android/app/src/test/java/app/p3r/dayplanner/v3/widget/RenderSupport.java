@@ -117,19 +117,55 @@ final class RenderSupport {
 
     /**
      * Key information is never cut short with "…" (review: 「魅力 +4 → Lv.…」, 「奢豪之…」,
-     * 「结缘网站的字条 · 岳羽由…」): the tag chip, the location and a title with a name in it
-     * (「 · 」 parts) are either whole or not shown.
+     * 「结缘网站的字条 · 岳羽由…」, 「花费 1,000 日…」, 「赴约也算一次见…」): the tag chip, the location, the
+     * note (cue) line and a title with a name in it (「 · 」 parts) are either whole or not shown.
      */
     static void collectCutText(View root, String tag, List<String> issues) {
-        for (int id : new int[]{app.p3r.dayplanner.R.id.widget_tag, app.p3r.dayplanner.R.id.widget_location}) {
+        for (int id : new int[]{app.p3r.dayplanner.R.id.widget_tag, app.p3r.dayplanner.R.id.widget_location,
+                app.p3r.dayplanner.R.id.widget_detail_cue}) {
             TextView text = root.findViewById(id);
             if (text.getVisibility() == View.VISIBLE && ellipsized(text)) {
                 issues.add(tag + " cuts " + name(text) + ": '" + CardText.plain(text.getText().toString()) + "'");
             }
         }
         TextView title = root.findViewById(app.p3r.dayplanner.R.id.widget_task);
-        if (CardText.plain(title.getText().toString()).contains(" · ") && ellipsized(title)) {
-            issues.add(tag + " cuts the name in its title: '" + CardText.plain(title.getText().toString()) + "'");
+        if (titleText(title).contains(" · ") && ellipsized(title)) {
+            issues.add(tag + " cuts the name in its title: '" + titleText(title) + "'");
+        }
+    }
+
+    /** The title a reader sees, on one line as the card model holds it ({@link CardText#plainTitle}). */
+    static String titleText(TextView title) {
+        return CardText.plainTitle(title.getText().toString());
+    }
+
+    /**
+     * Review: 「结缘网站的字条 · / 山岸风花」, 「课堂 · / 赫尔墨斯文集（3）」. A title that wraps at a 「 · 」
+     * wraps there without the dot: no line of it ends (or starts) with 「·」.
+     */
+    static void collectDotLineEnds(View root, String tag, List<String> issues) {
+        TextView title = root.findViewById(app.p3r.dayplanner.R.id.widget_task);
+        if (title == null || title.getVisibility() != View.VISIBLE || title.getLayout() == null) return;
+        android.text.Layout layout = title.getLayout();
+        String s = title.getText().toString();
+        for (int line = 0; line < layout.getLineCount(); line++) {
+            String shown = CardText.plain(s.substring(layout.getLineStart(line), layout.getLineEnd(line))).trim();
+            if (shown.endsWith("·") || shown.startsWith("·")) issues.add(tag + " title line '" + shown + "' of '" + lines(title) + "'");
+        }
+    }
+
+    /**
+     * Review: 「／3楼、严户台、港湾人工岛站自动贩卖机」 (the shortened 「宿舍2楼／3楼、…」). A shown location
+     * never starts or ends with a separator.
+     */
+    static void collectLocationEdges(View root, String tag, List<String> issues) {
+        TextView location = root.findViewById(app.p3r.dayplanner.R.id.widget_location);
+        if (location == null || location.getVisibility() != View.VISIBLE) return;
+        String shown = CardText.plain(location.getText().toString()).trim();
+        if (shown.isEmpty()) return;
+        String separators = "／/·、";
+        if (separators.indexOf(shown.charAt(0)) >= 0 || separators.indexOf(shown.charAt(shown.length() - 1)) >= 0) {
+            issues.add(tag + " location '" + shown + "' starts or ends with a separator");
         }
     }
 
@@ -180,7 +216,7 @@ final class RenderSupport {
     static void collectWordSplits(View root, String tag, List<String> issues) {
         TextView title = root.findViewById(app.p3r.dayplanner.R.id.widget_task);
         TextView dialogue = root.findViewById(app.p3r.dayplanner.R.id.widget_dialogue_choices);
-        String plainTitle = title == null ? "" : CardText.plain(title.getText().toString());
+        String plainTitle = title == null ? "" : titleText(title);
         if (plainTitle.contains(" · ")) collectSplits(title, tag + " title", issues);
         collectSplits(dialogue, tag + " dialogue", issues);
     }
@@ -270,7 +306,7 @@ final class RenderSupport {
             int end = layout.getLineEnd(line);
             char before = visibleBefore(s, end);
             char after = visibleAfter(s, end);
-            boolean ok = before == ' ' || CLOSING.indexOf(before) >= 0 || OPENING.indexOf(after) >= 0;
+            boolean ok = before == ' ' || before == CardText.TITLE_BREAK || CLOSING.indexOf(before) >= 0 || OPENING.indexOf(after) >= 0;
             boolean forced = s.substring(start, end).trim().indexOf(' ') < 0; // one word wider than the line
             if (!ok && !forced) {
                 issues.add(tag + " splits a word: '" + CardText.plain(s.substring(start, end)) + "' / '"

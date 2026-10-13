@@ -115,7 +115,7 @@ public final class CardModel {
      */
     public boolean dialogueOptional;
     /**
-     * Keep names in the title whole when it wraps ({@link CardText#title}: 「皇帝 ·」/「小田桐秀利」,
+     * Keep names in the title whole when it wraps ({@link CardText#title}: 「皇帝」/「小田桐秀利」,
      * never 「小田桐/秀利」). The legacy guide's free-form titles use {@link #guideText} instead.
      */
     public boolean keepWordsWhole;

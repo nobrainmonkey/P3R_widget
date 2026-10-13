@@ -69,7 +69,7 @@ public class LegacyGuideWordsRenderTest {
                 View root = render(k[0], size);
                 RenderSupport.save(root, dir, tag);
                 TextView title = root.findViewById(R.id.widget_task);
-                assertEquals(PlannerStore.taskById(c, k[0]).widgetTitle, CardText.plain(title.getText().toString()));
+                assertEquals(PlannerStore.taskById(c, k[0]).widgetTitle, RenderSupport.titleText(title));
                 RenderSupport.collectJoinerBreaks(root, tag, issues);
                 for (String word : Arrays.copyOfRange(k, 1, k.length)) {
                     splitWords(title, Arrays.asList(word), tag, issues);
@@ -127,9 +127,11 @@ public class LegacyGuideWordsRenderTest {
                     String tag = task.id + "-" + size[0] + "x" + size[1];
                     View root = render(task.id, size);
                     TextView title = root.findViewById(R.id.widget_task);
-                    assertEquals(tag, task.widgetTitle, CardText.plain(title.getText().toString()));
+                    assertEquals(tag, task.widgetTitle, RenderSupport.titleText(title));
                     RenderSupport.collectJoinerBreaks(root, tag, issues);
                     RenderSupport.collectTextIssues(root, tag, issues);
+                    RenderSupport.collectDotLineEnds(root, tag, issues);
+                    RenderSupport.collectLocationEdges(root, tag, issues);
                     splitWords(title, words, tag, issues);
                     countsStayAttached(title, tag, issues);
                     float largest = CardRenderer.maxTitleSp(WidgetSize.of(size[0], size[1])) * c.getResources().getDisplayMetrics().scaledDensity;
@@ -146,7 +148,8 @@ public class LegacyGuideWordsRenderTest {
     /**
      * Review of the 320x200 card (lines.txt): 「解锁战车；邀 / 结子同行」, 「外出；未 / 解锁可延后」,
      * 「教室对面 / 的学生会活动室」, 「“历史学 / 投稿站的字条”」, 「再带星 / 面具找早濑护」 and
-     * 「可以SL / 不同的人物」. Lines now break after the clause punctuation and between whole words.
+     * 「可以SL / 不同的人物」. Lines now break after the clause punctuation and between whole words, and a
+     * title that wraps at its 「 · 」 drops the dot there.
      */
     @Test
     public void theReviewedTitlesBreakWhereAReaderWould() throws Exception {
@@ -156,6 +159,10 @@ public class LegacyGuideWordsRenderTest {
                 {"t039_02", "1", "接77号委托，带伊莉莎白外出； / 未解锁可延后"},
                 {"t149_04", "1", "种卡加土豆，再使用 / “历史学投稿站的字条”"},
                 {"t108_01", "1", "提前存档，第二天夏日祭 / 可以SL不同的人物"},
+                // The dot of a 「 · 」 the title wraps at goes (review: 「和教室的友近对话 · / 魔术师→RANK2」).
+                {"t014_03", "1", "和教室的友近对话 / 魔术师→RANK2"},
+                {"t134_01", "0", "课堂 / 赫尔墨斯文集（3）"},
+                {"t240_03", "0", "接受真田邀约 / 荷鲁斯合体解禁"},
         };
         for (String[] k : cases) {
             View root = render(k[0], SIZES[Integer.parseInt(k[1])]);

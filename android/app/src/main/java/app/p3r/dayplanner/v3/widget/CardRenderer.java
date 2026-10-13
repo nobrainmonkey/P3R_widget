@@ -1,5 +1,6 @@
 package app.p3r.dayplanner.v3.widget;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Paint;
 import android.graphics.Typeface;
@@ -13,6 +14,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.RemoteViews;
 
+import java.util.List;
 import java.util.Objects;
 
 import app.p3r.dayplanner.R;
@@ -181,6 +183,35 @@ public final class CardRenderer {
     }
 
     /**
+     * The title as the layout's autosize draws it in a box {@code boxDp} high: at the largest size
+     * from {@link #maxTitleSp} down to {@link #MIN_TITLE_SP} whose text fits the box within
+     * {@code maxLines} lines (at the smallest when none does), wrapped like the TextView wraps it.
+     */
+    static StaticLayout drawnTitle(Context c, String title, WidgetSize size, float widthDp, float boxDp, int maxLines) {
+        float density = c.getResources().getDisplayMetrics().density;
+        StaticLayout layout = null;
+        for (float sp = maxTitleSp(size); sp >= MIN_TITLE_SP - 0.01f; sp -= 1f) {
+            layout = autosizeLayout(c, title, sp, widthDp);
+            if (layout.getLineCount() <= maxLines && layout.getHeight() / density <= boxDp) return layout;
+        }
+        return layout;
+    }
+
+    /**
+     * {@code title} with every 「 · 」 at which the drawn title ({@link #drawnTitle}) wraps turned into a
+     * line break, the dot dropped: 「结缘网站的字条」/「山岸风花」 rather than a line ending in 「·」. The
+     * lines break where they did, so the title keeps its size and its lines.
+     */
+    static String wrapAtSeparators(Context c, String title, WidgetSize size, float widthDp, float boxDp, int maxLines) {
+        if (isBlank(title) || title.indexOf('·') < 0) return title;
+        StaticLayout layout = drawnTitle(c, title, size, widthDp, boxDp, maxLines);
+        int lines = Math.min(layout.getLineCount(), Math.max(1, maxLines));
+        int[] ends = new int[lines - 1];
+        for (int i = 0; i < ends.length; i++) ends[i] = layout.getLineEnd(i);
+        return CardText.breakAtSeparators(title, ends);
+    }
+
+    /**
      * Height in dp that {@code text} needs at {@code sp} (current font scale) when wrapped to
      * {@code widthDp}, limited to {@code maxLines}. Measured with the platform's text layout.
      */
@@ -300,6 +331,21 @@ public final class CardRenderer {
             String shown = model.guideText ? CardText.guide(form, null) : form;
             if (CardText.plain(shown).equals(CardText.plain(model.location))) shown = model.location;
             if (lineWidthDp(c, shown, sizeDp, Typeface.DEFAULT) <= room) return shown;
+        }
+        return null;
+    }
+
+    /**
+     * The longest form of a one-line cue ({@link CardText#clauseForms}: the whole line, then its
+     * leading whole clauses) that fits a body {@code innerWidthDp} wide without "…"; null when none
+     * does. The whole line comes back as given.
+     */
+    static String fitCue(Context c, String cue, WidgetSize size, float innerWidthDp) {
+        if (isBlank(cue)) return null;
+        float sizeDp = cueTextSp(size) * c.getResources().getConfiguration().fontScale;
+        List<String> forms = CardText.clauseForms(cue);
+        for (int i = 0; i < forms.size(); i++) {
+            if (lineWidthDp(c, forms.get(i), sizeDp, Typeface.DEFAULT) <= innerWidthDp - 1) return i == 0 ? cue : forms.get(i); // 1dp for rounding
         }
         return null;
     }
@@ -453,10 +499,13 @@ public final class CardRenderer {
      * smallest size, the reminder line goes, then the side-step line, then the tag/location row,
      * then the cue; the body's padding goes before an essential instruction's second line or the
      * chip's row. A title that would still end in "…" gives way to its short form
-     * ({@link CardModel#titleShort}) when that fits. The tag chip is never cut: the location beside
+     * ({@link CardModel#titleShort}) when that fits, and a title that wraps at a 「 · 」 drops the dot
+     * there ({@link #wrapAtSeparators}). The tag chip is never cut: the location beside
      * it takes the room that is left, in its longest form that fits whole ({@link #fitLocation}),
-     * and a chip wider than the card takes a smaller size or, much wider, wraps after a 「、」. On a
-     * tall card the spare height is shared out above and below the text and under the buttons.
+     * and a chip wider than the card takes a smaller size or, much wider, wraps after a 「、」. A
+     * one-line cue shows whole, or its leading whole clauses ({@link #fitCue}), or goes (an essential
+     * one stays). On a tall card the spare height is shared out above and below the text and under
+     * the buttons.
      * Hides the day numeral behind a shown dialogue line and fades it behind other text. Returns
      * {@code model} itself when nothing changes.
      */
@@ -534,6 +583,19 @@ public final class CardRenderer {
                 cue = cueRowHeightDp(c, fitted, size, innerWidth);
             }
         }
+        // A one-line cue is never cut inside a word or a sum with "…": it keeps its longest whole form
+        // (whole clauses) or, unless it is the card's instruction, goes.
+        if (cue > 0 && fitted.cueMaxLines <= 1) {
+            String whole = fitCue(c, fitted.cue, size, innerWidth);
+            if (whole == null && !model.cueEssential) {
+                fitted = edit(fitted, model);
+                fitted.cue = null;
+                cue = 0;
+            } else if (whole != null && !whole.equals(fitted.cue)) {
+                fitted = edit(fitted, model);
+                fitted.cue = whole;
+            }
+        }
         if (cue > 0 && !model.cueEssential && comfortable + dialogue + meta + hint + side + cue > body) {
             fitted = edit(fitted, model);
             fitted.cue = null;
@@ -591,6 +653,12 @@ public final class CardRenderer {
         float spare = body - rows - drawn - inBox;
         float under = spare > 0 ? Math.min(spare * UNDER_BUTTONS_SHARE, maxSpaceUnderButtonsDp(size)) : 0;
         float box = spare > 0 ? drawn + inBox : body - rows;
+        // A title that wraps at a 「 · 」 wraps there without the dot: no line ends in 「·」.
+        String wrapped = wrapAtSeparators(c, fitted.title, size, titleWidth, box, fitLines);
+        if (!Objects.equals(wrapped, fitted.title)) {
+            fitted = edit(fitted, model);
+            fitted.title = wrapped;
+        }
         // A kind mark sits on the title's first line: a title that will wrap hangs from the top.
         boolean top = hasTitleIcon(fitted) && titleLines(c, fitted.title, size, titleWidth, box, fitLines) > 1;
         if (top != fitted.titleTop) {
@@ -638,16 +706,26 @@ public final class CardRenderer {
      */
     static float titleNeedDp(Context c, String title, float sp, float widthDp, int maxLines) {
         if (isBlank(title)) return 0;
+        StaticLayout layout = autosizeLayout(c, title, sp, widthDp);
+        if (layout.getLineCount() > Math.max(1, maxLines)) return Float.POSITIVE_INFINITY;
+        return layout.getHeight() / c.getResources().getDisplayMetrics().density;
+    }
+
+    /**
+     * The bold title at {@code sp} wrapped to {@code widthDp} as the layout's autosize lays it out: the
+     * TextView's high-quality line breaking and, on P+, the taller CJK fallback line height.
+     */
+    @SuppressLint("WrongConstant") // Layout's constant (API 23) is the value LineBreaker (API 29) names
+    private static StaticLayout autosizeLayout(Context c, String title, float sp, float widthDp) {
         DisplayMetrics metrics = c.getResources().getDisplayMetrics();
         TextPaint paint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         paint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, metrics));
         paint.setTypeface(Typeface.DEFAULT_BOLD);
         int width = Math.max(1, Math.round(widthDp * metrics.density));
-        StaticLayout.Builder builder = StaticLayout.Builder.obtain(title, 0, title.length(), paint, width).setIncludePad(false);
+        StaticLayout.Builder builder = StaticLayout.Builder.obtain(title, 0, title.length(), paint, width).setIncludePad(false)
+                .setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
         if (Build.VERSION.SDK_INT >= 28) builder.setUseLineSpacingFromFallbacks(true);
-        StaticLayout layout = builder.build();
-        if (layout.getLineCount() > Math.max(1, maxLines)) return Float.POSITIVE_INFINITY;
-        return layout.getHeight() / metrics.density;
+        return builder.build();
     }
 
     /** Height in dp of the outlined day numeral per bucket. Mirrors the layout XML. */

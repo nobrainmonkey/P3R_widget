@@ -68,7 +68,8 @@ public class CardRendererTest {
 
     /**
      * With {@link CardModel#keepWordsWhole} (the plan widget) names and venues stay whole at every
-     * size and font scale, while the drawn text reads the same.
+     * size and font scale, while the drawn text reads the same (a 「 · 」 it wraps at becomes the line
+     * break, and no line ends with the dot).
      */
     @Test
     public void namesAndVenuesStayWholeWhenTheTitleWraps() {
@@ -91,8 +92,9 @@ public class CardRendererTest {
                     View root = RenderSupport.layout(c, CardRenderer.render(c, m, size[0], size[1]), size[0], size[1]);
                     String tag = card[0] + "@" + size[0] + "x" + size[1] + "x" + scale;
                     RenderSupport.collectWordSplits(root, tag, issues);
+                    RenderSupport.collectDotLineEnds(root, tag, issues);
                     TextView title = root.findViewById(R.id.widget_task);
-                    assertEquals(tag, card[0], CardText.plain(title.getText().toString()));
+                    assertEquals(tag, card[0], RenderSupport.titleText(title));
                     String drawn = title.getText().toString();
                     for (String word : new String[]{"小田桐秀利", "山岸风花", "伊织顺平", "夏卡尔咖啡店", "费洛蒙咖啡", "你就是答案"}) {
                         if (!card[0].contains(word)) continue;

@@ -30,7 +30,7 @@ import app.p3r.dayplanner.v3.service.PlannerApi;
  * Home-screen plan widget (docs/DESIGN_v3.md §7.2): shows the plan item by item, ‹ › browse, 当前
  * returns to the pending item, 完成 records training/jobs directly (with a one-tap undo) and opens
  * the quick result sheet for everything else. Status cards (planning, error, finished) carry one
- * button instead that opens the app.
+ * button instead that opens the app; a story-locked item, with nothing to record, offers 下一项.
  *
  * <p>Threading: every broadcast is handed to {@link WidgetWorker} under {@code goAsync()}, so no
  * SQLite read, outcome write or RemoteViews build ever runs on the main thread.
@@ -346,7 +346,7 @@ public class PlanWidget extends AppWidgetProvider {
         views.setOnClickPendingIntent(R.id.widget_prev, WidgetIntents.navigate(app, id, WidgetIntents.ACTION_PREV));
         views.setOnClickPendingIntent(R.id.widget_next, WidgetIntents.navigate(app, id, WidgetIntents.ACTION_NEXT));
         views.setOnClickPendingIntent(R.id.button_spec_current, WidgetIntents.navigate(app, id, WidgetIntents.ACTION_CURRENT));
-        PendingIntent done = doneIntent(app, id, view);
+        PendingIntent done = view.done == PlanView.Done.OPEN_SCHEDULE ? schedule : doneIntent(app, id, view);
         if (done != null) views.setOnClickPendingIntent(R.id.button_spec_done, done);
         return views;
     }
@@ -355,6 +355,9 @@ public class PlanWidget extends AppWidgetProvider {
         String planId = view.planId();
         long revision = view.stateRevision();
         switch (view.done) {
+            case NEXT:
+                // A story-locked item: the button goes on to the next item, like ›.
+                return WidgetIntents.navigate(app, id, WidgetIntents.ACTION_NEXT);
             case COMMIT:
                 return WidgetIntents.commit(app, id, planId, revision, view.item.slot, view.item.step.action);
             case RESULT:

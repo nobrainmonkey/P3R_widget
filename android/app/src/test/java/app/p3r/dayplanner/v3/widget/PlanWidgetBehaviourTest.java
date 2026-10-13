@@ -426,17 +426,28 @@ public class PlanWidgetBehaviourTest {
         assertTrue(fake.recordCalls.isEmpty());
     }
 
+    /**
+     * A story-locked item has nothing to record: its one button, 下一项, goes on to the next item like ›
+     * and never records or opens anything (review: a dead 当前/完成 row on the pending item).
+     */
     @Test
-    public void lockedItemsAreInformationOnly() {
+    public void lockedItemsGoOnToTheNextItem() {
         fake.observeAt("locked:full_moon");
         refresh();
         assertEquals("满月作战", text(R.id.widget_task));
-        View done = card().findViewById(R.id.button_spec_done);
-        assertFalse(done.isEnabled());
-        done.performClick();
-        idle();
+        assertEquals(View.GONE, card().findViewById(R.id.button_spec_current).getVisibility());
+        assertEquals("下一项", text(R.id.button_spec_done_text));
+        tap(R.id.button_spec_done);
+        assertEquals("剧情事件", text(R.id.widget_task));
+        assertTrue("browsed on: 当前 goes back", card().findViewById(R.id.button_spec_current).isEnabled());
+        assertEquals("下一项", text(R.id.button_spec_done_text));
+        tap(R.id.button_spec_done);
+        assertEquals("探索塔尔塔罗斯", text(R.id.widget_task));
+        assertEquals(PlanView.CATCHUP_LABEL, text(R.id.button_spec_done_text));
         assertNull(shadowOf(app).getNextStartedActivity());
         assertTrue(fake.recordCalls.isEmpty());
+        tap(R.id.button_spec_current);
+        assertEquals("满月作战", text(R.id.widget_task));
     }
 
     // ------------------------------------------------------------------ browsing

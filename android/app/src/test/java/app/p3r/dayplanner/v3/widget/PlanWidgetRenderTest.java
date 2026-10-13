@@ -190,6 +190,8 @@ public class PlanWidgetRenderTest {
                     RenderSupport.collectSqueezedLocation(root, tag, issues);
                     RenderSupport.collectWordSplits(root, tag, issues);
                     RenderSupport.collectCutText(root, tag, issues);
+                    RenderSupport.collectDotLineEnds(root, tag, issues);
+                    RenderSupport.collectLocationEdges(root, tag, issues);
                     TextView title = root.findViewById(R.id.widget_task);
                     assertFalse(tag + " blank title", title.getText().toString().trim().isEmpty());
                     assertTrue(tag + " title collapsed", title.getHeight() > 0);
@@ -217,6 +219,8 @@ public class PlanWidgetRenderTest {
                 RenderSupport.collectSqueezedLocation(root, tag, issues);
                 RenderSupport.collectWordSplits(root, tag, issues);
                 RenderSupport.collectCutText(root, tag, issues);
+                RenderSupport.collectDotLineEnds(root, tag, issues);
+                RenderSupport.collectLocationEdges(root, tag, issues);
             }
         }
         assertTrue(String.join("\n", issues), issues.isEmpty());
@@ -281,11 +285,46 @@ public class PlanWidgetRenderTest {
         List<String> issues = new ArrayList<>();
         for (int[] size : SIZES) RenderSupport.collectWordSplits(render(false, size[0], size[1]), "max-up-" + size[0], issues);
         assertTrue(String.join("\n", issues), issues.isEmpty());
-        // Narrow enough that 「皇帝 · 小田桐秀利」 may wrap: then after the dot, never inside the name.
+        // Narrow enough that 「皇帝 · 小田桐秀利」 may wrap: then at the dot (which goes), never inside the name.
         TextView title = render(false, 180, 150).findViewById(R.id.widget_task);
-        assertEquals("皇帝 · 小田桐秀利", CardText.plain(title.getText().toString()));
-        if (title.getLineCount() > 1) {
-            assertEquals("皇帝 · ", CardText.plain(title.getText().subSequence(0, title.getLayout().getLineEnd(0)).toString()));
+        assertEquals("皇帝 · 小田桐秀利", RenderSupport.titleText(title));
+        if (title.getLineCount() > 1) assertEquals("皇帝 / 小田桐秀利", RenderSupport.lines(title));
+    }
+
+    /**
+     * Review: 「结缘网站的字条 · / 山岸风花」 at 180x150 and 115% font, the dot left at the end of a line. A
+     * title that wraps at its 「 · 」 wraps there without the dot, on the same lines.
+     */
+    @Test
+    public void aTitleThatWrapsAtItsSeparatorDropsTheDot() {
+        RuntimeEnvironment.setFontScale(1.15f);
+        state("note");
+        TextView title = render(false, 180, 150).findViewById(R.id.widget_task);
+        assertEquals("结缘网站的字条 / 山岸风花", RenderSupport.lines(title));
+        assertEquals("结缘网站的字条 · 山岸风花", RenderSupport.titleText(title));
+        // Where it fits one line the dot stays.
+        RuntimeEnvironment.setFontScale(1f);
+        state("note");
+        assertEquals("结缘网站的字条 · 山岸风花", text(render(false, 320, 200), R.id.widget_task));
+    }
+
+    /**
+     * Review: the note line of the 250x160 card ended in 「花费 1,000 日…」 and 「赴约也算一次见…」. Like the
+     * 180 cards it never ends in "…": it keeps its leading whole clauses, or goes.
+     */
+    @Test
+    public void theNoteLineShowsWholeClausesOrGoes() {
+        state("unlock-talk");
+        assertEquals("去喷泉广场找那个胖乎乎的学生", text(render(true, 250, 160), R.id.widget_detail_cue));
+        assertEquals("去喷泉广场找那个胖乎乎的学生 · 花费 1,000 日元", text(render(true, 320, 200), R.id.widget_detail_cue));
+        state("max-meet");
+        assertEquals("对方发来了休息日邀约，赴约也算一次见面", text(render(false, 250, 160), R.id.widget_detail_cue));
+        RuntimeEnvironment.setFontScale(1.15f);
+        for (String name : new String[]{"long", "max-meet"}) {
+            state(name);
+            TextView cue = render(false, 250, 160).findViewById(R.id.widget_detail_cue);
+            // Where the card is too short for the line at all (Android 12's taller title) it goes.
+            if (cue.getVisibility() == View.VISIBLE) assertEquals(name, "对方发来了休息日邀约", CardText.plain(cue.getText().toString()));
         }
     }
 
@@ -299,7 +338,7 @@ public class PlanWidgetRenderTest {
         expected.put("max-up", new String[]{"皇帝 · 小田桐秀利", "RANK 9→MAX", "完成"});
         expected.put("max-meet", new String[]{"倒悬者 · 舞子", "MAX · 见面", "完成"});
         expected.put("job-side", new String[]{"咖啡店打工", "+3,000 日元", "完成"});
-        expected.put("locked", new String[]{"满月作战", null, "完成"});
+        expected.put("locked", new String[]{"满月作战", null, "下一项"});
         expected.put("empty", new String[]{"设置目标，从当前存档开始", null, "开始设置"});
         for (Map.Entry<String, String[]> e : expected.entrySet()) {
             state(e.getKey());
@@ -313,7 +352,7 @@ public class PlanWidgetRenderTest {
         assertEquals("✓ 已记录 · 再点撤销", text(render(false, 320, 200), R.id.widget_detail_cue));
         state("locked");
         View locked = render(false, 320, 200);
-        assertFalse("locked items are information only", locked.findViewById(R.id.button_spec_done).isEnabled());
+        assertTrue("locked items have nothing to record: the button goes on", locked.findViewById(R.id.button_spec_done).isEnabled());
         assertEquals("这段时间不能自由行动", text(locked, R.id.widget_detail_cue));
         state("story-run");
         assertEquals("到11月5日都不能自由行动", text(render(false, 320, 200), R.id.widget_detail_cue));
@@ -383,6 +422,31 @@ public class PlanWidgetRenderTest {
                     TextView label = root.findViewById(R.id.button_spec_done_text);
                     assertEquals(tag, e.getValue(), text(root, R.id.button_spec_done_text));
                     assertEquals(tag + " drawn live, not washed out", 255, android.graphics.Color.alpha(label.getCurrentTextColor()));
+                }
+            }
+        }
+    }
+
+    /**
+     * Review: a story-locked day on the pending item showed a dimmed 当前 beside a dimmed 完成 ✓, a dead
+     * row. Like the status cards it has one live button: 下一项, on to what comes after the story.
+     */
+    @Test
+    public void storyLockedItemsShowOneLiveButton() {
+        for (String name : new String[]{"locked", "story-run"}) {
+            for (int[] size : SIZES) {
+                for (boolean night : new boolean[]{false, true}) {
+                    state(name);
+                    View root = render(night, size[0], size[1]);
+                    String tag = name + "-" + size[0] + "x" + size[1] + (night ? "-night" : "");
+                    assertEquals(tag, View.GONE, root.findViewById(R.id.button_spec_current).getVisibility());
+                    View done = root.findViewById(R.id.button_spec_done);
+                    assertTrue(tag, done.isEnabled());
+                    assertTrue(tag + " the button spans the row", done.getWidth() > root.getWidth() * 0.8f);
+                    assertEquals(tag, "下一项", text(root, R.id.button_spec_done_text));
+                    TextView label = root.findViewById(R.id.button_spec_done_text);
+                    assertEquals(tag + " drawn live, not washed out", 255, android.graphics.Color.alpha(label.getCurrentTextColor()));
+                    assertEquals(tag + " no check mark", View.GONE, root.findViewById(R.id.button_spec_check).getVisibility());
                 }
             }
         }
