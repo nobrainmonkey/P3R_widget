@@ -63,8 +63,21 @@ final class Tables {
     final int[] stepCount;
     /** Index of the step that establishes the link (sets rank 1). */
     final int[] establishIdx;
-    /** [link][k] last index of the step group that starts at k (non-consuming steps fold into the next consuming one). */
+    /**
+     * [link][k] last index of the step group a slot-consuming unlock action starting at step k
+     * covers, or -1 when step k can only happen as a side step. Non-consuming steps fold into the
+     * next consuming step only when every later step of the chain has minGapDays 0 and the slot kind
+     * of the consuming step, so the whole chain can happen in that one slot.
+     */
     final int[][] groupEnd;
+    /** [link][k] step k does not consume the slot (it is done "on the side" of another action). */
+    final boolean[][] sideStep;
+    /** Bit L set: link L has at least one non-consuming unlock step. */
+    final int sideMask;
+    /** [link][k] steps that consume a slot from step k to the end of the chain. */
+    final int[][] slotStepsLeft;
+    /** [link][k] minimum days from the day of step k-1 (or now) until the last step can happen. */
+    final int[][] gapDaysLeft;
     /** [link][k][day] the step's own day rule and fromDay allow that day. */
     final boolean[][][] stepDayOk;
     /** Index of the charm stat, or -1. */
@@ -154,8 +167,16 @@ final class Tables {
         stepCount = new int[nLinks];
         establishIdx = new int[nLinks];
         groupEnd = new int[nLinks][];
+        sideStep = new boolean[nLinks][];
+        slotStepsLeft = new int[nLinks][];
+        gapDaysLeft = new int[nLinks][];
         stepDayOk = new boolean[nLinks][][];
-        for (Rules.Link link : rules.links) buildLink(link);
+        int side = 0;
+        for (Rules.Link link : rules.links) {
+            buildLink(link);
+            for (boolean b : sideStep[link.idx]) if (b) side |= 1 << link.idx;
+        }
+        sideMask = side;
 
         int ci = -1;
         statCap = new int[nStats];
@@ -253,10 +274,25 @@ final class Tables {
         }
         establishIdx[l] = est;
         groupEnd[l] = new int[n];
+        sideStep[l] = new boolean[n];
         for (int k = 0; k < n; k++) {
+            // The last step always acts as the consuming one (it establishes the link).
+            boolean consumes = steps.get(k).consumesSlot || k == n - 1;
+            sideStep[l][k] = !consumes;
             int c = k;
             while (c < n - 1 && !steps.get(c).consumesSlot) c++;
-            groupEnd[l][k] = c;
+            boolean foldable = true;
+            for (int j = k + 1; j <= c; j++) {
+                Rules.Step s = steps.get(j);
+                if (s.minGapDays > 0 || steps.get(j - 1).evening != steps.get(c).evening) foldable = false;
+            }
+            groupEnd[l][k] = foldable ? c : -1;
+        }
+        slotStepsLeft[l] = new int[n + 1];
+        gapDaysLeft[l] = new int[n + 1];
+        for (int k = n - 1; k >= 0; k--) {
+            slotStepsLeft[l][k] = slotStepsLeft[l][k + 1] + (sideStep[l][k] ? 0 : 1);
+            gapDaysLeft[l][k] = gapDaysLeft[l][k + 1] + Math.max(0, steps.get(k).minGapDays);
         }
         stepDayOk[l] = new boolean[n][];
         for (int k = 0; k < n; k++) stepDayOk[l][k] = stepDays(link, steps.get(k));

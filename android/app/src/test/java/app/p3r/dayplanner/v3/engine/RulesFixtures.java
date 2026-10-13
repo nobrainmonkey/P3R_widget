@@ -145,6 +145,149 @@ final class RulesFixtures {
         return r;
     }
 
+    // ------------------------------------------------------------------ side-step fixture
+
+    static final int X_FOOL = 0;
+    static final int X_PATRON = 1;
+    static final int X_JUSTICE = 2;
+    static final int X_HANGED = 3;
+    static final int X_DEVIL = 4;
+    static final int X_SUN = 5;
+    static final int X_MOON = 6;
+    static final int X_TOWER = 7;
+    static final int X_STUDY = 0;
+    static final int X_LIBRARY = 1;
+    static final int X_JOB = 2;
+    static final int X_ARCADE = 3;
+    /** Days on which the Moon rumour can be heard (daytime, fixed days). */
+    static final int[] X_MOON_RUMOR = {24, 31, 38, 45};
+    /** Days on which the Tower rumour can be heard (daytime, fixed days). */
+    static final int[] X_TOWER_RUMOR = {26, 33, 40};
+
+    /**
+     * Apr 21 … May 31 with one link per unlock-chain pattern of the real pack (REPORT §0, §4.2),
+     * all non-consuming steps marked {@code consumesSlot=false}:
+     * <ul>
+     *   <li>patron (day, one step) – Justice needs it at RANK 1;</li>
+     *   <li>justice (day): talk1 → talk2 (gap 1) → talk3 (gap 1) → open (gap 1, from day 30);</li>
+     *   <li>hanged (day): gift ¥510 → open (gap 1);</li>
+     *   <li>devil (evening, Tue/Sat): pay ¥20,000 → pay ¥10,000 (gap 1) → open ¥10,000 (gap 1), needs Charm Lv2;</li>
+     *   <li>sun (day, Sundays): ask (day) → pen (evening, any day) → open (day, gap 1);</li>
+     *   <li>moon (day, every day): rumour on fixed days → open (gap 0, folds into the rumour day);</li>
+     *   <li>tower (evening, Thu–Sun): rumour (day, fixed days) → open (evening, gap 0).</li>
+     * </ul>
+     */
+    static Rules sideSteps() {
+        Rules r = base(20, 60);
+        for (int d = 20; d <= 60; d++) {
+            r.days[d].block = 0;
+            r.days[d].tartarus = true;
+        }
+        r.days[39].dayLock = "story";
+        r.days[39].eveLock = "full_moon";
+        r.lockReasonsZh.put("story", "剧情事件");
+        r.lockReasonsZh.put("full_moon", "满月作战");
+        r.days[60].eveLock = "finale";
+        r.lockReasonsZh.put("finale", "最终决战");
+
+        Rules.Link fool = link(X_FOOL, "fool", 0, "愚者", "特别课外活动部", Rules.LinkKind.STORY, false, "宿舍");
+        fool.storyRankDay = new int[11];
+        Arrays.fill(fool.storyRankDay, -1);
+        fool.storyRankDay[1] = 17;
+
+        Rules.Link patron = link(X_PATRON, "patron", 4, "皇帝", "小田桐秀利", Rules.LinkKind.MANUAL, false, "学生会活动室");
+        avail(r, patron, true, 1, 3, 5);
+        sideThresholds(patron);
+        patron.unlock.earliestDay = 20;
+        patron.unlock.steps.add(step("patron.open", "加入学生会", false, Rules.StepDays.LINK_AVAIL, 0, 0, true));
+
+        Rules.Link justice = link(X_JUSTICE, "justice", 8, "正义", "伏见千寻", Rules.LinkKind.MANUAL, false, "学生会活动室门口");
+        avail(r, justice, true, 2, 4, 6);
+        sideThresholds(justice);
+        justice.unlock.earliestDay = 20;
+        justice.unlock.linkRank.put(X_PATRON, 1);
+        for (int i = 1; i <= 3; i++) {
+            Rules.Step talk = step("justice.talk" + i, "和伏见千寻搭话（第 " + i + " 次）", false, Rules.StepDays.LINK_AVAIL, 0, i == 1 ? 0 : 1, false);
+            talk.consumesSlot = false;
+            justice.unlock.steps.add(talk);
+        }
+        Rules.Step justiceOpen = step("justice.open", "和伏见千寻一起回家", false, Rules.StepDays.LINK_AVAIL, 0, 1, true);
+        justiceOpen.fromDay = 30;
+        justice.unlock.steps.add(justiceOpen);
+
+        Rules.Link hanged = link(X_HANGED, "hanged_man", 12, "倒悬者", "舞子", Rules.LinkKind.MANUAL, false, "长鸣神社");
+        avail(r, hanged, false, 1, 3, 6);
+        sideThresholds(hanged);
+        hanged.unlock.earliestDay = 20;
+        Rules.Step gift = step("hanged_man.gift", "给神社的小女孩送吃的", false, Rules.StepDays.LINK_AVAIL, 510, 0, false);
+        gift.consumesSlot = false;
+        hanged.unlock.steps.add(gift);
+        hanged.unlock.steps.add(step("hanged_man.open", "改天再去长鸣神社陪她玩", false, Rules.StepDays.LINK_AVAIL, 0, 1, true));
+
+        Rules.Link devil = link(X_DEVIL, "devil", 15, "恶魔", "田中社长", Rules.LinkKind.MANUAL, true, "桐叶购物中心");
+        avail(r, devil, false, 2, 6);
+        devil.threshold = new int[11];
+        devil.eventGain = new int[11];
+        devil.unlock.earliestDay = 20;
+        devil.unlock.statLv.put(CHARM, 2);
+        Rules.Step pay1 = step("devil.pay1", "把 20,000 日元交给穿西装的男人", true, Rules.StepDays.LINK_AVAIL, 20_000, 0, false);
+        pay1.consumesSlot = false;
+        Rules.Step pay2 = step("devil.pay2", "再交 10,000 日元", true, Rules.StepDays.LINK_AVAIL, 10_000, 1, false);
+        pay2.consumesSlot = false;
+        devil.unlock.steps.add(pay1);
+        devil.unlock.steps.add(pay2);
+        devil.unlock.steps.add(step("devil.open", "交出最后的 10,000 日元", true, Rules.StepDays.LINK_AVAIL, 10_000, 1, true));
+
+        Rules.Link sun = link(X_SUN, "sun", 19, "太阳", "神木秋成", Rules.LinkKind.MANUAL, false, "长鸣神社");
+        avail(r, sun, false, 7);
+        sun.threshold = new int[11];
+        sun.eventGain = new int[11];
+        sun.unlock.earliestDay = 20;
+        Rules.Step ask = step("sun.ask", "和长鸣神社那位消瘦的青年说话", false, Rules.StepDays.LINK_AVAIL, 0, 0, false);
+        ask.consumesSlot = false;
+        Rules.Step pen = step("sun.pen", "从虎狼丸那里拿到红色钢笔", true, Rules.StepDays.ANY_FREE, 0, 0, false);
+        pen.consumesSlot = false;
+        sun.unlock.steps.add(ask);
+        sun.unlock.steps.add(pen);
+        sun.unlock.steps.add(step("sun.open", "把钢笔还给他", false, Rules.StepDays.LINK_AVAIL, 0, 1, true));
+
+        Rules.Link moon = link(X_MOON, "moon", 18, "月亮", "末光望美", Rules.LinkKind.MANUAL, false, "喷泉广场");
+        avail(r, moon, false, 1, 2, 3, 4, 5, 6, 7);
+        sideThresholds(moon);
+        moon.unlock.earliestDay = 20;
+        Rules.Step moonRumor = step("moon.rumor", "听友近健二说起「美食大王」", false, Rules.StepDays.FIXED, 0, 0, false);
+        moonRumor.consumesSlot = false;
+        moonRumor.fixedDays = X_MOON_RUMOR;
+        moon.unlock.steps.add(moonRumor);
+        moon.unlock.steps.add(step("moon.open", "去喷泉广场找那个胖乎乎的学生", false, Rules.StepDays.LINK_AVAIL, 0, 0, true));
+
+        Rules.Link tower = link(X_TOWER, "tower", 16, "塔", "无达", Rules.LinkKind.MANUAL, true, "放纵俱乐部");
+        avail(r, tower, false, 4, 5, 6, 7);
+        sideThresholds(tower);
+        tower.unlock.earliestDay = 20;
+        Rules.Step towerRumor = step("tower.rumor", "听西胁结子说起奇怪的和尚", false, Rules.StepDays.FIXED, 0, 0, false);
+        towerRumor.consumesSlot = false;
+        towerRumor.fixedDays = X_TOWER_RUMOR;
+        tower.unlock.steps.add(towerRumor);
+        tower.unlock.steps.add(step("tower.open", "到放纵俱乐部找那位和尚", true, Rules.StepDays.LINK_AVAIL, 0, 0, true));
+        r.links = new Rules.Link[]{fool, patron, justice, hanged, devil, sun, moon, tower};
+
+        Rules.Activity study = activity(X_STUDY, "study_room", "在自己房间学习", Rules.ActivityKind.STAT, false, true, 0, ACADEMICS, 2);
+        Rules.Activity library = activity(X_LIBRARY, "library", "到学校图书室自习", Rules.ActivityKind.STAT, true, false, 0, ACADEMICS, 2);
+        Rules.Activity job = activity(X_JOB, "job_chagall", "在夏卡尔咖啡店打工", Rules.ActivityKind.JOB, false, true, 0, CHARM, 1);
+        job.weekdayMask = mask(1, 2, 3);
+        job.pay = new int[][]{{1, 2500}};
+        Rules.Activity arcade = activity(X_ARCADE, "arcade_youth", "在电玩大巡游玩「青春高校」", Rules.ActivityKind.STAT, false, true, 1500, CHARM, 4);
+        r.activities = new Rules.Activity[]{study, library, job, arcade};
+        r.blocks = new Rules.Block[]{block(0, "thebel", "世俗之庭 台伯勒", "2–22F", 20, 60)};
+        return r;
+    }
+
+    private static void sideThresholds(Rules.Link l) {
+        l.threshold = new int[]{0, 0, 0, 0, 15, 15, 15, 15, 22, 22, 22};
+        l.eventGain = new int[]{0, 0, 10, 20, 15, 15, 15, 15, 20, 15, 20};
+    }
+
     // ------------------------------------------------------------------ full-year fixture
 
     static Rules fullYear() {

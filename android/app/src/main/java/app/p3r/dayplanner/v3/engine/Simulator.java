@@ -41,7 +41,15 @@ final class Simulator {
         List<String> ids = new ArrayList<>();
         fx.addAssumptionIds(ids);
         out.assumptions = Collections.unmodifiableList(ids);
+        out.side = Collections.unmodifiableList(sideKeys(m, fx));
         return out;
+    }
+
+    /** Action keys of the side steps recorded in {@code fx}, in order ("unlock:devil:0"). */
+    static List<String> sideKeys(Model m, Kernel.Effect fx) {
+        List<String> keys = new ArrayList<>(fx.sideCount);
+        for (int i = 0; i < fx.sideCount; i++) keys.add(Action.unlock(fx.sideLink[i], fx.sideStep[i]).key(m.rules));
+        return keys;
     }
 
     /** Forecast prediction record from a kernel effect. */
@@ -58,6 +66,16 @@ final class Simulator {
             p.statLvAfter[s] = fx.lvAfter[s] != fx.lvBefore[s] ? fx.lvAfter[s] : -1;
         }
         return p;
+    }
+
+    /** The slot's side steps for {@code action}, applied to a normalized copy that stays at its slot. */
+    static SimState applySideSteps(Rules rules, Profile profile, SimState state, Action action) {
+        Model m = new Model(rules, profile, null);
+        SimState st = Kernel.normalize(m, state);
+        if (action == null) action = Action.free();
+        checkTarget(m, action);
+        Kernel.side(m, st, Kernel.encode(action), null);
+        return st;
     }
 
     /** Advance without acting until {@code slot} (day rollovers applied). */
@@ -80,6 +98,10 @@ final class Simulator {
      * </ul>
      * In every case a ready cue sets {@code ready}, stat Lv values clamp the hidden points into
      * that Lv's range and a cash balance sets cash exactly. The slot always advances by one.
+     *
+     * <p>Side steps: unless {@link Outcome#sideDone} is false, the slot's side steps (pending
+     * non-consuming unlock steps the plan wants, see {@code Kernel.side}) are applied first, exactly
+     * as the forecast did for this action, whatever happened to the main action.
      */
     static SimState applyOutcome(Rules rules, Profile profile, SimState state, Action action, Outcome outcome) {
         Model m = new Model(rules, profile, null);
@@ -89,13 +111,14 @@ final class Simulator {
         checkTarget(m, action);
         int code = Kernel.encode(action);
         int link = linkOf(action);
+        if (outcome.sideDone) Kernel.side(m, st, code, null);
         switch (outcome.code) {
             case RANK_UP:
                 rankUp(m, st, action, link, outcome.rank);
                 break;
             case NO_RANK_UP:
                 if (action.type == Action.Type.MEET) noRankUp(m, st, link);
-                else Kernel.effect(m, st, code, null);
+                else Kernel.mainEffect(m, st, code, null);
                 break;
             case SKIPPED:
                 break;
@@ -110,7 +133,7 @@ final class Simulator {
                 break;
             case AS_PREDICTED:
             default:
-                Kernel.effect(m, st, code, null);
+                Kernel.mainEffect(m, st, code, null);
                 break;
         }
         if (outcome.readyCue && link >= 0 && st.rank[link] >= 1 && st.rank[link] < 10) {
@@ -132,13 +155,13 @@ final class Simulator {
 
     private static void rankUp(Model m, SimState st, Action action, int link, int observedRank) {
         if (link < 0) {
-            Kernel.effect(m, st, Kernel.encode(action), null);
+            Kernel.mainEffect(m, st, Kernel.encode(action), null);
             return;
         }
         int to;
         if (action.type == Action.Type.UNLOCK_STEP) {
             // Pays the step costs; "ranked up" after an unlock step means the link is now established.
-            Kernel.effect(m, st, Kernel.encode(action), null);
+            Kernel.mainEffect(m, st, Kernel.encode(action), null);
             to = observedRank >= 0 ? observedRank : Math.max(1, st.rank[link]);
         } else {
             to = observedRank >= 0 ? observedRank : st.rank[link] + 1;
@@ -158,7 +181,7 @@ final class Simulator {
     private static void other(Model m, SimState st, Action action, int link, int observedRank) {
         int before = link >= 0 ? st.rank[link] : -1;
         SimState pre = link >= 0 ? st.copy() : null;
-        Kernel.effect(m, st, Kernel.encode(action), null);
+        Kernel.mainEffect(m, st, Kernel.encode(action), null);
         if (link < 0 || observedRank < 0) return;
         int obs = Math.min(10, observedRank);
         if (obs > before) {

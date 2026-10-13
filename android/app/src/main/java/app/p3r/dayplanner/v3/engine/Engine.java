@@ -38,6 +38,8 @@ public final class Engine {
         public Plan.Predicted predicted;
         public boolean estimate;
         public List<String> assumptions;
+        /** Side steps done in this slot before the action ("unlock:devil:0"), in order; empty if none. */
+        public List<String> side;
     }
 
     /** Legal productive actions for {@code state.slot} (empty if the slot is locked). */
@@ -74,6 +76,17 @@ public final class Engine {
      */
     public static SimState applyOutcome(Rules rules, Profile profile, SimState state, Action action, Outcome outcome) {
         return Simulator.applyOutcome(rules, profile, state, action, outcome);
+    }
+
+    /**
+     * The side steps of {@code state.slot} (pending non-consuming unlock steps of wanted links, see
+     * {@link Plan.Step#side}) applied to a copy of {@code state} as if {@code action} were taken
+     * there; the copy stays at the same slot and nothing else changes. For records that do not go
+     * through {@link #applyOutcome}, e.g. a Tartarus visit recorded by the store: apply this first,
+     * then the record. {@code applyOutcome} already applies side steps itself.
+     */
+    public static SimState applySideSteps(Rules rules, Profile profile, SimState state, Action action) {
+        return Simulator.applySideSteps(rules, profile, state, action);
     }
 
     /**

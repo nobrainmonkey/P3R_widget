@@ -34,6 +34,12 @@ public final class Outcome {
     public long cashBalance = -1;
     /** Skip reason id: story / absent / closed / money / unwilling / other. */
     public String reason;
+    /**
+     * Whether the slot's side steps (the plan's "顺便：…" non-consuming unlock steps, {@link Plan.Step#side})
+     * were done. Default true; false when the player says they were not, whatever happened to the
+     * main action. JSON key {@code sideDone}, written only when false.
+     */
+    public boolean sideDone = true;
 
     public static Outcome of(Code c) { Outcome o = new Outcome(); o.code = c; return o; }
 
@@ -47,6 +53,7 @@ public final class Outcome {
         if (anyLv) o.put("statLv", new org.json.JSONArray(new int[]{statLv[0], statLv[1], statLv[2]}));
         if (cashBalance >= 0) o.put("cashBalance", cashBalance);
         if (reason != null) o.put("reason", reason);
+        if (!sideDone) o.put("sideDone", false);
         return o;
     }
 
@@ -59,6 +66,7 @@ public final class Outcome {
         for (int i = 0; lv != null && i < 3 && i < lv.length(); i++) r.statLv[i] = lv.getInt(i);
         r.cashBalance = o.optLong("cashBalance", -1);
         r.reason = o.has("reason") ? o.getString("reason") : null;
+        r.sideDone = o.optBoolean("sideDone", true);
         return r;
     }
 }
