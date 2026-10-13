@@ -15,6 +15,7 @@ import org.robolectric.annotation.Config;
 import java.util.List;
 
 import app.p3r.dayplanner.v3.widget.CardModel;
+import app.p3r.dayplanner.v3.widget.CardText;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -64,8 +65,9 @@ public class WidgetRemoteViewsTest {
             for (int[] size : sizes) {
                 PlannerStore.Task task = PlannerStore.taskById(c, id);
                 View root = render(id, size[0], size[1]);
-                assertEquals(task.widgetTitle, text(root, R.id.widget_task));
-                assertEquals(task.locationLabel, text(root, R.id.widget_location));
+                // Title and location carry invisible word joiners; compare the text a reader sees.
+                assertEquals(task.widgetTitle, CardText.plain(text(root, R.id.widget_task)));
+                assertEquals(task.locationLabel, CardText.plain(text(root, R.id.widget_location)));
                 int ordinal = PlannerStore.viewedOrdinal(c, W);
                 int count = PlannerStore.viewedDay(c, W).tasks.size();
                 assertEquals(ordinal + "/" + count, text(root, R.id.widget_progress));

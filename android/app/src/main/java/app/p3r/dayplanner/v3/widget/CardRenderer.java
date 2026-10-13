@@ -286,23 +286,40 @@ public final class CardRenderer {
     /**
      * {@code model} with its wrapping text shaped for line breaks ({@link CardText}), so it is measured
      * exactly as it will wrap: the title keeps numbers with their words and, with
-     * {@link CardModel#keepWordsWhole}, names whole and every dialogue choice whole (the legacy guide
-     * shapes its choices itself). Returns {@code model} itself when nothing changes.
+     * {@link CardModel#keepWordsWhole}, names whole and every dialogue choice whole; with
+     * {@link CardModel#guideText} (the legacy guide, which shapes its choices itself) every word of the
+     * title and the location whole. Returns {@code model} itself when nothing changes.
      */
     static CardModel shaped(CardModel model) {
-        String title = model.keepWordsWhole
-                ? CardText.title(model.title, CardText.locationWords(model.location))
-                : keepNumbersTogether(model.title);
+        String title;
+        String location = model.location;
+        if (model.guideText) {
+            title = guideTitle(model.title, model.location);
+            location = CardText.guide(model.location, null);
+        } else if (model.keepWordsWhole) {
+            title = CardText.title(model.title, CardText.locationWords(model.location));
+        } else {
+            title = keepNumbersTogether(model.title);
+        }
         String dialogue = model.keepWordsWhole ? CardText.choices(model.dialogue) : model.dialogue;
         String cue = model.keepWordsWhole && model.cueMaxLines > 1 ? CardText.sentence(model.cue) : model.cue;
         boolean same = Objects.equals(title, model.title) && Objects.equals(dialogue, model.dialogue)
-                && Objects.equals(cue, model.cue);
+                && Objects.equals(cue, model.cue) && Objects.equals(location, model.location);
         if (same) return model;
         CardModel shown = model.copy();
         shown.title = title;
+        shown.location = location;
         shown.dialogue = dialogue;
         shown.cue = cue;
         return shown;
+    }
+
+    /**
+     * A legacy guide title as the card wraps it ({@link CardModel#guideText}): every word whole, the
+     * parts of its location included. The guide widget measures its title with this too.
+     */
+    public static String guideTitle(String title, String location) {
+        return CardText.guide(title, CardText.locationWords(location));
     }
 
     /**
@@ -480,6 +497,20 @@ public final class CardRenderer {
     static float dialogueRowHeightDp(Context c, CardModel model, float widthDp) {
         if (isBlank(model.dialogue)) return 0;
         return DIALOGUE_GAP_DP + textHeightDp(c, model.dialogue, DIALOGUE_SP, false, widthDp, 20, DIALOGUE_SPACING_DP);
+    }
+
+    /**
+     * Whether every choice of {@code choices} (「A / B」) fits one line of the dialogue text at
+     * {@code widthDp}. Only then can {@link CardText#choices} keep each one whole: a longer choice is
+     * cut wherever the card's line breaker likes, which the measured height does not follow.
+     */
+    public static boolean choicesFitWhole(Context c, String choices, float widthDp) {
+        if (isBlank(choices)) return true;
+        for (String choice : CardText.plain(choices).split(java.util.regex.Pattern.quote(CardText.CHOICE_SEPARATOR))) {
+            String text = choice.trim();
+            if (!text.isEmpty() && dialogueLines(c, text, widthDp) > 1) return false;
+        }
+        return true;
     }
 
     /** Lines the dialogue text wraps to at {@code widthDp}. */

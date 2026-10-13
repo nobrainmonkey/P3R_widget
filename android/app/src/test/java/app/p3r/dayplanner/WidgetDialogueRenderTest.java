@@ -99,7 +99,7 @@ public class WidgetDialogueRenderTest {
     assertEquals(tag+" dialogue font",12f,choices.getTextSize()/c.getResources().getDisplayMetrics().scaledDensity,0.05f);
    } else {
     boolean alreadyInTitle=true;
-    for(int i=0;i<expected.length();i++)alreadyInTitle &= title.getText().toString().contains(expected.getString(i));
+    for(int i=0;i<expected.length();i++)alreadyInTitle &= app.p3r.dayplanner.v3.widget.CardText.plain(title.getText().toString()).contains(expected.getString(i));
     if(!alreadyInTitle || !metadata.getJSONObject(id).getString("dialogueCue").isEmpty()) {
     assertEquals(tag+" fallback cue",View.VISIBLE,cue.getVisibility());
     assertFalse(tag+" empty fallback",cue.getText().toString().trim().isEmpty());fullText(cue,tag+" cue",issues);

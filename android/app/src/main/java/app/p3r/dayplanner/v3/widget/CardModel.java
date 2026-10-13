@@ -96,9 +96,15 @@ public final class CardModel {
     public boolean dialogueOptional;
     /**
      * Keep names in the title whole when it wraps ({@link CardText#title}: 「皇帝 ·」/「小田桐秀利」,
-     * never 「小田桐/秀利」). The legacy guide's free-form titles keep their plain breaks.
+     * never 「小田桐/秀利」). The legacy guide's free-form titles use {@link #guideText} instead.
      */
     public boolean keepWordsWhole;
+    /**
+     * The legacy guide's free-form title and location: words stay whole when they wrap
+     * ({@link CardText#guide}: 「交给/伊莉莎白」, never 「交给伊莉莎/白」). The guide widget shapes its
+     * dialogue choices itself.
+     */
+    public boolean guideText;
     public String taskDescription = "";
     /** Drop the body's vertical padding to make room (legacy dialogue choices). */
     public boolean tightBody;
@@ -155,6 +161,7 @@ public final class CardModel {
         m.dialogue = dialogue;
         m.dialogueOptional = dialogueOptional;
         m.keepWordsWhole = keepWordsWhole;
+        m.guideText = guideText;
         m.taskDescription = taskDescription;
         m.tightBody = tightBody;
         m.titleMaxLines = titleMaxLines;
