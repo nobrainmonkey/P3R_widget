@@ -126,7 +126,7 @@ final class StateSteps {
 
     private LinearLayout page(String question, String hint) {
         LinearLayout column = Ui.column(c);
-        TextView q = Ui.text(c, question, 24, Ui.col(c, R.color.p3r_white), true);
+        TextView q = Ui.mixed(c, question, 24, Ui.col(c, R.color.p3r_white), true);
         q.setLineSpacing(0f, 1.15f);
         column.addView(q);
         if (hint != null) {
@@ -349,7 +349,7 @@ final class StateSteps {
             callbacks.refresh();
         });
         column.addView(period, top(16));
-        TextView explain = Ui.muted(c, "放学后或假日白天选「" + dayLabel + "」，回到宿舍后选「晚上」。");
+        TextView explain = Ui.muted(c, "「" + dayLabel + "」是回宿舍之前的自由时间，「晚上」是回到宿舍之后。");
         column.addView(explain, top(6));
         LinearLayout summary = Ui.row(c);
         summary.setBackground(Ui.card(c).accent(Ui.col(c, R.color.p3r_cyan_400), Ui.dp(c, 4)));
@@ -369,56 +369,26 @@ final class StateSteps {
     // ------------------------------------------------------------------ 现金
 
     private View cash() {
-        LinearLayout column = page("现在有多少钱？", "游戏菜单里能看到。不确定也没关系，规划会按保守的数字算。");
-        LinearLayout card = Ui.row(c);
-        card.setBackground(new SlantedPanelDrawable()
-            .fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 170))
-            .pressedFill(Ui.col(c, R.color.p3r_navy_700))
-            .stroke(Ui.col(c, R.color.p3r_cyan_400), Ui.dp(c, 1.5f))
-            .skew(Ui.dp(c, 12)));
-        card.setMinimumHeight(Ui.dp(c, 88));
-        card.setGravity(Gravity.CENTER_VERTICAL | Gravity.END);
-        Ui.pad(card, 20, 10, 24, 10);
+        String hint;
         if (draft.isForecastCash()) {
-            card.addView(forecastTag(), Ui.wrap());
-            card.addView(new View(c), Ui.weight(1));
-        }
-        TextView value;
-        if (draft.cashUnknown()) {
-            value = Ui.text(c, draft.mode == StateDraft.Mode.ONBOARDING && draft.cash == null && draft.cashUnknown == null
-                ? "点这里输入" : "不确定", 20, Ui.col(c, R.color.p3r_cyan_300), true);
+            hint = "按计划推算大约是 " + Zh.yen(draft.cash()) + "，和游戏里一样就直接下一步。";
+        } else if (draft.observed != null && draft.observed.cashExact) {
+            hint = "上次记录：" + Zh.yen(draft.observed.cash) + "。和游戏里一样就直接下一步。";
         } else {
-            value = Ui.numeral(c, Zh.number(draft.cash()), 44, Ui.col(c, R.color.p3r_white));
+            hint = "游戏菜单里能看到。不确定也没关系，规划会按保守的数字算。";
         }
-        card.addView(value, Ui.wrap());
-        if (!draft.cashUnknown()) {
-            TextView unit = Ui.text(c, "日元", 16, Ui.col(c, R.color.p3r_cyan_300), true);
-            LinearLayout.LayoutParams up = Ui.wrap();
-            up.leftMargin = Ui.dp(c, 8);
-            card.addView(unit, up);
-        }
-        card.setClickable(true);
-        card.setFocusable(true);
-        card.setContentDescription("现金：" + (draft.cashUnknown() ? "不确定" : Zh.yen(draft.cash())) + "，点按修改");
-        card.setOnClickListener(v -> {
-            CashPad.Options options = new CashPad.Options();
-            options.title = "现在有多少钱？";
-            options.initial = draft.cashUnknown() ? null : draft.cash();
-            CashPad.show(c, options, amount -> {
-                if (amount == null) {
-                    draft.setCashUnknown();
-                } else {
-                    draft.setCash(amount);
-                }
-                callbacks.changed();
-                callbacks.refresh();
-            });
+        LinearLayout column = page("现在有多少钱？", hint);
+        CashPad.Options options = new CashPad.Options();
+        options.initial = draft.cashUnknown() ? null : draft.cash();
+        View pad = CashPad.inline(c, options, amount -> {
+            if (amount == null) {
+                draft.setCashUnknown();
+            } else {
+                draft.setCash(amount);
+            }
+            callbacks.changed();
         });
-        column.addView(card, top(24));
-        if (draft.observed != null && draft.observed.cashExact) {
-            column.addView(Ui.mixed(c, "上次记录：" + Zh.yen(draft.observed.cash), 13,
-                Ui.col(c, R.color.p3r_ink_muted), false), top(10));
-        }
+        column.addView(pad, top(12));
         return column;
     }
 
@@ -486,21 +456,27 @@ final class StateSteps {
     // ------------------------------------------------------------------ 社群 RANK
 
     private View links() {
-        LinearLayout column = page("社群 RANK", "点一格打开 RANK 小键盘，选完会自动跳到下一个。");
-        LinearLayout tools = Ui.row(c);
-        TextView rest = Ui.chip(c, "不确定的都设为未建立", false);
-        rest.setTextSize(13);
-        rest.setOnClickListener(v -> {
-            for (Rules.Link link : draft.rules.links) {
-                if (draft.rank(link.idx) == StateDraft.UNKNOWN) {
-                    draft.setRank(link.idx, 0);
+        LinearLayout column = page("社群 RANK", "点一格打开 RANK 小键盘，选完会自动跳到下一个。选「?」会保留原来的记录。");
+        boolean anyUnknown = false;
+        for (Rules.Link link : draft.rules.links) {
+            anyUnknown |= draft.rank(link.idx) == StateDraft.UNKNOWN;
+        }
+        if (anyUnknown) {
+            TextView rest = Ui.chip(c, "不确定的都设为未建立", false);
+            rest.setTextSize(13);
+            rest.setOnClickListener(v -> {
+                for (Rules.Link link : draft.rules.links) {
+                    if (draft.rank(link.idx) == StateDraft.UNKNOWN) {
+                        draft.setRank(link.idx, 0);
+                    }
                 }
-            }
-            callbacks.changed();
-            callbacks.refresh();
-        });
-        tools.addView(rest, Ui.wrap());
-        column.addView(tools, top(12));
+                callbacks.changed();
+                callbacks.refresh();
+            });
+            LinearLayout tools = Ui.row(c);
+            tools.addView(rest, Ui.wrap());
+            column.addView(tools, top(12));
+        }
         SimState forecast = draft.sync() == StateDraft.SyncAnswer.PARTLY ? draft.forecast() : null;
         List<Integer> order = new ArrayList<>();
         for (Rules.Link link : draft.rules.links) {
@@ -667,7 +643,7 @@ final class StateSteps {
             question = "将更新 " + changes.size() + " 项";
         }
         LinearLayout column = page(question, first ? "保存后会立刻开始安排到 1月31日 的日程。"
-            : "带「预计」的数值请对照游戏画面，保存即视为确认。");
+            : "带「预计」的数值请对照游戏核对，保存就算确认。");
         LinearLayout card = Ui.column(c);
         card.setBackground(Ui.card(c));
         Ui.pad(card, 16, 8, 16, 8);

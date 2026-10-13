@@ -356,7 +356,7 @@ public final class StateDraft {
             return summaryForFirstRun(after);
         }
         if (before.slot != after.slot) {
-            out.add(new Change("日期", Zh.slot(rules, before.slot), Zh.slot(rules, after.slot)));
+            out.add(new Change("日期", shortSlot(before.slot), shortSlot(after.slot)));
         }
         if (before.cash != after.cash || before.cashExact != after.cashExact) {
             out.add(new Change("现金", cashText(before), cashText(after)));
@@ -418,6 +418,11 @@ public final class StateDraft {
         out.add(new Change("目标", null, goals.isEmpty() ? "没有指定，所有社群尽量提升" : goalText.toString()));
         out.add(new Change("人格面具", null, profile.personaBonus ? "约会时通常带着同阿尔卡那的" : "不计加成"));
         return out;
+    }
+
+    /** "10/25 白天" — compact enough for one line in the diff. */
+    private String shortSlot(int slot) {
+        return Zh.shortDate(Rules.dayOf(slot)) + " " + Zh.period(rules, slot);
     }
 
     private static String cashText(SimState s) {

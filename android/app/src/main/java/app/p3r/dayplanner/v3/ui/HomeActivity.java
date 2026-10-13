@@ -427,6 +427,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         page.addView(bar, Ui.matchWrap());
         ScrollView scroll = new ScrollView(this);
         scroll.setClipToPadding(false);
+        scroll.setVerticalScrollBarEnabled(false);
         FrameLayout holder = new FrameLayout(this);
         Ui.pad(holder, Ui.GUTTER, 8, Ui.GUTTER, 32);
         holder.addView(content, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,

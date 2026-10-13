@@ -152,6 +152,7 @@ public final class ResultActivity extends Activity {
         panel.setClickable(true);
         scroll = new ScrollView(this);
         scroll.setClipToPadding(false);
+        scroll.setVerticalScrollBarEnabled(false);
         body = Ui.column(this);
         Ui.pad(body, 20, 14, 20, 20);
         scroll.addView(body, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,

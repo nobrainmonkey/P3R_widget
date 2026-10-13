@@ -52,7 +52,6 @@ public final class RankPad {
         Ui.pad(content, 20, 20, 20, 16);
         LinearLayout header = Ui.row(context);
         numeral = Ui.numeral(context, "", 34, Ui.col(context, R.color.p3r_cyan_400));
-        numeral.setMinWidth(Ui.dp(context, 64));
         header.addView(numeral, Ui.wrap());
         LinearLayout names = Ui.column(context);
         name = Ui.title(context, "");
@@ -60,7 +59,7 @@ public final class RankPad {
         names.addView(name);
         names.addView(person);
         LinearLayout.LayoutParams namesParams = Ui.weight(1);
-        namesParams.leftMargin = Ui.dp(context, 8);
+        namesParams.leftMargin = Ui.dp(context, 14);
         header.addView(names, namesParams);
         progress = Ui.numeral(context, "", 16, Ui.col(context, R.color.p3r_ink_muted));
         header.addView(progress, Ui.wrap());

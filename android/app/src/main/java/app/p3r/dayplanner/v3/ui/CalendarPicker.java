@@ -120,17 +120,25 @@ final class CalendarPicker extends LinearLayout {
                 grid.addView(row, rp);
             }
             if (cell < lead) {
-                row.addView(new View(c), new LayoutParams(0, Ui.dp(c, 44), 1));
+                row.addView(new View(c), cellParams(c));
                 continue;
             }
             int dom = cell - lead + 1;
             int day = Zh.dayOf(first.withDayOfMonth(dom));
-            row.addView(dayCell(c, day, dom), new LayoutParams(0, Ui.dp(c, 44), 1));
+            row.addView(dayCell(c, day, dom), cellParams(c));
         }
         int trailing = (7 - (lead + length) % 7) % 7;
         for (int i = 0; i < trailing && row != null; i++) {
-            row.addView(new View(c), new LayoutParams(0, Ui.dp(c, 44), 1));
+            row.addView(new View(c), cellParams(c));
         }
+    }
+
+    /** Equal-width cell with a small gap so the slanted tiles do not touch. */
+    private static LayoutParams cellParams(Context c) {
+        LayoutParams params = new LayoutParams(0, Ui.dp(c, 44), 1);
+        params.leftMargin = Ui.dp(c, 2);
+        params.rightMargin = Ui.dp(c, 2);
+        return params;
     }
 
     private View dayCell(Context c, int day, int dom) {
@@ -158,8 +166,6 @@ final class CalendarPicker extends LinearLayout {
             cell.setTextColor(weekend ? Ui.col(c, R.color.p3r_cyan_200) : Ui.col(c, R.color.p3r_white));
         }
         cell.setBackground(bg);
-        LayoutParams margins = new LayoutParams(0, Ui.dp(c, 44), 1);
-        cell.setLayoutParams(margins);
         String desc = Zh.date(day) + (enabled ? "" : "，剧情占用") + (selected ? "，已选" : "");
         cell.setContentDescription(desc);
         if (enabled) {

@@ -105,6 +105,7 @@ public final class StateActivity extends Activity implements StateSteps.Callback
 
         scroll = new ScrollView(this);
         scroll.setClipToPadding(false);
+        scroll.setVerticalScrollBarEnabled(false);
         content = new FrameLayout(this);
         Ui.pad(content, Ui.GUTTER, 20, Ui.GUTTER, 24);
         scroll.addView(content, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -238,8 +239,11 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         if (last) {
             next.setText(unchanged ? "完成" : mode == StateDraft.Mode.ONBOARDING ? "保存并开始规划" : "保存并重新规划");
         } else {
-            next.setText(page == StateSteps.Page.SYNC_INTRO && draft.sync() == null ? "跳过" : "下一步");
+            next.setText("下一步");
         }
+        // On the opening question the three answers are the actions; "下一步" appears once answered.
+        boolean awaitingAnswer = page == StateSteps.Page.SYNC_INTRO && draft.sync() == null;
+        next.setVisibility(awaitingAnswer ? View.INVISIBLE : View.VISIBLE);
     }
 
     private void onNext() {
