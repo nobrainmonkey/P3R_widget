@@ -23,6 +23,8 @@ public final class Rules {
 
     public String schema = "p3r.rules.v3";
     public String packVersion = "0";
+    /** Game edition the pack describes (developer-facing English, never shown to players). */
+    public String game = "";
     /** Stable identity of the loaded pack: packVersion + "|" + sha256 prefix of the JSON. */
     public String version = "0";
     public int firstDay;
@@ -60,6 +62,18 @@ public final class Rules {
         return null;
     }
 
+    /** Index of the link with this id, or -1. */
+    public int linkIndex(String id) {
+        Link l = link(id);
+        return l == null ? -1 : l.idx;
+    }
+
+    /** Index of the activity with this id, or -1. */
+    public int activityIndex(String id) {
+        Activity a = activity(id);
+        return a == null ? -1 : a.idx;
+    }
+
     public Stat stat(String id) {
         for (Stat s : stats) if (s.id.equals(id)) return s;
         return null;
@@ -95,6 +109,7 @@ public final class Rules {
         public String eveLock;
         /** 0..7, 4 = full moon. Decorative. */
         public int moon;
+        /** Operation full moon (4/9 … 11/3) or the finale on 1/31; estimated full moons only set {@link #moon} = 4. */
         public boolean fullMoon;
         /** Index into {@link Rules#blocks} or -1. */
         public int block = -1;
@@ -112,6 +127,8 @@ public final class Rules {
         public int idx;
         public String id;
         public int arcanaNo;
+        /** Roman numeral printed on the arcana card ("0", "I" … "XX"; Aeon shows "XX" too). */
+        public String numeral;
         public String arcanaZh;
         public String personZh;
         public String genderZh;
@@ -132,13 +149,19 @@ public final class Rules {
         public int[] eventGainRomance;
         public boolean romanceable;
         public Unlock unlock = new Unlock();
-        /** Missing-person window during which the link is unavailable; null if none. */
+        /**
+         * Missing-person window during which the link is unavailable unless the matching rescue already
+         * happened; not rescued by {@code toDay} = link lost. Null if none.
+         */
         public Missing missing;
         /** Rank-ups blocked until a day/flag (mid-chain story holds). */
         public List<Hold> holds = new ArrayList<>();
         /** CN guide dialogue fragments per target rank (verbatim; display only). */
         public Map<Integer, List<String>> dialogue = new HashMap<>();
-        /** Story links only: storyRankDay[r] = day the story grants rank r, or -1. Length 11. */
+        /**
+         * Story links only (null otherwise): storyRankDay[r] = first day on which the story has granted
+         * rank r or higher (skipped ranks share the next event's day), -1 if never. Length 11; [0] = -1.
+         */
         public int[] storyRankDay;
         public String noteZh;
         public String conf;
@@ -154,8 +177,14 @@ public final class Rules {
         public Map<Integer, Integer> statLv = new HashMap<>();
         /** Link index → minimum rank. */
         public Map<Integer, Integer> linkRank = new HashMap<>();
-        /** Ordered steps; the step with {@code establishes=true} sets rank 1. Empty = auto by date. */
+        /**
+         * Ordered steps; the last step ({@code establishes=true}) sets rank 1. Empty = automatic: rank 1
+         * once {@link #earliestDay} is reached and the stat/link requirements hold (Magician on 4/22,
+         * Strength when Chariot reaches rank 2).
+         */
         public List<Step> steps = new ArrayList<>();
+        /** Extra player-facing hint about the opening (Chinese), or null. */
+        public String noteZh;
         public String conf;
         public List<String> src = new ArrayList<>();
     }
@@ -168,7 +197,11 @@ public final class Rules {
         /** Short how-to shown in the detail sheet. */
         public String howZh;
         public boolean evening;
-        /** Whether the step consumes the slot. Steps that do not are folded into the next one. */
+        /**
+         * Whether the step consumes the slot. A step that does not (e.g. the first two Devil payments)
+         * still happens in a free slot of its kind on an allowed day and still respects
+         * {@link #minGapDays}, but leaves that slot usable for another action.
+         */
         public boolean consumesSlot = true;
         public StepDays dayRule = StepDays.LINK_AVAIL;
         /** ISO weekdays when dayRule == WEEKDAYS. */
@@ -222,6 +255,8 @@ public final class Rules {
         public int[][] pay = new int[0][];
         /** Use at most once in the whole game (e.g. a challenge menu). */
         public boolean once;
+        /** Player-facing remark (Chinese), e.g. why a conservative gain is used; may be null. */
+        public String noteZh;
         public String conf;
         public List<String> src = new ArrayList<>();
 
