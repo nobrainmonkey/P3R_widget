@@ -697,7 +697,7 @@ def build_calendar(ledger: Ledger, day_cells: dict, night_cells: dict, tartarus_
         if md == "12-24":
             notes.append("平安夜：默认按婉拒所有邀约来安排")
         if md == "01-21":
-            notes.append("如果之前把白花送给了顺平，这天放学后会有剧情，所以先空出来")
+            notes.append("如果之前把「白色切花」送给了顺平，这天放学后会有剧情，所以先空出来")
         for b in blocks:
             if b["fromDay"] == d:
                 notes.append(f"塔尔塔罗斯的新区块开放了：{b['zh']}（{b['floorsZh']}）")
@@ -1117,7 +1117,7 @@ def story_ranks(page: AqiuPage, ledger: Ledger) -> dict[str, list[dict]]:
                 floor = int(m.group(7))
                 verb = "到达" if m.group(6) == "Reach" else "通过"
                 events.append({"conf": "estimate", "day": adamah_latest, "rank": rank, "src": ["aqiu_social_events", "ev_story_links"],
-                               "noteZh": f"在塔尔塔罗斯{verb}{floor}F 时提升"})
+                               "noteZh": f"在塔尔塔罗斯{verb} {floor}F 时升级"})
         if not events:
             raise BuildError(f"no story ranks parsed for {link}")
         out[link] = events
