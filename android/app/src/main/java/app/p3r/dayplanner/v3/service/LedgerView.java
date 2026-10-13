@@ -10,6 +10,7 @@ import app.p3r.dayplanner.v3.store.EventKind;
 import app.p3r.dayplanner.v3.store.EventRow;
 import app.p3r.dayplanner.v3.store.Ledger;
 import app.p3r.dayplanner.v3.store.OutcomeApplier;
+import app.p3r.dayplanner.v3.store.PackLayout;
 import app.p3r.dayplanner.v3.store.Replayer;
 
 import org.json.JSONException;
@@ -43,11 +44,17 @@ final class LedgerView {
     final List<Replayer.TowerGain> towerGains;
     final long lastRecordMillis;
     final int eventsSinceCheckpoint;
+    /**
+     * Things in the latest checkpoint and its rows that no longer fit the loaded rule pack (values
+     * dropped while carrying the checkpoint over, rows that could not be replayed as recorded),
+     * typically after an app update; 0 when everything fits.
+     */
+    final int mismatches;
 
     private LedgerView(Rules rules, Profile profile, long stateRevision, long profileRevision,
                        long checkpointId, List<EventRow> chain, SimState observed,
                        List<Replayer.TowerGain> towerGains, long lastRecordMillis,
-                       int eventsSinceCheckpoint) {
+                       int eventsSinceCheckpoint, int mismatches) {
         this.rules = rules;
         this.profile = profile;
         this.stateRevision = stateRevision;
@@ -58,6 +65,7 @@ final class LedgerView {
         this.towerGains = towerGains;
         this.lastRecordMillis = lastRecordMillis;
         this.eventsSinceCheckpoint = eventsSinceCheckpoint;
+        this.mismatches = mismatches;
     }
 
     /** Reads everything from {@code ledger} and replays each checkpoint's rows. */
@@ -72,6 +80,7 @@ final class LedgerView {
                 ? Collections.emptyList()
                 : chains.getOrDefault(latest.id, Collections.emptyList());
         SimState observed = null;
+        int mismatches = 0;
         List<Replayer.TowerGain> gains = new ArrayList<>();
         for (CheckpointRow checkpoint : checkpoints) {
             List<EventRow> rows = chains.getOrDefault(checkpoint.id, Collections.emptyList());
@@ -79,19 +88,22 @@ final class LedgerView {
             if (!isLatest && !hasKind(rows, EventKind.TOWER)) {
                 continue;
             }
-            Replayer.Result result = replay(replayer, checkpoint, rows);
-            if (result == null) {
+            PackLayout.Remapped start = start(checkpoint, rules);
+            if (start == null) {
+                mismatches += isLatest ? 1 : 0;
                 continue;
             }
+            Replayer.Result result = replayer.replay(start.state, rows, null);
             gains.addAll(result.towerGains);
             if (isLatest) {
                 observed = result.state;
+                mismatches += start.lost + result.problems;
             }
         }
         return new LedgerView(rules, profile, ledger.stateRevision(), ledger.profileRevision(),
                 latest == null ? 0 : latest.id, Collections.unmodifiableList(new ArrayList<>(chain)),
                 observed, Collections.unmodifiableList(gains), lastRecord(latest, chain),
-                countObserved(chain));
+                countObserved(chain), mismatches);
     }
 
     /** Block index at the observed slot, -1 if none. */
@@ -103,10 +115,11 @@ final class LedgerView {
         return block == null ? -1 : block.idx;
     }
 
-    private static Replayer.Result replay(Replayer replayer, CheckpointRow checkpoint, List<EventRow> rows) {
+    /** The checkpoint carried over to {@code rules} (see {@link CheckpointRow#stateFor}), or null if unreadable. */
+    static PackLayout.Remapped start(CheckpointRow checkpoint, Rules rules) {
         try {
-            return replayer.replay(checkpoint.state(), rows, null);
-        } catch (JSONException e) {
+            return checkpoint.stateFor(rules);
+        } catch (JSONException | RuntimeException e) {
             Log.e(TAG, "checkpoint " + checkpoint.id + " is unreadable", e);
             return null;
         }

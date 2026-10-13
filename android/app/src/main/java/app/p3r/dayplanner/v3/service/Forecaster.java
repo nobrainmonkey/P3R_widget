@@ -19,7 +19,18 @@ public interface Forecaster {
     /** Forecast of doing {@code action} at {@code state.slot}; must not mutate {@code state}. */
     Engine.Applied apply(Rules rules, Profile profile, SimState state, Action action);
 
-    /** {@link Engine#legalActions} and {@link Engine#apply}. */
+    /**
+     * Moves time forward to {@code slot} without acting; production ({@link Engine#advanceTo})
+     * applies the day rollovers on the way. The default only moves the slot. Must not mutate
+     * {@code state}.
+     */
+    default SimState advanceTo(Rules rules, Profile profile, SimState state, int slot) {
+        SimState out = state.copy();
+        out.slot = Math.max(state.slot, slot);
+        return out;
+    }
+
+    /** {@link Engine#legalActions}, {@link Engine#apply} and {@link Engine#advanceTo}. */
     Forecaster ENGINE = new Forecaster() {
         @Override
         public List<Action> legalActions(Rules rules, Profile profile, SimState state) {
@@ -29,6 +40,11 @@ public interface Forecaster {
         @Override
         public Engine.Applied apply(Rules rules, Profile profile, SimState state, Action action) {
             return Engine.apply(rules, profile, state, action);
+        }
+
+        @Override
+        public SimState advanceTo(Rules rules, Profile profile, SimState state, int slot) {
+            return Engine.advanceTo(rules, profile, state, slot);
         }
     };
 }

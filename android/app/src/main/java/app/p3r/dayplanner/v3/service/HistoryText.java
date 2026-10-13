@@ -12,6 +12,7 @@ import app.p3r.dayplanner.v3.store.EventKind;
 import app.p3r.dayplanner.v3.store.EventRow;
 import app.p3r.dayplanner.v3.store.OutcomeApplier;
 import app.p3r.dayplanner.v3.store.OutcomeRecord;
+import app.p3r.dayplanner.v3.store.PackLayout;
 import app.p3r.dayplanner.v3.store.Replayer;
 import app.p3r.dayplanner.v3.store.TowerRecord;
 
@@ -23,8 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * One-line Simplified Chinese summaries for the 记录历史 list, e.g.
- * "5月12日 晚上 · 探索塔尔塔罗斯 · 到达 27F · 余额 14,750 日元" or
+ * One-line Simplified Chinese summaries for the 记录历史 list (wording per docs/GLOSSARY_zh.md),
+ * e.g. "5月12日 晚上 · 探索塔尔塔罗斯 · 到达 27F · 出塔后余额 14,750 日元" or
  * "6月2日 放学后 · 皇帝 · 小田桐秀利 · RANK 6 → 7".
  *
  * <p>Rank and stat changes are read from a replay trace, so lines describe what the record did to
@@ -32,6 +33,9 @@ import java.util.Map;
  */
 final class HistoryText {
     private static final String TAG = "P3rHistory";
+
+    /** Fallback when a row cannot be described. */
+    static final String ZH_UNKNOWN_ROW = "一条记录";
 
     private HistoryText() {}
 
@@ -62,10 +66,9 @@ final class HistoryText {
                     chain.add(row);
                 }
             }
-            try {
-                replayer.replay(checkpoint.state(), chain, collect);
-            } catch (JSONException e) {
-                Log.w(TAG, "checkpoint " + checkpoint.id + " is unreadable", e);
+            PackLayout.Remapped start = LedgerView.start(checkpoint, rules);
+            if (start != null) {
+                replayer.replay(start.state, chain, collect);
             }
         }
         return traces;
@@ -124,20 +127,57 @@ final class HistoryText {
         item.createdMillis = row.created;
         item.kind = row.kind;
         item.voided = row.voided;
-        item.correctable = row.checkpointId == currentCheckpointId
+        item.undoable = row.checkpointId == currentCheckpointId
                 && currentCheckpointId != 0
                 && !row.voided
                 && EventKind.isVoidable(row.kind);
+        item.correctable = item.undoable && EventKind.TOWER.equals(row.kind);
         item.slot = slotOf(ctx, row);
+        try {
+            item.tower = towerValues(ctx, row);
+        } catch (JSONException | RuntimeException e) {
+            Log.w(TAG, "cannot read the tower values of row " + row.seq, e);
+        }
         String body;
         try {
             body = body(ctx, row);
         } catch (JSONException | RuntimeException e) {
             Log.w(TAG, "cannot describe row " + row.seq, e);
-            body = "一条记录";
+            body = ZH_UNKNOWN_ROW;
         }
         item.summaryZh = item.slot >= 0 ? ZhText.join(ZhText.slot(ctx.rules, item.slot), body) : body;
         return item;
+    }
+
+    /**
+     * Tower values for the correction form: for a tower row the values in effect (from the replay
+     * trace, which applies the latest correction), for a correction row its own values.
+     */
+    private static PlannerApi.TowerReturn towerValues(Lookup ctx, EventRow row) throws JSONException {
+        TowerRecord rec;
+        if (EventKind.TOWER.equals(row.kind)) {
+            Traced traced = ctx.traces.get(row.seq);
+            rec = traced != null && traced.tower != null ? traced.tower : TowerRecord.fromJson(row.payload());
+        } else if (EventKind.TOWER_FIX.equals(row.kind)) {
+            rec = TowerRecord.fromJson(row.payload().getJSONObject("tower"));
+        } else {
+            return null;
+        }
+        return towerReturn(rec);
+    }
+
+    /** {@code rec} as the quick sheet would enter it. */
+    static PlannerApi.TowerReturn towerReturn(TowerRecord rec) {
+        PlannerApi.TowerReturn t = new PlannerApi.TowerReturn();
+        t.slot = rec.slot;
+        t.block = rec.block;
+        t.floor = rec.floor;
+        t.balanceMode = rec.balanceMode;
+        t.amount = rec.amount;
+        t.level = rec.level;
+        t.rescuedId = rec.rescuedId;
+        t.sideDone = rec.sideDone;
+        return t;
     }
 
     /** Slot the row is about: its own, its target's, or its checkpoint's; -1 if unknown. */
@@ -178,7 +218,7 @@ final class HistoryText {
             case EventKind.TOWER:
                 return ZhText.join("探索塔尔塔罗斯", towerDetails(ctx.rules, TowerRecord.fromJson(row.payload())));
             case EventKind.TOWER_FIX:
-                return ZhText.join("修改了塔尔塔罗斯记录",
+                return ZhText.join("修改了这次探索",
                         towerDetails(ctx.rules, TowerRecord.fromJson(row.payload().getJSONObject("tower"))));
             case EventKind.VOID: {
                 EventRow target = ctx.bySeq.get(row.target());
@@ -186,12 +226,12 @@ final class HistoryText {
             }
             case EventKind.CHECKPOINT: {
                 long id = row.payload().optLong("checkpointId", 0);
-                return id == ctx.firstCheckpointId ? "设置了初始进度" : "同步了游戏现状";
+                return id == ctx.firstCheckpointId ? "设置了初始进度" : "同步了现状";
             }
             case EventKind.IMPORT:
                 return "从备份恢复了进度";
             default:
-                return "一条记录";
+                return ZH_UNKNOWN_ROW;
         }
     }
 
@@ -203,7 +243,7 @@ final class HistoryText {
         }
         Action action = Action.parse(ctx.rules, record.actionKey);
         Traced traced = ctx.traces.get(row.seq);
-        String title = title(ctx.rules, action);
+        String title = title(ctx.rules, action, traced);
         if (outcome.code == Outcome.Code.SKIPPED) {
             return ZhText.join(title, skipped(action, outcome.reason));
         }
@@ -221,48 +261,84 @@ final class HistoryText {
             case ACTIVITY:
                 return ZhText.join(title, activity(ctx.rules, outcome, traced));
             case TARTARUS:
+            case NOTE:
                 return ZhText.join(title, "已完成");
+            case EPISODE:
+                return ZhText.join(title, "看完了");
             default:
                 return title;
         }
     }
 
     /**
-     * "皇帝 · 小田桐秀利", "在宿舍房间学习", "与友近健二对话", "探索塔尔塔罗斯", "自由安排"; "其他行动" when
-     * the action key is unknown to the current rule pack.
+     * "皇帝 · 小田桐秀利", "恶魔 · 田中社长 · 再交 10,000 日元", "在宿舍房间学习", "探索塔尔塔罗斯",
+     * "结缘网站的字条 · 女教皇 · 山岸风花", "羁绊剧情 · 伊织顺平（第 2 话）", "自由活动"; "其他行动"
+     * when the action key is unknown to the current rule pack.
      */
-    private static String title(Rules rules, Action action) {
+    static String title(Rules rules, Action action, Traced traced) {
         if (action == null) {
             return "其他行动";
         }
         switch (action.type) {
             case MEET:
                 return rules.links[action.target].labelZh;
-            case UNLOCK_STEP: {
-                Rules.Link link = rules.links[action.target];
-                List<Rules.Step> steps = link.unlock.steps;
-                boolean known = action.step >= 0 && action.step < steps.size() && steps.get(action.step).zh != null;
-                return known ? steps.get(action.step).zh : ZhText.join(link.labelZh, "解锁准备");
-            }
+            case UNLOCK_STEP:
+                return ZhText.join(rules.links[action.target].labelZh, unlockStepZh(rules, action));
             case ACTIVITY:
                 return rules.activities[action.target].zh;
             case TARTARUS:
                 return "探索塔尔塔罗斯";
+            case NOTE:
+                return ZhText.join(noteZh(rules), rules.links[action.target].labelZh);
+            case EPISODE:
+                return episodeTitle(rules, action.target, traced == null ? -1 : episodeNumber(traced.before, action.target));
+            case LOCKED: {
+                String reason = rules.lockReasonsZh.get(action.reason);
+                return reason != null ? reason : "剧情";
+            }
             default:
-                return "自由安排";
+                return "自由活动";
         }
+    }
+
+    /** The step's own words, else "解锁前的准备（第 2 步，共 3 步）". */
+    static String unlockStepZh(Rules rules, Action action) {
+        Rules.Link link = rules.links[action.target];
+        List<Rules.Step> steps = link.unlock == null ? new ArrayList<>() : link.unlock.steps;
+        if (action.step >= 0 && action.step < steps.size() && steps.get(action.step).zh != null) {
+            return steps.get(action.step).zh;
+        }
+        if (action.step >= 0 && action.step < steps.size()) {
+            return "解锁前的准备（第 " + (action.step + 1) + " 步，共 " + steps.size() + " 步）";
+        }
+        return "解锁前的准备";
+    }
+
+    /** "结缘网站的字条" (or the pack's own name for it). */
+    static String noteZh(Rules rules) {
+        return rules.datingNote != null && rules.datingNote.zh != null && !rules.datingNote.zh.isEmpty()
+                ? rules.datingNote.zh
+                : "结缘网站的字条";
+    }
+
+    /** "羁绊剧情 · 伊织顺平（第 2 话）"; without the number when {@code number < 1}. */
+    static String episodeTitle(Rules rules, int track, int number) {
+        Rules.Episode episode = track >= 0 && track < rules.episodes.length ? rules.episodes[track] : null;
+        String who = episode == null ? null : episode.personZh;
+        String title = ZhText.join("羁绊剧情", who);
+        return number >= 1 ? title + "（第 " + number + " 话）" : title;
+    }
+
+    /** Number of the next episode of {@code track} in {@code s} (1-based), or -1. */
+    static int episodeNumber(SimState s, int track) {
+        return s != null && track >= 0 && track < s.episodes.length ? s.episodes[track] + 1 : -1;
     }
 
     private static String skipped(Action action, String reason) {
         if ("unwilling".equals(reason)) {
             return "跳过了";
         }
-        String verb = "没做成";
-        if (action != null && action.type == Action.Type.MEET) {
-            verb = "没见到";
-        } else if (action != null && action.type == Action.Type.TARTARUS) {
-            verb = "没去成";
-        }
+        String verb = missed(action, "没做成");
         String why = ZhText.reason(reason);
         return why == null ? verb : verb + "（" + why + "）";
     }
@@ -271,36 +347,49 @@ final class HistoryText {
         if ("hold".equals(reason)) {
             return "游戏提示暂时无法升级";
         }
-        if (action != null && action.type == Action.Type.MEET) {
-            return "没见到";
+        return missed(action, "没完成");
+    }
+
+    /** "没见到" / "没去成" / "没用上" / "没看成", else {@code fallback}. */
+    private static String missed(Action action, String fallback) {
+        if (action == null) {
+            return fallback;
         }
-        if (action != null && action.type == Action.Type.TARTARUS) {
-            return "没去成";
+        switch (action.type) {
+            case MEET:
+                return "没见到";
+            case TARTARUS:
+                return "没去成";
+            case NOTE:
+                return "没用上";
+            case EPISODE:
+                return "没看成";
+            default:
+                return fallback;
         }
-        return "没完成";
     }
 
     private static String meeting(int link, Outcome outcome, Traced traced) {
         if (traced != null && traced.after.rank[link] != traced.before.rank[link]) {
-            return "RANK " + ZhText.rank(traced.before.rank[link]) + " → " + ZhText.rank(traced.after.rank[link]);
+            return ZhText.rankChange(traced.before.rank[link], traced.after.rank[link]);
         }
         if (traced == null && outcome.code == Outcome.Code.RANK_UP) {
-            return outcome.rank >= 0 ? "升到 RANK " + ZhText.rank(outcome.rank) : "升级了";
+            return outcome.rank >= 0 ? (outcome.rank >= 10 ? "升到 MAX" : "升到 RANK " + outcome.rank) : "升级了";
         }
-        String met = outcome.code == Outcome.Code.NO_RANK_UP ? "见了面，没升级" : "见了面";
-        return outcome.readyCue ? met + "，游戏提示下次可升级" : met;
+        String met = outcome.code == Outcome.Code.NO_RANK_UP ? ZhText.join("见面了", "没升级") : "见面了";
+        return outcome.readyCue ? ZhText.join(met, "游戏提示下次能升级") : met;
     }
 
     private static String unlocked(int link, Traced traced) {
         boolean established = traced != null && traced.before.rank[link] == 0 && traced.after.rank[link] > 0;
-        return established ? "已完成，社群建立了" : "已完成";
+        return established ? ZhText.join("已完成", "社群解锁了") : "已完成";
     }
 
     private static String activity(Rules rules, Outcome outcome, Traced traced) {
         List<String> parts = new ArrayList<>();
         for (int stat = 0; stat < SimState.STATS; stat++) {
             if (outcome.statLv[stat] > 0) {
-                parts.add(ZhText.statName(rules, stat) + " Lv." + outcome.statLv[stat]);
+                parts.add(ZhText.statName(rules, stat) + " " + ZhText.statLv(outcome.statLv[stat]));
             } else if (traced != null) {
                 String gain = ZhText.statGain(rules, stat, traced.after.statPts[stat] - traced.before.statPts[stat]);
                 if (gain != null) {
@@ -309,7 +398,7 @@ final class HistoryText {
             }
         }
         if (outcome.cashBalance >= 0) {
-            parts.add("余额 " + ZhText.yen(outcome.cashBalance));
+            parts.add("现金 " + ZhText.yen(outcome.cashBalance));
         } else if (traced != null) {
             long delta = traced.after.cash - traced.before.cash;
             if (delta > 0) {
@@ -324,15 +413,15 @@ final class HistoryText {
         return ZhText.join(parts.toArray(new String[0]));
     }
 
-    /** "到达 27F · 余额 14,750 日元 · 救出了北村文吉". */
+    /** "到达 27F · 出塔后余额 14,750 日元 · 救出了北村文吉". */
     static String towerDetails(Rules rules, TowerRecord rec) {
         String cash;
         if (rec.balanceMode) {
-            cash = "余额 " + ZhText.yen(rec.amount);
+            cash = "出塔后余额 " + ZhText.yen(rec.amount);
         } else if (rec.amount > 0) {
-            cash = "收入 " + ZhText.yen(rec.amount);
+            cash = "多了 " + ZhText.yen(rec.amount);
         } else if (rec.amount < 0) {
-            cash = "支出 " + ZhText.yen(-rec.amount);
+            cash = "少了 " + ZhText.yen(-rec.amount);
         } else {
             cash = "现金没变";
         }
@@ -344,6 +433,6 @@ final class HistoryText {
                 }
             }
         }
-        return ZhText.join("到达 " + rec.floor + "F", cash, rescue);
+        return ZhText.join("到达 " + rec.floor + "F", cash, rescue, rec.sideDone ? null : "顺便要做的事没做");
     }
 }

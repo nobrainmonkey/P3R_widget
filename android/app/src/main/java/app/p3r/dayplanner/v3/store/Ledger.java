@@ -18,7 +18,8 @@ import java.util.List;
  */
 public final class Ledger implements AutoCloseable {
     private static final String EVENT_COLUMNS =
-            "seq, command_id, checkpoint_id, kind, json, voided, created";
+            "seq, command_id, checkpoint_id, kind, json, voided, created, rules_version";
+    private static final String CHECKPOINT_COLUMNS = "id, created, json, rules_version";
 
     private final PlanDb helper;
 
@@ -125,7 +126,7 @@ public final class Ledger implements AutoCloseable {
     /** Most recent checkpoint, or null before onboarding. */
     public CheckpointRow latestCheckpoint() {
         try (Cursor c = db().rawQuery(
-                "SELECT id, created, json FROM checkpoints ORDER BY id DESC LIMIT 1", null)) {
+                "SELECT " + CHECKPOINT_COLUMNS + " FROM checkpoints ORDER BY id DESC LIMIT 1", null)) {
             return c.moveToFirst() ? checkpoint(c) : null;
         }
     }
@@ -133,7 +134,7 @@ public final class Ledger implements AutoCloseable {
     /** All checkpoints, oldest first. */
     public List<CheckpointRow> checkpoints() {
         List<CheckpointRow> out = new ArrayList<>();
-        try (Cursor c = db().rawQuery("SELECT id, created, json FROM checkpoints ORDER BY id", null)) {
+        try (Cursor c = db().rawQuery("SELECT " + CHECKPOINT_COLUMNS + " FROM checkpoints ORDER BY id", null)) {
             while (c.moveToNext()) {
                 out.add(checkpoint(c));
             }
@@ -141,11 +142,17 @@ public final class Ledger implements AutoCloseable {
         return out;
     }
 
-    /** Inserts a new checkpoint and returns its id. */
+    /** Inserts a new checkpoint without a rules version stamp and returns its id. */
     public long insertCheckpoint(long created, String json) {
+        return insertCheckpoint(created, json, null);
+    }
+
+    /** Inserts a new checkpoint stamped with {@code rulesVersion} (may be null) and returns its id. */
+    public long insertCheckpoint(long created, String json, String rulesVersion) {
         ContentValues v = new ContentValues();
         v.put("created", created);
         v.put("json", json);
+        v.put("rules_version", rulesVersion);
         return db().insertOrThrow("checkpoints", null, v);
     }
 
@@ -155,11 +162,12 @@ public final class Ledger implements AutoCloseable {
         v.put("id", row.id);
         v.put("created", row.created);
         v.put("json", row.json);
+        v.put("rules_version", row.rulesVersion);
         db().insertOrThrow("checkpoints", null, v);
     }
 
     private static CheckpointRow checkpoint(Cursor c) {
-        return new CheckpointRow(c.getLong(0), c.getLong(1), c.getString(2));
+        return new CheckpointRow(c.getLong(0), c.getLong(1), c.getString(2), c.isNull(3) ? null : c.getString(3));
     }
 
     // ------------------------------------------------------------------------------ events
@@ -186,6 +194,13 @@ public final class Ledger implements AutoCloseable {
                 new String[]{String.valueOf(checkpointId)});
     }
 
+    /** Highest sequence number in the table, 0 when it is empty. */
+    public long lastSeq() {
+        try (Cursor c = db().rawQuery("SELECT MAX(seq) FROM events", null)) {
+            return c.moveToFirst() && !c.isNull(0) ? c.getLong(0) : 0;
+        }
+    }
+
     /** Every row, in sequence order. */
     public List<EventRow> allEvents() {
         return events("SELECT " + EVENT_COLUMNS + " FROM events ORDER BY seq", null);
@@ -201,8 +216,14 @@ public final class Ledger implements AutoCloseable {
         return out;
     }
 
-    /** Appends a row and returns its sequence number. */
+    /** Appends a row without a rules version stamp and returns its sequence number. */
     public long insertEvent(String commandId, long checkpointId, String kind, String json, long created) {
+        return insertEvent(commandId, checkpointId, kind, json, created, null);
+    }
+
+    /** Appends a row stamped with {@code rulesVersion} (may be null) and returns its sequence number. */
+    public long insertEvent(String commandId, long checkpointId, String kind, String json, long created,
+                            String rulesVersion) {
         ContentValues v = new ContentValues();
         v.put("command_id", commandId);
         v.put("checkpoint_id", checkpointId);
@@ -210,6 +231,7 @@ public final class Ledger implements AutoCloseable {
         v.put("json", json);
         v.put("voided", 0);
         v.put("created", created);
+        v.put("rules_version", rulesVersion);
         return db().insertOrThrow("events", null, v);
     }
 
@@ -223,6 +245,7 @@ public final class Ledger implements AutoCloseable {
         v.put("json", row.json);
         v.put("voided", row.voided ? 1 : 0);
         v.put("created", row.created);
+        v.put("rules_version", row.rulesVersion);
         db().insertOrThrow("events", null, v);
     }
 
@@ -232,7 +255,7 @@ public final class Ledger implements AutoCloseable {
 
     private static EventRow event(Cursor c) {
         return new EventRow(c.getLong(0), c.getString(1), c.getLong(2), c.getString(3),
-                c.getString(4), c.getInt(5) != 0, c.getLong(6));
+                c.getString(4), c.getInt(5) != 0, c.getLong(6), c.isNull(7) ? null : c.getString(7));
     }
 
     // ------------------------------------------------------------------------------ plan

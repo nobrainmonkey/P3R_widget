@@ -8,6 +8,10 @@ import org.json.JSONObject;
  * Cash is given in exactly one way: the new balance ({@link #balanceMode}) or the net change.
  *
  * <pre>{"slot":201,"block":1,"floor":27,"cashMode":"balance","amount":14750,"level":21,"rescued":"bunkichi"}</pre>
+ *
+ * {@code "sideDone":false} is written only when the slot's side steps (the plan's "顺便：…" lines)
+ * were not done; older rows never have it. {@link #block} is the index under the pack the row was
+ * written with; replay re-derives the block from the day (see {@code Replayer}).
  */
 public final class TowerRecord {
     public static final String MODE_BALANCE = "balance";
@@ -25,6 +29,8 @@ public final class TowerRecord {
     public Integer level;
     /** Rescue id confirmed during the visit, or null. */
     public String rescuedId;
+    /** False when the player said the slot's side steps were not done (default true). */
+    public boolean sideDone = true;
 
     public TowerRecord copy() {
         TowerRecord r = new TowerRecord();
@@ -35,6 +41,7 @@ public final class TowerRecord {
         r.amount = amount;
         r.level = level;
         r.rescuedId = rescuedId;
+        r.sideDone = sideDone;
         return r;
     }
 
@@ -50,6 +57,9 @@ public final class TowerRecord {
         }
         if (rescuedId != null) {
             o.put("rescued", rescuedId);
+        }
+        if (!sideDone) {
+            o.put("sideDone", false);
         }
         return o;
     }
@@ -71,6 +81,7 @@ public final class TowerRecord {
         r.amount = o.getLong("amount");
         r.level = o.has("level") ? o.getInt("level") : null;
         r.rescuedId = o.has("rescued") ? o.getString("rescued") : null;
+        r.sideDone = o.optBoolean("sideDone", true);
         return r;
     }
 }

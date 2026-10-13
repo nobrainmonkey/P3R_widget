@@ -167,7 +167,7 @@ public class ReplayerTest {
 
         Replayer.Result r = replayer.replay(start, List.of(unknown, broken), null);
 
-        assertEquals(1, r.problems);
+        assertEquals("an unknown action key and a broken row both count", 2, r.problems);
         assertEquals(slot + 2, r.state.slot);
         assertEquals(10_000, r.state.cash);
     }

@@ -73,15 +73,24 @@ public final class PlannerService implements PlannerApi {
     private static final String TAG = "P3rPlanner";
 
     static final String ZH_STALE = "记录已经更新过了，请看最新的安排";
-    static final String ZH_CONFLICT = "这个操作之前已经用不同的内容保存过，这次没有保存";
-    static final String ZH_IO = "保存失败了，请稍后再试";
-    static final String ZH_RULES_MISSING = "规则数据没有加载成功，请重新打开应用";
+    static final String ZH_CONFLICT = "刚才已经保存过另一份结果，这次没有保存";
+    static final String ZH_IO = "保存失败了，请再试一次";
+    static final String ZH_RULES_MISSING = "游戏资料读取失败，请重新打开应用";
     static final String ZH_DB_MISSING = "读取记录失败了，请重新打开应用";
-    static final String ZH_COMMAND_ID = "操作编号缺失，请重新操作";
+    static final String ZH_COMMAND_ID = "保存失败了，请再试一次";
     static final String ZH_OUTCOME_MISSING = "请先选择结果";
-    static final String ZH_TOWER_MISSING = "请先填写这次进塔的结果";
-    static final String ZH_PLAN_FAILED_KEPT = "排程时出了问题，已保留上一版安排";
-    static final String ZH_PLAN_FAILED_NONE = "排程时出了问题，暂时没能生成安排";
+    static final String ZH_TOWER_MISSING = "请先填写这次探索塔尔塔罗斯的结果";
+    static final String ZH_PLAN_FAILED_KEPT = "生成安排时出了问题，已保留上一版";
+    static final String ZH_PLAN_FAILED_NONE = "生成安排时出了问题，请稍后再试";
+    /** Import duplicate with nothing recorded since: the data already is the backup. */
+    static final String ZH_IMPORT_ALREADY = "这份备份刚才已经恢复过了，现在的进度就是备份里的";
+    /** Import duplicate after newer records: nothing was replaced. */
+    static final String ZH_IMPORT_ALREADY_LATER = "这份备份之前已经恢复过，之后又有新的记录，这次没有改动";
+
+    /** {@link Snapshot#noticeZh} for {@code n} records that no longer fit the game data. */
+    static String mismatchNotice(int n) {
+        return "有 " + n + " 条记录和现在的游戏资料对不上，建议「同步现状」核对一下";
+    }
 
     private static volatile PlannerService instance;
 
@@ -292,6 +301,7 @@ public final class PlannerService implements PlannerApi {
         s.planning = v.observed != null && !s.planCurrent && replanner.busy();
         s.lastRecordMillis = v.lastRecordMillis;
         s.eventsSinceCheckpoint = v.eventsSinceCheckpoint;
+        s.noticeZh = v.observed != null && v.mismatches > 0 ? mismatchNotice(v.mismatches) : null;
         return s;
     }
 
@@ -340,7 +350,7 @@ public final class PlannerService implements PlannerApi {
                     continue;
                 }
                 Engine.Applied applied = wiring.forecaster.apply(rules, profile, state, action);
-                out.add(StepLabels.step(rules, state, action, applied));
+                out.add(StepLabels.step(rules, profile, state, action, applied));
             }
             return out;
         } catch (RuntimeException e) {
@@ -349,7 +359,10 @@ public final class PlannerService implements PlannerApi {
         }
     }
 
-    /** Follows the plan's (still legal) steps from the observed slot up to {@code slot}. */
+    /**
+     * Follows the plan's (still legal) steps from the observed slot up to {@code slot}; slots
+     * without one pass through the forecaster's advance, so day rollovers apply as in the engine.
+     */
     private SimState forecastUntil(Rules rules, Profile profile, SimState start, Plan plan, int slot) {
         SimState state = start;
         while (state.slot < slot) {
@@ -361,8 +374,7 @@ public final class PlannerService implements PlannerApi {
                     && wiring.forecaster.legalActions(rules, profile, state).contains(action);
             SimState after = follow ? wiring.forecaster.apply(rules, profile, state, action).state : null;
             if (after == null || after.slot < next) {
-                after = state.copy();
-                after.slot = next;
+                after = wiring.forecaster.advanceTo(rules, profile, state, next);
             }
             state = after;
         }
@@ -401,10 +413,10 @@ public final class PlannerService implements PlannerApi {
             return rejectNow(Rejection.invalid(CommandCheck.ZH_STAT_RANGE));
         }
         String key = actionKey == null ? "" : actionKey;
-        OutcomeRecord record = new OutcomeRecord(slot, key, outcome);
-        String json = canonical(record::toJson);
-        String kind = record.kind();
         return write(commandId, false, view -> {
+            OutcomeRecord record = OutcomeRecord.of(view.rules, slot, key, outcome);
+            String json = Canonical.of(record.toJson());
+            String kind = record.kind();
             Receipt known = existing(commandId, kind, Canonical.sha256(json));
             if (known != null) {
                 return known;
@@ -416,7 +428,7 @@ public final class PlannerService implements PlannerApi {
             if (r != null) {
                 return r.toReceipt();
             }
-            return append(commandId, view.checkpointId, kind, json);
+            return append(view, commandId, view.checkpointId, kind, json);
         });
     }
 
@@ -439,7 +451,7 @@ public final class PlannerService implements PlannerApi {
             if (r != null) {
                 return r.toReceipt();
             }
-            return append(commandId, view.checkpointId, EventKind.TOWER, json);
+            return append(view, commandId, view.checkpointId, EventKind.TOWER, json);
         });
     }
 
@@ -449,16 +461,27 @@ public final class PlannerService implements PlannerApi {
             return rejectNow(Rejection.invalid(ZH_TOWER_MISSING));
         }
         return write(commandId, false, view -> {
-            EventRow target = ledger.event(targetSeq);
+            EventRow target = towerTarget(view, ledger.event(targetSeq));
+            long towerSeq = target == null ? targetSeq : target.seq;
             TowerRecord rec = towerRecord(view.rules, corrected);
             if (target != null && EventKind.TOWER.equals(target.kind)) {
                 // Time and block always come from the original visit: a correction never moves it.
                 TowerRecord original = TowerRecord.fromJson(target.payload());
                 rec.slot = original.slot;
                 rec.block = original.block;
+                // The correction form does not ask again what it cannot change: keep the rescue,
+                // the level and the side steps of the values in effect.
+                TowerRecord effective = effectiveTower(view, target);
+                if (rec.rescuedId == null) {
+                    rec.rescuedId = effective.rescuedId;
+                }
+                if (rec.level == null) {
+                    rec.level = effective.level;
+                }
+                rec.sideDone = effective.sideDone;
             }
             JSONObject payload = new JSONObject();
-            payload.put("target", targetSeq);
+            payload.put("target", towerSeq);
             payload.put("tower", rec.toJson());
             String json = Canonical.of(payload);
             Receipt known = existing(commandId, EventKind.TOWER_FIX, Canonical.sha256(json));
@@ -468,11 +491,11 @@ public final class PlannerService implements PlannerApi {
             if (expectedStateRevision != view.stateRevision) {
                 return stale();
             }
-            Rejection r = CommandCheck.correction(view, target, rec, stateBefore(view, targetSeq));
+            Rejection r = CommandCheck.correction(view, target, rec, stateBefore(view, towerSeq));
             if (r != null) {
                 return r.toReceipt();
             }
-            return append(commandId, view.checkpointId, EventKind.TOWER_FIX, json);
+            return append(view, commandId, view.checkpointId, EventKind.TOWER_FIX, json);
         });
     }
 
@@ -492,7 +515,7 @@ public final class PlannerService implements PlannerApi {
             if (r != null) {
                 return r.toReceipt();
             }
-            Receipt receipt = append(commandId, view.checkpointId, EventKind.VOID, json);
+            Receipt receipt = append(view, commandId, view.checkpointId, EventKind.VOID, json);
             ledger.setVoided(targetSeq, true);
             return receipt;
         });
@@ -523,13 +546,14 @@ public final class PlannerService implements PlannerApi {
                 return r.toReceipt();
             }
             long now = wiring.clock.getAsLong();
-            SimState fitted = StateShape.fit(observed, view.rules);
-            long checkpointId = ledger.insertCheckpoint(now, Canonical.of(fitted.toJson()));
+            SimState fitted = StateShape.inferRescues(StateShape.fit(observed, view.rules), view.rules);
+            long checkpointId = ledger.insertCheckpoint(now, CheckpointRow.jsonFor(fitted, view.rules),
+                    view.rules.version);
             if (profileOrNull != null) {
                 ledger.putProfileJson(normalizedProfile(profileOrNull));
                 ledger.bumpProfileRevision();
             }
-            return append(commandId, checkpointId, EventKind.CHECKPOINT, journal(checkpointId, fingerprint));
+            return append(view, commandId, checkpointId, EventKind.CHECKPOINT, journal(checkpointId, fingerprint));
         });
     }
 
@@ -550,7 +574,7 @@ public final class PlannerService implements PlannerApi {
             ledger.putProfileJson(normalizedProfile(profile));
             ledger.bumpProfileRevision();
             long seq = ledger.insertEvent(commandId, view.checkpointId, EventKind.PROFILE,
-                    journal(0, fingerprint), wiring.clock.getAsLong());
+                    journal(0, fingerprint), wiring.clock.getAsLong(), view.rules.version);
             return ok(seq);
         });
     }
@@ -570,6 +594,11 @@ public final class PlannerService implements PlannerApi {
         return write(commandId, true, view -> {
             Receipt known = existing(commandId, EventKind.IMPORT, fingerprint);
             if (known != null) {
+                if (known.duplicate) {
+                    // Same command id and backup: nothing is replaced, and the UI must not say
+                    // "restored" as if it had just happened.
+                    known.noticeZh = ledger.lastSeq() > known.eventSeq ? ZH_IMPORT_ALREADY_LATER : ZH_IMPORT_ALREADY;
+                }
                 return known;
             }
             Rejection r = checkImport(view.rules, data);
@@ -588,17 +617,21 @@ public final class PlannerService implements PlannerApi {
             }
             ledger.bumpProfileRevision();
             long latest = data.latestCheckpointId();
-            return append(commandId, latest, EventKind.IMPORT, journal(latest, fingerprint));
+            return append(view, commandId, latest, EventKind.IMPORT, journal(latest, fingerprint));
         });
     }
 
-    /** The newest checkpoint of a backup must be a valid current state. */
+    /**
+     * The newest checkpoint of a backup, carried over to the loaded pack the way replay will carry
+     * it (by id when it has a layout), must be a valid current state. Values that no longer fit are
+     * reported after the import through {@link Snapshot#noticeZh}.
+     */
     private static Rejection checkImport(Rules rules, Backup.Data data) throws JSONException {
         if (data.checkpoints.isEmpty()) {
             return null;
         }
         CheckpointRow latest = data.checkpoints.get(data.checkpoints.size() - 1);
-        Rejection r = CommandCheck.checkpoint(rules, latest.state());
+        Rejection r = CommandCheck.checkpoint(rules, latest.stateFor(rules).state);
         return r == null ? null : Rejection.invalid(Backup.ZH_DAMAGED);
     }
 
@@ -687,12 +720,17 @@ public final class PlannerService implements PlannerApi {
                 failedPlanKey = null;
                 model = m.withPlan(plan);
             }
-            refreshWidgets();
             return false;
         }
 
+        /**
+         * After every run, failed ones included: the worker is no longer busy here, so the widgets
+         * re-render with {@code planning == false} and show the new plan, the error card or the
+         * "not updated" cue instead of staying on "正在生成安排…".
+         */
         @Override
         public void runEnded() {
+            refreshWidgets();
             notifyListeners();
         }
     }
@@ -850,11 +888,37 @@ public final class PlannerService implements PlannerApi {
         }
     }
 
-    /** Appends an event row and bumps the state revision. */
-    private Receipt append(String commandId, long checkpointId, String kind, String json) {
-        long seq = ledger.insertEvent(commandId, checkpointId, kind, json, wiring.clock.getAsLong());
+    /**
+     * Appends an event row stamped with the loaded pack's version and bumps the state revision.
+     */
+    private Receipt append(LedgerView view, String commandId, long checkpointId, String kind, String json) {
+        long seq = ledger.insertEvent(commandId, checkpointId, kind, json, wiring.clock.getAsLong(),
+                view.rules.version);
         ledger.bumpStateRevision();
         return ok(seq);
+    }
+
+    /**
+     * The tower row a correction is about: {@code row} itself, or the tower row a correction row
+     * of the current chain targets. Anything else is returned unchanged (and rejected later).
+     */
+    private EventRow towerTarget(LedgerView view, EventRow row) {
+        if (row == null || !EventKind.TOWER_FIX.equals(row.kind) || row.checkpointId != view.checkpointId) {
+            return row;
+        }
+        EventRow tower = ledger.event(row.target());
+        return tower != null && EventKind.TOWER.equals(tower.kind) ? tower : row;
+    }
+
+    /** Values of tower row {@code target} now in effect: its latest non-voided correction, else its own. */
+    private static TowerRecord effectiveTower(LedgerView view, EventRow target) throws JSONException {
+        TowerRecord effective = TowerRecord.fromJson(target.payload());
+        for (EventRow row : view.chain) {
+            if (!row.voided && EventKind.TOWER_FIX.equals(row.kind) && row.target() == target.seq) {
+                effective = TowerRecord.fromJson(row.payload().getJSONObject("tower"));
+            }
+        }
+        return effective;
     }
 
     /** Replayed state just before row {@code seq} of the current chain, or null. */
@@ -864,8 +928,8 @@ public final class PlannerService implements PlannerApi {
             return null;
         }
         SimState[] found = new SimState[1];
-        new Replayer(view.rules, view.profile, wiring.applier).replay(checkpoint.state(), view.chain,
-                (row, before, after, tower) -> {
+        new Replayer(view.rules, view.profile, wiring.applier).replay(checkpoint.stateFor(view.rules).state,
+                view.chain, (row, before, after, tower) -> {
                     if (row.seq == seq) {
                         found[0] = before;
                     }
@@ -886,6 +950,7 @@ public final class PlannerService implements PlannerApi {
         rec.amount = tower.amount;
         rec.level = tower.level;
         rec.rescuedId = tower.rescuedId;
+        rec.sideDone = tower.sideDone;
         return rec;
     }
 

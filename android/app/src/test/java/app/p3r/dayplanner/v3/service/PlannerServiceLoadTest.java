@@ -58,14 +58,14 @@ public class PlannerServiceLoadTest extends ServiceTestBase {
         assertNull(s.observed);
         assertNotNull(s.profile);
         assertFalse(s.planning);
-        assertEquals("规则数据没有加载成功，请重新打开应用", s.planErrorZh);
+        assertEquals("游戏资料读取失败，请重新打开应用", s.planErrorZh);
         assertNull(broken.rules());
 
         PlannerApi.Receipt r = broken.recordOutcome(id(), 0, TestRules.slot(TestRules.MAY_12, false),
                 "meet:emperor", Outcome.of(Outcome.Code.AS_PREDICTED));
         assertFalse(r.ok);
         assertEquals("io", r.errorCode);
-        assertEquals("规则数据没有加载成功，请重新打开应用", r.errorZh);
+        assertEquals("游戏资料读取失败，请重新打开应用", r.errorZh);
         assertNull(broken.exportBackup());
         assertTrue(broken.history(0).isEmpty());
         assertTrue(broken.alternatives(TestRules.slot(TestRules.MAY_12, false)).isEmpty());
@@ -87,7 +87,7 @@ public class PlannerServiceLoadTest extends ServiceTestBase {
         PlannerApi.Receipt r = service.saveCheckpoint(" ", 0, TestRules.state(rules, TestRules.slot(TestRules.MAY_12, false)), null);
         assertFalse(r.ok);
         assertEquals("invalid", r.errorCode);
-        assertEquals("操作编号缺失，请重新操作", r.errorZh);
+        assertEquals("保存失败了，请再试一次", r.errorZh);
         assertNull(service.snapshot().observed);
     }
 }

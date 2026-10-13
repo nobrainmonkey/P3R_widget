@@ -36,13 +36,34 @@ public final class CheckpointRow {
     }
 
     /**
-     * The observed state carried over to {@code rules}: remapped by id when the row has a layout
-     * (see {@link PackLayout#remap}), otherwise only resized, and fitted to the pack's sizes.
+     * The state replay starts from under {@code rules}: remapped by id when the row has a layout
+     * (see {@link PackLayout#remap}), otherwise only resized ({@link PackLayout#fitWithoutLayout}),
+     * then the rescue rule ({@link StateShape#inferRescues}). Rows without a layout were saved
+     * before the app could ask about rescues, so their {@code rescueFailed} bits are not taken as
+     * the player's answer. The slot is the stored one (not moved past locked slots).
      */
     public PackLayout.Remapped stateFor(Rules rules) throws JSONException {
         JSONObject o = new JSONObject(json);
         SimState stored = SimState.fromJson(o);
         PackLayout layout = PackLayout.inCheckpoint(o);
-        return layout == null ? PackLayout.fitWithoutLayout(stored, rules) : layout.remap(stored, rules);
+        PackLayout.Remapped r = layout == null
+                ? PackLayout.fitWithoutLayout(stored, rules)
+                : layout.remap(stored, rules);
+        return new PackLayout.Remapped(StateShape.inferRescues(r.state, rules, layout != null), r.lost);
+    }
+
+    /** True when the row carries the layout of the pack it was saved under. */
+    public boolean hasLayout() throws JSONException {
+        return PackLayout.inCheckpoint(new JSONObject(json)) != null;
+    }
+
+    /**
+     * Checkpoint JSON for {@code state} saved under {@code rules}: the {@link SimState} fields plus
+     * the pack layout (key {@value PackLayout#KEY}), canonical.
+     */
+    public static String jsonFor(SimState state, Rules rules) throws JSONException {
+        JSONObject o = state.toJson();
+        o.put(PackLayout.KEY, PackLayout.of(rules).toJson());
+        return Canonical.of(o);
     }
 }
