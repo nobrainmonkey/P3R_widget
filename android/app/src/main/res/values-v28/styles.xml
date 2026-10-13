@@ -1,0 +1,17 @@
+<resources>
+ <style name="P3R.App" parent="android:style/Theme.Material.NoActionBar">
+   <item name="android:windowBackground">#06123A</item>
+   <item name="android:statusBarColor">#06123A</item>
+   <item name="android:navigationBarColor">#06123A</item>
+   <item name="android:colorAccent">#3CE4FF</item>
+   <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+ </style>
+ <style name="P3R.Sheet" parent="android:style/Theme.Material.NoActionBar">
+   <item name="android:windowIsTranslucent">true</item>
+   <item name="android:windowBackground">@android:color/transparent</item>
+   <item name="android:backgroundDimEnabled">true</item>
+   <item name="android:windowAnimationStyle">@android:style/Animation.Translucent</item>
+   <item name="android:colorAccent">#3CE4FF</item>
+   <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+ </style>
+</resources>

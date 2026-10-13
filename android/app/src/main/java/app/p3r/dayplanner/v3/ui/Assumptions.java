@@ -15,18 +15,24 @@ public final class Assumptions {
     private static final Map<String, String> TEXT = new LinkedHashMap<>();
 
     static {
-        TEXT.put("ordinary_gain", "普通会面按每次 +10 点估计（游戏里显示 ♪♪ 左右），实际常常更多。");
-        TEXT.put("answers_best", "按每次都选让对方高兴的回答来估计升级所需的会面次数。");
-        TEXT.put("answers_none", "不计回答带来的额外点数，估计更保守。");
+        // Ids emitted by the engine (Kernel.ASSUMPTION_IDS) and by the UI itself.
+        put("普通会面按每次约 +10 点估计（游戏里大约显示 ♪♪），这个数值没有官方数据。",
+                "ordinary_gain_estimate", "ordinary_gain");
+        put("按升级时都选让对方高兴的回答来估计。", "best_answers", "answers_best");
+        TEXT.put("answers_none", "不计升级时回答带来的点数，估计更保守。");
         TEXT.put("persona_bonus", "按你约会时带着同阿尔卡那的人格面具计算，点数 ×1.51。");
         TEXT.put("charm_bonus", "魅力达到 Lv.6 后，社群点数按 ×1.51 计算。");
         TEXT.put("goal_buffer", "目标社群每次升级都多留一次会面的余量。");
-        TEXT.put("job_min_pay", "打工收入按最低档工资估计。");
-        TEXT.put("tower_income", "塔尔塔罗斯的收入按你最近几次的记录估计。");
-        TEXT.put("rescue", "这次进塔要顺便营救失踪者。");
+        put("打工收入按最低档工资估计，实际可能更多。", "job_pay_minimum", "job_min_pay");
+        put("塔尔塔罗斯的收入按你最近几次的记录估计。", "tower_income_estimate", "tower_income");
+        put("假定这次进塔能顺利救出失踪者。", "rescue_on_visit", "rescue");
         TEXT.put("invite", "这是假日邀约，接受后会占用白天。");
         TEXT.put("stat_lower_bound", "个人能力值按当前等级的最低点数估计。");
-        TEXT.put("hold", "剧情推进前这个社群暂时无法升级，这次只加点数。");
+        put("剧情推进前这个社群暂时无法升级，这次只加点数。", "rank_hold", "hold");
+    }
+
+    private static void put(String text, String... ids) {
+        for (String id : ids) TEXT.put(id, text);
     }
 
     /** Generic line for estimates without a known explanation. */
