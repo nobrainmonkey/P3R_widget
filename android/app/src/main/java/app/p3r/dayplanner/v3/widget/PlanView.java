@@ -307,7 +307,7 @@ final class PlanView {
 
     private boolean productiveAt(int slot) {
         Plan.Step step = snapshot.plan == null ? null : snapshot.plan.at(slot);
-        return step != null && step.productive() && !PlanItems.isLocked(step);
+        return PlanItems.isProductive(step);
     }
 
     private String cueFor(Plan.Step step, StepCopy copy, Rules rules) {

@@ -43,6 +43,16 @@ public final class PlanItems {
         return "locked".equals(step.kind) || step.action.startsWith("locked:");
     }
 
+    /**
+     * Whether the step is something to do: {@link Plan.Step#productive()}, and also a dating-site
+     * note or a Link Episode whatever coarse kind the engine files it under.
+     */
+    public static boolean isProductive(Plan.Step step) {
+        if (step == null || isLocked(step)) return false;
+        String action = step.action == null ? "" : step.action;
+        return step.productive() || action.startsWith("note:") || action.startsWith("episode:");
+    }
+
     /** Items of {@code plan} at or after {@code fromSlot}, in slot order. */
     public static List<Item> of(Plan plan, int fromSlot) {
         if (plan == null || plan.steps == null) return Collections.emptyList();
@@ -66,7 +76,7 @@ public final class PlanItems {
                 runStep = step;
                 runStart = step.slot;
                 runEnd = step.slot;
-            } else if (step.productive() || step.slot == fromSlot) {
+            } else if (isProductive(step) || step.slot == fromSlot) {
                 items.add(new Item(step, step.slot, step.slot));
             }
         }

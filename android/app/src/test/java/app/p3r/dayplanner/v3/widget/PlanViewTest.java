@@ -38,6 +38,19 @@ public class PlanViewTest {
     }
 
     @Test
+    public void noteAndEpisodeStepsAreItemsWhateverTheirKind() {
+        Plan plan = FakePlannerApi.cannedPlan("p");
+        Plan.Step episode = FakePlannerApi.episodeStep(S + 8);
+        episode.kind = "free"; // an engine that files it under a coarse kind must not hide it
+        plan.steps.set(8, episode);
+        List<PlanItems.Item> items = PlanItems.of(plan, S);
+        assertEquals(9, items.size());
+        assertEquals("episode:junpei", items.get(7).step.action);
+        assertFalse(PlanItems.isProductive(null));
+        assertFalse(PlanItems.isProductive(plan.steps.get(5)));
+    }
+
+    @Test
     public void modesFollowTheSnapshot() {
         FakePlannerApi fake = new FakePlannerApi();
         fake.observed = null;
