@@ -95,6 +95,22 @@ public class PlanWidgetRenderTest {
                 fake.observeAt("meet:emperor");
                 break;
             }
+            case "max-up":
+                fake.plan.steps.set(2, FakePlannerApi.rank(FakePlannerApi.step(FakePlannerApi.FIRST_SLOT + 2, "meet:emperor", "social",
+                        "皇帝 · 小田桐秀利", "RANK 9 → MAX", "月光馆学园 3楼 学生会室", "「必须」目标，这次见面一定能升到 MAX"), 9, 10));
+                fake.observeAt("meet:emperor");
+                break;
+            case "max-meet":
+                // An invitation from a link that is already MAX (older plans wrote "RANK MAX").
+                fake.plan.steps.set(0, FakePlannerApi.rank(FakePlannerApi.step(FakePlannerApi.FIRST_SLOT, "meet:hanged", "social",
+                        "倒悬者 · 舞子", "假日邀约 · RANK MAX · 见面（预计不升级）", "应邀外出", "对方发来了假日邀约，赴约也算一次见面"), 10, 10));
+                fake.observeAt("meet:hanged");
+                break;
+            case "job-side":
+                // A job with a payment done 顺便: 完成 opens the sheet, which asks about the payment.
+                FakePlannerApi.side(fake.plan.steps.get(3), "unlock:devil:0", "顺便：在喷泉前把 20,000 日元交给田中社长");
+                fake.observeAt("act:job_chagall");
+                break;
             case "long-stat":
             case "long": {
                 // The engine's longest real wording on one card: an invite, a level-up, a long place.
@@ -148,7 +164,8 @@ public class PlanWidgetRenderTest {
         File dir = RenderSupport.outputDir("plan");
         List<String> issues = new ArrayList<>();
         String[] states = {"social", "stat", "job", "unlock", "unlock-talk", "tower", "locked", "story-run", "future", "receipt",
-                "note", "episode", "hint", "long", "long-stat", "free", "empty", "planning", "error", "unreadable", "finished"};
+                "note", "episode", "hint", "max-up", "max-meet", "job-side", "long", "long-stat", "free", "empty", "planning", "error",
+                "unreadable", "finished"};
         for (String name : states) {
             for (boolean night : new boolean[]{false, true}) {
                 for (int[] size : SIZES) {
@@ -174,7 +191,8 @@ public class PlanWidgetRenderTest {
         RuntimeEnvironment.setFontScale(1.15f);
         File dir = RenderSupport.outputDir("plan-font115");
         List<String> issues = new ArrayList<>();
-        for (String name : new String[]{"social", "stat", "future", "receipt", "empty", "note", "episode", "hint", "long", "long-stat", "unlock-talk"}) {
+        for (String name : new String[]{"social", "stat", "future", "receipt", "empty", "note", "episode", "hint", "max-meet", "job-side",
+                "long", "long-stat", "unlock-talk"}) {
             for (int[] size : SIZES) {
                 state(name);
                 View root = render(false, size[0], size[1]);
@@ -194,8 +212,11 @@ public class PlanWidgetRenderTest {
         Map<String, String[]> expected = new LinkedHashMap<>();
         expected.put("social", new String[]{"倒悬者 · 舞子", "RANK 4→5", "完成"});
         expected.put("stat", new String[]{"在宿舍房间学习", "学力 +2", "完成"});
-        expected.put("future", new String[]{"探索塔尔塔罗斯", "本区块第 2 次", "已玩到这里"});
+        expected.put("future", new String[]{"探索塔尔塔罗斯", "本区块第 2 次", "已经玩到这里"});
         expected.put("receipt", new String[]{"在宿舍房间学习", "学力 +2", "撤销"});
+        expected.put("max-up", new String[]{"皇帝 · 小田桐秀利", "RANK 9→MAX", "完成"});
+        expected.put("max-meet", new String[]{"倒悬者 · 舞子", "MAX · 见面", "完成"});
+        expected.put("job-side", new String[]{"咖啡店打工", "+3,000 日元", "完成"});
         expected.put("locked", new String[]{"满月作战", null, "完成"});
         expected.put("empty", new String[]{"设置目标，从当前存档开始", null, "开始设置"});
         for (Map.Entry<String, String[]> e : expected.entrySet()) {
@@ -236,7 +257,8 @@ public class PlanWidgetRenderTest {
         assertEquals("当晚回宿舍用公用电脑给山岸风花加好感", text(note, R.id.widget_hint));
         state("episode");
         View episode = render(false, 320, 200);
-        assertEquals("羁绊剧情 · 伊织顺平 · 第 2 话", text(episode, R.id.widget_task));
+        // The glossary's title; the spaces beside the number are non-breaking so 「第 2 话」 never splits.
+        assertEquals("羁绊剧情 · 伊织顺平（第\u00A02\u00A0话）", text(episode, R.id.widget_task));
         assertEquals(View.VISIBLE, episode.findViewById(R.id.widget_title_icon).getVisibility());
         state("hint");
         View hint = render(false, 320, 200);

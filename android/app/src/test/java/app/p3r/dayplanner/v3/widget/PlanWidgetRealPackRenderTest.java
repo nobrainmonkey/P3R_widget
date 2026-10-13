@@ -48,7 +48,7 @@ public class PlanWidgetRealPackRenderTest {
     private static final int[][] SIZES = {{180, 130}, {180, 150}, {250, 130}, {250, 160}, {320, 200}};
     /** Words the widget itself must never show (the engine's own why-lines are checked by the engine). */
     private static final String[] INTERNAL = {"act:", "meet:", "unlock:", "tower:", "locked:", "note:", "episode:",
-            "null", "Lv.6", "Persona", "FREE", "剧情安排，", "加深关系", "自由时间", "预计 +"};
+            "null", "Lv.6", "Persona", "FREE", "剧情安排，", "加深关系", "自由时间", "预计 +", "RANK MAX"};
     private Context app;
 
     @Before

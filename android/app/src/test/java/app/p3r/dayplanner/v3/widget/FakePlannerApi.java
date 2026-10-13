@@ -30,13 +30,20 @@ final class FakePlannerApi implements PlannerApi {
         final int slot;
         final String action;
         final Outcome outcome;
+        /**
+         * The side-step keys ("顺便") the store persists with this record: like the real store, taken
+         * from the installed plan's step for that slot and action when the outcome says they were
+         * done; empty otherwise.
+         */
+        final List<String> sideKeys;
 
-        Call(String commandId, long expectedRevision, int slot, String action, Outcome outcome) {
+        Call(String commandId, long expectedRevision, int slot, String action, Outcome outcome, List<String> sideKeys) {
             this.commandId = commandId;
             this.expectedRevision = expectedRevision;
             this.slot = slot;
             this.action = action;
             this.outcome = outcome;
+            this.sideKeys = sideKeys;
         }
     }
 
@@ -105,6 +112,13 @@ final class FakePlannerApi implements PlannerApi {
         st.predicted.rankFrom = from;
         st.predicted.rankTo = to;
         st.predicted.rankUp = to > from;
+        return st;
+    }
+
+    /** Adds a side step ("顺便：…") done in the same slot, as the engine attaches them. */
+    static Plan.Step side(Plan.Step st, String key, String zh) {
+        st.side.add(key);
+        st.sideZh.add(zh);
         return st;
     }
 
@@ -188,7 +202,10 @@ final class FakePlannerApi implements PlannerApi {
 
     @Override
     public Receipt recordOutcome(String commandId, long expectedStateRevision, int slot, String actionKey, Outcome outcome) {
-        recordCalls.add(new Call(commandId, expectedStateRevision, slot, actionKey, outcome));
+        Plan.Step planned = plan == null ? null : plan.at(slot);
+        List<String> sideKeys = new ArrayList<>();
+        if (outcome.sideDone && planned != null && planned.action.equals(actionKey)) sideKeys.addAll(planned.side);
+        recordCalls.add(new Call(commandId, expectedStateRevision, slot, actionKey, outcome, sideKeys));
         Receipt previous = receipts.get(commandId);
         if (previous != null) return duplicateOf(previous);
         if (expectedStateRevision != stateRevision) return rejected("stale");

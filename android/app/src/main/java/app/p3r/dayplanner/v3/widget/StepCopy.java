@@ -24,7 +24,12 @@ final class StepCopy {
     /** How the note is used, for the cue line (the title and chip already say who and what for). */
     static final String NOTE_HOW = "在放纵俱乐部买字条，当晚回宿舍用公用电脑";
 
-    private static final Pattern RANK_STEP = Pattern.compile("RANK\\s*(\\d+|MAX)\\s*→\\s*(\\d+|MAX)");
+    /** "RANK 6 → 7", "RANK 9 → MAX", and the older "RANK 9 → RANK MAX". */
+    private static final Pattern RANK_STEP = Pattern.compile("RANK\\s*(\\d+|MAX)\\s*→\\s*(?:RANK\\s*)?(\\d+|MAX)");
+    /** "RANK MAX", which the glossary writes as plain "MAX" (「升到 MAX」「已经 MAX」). */
+    private static final Pattern RANK_MAX = Pattern.compile("RANK\\s*MAX");
+    /** Chip of a meeting with a link already at MAX (like "RANK 4 · 见面" below it). */
+    private static final String MAX_MEETING = "MAX · 见面";
     private static final Pattern EPISODE_NO = Pattern.compile("第\\s*(\\d+)\\s*话");
     private static final Pattern VISIT = Pattern.compile("^第\\s*(\\d+)\\s*次$");
     private static final Pattern LEVEL_UP = Pattern.compile("\\s*[（(]\\s*升到\\s*(Lv\\.?\\s*\\d|MAX)\\s*[）)]");
@@ -139,15 +144,23 @@ final class StepCopy {
         else if (track != null) number = nextEpisode(track, step, observed, plan);
         String person = track == null ? null : blankToNull(track.personZh);
         if (person == null) person = personFromTitle(step.titleZh);
-        StringBuilder title = new StringBuilder(EPISODE_TITLE);
-        if (person != null) title.append(" · ").append(person);
-        if (number > 0) title.append(" · 第 ").append(number).append(" 话");
-        c.title = title.toString();
+        c.title = episodeTitle(person, number);
         String sub = compact(step.subtitleZh);
         boolean redundant = sub == null || EPISODE_NO.matcher(sub).find() || c.title.contains(sub)
                 || sub.contains(EPISODE_TITLE) || sub.contains("羁绊剧场");
         c.tag = redundant ? null : sub;
         if (c.location == null && track != null) c.location = blankToNull(track.locationZh);
+    }
+
+    /**
+     * 「羁绊剧情 · 伊织顺平（第 2 话）」, the glossary's form that 记录历史 and 改做别的 also use; the
+     * person and the number are each left out when unknown ({@code number < 1}).
+     */
+    static String episodeTitle(String person, int number) {
+        StringBuilder title = new StringBuilder(EPISODE_TITLE);
+        if (person != null) title.append(" · ").append(person.trim());
+        if (number > 0) title.append("（第 ").append(number).append(" 话）");
+        return title.toString();
     }
 
     /** Episodes watched so far plus the same track's earlier steps in the plan, plus one. */
@@ -241,14 +254,16 @@ final class StepCopy {
         }
     }
 
+    /** "RANK 6→7", "RANK 9→MAX", "RANK 4 · 见面"; a link already at MAX reads "MAX · 见面". */
     private static String socialTag(String s, Plan.Predicted p) {
         if (p != null && p.rankFrom >= 1 && p.rankTo >= p.rankFrom) {
             if (p.rankTo > p.rankFrom) return "RANK " + rank(p.rankFrom) + "→" + rank(p.rankTo);
-            return "RANK " + rank(p.rankFrom) + " · 见面";
+            return p.rankFrom >= 10 ? MAX_MEETING : "RANK " + p.rankFrom + " · 见面";
         }
         if (s == null) return null;
         Matcher m = RANK_STEP.matcher(s);
         if (m.find()) return "RANK " + m.group(1) + "→" + m.group(2);
+        if (RANK_MAX.matcher(s).find()) return MAX_MEETING;
         String[] parts = s.split(SEP);
         String last = parts[parts.length - 1].trim();
         if (last.startsWith("加深关系") || last.startsWith("见面")) return "见面";
@@ -307,11 +322,13 @@ final class StepCopy {
 
     /**
      * Engine sentences in the words of docs/GLOSSARY_zh.md, for plans saved before the engine used
-     * them: the sixth stat level is MAX, a link reaches MAX (not 练满) and is 解锁 (not 开启 / 正式开始).
+     * them: the sixth stat level is MAX, a link reaches MAX (not 练满, not RANK MAX: 「升到 MAX」
+     * 「RANK 9 → MAX」) and is 解锁 (not 开启 / 正式开始).
      */
     static String glossary(String text) {
         if (text == null) return null;
         String t = LV6.matcher(text).replaceAll("MAX");
+        t = RANK_MAX.matcher(t).replaceAll("MAX");
         return t.replace("练满", "升到 MAX").replace("就正式开始了", "就解锁了").replace("开启", "解锁");
     }
 

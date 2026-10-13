@@ -50,6 +50,8 @@ final class PlanView {
      * landed on the re-rendered button), never a deliberate undo.
      */
     static final long UNDO_ARM_MS = 700L;
+    /** The catch-up button (Done on a future item); the app's detail sheet says the same. */
+    static final String CATCHUP_LABEL = "已经玩到这里";
 
     final Mode mode;
     final PlannerApi.Snapshot snapshot;
@@ -248,9 +250,9 @@ final class PlanView {
                 m.doneDescription = "完成：记录「" + m.title + "」的结果";
                 break;
             case CATCHUP:
-                m.doneLabel = "已玩到这里";
+                m.doneLabel = CATCHUP_LABEL;
                 m.doneIcon = CardModel.DoneIcon.NONE;
-                m.doneDescription = "已玩到这里：补记这一项前面还没记录的安排";
+                m.doneDescription = CATCHUP_LABEL + "：补记这一项前面还没记录的安排";
                 break;
             default:
                 m.doneEnabled = false;

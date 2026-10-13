@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.util.List;
 
 import app.p3r.dayplanner.v3.engine.Plan;
+import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
 
 import static org.junit.Assert.assertEquals;
@@ -100,7 +101,7 @@ public class PlanViewTest {
         fake.planCurrent = false;
         fake.planning = true;
         PlanView view = PlanView.resolve(snapshot(fake), -1, null, NOW);
-        assertEquals("never offer 已玩到这里 on the next slot", PlanView.Mode.PLANNING, view.mode);
+        assertEquals("never offer 已经玩到这里 on the next slot", PlanView.Mode.PLANNING, view.mode);
         assertEquals(PlanView.Done.NONE, view.done);
         assertEquals("正在生成安排…", view.toCard(null).title);
         fake.planning = false;
@@ -319,7 +320,7 @@ public class PlanViewTest {
         fake.plan.steps.set(2, FakePlannerApi.episodeStep(S + 2));
         fake.observeAt("episode:junpei");
         CardModel episode = PlanView.resolve(snapshot(fake), -1, null, NOW).toCard(fake.rules);
-        assertEquals("羁绊剧情 · 伊织顺平 · 第 2 话", episode.title);
+        assertEquals("羁绊剧情 · 伊织顺平（第 2 话）", episode.title);
         assertEquals(CardModel.TitleIcon.EPISODE, episode.titleIcon);
         assertNull("第 2 话 is already in the title", episode.tag);
         assertEquals("月光馆学园 2楼 教室", episode.location);
@@ -328,7 +329,80 @@ public class PlanViewTest {
         unnumbered.subtitleZh = "";
         fake.plan.steps.set(4, unnumbered);
         fake.observed.episodes = new int[]{1};
-        assertEquals("羁绊剧情 · 伊织顺平 · 第 3 话", StepCopy.of(unnumbered, fake.rules, fake.observed, fake.plan).title);
+        assertEquals("羁绊剧情 · 伊织顺平（第 3 话）", StepCopy.of(unnumbered, fake.rules, fake.observed, fake.plan).title);
+    }
+
+    /** docs/GLOSSARY_zh.md: 「羁绊剧情 · 伊织顺平（第 2 话）」, as 记录历史 and 改做别的 write it. */
+    @Test
+    public void episodeTitlesUseTheGlossaryForm() {
+        assertEquals("羁绊剧情 · 伊织顺平（第 2 话）", StepCopy.episodeTitle("伊织顺平", 2));
+        assertEquals("羁绊剧情 · 伊织顺平", StepCopy.episodeTitle("伊织顺平", -1));
+        assertEquals("羁绊剧情（第 1 话）", StepCopy.episodeTitle(null, 1));
+        Rules rules = FakePlannerApi.miniRules();
+        // The current engine wording: the number only in the subtitle.
+        Plan.Step engine = FakePlannerApi.step(S, "episode:junpei", "episode", "羁绊剧情 · 伊织顺平", "第 2 话（共 4 话）", null, null);
+        for (Rules r : new Rules[]{rules, null}) {
+            StepCopy c = StepCopy.of(engine, r, null, null);
+            assertEquals("羁绊剧情 · 伊织顺平（第 2 话）", c.title);
+            assertNull(c.tag);
+        }
+        // The app's own title (改做别的) reads the same on the widget, with or without the rule pack.
+        Plan.Step app = FakePlannerApi.step(S, "episode:junpei", "episode", "羁绊剧情 · 伊织顺平（第 2 话）", "不加社群点数", null, null);
+        assertEquals("羁绊剧情 · 伊织顺平（第 2 话）", StepCopy.of(app, rules, null, null).title);
+        assertEquals("羁绊剧情 · 伊织顺平（第 2 话）", StepCopy.of(app, null, null, null).title);
+        assertEquals("不加社群点数", StepCopy.of(app, null, null, null).tag);
+        assertEquals("伊织顺平", StepCopy.personFromTitle("羁绊剧情 · 伊织顺平（第 2 话）"));
+
+        FakePlannerApi fake = new FakePlannerApi();
+        fake.rules = rules;
+        fake.plan.steps.set(2, FakePlannerApi.episodeStep(S + 2));
+        fake.observeAt("episode:junpei");
+        CardModel card = card(fake);
+        assertFalse(card.title, card.title.contains(" · 第"));
+        assertEquals("完成：记录「羁绊剧情 · 伊织顺平（第 2 话）」的结果", card.doneDescription);
+    }
+
+    /** docs/GLOSSARY_zh.md: 「升到 MAX」「RANK 9 → MAX」, a link at MAX is just "MAX", never "RANK MAX". */
+    @Test
+    public void maxIsNeverWrittenRankMax() {
+        Plan.Step meet = FakePlannerApi.rank(FakePlannerApi.step(S, "meet:hanged", "social", "倒悬者 · 舞子",
+                "假日邀约 · RANK MAX · 见面（预计不升级）", "应邀外出", "对方发来了假日邀约，赴约也算一次见面"), 10, 10);
+        assertEquals("MAX · 见面", StepCopy.of(meet, null, null, null).tag);
+        meet.predicted = new Plan.Predicted();
+        assertEquals("MAX · 见面", StepCopy.of(meet, null, null, null).tag);
+        meet.subtitleZh = "RANK 9 → RANK MAX";
+        assertEquals("RANK 9→MAX", StepCopy.of(meet, null, null, null).tag);
+        meet.subtitleZh = "RANK 9 → MAX";
+        assertEquals("RANK 9→MAX", StepCopy.of(meet, null, null, null).tag);
+        assertEquals("预计这次见面能升到 MAX", StepCopy.glossary("预计这次见面能升到 RANK MAX"));
+        assertEquals("皇帝 RANK 9 → MAX", StepCopy.glossary("皇帝 RANK 9 → RANK MAX"));
+
+        // Every line of a card: an older plan's sentences are put in the glossary's words.
+        FakePlannerApi fake = new FakePlannerApi();
+        Plan.Step emperor = FakePlannerApi.rank(FakePlannerApi.step(S + 2, "meet:emperor", "social", "皇帝 · 小田桐秀利",
+                "RANK 9 → RANK MAX", "月光馆学园 3楼 学生会室", "「必须」目标，这次见面一定能升到 RANK MAX"), 9, 10);
+        emperor.hintZh = "升到 RANK MAX 前记得带上「皇帝」阿尔卡那的人格面具";
+        FakePlannerApi.side(emperor, "unlock:devil:0", "顺便：把 20,000 日元交给穿西装的男人");
+        fake.plan.steps.set(2, emperor);
+        fake.observeAt("meet:emperor");
+        CardModel card = card(fake);
+        assertEquals("RANK 9→MAX", card.tag);
+        assertEquals("「必须」目标，这次见面一定能升到 MAX", card.cue);
+        assertEquals("升到 MAX 前记得带上「皇帝」阿尔卡那的人格面具", card.hint);
+        for (String text : new String[]{card.title, card.tag, card.cue, card.hint, card.side, card.taskDescription, card.doneDescription}) {
+            assertFalse(text, text.contains("RANK MAX"));
+        }
+    }
+
+    @Test
+    public void catchUpUsesTheAppsWording() {
+        FakePlannerApi fake = new FakePlannerApi();
+        PlanView future = PlanView.resolve(snapshot(fake), S + 1, null, NOW);
+        assertEquals(PlanView.Done.CATCHUP, future.done);
+        CardModel card = future.toCard(null);
+        assertEquals("已经玩到这里", card.doneLabel);
+        assertEquals(CardModel.DoneIcon.NONE, card.doneIcon);
+        assertEquals("已经玩到这里：补记这一项前面还没记录的安排", card.doneDescription);
     }
 
     @Test
