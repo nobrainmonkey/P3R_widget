@@ -59,6 +59,36 @@ class BuildTest(unittest.TestCase):
         devil_weekdays = {builder.weekday_of(d) for d in links["devil"]["avail"]}
         self.assertEqual(devil_weekdays, {2, 6})
 
+    def test_review_fixes(self) -> None:
+        days = {d["d"]: d for d in self.pack["days"]}
+        for md in ("04-29", "07-10", "09-06", "11-05"):
+            self.assertFalse(days[builder.day_of_md(md)]["tartarus"], md)
+        self.assertTrue(days[builder.day_of_md("06-23")]["tartarus"])
+        links = {x["id"]: x for x in self.pack["links"]}
+        open_step = links["hierophant"]["unlock"]["steps"][0]
+        self.assertTrue(all(days[d]["type"] == "school" for d in open_step["fixedDays"]))
+        self.assertEqual(links["star"]["locationZh"], "严户台商店街 · 1 楼")
+        self.assertTrue(all(x["locationZh"] for x in self.pack["links"]))
+        self.assertIn("第一名", links["empress"]["unlock"]["noteZh"])
+
+    def test_episodes_and_dating_note(self) -> None:
+        tracks = {t["id"]: t for t in self.pack["episodes"]}
+        self.assertEqual(list(tracks), ["junpei", "akihiko", "koromaru", "ken", "shinjiro"])
+        self.assertEqual(tracks["junpei"]["titleZh"], "羁绊剧情 · 伊织顺平")
+        self.assertEqual(tracks["shinjiro"]["count"], 4)
+        self.assertTrue(tracks["ken"]["evening"])
+        note = self.pack["datingNote"]
+        self.assertEqual((note["fromDay"], note["cost"], note["gain"], note["maxUses"]),
+                         (builder.day_of_md("11-11"), 3000, 10, None))
+
+    def test_player_text_follows_the_glossary(self) -> None:
+        for where, value in builder.player_texts(self.pack):
+            plain = value
+            for allowed in builder.GLOSSARY_ALLOWED:
+                plain = plain.replace(allowed, "")
+            for word in builder.GLOSSARY_AVOID:
+                self.assertNotIn(word, plain, where)
+
     def test_calendar_helpers(self) -> None:
         self.assertEqual(builder.day_of(4, 7), 6)
         self.assertEqual(builder.day_of(1, 31), 305)

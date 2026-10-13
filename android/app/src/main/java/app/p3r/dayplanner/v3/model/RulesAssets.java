@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * Process-wide access to the compiled rule pack {@code assets/p3r/p3r_rules.json}.
  *
- * <p>The first {@link #get(Context)} reads and parses the asset (about 130 KB; disk I/O plus JSON
+ * <p>The first {@link #get(Context)} reads and parses the asset (about 150 KB; disk I/O plus JSON
  * parsing), so call it from a background thread, e.g. the planner service executor. Later calls
  * return the same cached {@link Rules} instance without any work; {@link #peek()} never loads and
  * is safe on the main thread (widget rendering should use its own cached projection anyway).

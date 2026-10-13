@@ -141,6 +141,7 @@ class Ledger:
         self.conflicts: list[dict] = []
         self.audit: list[str] = []
         self.dropped: dict[str, list[str]] = {}
+        self.step_days: dict[str, str] = {}  # unlock step id -> which meeting days it uses (report only)
 
     def decide(self, area: str, ident: str, text: str) -> None:
         self.decisions.append((area, ident, text))
@@ -234,6 +235,25 @@ class AqiuPage:
             cells = dict(zip(self.night_header, row))
             out[d] = {link: cells[col] for col, link in self.NIGHT_COLUMNS.items()}
         return out
+
+    def column(self, evening: bool, name: str) -> dict[int, str]:
+        """day ordinal -> raw cell of one named column of the daytime or nighttime calendar."""
+        header = self.night_header if evening else self.day_header
+        rows = self.night_rows if evening else self.day_rows
+        if name not in header:
+            raise BuildError(f"aqiu {'nighttime' if evening else 'daytime'} calendar has no column {name!r}: {header}")
+        idx = header.index(name)
+        out = {}
+        for row in rows:
+            d = day_of_md(row[1])
+            if WEEKDAY_ABBR[row[0]] != weekday_of(d):
+                raise BuildError(f"aqiu row {row[1]} weekday {row[0]} does not match the 2009 calendar")
+            out[d] = row[idx]
+        return out
+
+    def tartarus_cells(self) -> dict[int, str]:
+        """Nighttime 'Tartarus' column: '-' = full party, names = members who cannot go, 'Everyone' = nobody can."""
+        return self.column(True, "Tartarus")
 
     def section(self, name: str) -> str:
         """Text of an aqiu <h4> section (social links)."""
@@ -334,6 +354,10 @@ def build_sources() -> list[dict]:
         web("megatenwiki_jobs", "https://megatenwiki.com/index.php?title=Chagall_Cafe&oldid=423201", "MegaTen Wiki job wage tables"),
         web("siliconera_jobs", "https://www.siliconera.com/how-to-get-a-job-in-persona-3-reload/", "Siliconera job article (wages cross-check only)"),
         web("lpbeach", "https://lpbeach.co.uk/viewtopic.php?t=1712#p15208", "Single Reload playthrough source for the +10 ordinary hangout"),
+        web("siliconera_urls", "https://www.siliconera.com/how-to-get-shared-computer-urls-in-persona-3-reload/",
+            "Shared-computer URLs: Dating Site note from November, 3,000 yen, can be purchased multiple times"),
+        evidence("ev_dating_note", "affinity_actions_candidate.json", "Dating-site note: evening, +10 points, 3,000 yen, never a rank-up"),
+        evidence("ev_hangout_rules", "ordinary_hangout_rules_candidate.json", "Dating-site note sources (aqiu, game8, atwiki 455, Steam guide)"),
     ]
     return sorted(sources, key=lambda s: s["id"])
 
@@ -410,11 +434,11 @@ LOCK_REASONS = {
     "exam": "考试期间",
     "festival": "夏日祭",
     "finale": "最终决战",
-    "forced_event": "剧情强制事件",
+    "forced_event": "剧情事件",
     "full_moon": "满月作战",
     "new_year": "新年参拜",
     "prologue": "序章剧情",
-    "reserved": "可能有剧情，先空出来",
+    "reserved": "可能有剧情（先空出）",
     "school_trip": "修学旅行",
     "story": "剧情事件",
     "summer_classes": "暑期补习",
@@ -589,7 +613,7 @@ def moon_phases() -> dict[int, int]:
     return out
 
 
-def build_calendar(ledger: Ledger, day_cells: dict, night_cells: dict) -> tuple[list[dict], dict]:
+def build_calendar(ledger: Ledger, day_cells: dict, night_cells: dict, tartarus_cells: dict) -> tuple[list[dict], dict]:
     """Day records (contiguous FIRST_DAY..LAST_DAY) and the Tartarus section."""
     locks = collect_locks(ledger)
     day_lock: dict[int, Lock] = {}
@@ -622,6 +646,16 @@ def build_calendar(ledger: Ledger, day_cells: dict, night_cells: dict) -> tuple[
     supplement_closed = {x["ordinal"] for x in read_evidence("tartarus_entry_availability_supplement.json")["knownDungeonOnlyClosedDates"]}
     if closed != supplement_closed or len(closed) != 20:
         raise BuildError("Tartarus closure lists disagree between evidence files")
+    # aqiu's nighttime "Tartarus" column names the party members who cannot go; "Everyone" = no party.
+    aqiu_closed = {d for d, cell in tartarus_cells.items() if cell == "Everyone"}
+    if not closed <= aqiu_closed:
+        raise BuildError(f"GameFAQs closures not marked 'Everyone' by aqiu: {sorted(md_of(d) for d in closed - aqiu_closed)}")
+    party = {"Yukari", "Junpei", "Akihiko", "Mitsuru", "Fuuka", "Aigis", "Koromaru", "Ken", "Shinjiro"}
+    for cell in sorted({c for c in tartarus_cells.values() if c not in ("-", "Everyone")}):
+        names = {x.strip() for x in cell.split(",")}
+        if not names <= party:
+            raise BuildError(f"aqiu Tartarus cell {cell!r} is neither '-', 'Everyone' nor party member names")
+    closed_all = closed | aqiu_closed
 
     holidays = {day_of_md(md): name for md, name in HOLIDAYS.items()}
     vacation_days: dict[int, str] = {}
@@ -663,12 +697,15 @@ def build_calendar(ledger: Ledger, day_cells: dict, night_cells: dict) -> tuple[
         if md == "12-24":
             notes.append("平安夜：默认按婉拒所有邀约来安排")
         if md == "01-21":
-            notes.append("如果之前把白花送给了顺平，这天放学后会有剧情，所以先空出来")
+            notes.append("如果之前把「白色切花」送给了顺平，这天放学后会有剧情，所以先空出来")
         for b in blocks:
             if b["fromDay"] == d:
-                notes.append(f"塔尔塔罗斯开放新区域：{b['zh']}（{b['floorsZh']}）")
+                notes.append(f"塔尔塔罗斯的新区块开放了：{b['zh']}（{b['floorsZh']}）")
         notes.extend(rescue_notes.get(d, []))
         confs = [x.conf for x in (dl, el) if x is not None]
+        aqiu_only_closure = block >= 0 and el is None and d in aqiu_closed and d not in closed
+        if aqiu_only_closure:
+            confs.append("single")
         conf = next((c for c in ("estimate", "conflict", "single") if c in confs), "verified")
         src = sorted({s for x in (dl, el) if x is not None for s in x.src} | {"aqiu_social_events", "gd_activity"})
         days.append({
@@ -682,7 +719,7 @@ def build_calendar(ledger: Ledger, day_cells: dict, night_cells: dict) -> tuple[
             "moon": moons[d],
             "noteZh": "；".join(notes) if notes else None,
             "src": src,
-            "tartarus": block >= 0 and d not in closed and el is None,
+            "tartarus": block >= 0 and d not in closed_all and el is None,
             "type": dtype,
             "wd": wd,
         })
@@ -706,7 +743,17 @@ def build_calendar(ledger: Ledger, day_cells: dict, night_cells: dict) -> tuple[
                   "9/12–10/3 (教皇) and 舞子 10/21–11/2 (倒悬者) (aqiu overworld; the game board text says Bunkichi was "
                   "reported missing on 9/11, but the aqiu calendar still has a Hierophant cell that day). The other 19 "
                   "missing people only reward items and are left out.")
-    tartarus = {"blocks": blocks, "closedNights": sorted(closed), "rescues": rescues}
+    by_day = {x["d"]: x for x in days}
+    # Every GameFAQs date, plus the aqiu-only closures that actually remove a plannable Tartarus evening.
+    closed_nights = sorted(closed | {d for d in aqiu_closed if by_day[d]["block"] >= 0 and by_day[d]["eveLock"] is None})
+    newly = [md_of(d) for d in closed_nights if d not in closed]
+    ledger.decide("tartarus", "closed nights", "A night is closed to Tartarus when the GameFAQs closure list "
+                  f"(20 dates, both evidence files agree) or aqiu's nighttime 'Tartarus' column says so. That column names "
+                  "the party members who cannot go; 'Everyone' means nobody can, so there is no trip (every GameFAQs date is "
+                  "'Everyone'; no wiki420 or CN-guide Tartarus night is; 10/4 'Ken, Shinjiro', 11/6-11/13 'Mitsuru' and "
+                  "12/10-12/29 'Aigis' match story absences; a named member means a partial party and keeps the tower open). "
+                  f"Nights closed by aqiu alone (conf=single): {', '.join(newly)}.")
+    tartarus = {"blocks": blocks, "closedNights": closed_nights, "rescues": rescues}
     return days, tartarus
 
 
@@ -759,6 +806,7 @@ FEMALE = ("priestess", "empress", "lovers", "justice", "hermit", "strength", "ha
 GENDER_SPECIAL = {"fool": "团体", "hierophant": "夫妇", "judgement": "团体"}
 
 LOCATIONS = {
+    "fool": "宿舍",
     "magician": "月光馆学园 · 2 楼教室",
     "priestess": "月光馆学园 · 教室前走廊",
     "empress": "月光馆学园 · 1 楼教职员室前走廊",
@@ -771,21 +819,28 @@ LOCATIONS = {
     "fortune": "月光馆学园 · 美术教室",
     "strength": "月光馆学园 · 2 楼教室外",
     "hanged_man": "长鸣神社 · 游乐场",
+    "death": "宿舍 · 自己的房间",
     "temperance": "月光馆学园 · 家政教室附近走廊",
     "devil": "桐叶购物中心 · 喷泉广场",
     "tower": "桐叶购物中心 · 放纵俱乐部 2 楼",
-    "star": "严户台站 · 站前",
+    # aqiu "Iwatodai Strip Mall 1F > Talk to Mamoru"; the strip mall and the station are separate map destinations.
+    "star": "严户台商店街 · 1 楼",
     "moon": "桐叶购物中心 · 喷泉广场",
     "sun": "长鸣神社 · 长椅",
+    "judgement": "塔尔塔罗斯",
     "aeon": "月光馆学园 · 教室",
 }
 # Location fragments that do not occur verbatim in the CN guide (natural wording for new UI text).
 LOCATION_WHITELIST = ("自己房间的电脑", "自己的房间", "图书室", "卡拉OK", "饰品店", "2 楼", "操场", "学生会活动室门口")
 
+# Shared wording for steps that leave the slot usable for something else.
+NO_TIME = "这一步不会消耗时间。"
+
 
 def step(ident: str, zh: str, how: str, slot: str, days, location: str, *, consumes: bool = True,
          establishes: bool = False, gap: int = 0, cost: int = 0, from_md: str | None = None) -> dict:
-    """Unlock step spec. ``days`` is "avail", "any", ("fixed", link) or ("weekdays", [..])."""
+    """Unlock step spec. ``days`` is "avail" (the link's own meeting days), ("avail", [day types]),
+    "any", ("fixed", link) (another link's meeting days) or ("weekdays", [..])."""
     return {"id": ident, "zh": zh, "howZh": how, "slot": slot, "days": days, "locationZh": location,
             "consumesSlot": consumes, "establishes": establishes, "minGapDays": gap, "cost": cost, "fromMd": from_md}
 
@@ -794,88 +849,96 @@ UNLOCKS = {
     "magician": {
         "earliest": "04-22", "steps": [], "conf": "verified",
         "src": ["aqiu_social_events", "cn_guide", "ev_simple_unlock"],
-        "noteZh": "4月22日放学后会自动结识友近健二，魔术师社群随之建立，不需要另外安排。",
+        "noteZh": "4月22日放学后会自动认识友近健二，魔术师社群随之解锁，不需要另外安排。",
     },
     "priestess": {
         "earliest": "06-19", "stat": {"courage": 6}, "link": {"fortune": 1}, "conf": "verified",
         "src": ["aqiu_social_events", "ev_simple_unlock", "cn_guide"],
-        "steps": [step("priestess.open", "找山岸风花说话", "勇气达到 Lv.6 并已建立命运社群后，放学后到教室前的走廊和山岸风花说话，女教皇社群建立。",
+        "steps": [step("priestess.open", "找山岸风花说话", "勇气 MAX、命运社群解锁以后，放学后到教室前的走廊和山岸风花说话，女教皇社群就解锁了。",
                        "day", "avail", "月光馆学园 · 教室前走廊", establishes=True)],
     },
     "empress": {
+        # Policy (REPORT §2 "empress exam"): the first-place requirement is not forecastable, so it is shown
+        # to the player (here, in the step and in the pack notes) instead of being modelled.
         "earliest": "11-21", "stat": {"academics": 6}, "conf": "conflict",
         "src": ["aqiu_social_events", "ev_simple_unlock", "ev_romance", "cn_guide"],
-        "noteZh": "有资料说还要在某次考试中拿过第一名（学力达标并全部答对），这一点无法预测，请以游戏为准。",
-        "steps": [step("empress.open", "去教职员室外找桐条美鹤", "学力达到 Lv.6 后，放学后到 1 楼教职员室前的走廊和桐条美鹤说话，女皇社群建立。",
+        "noteZh": "除了学力 MAX，还要至少有一次考试拿过第一名。考试名次没法预测，这里按「学力 MAX 就能解锁」来安排；"
+                  "如果一次第一都没拿过，请把女皇的目标改成「未选」。",
+        "steps": [step("empress.open", "去教职员室前找桐条美鹤",
+                       "学力 MAX、并且考试拿过第一名以后，放学后到 1 楼教职员室前的走廊和桐条美鹤说话，女皇社群就解锁了。",
                        "day", "avail", "月光馆学园 · 1 楼教职员室前走廊", establishes=True)],
     },
     "emperor": {
         "earliest": "04-27", "conf": "verified", "src": ["aqiu_social_events", "ev_simple_unlock", "cn_guide"],
-        "steps": [step("emperor.open", "加入学生会", "放学后先到教职员室报名，再去教室对面的学生会活动室，皇帝社群建立。",
+        "steps": [step("emperor.open", "加入学生会", "放学后先到教职员室报名，再去教室对面的学生会活动室，皇帝社群就解锁了。",
                        "day", "avail", "月光馆学园 · 学生会活动室", establishes=True)],
     },
     "hierophant": {
         "earliest": "04-25", "conf": "verified", "src": ["aqiu_social_events", "ev_simple_unlock", "cn_guide"],
         "steps": [step("hierophant.open", "帮旧书店的老夫妇找柿子树叶",
-                       "先到严户台商店街的旧书店「书虫」，再回学校连接走廊调查柿子树拿到「柿子树叶」，带回书店交给他们，教皇社群建立。",
-                       "day", "avail", "严户台商店街 · 旧书店「书虫」", establishes=True)],
+                       "要在上学日的放学后做：先到严户台商店街的旧书店「书虫」和老夫妇说话，再回学校连接走廊调查柿子树，"
+                       "拿到「柿子树叶」后带回书店交给他们，教皇社群就解锁了。",
+                       "day", ("avail", ["school"]), "严户台商店街 · 旧书店「书虫」", establishes=True)],
     },
     "lovers": {
         "earliest": "07-25", "stat": {"charm": 6}, "conf": "verified",
         "src": ["aqiu_social_events", "ev_simple_unlock", "cn_guide"],
-        "steps": [step("lovers.open", "在教室和岳羽由加莉说话", "魅力达到 Lv.6 后，放学后在教室和岳羽由加莉说话，恋爱社群建立。",
+        "steps": [step("lovers.open", "在教室和岳羽由加莉说话", "魅力 MAX 以后，放学后在教室和岳羽由加莉说话，恋爱社群就解锁了。",
                        "day", "avail", "月光馆学园 · 教室", establishes=True)],
     },
     "chariot": {
         "earliest": "04-23", "conf": "verified", "src": ["aqiu_social_events", "ev_simple_unlock", "cn_guide"],
-        "steps": [step("chariot.open", "加入运动社团",
-                       "放学后从运动场前的走廊进入操场，加入田径社，战车社群建立。活动结束后在大厅和结子打招呼并邀她一起回家，为力量社群做准备。",
+        "steps": [step("chariot.open", "加入田径社",
+                       "放学后从运动场前的走廊进入操场，加入田径社，战车社群就解锁了。活动结束后在大厅和西胁结子打招呼、"
+                       "邀她一起回家，为力量社群做准备。",
                        "day", "avail", "月光馆学园 · 操场", establishes=True)],
     },
     "justice": {
         "earliest": "04-28", "link": {"emperor": 1}, "conf": "verified",
         "src": ["aqiu_social_events", "ev_multistep_unlock", "cn_guide"],
         "steps": [
-            step("justice.talk1", "和伏见千寻搭话（第 1 次）", "放学后到学生会活动室门口找伏见千寻，选「有话想和你说」。不占用时段。",
+            step("justice.talk1", "和伏见千寻搭话（第 1 次）", "放学后到学生会活动室门口找伏见千寻，选「有话想和你说」。" + NO_TIME,
                  "day", "avail", "月光馆学园 · 学生会活动室门口", consumes=False),
-            step("justice.talk2", "和伏见千寻搭话（第 2 次）", "改天再去学生会活动室门口找她，选「我也是男性」。不占用时段。",
+            step("justice.talk2", "和伏见千寻搭话（第 2 次）", "改天再去学生会活动室门口找她，选「我也是男性」。" + NO_TIME,
                  "day", "avail", "月光馆学园 · 学生会活动室门口", consumes=False, gap=1),
-            step("justice.talk3", "和伏见千寻搭话（第 3 次）", "再改天去找她，选「一起出去玩吧」。不占用时段。",
+            step("justice.talk3", "和伏见千寻搭话（第 3 次）", "再改天去找她，选「一起出去玩吧」。" + NO_TIME,
                  "day", "avail", "月光馆学园 · 学生会活动室门口", consumes=False, gap=1),
-            step("justice.open", "和伏见千寻一起回家", "第三次搭话之后的另一天，放学后到教室前的走廊找伏见千寻，正义社群建立。",
+            step("justice.open", "和伏见千寻一起回家", "第三次搭话之后的另一天，放学后到教室前的走廊找伏见千寻，正义社群就解锁了。",
                  "day", "avail", "月光馆学园 · 教室前走廊", establishes=True, gap=1, from_md="05-07"),
         ],
     },
     "hermit": {
         "earliest": "04-29", "conf": "verified", "src": ["aqiu_social_events", "ev_simple_unlock", "cn_guide"],
         "steps": [step("hermit.open", "用房间里的电脑玩网络游戏",
-                       "星期日或节假日的白天，调查自己房间书桌上的电脑，登录网络游戏，隐者社群建立。",
+                       "星期日或节假日的白天，调查自己房间书桌上的电脑，登录网络游戏，隐者社群就解锁了。",
                        "day", "avail", "宿舍 · 自己房间的电脑", establishes=True)],
     },
     "fortune": {
         "earliest": "06-17", "conf": "verified", "src": ["aqiu_social_events", "ev_simple_unlock", "cn_guide"],
-        "steps": [step("fortune.open", "加入美术社", "放学后到 1 楼实习室前的走廊，进入美术教室加入美术社，命运社群建立。",
+        "steps": [step("fortune.open", "加入美术社", "放学后到 1 楼实习室前的走廊，进入美术教室加入美术社，命运社群就解锁了。",
                        "day", "avail", "月光馆学园 · 美术教室", establishes=True)],
     },
     "strength": {
         "earliest": "04-24", "link": {"chariot": 2}, "steps": [], "conf": "verified",
         "src": ["aqiu_social_events", "ev_multistep_unlock", "cn_guide"],
-        "noteZh": "战车社群的两次升级事件结束后，都在大厅和西胁结子打招呼并邀她一起回家（选「和她打招呼」「要不要一起走？」），战车达到 RANK 2 时力量社群随之建立，不额外占用时段。",
+        "noteZh": "战车社群的两次升级剧情结束后，都在大厅和西胁结子打招呼、邀她一起回家（选「和她打招呼」「要不要一起走？」）。"
+                  "战车升到 RANK 2 时力量社群就解锁了，不会额外消耗时间。",
     },
     "hanged_man": {
         "earliest": "05-06", "conf": "verified", "src": ["aqiu_social_events", "ev_multistep_unlock", "aqiu_overworld", "cn_guide"],
         "steps": [
             step("hanged_man.gift", "给神社的小女孩送吃的",
-                 "在严户台商店街的章鱼烧店买一份「神秘章鱼烧」，在宿舍的自动贩卖机买「莫乐蜜G」，带到长鸣神社的游乐场交给小女孩。两样共约 510 日元，不占用时段。",
+                 "在严户台商店街的章鱼烧店买一份「神秘章鱼烧」，在宿舍的自动贩卖机买「莫乐蜜G」，带到长鸣神社的游乐场交给小女孩。"
+                 "两样一共约 510 日元。" + NO_TIME,
                  "day", "avail", "长鸣神社 · 游乐场", consumes=False, cost=510),
-            step("hanged_man.open", "改天再去长鸣神社陪她玩", "送过吃的之后的另一天，再去长鸣神社的游乐场找她，倒悬者社群建立。",
+            step("hanged_man.open", "改天再去长鸣神社陪她玩", "送过吃的之后的另一天，再去长鸣神社的游乐场找她，倒悬者社群就解锁了。",
                  "day", "avail", "长鸣神社 · 游乐场", establishes=True, gap=1),
         ],
     },
     "temperance": {
         "earliest": "05-08", "stat": {"academics": 2}, "link": {"hierophant": 3}, "conf": "verified",
         "src": ["aqiu_social_events", "ev_simple_unlock"],
-        "steps": [step("temperance.open", "去家政教室找贝培", "学力达到 Lv.2、教皇社群达到 RANK 3 后，放学后到 1 楼家政教室附近找贝培，节制社群建立。",
+        "steps": [step("temperance.open", "去家政教室找贝培", "学力 Lv.2、教皇社群 RANK 3 以后，放学后到 1 楼家政教室附近找贝培，节制社群就解锁了。",
                        "day", "avail", "月光馆学园 · 家政教室附近走廊", establishes=True)],
     },
     "devil": {
@@ -883,12 +946,13 @@ UNLOCKS = {
         "src": ["aqiu_social_events", "ev_multistep_unlock", "ev_social_links", "cn_guide"],
         "noteZh": "隐者社群的要求按较严格的 RANK 4 计算（也有资料说 RANK 3）。",
         "steps": [
-            step("devil.pay1", "把 20,000 日元交给穿西装的男人",
-                 "晚上到桐叶购物中心的喷泉前找穿西装的男人，交出 20,000 日元。需要魅力 Lv.4 和隐者社群 RANK 4。不占用时段。",
+            step("devil.pay1", "在喷泉前把 20,000 日元交给田中社长",
+                 "需要魅力 Lv.4 和隐者社群 RANK 4。晚上到桐叶购物中心的喷泉前找田中社长，就是那个穿西装的男人，交给他 20,000 日元。"
+                 + NO_TIME,
                  "eve", "avail", "桐叶购物中心 · 喷泉广场", consumes=False, cost=20000),
-            step("devil.pay2", "再交 10,000 日元", "改天晚上再去喷泉前交 10,000 日元。不占用时段。",
+            step("devil.pay2", "再交给田中社长 10,000 日元", "改天晚上再去喷泉前交给他 10,000 日元。" + NO_TIME,
                  "eve", "avail", "桐叶购物中心 · 喷泉广场", consumes=False, cost=10000, gap=1),
-            step("devil.open", "交出最后的 10,000 日元", "再改天晚上交最后的 10,000 日元，恶魔社群建立。",
+            step("devil.open", "交出最后的 10,000 日元", "再改天晚上交最后的 10,000 日元，恶魔社群就解锁了。",
                  "eve", "avail", "桐叶购物中心 · 喷泉广场", establishes=True, cost=10000, gap=1),
         ],
     },
@@ -897,28 +961,32 @@ UNLOCKS = {
         "src": ["aqiu_social_events", "ev_multistep_unlock", "ev_social_links", "cn_guide"],
         "noteZh": "勇气要求按较严格的 Lv.4 计算（也有资料说 Lv.2 或 Lv.3）。",
         "steps": [
-            step("tower.rumor", "听西胁结子说起奇怪的和尚", "力量社群达到 RANK 4 后，放学后和西胁结子聊天，会听到放纵俱乐部里有个奇怪和尚的传闻。不占用时段。",
+            step("tower.rumor", "听西胁结子说起奇怪的和尚",
+                 "力量社群 RANK 4 以后，放学后和西胁结子聊天，会听到放纵俱乐部里有个奇怪和尚的传闻。" + NO_TIME,
                  "day", ("fixed", "strength"), "月光馆学园 · 2 楼教室外", consumes=False),
-            step("tower.open", "到放纵俱乐部找那位和尚",
-                 "勇气达到 Lv.4 后，晚上到放纵俱乐部 2 楼和和尚说话，再到 1 楼向酒保点单，依次选「基尔酒」「血腥玛丽」「卡西斯橙汁」「乌龙茶」，最后回去找他，塔社群建立。",
+            step("tower.open", "到放纵俱乐部 2 楼找无达",
+                 "勇气 Lv.4 以后，晚上到放纵俱乐部 2 楼找无达说话，再到 1 楼向酒保点单，依次选「基尔酒」「血腥玛丽」"
+                 "「卡西斯橙汁」「乌龙茶」，最后回去找他，塔社群就解锁了。",
                  "eve", "avail", "桐叶购物中心 · 放纵俱乐部", establishes=True),
         ],
     },
     "star": {
         "earliest": "08-05", "stat": {"courage": 4}, "conf": "verified",
         "src": ["aqiu_social_events", "ev_simple_unlock", "cn_guide"],
-        "steps": [step("star.open", "在严户台站前和早濑护说话", "勇气达到 Lv.4 后，到严户台站前找早濑护说话，星社群建立。",
-                       "day", "avail", "严户台站 · 站前", establishes=True)],
+        "steps": [step("star.open", "在严户台商店街找早濑护说话", "勇气 Lv.4 以后，到严户台商店街 1 楼找早濑护说话，星社群就解锁了。",
+                       "day", "avail", "严户台商店街 · 1 楼", establishes=True)],
     },
     "moon": {
         "earliest": "04-28", "stat": {"charm": 2}, "link": {"magician": 3}, "conf": "verified",
         "src": ["aqiu_social_events", "ev_multistep_unlock", "cn_guide"],
         "noteZh": "需要身上带着「神秘食品」，塔尔塔罗斯的宝箱里有机会拿到，拿到后先别卖掉。",
         "steps": [
-            step("moon.rumor", "听友近健二说起「美食大王」", "魔术师社群达到 RANK 3 后，放学后在教室和友近健二聊天，得到「美食大王」的线索。不占用时段。",
+            step("moon.rumor", "听友近健二说起「美食大王」",
+                 "魔术师社群 RANK 3 以后，放学后在教室和友近健二聊天，听到「美食大王」的消息。" + NO_TIME,
                  "day", ("fixed", "magician"), "月光馆学园 · 2 楼教室", consumes=False),
-            step("moon.open", "去喷泉广场找那个胖乎乎的学生",
-                 "魅力达到 Lv.2 后，带着「神秘食品」到桐叶购物中心的喷泉广场和他说话，依次回答「费洛蒙咖啡」「红色」「叶隐盖饭」，再把神秘食品给他，月亮社群建立。",
+            step("moon.open", "去喷泉广场找末光望美",
+                 "魅力 Lv.2 以后，带着「神秘食品」到桐叶购物中心的喷泉广场和末光望美说话，依次回答「费洛蒙咖啡」「红色」"
+                 "「叶隐盖饭」，再把神秘食品给他，月亮社群就解锁了。",
                  "day", "avail", "桐叶购物中心 · 喷泉广场", establishes=True),
         ],
     },
@@ -927,35 +995,36 @@ UNLOCKS = {
         "src": ["aqiu_social_events", "ev_multistep_unlock", "cn_guide"],
         "noteZh": "最早按 8月9日开始（日历和原版攻略都是这一天；也有资料写 8月23日）。",
         "steps": [
-            step("sun.ask", "和长鸣神社那位消瘦的青年说话",
-                 "倒悬者社群 RANK 3、学力 Lv.4 以上时，星期日白天到长鸣神社的长椅找他，他会提到丢失的红色钢笔。不占用时段。",
+            step("sun.ask", "在长鸣神社和神木秋成说话",
+                 "倒悬者社群 RANK 3、学力 Lv.4 以后，星期日白天到长鸣神社的长椅找神木秋成，他会提到丢失的红色钢笔。" + NO_TIME,
                  "day", "avail", "长鸣神社 · 长椅", consumes=False),
-            step("sun.pen", "从虎狼丸那里拿到红色钢笔", "晚上回宿舍 2 楼找虎狼丸，拿到「红色钢笔」。不占用时段。",
+            step("sun.pen", "从虎狼丸那里拿到红色钢笔", "晚上回宿舍 2 楼找虎狼丸，拿到「红色钢笔」。" + NO_TIME,
                  "eve", "any", "宿舍 · 2 楼", consumes=False),
-            step("sun.open", "把钢笔还给他", "之后的星期日白天带着钢笔回长鸣神社找他，太阳社群建立。",
+            step("sun.open", "把红色钢笔还给神木秋成", "之后的星期日白天带着钢笔回长鸣神社找他，太阳社群就解锁了。",
                  "day", "avail", "长鸣神社 · 长椅", establishes=True, gap=1),
         ],
     },
     "aeon": {
         "earliest": "01-08", "conf": "verified", "src": ["aqiu_social_events", "ev_simple_unlock", "cn_guide"],
-        "steps": [step("aeon.open", "放学后和埃癸斯一起回家", "1月8日起，放学后在教室和埃癸斯说话，答应一起回家，永劫社群建立。",
+        "steps": [step("aeon.open", "放学后和埃癸斯一起回家", "1月8日起，放学后在教室和埃癸斯说话，答应一起回家，永劫社群就解锁了。",
                        "day", "avail", "月光馆学园 · 教室", establishes=True)],
     },
 }
 
 LINK_NOTES = {
-    "fool": "随主线剧情自动提升，不需要安排。",
-    "death": "随主线剧情自动提升，不需要安排。",
-    "judgement": "12月31日建立，之后随你在塔尔塔罗斯「忧郁之庭 亚达玛」爬到的楼层（227F～255F）自动提升；具体日期取决于进塔进度，这里按最晚日期保守估计。",
+    "fool": "随主线剧情自动升级，不需要安排。",
+    "death": "随主线剧情自动升级，不需要安排。",
+    "judgement": "12月31日解锁，之后随你在塔尔塔罗斯「忧郁之庭 亚达玛」到达的楼层（227F～255F）自动升级；"
+                 "具体日期看探索进度，这里按最晚的日期估计。",
     "emperor": "11月3日～11月29日小田桐秀利不在学生会，见不到面。",
     "empress": "考试前一周（12月7日～12月12日）她每天放学后都在。",
-    "hierophant": "9月12日北村文吉失踪，必须在10月3日前到塔尔塔罗斯救出他，否则教皇社群无法继续。",
-    "hanged_man": "10月21日舞子失踪，必须在11月2日前到塔尔塔罗斯救出她，否则倒悬者社群无法继续。",
+    "hierophant": "9月12日北村文吉失踪，要在10月3日前到塔尔塔罗斯救出他，否则教皇社群无法继续。",
+    "hanged_man": "10月21日舞子失踪，要在11月2日前到塔尔塔罗斯救出她，否则倒悬者社群无法继续。",
     "hermit": "只在星期日和节假日的白天上线。",
-    "devil": "建立之后每次见面必定升级，不需要好感点数。",
-    "sun": "只在星期日白天见面；建立之后每次见面必定升级。",
-    "moon": "RANK 9 的剧情结束时社群会短暂逆转，之后照常见面即可恢复。",
-    "aeon": "1月25日埃癸斯不在；RANK 9 之前每次见面必定升级。",
+    "devil": "解锁之后每次见面都会升级，不用攒点数。",
+    "sun": "只在星期日白天见面；解锁之后每次见面都会升级。",
+    "moon": "RANK 9 的剧情结束时社群会短暂逆转，之后照常见面就能恢复。",
+    "aeon": "1月25日埃癸斯不在；升到 RANK 9 之前每次见面都会升级。",
 }
 
 
@@ -1048,7 +1117,7 @@ def story_ranks(page: AqiuPage, ledger: Ledger) -> dict[str, list[dict]]:
                 floor = int(m.group(7))
                 verb = "到达" if m.group(6) == "Reach" else "通过"
                 events.append({"conf": "estimate", "day": adamah_latest, "rank": rank, "src": ["aqiu_social_events", "ev_story_links"],
-                               "noteZh": f"在塔尔塔罗斯{verb}{floor}F 时提升"})
+                               "noteZh": f"在塔尔塔罗斯{verb} {floor}F 时升级"})
         if not events:
             raise BuildError(f"no story ranks parsed for {link}")
         out[link] = events
@@ -1155,7 +1224,7 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
             unlock = {"conf": "verified", "earliestDay": min(e["day"] for e in events if e["rank"] == 1),
                       "link": {}, "noteZh": None, "src": ["aqiu_social_events", "ev_story_links"], "stat": {}, "steps": []}
         else:
-            unlock = build_unlock(spec)
+            unlock = build_unlock(spec, link)
 
         missing = None
         if link in rescue_of:
@@ -1186,7 +1255,7 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
             "invite": link_invites,
             "kind": "story" if story else "manual",
             "labelZh": f"{arcana_zh} · {person}",
-            "locationZh": None if story else LOCATIONS[link],
+            "locationZh": LOCATIONS[link],
             "missing": missing,
             "no": idx,
             "noteZh": LINK_NOTES.get(link),
@@ -1224,8 +1293,16 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
     ledger.conflict("unlock.tower.courage", "Tower needs Courage Lv", "4", ["3 (wiki453, game8.jp)", "2 (kamigame)"],
                     ["ev_multistep_unlock", "ev_social_links"])
     ledger.conflict("unlock.sun.earliest", "Sun earliest opening", "8/9", ["8/23 (aqiu overview)"], ["aqiu_social_events", "ev_multistep_unlock"])
-    ledger.conflict("unlock.empress.exam", "Empress extra requirement", "Academics Lv6 only (exam first place noted, not modelled)",
+    ledger.conflict("unlock.empress.exam", "Empress extra requirement",
+                    "Academics Lv6 is modelled; first place in an exam is told to the player, not modelled",
                     ["Academics Lv6 + first place in an exam (aqiu)"], ["aqiu_social_events", "ev_romance"])
+    ledger.decide("links", "empress exam", "aqiu requires Academics Lv6 and first place in one exam for Empress Rank 1 "
+                  "(the CN guide only says 学力MAX, an omission). Exam placement cannot be forecast and is not part of the "
+                  "player's recorded progress, so the pack models Academics Lv6 only and tells the player instead: the "
+                  "unlock note, the step how-to and the 【女皇】 pack note all say a first place is needed and that the goal "
+                  "should be set to 未选 when the player never placed first. This is a deliberate exception to the "
+                  "strictest-claim rule: modelling it as unmet would drop Empress from every plan, and as met it is only "
+                  "wrong for players the note addresses.")
     ledger.decide("links", "holds", "No mid-chain holds are encoded. Moon R9: aqiu says the link 'will momentarily "
                   "reverse'; the CN guide lists only one later meeting (MAX on 11/23) and no repair step, so the reversal "
                   "is treated as part of the scene and the 15-point R10 threshold already asks for extra meetings. Hierophant R4->R5: a single Steam report of a rumour gate is contradicted by the CN guide "
@@ -1233,8 +1310,13 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
     return out
 
 
-def build_unlock(spec: dict) -> dict:
-    """Unlock record from an UNLOCKS spec; "fixed" day lists are filled in by resolve_fixed_days."""
+def build_unlock(spec: dict, link_id: str) -> dict:
+    """Unlock record from an UNLOCKS spec; "fixed" day lists are filled in by resolve_fixed_days.
+
+    Steps done at the link's own place ("avail") are emitted as explicit day lists too: the link's
+    ordinary meeting days only (never its holiday invitations, which come from an established link),
+    optionally narrowed to some day types (("avail", ["school"]) for steps that need the school open).
+    """
     steps = []
     for s in spec.get("steps", []):
         days_spec = s["days"]
@@ -1244,14 +1326,17 @@ def build_unlock(spec: dict) -> dict:
             "howZh": s["howZh"], "id": s["id"], "locationZh": s["locationZh"], "minGapDays": s["minGapDays"],
             "slot": s["slot"], "zh": s["zh"],
         }
-        if days_spec == "avail":
-            entry["days"] = "avail"
-        elif days_spec == "any":
+        if days_spec == "any":
             entry["days"] = "any"
-        elif days_spec[0] == "fixed":
+        elif days_spec == "avail" or days_spec[0] in ("avail", "fixed"):
             entry["days"] = "fixed"
             entry["fixedDays"] = []
-            entry["fixedFrom"] = days_spec[1]
+            if days_spec == "avail":
+                entry["fixedFrom"], entry["fixedTypes"] = link_id, []
+            elif days_spec[0] == "avail":
+                entry["fixedFrom"], entry["fixedTypes"] = link_id, list(days_spec[1])
+            else:
+                entry["fixedFrom"], entry["fixedTypes"] = days_spec[1], []
         else:
             entry["days"] = "weekdays"
             entry["weekdays"] = list(days_spec[1])
@@ -1262,14 +1347,30 @@ def build_unlock(spec: dict) -> dict:
     }
 
 
-def resolve_fixed_days(links: list[dict]) -> None:
-    """Steps that happen at another link's location take that link's meeting days."""
+def resolve_fixed_days(links: list[dict], days: list[dict], ledger: Ledger) -> None:
+    """Fill fixedDays: the meeting days (avail, not invitations) of the link whose place the step uses."""
     by_id = {x["id"]: x for x in links}
+    dtype = {d["d"]: d["type"] for d in days}
     for link in links:
         for s in link["unlock"]["steps"]:
-            if s["days"] == "fixed":
-                source = by_id[s.pop("fixedFrom")]
-                s["fixedDays"] = [d for d in source["avail"] if d >= s["fromDay"]]
+            if s["days"] != "fixed":
+                continue
+            source_id = s.pop("fixedFrom")
+            types = s.pop("fixedTypes")
+            s["fixedDays"] = [d for d in by_id[source_id]["avail"]
+                              if d >= s["fromDay"] and (not types or dtype[d] in types)]
+            if not s["fixedDays"]:
+                raise BuildError(f"{s['id']}: no day left for the step")
+            basis = "own meeting days" if source_id == link["id"] else f"{source_id} meeting days"
+            if types:
+                basis += f" ({'/'.join(types)} only)"
+            ledger.step_days[s["id"]] = basis
+    ledger.decide("links", "unlock step days", "Unlock steps are emitted with explicit day lists (days=fixed): the "
+                  "ordinary meeting days (aqiu O cells after filtering) of the link whose place the step uses, never the "
+                  "holiday-invitation days (an invitation needs an established link, and on Sundays/vacations the school "
+                  "is closed). hierophant.open is limited to school days: the persimmon leaf is in the school corridor "
+                  "(aqiu Rank 1 steps, CN guide 4/25 after school), so Sundays, holidays and vacation days do not work "
+                  "for that step even though the bookstore meetings do.")
 
 
 # --------------------------------------------------------------------------------------------
@@ -1305,7 +1406,7 @@ ACTIVITIES = (
              gain={"academics": 2}, day_types=["school"], conf="conflict", src=["aqiu_social_events", "ev_stats_actions"],
              note="资料对学力增加量说法不一（+2 或 +4），这里按较少的 +2 计算。", alt=["+4 academics (aqiu, gf81170)"],
              aqiu="Study at library*"),
-    activity("meal_wakatsu", "在定食若津吃定食", "stat", ["day", "eve"], [1, 3, 4, 5, 6, 7], "严户台商店街 · 定食若津",
+    activity("meal_wakatsu", "到定食若津点餐", "stat", ["day", "eve"], [1, 3, 4, 5, 6, 7], "严户台商店街 · 定食若津",
              cost=680, gain={"academics": 3}, src=["aqiu_social_events", "ev_stat_expansion", "cn_guide"],
              aqiu="Wakatsu: Prodigy Platter", evidence=("stat_activity_expansion_candidate.json", "meal_wakatsu_regular")),
     activity("meal_hagakure", "在叶隐拉面吃拉面", "stat", ["day", "eve"], [1, 2, 3, 4, 5], "严户台商店街 · 叶隐拉面",
@@ -1314,30 +1415,30 @@ ACTIVITIES = (
     activity("meal_wilduck", "在怀老鸭汉堡吃汉堡", "stat", ["day", "eve"], [1, 2, 3, 5, 6, 7], "严户台商店街 · 怀老鸭汉堡",
              cost=1000, gain={"courage": 3}, src=["aqiu_social_events", "ev_stat_expansion", "cn_guide"],
              aqiu="Wilduck: Mystery Burger", evidence=("stat_activity_expansion_candidate.json", "meal_wilduck_regular")),
-    activity("karaoke", "唱卡拉OK", "stat", ["day", "eve"], [1, 2, 3, 4, 5, 6], "桐叶购物中心 · 卡拉OK",
+    activity("karaoke", "到卡拉OK唱歌", "stat", ["day", "eve"], [1, 2, 3, 4, 5, 6], "桐叶购物中心 · 卡拉OK",
              cost=800, gain={"courage": 2}, src=["aqiu_social_events", "ev_stat_expansion"],
              aqiu="Karaoke", evidence=("stat_activity_expansion_candidate.json", "karaoke_mall")),
-    activity("arcade_answer", "在电玩大巡游玩「你就是答案」", "stat", ["eve"], [3, 6], "桐叶购物中心 · 电玩大巡游",
+    activity("arcade_answer", "在电玩大巡游游玩「你就是答案」", "stat", ["eve"], [3, 6], "桐叶购物中心 · 电玩大巡游",
              cost=3000, gain={"academics": 4}, conf="conflict", src=["aqiu_social_events", "ev_stats_actions", "cn_guide"],
              alt=["also daytime (aqiu B cells)"], aqiu="Arcade: You're the Answer",
              evidence=("stats_actions.json", "arcade_academics_night")),
-    activity("arcade_youth", "在电玩大巡游玩「青春高校」", "stat", ["eve"], [1, 4], "桐叶购物中心 · 电玩大巡游",
+    activity("arcade_youth", "在电玩大巡游游玩「青春高校」", "stat", ["eve"], [1, 4], "桐叶购物中心 · 电玩大巡游",
              cost=1500, gain={"charm": 4}, conf="conflict", src=["aqiu_social_events", "ev_stats_actions", "cn_guide"],
              alt=["also daytime (aqiu B cells)"], aqiu="Arcade: High School of Youth",
              evidence=("stats_actions.json", "arcade_charm_night")),
-    activity("arcade_deceased", "在电玩大巡游玩「死亡之怖」", "stat", ["eve"], [2, 5], "桐叶购物中心 · 电玩大巡游",
+    activity("arcade_deceased", "在电玩大巡游游玩「死亡之怖」", "stat", ["eve"], [2, 5], "桐叶购物中心 · 电玩大巡游",
              cost=3000, gain={"courage": 4}, conf="conflict", src=["aqiu_social_events", "ev_stats_actions", "cn_guide"],
              alt=["also daytime (aqiu B cells)"], aqiu="Arcade: House of the Deceased",
              evidence=("stats_actions.json", "arcade_courage_night")),
-    activity("movie_academics", "到电影院看电影（学力）", "stat", ["day"], [3, 6], "港湾人工岛站 · 电影院",
+    activity("movie_academics", "看提升学力的电影", "stat", ["day"], [3, 6], "港湾人工岛站 · 电影院",
              cost=1500, gain={"academics": 4}, src=["aqiu_social_events", "ev_stat_expansion"],
              note="星期三、六放映的片子能提升学力。", aqiu="Screenshot: Watch movies#academics",
              evidence=("stat_activity_expansion_candidate.json", "movie_academics_day")),
-    activity("movie_charm", "到电影院看电影（魅力）", "stat", ["day"], [2, 5], "港湾人工岛站 · 电影院",
+    activity("movie_charm", "看提升魅力的电影", "stat", ["day"], [2, 5], "港湾人工岛站 · 电影院",
              cost=1500, gain={"charm": 4}, src=["aqiu_social_events", "ev_stat_expansion"],
              note="星期二、五放映的片子能提升魅力。", aqiu="Screenshot: Watch movies#charm",
              evidence=("stat_activity_expansion_candidate.json", "movie_charm_day")),
-    activity("movie_courage", "到电影院看电影（勇气）", "stat", ["day"], [1, 4], "港湾人工岛站 · 电影院",
+    activity("movie_courage", "看提升勇气的电影", "stat", ["day"], [1, 4], "港湾人工岛站 · 电影院",
              cost=1500, gain={"courage": 4}, src=["aqiu_social_events", "ev_stat_expansion"],
              note="星期一、四放映的片子能提升勇气。", aqiu="Screenshot: Watch movies#courage",
              evidence=("stat_activity_expansion_candidate.json", "movie_courage_day")),
@@ -1350,7 +1451,7 @@ ACTIVITIES = (
     activity("job_chagall", "在夏卡尔咖啡店打工", "job", ["eve"], [1, 2, 3], "桐叶购物中心 · 夏卡尔咖啡店",
              gain={"charm": 1, "courage": 1}, pay=[[1, 2500], [5, 3000], [15, 3500], [30, 5000]], from_md="05-04",
              src=["gd_arbeit_help", "aqiu_social_events", "ev_jobs", "megatenwiki_jobs", "cn_guide"],
-             note="星期二客人多、工钱更高，这里按最低工钱估算。", alt=["+2 each stat (siliconera)"], aqiu="Chagall: Part-time Job"),
+             note="星期二客人多、工钱更高，这里按最低工钱估计。", alt=["+2 each stat (siliconera)"], aqiu="Chagall: Part-time Job"),
     activity("job_accessory", "在饰品店打工", "job", ["day"], [1, 2, 3, 4, 5], "桐叶购物中心 · 饰品店",
              gain={"academics": 1}, pay=[[1, 3500], [3, 4500], [6, 5500], [10, 7000]], from_md="07-24", conf="conflict",
              src=["gd_arbeit_help", "aqiu_social_events", "ev_jobs", "megatenwiki_jobs"],
@@ -1462,7 +1563,8 @@ def build_activities(ledger: Ledger, page: AqiuPage, guide_text: str, days: list
     ledger.decide("activities", "excluded", "Not planned: Wakatsu seafood course, Hagakure bowl and the weekend Wilduck set "
                   "(their unlock needs an observed menu event or Request #11 that the model cannot express), the one-off "
                   "burger challenge (needs Requests #1/#9/#11), shrine donations (single source, unclear Reload value), "
-                  "dorm hangouts and Link Episodes (DESIGN §10.10), film-festival hangouts and shrine fortunes.")
+                  "dorm hangouts (DESIGN §10.10), film-festival hangouts and shrine fortunes. Link Episodes are opt-in tracks "
+                  "(`episodes`) and the dating-site note is `datingNote`, both outside `activities`.")
     audit_fallbacks(out, days)
     ledger.decide("activities", "no idle slots", "Every unlocked slot from 4/21 offers at least one free productive "
                   "activity (evening desk study; library after school; desk study in the daytime when there is no "
@@ -1478,30 +1580,290 @@ def build_activities(ledger: Ledger, page: AqiuPage, guide_text: str, days: list
 
 
 # --------------------------------------------------------------------------------------------
+# Link Episodes (羁绊剧情) and the dating-site note (结缘网站的字条)
+
+
+# Opt-in Link Episode tracks. Each comes from one aqiu calendar column whose cells name the episode
+# numbers that can be watched that day ("1", "1-4"); the per-episode windows and rewards come from the
+# aqiu "Linked Episodes" tables. Ryoji (preset dates, first and last episodes automatic) and Takaya
+# (not in the calendar, mostly automatic) are story-driven and are not tracks.
+EPISODE_TRACKS = (
+    {
+        "id": "junpei", "column": "Jun", "evening": False, "section": "junpei", "name": "Junpei Iori",
+        "location": "月光馆学园 · 2 楼教室",
+        "how": "放学后到 2 楼教室找伊织顺平说话；有的几话是他发消息约你，打开手机答应就行。",
+        "note": "第 3 话之后可以到港湾人工岛的花店买「白色切花」（250 日元）送给顺平，不会消耗时间；送了的话 1月21日放学后"
+                "会有剧情，这里已经先把那天空出来了。",
+        "reward": "每一话都有小奖励（能力值或顺平的能力），看完第 5 话可以合体人格面具「苏尔特尔」。",
+        "fusion": ("Surt", "苏尔特尔"),
+        # CN guide (assets/data.json): ep1 5/12 classroom, ep2 8/9 invitation, ep3 11/7 invitation,
+        # ep4 12/19 classroom, ep5 1/15 invitation (苏尔特尔).
+        "witness": {1: "05-12", 2: "08-09", 3: "11-07", 4: "12-19", 5: "01-15"},
+    },
+    {
+        "id": "akihiko", "column": "Aki", "evening": True, "section": "akihiko", "name": "Akihiko Sanada",
+        "location": "严户台站",
+        "how": "晚上打开手机，答应真田明彦的邀约就行。",
+        "note": None,
+        "reward": "每一话都有小奖励（主人公的能力、魅力或道具），看完第 5 话可以合体人格面具「荷鲁斯」。",
+        "fusion": ("Horus", "荷鲁斯"),
+        # CN guide: invitations 5/29, 7/24, 10/9, 12/12 and 1/8 (荷鲁斯).
+        "witness": {1: "05-29", 2: "07-24", 3: "10-09", 4: "12-12", 5: "01-08"},
+    },
+    {
+        "id": "koromaru", "column": "Kor", "evening": False, "section": "koromaru", "name": "Koromaru",
+        "location": "宿舍 · 大门口",
+        "how": "白天到宿舍大门口找虎狼丸；有时队友会先发消息叫你去找它。",
+        "note": None,
+        "reward": "每一话都有小奖励（能力值或虎狼丸的能力），看完第 5 话可以合体人格面具「白虎」。",
+        "fusion": ("Byakko", "白虎"),
+        # CN guide: 9/22 and 1/5 at the dorm entrance, 1/13 and 1/19 (白虎) after a message.
+        "witness": {5: "01-19"},
+    },
+    {
+        "id": "ken", "column": "Ken", "evening": True, "section": "ken", "name": "Ken Amada",
+        "location": "宿舍",
+        "how": "晚上在宿舍找天田乾：前两话在 2 楼他的房间，之后他会发消息约你，打开手机答应就行。",
+        "note": None,
+        "reward": "每一话都有小奖励（能力值或主人公的能力），看完第 5 话可以合体人格面具「米迦勒」。",
+        "fusion": ("Michael", "米迦勒"),
+        # CN guide: 9/9 and 9/16 in his room, invitations 11/10, 12/22 and 1/19 (米迦勒).
+        "witness": {1: "09-09", 2: "09-16", 3: "11-10", 4: "12-22", 5: "01-19"},
+    },
+    {
+        "id": "shinjiro", "column": "Shi", "evening": False, "section": "shinjiro", "name": "Shinjiro Aragaki",
+        "location": "港湾人工岛站 · 站前广场角落",
+        "how": "到港湾人工岛站前广场的角落找荒垣真次郎。第 1 话要在上学日的放学后，先到 1 楼教职员室前找桐条美鹤拿申请书再去；"
+               "有一话是他发消息约你，打开手机答应就行。",
+        "note": "看第 4 话之前，要先在放学后到 1 楼教职员室前找桐条美鹤，最后问「真的要把这个交给她吗？」时选「还是再等等」，"
+                "不会消耗时间。第 5 话不用另外安排：10月5日以后到宿舍 2 楼他的房间调查书桌抽屉就行，之后可以合体人格面具「地狱天使」。",
+        "reward": "每一话都有小奖励（能力值），之后的第 5 话可以合体人格面具「地狱天使」。",
+        "fusion": ("Hell Biker", "地狱天使"),
+        # Episodes 1 and 4 start at the school (Mitsuru in the faculty hallway): school days only.
+        "school_only": (1, 4),
+        # Episode 5 (his desk drawer from 10/5) is not a calendar slot; the note explains it.
+        "beyond_calendar": (5,),
+        # CN guide: 9/11 after school (Mitsuru, then him), 9/13 invitation, 9/21 at the plaza, 9/24 Mitsuru + plaza.
+        "witness": {1: "09-11", 2: "09-13", 3: "09-21", 4: "09-24"},
+    },
+)
+EPISODE_STAT_WORDS = {"Academics": "academics", "Charm": "charm", "Courage": "courage"}
+STAT_ZH = {"academics": "学力", "charm": "魅力", "courage": "勇气"}
+
+
+def parse_cell_numbers(cell: str) -> set[int]:
+    """Episode numbers allowed by one calendar cell: '-' none, '3' one, '1-4' a range."""
+    if cell in ("-", ""):
+        return set()
+    m = re.fullmatch(r"(\d)(?:-(\d))?", cell)
+    if not m:
+        raise BuildError(f"unexpected Link Episode calendar cell {cell!r}")
+    first = int(m.group(1))
+    last = int(m.group(2) or first)
+    return set(range(first, last + 1))
+
+
+def episode_table(page: AqiuPage, section: str) -> dict[int, dict]:
+    """aqiu Linked Episodes table of one character: episode number -> window, gains, fusion, other rewards."""
+    rows: dict[int, dict] = {}
+    for line in page.section(section).splitlines():
+        m = re.match(r"^(\d+(?:\.5)?) \| (.*?) \| (.*?) \|", line.strip())
+        if not m or "." in m.group(1):
+            continue
+        no = int(m.group(1))
+        items, availability = m.group(2), m.group(3)
+        w = re.match(r"(\d+)/(\d+)(?:-(\d+)/(\d+))?", availability)
+        if not w:
+            raise BuildError(f"{section} episode {no}: no availability window in {availability!r}")
+        first = day_of(int(w.group(1)), int(w.group(2)))
+        last = day_of(int(w.group(3)), int(w.group(4))) if w.group(3) else first
+        gain: dict[str, int] = {}
+        fusion = None
+        other = False
+        for item in [x.strip() for x in re.split(r",\s*(?:and\s+)?|\s+and\s+", items) if x.strip() and x.strip() != "-"]:
+            sm = re.fullmatch(r"(Academics|Charm|Courage) \+(\d+)", item)
+            fm = re.fullmatch(r"(.+) unlocked", item)
+            if sm:
+                gain[EPISODE_STAT_WORDS[sm.group(1)]] = int(sm.group(2))
+            elif fm:
+                fusion = fm.group(1)
+            else:
+                other = True
+        rows[no] = {"from": first, "to": last, "gain": gain, "fusion": fusion, "other": other}
+    if not rows:
+        raise BuildError(f"aqiu Linked Episodes table {section} not found")
+    return rows
+
+
+def build_episodes(ledger: Ledger, page: AqiuPage, days: list[dict], guide_text: str) -> list[dict]:
+    names = load_names()["people"]
+    by_day = {x["d"]: x for x in days}
+    out = []
+    for spec in EPISODE_TRACKS:
+        cells = page.column(spec["evening"], spec["column"])
+        table = episode_table(page, spec["section"])
+        allowed = {d: parse_cell_numbers(c) for d, c in cells.items()}
+        count = max(n for ns in allowed.values() for n in ns)
+        slot_key = "eveLock" if spec["evening"] else "dayLock"
+        parts = []
+        dropped = []
+        for no in range(1, count + 1):
+            if no not in table:
+                raise BuildError(f"{spec['id']} episode {no} is in the calendar but not in the episode table")
+            row = table[no]
+            kept = []
+            for d in sorted(d for d, ns in allowed.items() if no in ns):
+                if by_day[d][slot_key] is not None:
+                    dropped.append(f"#{no} {md_of(d)} locked ({by_day[d][slot_key]})")
+                elif not row["from"] <= d <= row["to"]:
+                    dropped.append(f"#{no} {md_of(d)} outside the episode window {md_of(row['from'])}-{md_of(row['to'])}")
+                elif no in spec.get("school_only", ()) and by_day[d]["type"] != "school":
+                    dropped.append(f"#{no} {md_of(d)} not a school day")
+                else:
+                    kept.append(d)
+            if not kept:
+                raise BuildError(f"{spec['id']} episode {no}: no day left")
+            reward = []
+            for stat, value in sorted(row["gain"].items(), key=lambda kv: STAT_IDS.index(kv[0])):
+                reward.append(f"{STAT_ZH[stat]} +{value}")
+            if row["fusion"]:
+                if row["fusion"] != spec["fusion"][0]:
+                    raise BuildError(f"{spec['id']}: fusion {row['fusion']} != {spec['fusion'][0]}")
+                reward.append(f"可以合体人格面具「{spec['fusion'][1]}」")
+            if row["other"] and reward:
+                reward.append("还有其他小奖励")
+            parts.append({"days": kept, "gain": row["gain"], "no": no, "rewardZh": "，".join(reward) if reward else None})
+        for no, md in sorted(spec["witness"].items()):
+            if day_of_md(md) not in parts[no - 1]["days"]:
+                raise BuildError(f"{spec['id']} episode {no}: CN guide witness {md} is not an allowed day")
+        fusion_zh = spec["fusion"][1]
+        if fusion_zh not in guide_text:
+            raise BuildError(f"{spec['id']}: Persona name {fusion_zh} not found in the CN guide")
+        if spec["fusion"][0] not in {table[n]["fusion"] for n in table}:
+            raise BuildError(f"{spec['id']}: the episode table never unlocks {spec['fusion'][0]}")
+        person = names[spec["name"]]
+        bad = location_tokens_ok(spec["location"], guide_text)
+        if bad:
+            raise BuildError(f"{spec['id']}: location fragments {bad} not found in the CN guide")
+        out.append({
+            "conf": "verified",
+            "count": count,
+            "evening": spec["evening"],
+            "howZh": spec["how"],
+            "id": spec["id"],
+            "locationZh": spec["location"],
+            "noteZh": spec["note"],
+            "parts": parts,
+            "personZh": person,
+            "rewardZh": spec["reward"],
+            "src": ["aqiu_social_events", "cn_guide", "gd_player_name"],
+            "titleZh": f"羁绊剧情 · {person}",
+        })
+        ledger.dropped["episode." + spec["id"]] = dropped
+        beyond = sorted(n for n in table if n > count)
+        if beyond != list(spec.get("beyond_calendar", ())):
+            raise BuildError(f"{spec['id']}: episodes {beyond} are in the table but never in the calendar")
+    ledger.decide("episodes", "tracks", "Link Episodes (羁绊剧情) are opt-in tracks for Junpei, Akihiko, Koromaru, Ken and "
+                  "Shinjiro, parsed from the aqiu calendar columns Jun/Kor/Shi (daytime) and Aki/Ken (nighttime). A cell names "
+                  "the episode numbers that can be watched that day ('3' or '1-4'); each episode must also fall inside its "
+                  "window in the aqiu Linked Episodes table, and locked slots are dropped. Episodes run in order, take one slot "
+                  "of the track's kind and give no Social Link points; `gain` holds the Academics/Charm/Courage points of the "
+                  "table (other rewards are only described). Every CN-guide witness date (5/12, 8/9, 11/7, 12/19, 1/15 Junpei; "
+                  "5/29, 7/24, 10/9, 12/12, 1/8 Akihiko; 9/9, 9/16, 11/10, 12/22, 1/19 Ken; 9/11, 9/13, 9/21, 9/24 Shinjiro; "
+                  "1/19 Koromaru) is an allowed day.")
+    ledger.decide("episodes", "excluded", "Ryoji's column is not a track: his availability is 'Preset', episode 1 (11/9) "
+                  "and episode 5 (12/31) are automatic story scenes, and the slots in between are fixed dates around the "
+                  "story. Takaya's episodes are automatic or a single club meeting and are not in the calendar. Shinjiro's "
+                  "episode 5 (his desk drawer from 10/5, the CN guide does it on 10/28) is not a calendar slot, so his track "
+                  "has 4 plannable episodes; the note explains the drawer. Nothing here claims that an episode changes "
+                  "Shinjiro's story: in Reload it does not.")
+    ledger.decide("episodes", "school days", "Shinjiro episodes 1 and 4 start with Mitsuru in the faculty hallway (aqiu "
+                  "steps; CN guide 9/11 and 9/24 after school), so they are kept on school days only.")
+    return out
+
+
+def build_dating_note(ledger: Ledger, days: list[dict], guide_text: str) -> dict:
+    """结缘网站的字条: evening, +10 points for one established non-MAX link, never a rank-up by itself."""
+    first = day_of_md("11-11")
+    by_day = {x["d"]: x for x in days}
+    if by_day[first]["eveLock"] is not None:
+        raise BuildError("11/11 evening is locked, but the CN guide uses the dating-site note that evening")
+    for word in ("结缘网站的字条", "放纵俱乐部", "公用电脑"):
+        if word not in guide_text:
+            raise BuildError(f"dating-site note wording {word!r} not found in the CN guide")
+    affinity = read_evidence("affinity_actions_candidate.json")
+    buy = next(a for a in affinity["actions"] if a["ruleId"] == "p3r.affinity.buy_and_use_dating_note")
+    if buy["yenCost"] != 3000 or buy["affinityEffect"]["value"] != 10 or buy["rankDelta"] != 0 or buy["slot"] != "evening":
+        raise BuildError("dating-site note evidence changed (cost / gain / slot)")
+    if buy["sourceEarlierDateClaim"] != "11-11":
+        raise BuildError("dating-site note sale date evidence changed")
+    note = {
+        "conf": "estimate",
+        "cost": 3000,
+        "fromDay": first,
+        "gain": 10,
+        "howZh": "晚上到桐叶购物中心的放纵俱乐部买「结缘网站的字条」，回宿舍用 1 楼公用电脑选一位社群对象使用。",
+        "locationZh": "桐叶购物中心 · 放纵俱乐部",
+        "maxUses": None,
+        "noteZh": "只能给已经解锁、还没 MAX 的社群加好感，约 +10 点（估计值）；不会直接升级，会用掉这个晚上。可以反复购买。",
+        "requires": {"courage": 2},
+        "slot": "eve",
+        "src": ["aqiu_overworld", "cn_guide", "ev_dating_note", "ev_hangout_rules", "siliconera_urls", "wiki455"],
+        "zh": "结缘网站的字条",
+    }
+    bad = location_tokens_ok(note["locationZh"], guide_text)
+    if bad:
+        raise BuildError(f"dating-site note location fragments {bad} not found in the CN guide")
+    ledger.decide("datingNote", "rule", "结缘网站的字条 (Dating Site Note): bought from the URL seller in Club Escapade for "
+                  "¥3,000 and used the same evening on the dorm's shared PC; +10 points to one established, non-MAX, "
+                  "non-reversed manual link (aqiu overworld, game8, affinity_actions_candidate.json); it never ranks the link "
+                  "up by itself. Points are added without multipliers (conf=estimate: the Persona/Charm bonus on notes is not "
+                  "proven). The club needs Courage Lv2 at night (siliconera; the CN guide notes the club opens at night from Courage Lv2).")
+    ledger.decide("datingNote", "sale date", "From 11/11: aqiu overworld, game8 and the Steam guide say 11/11 and the CN "
+                  "guide uses a note on the evening of 11/11 for 山岸风花 (a play witness). atwiki 455 says 11/16; that "
+                  "stricter claim is outvoted by the witness.")
+    ledger.decide("datingNote", "repeatable", "maxUses = null (no limit): siliconera ('can be purchased multiple times'), "
+                  "atwiki 455 ('infinitely purchasable', via ordinary_hangout_rules_candidate.json) and PC Invasion agree "
+                  "that the note can be bought again; each use still takes an evening.")
+    ledger.conflict("datingNote.from", "Dating-site note sale date", "11/11 (aqiu, game8, Steam guide, CN guide witness)",
+                    ["11/16 (atwiki 455)"], ["aqiu_overworld", "cn_guide", "wiki455"])
+    return note
+
+
+# --------------------------------------------------------------------------------------------
 # Pack assembly
 
 
 # Player-facing summary of the planning assumptions (shown under 规划说明). Developer detail lives in REPORT.md.
 NOTES_ZH = (
-    "【数据来源】社群升级所需点数、个人能力值门槛、加成倍率、休息日邀约日期和塔尔塔罗斯各区域的开放日期，都取自从本体提取的"
-    "游戏数据（不含付费追加剧情）；每天能见到谁取自玩家社区整理的日历，并和原版中文攻略逐日核对。",
-    "【普通见面】没有升级的见面按 +10 点估算（只有一份实况记录提到，未经验证）；带着同阿尔卡那的人格面具 ×1.51，"
-    "魅力 Lv.6 再 ×1.51（游戏数据）。",
-    "【日历】没有记录不代表不能行动：除了已锁定的时段，每个白天和晚上都默认可以自由安排。剧情未确认的日子"
-    "（屋久岛 7月20日～23日、11月4日、1月1日白天、1月21日放学后）先保守地锁定。",
-    "【平安夜】12月24日默认按婉拒所有邀约来安排，两个时段都可以自由安排。",
-    "【失踪者】北村文吉（9月12日～10月3日）和舞子（10月21日～11月2日）失踪期间见不到人，期限前没有在塔尔塔罗斯救出，对应社群就无法继续。",
-    "【恶魔】隐者社群的要求按较严格的 RANK 4 计算（也有资料说 RANK 3）；三次付钱要分在不同的晚上，前两次不占用时段。",
+    "【数据来源】社群升级所需点数、个人能力值门槛、加成倍率、休息日邀约日期和塔尔塔罗斯各区块的开放日期，都取自从游戏本体"
+    "提取的数据（不含付费追加剧情）；每天能见到谁取自玩家社区整理的日历，并和原版中文攻略逐日核对。",
+    "【普通见面】没有升级的见面按 +10 点估计（只有一份实况记录提到，未经验证）；魅力 MAX 以后点数再 ×1.51（游戏数据）。",
+    "【人格面具】见面时带着同阿尔卡那的人格面具，点数 ×1.51（游戏数据）。默认按不带来估计；可以在规划设置里改成"
+    "「只给目标社群带」或「基本都带」。",
+    "【日历】资料里没提到有剧情的白天和晚上，都按可以自由活动来安排。还没确认有没有剧情的日子"
+    "（屋久岛 7月20日～23日、11月4日、1月1日白天、1月21日放学后）先空出来，不排别的事。",
+    "【平安夜】12月24日默认按婉拒所有邀约来安排，白天和晚上都可以自由活动。",
+    "【塔尔塔罗斯】队友都去不了的晚上（考试前后、剧情前后等）不会安排探索塔尔塔罗斯。",
+    "【失踪者】北村文吉（9月12日～10月3日）和舞子（10月21日～11月2日）失踪期间见不到人，期限前没有在塔尔塔罗斯救出，"
+    "对应的社群就没法继续了。",
+    "【女皇】解锁除了学力 MAX，还要至少有一次考试拿过第一名。名次没法预测，这里只按学力 MAX 来安排；如果一次第一都没拿过，"
+    "请把女皇的目标改成「未选」。星期一、五能不能见面没有确认，只按星期二、三、四、六和考试前一周（12月7日～12日）安排。",
+    "【教皇】解锁时要回学校调查柿子树，所以只安排在上学日的放学后。有玩家反映 RANK 4 → 5 前要先听到柿子树的传闻，"
+    "但原版中文攻略是连续两天直接升级，所以不额外限制。",
+    "【恶魔】隐者社群的要求按较严格的 RANK 4 计算（也有资料说 RANK 3）；三次付钱要分在不同的晚上，前两次不会消耗时间。",
     "【塔】勇气要求按较严格的 Lv.4 计算（也有资料说 Lv.2 或 Lv.3）。",
-    "【女皇】星期一、五能不能见面没有确认，只按星期二、三、四、六和考试前一周（12月7日～12日）安排。",
     "【太阳】最早按 8月9日开始（也有资料说 8月23日）。",
+    "【月亮】RANK 9 的剧情结束时社群会短暂逆转，之后照常见面就能恢复（只有一份资料提到），按普通升级处理。",
     "【图书室】自习的学力增加量资料不一（+2 或 +4），按 +2 计算。",
-    "【打工】工钱按最低档估算；饰品店和电影院打工的第二项能力值资料不一，只计学力 +1。",
+    "【打工】工钱按最低档估计；饰品店和电影院打工的第二项能力值资料不一，只计学力 +1。",
+    "【结缘网站的字条】11月11日起，晚上可以在放纵俱乐部买结缘网站的字条（3,000 日元），回宿舍用公用电脑给一位已经解锁、"
+    "还没 MAX 的社群加好感，约 +10 点（估计值）。它不会直接升级，会用掉这个晚上，可以反复购买。",
+    "【羁绊剧情】伊织顺平、真田明彦、虎狼丸、天田乾和荒垣真次郎的羁绊剧情可以选择加进安排：每一话用掉一个白天或晚上，"
+    "不加社群点数，奖励是能力值和道具，看完最后一话还能合体新的人格面具。望月绫时的羁绊剧情跟着主线在固定日子发生，不单独安排。",
     "【对话】对话提示只引用原版中文攻略的原文；括号里的数字是攻略的标注，不一定对应游戏里的选项顺序。",
     "【人名】采用官方简体中文译名：贝培、伊莉莎白、Ｙ子、舞子；审判社群为避免剧透显示为「伙伴们」。",
-    "【未计入】课堂答题、考试名次、暑期补习、羁绊剧场和宿舍活动带来的能力值不在预测里，请在「同步现状」时更新。",
-    "【月亮】RANK 9 的剧情结束时社群会短暂逆转，之后照常见面即可恢复（只有一份资料提到），按普通升级处理。",
-    "【教皇】有玩家反映 RANK 4→5 前要先听到学校柿子树的传闻，但原版中文攻略是连续两天直接升级，所以不额外限制。",
+    "【未计入】课堂答题、考试名次、暑期补习和宿舍活动带来的能力值不在预测里，请在「同步现状」时更新。",
 )
 
 
@@ -1523,10 +1885,12 @@ def build_pack() -> tuple[dict, Ledger]:
     guide_text = json.dumps(json.loads(GUIDE_PATH.read_text(encoding="utf-8")), ensure_ascii=False)
 
     sources = build_sources()
-    days, tartarus = build_calendar(ledger, day_cells, night_cells)
+    days, tartarus = build_calendar(ledger, day_cells, night_cells, page.tartarus_cells())
     links = build_links(ledger, page, days, guide_text)
-    resolve_fixed_days(links)
+    resolve_fixed_days(links, days, ledger)
     activities = build_activities(ledger, page, guide_text, days)
+    episodes = build_episodes(ledger, page, days, guide_text)
+    dating_note = build_dating_note(ledger, days, guide_text)
 
     stat_thresholds = load_stat_thresholds()
     expected = {"academics": [0, 0, 20, 55, 100, 155, 230], "charm": [0, 0, 15, 30, 45, 70, 100], "courage": [0, 0, 15, 30, 45, 60, 80]}
@@ -1556,7 +1920,9 @@ def build_pack() -> tuple[dict, Ledger]:
                   "rounding is unknown, so the engine floors per meeting.")
     pack = {
         "activities": activities,
+        "datingNote": dating_note,
         "days": days,
+        "episodes": episodes,
         "firstDay": FIRST_DAY,
         "game": GAME,
         "invitesMeaning": "Holiday invitation (D cell): the link calls you on that day; accepting uses the daytime slot "
@@ -1621,6 +1987,32 @@ def validate_pack(pack: dict) -> None:
     check_src("policy", pack["policy"])
     for stat in pack["stats"]:
         check_src(f"stat {stat['id']}", stat)
+    ids = set()
+    for track in pack["episodes"]:
+        where = f"episode {track['id']}"
+        check_src(where, track)
+        if track["id"] in ids or not re.fullmatch(r"[a-z_]+", track["id"]):
+            raise BuildError(f"{where}: duplicated or malformed id")
+        ids.add(track["id"])
+        if [x["no"] for x in track["parts"]] != list(range(1, track["count"] + 1)) or track["count"] > 8:
+            raise BuildError(f"{where}: parts must be numbered 1..count (count <= 8)")
+        if not track["titleZh"].startswith("羁绊剧情 · ") or not track["locationZh"] or not track["howZh"]:
+            raise BuildError(f"{where}: title, location and how-to are required")
+        slot_key = "eveLock" if track["evening"] else "dayLock"
+        for part in track["parts"]:
+            if not part["days"] or part["days"] != sorted(set(part["days"])):
+                raise BuildError(f"{where} #{part['no']}: days must be non-empty and strictly ascending")
+            for d in part["days"]:
+                if by_day[d][slot_key] is not None:
+                    raise BuildError(f"{where} #{part['no']}: episode on locked {md_of(d)}")
+            if not set(part["gain"]) <= set(STAT_IDS):
+                raise BuildError(f"{where} #{part['no']}: unknown stat in gain {part['gain']}")
+    note = pack["datingNote"]
+    check_src("datingNote", note)
+    if note["slot"] != "eve" or note["cost"] <= 0 or note["gain"] <= 0 or by_day[note["fromDay"]]["eveLock"] is not None:
+        raise BuildError("datingNote: evening use, positive cost/gain and a free first evening are required")
+    if note["maxUses"] is not None and note["maxUses"] < 1:
+        raise BuildError("datingNote.maxUses must be null (no limit) or positive")
     text = json.dumps(pack, ensure_ascii=False)
     for word in FORBIDDEN_STRINGS:
         if word in text:
@@ -1629,7 +2021,21 @@ def validate_pack(pack: dict) -> None:
         latin = [w for w in re.findall(r"[A-Za-z]+", value) if w not in ALLOWED_LATIN]
         if latin:
             raise BuildError(f"{where}: player-facing text contains Latin words {latin}: {value}")
+        plain = value
+        for allowed in GLOSSARY_ALLOWED:
+            plain = plain.replace(allowed, "")
+        off = [w for w in GLOSSARY_AVOID if w in plain]
+        if off:
+            raise BuildError(f"{where}: player-facing text uses {off} (docs/GLOSSARY_zh.md): {value}")
 
+
+# Words docs/GLOSSARY_zh.md tells us not to use in player-facing text (解锁, 见面, 安排, MAX, 羁绊剧情 …),
+# and the menu names that legitimately contain 规划.
+GLOSSARY_AVOID = (
+    "开启", "建立", "练满", "满级", "计划", "规划", "羁绊剧场", "估算", "规则包", "社交链接", "交友网站", "牵绊",
+    "不占用时段", "锁定", "约会", "会面", "加深关系", "Lv.6",
+)
+GLOSSARY_ALLOWED = ("规划设置", "规划说明")
 
 # Latin tokens allowed in player-facing Chinese text: stat levels, ranks, floors, karaoke, and the
 # item name 莫乐蜜G as written in the CN guide.
@@ -1696,12 +2102,17 @@ KNOWN_GAPS = (
     "Free stat gains (class answers, exam top-of-class Charm +4, summer school Academics +18, Link Episodes, dorm "
     "hangouts, nurse's office) are not forecast (DESIGN §10.9); the player syncs stats.",
     "Not modelled: Wakatsu seafood course, Hagakure bowl, weekend Wilduck set, burger challenge, shrine donations, "
-    "shrine fortunes, gifts, film-festival hangouts, Koromaru walks, the Dating Site note. All of them can only add "
-    "points/stats, so plans stay conservative.",
+    "shrine fortunes, gifts, film-festival hangouts, Koromaru walks, Ryoji's and Takaya's Link Episodes. All of them "
+    "can only add points/stats, so plans stay conservative.",
+    "Dating-site note: +10 points is the reported base; whether the Persona/Charm multipliers apply is unknown "
+    "(the pack applies none). The 11/11 sale date rests on aqiu/game8/Steam plus the CN-guide witness (atwiki: 11/16).",
+    "Link Episodes: the aqiu calendar has a few cells outside the episode's own window (Junpei #3 on 11/13, Akihiko "
+    "#4 on 12/26); they are dropped. Shinjiro's episode 5 (desk drawer from 10/5) is not a slot and is not a part.",
     "No official zh-Hans names were found for the library, karaoke venue, Be Blue V (shown as 饰品店) and the "
     "Screen Shot cinema (shown as 电影院), or for stat level titles (UI shows Lv.N).",
     "Judgement R2-R10 depend on Adamah floors 227-255, not on dates; the pack dates them 1/30 (conf=estimate).",
-    "Empress: aqiu adds 'first place in one exam' to Academics Lv6. Not modelled; noted in unlock.noteZh.",
+    "Empress: aqiu adds 'first place in one exam' to Academics Lv6. Not modelled (cannot be forecast); the unlock "
+    "note, the step how-to and the 【女皇】 pack note tell the player to set the goal to 未选 without a first place.",
     "Mid-chain holds: none encoded. Moon R9 'momentary reversal' and the single Steam report of a Hierophant "
     "R4->R5 rumour gate are documented only; the result sheet's 'temporarily cannot rank up' outcome covers both.",
     "Item preconditions are not modelled as inventory: Odd Morsel (神秘食品, random Tartarus chest) for Moon, "
@@ -1716,6 +2127,8 @@ KNOWN_GAPS = (
     "The analysis report mentioned 34 invitation dates; HolidayScheduleDataAsset has 35 dates (77 link-invitations).",
     "Several evenings lack the usual Devil/Tower cell (see audit list) but are kept free because nothing says other "
     "evening activities are unavailable.",
+    "Tartarus closures: 20 GameFAQs dates plus the aqiu 'Everyone' nights (conf=single). Nights where aqiu names only "
+    "some party members stay open (partial party).",
     "Almost every numeric calendar fact traces back to the aqiu/marendarade lineage; 'verified' means the atwiki "
     "weekday tables or the CN guide agree, not that the game was replayed.",
     "Tartarus income is not forecast (DESIGN §10.4); jobs are the only forecast income.",
@@ -1738,9 +2151,10 @@ FIELD_SEMANTICS = (
     "`unlock`: `stat`/`link` requirements apply to every step. Steps run in order; `minGapDays` is measured from "
     "the previous step's day (0 = same day allowed). `consumesSlot=false` steps need a free slot of their kind on "
     "an allowed day but leave that slot usable for another action; they must still respect `minGapDays`. "
-    "`days`: avail = the link's own `avail`, fixed = `fixedDays` (another link's meeting days), weekdays, any = "
-    "any free slot. The last step (`establishes`) sets rank 1. No steps = automatic: rank 1 once `earliestDay` is "
-    "reached and the requirements hold (Magician on 4/22; Strength when Chariot reaches R2; story links by date).",
+    "`days`: fixed = `fixedDays` (the ordinary meeting days of the link whose place the step uses, never its "
+    "holiday invitations; Hierophant's opening only on school days), weekdays, any = any free slot; the builder no "
+    "longer emits avail. The last step (`establishes`) sets rank 1. No steps = automatic: rank 1 once `earliestDay` "
+    "is reached and the requirements hold (Magician on 4/22; Strength when Chariot reaches R2; story links by date).",
     "`missing`: the person is gone from `fromDay` to `toDay` unless the matching rescue (`tartarus.rescues`) "
     "happened earlier; without a rescue by `toDay` the link is lost for the rest of the game.",
     "`storyRanks` (story links) list dated rank events; the loader turns them into `storyRankDay[r]` = first day "
@@ -1748,6 +2162,12 @@ FIELD_SEMANTICS = (
     "`activities`: `slots`, `weekdays`, `dayTypes` (empty = all), `fromDay..toDay`, `cost` (yen), `gain` "
     "(hidden stat points), `requires` (stat Lv). Jobs pay `pay` = [[minShiftNumber, minimum pay], …] for the "
     "N-th completed shift.",
+    "`episodes` (Link Episodes, 羁绊剧情): opt-in tracks. `parts[n-1].days` = days on which episode n can be watched "
+    "(slot kind = `evening`), in order, one slot each; `gain` = Academics/Charm/Courage points of that episode; no "
+    "Social Link points. The loader turns the parts into `dayMask[day]` (bit n-1 = episode n allowed).",
+    "`datingNote` (结缘网站的字条): from `fromDay`, an evening (club + dorm PC) that costs `cost` yen and adds `gain` "
+    "points (no multipliers) to one established manual link at rank 1-9; it never ranks the link up by itself. "
+    "`requires` = stat Lv to enter the club; `maxUses` = null means no limit.",
     "`conf`: game_data > verified > single > estimate; conflict = strictest claim chosen, alternatives in `alt` "
     "(activities) or in this report.",
 )
@@ -1842,9 +2262,10 @@ def render_report(pack: dict, ledger: Ledger, pack_text: str) -> str:
 
     out.append("### 4.2 Unlock paths")
     out.append("")
-    out.append("Requirements apply to every step. `days`: avail = the link's own meeting days, fixed = another "
-               "link's meeting days (rumours heard at school), any = any free slot. Steps with consumes=no do not use "
-               "up the slot (the CN guide does another action in the same slot).")
+    out.append("Requirements apply to every step. `days`: fixed = explicit meeting days of the link named in "
+               "brackets (own = the link itself; rumours are heard at another link's place), never invitation days; "
+               "any = any free slot. Steps with consumes=no do not use up the slot (the CN guide does another action "
+               "in the same slot).")
     out.append("")
     out.append("| link | earliest | requires | steps | conf |")
     out.append("|---|---|---|---|---|")
@@ -1868,7 +2289,10 @@ def render_report(pack: dict, ledger: Ledger, pack_text: str) -> str:
                     extra.append(f"¥{s['cost']:,}")
                 if s["fromDay"] != unlock["earliestDay"]:
                     extra.append(f"from {md_of(s['fromDay'])}")
-                parts.append(f"{s['id']} ({s['slot']}, {s['days']}{', ' + ', '.join(extra) if extra else ''})")
+                days_label = s["days"]
+                if s["id"] in ledger.step_days:
+                    days_label += f" [{ledger.step_days[s['id']]}, {len(s['fixedDays'])} days]"
+                parts.append(f"{s['id']} ({s['slot']}, {days_label}{', ' + ', '.join(extra) if extra else ''})")
             steps = " → ".join(parts)
         out.append(f"| {link['id']} | {md_of(unlock['earliestDay'])} | {', '.join(reqs) or '—'} | {steps} | {unlock['conf']} |")
     out.append("")
@@ -1927,6 +2351,24 @@ def render_report(pack: dict, ledger: Ledger, pack_text: str) -> str:
     for a in pack["activities"]:
         out.append(f"| {a['id']} | {a['zh']} | {','.join(a['slots'])} | {','.join(map(str, a['weekdays']))} | "
                    f"{a['cost']} | {compact(a['gain'])} | {md_of(a['fromDay'])} | {a['conf']} |")
+    out.append("")
+
+    out.append("### 4.6 Link Episodes (羁绊剧情)")
+    out.append("")
+    out.append("| track | person | slot | episodes | days per episode | first | last | gains |")
+    out.append("|---|---|---|---|---|---|---|---|")
+    for t in pack["episodes"]:
+        counts = "/".join(str(len(x["days"])) for x in t["parts"])
+        gains = "; ".join(f"#{x['no']} {compact(x['gain'])}" for x in t["parts"] if x["gain"])
+        out.append(f"| {t['id']} | {t['personZh']} | {'eve' if t['evening'] else 'day'} | {t['count']} | {counts} | "
+                   f"{md_of(t['parts'][0]['days'][0])} | {md_of(t['parts'][-1]['days'][-1])} | {gains or '—'} |")
+    out.append("")
+    note = pack["datingNote"]
+    out.append("### 4.7 Dating-site note (结缘网站的字条)")
+    out.append("")
+    uses = "no limit" if note["maxUses"] is None else str(note["maxUses"])
+    out.append(f"From {md_of(note['fromDay'])}, evening, ¥{note['cost']:,}, +{note['gain']} points, requires "
+               f"{compact(note['requires'])}, uses: {uses}, conf={note['conf']}, src: {', '.join(note['src'])}.")
     out.append("")
 
     out.append("## 5. Audit observations")
