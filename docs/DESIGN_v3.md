@@ -293,7 +293,7 @@ Keep: Current (left) / Done (right), date-area arrows browse items, Current retu
 item, day (cyan `#0FB1F5`) / night (deep blue `#034572`) palettes with the existing ViewFlipper fade.
 Change: Chinese labels **当前 / 完成**, slanted P3R calendar plate (numerals "10/22", 周四, moon phase,
 白天/晚上), parallelogram buttons (no pink/mauve), item title "皇帝 · 小田桐秀利" + "RANK 6→7" tag +
-location line, progress "今日 1/2". Done: deterministic items (training, job, story ack) commit
+location line, progress "今天 1/2". Done: deterministic items (training, job, story ack) commit
 directly with a "✓ 已记录 · 再点撤销" state; link meetings / Tartarus open the quick result sheet.
 Stale PendingIntents (plan id/revision mismatch) never commit. Rendering reads a cached widget
 projection (no rule loading on the main thread).
