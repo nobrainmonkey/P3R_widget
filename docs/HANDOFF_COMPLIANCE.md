@@ -1,6 +1,6 @@
 # 交接文档完成情况
 
-本文件逐条对照 `P3R_HANDOFF_PROMPT.md`（交接/设计文档）以及所有者在开发过程中补充的要求，列出 3.0.1 的完成情况和证据。
+本文件逐条对照 `P3R_HANDOFF_PROMPT.md`（交接/设计文档）以及所有者在开发过程中补充的要求，列出 3.0.2 的完成情况和证据。
 每一条都由独立审查代理对照代码、测试、真机/模拟器截图核实（只读审查，证据含文件位置、测试名与运行结果、截图路径），未满足的地方如实写出。原始审查记录在 `docs/analysis/audit/`。
 
 **统计**：已满足 76 条 · 部分满足 0 条 · 未满足 0 条（共 76 条）。
@@ -102,4 +102,13 @@
 | All build dependencies inside the project directory (verify_selfcontained.sh output) | ✅ 已满足（首次审计） | The prior gap (compile likely UP-TO-DATE) is now closed. (1) I ran the full test suite with --offline into a brand-new build dir outside the repo (init script layout.buildDirectory): compileDebugJavaWithJavac and compileDebugUnitTestJavaWithJavac executed ('24 actionable tasks: 24 executed'), 574 tests passed, and `find ~/.gradle ~/.m2 ~/.android -newer <start marker>` found nothing. (2) I ran `env -i HOME=<empty scr… | .toolchain/ is git-ignored, so a fresh clone needs scripts/setup_toolchain.sh with network access once (by design). I did not re-run scripts/verify_selfcontained.sh itself, because it writes to the shared android/app/build. My equivalent runs used isolated build dirs. |
 | Repository contains the handoff prompt and the handoff zip | ✅ 已满足（首次审计） | `git ls-files` lists P3R_HANDOFF_PROMPT.md and P3R_Planner_Handoff_20261013.zip. `gh api repos/nobrainmonkey/P3R_widget/contents/...` returns sizes 7,983,142 and 10,374, identical to `stat` of the local files. The prompt ends with the owner's added lines on the APK, keeping all dependencies in the directory, and Simplified Chinese. HEAD == origin/main == b1cfe60. |  |
 | Chinese UI (engineering deliverable; detailed terminology audit is a separate section) | ✅ 已满足（复查） | The legacy 逐日攻略 WebView (android/app/src/main/assets/index.html, lang="zh-CN", title 「P3R 逐日攻略」) now shows Chinese labels. The handoff zip's original index.html had 'DAILY ROUTINE' and 'AFTER SCHOOL'; now MONTHS={4:'4月'…}, PERIODS={'放学后':'放学后','晚上':'晚上','未标注':'当天'…}, tags 可选/待核实/前置, and theme 白天/夜晚. My scan of the markup text and attributes (placeholder, title, aria-label) found no English words. LegacyGuideChineseTe… | No label gap remains. Residual Latin text: (1) Header 「S.E.E.S. // 2009 · 日程表」 (index.html:296), an acronym. (2) Glosses and choices inside the guide data that is meant to stay unchanged, for example 电玩大巡游（Game Parade）, 「死亡之怖」（House of the Deceased）, 「超导（Superconductivity）」, 「Geeses」, MAY BLUES and… |
+
+## 独立复核
+
+除逐条审计外，另由互不相干的只读审查代理分别核对了数据来源和外观（原始记录在 `docs/analysis/audit/`）。
+
+| 复核 | 结论 | 摘要 | 记录 |
+|---|---|---|---|
+| 数据来源（Reload 专用） | ✅ 通过（附说明）（核对 18 项事实：17 项一致，1 项已按更严格的说法修正） | No use of Persona 3 / FES / Portable (P3P) data for any shipped rule: every pack record cites at least one Reload source, and 'mixed'-edition sources appear only as corroboration next to Reload sources. All pinned snapshots are genuinely Reload: the Steam pages are app 2161700 with Reload-only achievements (Shift, Theurgy, Twilight Fragments); the aqiu game-data files come from src/p3r/Content/Xrd777 (P3R's game files) and three re-fetched upstream copies are byte-identical; the CN guide and 3DM page contain Reload-only content (神通法, 黄昏碎片, 羁绊剧情, 结缘网站的字条). All 33 sha256 pins in SOURCES.json and… | `wiki_sources.json` |
+| 外观（第 1 轮） | ✅ 通过（只有小问题）（看了 134 张图） | Passes on looks: a finished product with its own P3R identity rather than a default template. The navy/cyan palette, slanted panels, calendar-plate dates, condensed italic numerals and faint character art hold together across the wizard, the four tabs, result sheets, settings, keypads and the widget in both palettes. No blocker or major defect; nothing badly clipped; contrast good; large-font renders hold. Remaining issues are Chinese typography and small-size polish. | `design_review_1.json` |
 

@@ -33,6 +33,39 @@ def short(text, n=420):
     return text if len(text) <= n else text[:n].rstrip() + '…'
 
 
+def version():
+    gradle = open(os.path.join(ROOT, 'android', 'app', 'build.gradle')).read()
+    return re.search(r"versionName '([^']+)'", gradle).group(1)
+
+
+REVIEWS = (
+    ('wiki_sources.json', '数据来源（Reload 专用）'),
+    ('design_review_1.json', '外观（第 1 轮）'),
+    ('design_review_2.json', '外观（第 2 轮）'),
+)
+VERDICT = {'pass': '✅ 通过', 'pass_with_nits': '✅ 通过（只有小问题）', 'pass_with_notes': '✅ 通过（附说明）', 'fail': '❌ 不通过'}
+
+
+def reviews():
+    """The independent sign-off reviews (read-only agents), one row each."""
+    out = ['## 独立复核', '',
+           '除逐条审计外，另由互不相干的只读审查代理分别核对了数据来源和外观（原始记录在 `docs/analysis/audit/`）。', '',
+           '| 复核 | 结论 | 摘要 | 记录 |', '|---|---|---|---|']
+    for name, title in REVIEWS:
+        path = os.path.join(AUD, name)
+        if not os.path.exists(path):
+            continue
+        r = json.load(open(path))
+        scope = f"（看了 {r['images_reviewed']} 张图）" if r.get('images_reviewed') else ''
+        if r.get('fact_checks'):
+            ok = sum(1 for f in r['fact_checks'] if f['result'].startswith('match'))
+            fixed = sum(1 for f in r['fact_checks'] if 'fixed' in f['result'])
+            scope = f"（核对 {len(r['fact_checks'])} 项事实：{ok} 项一致" + (f"，{fixed} 项已按更严格的说法修正" if fixed else '') + '）'
+        out.append('| ' + ' | '.join([title, VERDICT.get(r['verdict'], r['verdict']) + scope,
+                                       short(r['summary'], 600).replace('|', '／'), f'`{name}`']) + ' |')
+    return out + ['']
+
+
 def main():
     base = load('audit.json')
     order, items = [], {}
@@ -51,7 +84,7 @@ def main():
     for v in items.values():
         counts[v['status']] += 1
     out = ['# 交接文档完成情况', '',
-           '本文件逐条对照 `P3R_HANDOFF_PROMPT.md`（交接/设计文档）以及所有者在开发过程中补充的要求，列出 3.0.1 的完成情况和证据。',
+           f'本文件逐条对照 `P3R_HANDOFF_PROMPT.md`（交接/设计文档）以及所有者在开发过程中补充的要求，列出 {version()} 的完成情况和证据。',
            '每一条都由独立审查代理对照代码、测试、真机/模拟器截图核实（只读审查，证据含文件位置、测试名与运行结果、截图路径），'
            '未满足的地方如实写出。原始审查记录在 `docs/analysis/audit/`。', '',
            f"**统计**：已满足 {counts['met']} 条 · 部分满足 {counts['partial']} 条 · 未满足 {counts['not_met']} 条（共 {len(items)} 条）。", '',
@@ -74,6 +107,7 @@ def main():
                 gap.replace('|', '／'),
             ]) + ' |')
         out.append('')
+    out += reviews()
     open(os.path.join(ROOT, 'docs', 'HANDOFF_COMPLIANCE.md'), 'w').write('\n'.join(out) + '\n')
     print(counts)
 

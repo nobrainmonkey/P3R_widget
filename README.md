@@ -20,9 +20,8 @@
 <img src="docs/screenshots/rank_pad.png" width="230" alt="RANK 小键盘">
 </p>
 <p>
-<img src="docs/screenshots/result_emperor.png" width="230" alt="社群见面结果">
 <img src="docs/screenshots/result_tower.png" width="230" alt="塔尔塔罗斯结果">
-<img src="docs/screenshots/settings_tower_blocks.png" width="230" alt="每个区块去几次">
+<img src="docs/screenshots/settings.png" width="230" alt="规划设置">
 </p>
 
 ## 下载
@@ -97,4 +96,4 @@ scripts/verify_selfcontained.sh
 
 ## 说明
 
-非官方粉丝工具，与 ATLUS / SEGA 无关。《女神异闻录3 Reload》及相关名称、标志归其各自权利人所有。数字字体 Barlow Condensed 采用 SIL Open Font License（`docs/licenses/`）。
+非官方粉丝工具，与 ATLUS / SEGA 无关。《女神异闻录3 Reload》及相关名称、标志归其各自权利人所有。数字字体 Barlow Condensed 采用 SIL Open Font License（`docs/licenses/`），未作修改。
