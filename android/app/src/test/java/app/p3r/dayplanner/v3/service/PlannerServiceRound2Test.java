@@ -288,6 +288,18 @@ public class PlannerServiceRound2Test extends ServiceTestBase {
     }
 
     @Test
+    public void receiptsSayWhichSlotToRecordNext() {
+        int fullMoonDay = TestRules.slot(TestRules.FULL_MOON_DAY, false);
+        onboard(fullMoonDay);
+        PlannerApi.Receipt r = record(fullMoonDay, "act:study_room", Outcome.Code.AS_PREDICTED);
+        assertTrue(r.ok);
+        assertEquals("the full-moon evening is skipped", TestRules.slot(TestRules.FULL_MOON_DAY + 1, false), r.nextSlot);
+        PlannerApi.Receipt late = record(fullMoonDay + 1, "act:study_room", Outcome.Code.AS_PREDICTED);
+        assertFalse(late.ok);
+        assertEquals(r.nextSlot, late.nextSlot);
+    }
+
+    @Test
     public void alternativesForLaterSlotsMoveTimeThroughTheForecaster() {
         onboard(MAY12_DAY);
         settle();

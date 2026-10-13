@@ -74,6 +74,12 @@ public interface PlannerApi {
         /** Current revisions after the command (also for duplicates and rejections). */
         public long stateRevision;
         public long profileRevision;
+        /**
+         * {@code observed.slot} after the command (also for duplicates and rejections): the next
+         * slot to record, calendar-locked slots already skipped; -1 before onboarding. A catch-up
+         * loop records the plan step at this slot next, never a locked step.
+         */
+        public int nextSlot = -1;
         /** Row written by the command (for duplicates: the original row), -1 if none. */
         public long eventSeq = -1;
         /** Chinese, user-facing message for rejections (stale revision, invalid value…). */
@@ -96,7 +102,7 @@ public interface PlannerApi {
         public int slot;
         /** outcome | skip | tower | tower_fix | void | checkpoint | import. */
         public String kind;
-        /** e.g. "5月12日 晚上 · 探索塔尔塔罗斯 · 到达 27F · 余额 14,750 日元". */
+        /** e.g. "5月12日 晚上 · 探索塔尔塔罗斯 · 到达 27F · 出塔后余额 14,750 日元". */
         public String summaryZh;
         public boolean voided;
         /**

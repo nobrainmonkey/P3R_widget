@@ -1013,6 +1013,7 @@ public final class PlannerService implements PlannerApi {
         if (view != null) {
             receipt.stateRevision = view.stateRevision;
             receipt.profileRevision = view.profileRevision;
+            receipt.nextSlot = view.observed == null ? -1 : view.observed.slot;
         }
     }
 
