@@ -247,7 +247,15 @@ public class RulesPackFactsTest {
             assertFalse(d.md, d.tartarus);
         }
         assertEquals(4, r.day(day(1, 31)).moon);
+        assertTrue(r.day(day(1, 31)).fullMoon);
         assertNull("the day after a full moon is free when the calendar shows meetings", r.day(day(5, 10)).dayLock);
+        assertFalse(r.day(day(5, 10)).fullMoon);
+        assertEquals(5, r.day(day(5, 10)).moon);
+        assertEquals("estimated full moon: phase only", 4, r.day(day(12, 2)).moon);
+        assertFalse(r.day(day(12, 2)).fullMoon);
+        int flagged = 0;
+        for (Rules.Day d : r.days) if (d != null && d.fullMoon) flagged++;
+        assertEquals(9, flagged); // 4/9 … 11/3 and the finale
     }
 
     @Test

@@ -564,18 +564,28 @@ def collect_locks(ledger: Ledger) -> list[Lock]:
     return locks
 
 
+FULL_MOONS = ("04-09", "05-09", "06-08", "07-07", "08-06", "09-05", "10-04", "11-03")
+# No operations between 11/3 and 1/31: two estimated full moons (real 2009 dates) keep the cycle going.
+ESTIMATED_FULL_MOONS = ("12-02", "01-01", "01-31")
+
+
+def full_moon_days() -> list[int]:
+    return [day_of_md(md) for md in FULL_MOONS + ESTIMATED_FULL_MOONS]
+
+
 def moon_phases() -> dict[int, int]:
-    """0..7 phase per day, 4 = full moon; anchored on the operation full moons."""
-    anchors = [day_of_md(md) for md in ("04-09", "05-09", "06-08", "07-07", "08-06", "09-05", "10-04", "11-03")]
-    # No operations between 11/3 and 1/31: two estimated full moons (real 2009 dates) keep the cycle.
-    anchors += [day_of_md("12-02"), day_of_md("01-01"), day_of_md("01-31")]
+    """0..7 phase per day: 4 only on a full-moon day, 0 around the new moon, 5-7 waning, 1-3 waxing."""
+    anchors = full_moon_days()
     anchors = [anchors[0] - 30] + anchors
     out = {}
     for d in range(FIRST_DAY, LAST_DAY + 1):
         prev = max(a for a in anchors if a <= d)
-        nxt = min((a for a in anchors if a > d), default=prev + 30)
-        frac = (d - prev) / (nxt - prev)
-        out[d] = (4 + int(frac * 8 + 0.5)) % 8
+        if d == prev:
+            out[d] = 4
+            continue
+        nxt = min(a for a in anchors if a > d)
+        step = int((d - prev) / (nxt - prev) * 8 + 0.5)
+        out[d] = (4 + min(7, max(1, step))) % 8
     return out
 
 
@@ -667,7 +677,7 @@ def build_calendar(ledger: Ledger, day_cells: dict, night_cells: dict) -> tuple[
             "d": d,
             "dayLock": dl.reason if dl else None,
             "eveLock": el.reason if el else None,
-            "fullMoon": moons[d] == 4,
+            "fullMoon": md in FULL_MOONS or d == LAST_DAY,
             "md": md,
             "moon": moons[d],
             "noteZh": "；".join(notes) if notes else None,
@@ -684,9 +694,10 @@ def build_calendar(ledger: Ledger, day_cells: dict, night_cells: dict) -> tuple[
                   "the classroom on 7/25) and on 12/24–12/26, and resume on 1/8 (class answer that day). Holidays are the "
                   "2009-10 Japanese public holidays; every weekday Hermit cell falls on one of them (audited). The 5/6 "
                   "substitute holiday is not observed in-game (class answer and school-link cells on 5/6).")
-    ledger.decide("calendar", "moon", "Moon phase 0..7 (4 = full) is interpolated between the operation full moons "
-                  "4/9 … 11/3 and 1/31, with two estimated full moons 12/2 and 1/1 (real 2009 dates) because the game "
-                  "has no operations in between. Decorative only.")
+    ledger.decide("calendar", "moon", "Moon phase 0..7 (4 = full, only on the full-moon day itself) is interpolated "
+                  "between the operation full moons 4/9 … 11/3 and 1/31, with two estimated full moons 12/2 and 1/1 "
+                  "(real 2009 dates) because the game has no operations in between. Decorative only; fullMoon is true "
+                  "only on operation days and 1/31.")
     rescues = []
     for ident, zh, first, last, link in RESCUES:
         rescues.append({"conf": "verified", "fromDay": day_of_md(first), "id": ident, "link": link,
@@ -1691,6 +1702,8 @@ FIELD_SEMANTICS = (
     "`day` = days since 2009-04-01 (4/7 = 6, 1/31 = 305); `wd` is the ISO weekday. Slot `day` is the after-school "
     "slot on school days and the daytime otherwise; `eve` is the evening.",
     "`dayLock`/`eveLock`: reason id (see `lockReasons`) or null. A null slot is free; nothing else is implied.",
+    "`moon` is the decorative phase (0 new … 4 full … 7); `fullMoon` marks the operation full moons "
+    "(4/9 … 11/3) and the finale on 1/31; the estimated full moons 12/2 and 1/1 only show phase 4.",
     "`tartarus` (per day): an optional Tartarus visit is possible that evening (block open, not a closed night, "
     "evening not locked). `block` is the block index for the day, -1 outside the plannable blocks.",
     "`avail`: days with an ordinary meeting cell (already filtered by locks). `invite`: holiday invitation days "
