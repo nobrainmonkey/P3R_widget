@@ -19,6 +19,11 @@
 <img src="docs/screenshots/links.png" width="230" alt="社群">
 <img src="docs/screenshots/rank_pad.png" width="230" alt="RANK 小键盘">
 </p>
+<p>
+<img src="docs/screenshots/result_emperor.png" width="230" alt="社群见面结果">
+<img src="docs/screenshots/result_tower.png" width="230" alt="塔尔塔罗斯结果">
+<img src="docs/screenshots/settings_tower_blocks.png" width="230" alt="每个区块去几次">
+</p>
 
 ## 下载
 
@@ -84,6 +89,8 @@ scripts/verify_selfcontained.sh
 | `rules/build/` | 规则包编译脚本，生成 `android/app/src/main/assets/p3r/p3r_rules.json` |
 | `rules/p3r/`, `rules/sources/` | 规则证据与来源快照（不打包进 APK） |
 | `docs/DESIGN_v3.md` | v3 设计文档 |
+| `docs/HANDOFF_COMPLIANCE.md` | 交接文档每条要求的完成情况与证据 |
+| `docs/PLAN_METRICS.md` | 各场景的安排质量（真实规则包） |
 | `docs/analysis/` | 重写前对旧代码、数据、来源和交互的分析报告 |
 | `P3R_HANDOFF_PROMPT.md`, `P3R_Planner_Handoff_20261013.zip` | 交接文档与原始交接包 |
 
