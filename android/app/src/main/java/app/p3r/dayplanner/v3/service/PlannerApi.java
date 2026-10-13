@@ -43,6 +43,13 @@ public interface PlannerApi {
         public boolean planning;
         /** Last planning error in Chinese, or null. */
         public String planErrorZh;
+        /**
+         * A non-blocking note for the player in Chinese, or null. Set when records no longer fit
+         * the bundled game data (typically after an app update), e.g.
+         * "有 2 条记录和现在的游戏资料对不上，建议「同步现状」核对一下". The plan is still made; show
+         * the note with a way to open 同步现状.
+         */
+        public String noticeZh;
         /** Wall time of the most recent observed record (ms), 0 if none. */
         public long lastRecordMillis;
         /** Number of non-voided events since the current checkpoint. */
@@ -67,6 +74,12 @@ public interface PlannerApi {
         /** Current revisions after the command (also for duplicates and rejections). */
         public long stateRevision;
         public long profileRevision;
+        /**
+         * {@code observed.slot} after the command (also for duplicates and rejections): the next
+         * slot to record, calendar-locked slots already skipped; -1 before onboarding. A catch-up
+         * loop records the plan step at this slot next, never a locked step.
+         */
+        public int nextSlot = -1;
         /** Row written by the command (for duplicates: the original row), -1 if none. */
         public long eventSeq = -1;
         /** Chinese, user-facing message for rejections (stale revision, invalid value…). */
@@ -75,6 +88,12 @@ public interface PlannerApi {
         public String errorCode;
         /** For {@link #CODE_GAP}: open slots before the requested one that have no record yet. */
         public int missingSlots;
+        /**
+         * Chinese text to show instead of the usual success message, or null. Set on an
+         * {@link #importBackup} duplicate: the same backup was already restored with this command
+         * id, so nothing was replaced ("这份备份刚才已经恢复过了…").
+         */
+        public String noticeZh;
     }
 
     final class HistoryItem {
@@ -83,14 +102,26 @@ public interface PlannerApi {
         public int slot;
         /** outcome | skip | tower | tower_fix | void | checkpoint | import. */
         public String kind;
-        /** e.g. "5月12日 晚上 · 探索塔尔塔罗斯 · 到达 27F · 余额 14,750 日元". */
+        /** e.g. "5月12日 晚上 · 探索塔尔塔罗斯 · 到达 27F · 出塔后余额 14,750 日元". */
         public String summaryZh;
         public boolean voided;
         /**
-         * The record still shapes the current state (recorded after the latest checkpoint and not
-         * voided), so it can be undone with {@code voidEvent}; tower records can also be corrected.
+         * The record still shapes the current state (an outcome, skip, tower record or tower
+         * correction recorded after the latest checkpoint and not voided), so {@code voidEvent}
+         * accepts it: show 撤销 only when this is true.
+         */
+        public boolean undoable;
+        /**
+         * {@link #undoable} and a tower record ({@code kind == "tower"}), so {@code correctTower}
+         * accepts it: show 修改 only when this is true. Prefill the form from {@link #tower}.
          */
         public boolean correctable;
+        /**
+         * For tower rows: the values now in effect (the latest correction, else the original
+         * record), as the quick sheet would enter them; for tower_fix rows: that correction's
+         * values. Null for other kinds.
+         */
+        public TowerReturn tower;
     }
 
     /** Tower return as entered on the quick sheet: exactly one of net change or balance. */
@@ -105,6 +136,12 @@ public interface PlannerApi {
         public Integer level;
         /** Rescue id confirmed during this visit, or null. */
         public String rescuedId;
+        /**
+         * False when the player says the slot's side steps (the plan's "顺便：…" lines) were not
+         * done; they are applied with the visit otherwise. Kept from the original record by
+         * {@code correctTower}.
+         */
+        public boolean sideDone = true;
     }
 
     interface Listener {
@@ -141,7 +178,11 @@ public interface PlannerApi {
 
     /**
      * Replace the values of an earlier tower record; never adds a visit. The slot and block always
-     * stay those of the original record ({@code corrected.slot/block} are ignored).
+     * stay those of the original record ({@code corrected.slot/block} are ignored). Values the
+     * correction form does not collect are carried over from the values in effect (the latest
+     * correction, else the original): the rescue when {@code corrected.rescuedId} is null, the
+     * level when {@code corrected.level} is null, and always {@code sideDone}. {@code targetSeq}
+     * may also be a correction row; its tower record is then corrected.
      */
     Receipt correctTower(String commandId, long expectedStateRevision, long targetSeq, TowerReturn corrected);
 
@@ -151,7 +192,20 @@ public interface PlannerApi {
      */
     Receipt voidEvent(String commandId, long expectedStateRevision, long targetSeq);
 
-    /** Full observed state from onboarding / 同步现状 / full edit; optionally the profile too. */
+    /**
+     * Full observed state from onboarding / 同步现状 / full edit; optionally the profile too.
+     *
+     * <p>Rescues ({@code rescued} / {@code rescueFailed}, bit i = {@code rules.rescues[i]}): a set
+     * {@code rescued} bit means 救出了, a set {@code rescueFailed} bit means the player explicitly
+     * answered 没救出 (the only way a checkpoint marks a link as lost through its rescue), and
+     * neither bit means "not asked / not sure". The service then applies this rule before saving:
+     * a rescue that is not rescued and not explicitly failed, whose window ended before the
+     * checkpoint's day ({@code rescue.toDay < Rules.dayOf(observed.slot)}), and whose linked
+     * Social Link ({@code rescue.link}) is at RANK 1 or above, is saved as rescued. Inside or before
+     * the window nothing is inferred. So the wizard must not copy a {@code rescueFailed} bit from a
+     * prefilled state unless the player confirmed 没救出 (a missed deadline in the replay sets it
+     * without asking).
+     */
     Receipt saveCheckpoint(String commandId, long expectedStateRevision, SimState observed, Profile profileOrNull);
 
     Receipt saveProfile(String commandId, long expectedProfileRevision, Profile profile);
@@ -171,7 +225,12 @@ public interface PlannerApi {
     /** Backup JSON (profile, checkpoints, records), or null if the service failed to load. */
     String exportBackup();
 
-    /** Validates a backup, then replaces everything atomically; all revisions move forward. */
+    /**
+     * Validates a backup, then replaces everything atomically; all revisions move forward. Reusing
+     * a command id that already restored the same backup changes nothing and returns
+     * {@code ok + duplicate} with {@link Receipt#noticeZh} set; show that text, not "已恢复". A new
+     * restore of the same file needs a new command id (include the current revisions in it).
+     */
     Receipt importBackup(String commandId, String json);
 
     void addListener(Listener listener);

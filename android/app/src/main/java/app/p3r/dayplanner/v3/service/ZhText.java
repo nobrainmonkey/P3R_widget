@@ -50,12 +50,25 @@ final class ZhText {
         return String.format(Locale.US, "%,d 日元", amount);
     }
 
-    /** Rank as shown in compact UI: 0 → "未建立", 10 → "MAX", otherwise the number. */
+    /** Rank as shown in compact UI: 0 → "未解锁", 10 → "MAX", otherwise the number. */
     static String rank(int rank) {
         if (rank <= 0) {
-            return "未建立";
+            return "未解锁";
         }
         return rank >= 10 ? "MAX" : String.valueOf(rank);
+    }
+
+    /** "RANK 6 → 7", "RANK 9 → MAX"; from RANK 0: "未解锁 → RANK 1". */
+    static String rankChange(int from, int to) {
+        if (from <= 0) {
+            return rank(from) + " → RANK " + rank(to);
+        }
+        return "RANK " + rank(from) + " → " + rank(to);
+    }
+
+    /** Visible stat level: "Lv.1" … "Lv.5", then "MAX" (the game's 6th level). */
+    static String statLv(int lv) {
+        return lv >= 6 ? "MAX" : "Lv." + Math.max(1, lv);
     }
 
     /** "学力 +2" style gain, or null for zero. */

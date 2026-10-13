@@ -136,7 +136,7 @@ public class PlannerServiceReplanTest extends ServiceTestBase {
         assertSame(previous, s.plan);
         assertFalse(s.planCurrent);
         assertFalse(s.planning);
-        assertEquals("排程时出了问题，已保留上一版安排", s.planErrorZh);
+        assertEquals("生成安排时出了问题，已保留上一版", s.planErrorZh);
         assertEquals("the previous plan was the stability hint", previous.planId, planner.previousIds.get(1));
 
         int calls = planner.calls.get();
@@ -157,7 +157,7 @@ public class PlannerServiceReplanTest extends ServiceTestBase {
         PlannerApi.Snapshot s = service.snapshot();
         assertNull(s.plan);
         assertFalse(s.planning);
-        assertEquals("排程时出了问题，暂时没能生成安排", s.planErrorZh);
+        assertEquals("生成安排时出了问题，请稍后再试", s.planErrorZh);
     }
 
     @Test

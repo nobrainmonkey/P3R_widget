@@ -21,10 +21,14 @@ import java.util.Set;
  *
  * <pre>
  * {"schema":"p3r.backup.v3","exportedMillis":…,"rulesVersion":"…","profile":{…}|null,
- *  "checkpoints":[{"id":1,"created":…,"state":{…}}],
+ *  "checkpoints":[{"id":1,"created":…,"state":{…},"rulesVersion":"…"}],
  *  "events":[{"seq":1,"commandId":"…","checkpointId":1,"kind":"outcome","payload":{…},
- *             "voided":false,"created":…}]}
+ *             "voided":false,"created":…,"rulesVersion":"…"}]}
  * </pre>
+ *
+ * A checkpoint's {@code state} keeps the pack layout it was saved with (see {@link PackLayout});
+ * the per-row {@code rulesVersion} stamps are written only when known, so backups from before
+ * they existed still read (their rows simply have no stamp).
  *
  * {@link #read} checks the structure and every cross-reference; it does not need the rule pack.
  * Pure code, no I/O.
@@ -42,6 +46,8 @@ public final class Backup {
     public static final class Data {
         /** Canonical profile JSON, or null when the backup has no profile. */
         public String profileJson;
+        /** {@code Rules.version} the backup was exported under, or null when missing. */
+        public String rulesVersion;
         public final List<CheckpointRow> checkpoints = new ArrayList<>();
         public final List<EventRow> events = new ArrayList<>();
 
@@ -83,6 +89,9 @@ public final class Backup {
             o.put("id", c.id);
             o.put("created", c.created);
             o.put("state", new JSONObject(c.json));
+            if (c.rulesVersion != null) {
+                o.put("rulesVersion", c.rulesVersion);
+            }
             checkpoints.put(o);
         }
         root.put("checkpoints", checkpoints);
@@ -99,6 +108,9 @@ public final class Backup {
             o.put("payload", new JSONObject(e.json));
             o.put("voided", e.voided);
             o.put("created", e.created);
+            if (e.rulesVersion != null) {
+                o.put("rulesVersion", e.rulesVersion);
+            }
             events.put(o);
         }
         root.put("events", events);
@@ -121,6 +133,7 @@ public final class Backup {
         }
         try {
             Data data = new Data();
+            data.rulesVersion = optString(root, "rulesVersion");
             readProfile(root, data);
             readCheckpoints(root, data);
             readEvents(root, data);
@@ -128,6 +141,15 @@ public final class Backup {
         } catch (JSONException | RuntimeException e) {
             throw new Invalid(ZH_DAMAGED, "malformed: " + e.getMessage(), e);
         }
+    }
+
+    /** A string member, or null when it is missing, null or empty. */
+    private static String optString(JSONObject o, String key) throws JSONException {
+        if (!o.has(key) || o.isNull(key)) {
+            return null;
+        }
+        String value = o.getString(key);
+        return value.isEmpty() ? null : value;
     }
 
     private static void readProfile(JSONObject root, Data data) throws JSONException {
@@ -152,7 +174,7 @@ public final class Backup {
             if (id <= 0 || created < 0 || !ids.add(id)) {
                 throw new Invalid(ZH_DAMAGED, "bad checkpoint id " + id);
             }
-            data.checkpoints.add(new CheckpointRow(id, created, Canonical.of(state)));
+            data.checkpoints.add(new CheckpointRow(id, created, Canonical.of(state), optString(o, "rulesVersion")));
         }
         data.checkpoints.sort((a, b) -> Long.compare(a.id, b.id));
     }
@@ -172,7 +194,8 @@ public final class Backup {
             JSONObject o = list.getJSONObject(i);
             EventRow row = new EventRow(o.getLong("seq"), o.getString("commandId"),
                     o.getLong("checkpointId"), o.getString("kind"),
-                    Canonical.of(o.getJSONObject("payload")), o.getBoolean("voided"), o.getLong("created"));
+                    Canonical.of(o.getJSONObject("payload")), o.getBoolean("voided"), o.getLong("created"),
+                    optString(o, "rulesVersion"));
             if (row.seq <= lastSeq || row.commandId.isEmpty() || !commandIds.add(row.commandId)
                     || row.created < 0 || !EventKind.isKnown(row.kind)) {
                 throw new Invalid(ZH_DAMAGED, "bad event header at seq " + row.seq);

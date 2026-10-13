@@ -167,9 +167,137 @@ public class ReplayerTest {
 
         Replayer.Result r = replayer.replay(start, List.of(unknown, broken), null);
 
-        assertEquals(1, r.problems);
+        assertEquals("an unknown action key and a broken row both count", 2, r.problems);
         assertEquals(slot + 2, r.state.slot);
         assertEquals(10_000, r.state.cash);
+    }
+
+    @Test
+    public void aRecordInASlotThatANewPackLocksStaysInEffect() throws Exception {
+        int day = TestRules.slot(TestRules.MAY_12, false);
+        int eve = day + 1;
+        SimState start = TestRules.state(rules, day);
+        TowerRecord rescue = towerRecord(eve, 30, false, 2_000);
+        rescue.rescuedId = "bunkichi";
+        List<EventRow> rows = List.of(
+                outcome(day, "act:study_room", Outcome.of(Outcome.Code.AS_PREDICTED)),
+                row(EventKind.TOWER, rescue.toJson()));
+
+        Rules update = TestRules.create();
+        update.days[TestRules.MAY_12].eveLock = "full_moon";
+        Replayer.Result r = new Replayer(update, new Profile(), applier).replay(start, rows, null);
+
+        assertEquals(0, r.problems);
+        assertEquals("the visit still counts", 1, r.state.towerVisits[1]);
+        assertEquals(1L, r.state.rescued);
+        assertEquals(12_000, r.state.cash);
+        assertEquals(TestRules.slot(TestRules.MAY_12 + 1, false), r.state.slot);
+    }
+
+    @Test
+    public void towerVisitsAndGapsRollTheDayOverLikeTheEngine() throws Exception {
+        RolloverApplier rollover = new RolloverApplier();
+        Replayer replay = new Replayer(rules, new Profile(), rollover);
+        int eve = TestRules.slot(TestRules.MAY_12, true);
+        SimState start = TestRules.state(rules, eve);
+
+        Replayer.Result r = replay.replay(start, List.of(tower(eve, 20, false, 0)), null);
+        assertEquals("entering the next day after a tower evening", List.of(TestRules.MAY_12 + 1), rollover.days);
+        assertEquals(3, r.state.rank[0]);
+
+        rollover.days.clear();
+        int later = TestRules.slot(TestRules.MAY_12 + 3, false);
+        replay.replay(start, List.of(outcome(later, "act:study_room", Outcome.of(Outcome.Code.AS_PREDICTED))), null);
+        assertEquals("a gap rolls over every day it skips",
+                List.of(TestRules.MAY_12 + 1, TestRules.MAY_12 + 2, TestRules.MAY_12 + 3), rollover.days);
+    }
+
+    @Test
+    public void towerRecordsApplyTheSlotsSideStepsUnlessNotDone() throws Exception {
+        applier.sideFee = 1_000;
+        int eve = TestRules.slot(TestRules.MAY_12, true);
+        SimState start = TestRules.state(rules, eve);
+
+        Replayer.Result done = replayer.replay(start, List.of(tower(eve, 20, false, 3_000)), null);
+        assertEquals(1, applier.sideCalls.get());
+        assertEquals("side fee first, then the visit's net change", 12_000, done.state.cash);
+        assertEquals("the side fee is not counted as tower income", 3_000, done.towerGains.get(0).net);
+
+        TowerRecord notDone = towerRecord(eve, 20, true, 15_000);
+        notDone.sideDone = false;
+        Replayer.Result skipped = replayer.replay(start, List.of(row(EventKind.TOWER, notDone.toJson())), null);
+        assertEquals("not applied when the player says so", 1, applier.sideCalls.get());
+        assertEquals(15_000, skipped.state.cash);
+        assertEquals(5_000, skipped.towerGains.get(0).net);
+    }
+
+    @Test
+    public void unlockKeysFollowTheirStepIdAcrossAPackUpdate() throws Exception {
+        int day = TestRules.slot(TestRules.MAY_12, false);
+        SimState start = TestRules.state(rules, day);
+        OutcomeRecord rec = OutcomeRecord.of(rules, day, "unlock:magician:0", Outcome.of(Outcome.Code.AS_PREDICTED));
+        assertEquals("magician.intro", rec.stepId);
+        EventRow unlock = row(rec.kind(), rec.toJson());
+
+        Rules update = TestRules.create();
+        Rules.Step greet = new Rules.Step();
+        greet.id = "magician.greet";
+        update.links[TestRules.MAGICIAN].unlock.steps.add(0, greet);
+        Replayer.Result r = new Replayer(update, new Profile(), applier).replay(start, List.of(unlock), null);
+        assertEquals(0, r.problems);
+        assertEquals(app.p3r.dayplanner.v3.engine.Action.unlock(TestRules.MAGICIAN, 1), applier.actions.get(0));
+
+        Rules removed = TestRules.create();
+        removed.links[TestRules.MAGICIAN].unlock.steps.clear();
+        removed.links[TestRules.MAGICIAN].unlock.steps.add(greet);
+        Replayer.Result gone = new Replayer(removed, new Profile(), applier).replay(start, List.of(unlock), null);
+        assertEquals("a step the pack no longer has is counted", 1, gone.problems);
+        assertEquals(app.p3r.dayplanner.v3.engine.Action.free(), applier.actions.get(1));
+    }
+
+    @Test
+    public void towerKeysAndRecordsUseTheBlockOfTheirDay() throws Exception {
+        int eve = TestRules.slot(TestRules.MAY_12, true);
+        SimState start = TestRules.state(rules, eve);
+        replayer.replay(start, List.of(outcome(eve, "tower:0", Outcome.of(Outcome.Code.AS_PREDICTED))), null);
+        assertEquals(app.p3r.dayplanner.v3.engine.Action.tower(1), applier.actions.get(0));
+
+        TowerRecord stale = towerRecord(eve, 20, false, 0);
+        stale.block = 0;
+        Replayer.Result r = replayer.replay(start, List.of(row(EventKind.TOWER, stale.toJson())), null);
+        assertEquals(0, r.state.towerVisits[0]);
+        assertEquals(1, r.state.towerVisits[1]);
+        assertEquals(0, r.problems);
+    }
+
+    /** {@link FakeApplier} whose time moves through day rollovers: entering day 42 sets Fool to RANK 3. */
+    private static final class RolloverApplier implements OutcomeApplier {
+        final FakeApplier inner = new FakeApplier();
+        final List<Integer> days = new ArrayList<>();
+
+        @Override
+        public SimState apply(Rules rules, Profile profile, SimState state, app.p3r.dayplanner.v3.engine.Action action,
+                              Outcome outcome) {
+            SimState s = inner.apply(rules, profile, state, action, outcome);
+            s.slot = state.slot;
+            return advanceTo(rules, profile, s, state.slot + 1);
+        }
+
+        @Override
+        public SimState advanceTo(Rules rules, Profile profile, SimState state, int slot) {
+            SimState s = state.copy();
+            while (s.slot < slot) {
+                s.slot++;
+                if (!Rules.isEvening(s.slot)) {
+                    int day = Rules.dayOf(s.slot);
+                    days.add(day);
+                    if (day == TestRules.MAY_12 + 1) {
+                        s.rank[0] = Math.max(s.rank[0], 3);
+                    }
+                }
+            }
+            return s;
+        }
     }
 
     // ------------------------------------------------------------------------------ helpers
@@ -180,13 +308,17 @@ public class ReplayerTest {
     }
 
     private EventRow tower(int slot, int floor, boolean balance, long amount) throws JSONException {
+        return row(EventKind.TOWER, towerRecord(slot, floor, balance, amount).toJson());
+    }
+
+    private TowerRecord towerRecord(int slot, int floor, boolean balance, long amount) {
         TowerRecord rec = new TowerRecord();
         rec.slot = slot;
         rec.block = rules.blockOn(Rules.dayOf(slot)).idx;
         rec.floor = floor;
         rec.balanceMode = balance;
         rec.amount = amount;
-        return row(EventKind.TOWER, rec.toJson());
+        return rec;
     }
 
     private EventRow fix(long target, int slot, int floor, boolean balance, long amount) throws JSONException {

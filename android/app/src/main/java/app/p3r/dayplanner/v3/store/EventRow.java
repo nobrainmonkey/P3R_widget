@@ -16,9 +16,16 @@ public final class EventRow {
     public final boolean voided;
     /** Wall time the row was written (ms). */
     public final long created;
+    /** {@code Rules.version} of the pack the row was written under, or null when unknown (older rows). */
+    public final String rulesVersion;
 
     public EventRow(long seq, String commandId, long checkpointId, String kind, String json,
                     boolean voided, long created) {
+        this(seq, commandId, checkpointId, kind, json, voided, created, null);
+    }
+
+    public EventRow(long seq, String commandId, long checkpointId, String kind, String json,
+                    boolean voided, long created, String rulesVersion) {
         this.seq = seq;
         this.commandId = commandId;
         this.checkpointId = checkpointId;
@@ -26,6 +33,7 @@ public final class EventRow {
         this.json = json;
         this.voided = voided;
         this.created = created;
+        this.rulesVersion = rulesVersion;
     }
 
     /** Parsed payload. */
@@ -35,7 +43,7 @@ public final class EventRow {
 
     /** Copy with a different {@link #voided} flag. */
     public EventRow withVoided(boolean value) {
-        return new EventRow(seq, commandId, checkpointId, kind, json, value, created);
+        return new EventRow(seq, commandId, checkpointId, kind, json, value, created, rulesVersion);
     }
 
     /**

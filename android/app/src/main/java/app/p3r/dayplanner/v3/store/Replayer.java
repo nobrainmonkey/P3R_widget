@@ -24,19 +24,29 @@ import java.util.Map;
  *   <li>Voided rows are ignored.</li>
  *   <li>{@link EventKind#OUTCOME} / {@link EventKind#SKIP} rows go through the injected
  *       {@link OutcomeApplier} (production: {@code Engine.applyOutcome}).</li>
- *   <li>{@link EventKind#TOWER} rows count one visit for their block, raise the highest floor and
- *       apply cash exactly once (new balance, or net change). The latest non-voided
- *       {@link EventKind#TOWER_FIX} for a tower row replaces its values; a fix never adds a
- *       visit.</li>
- *   <li>Before each row and at the end the state moves past calendar-locked slots, so
- *       {@code observed.slot} is always the next slot the player can act in.</li>
- *   <li>A row for a later slot than the state's moves time forward without effects (the slots in
- *       between were not recorded, e.g. after an earlier row was voided). A row for an earlier slot
- *       cannot be replayed and is skipped and counted as a problem.</li>
+ *   <li>{@link EventKind#TOWER} rows first apply the slot's side steps (unless the record says
+ *       they were not done), then count one visit for the block of that day, raise the highest
+ *       floor, apply cash exactly once (new balance, or net change) and set the rescue bit. The
+ *       latest non-voided {@link EventKind#TOWER_FIX} for a tower row replaces its values; a fix
+ *       never adds a visit.</li>
+ *   <li>Time only moves forward through {@link OutcomeApplier#advanceTo}, so every day rollover
+ *       (story ranks, rescue deadlines, date-based unlocks) happens exactly as in the engine,
+ *       whether the day ends with an outcome, a tower visit, a gap or locked slots.</li>
+ *   <li>Each row is applied at its own slot, as long as that slot is not before the previous
+ *       row's. Locked slots are skipped only after the last row, so a record stays in effect even
+ *       when a later rule pack locks the slot it was recorded in. A row for a later slot moves time
+ *       forward first (the slots in between were not recorded, e.g. after an earlier row was
+ *       voided). A row for an earlier slot than the previous row's cannot be replayed; it is
+ *       skipped and counted as a problem.</li>
+ *   <li>Ids written with a row are trusted over its positions: a tower visit counts for the block
+ *       the current pack gives its day ({@code tower:<index>} keys too), and an
+ *       {@code unlock:<link>:<index>} key with a {@code stepId} is renumbered by that id.</li>
  * </ul>
  *
- * Replay never throws for stored data: a row the applier or the parser rejects is treated like a
- * slot that passed without effect, and counted in {@link Result#problems}.
+ * Replay never throws for stored data. A row the applier or the parser rejects is treated like a
+ * slot that passed without effect; such rows, rows for passed slots, action keys the current pack
+ * no longer knows and tower visits on a day without a block are counted in
+ * {@link Result#problems} (the service then suggests 同步现状).
  *
  * <p>Pure computation, no I/O. Instances are cheap and not thread-safe.
  */
@@ -51,7 +61,7 @@ public final class Replayer {
          *
          * @param row the row
          * @param before state the row was applied to (already at the row's slot)
-         * @param after state after the row
+         * @param after state after the row (at the row's slot + 1)
          * @param tower effective tower values (after fixes) for tower rows, else null
          */
         void onRow(EventRow row, SimState before, SimState after, TowerRecord tower);
@@ -75,7 +85,7 @@ public final class Replayer {
         /** Observed state, normalised (see {@link StateShape#normalize}). */
         public final SimState state;
         public final List<TowerGain> towerGains;
-        /** Rows that could not be applied. */
+        /** Rows that could not be applied as recorded (see the class comment). */
         public final int problems;
 
         Result(SimState state, List<TowerGain> towerGains, int problems) {
@@ -95,84 +105,91 @@ public final class Replayer {
         this.applier = applier;
     }
 
+    /** Mutable state of one replay. */
+    private static final class Run {
+        final Map<Long, TowerRecord> fixes;
+        final List<TowerGain> gains = new ArrayList<>();
+        final Trace trace;
+        int problems;
+
+        Run(Map<Long, TowerRecord> fixes, Trace trace) {
+            this.fixes = fixes;
+            this.trace = trace;
+        }
+    }
+
     /**
      * Replays {@code rows} (one checkpoint's rows in sequence order; other kinds are ignored) on
-     * top of {@code checkpoint}.
+     * top of {@code checkpoint} (already carried over to the current pack, see
+     * {@link CheckpointRow#stateFor}).
      */
     public Result replay(SimState checkpoint, List<EventRow> rows, Trace trace) {
-        Map<Long, TowerRecord> fixes = effectiveFixes(rows);
-        List<TowerGain> gains = new ArrayList<>();
-        int problems = 0;
-        SimState state = StateShape.normalize(checkpoint, rules);
+        Run run = new Run(effectiveFixes(rows), trace);
+        SimState state = StateShape.fit(checkpoint, rules);
         for (EventRow row : rows) {
             if (!EventKind.isObserved(row.kind)) {
                 continue;
             }
             if (row.voided) {
-                traceVoided(state, row, fixes, trace);
+                traceVoided(state, row, run);
                 continue;
             }
             try {
-                SimState next = applyRow(state, row, fixes, gains, trace);
+                SimState next = applyRow(state, row, run, run.trace);
                 if (next == null) {
-                    problems++;
+                    run.problems++;
                 } else {
                     state = next;
                 }
             } catch (JSONException | RuntimeException e) {
                 Log.w(TAG, "row " + row.seq + " could not be replayed", e);
-                problems++;
+                run.problems++;
                 int slot = row.slot();
                 if (slot >= state.slot) {
                     state = advance(state, slot + 1);
                 }
             }
         }
-        return new Result(state, gains, problems);
+        state = advance(state, StateShape.firstOpenSlot(rules, state.slot));
+        return new Result(state, run.gains, run.problems);
     }
 
     /**
      * Lets the trace see a voided row as if it had been applied at this point, without changing
-     * the replayed state (history lines describe undone records too).
+     * the replayed state or the counts (history lines describe undone records too).
      */
-    private void traceVoided(SimState state, EventRow row, Map<Long, TowerRecord> fixes, Trace trace) {
-        if (trace == null) {
+    private void traceVoided(SimState state, EventRow row, Run run) {
+        if (run.trace == null) {
             return;
         }
         try {
-            applyRow(state, row, fixes, new ArrayList<>(), trace);
+            Run scratch = new Run(run.fixes, run.trace);
+            applyRow(state, row, scratch, run.trace);
         } catch (JSONException | RuntimeException e) {
             Log.w(TAG, "voided row " + row.seq + " cannot be described", e);
         }
     }
 
     /** Applies one observed row; returns null when the row is for a slot already passed. */
-    private SimState applyRow(SimState state, EventRow row, Map<Long, TowerRecord> fixes,
-                              List<TowerGain> gains, Trace trace) throws JSONException {
+    private SimState applyRow(SimState state, EventRow row, Run run, Trace trace) throws JSONException {
         int slot = row.payload().getInt("slot");
         if (slot < state.slot) {
             Log.w(TAG, "row " + row.seq + " is for slot " + slot + " but the state is at " + state.slot);
             return null;
         }
-        SimState before = state;
-        if (slot > state.slot) {
-            before = state.copy();
-            before.slot = slot;
-        }
+        SimState before = slot > state.slot ? advance(state, slot) : state;
         SimState after;
         TowerRecord tower = null;
         if (EventKind.TOWER.equals(row.kind)) {
             TowerRecord own = TowerRecord.fromJson(row.payload());
-            tower = fixes.containsKey(row.seq) ? fixes.get(row.seq).copy() : own;
+            tower = run.fixes.containsKey(row.seq) ? run.fixes.get(row.seq).copy() : own;
             tower.slot = own.slot;
-            tower.block = own.block;
-            after = applyTower(before, tower, row.seq, gains);
+            tower.block = blockOf(own.slot, own.block, run);
+            tower.sideDone = own.sideDone;
+            after = applyTower(before, tower, row.seq, run.gains);
         } else {
             OutcomeRecord record = OutcomeRecord.fromJson(row.payload());
-            Action action = Action.parse(rules, record.actionKey);
-            if (action == null) {
-                action = Action.free();
-            }
+            Action action = resolve(record, slot, run);
             Outcome outcome = record.outcome;
             if (EventKind.SKIP.equals(row.kind)) {
                 outcome.code = Outcome.Code.SKIPPED;
@@ -186,29 +203,95 @@ public final class Replayer {
         return after;
     }
 
-    /** One Tartarus visit: +1 visit, floor = max, cash once, rescue bit. Never mutates {@code before}. */
+    /**
+     * The action of a record under the current pack: unknown keys become a free slot (counted),
+     * Tartarus keys use the block of the slot's day and unlock keys follow their step id.
+     */
+    private Action resolve(OutcomeRecord record, int slot, Run run) {
+        Action action = Action.parse(rules, record.actionKey);
+        if (action == null) {
+            Log.w(TAG, "action " + record.actionKey + " is unknown to this rule pack");
+            run.problems++;
+            return Action.free();
+        }
+        switch (action.type) {
+            case TARTARUS: {
+                int block = blockOf(slot, action.target, run);
+                return block >= 0 ? Action.tower(block) : Action.free();
+            }
+            case UNLOCK_STEP: {
+                if (record.stepId == null) {
+                    return action;
+                }
+                int step = stepIndex(rules.links[action.target], record.stepId);
+                if (step < 0) {
+                    Log.w(TAG, "unlock step " + record.stepId + " is unknown to this rule pack");
+                    run.problems++;
+                    return Action.free();
+                }
+                return Action.unlock(action.target, step);
+            }
+            default:
+                return action;
+        }
+    }
+
+    /**
+     * Block of a tower visit: the one the current pack gives the visit's day; without one, the
+     * stored index when it still exists. -1 (and a counted problem) when neither applies.
+     */
+    private int blockOf(int slot, int stored, Run run) {
+        Rules.Block block = rules.blockOn(Rules.dayOf(slot));
+        if (block != null) {
+            return block.idx;
+        }
+        run.problems++;
+        return stored >= 0 && stored < rules.blocks.length ? stored : -1;
+    }
+
+    private static int stepIndex(Rules.Link link, String stepId) {
+        if (link.unlock == null) {
+            return -1;
+        }
+        for (int k = 0; k < link.unlock.steps.size(); k++) {
+            if (stepId.equals(link.unlock.steps.get(k).id)) {
+                return k;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * One Tartarus visit at {@code before.slot}: side steps (unless not done), +1 visit, floor =
+     * max, cash once, rescue bit. Stays at the visit's slot. Never mutates {@code before}.
+     */
     private SimState applyTower(SimState before, TowerRecord rec, long seq, List<TowerGain> gains) {
-        SimState s = before.copy();
+        Action visit = rec.block >= 0 ? Action.tower(rec.block) : Action.free();
+        SimState s = rec.sideDone
+                ? StateShape.fit(applier.applySideSteps(rules, profile, before, visit), rules)
+                : before.copy();
+        s.slot = before.slot;
+        long cashBefore = s.cash;
+        boolean exactBefore = s.cashExact;
         if (rec.block >= 0 && rec.block < s.towerVisits.length) {
             s.towerVisits[rec.block]++;
         }
         s.floor = Math.max(s.floor, rec.floor);
         if (rec.balanceMode) {
-            if (before.cashExact) {
-                gains.add(new TowerGain(seq, rec.block, rec.amount - before.cash));
+            if (exactBefore) {
+                gains.add(new TowerGain(seq, rec.block, rec.amount - cashBefore));
             }
             s.cash = rec.amount;
             s.cashExact = true;
         } else {
             gains.add(new TowerGain(seq, rec.block, rec.amount));
-            s.cash = Math.max(0, before.cash + rec.amount);
+            s.cash = Math.max(0, cashBefore + rec.amount);
         }
         int rescue = rescueIndex(rec.rescuedId);
         if (rescue >= 0) {
             s.rescued |= 1L << rescue;
             s.rescueFailed &= ~(1L << rescue);
         }
-        s.slot = rec.slot + 1;
         return s;
     }
 
@@ -224,15 +307,19 @@ public final class Replayer {
         return -1;
     }
 
-    /** Moves the state to {@code slot}, then past locked slots; re-fits array sizes. */
+    /**
+     * Moves the state forward to {@code slot} through the applier (day rollovers included) and
+     * re-fits array sizes; never moves it back.
+     */
     private SimState advance(SimState state, int slot) {
-        SimState out = StateShape.fit(state, rules);
-        out.slot = StateShape.firstOpenSlot(rules, slot);
+        SimState moved = slot > state.slot ? applier.advanceTo(rules, profile, state, slot) : state;
+        SimState out = StateShape.fit(moved, rules);
+        out.slot = Math.max(slot, moved.slot);
         return out;
     }
 
     /** Target seq → values of the latest non-voided fix for that target. */
-    private static Map<Long, TowerRecord> effectiveFixes(List<EventRow> rows) {
+    static Map<Long, TowerRecord> effectiveFixes(List<EventRow> rows) {
         Map<Long, TowerRecord> fixes = new HashMap<>();
         for (EventRow row : rows) {
             if (row.voided || !EventKind.TOWER_FIX.equals(row.kind)) {

@@ -28,6 +28,26 @@ public class BackupTest {
     }
 
     @Test
+    public void rulesVersionStampsRoundTripAndOlderFilesStillRead() throws Exception {
+        Backup.Data data = sample();
+        data.checkpoints.set(1, new CheckpointRow(2, 20, "{\"slot\":82}", "pack|2"));
+        data.events.set(0, new EventRow(1, "c1", 2, EventKind.OUTCOME,
+                "{\"action\":\"meet:emperor\",\"outcome\":{\"code\":\"RANK_UP\"},\"slot\":82}", false, 21, "pack|2"));
+        String text = Backup.write(data, "pack|2", 5L);
+        Backup.Data back = Backup.read(text);
+        assertEquals("pack|2", back.rulesVersion);
+        assertNull(back.checkpoints.get(0).rulesVersion);
+        assertEquals("pack|2", back.checkpoints.get(1).rulesVersion);
+        assertEquals("pack|2", back.events.get(0).rulesVersion);
+        assertNull(back.events.get(1).rulesVersion);
+        assertEquals(text, Backup.write(back, "pack|2", 5L));
+
+        JSONObject old = new JSONObject(Backup.write(sample(), "", 0));
+        old.remove("rulesVersion");
+        assertNull(Backup.read(old.toString()).rulesVersion);
+    }
+
+    @Test
     public void importJournalRowsAreNeverExported() throws Exception {
         Backup.Data data = sample();
         data.events.add(new EventRow(9, "imp", 2, EventKind.IMPORT, "{\"payloadSha256\":\"x\"}", false, 9));
