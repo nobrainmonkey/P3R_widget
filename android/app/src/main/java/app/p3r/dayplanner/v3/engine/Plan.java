@@ -90,6 +90,10 @@ public final class Plan {
         public String locationZh;
         /** One-line reason the planner chose this, e.g. "恶魔只在周二、周六晚上出现". */
         public String whyZh;
+        /** Step-by-step how-to in plain Chinese (multi-line, from the rule pack's howZh/noteZh), or null. */
+        public String detailZh;
+        /** Short reminder shown on the card, e.g. "记得带上「皇帝」阿尔卡那的人格面具", or null. */
+        public String hintZh;
         public Predicted predicted = new Predicted();
         /** Prediction relies on estimated hidden points (ordinary gain, answer gains, bonuses). */
         public boolean estimate;
@@ -116,6 +120,8 @@ public final class Plan {
             o.put("subtitle", subtitleZh);
             if (locationZh != null) o.put("location", locationZh);
             if (whyZh != null) o.put("why", whyZh);
+            if (detailZh != null) o.put("detail", detailZh);
+            if (hintZh != null) o.put("hint", hintZh);
             o.put("predicted", predicted.toJson());
             o.put("estimate", estimate);
             JSONArray a = new JSONArray();
@@ -142,6 +148,8 @@ public final class Plan {
             s.subtitleZh = o.optString("subtitle", "");
             s.locationZh = o.has("location") ? o.getString("location") : null;
             s.whyZh = o.has("why") ? o.getString("why") : null;
+            s.detailZh = o.has("detail") ? o.getString("detail") : null;
+            s.hintZh = o.has("hint") ? o.getString("hint") : null;
             JSONObject p = o.optJSONObject("predicted");
             if (p != null) s.predicted = Predicted.fromJson(p);
             s.estimate = o.optBoolean("estimate");
