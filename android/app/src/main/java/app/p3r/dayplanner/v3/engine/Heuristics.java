@@ -54,9 +54,31 @@ final class Heuristics {
     /** Start saving for an unlock fee this many days before the link's earliest day. */
     static final int MONEY_LOOKAHEAD_DAYS = 21;
 
+    /**
+     * Knobs of the base policy. The planner runs a small portfolio of tunings and keeps the plan with
+     * the best objective, which hedges against any single calibration fitting a rule pack badly.
+     */
+    static final class Tuning {
+        /** Multiplier of stat-gate values (how eagerly stats are trained ahead of meetings). */
+        final double statWeight;
+        /** Multiplier of the yen shadow price (how eagerly jobs are taken). */
+        final double moneyWeight;
+        /** Urgency floor: value share kept by a meeting or gate that could also happen later. */
+        final double patience;
+
+        Tuning(double statWeight, double moneyWeight, double patience) {
+            this.statWeight = statWeight;
+            this.moneyWeight = moneyWeight;
+            this.patience = patience;
+        }
+
+        static final Tuning DEFAULT = new Tuning(1.0, 1.0, 0.3);
+    }
+
     final Model m;
     final Tables t;
     final Rules rules;
+    final Tuning tuning;
     final int startSlot;
     final int lastSlot;
 
@@ -107,9 +129,14 @@ final class Heuristics {
     private long reserve;
 
     Heuristics(Model m, SimState start, Plan previous) {
+        this(m, start, previous, Tuning.DEFAULT);
+    }
+
+    Heuristics(Model m, SimState start, Plan previous, Tuning tuning) {
         this.m = m;
         this.t = m.t;
         this.rules = m.rules;
+        this.tuning = tuning;
         this.startSlot = start.slot;
         this.lastSlot = t.lastSlot;
         Profile p = m.profile;
@@ -362,7 +389,7 @@ final class Heuristics {
                 int last = Math.max(slot, latestUnlock[l]);
                 int avail = trainRemain[s][slot] - trainRemain[s][Math.min(t.lastSlot + 1, last + 1)];
                 double pressure = latestUnlock[l] < slot ? 0.3 : need / Math.max(1, avail);
-                double gate = v * share * urgency(pressure);
+                double gate = v * share * urgency(pressure) * tuning.statWeight;
                 addGate(s, deficit, gate);
                 pointValue[s] += gate / Math.max(deficit, 4 * typicalGain[s]);
             }
@@ -386,7 +413,7 @@ final class Heuristics {
             statYen = Math.max(statYen, pointValue[s] * ptsPerYen[s]);
             if (pointValue[s] > 0 && cheapestPaid[s] != Integer.MAX_VALUE) training = Math.max(training, 3L * cheapestPaid[s]);
         }
-        yenValue = Math.max(0.0005, Math.max(unlockYen, Math.min(MAX_STAT_YEN_VALUE, statYen)));
+        yenValue = tuning.moneyWeight * Math.max(0.0005, Math.max(unlockYen, Math.min(MAX_STAT_YEN_VALUE, statYen)));
         reserve = unlockCosts + training + m.cashBuffer;
         shortfall = Math.max(0, reserve - st.cash);
     }
@@ -456,7 +483,7 @@ final class Heuristics {
         int deficit = t.statCap[ci] - st.statPts[ci];
         double trainings = deficit / typicalGain[ci];
         int avail = Math.max(1, trainRemain[ci][st.slot]);
-        double gate = v * urgency(trainings / avail) * 0.5;
+        double gate = v * urgency(trainings / avail) * 0.5 * tuning.statWeight;
         addGate(ci, deficit, gate);
         pointValue[ci] += gate / Math.max(deficit, 4 * typicalGain[ci]);
     }
@@ -537,12 +564,13 @@ final class Heuristics {
     }
 
     /**
-     * Urgency transform shared by meetings and stat gates: ~0.3 when there is plenty of time, about
-     * 1 when half the remaining chances are needed, above 2 when every chance counts.
+     * Urgency transform shared by meetings and stat gates: the patience floor (~0.3) when there is
+     * plenty of time, about 1 when half the remaining chances are needed, above 2 when every chance
+     * counts.
      */
-    static double urgency(double pressure) {
+    double urgency(double pressure) {
         double e = Math.min(1.5, Math.max(0, pressure));
-        return 0.3 + e + e * e * e;
+        return tuning.patience + e + e * e * e;
     }
 
     private double activityScore(SimState st, int act) {

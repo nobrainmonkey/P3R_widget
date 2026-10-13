@@ -3,7 +3,9 @@ package app.p3r.dayplanner.v3.engine;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Full-horizon planner (docs/DESIGN_v3.md §5.3–5.4): a greedy base policy over {@link Heuristics}
@@ -21,6 +23,10 @@ import java.util.Arrays;
  * <p>Stability: for the first three days the previous plan's action (when still legal) becomes the
  * incumbent unless it is worse by more than {@link #STABILITY_MARGIN}, and a challenger must beat
  * it by that margin; the base policy also gives it a 2% bonus.
+ *
+ * <p>Portfolio: the whole search runs for up to three base-policy tunings ({@link #PORTFOLIO})
+ * while the budget allows, and the plan with the best objective is kept (preferring, within
+ * {@link #SWITCH_MARGIN}, one that keeps the previous plan's next three days).
  */
 final class Planner {
     private Planner() {}
@@ -33,21 +39,79 @@ final class Planner {
      * reshuffle the near schedule.
      */
     static final double STABILITY_MARGIN = 50;
+    /**
+     * A tuning that changes the next three days of the previous plan is adopted only when it beats
+     * the best tuning that keeps them by more than one extra MAX of a non-goal link (smaller gains
+     * are picked up by later replans, once those days are more than three days away).
+     */
+    static final double SWITCH_MARGIN = Heuristics.MAX_BONUS_RANKS * Heuristics.W_OTHER;
+
+    /**
+     * Base-policy tunings tried in order while the budget allows; the plan with the best objective
+     * wins (ties keep the earlier tuning), so the result is never worse than the default tuning.
+     */
+    static final Heuristics.Tuning[] PORTFOLIO = {
+            Heuristics.Tuning.DEFAULT,
+            new Heuristics.Tuning(1.6, 2.0, 0.3),
+            new Heuristics.Tuning(1.0, 1.0, 0.5)};
 
     static Plan plan(Rules rules, Profile profile, SimState observed, Plan previous, Engine.Options options) {
         long t0 = System.nanoTime();
         Model m = new Model(rules, profile, options);
         SimState start = Kernel.normalize(m, observed);
-        Heuristics h = new Heuristics(m, start, previous);
-        Search search = new Search(m, h, options, t0);
-        int[] codes = search.run(start);
-        Plan plan = assemble(m, h, start, codes);
-        plan.budgetExhausted = search.exhausted;
+        long deadline = t0 + Math.max(0, options.timeBudgetMillis) * 1_000_000L;
+        Candidate best = null;
+        Candidate bestStable = null;
+        boolean exhausted = false;
+        int variants = options.timeBudgetMillis > 0 ? PORTFOLIO.length : 1;
+        for (int v = 0; v < variants; v++) {
+            long now = System.nanoTime();
+            if (v > 0 && (cancelled(options) || now + (now - t0) / v > deadline)) {
+                exhausted = true; // not enough time left for another full tuning
+                break;
+            }
+            Heuristics h = new Heuristics(m, start, previous, PORTFOLIO[v]);
+            Search search = new Search(m, h, options, deadline, v / (float) variants, 1f / variants);
+            int[] codes = search.run(start);
+            exhausted |= search.exhausted;
+            Candidate c = new Candidate(h, codes, search.objectiveOf(start, codes));
+            if (best == null || c.j > best.j + EPS) best = c;
+            if (keepsPreviousWindow(h, start.slot, codes) && (bestStable == null || c.j > bestStable.j + EPS)) bestStable = c;
+        }
+        Candidate chosen = bestStable != null && best.j <= bestStable.j + SWITCH_MARGIN ? bestStable : best;
+        Plan plan = assemble(m, chosen.h, start, chosen.codes);
+        plan.budgetExhausted = exhausted;
         plan.elapsedMillis = (System.nanoTime() - t0) / 1_000_000L;
         plan.createdMillis = System.currentTimeMillis();
         plan.planId = PlanHash.of(rules, profile, start, options, plan);
         if (options.progress != null) options.progress.onProgress(1f);
         return plan;
+    }
+
+    /** One tuning's complete result. */
+    private static final class Candidate {
+        final Heuristics h;
+        final int[] codes;
+        final double j;
+
+        Candidate(Heuristics h, int[] codes, double j) {
+            this.h = h;
+            this.codes = codes;
+            this.j = j;
+        }
+    }
+
+    /** True when the plan repeats every productive action the previous plan had for the next three days. */
+    private static boolean keepsPreviousWindow(Heuristics h, int from, int[] codes) {
+        for (int i = 0; i < codes.length; i++) {
+            int previous = h.previousCode(from + i);
+            if (previous >= 0 && codes[i] != previous) return false;
+        }
+        return true;
+    }
+
+    private static boolean cancelled(Engine.Options options) {
+        return options.cancelled != null && options.cancelled.get();
     }
 
     /** The search loop; single use. */
@@ -65,12 +129,17 @@ final class Planner {
         private final double[] scores;
         private int[] reachedScratch;
 
-        Search(Model m, Heuristics h, Engine.Options options, long t0) {
+        /** Progress reported for this search maps to [progressFrom, progressFrom + progressSpan]. */
+        private final float progressFrom;
+        private final float progressSpan;
+
+        Search(Model m, Heuristics h, Engine.Options options, long deadline, float progressFrom, float progressSpan) {
             this.m = m;
             this.h = h;
             this.options = options;
-            long budget = Math.max(0, options.timeBudgetMillis);
-            this.deadline = t0 + budget * 1_000_000L;
+            this.deadline = deadline;
+            this.progressFrom = progressFrom;
+            this.progressSpan = progressSpan;
             this.candidates = Math.max(1, options.candidates);
             this.buf = new int[Kernel.maxLegal(m)];
             this.rolloutBuf = new int[Kernel.maxLegal(m)];
@@ -137,7 +206,7 @@ final class Planner {
                     float f = (slot - from + 1) / (float) len;
                     if (f - lastReported >= 0.02f) {
                         lastReported = f;
-                        options.progress.onProgress(Math.min(0.99f, f));
+                        options.progress.onProgress(Math.min(0.99f, progressFrom + progressSpan * f));
                     }
                 }
             }
@@ -150,7 +219,19 @@ final class Planner {
         }
 
         private boolean cancelled() {
-            return options.cancelled != null && options.cancelled.get();
+            return Planner.cancelled(options);
+        }
+
+        /** Objective J of following {@code codes} from {@code start}. */
+        double objectiveOf(SimState start, int[] codes) {
+            SimState st = start.copy();
+            int[] reached = h.initialReached(start);
+            for (int code : codes) {
+                int slot = st.slot;
+                Kernel.apply(m, st, code, null);
+                h.track(st, slot, reached);
+            }
+            return h.objective(st, reached);
         }
 
         /** Scores every legal code into {@link #scores}; returns the index of the base policy's choice. */
@@ -165,8 +246,9 @@ final class Planner {
         }
 
         /**
-         * Up to {@code candidates} diverse options (best meeting, second meeting, best stat/job,
-         * Tartarus), ordered by H, without the base choice itself.
+         * Up to {@code candidates} options to roll out, the base choice included in the count but not
+         * returned: first one per category (best meeting, second meeting, best stat/job, Tartarus),
+         * ordered by H; when K is larger than that, the next best remaining actions by H.
          */
         private int[] diverse(int n, int baseIdx) {
             int social1 = -1;
@@ -189,19 +271,29 @@ final class Planner {
                     if (tower < 0 || scores[i] > scores[tower]) tower = i;
                 }
             }
-            int[] reps = {social1, social2, act, tower};
-            Integer[] order = new Integer[4];
-            int k = 0;
-            for (int r : reps) if (r >= 0) order[k++] = r;
-            Integer[] present = Arrays.copyOf(order, k);
-            Arrays.sort(present, (a, b) -> scores[a] != scores[b] ? Double.compare(scores[b], scores[a]) : Integer.compare(a, b));
-            int limit = Math.min(present.length, candidates);
+            List<Integer> picked = new ArrayList<>(4);
+            for (int r : new int[]{social1, social2, act, tower}) if (r >= 0) picked.add(r);
+            picked.sort(this::byScore);
+            if (candidates > picked.size()) {
+                List<Integer> rest = new ArrayList<>();
+                for (int i = 0; i < n; i++) if (!picked.contains(i) && !Heuristics.vetoed(scores[i])) rest.add(i);
+                rest.sort(this::byScore);
+                for (int i = 0; i < rest.size() && picked.size() < candidates; i++) picked.add(rest.get(i));
+            }
+            int limit = Math.min(picked.size(), candidates);
+            boolean baseVetoed = Heuristics.vetoed(scores[baseIdx]);
             int[] out = new int[limit];
             int c = 0;
             for (int i = 0; i < limit; i++) {
-                if (present[i] != baseIdx || Heuristics.vetoed(scores[baseIdx])) out[c++] = buf[present[i]];
+                int idx = picked.get(i);
+                if (idx != baseIdx || baseVetoed) out[c++] = buf[idx];
             }
             return Arrays.copyOf(out, c);
+        }
+
+        /** Higher H first, then the kernel's deterministic order. */
+        private int byScore(int a, int b) {
+            return scores[a] != scores[b] ? Double.compare(scores[b], scores[a]) : Integer.compare(a, b);
         }
 
         /** Objective of: {@code first} now (or the base policy when POLICY), then the base policy to the end. */
