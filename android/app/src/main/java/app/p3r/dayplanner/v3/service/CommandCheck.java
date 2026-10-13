@@ -44,6 +44,7 @@ final class CommandCheck {
     static final String ZH_TOWER_CLOSED = "这一天还进不了塔尔塔罗斯";
     static final String ZH_TOWER_BLOCK = "区块和日期对不上，请重新选择";
     static final String ZH_FLOOR_NEGATIVE = "楼层不能是负数";
+    static final String ZH_CASH_UNKNOWN_AMOUNT = "选了「不记得钱了」就不用再填金额";
     static final String ZH_LEVEL = "主角等级要在 1 到 99 之间";
     static final String ZH_RESCUE = "没有找到这位失踪者";
     static final String ZH_FIX_MISSING = "找不到要修改的探索记录";
@@ -263,6 +264,9 @@ final class CommandCheck {
         }
         if (Math.abs(rec.amount) > MAX_CASH) {
             return Rejection.invalid(ZH_CASH_TOO_LARGE);
+        }
+        if (rec.cashUnknown && (rec.balanceMode || rec.amount != 0)) {
+            return Rejection.invalid(ZH_CASH_UNKNOWN_AMOUNT);
         }
         if (rec.balanceMode && rec.amount < 0) {
             return Rejection.invalid(ZH_CASH_NEGATIVE);

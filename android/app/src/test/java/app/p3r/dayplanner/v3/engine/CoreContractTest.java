@@ -171,7 +171,8 @@ public class CoreContractTest {
     @Test
     public void christmasEveLabelDoesNotNeedThePack() {
         Rules rules = RulesFixtures.fullYear();
-        assertFalse(rules.lockReasonsZh.containsKey(Rules.LOCK_CHRISTMAS));
+        // Packs built before the reason existed: the built-in label still applies.
+        rules.lockReasonsZh.remove(Rules.LOCK_CHRISTMAS);
         Profile p = RulesFixtures.others();
         p.christmasLink = "no_such_link";
         Labels labels = new Labels(new Model(rules, p, null), new Heuristics(new Model(rules, p, null),

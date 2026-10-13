@@ -9,7 +9,8 @@ import java.util.Locale;
 
 /**
  * User-facing Simplified Chinese copy for plan steps and the plan summary, following
- * docs/GLOSSARY_zh.md: 社群 / RANK / 升到 MAX, 解锁 (never 开启), 见面, 安排, 学力/魅力/勇气 Lv.1–Lv.5
+ * docs/GLOSSARY_zh.md: 社群 / RANK / 升到 MAX, 解锁 (never 开启), 见面 (休息日邀约; 约会 only in
+ * 「平安夜约会」), 安排, 学力/魅力/勇气 Lv.1–Lv.5
  * then MAX, 探索塔尔塔罗斯 / 区块, 自由活动, 结缘网站的字条, 羁绊剧情, amounts as "2,500 日元".
  * Never shows ids or English. Sentences about where someone is use the person's name (an arcana
  * name is only used as a label, or as "X社群" for links of several people).
@@ -30,6 +31,11 @@ final class Labels {
     static final String BUDGET_NOTE = "这次没来得及算完，稍后会自动再算一次";
     /** The same for that second computation ({@link Engine.Options#followUp}): no further automatic run. */
     static final String BUDGET_NOTE_FOLLOW_UP = "这次没来得及算完，记下一个结果后会重新安排";
+    /**
+     * A Sunday or holiday outing invitation (docs/GLOSSARY_zh.md: the official achievement text
+     * 「休息日的出游邀请短信」; never 假日邀约 / 节日邀约).
+     */
+    static final String INVITE = "休息日邀约";
     /** The result-sheet answer for a story hold the player reports (outcome NOT_DONE, reason "hold"). */
     static final String HOLD_ANSWER = "剧情原因暂时升不了";
 
@@ -241,7 +247,7 @@ final class Labels {
         step.entity = link.id;
         step.titleZh = linkLabel(l);
         step.locationZh = fx.invite ? "应邀外出" : link.locationZh;
-        String invite = fx.invite ? "假日邀约 · " : "";
+        String invite = fx.invite ? INVITE + " · " : "";
         if (fx.rankUp) {
             step.subtitleZh = invite + "RANK " + rankName(fx.rankFrom) + " → " + rankName(fx.rankTo);
         } else if (fx.held) {
@@ -255,7 +261,7 @@ final class Labels {
     }
 
     private String meetWhy(SimState st, int l, Kernel.Effect fx) {
-        if (fx.invite) return "对方发来了假日邀约，赴约也算一次见面";
+        if (fx.invite) return "对方发来了" + INVITE + "，赴约也算一次见面";
         if (fx.held) return holdWhy(st, l);
         double pressure = h.pressure(st, l);
         if (pressure >= 0.6 && pressure < Heuristics.INF) return scarceWhy(l, st.slot >> 1);

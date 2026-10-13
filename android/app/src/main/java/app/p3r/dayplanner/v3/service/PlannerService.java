@@ -1170,6 +1170,7 @@ public final class PlannerService implements PlannerApi {
         rec.amount = tower.amount;
         rec.level = tower.level;
         rec.rescuedId = tower.rescuedId;
+        rec.cashUnknown = tower.cashUnknown;
         rec.sideDone = tower.sideDone;
         rec.sideKeys = tower.sideDone && tower.sideKeys != null ? new ArrayList<>(tower.sideKeys) : null;
         return rec;

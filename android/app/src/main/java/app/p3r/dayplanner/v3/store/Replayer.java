@@ -27,7 +27,8 @@ import java.util.Map;
  *       {@link OutcomeApplier} (production: {@code Engine.applyOutcome}).</li>
  *   <li>{@link EventKind#TOWER} rows first apply the slot's side steps (unless the record says
  *       they were not done), then count one visit for the block of that day, raise the highest
- *       floor, apply cash exactly once (new balance, or net change) and set the rescue bit. The
+ *       floor, apply cash exactly once (new balance, or net change; 「不记得钱了」 keeps the cash
+ *       as a lower bound) and set the rescue bit. The
  *       latest non-voided {@link EventKind#TOWER_FIX} for a tower row replaces its values; a fix
  *       never adds a visit.</li>
  *   <li>Side steps ("顺便") and ranks follow what the row recorded, never today's profile: a row
@@ -344,7 +345,10 @@ public final class Replayer {
             s.towerVisits[rec.block]++;
         }
         s.floor = Math.max(s.floor, rec.floor);
-        if (rec.balanceMode) {
+        if (rec.cashUnknown) {
+            // 「不记得钱了」: the cash before the visit stays as a lower bound; no income sample.
+            s.cashExact = false;
+        } else if (rec.balanceMode) {
             if (exactBefore) {
                 gains.add(new TowerGain(seq, rec.block, rec.amount - cashBefore));
             }

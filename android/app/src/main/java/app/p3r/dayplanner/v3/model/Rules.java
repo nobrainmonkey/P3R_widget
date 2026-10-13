@@ -438,6 +438,12 @@ public final class Rules {
         public String kind;
         public String sha256;
         public String note;
+        /**
+         * Edition the source describes ({@code sources[].edition}: reload, game_data_reload,
+         * cn_guide_reload, reload+portable or mixed; rules/build/REPORT.md §1), or null in packs
+         * built before the field existed.
+         */
+        public String edition;
     }
 
     public static <T> List<T> ro(List<T> l) { return Collections.unmodifiableList(l); }

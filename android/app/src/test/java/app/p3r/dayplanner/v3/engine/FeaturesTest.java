@@ -449,9 +449,15 @@ public class FeaturesTest {
         assertEquals("学力 +2（升到 MAX）· 免费", study.subtitleZh);
     }
 
-    /** Words the glossary rules out, in every text a plan shows (steps and notes). */
+    /**
+     * Words the glossary rules out, in every text a plan shows (steps and notes). 约会 is only
+     * allowed as 「平安夜约会」 (the glossary's name of the accepted 12/24 invitation).
+     */
     private static final String[] BANNED = {"练满", "开启", "会面", "加深关系", "自由时间", "自由安排", "爬塔", "Persona", "Lv.6",
-            "规划", "计划", "约会", "社交链接", "牵绊", "未升级", "估算", "剧情时段", "null"};
+            "规划", "计划", "约会", "社交链接", "牵绊", "未升级", "估算", "剧情时段", "假日邀约", "节日邀约", "主人公",
+            "时间不够", "不可能", "做不到", "null"};
+    /** Glossary terms that contain a banned word on their own. */
+    private static final String[] ALLOWED_TERMS = {"平安夜约会"};
 
     @Test
     public void planTextAvoidsBannedWords() {
@@ -461,6 +467,7 @@ public class FeaturesTest {
         p.tier[4] = Profile.Tier.MUST;
         p.tier[6] = Profile.Tier.WANT;
         p.personaMode = Profile.PersonaMode.GOALS;
+        p.christmasLink = rules.links[6].id;
         Plan plan = Engine.plan(rules, p, start, null, new Engine.Options());
         List<String> texts = new ArrayList<>(plan.summary.notesZh);
         for (Plan.Step s : plan.steps) {
@@ -472,8 +479,12 @@ public class FeaturesTest {
             if (s.locationZh != null) texts.add(s.locationZh);
             texts.addAll(s.sideZh);
         }
+        assertTrue("the accepted 12/24 invitation is labelled", texts.contains(Rules.LOCK_CHRISTMAS_ZH));
+        assertTrue("an outing invitation reads 休息日邀约", texts.stream().anyMatch(t -> t.startsWith(Labels.INVITE + " · ")));
         for (String t : texts) {
-            for (String b : BANNED) assertFalse(t + " contains " + b, t.contains(b));
+            String checked = t;
+            for (String a : ALLOWED_TERMS) checked = checked.replace(a, "");
+            for (String b : BANNED) assertFalse(t + " contains " + b, checked.contains(b));
             assertFalse(t, t.matches("(?s).*[^日]元.*") || t.startsWith("元"));
             // Only the glossary's Latin tokens: RANK, MAX, Lv., F (floors); shop names in 「」 and 卡拉OK are names.
             String latin = t.replace("RANK", "").replace("MAX", "").replace("Lv.", "").replace("卡拉OK", "")

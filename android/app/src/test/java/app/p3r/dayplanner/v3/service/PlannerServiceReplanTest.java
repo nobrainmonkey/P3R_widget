@@ -176,6 +176,52 @@ public class PlannerServiceReplanTest extends ServiceTestBase {
         assertEquals("median of 4,000 / 2,000 / 9,000", 4_000, lastOptions().towerIncomePerVisit);
     }
 
+    /**
+     * 「不记得钱了」 (TowerReturn.cashUnknown): saved as a net change of 0, but the visit is no
+     * income sample, the cash becomes a lower bound, and history and the correction form say so.
+     * Amounts with the flag are refused; a later correction with a real amount counts again.
+     */
+    @Test
+    public void forgottenTowerCashIsNoIncomeSample() {
+        onboard(MAY12_EVE);
+        long cashBefore = service.snapshot().observed.cash;
+        PlannerApi.TowerReturn forgot = towerReturn(MAY12_EVE, 25, false, 0);
+        forgot.cashUnknown = true;
+        PlannerApi.Receipt first = service.recordTower(id(), rev(), forgot);
+        assertTrue(first.errorZh, first.ok);
+        settle();
+        assertEquals(cashBefore, service.snapshot().observed.cash);
+        assertFalse("the cash is a lower bound now", service.snapshot().observed.cashExact);
+        PlannerApi.HistoryItem item = null;
+        for (PlannerApi.HistoryItem h : service.history(5)) if (h.seq == first.eventSeq) item = h;
+        assertNotNull(item);
+        assertTrue(item.summaryZh, item.summaryZh.contains("不记得钱了"));
+        assertTrue(item.tower.cashUnknown);
+
+        int day = TestRules.MAY_12 + 1;
+        assertTrue(record(TestRules.slot(day, false), "meet:emperor", Outcome.Code.AS_PREDICTED).ok);
+        assertTrue(tower(TestRules.slot(day, true), 26, false, 2_000).ok);
+        assertTrue(record(TestRules.slot(day + 1, false), "meet:emperor", Outcome.Code.AS_PREDICTED).ok);
+        assertTrue(tower(TestRules.slot(day + 1, true), 28, false, 9_000).ok);
+        settle();
+        assertEquals("median of 2,000 / 9,000 only", 5_500, lastOptions().towerIncomePerVisit);
+
+        // The flag with an amount (or a balance) is contradictory.
+        PlannerApi.TowerReturn bad = towerReturn(MAY12_EVE, 25, true, 3_000);
+        bad.cashUnknown = true;
+        PlannerApi.Receipt refused = service.correctTower(id(), rev(), first.eventSeq, bad);
+        assertFalse(refused.ok);
+        assertEquals(CommandCheck.ZH_CASH_UNKNOWN_AMOUNT, refused.errorZh);
+
+        // Remembered later: the correction is a sample again, still one visit.
+        int block = service.rules().blockOn(TestRules.MAY_12).idx;
+        int visits = service.snapshot().observed.towerVisits[block];
+        assertTrue(service.correctTower(id(), rev(), first.eventSeq, towerReturn(MAY12_EVE, 25, false, 4_000)).ok);
+        settle();
+        assertEquals(visits, service.snapshot().observed.towerVisits[block]);
+        assertEquals("median of 4,000 / 2,000 / 9,000", 4_000, lastOptions().towerIncomePerVisit);
+    }
+
     @Test
     public void listenersAreCalledOnTheMainThread() {
         List<Thread> threads = Collections.synchronizedList(new ArrayList<>());

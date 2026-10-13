@@ -73,6 +73,7 @@ final class RulesFixtures {
         r.lockReasonsZh.put("full_moon", "满月作战");
         r.lockReasonsZh.put("exam", "期中/期末考试");
         r.lockReasonsZh.put("finale", "最终决战");
+        r.lockReasonsZh.put("christmas_date", "平安夜约会");
 
         Rules.Link fool = link(0, "fool", 0, "愚者", "特别课外活动部", Rules.LinkKind.STORY, false, "月光馆学园");
         fool.storyRankDay = new int[11];
@@ -189,6 +190,7 @@ final class RulesFixtures {
         r.lockReasonsZh.put("full_moon", "满月作战");
         r.days[60].eveLock = "finale";
         r.lockReasonsZh.put("finale", "最终决战");
+        r.lockReasonsZh.put("christmas_date", "平安夜约会");
 
         Rules.Link fool = link(X_FOOL, "fool", 0, "愚者", "特别课外活动部", Rules.LinkKind.STORY, false, "宿舍");
         fool.storyRankDay = new int[11];
@@ -329,6 +331,7 @@ final class RulesFixtures {
         r.lockReasonsZh.put("typhoon", "台风停课");
         r.lockReasonsZh.put("story", "剧情事件");
         r.lockReasonsZh.put("finale", "最终决战");
+        r.lockReasonsZh.put("christmas_date", "平安夜约会");
 
         int[] blockStart = {day(4, 21), day(5, 10), day(6, 13), day(7, 9), day(8, 8), day(9, 10), day(10, 6), day(11, 6), day(12, 3), day(1, 1), day(1, 31)};
         String[] blockZh = {"世俗之庭 台伯勒", "宽恕之庭 阿尔卡", "安息之庭 雅巴达", "斗争之庭 塔吉尔", "恩宠之庭 哈拉巴", "无慈悲之庭 亚达", "绝望之庭 乌特", "苦痛之庭 亚达姆", "试炼之庭 伊苏法", "终焉之庭 雅达姆", "最终之庭"};

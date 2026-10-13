@@ -68,6 +68,7 @@ public final class TestRules {
         r.lockReasonsZh.put("prologue", "序章剧情");
         r.lockReasonsZh.put("full_moon", "满月作战");
         r.lockReasonsZh.put("finale", "最终决战");
+        r.lockReasonsZh.put("christmas_date", "平安夜约会");
 
         r.stats = new Rules.Stat[]{stat(0, "academics", "学力"), stat(1, "charm", "魅力"), stat(2, "courage", "勇气")};
         r.links = new Rules.Link[IDS.length];
