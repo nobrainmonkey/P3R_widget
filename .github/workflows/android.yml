@@ -19,6 +19,13 @@ jobs:
         with:
           packages: 'platform-tools'
       - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Cache Robolectric SDK jars
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/p3r-toolchain/test-home/.m2/repository/org/robolectric
+          key: robolectric-4.14.1-i7-${{ hashFiles('scripts/fetch_robolectric_jars.sh') }}
+      - name: Fetch Robolectric SDK jars (with retries)
+        run: scripts/fetch_robolectric_jars.sh "${{ runner.temp }}/p3r-toolchain"
       - name: Unit tests and debug build
         working-directory: android
         env:

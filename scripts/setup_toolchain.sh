@@ -2,7 +2,7 @@
 # Fetch a self-contained build toolchain into ./.toolchain (nothing is installed system-wide):
 #   - Eclipse Temurin JDK 17
 #   - Android command-line tools, SDK Platform 35, Build-Tools 35.0.0
-#   - Gradle caches (GRADLE_USER_HOME) and Robolectric jars (test user.home) also live under .toolchain
+#   - Gradle caches (GRADLE_USER_HOME) and Robolectric's Android SDK jars (test user.home) also live under .toolchain
 # Running this script accepts the Android SDK license terms on your behalf (sdkmanager --licenses).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -49,4 +49,6 @@ mkdir -p "$ANDROID_USER_HOME" "$TC/home"
 # sdkmanager keeps its settings under ANDROID_PREFS_ROOT (only for these calls; AGP rejects it next to ANDROID_USER_HOME).
 yes | ANDROID_PREFS_ROOT="$ANDROID_USER_HOME" sdkmanager --sdk_root="$ANDROID_HOME" --licenses >/dev/null 2>&1 || true
 ANDROID_PREFS_ROOT="$ANDROID_USER_HOME" sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-35" "build-tools;35.0.0" >/dev/null
+# Robolectric's Android SDK jars for the unit tests (test user.home), so tests also run offline.
+"$ROOT/scripts/fetch_robolectric_jars.sh" "$TC"
 echo "Toolchain ready. Run: source .toolchain/env.sh"
