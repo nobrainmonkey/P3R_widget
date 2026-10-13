@@ -44,6 +44,8 @@ public final class SimState {
     public int[] shifts = new int[0];
     /** Times used per activity index (for once-only activities). */
     public int[] used = new int[0];
+    /** Link Episodes watched per track index (0..count). */
+    public int[] episodes = new int[0];
     /**
      * Player-reported rank holds: {@code heldRank[L] = r} means the game said link L cannot rank up
      * into rank r for now ("游戏提示暂时无法升级"). Meetings still add points (up to the threshold)
@@ -80,6 +82,7 @@ public final class SimState {
         s.floor = floor;
         s.shifts = shifts.clone();
         s.used = used.clone();
+        s.episodes = episodes.clone();
         s.heldRank = heldRank.clone();
         return s;
     }
@@ -103,6 +106,7 @@ public final class SimState {
         o.put("floor", floor);
         o.put("shifts", arr(shifts));
         o.put("used", arr(used));
+        o.put("episodes", arr(episodes));
         o.put("heldRank", arr(heldRank));
         return o;
     }
@@ -128,6 +132,8 @@ public final class SimState {
         s.shifts = ints(sh, sh == null ? 0 : sh.length());
         JSONArray us = o.optJSONArray("used");
         s.used = ints(us, us == null ? 0 : us.length());
+        JSONArray ep = o.optJSONArray("episodes");
+        s.episodes = ints(ep, ep == null ? 0 : ep.length());
         s.heldRank = ints(o.optJSONArray("heldRank"), LINKS);
         return s;
     }

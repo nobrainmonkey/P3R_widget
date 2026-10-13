@@ -9,12 +9,14 @@ package app.p3r.dayplanner.v3.engine;
  *   unlock:&lt;linkId&gt;:&lt;stepIdx&gt; UNLOCK_STEP
  *   act:&lt;activityId&gt;         ACTIVITY
  *   tower:&lt;blockIdx&gt;         TARTARUS
+ *   note:&lt;linkId&gt;            NOTE (dating-site note for that link, evening)
+ *   episode:&lt;trackId&gt;        EPISODE (next Link Episode of that track)
  *   free                     FREE (nothing productive is legal)
  *   locked:&lt;reasonId&gt;        LOCKED (not a choice; emitted for locked slots)
  * </pre>
  */
 public final class Action {
-    public enum Type { MEET, UNLOCK_STEP, ACTIVITY, TARTARUS, FREE, LOCKED }
+    public enum Type { MEET, UNLOCK_STEP, ACTIVITY, TARTARUS, FREE, LOCKED, NOTE, EPISODE }
 
     public final Type type;
     /** Link index (MEET/UNLOCK_STEP), activity index (ACTIVITY), block index (TARTARUS), else -1. */
@@ -35,6 +37,8 @@ public final class Action {
     public static Action unlock(int link, int step) { return new Action(Type.UNLOCK_STEP, link, step, null); }
     public static Action activity(int activity) { return new Action(Type.ACTIVITY, activity, -1, null); }
     public static Action tower(int block) { return new Action(Type.TARTARUS, block, -1, null); }
+    public static Action note(int link) { return new Action(Type.NOTE, link, -1, null); }
+    public static Action episode(int track) { return new Action(Type.EPISODE, track, -1, null); }
     public static Action free() { return new Action(Type.FREE, -1, -1, null); }
     public static Action locked(String reason) { return new Action(Type.LOCKED, -1, -1, reason); }
 
@@ -47,6 +51,8 @@ public final class Action {
             case UNLOCK_STEP: return "unlock:" + rules.links[target].id + ":" + step;
             case ACTIVITY: return "act:" + rules.activities[target].id;
             case TARTARUS: return "tower:" + target;
+            case NOTE: return "note:" + rules.links[target].id;
+            case EPISODE: return "episode:" + rules.episodes[target].id;
             case LOCKED: return "locked:" + reason;
             default: return "free";
         }
@@ -59,6 +65,15 @@ public final class Action {
             if (key.equals("free")) return free();
             if (key.startsWith("locked:")) return locked(key.substring(7));
             if (key.startsWith("tower:")) return tower(Integer.parseInt(key.substring(6)));
+            if (key.startsWith("note:")) {
+                app.p3r.dayplanner.v3.model.Rules.Link l = rules.link(key.substring(5));
+                return l == null ? null : note(l.idx);
+            }
+            if (key.startsWith("episode:")) {
+                String id = key.substring(8);
+                for (app.p3r.dayplanner.v3.model.Rules.Episode e : rules.episodes) if (e.id.equals(id)) return episode(e.idx);
+                return null;
+            }
             if (key.startsWith("act:")) {
                 app.p3r.dayplanner.v3.model.Rules.Activity a = rules.activity(key.substring(4));
                 return a == null ? null : activity(a.idx);

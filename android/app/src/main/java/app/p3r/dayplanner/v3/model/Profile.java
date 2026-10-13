@@ -14,6 +14,8 @@ public final class Profile {
     public enum Tier { NONE, WANT, MUST }
     public enum AnswerPolicy { BEST, NONE }
     public enum Route { UNDECIDED, FRIEND, ROMANCE }
+    /** Matching-arcana Persona carried on meetings: never, only for goal links, or (almost) always. */
+    public enum PersonaMode { NONE, GOALS, ALL }
 
     public static final int LINKS = 22;
 
@@ -27,8 +29,17 @@ public final class Profile {
 
     /** "其余社群也尽量提升" — secondary optimisation of non-goal links. */
     public boolean otherLinks = true;
-    /** Player declares they usually carry a matching-arcana Persona (×1.51). */
+    /**
+     * Deprecated mirror of {@code personaMode == ALL}; kept so older code and backups still read.
+     * New code uses {@link #personaMode} / {@link #personaFor(int)}.
+     */
     public boolean personaBonus = false;
+    /** Which meetings get the matching-Persona ×1.51 (default NONE: conservative). */
+    public PersonaMode personaMode = PersonaMode.NONE;
+    /** Allow evening dating-site notes for established links (from mid-November). */
+    public boolean datingNotes = true;
+    /** Link Episode track ids the player wants scheduled (opt-in). */
+    public String[] episodeTracks = new String[0];
     /** Apply the Charm Lv6 ×1.51 bonus once (forecast) Charm reaches Lv6. */
     public boolean charmBonus = true;
     /** Explicit goals get one extra ordinary meeting of margin per point-gated rank. */
@@ -50,6 +61,22 @@ public final class Profile {
     }
 
     public boolean isGoal(int link) { return tier[link] != Tier.NONE; }
+
+    /** True if meetings with this link get the matching-Persona bonus under the current mode. */
+    public boolean personaFor(int link) {
+        PersonaMode mode = effectivePersonaMode();
+        return mode == PersonaMode.ALL || (mode == PersonaMode.GOALS && isGoal(link));
+    }
+
+    /** {@link #personaMode}, honouring the legacy boolean when the mode was never set. */
+    public PersonaMode effectivePersonaMode() {
+        return personaMode == PersonaMode.NONE && personaBonus ? PersonaMode.ALL : personaMode;
+    }
+
+    public boolean wantsEpisodes(String trackId) {
+        for (String s : episodeTracks) if (s.equals(trackId)) return true;
+        return false;
+    }
 
     public boolean hasAnyGoal() {
         for (Tier t : tier) if (t != Tier.NONE) return true;
@@ -79,7 +106,12 @@ public final class Profile {
         o.put("schema", "p3r.profile.v3");
         o.put("links", goals);
         o.put("otherLinks", otherLinks);
-        o.put("personaBonus", personaBonus);
+        o.put("personaBonus", effectivePersonaMode() == PersonaMode.ALL);
+        o.put("personaMode", effectivePersonaMode().name());
+        o.put("datingNotes", datingNotes);
+        JSONArray eps = new JSONArray();
+        for (String s : episodeTracks) eps.put(s);
+        o.put("episodeTracks", eps);
         o.put("charmBonus", charmBonus);
         o.put("goalBuffer", goalBuffer);
         o.put("answers", answers.name());
@@ -106,6 +138,14 @@ public final class Profile {
         }
         p.otherLinks = o.optBoolean("otherLinks", true);
         p.personaBonus = o.optBoolean("personaBonus", false);
+        p.personaMode = PersonaMode.valueOf(o.optString("personaMode", p.personaBonus ? "ALL" : "NONE"));
+        p.personaBonus = p.personaMode == PersonaMode.ALL;
+        p.datingNotes = o.optBoolean("datingNotes", true);
+        JSONArray eps = o.optJSONArray("episodeTracks");
+        if (eps != null) {
+            p.episodeTracks = new String[eps.length()];
+            for (int i = 0; i < eps.length(); i++) p.episodeTracks[i] = eps.getString(i);
+        }
         p.charmBonus = o.optBoolean("charmBonus", true);
         p.goalBuffer = o.optBoolean("goalBuffer", true);
         p.answers = AnswerPolicy.valueOf(o.optString("answers", "BEST"));

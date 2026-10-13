@@ -38,6 +38,10 @@ public final class Rules {
     public Stat[] stats = new Stat[0];
     public Block[] blocks = new Block[0];
     public Rescue[] rescues = new Rescue[0];
+    /** Optional Link Episode tracks (male SEES members etc.), in a stable order. */
+    public Episode[] episodes = new Episode[0];
+    /** Dating-site note (evening points for an established link), or null when not modelled. */
+    public DatingNote datingNote;
     public Map<String, String> lockReasonsZh = new HashMap<>();
     public Policy policy = new Policy();
     public List<Source> sources = new ArrayList<>();
@@ -301,6 +305,52 @@ public final class Rules {
         public int toDay;
         /** Link that is lost if this rescue fails, or -1. */
         public int link = -1;
+    }
+
+    /**
+     * A Link Episode track (P3R replaces the male SEES Social Links with these). Episodes are watched
+     * in order; each consumes one slot of its kind on a day whose cell allows that episode number.
+     * They give items/characteristics, never Social Link points.
+     */
+    public static final class Episode {
+        public int idx;
+        /** Stable id, e.g. "junpei". */
+        public String id;
+        /** Character name, e.g. "伊织顺平". */
+        public String personZh;
+        /** Display title, e.g. "羁绊剧场 · 伊织顺平". */
+        public String titleZh;
+        public boolean evening;
+        /** Number of episodes in the track. */
+        public int count;
+        /** dayMask[day] bit (n-1) set → episode n can be watched that day (0 = none). Sized lastDay+1. */
+        public int[] dayMask = new int[0];
+        public String locationZh;
+        /** What finishing the track gives, in plain Chinese (optional). */
+        public String rewardZh;
+        public String noteZh;
+        public String conf;
+        public List<String> src = new ArrayList<>();
+
+        public boolean allows(int day, int episodeNumber) {
+            return day >= 0 && day < dayMask.length && episodeNumber >= 1 && (dayMask[day] & (1 << (episodeNumber - 1))) != 0;
+        }
+    }
+
+    /**
+     * Dating-site note: buy at the club and use on the dorm PC in the same evening to add points to
+     * one established, non-MAX link without meeting them. Never ranks the link up by itself.
+     */
+    public static final class DatingNote {
+        public String zh;
+        public String howZh;
+        public String locationZh;
+        public int fromDay;
+        public int cost;
+        /** Points added (estimate; multipliers are NOT applied). */
+        public int gain;
+        public String conf;
+        public List<String> src = new ArrayList<>();
     }
 
     public static final class Policy {
