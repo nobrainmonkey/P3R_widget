@@ -43,7 +43,7 @@ public final class Stepper extends LinearLayout {
         this.max = Math.max(min, max);
         minus = stepButton(context, R.drawable.ui_ic_minus, "减少", -1);
         plus = stepButton(context, R.drawable.ui_ic_plus, "增加", +1);
-        label = Ui.numeral(context, "", 28, Ui.col(context, R.color.p3r_white));
+        label = Ui.text(context, "", 24, Ui.col(context, R.color.p3r_white), true);
         label.setGravity(Gravity.CENTER);
         label.setMinWidth(Ui.dp(context, 88));
         addView(minus);
@@ -86,7 +86,7 @@ public final class Stepper extends LinearLayout {
     }
 
     private void render() {
-        label.setText(formatter.apply(value));
+        label.setText(Ui.latin(getContext(), formatter.apply(value)));
         label.setContentDescription(formatter.apply(value));
         minus.setEnabled(value > min);
         minus.setAlpha(value > min ? 1f : 0.35f);

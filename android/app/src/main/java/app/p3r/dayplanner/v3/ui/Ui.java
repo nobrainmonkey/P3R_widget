@@ -5,7 +5,11 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.text.TextUtils;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.RelativeSizeSpan;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -124,6 +128,20 @@ public final class Ui {
     /** Applies the numeral face to Latin runs inside a mixed string. */
     public static CharSequence latin(Context context, CharSequence value) {
         return NumeralSpan.styleLatinRuns(value, numerals(context), 1.14f);
+    }
+
+    /**
+     * "25,050 日元" with the number in the numeral face and a smaller upright cyan unit; the
+     * view's own typeface stays the CJK default so the unit is never slanted.
+     */
+    public static CharSequence money(Context context, String number) {
+        SpannableStringBuilder sb = new SpannableStringBuilder(latin(context, number));
+        int start = sb.length();
+        sb.append(" 日元");
+        sb.setSpan(new RelativeSizeSpan(0.55f), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        sb.setSpan(new ForegroundColorSpan(col(context, R.color.p3r_cyan_300)), start, sb.length(),
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return sb;
     }
 
     public static TextView title(Context context, CharSequence value) {

@@ -376,10 +376,18 @@ public final class ResultActivity extends Activity {
         return ok;
     }
 
+    /** Two equal buttons side by side; long labels shrink a little so both stay one line. */
     private LinearLayout pair(TextView left, TextView right) {
         LinearLayout row = Ui.row(this);
-        row.addView(left, Ui.weight(1));
-        LinearLayout.LayoutParams rp = Ui.weight(1);
+        row.setBaselineAligned(false);
+        for (TextView button : new TextView[]{left, right}) {
+            if (button.getText().length() > 6) {
+                button.setTextSize(15);
+                Ui.pad(button, 10, 8, 10, 8);
+            }
+        }
+        row.addView(left, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1));
+        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1);
         rp.leftMargin = Ui.dp(this, 12);
         row.addView(right, rp);
         return row;
@@ -447,7 +455,9 @@ public final class ResultActivity extends Activity {
     private void socialRankUp(Plan.Step step) {
         int from = Math.max(0, step.predicted.rankFrom);
         int to = step.predicted.rankTo > 0 ? step.predicted.rankTo : from + 1;
-        body.addView(question(Zh.rankStep(from, to) + "？"), top(4));
+        body.addView(question("升到 " + Zh.rank(to) + " 了吗？"), top(4));
+        body.addView(Ui.mixed(this, "现在是 " + Zh.rank(from) + "，这次见面预计会升级。", 14,
+            Ui.col(this, R.color.p3r_ink_muted), false), top(2));
         String dialogue = Dialogue.line(rules, step);
         if (dialogue != null) {
             body.addView(Ui.body(this, dialogue), top(6));
@@ -709,15 +719,19 @@ public final class ResultActivity extends Activity {
     private void cannotPanel(Plan.Step step) {
         body.addView(question("这个时段没能按计划进行？"), top(4));
         body.addView(Ui.muted(this, "选一个原因，这个时段就算过去了，后面的安排会重新调整。"), top(4));
+        List<TextView> buttons = new ArrayList<>();
         for (String reason : Outcomes.SKIP_REASONS.keySet()) {
-            String label = Outcomes.SKIP_REASONS.get(reason);
-            TextView button = Ui.secondary(this, label);
+            TextView button = Ui.secondary(this, Outcomes.SKIP_REASONS.get(reason));
             button.setOnClickListener(v -> onSkipReason(step, reason));
-            body.addView(button, top(10));
+            buttons.add(button);
         }
-        TextView other = Ui.quiet(this, "其实做了别的事 ›");
+        TextView other = Ui.secondary(this, "改做了别的…");
+        other.setTextColor(Ui.col(this, R.color.p3r_cyan_300));
         other.setOnClickListener(v -> switchToOther());
-        body.addView(other, top(12));
+        buttons.add(other);
+        for (int i = 0; i < buttons.size(); i += 2) {
+            body.addView(pair(buttons.get(i), buttons.get(i + 1)), top(i == 0 ? 16 : 12));
+        }
     }
 
     private void onSkipReason(Plan.Step step, String reason) {
@@ -766,7 +780,7 @@ public final class ResultActivity extends Activity {
 
     private void otherPanel(Plan.Step planned) {
         body.addView(question("这个时段做了什么？"), top(4));
-        body.addView(Ui.muted(this, "按推进进度的多少排序，越靠前越划算。"), top(4));
+        body.addView(Ui.muted(this, "标着「原计划」的是规划认为最划算的一项。选你实际做的那件事，后面会照着重新安排。"), top(4));
         List<Plan.Step> list = alternatives == null ? new ArrayList<>() : alternatives;
         if (list.isEmpty()) {
             body.addView(Ui.body(this, "这个时段没有其他能推进进度的事。"), top(12));

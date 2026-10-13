@@ -49,6 +49,7 @@ final class TodayPage {
         root.addView(art, artParams);
         scroll = new ScrollView(c);
         scroll.setClipToPadding(false);
+        scroll.setVerticalScrollBarEnabled(false);
         column = Ui.column(c);
         Ui.pad(column, Ui.GUTTER, 8, Ui.GUTTER, 24);
         scroll.addView(column, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -111,7 +112,7 @@ final class TodayPage {
     // ------------------------------------------------------------------ welcome (no state yet)
 
     private void buildWelcome() {
-        column.addView(Ui.gap(c, 120));
+        column.addView(Ui.gap(c, 96));
         TextView title = Ui.text(c, "从现在的存档开始", 28, Ui.col(c, R.color.p3r_white), true);
         column.addView(title);
         TextView body = Ui.body(c, "告诉我游戏里现在的进度和你想要的社群，我会把到 1月31日 为止的每个"
@@ -121,8 +122,33 @@ final class TodayPage {
         TextView start = Ui.primary(c, "开始设置");
         start.setOnClickListener(v -> host.openState("onboarding"));
         column.addView(start, spaced(28));
-        TextView hint = Ui.muted(c, "大约需要 2 分钟：选目标 → 日期 → 现金 → 个人能力值 → 社群 RANK。");
+        TextView hint = Ui.muted(c, "大约需要 2 分钟，所有内容之后都能修改。");
         column.addView(hint, spaced(12));
+        String[][] steps = {
+            {"1", "选目标", "想把哪些社群练到 MAX，分「想要」和「必须」。"},
+            {"2", "对照游戏填进度", "日期、现金、个人能力值和社群 RANK，点选即可。"},
+            {"3", "照着做，点「完成」", "结果和预计不同时说一声，后面的安排会自动调整。"},
+        };
+        for (String[] s : steps) {
+            column.addView(welcomeStep(s[0], s[1], s[2]), spaced(12));
+        }
+    }
+
+    private View welcomeStep(String number, String title, String body) {
+        LinearLayout row = Ui.row(c);
+        row.setGravity(Gravity.TOP);
+        row.setBackground(Ui.card(c));
+        Ui.pad(row, 16, 12, 16, 12);
+        TextView n = Ui.numeral(c, number, 30, Ui.col(c, R.color.p3r_cyan_400));
+        n.setMinWidth(Ui.dp(c, 32));
+        row.addView(n, Ui.wrap());
+        LinearLayout texts = Ui.column(c);
+        texts.addView(Ui.text(c, title, 16, Ui.col(c, R.color.p3r_white), true));
+        texts.addView(Ui.muted(c, body));
+        LinearLayout.LayoutParams tp = Ui.weight(1);
+        tp.leftMargin = Ui.dp(c, 8);
+        row.addView(texts, tp);
+        return row;
     }
 
     // ------------------------------------------------------------------ banners and status
@@ -200,13 +226,12 @@ final class TodayPage {
         Ui.pad(card, 16, 12, 16, 12);
         LinearLayout row = Ui.row(c);
         row.setGravity(Gravity.TOP);
-        String cash;
-        if (obs.cashExact) {
-            cash = Zh.number(obs.cash);
+        if (obs.cashExact || obs.cash > 0) {
+            String cash = (obs.cashExact ? "" : "≥") + Zh.number(obs.cash);
+            row.addView(cell("现金", cash, "日元"), Ui.weight(1.6f));
         } else {
-            cash = obs.cash > 0 ? "≥" + Zh.number(obs.cash) : "未填";
+            row.addView(cell("现金", null, "不确定"), Ui.weight(1.6f));
         }
-        row.addView(cell("现金", cash, "日元"), Ui.weight(1.6f));
         for (int i = 0; i < Math.min(3, rules.stats.length); i++) {
             int lv = rules.stats[i].levelFor(obs.statPts[i]);
             row.addView(cell(rules.stats[i].zh, Zh.lv(lv), null), Ui.weight(1));
@@ -223,18 +248,22 @@ final class TodayPage {
         return card;
     }
 
+    /** A resource cell; a null {@code value} shows {@code unit} as plain text ("不确定"). */
     private View cell(String label, String value, String unit) {
         LinearLayout cell = Ui.column(c);
         TextView caption = Ui.text(c, label, 12, Ui.col(c, R.color.p3r_ink_muted), false);
         cell.addView(caption);
         LinearLayout valueRow = Ui.row(c);
         valueRow.setGravity(Gravity.BOTTOM);
-        TextView number = Ui.numeral(c, value, 24, Ui.col(c, R.color.p3r_white));
-        if (value.length() > 2 && !value.startsWith("Lv") && value.chars().anyMatch(ch -> ch > 0x2E80)) {
-            number = Ui.text(c, value, 15, Ui.col(c, R.color.p3r_ink_muted), true);
+        if (value == null) {
+            valueRow.addView(Ui.text(c, unit, 16, Ui.col(c, R.color.p3r_ink_muted), true), Ui.wrap());
+            cell.addView(valueRow);
+            cell.setContentDescription(label + " " + unit);
+            return cell;
         }
+        TextView number = Ui.numeral(c, value, 24, Ui.col(c, R.color.p3r_white));
         valueRow.addView(number, Ui.wrap());
-        if (unit != null && !value.equals("未填")) {
+        if (unit != null) {
             TextView u = Ui.text(c, unit, 11, Ui.col(c, R.color.p3r_cyan_300), true);
             LinearLayout.LayoutParams up = Ui.wrap();
             up.leftMargin = Ui.dp(c, 3);
@@ -300,7 +329,9 @@ final class TodayPage {
         TextView title = Ui.mixed(c, SlotRows.title(d.rules, step), 24, Ui.col(c, R.color.p3r_white), true);
         card.addView(title, spaced(10));
         String subtitle = SlotRows.subtitle(step);
-        if (!subtitle.isEmpty()) {
+        if (kind == StepKind.LOCKED) {
+            card.addView(Ui.muted(c, "这个时段由剧情安排，游戏里过完后点「继续」。"), spaced(4));
+        } else if (!subtitle.isEmpty()) {
             LinearLayout subRow = Ui.row(c);
             TextView sub = Ui.mixed(c, subtitle, 20, Ui.col(c, R.color.p3r_cyan_400), true);
             subRow.addView(sub, Ui.wrap());
@@ -350,8 +381,10 @@ final class TodayPage {
         }
         TextView cannot = Ui.secondary(c, "做不了/改做别的");
         cannot.setTextSize(15);
+        cannot.setSingleLine(true);
+        Ui.pad(cannot, 10, 8, 10, 8);
         cannot.setOnClickListener(v -> host.openResult(step.slot, step.action, Intents.MODE_CANNOT));
-        row.addView(cannot, Ui.weight(1));
+        row.addView(cannot, Ui.weight(1.3f));
         TextView done = Ui.primary(c, "完成 ✓");
         done.setContentDescription("完成，记录结果");
         done.setOnClickListener(v -> {

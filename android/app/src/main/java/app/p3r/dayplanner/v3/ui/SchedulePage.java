@@ -59,6 +59,7 @@ final class SchedulePage {
         list.setDividerHeight(Ui.dp(c, 8));
         list.setSelector(android.R.color.transparent);
         list.setClipToPadding(false);
+        list.setVerticalScrollBarEnabled(false);
         list.setPadding(Ui.dp(c, Ui.GUTTER), Ui.dp(c, 8), Ui.dp(c, Ui.GUTTER), Ui.dp(c, 24));
         list.setAdapter(adapter);
         root.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -101,8 +102,7 @@ final class SchedulePage {
             int today = Rules.dayOf(Math.max(d.currentSlot(), plan.fromSlot));
             for (int i = 0; i < items.size(); i++) {
                 if (items.get(i).type == TYPE_DAY && items.get(i).day == today) {
-                    int position = Math.max(0, i - 1);
-                    list.setSelection(position);
+                    list.setSelection(i <= 3 ? 0 : i - 1);
                     break;
                 }
             }

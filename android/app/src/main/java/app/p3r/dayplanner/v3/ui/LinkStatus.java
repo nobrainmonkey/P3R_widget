@@ -75,6 +75,12 @@ public final class LinkStatus {
         } else if (plan == null) {
             foot = "等待安排";
             chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(target);
+        } else if (projected >= target) {
+            foot = target >= 10 ? "预计 1月31日前 MAX" : "预计达到 " + Zh.rank(target);
+            chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(target);
+        } else if (!goal && projected <= obs) {
+            foot = obs == 0 ? "这次计划里暂不建立" : "这次计划里暂不提升";
+            chip = name + " " + Zh.rankValue(obs);
         } else {
             String end = "到 " + Zh.date(Rules.dayOf(plan.toSlot)) + " 预计 " + Zh.rank(projected);
             String blocker = goal ? higherPriorityBlocker(rules, profile, plan, linkIdx) : null;

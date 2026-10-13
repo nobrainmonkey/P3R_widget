@@ -32,6 +32,7 @@ final class LinksPage {
         this.c = host.activity();
         scroll = new ScrollView(c);
         scroll.setClipToPadding(false);
+        scroll.setVerticalScrollBarEnabled(false);
         column = Ui.column(c);
         Ui.pad(column, Ui.GUTTER, 8, Ui.GUTTER, 24);
         scroll.addView(column, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -53,7 +54,7 @@ final class LinksPage {
         TextView title = Ui.text(c, "社群", 28, Ui.col(c, R.color.p3r_white), true);
         Ui.pad(title, 0, 8, 0, 0);
         column.addView(title);
-        TextView hint = Ui.muted(c, "点卡片右上角切换「想要」「必须」。必须 > 想要 > 其余社群，按下面的顺序优先安排。");
+        TextView hint = Ui.muted(c, "点卡片右上角的标签，在「想要」「必须」之间切换。目标按下面的顺序优先安排。");
         column.addView(hint, spaced(4));
 
         List<Integer> goals = LinkStatus.goalOrder(profile);

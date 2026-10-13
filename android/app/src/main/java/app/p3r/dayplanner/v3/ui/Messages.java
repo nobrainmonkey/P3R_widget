@@ -5,7 +5,7 @@ import app.p3r.dayplanner.v3.service.PlannerApi;
 /** User-facing Chinese messages for save results; never shows raw exception text. */
 final class Messages {
     static final String GENERIC_ERROR = "没能保存，请再试一次。";
-    static final String STALE = "安排已更新，请按最新的一项再确认一次。";
+    static final String STALE = "安排刚刚更新了，请再确认一次。";
 
     private Messages() {}
 

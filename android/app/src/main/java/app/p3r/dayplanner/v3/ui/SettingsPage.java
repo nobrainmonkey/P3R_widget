@@ -29,7 +29,7 @@ final class SettingsPage {
         LinearLayout column = Ui.column(c);
 
         column.addView(Ui.sectionHeader(c, "社群点数", null));
-        column.addView(toggle(host, "约会时带着同阿尔卡那的人格面具",
+        column.addView(toggle(host, "带同阿尔卡那的人格面具",
             "带着时社群点数 ×1.51。拿不准就关掉，计划会更保守。", p.personaBonus,
             (q, on) -> q.personaBonus = on), gapTop(c, 4));
         column.addView(toggle(host, "魅力 Lv.6 后的加成",

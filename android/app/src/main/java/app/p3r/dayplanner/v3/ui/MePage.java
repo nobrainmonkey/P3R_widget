@@ -43,6 +43,7 @@ final class MePage {
         this.c = host.activity();
         scroll = new ScrollView(c);
         scroll.setClipToPadding(false);
+        scroll.setVerticalScrollBarEnabled(false);
         column = Ui.column(c);
         Ui.pad(column, Ui.GUTTER, 8, Ui.GUTTER, 24);
         scroll.addView(column, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -66,7 +67,7 @@ final class MePage {
         if (!d.hasState()) {
             status = "还没有设置游戏进度";
         } else {
-            status = "游戏进度：" + Zh.slot(d.rules, d.currentSlot()) + " · 本轮记录 " + d.snap.eventsSinceCheckpoint + " 条";
+            status = "游戏进度：" + Zh.slot(d.rules, d.currentSlot()) + " · 已记录 " + d.snap.eventsSinceCheckpoint + " 条";
         }
         column.addView(Ui.mixed(c, status, 13, Ui.col(c, R.color.p3r_ink_muted), false), spaced(4));
 

@@ -82,7 +82,7 @@ final class TowerPanel extends LinearLayout {
         cashMode.segment(0).setContentDescription("填写出塔后的现在余额");
         cashMode.segment(1).setContentDescription("填写这次进塔的现金增减");
         addView(cashMode, spaced(c, 6));
-        amountView = Ui.numeral(c, "", 30, Ui.col(c, R.color.p3r_white));
+        amountView = Ui.text(c, "", 26, Ui.col(c, R.color.p3r_white), true);
         amountView.setGravity(Gravity.CENTER_VERTICAL | Gravity.END);
         amountView.setMinHeight(Ui.dp(c, 56));
         Ui.pad(amountView, 16, 4, 16, 4);
@@ -114,6 +114,7 @@ final class TowerPanel extends LinearLayout {
 
         levelToggle = Ui.quiet(c, "＋ 记录主角等级（可选）");
         levelToggle.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        levelToggle.setPadding(0, levelToggle.getPaddingTop(), 0, levelToggle.getPaddingBottom());
         levelToggle.setOnClickListener(v -> setLevelOn(!levelOn));
         addView(levelToggle, spaced(c, 12));
         levelBox = Ui.column(c);
@@ -208,16 +209,14 @@ final class TowerPanel extends LinearLayout {
         Context c = getContext();
         if (amount == null) {
             amountView.setText("点这里输入");
-            amountView.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
             amountView.setTextSize(16);
             amountView.setTextColor(Ui.col(c, R.color.p3r_cyan_300));
         } else {
-            amountView.setTypeface(Ui.numerals(c));
-            amountView.setTextSize(30);
+            amountView.setTextSize(26);
             amountView.setTextColor(Ui.col(c, R.color.p3r_white));
             String number = Zh.number(Math.abs(amount));
             String sign = balanceMode() ? "" : (amount < 0 ? "−" : "+");
-            amountView.setText(sign + number + " 日元");
+            amountView.setText(Ui.money(c, sign + number));
         }
         amountView.setContentDescription((balanceMode() ? "现在余额 " : "本次增减 ")
             + (amount == null ? "未填写，点按输入" : Zh.yen(amount)));
