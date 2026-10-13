@@ -1,0 +1,459 @@
+[
+ {
+  "section": "outcome_objective",
+  "items": [
+   {
+    "requirement": "Required test runs: PlanRealPackTest (-i) and EndToEndRealPackTest on the real rule pack, with the printed numbers",
+    "status": "met",
+    "evidence": "Re-run independently with no other Gradle job running: `./gradlew --offline --no-daemon :app:testDebugUnitTest --tests '*PlanRealPackTest' --tests '*EndToEndRealPackTest' --tests '*PlannerTest' --tests '*PlanValidatorTest' -i` gave BUILD SUCCESSFUL in 37s. Log: scratchpad/recheck_oo/run.log.\n\nXML in android/app/build/test-results/testDebugUnitTest:\n- PlanRealPackTest: tests=9, failures=0, errors=0, 17.2 s\n- EndToEndRealPackTest: tests=1, failures=0, 8.07 s\n- PlannerTest: 23/23\n- PlanValidatorTest: 10/10\n\nPrinted numbers match the earlier claim; only the timings differ:\n- 皇帝 MUST: 572 steps, 458 useful, 1 free, 113 locked, last useful 1月31日 白天, 21/22 maxed, 666 ms, 皇帝 MAX 6月29日 白天, cash on 12/1 ¥910.\n- No Persona: 454 useful, 22/22, 646 ms.\n- Persona for every link: 445 useful, 22/22, 593 ms, 'legacy guide maxes 22/22 … this plan maxes 22/22'.\n- Mid-game 10/22: 204 steps, 169 useful, 0 free, 12/22, 166 ms, end cash 220. Unlocks: justice 11月14日, devil 1月12日, lovers 1月25日.\n- GOALS Persona: 450 useful, 21/22, 37 steps with the Persona hint.\n- Link Episodes: junpei 5/5, akihiko 5/5, koromaru 5/5, ken 5/5, shinjiro 4/4.\n- Dating notes: 22/22 with 15 notes; 22/22 with 8 notes; 皇帝 MUST 21/22 with 17 notes.\n- Side steps: 10.\n- EndToEnd: '[onboarding] steps 572 useful 453 maxed 21/22 elapsed 892 ms'; 'followed plan: 414 useful actions'."
+   },
+   {
+    "requirement": "Player selects which Social Links to maximise and their priorities",
+    "status": "met",
+    "evidence": "Data: Profile.tier, order and target (Profile.java:22-27).\nEngine: MUST and WANT weights are ordered by within-tier position (Heuristics.java:265; tierOrder at 362).\nUI:\n- Onboarding: qa_out/device/02_goals.png and 03_goal_must.png show '想把哪些社群练到 MAX？', tap to cycle 想要/必须, Arcana + name + gender cards, and 尽量全部 MAX.\n- 社群 tab: qa_out/device/r2_25_links.png shows a '目标顺序' list with up/down arrows (LinksPage.goalRow, Goals.move).\nTests: UiLogicTest.goalCyclingAndOrdering and HomeBehaviorTest.goalOrderArrowsSwap both pass in my run (UiLogicTest 23/23, HomeBehaviorTest 18/18).\nCaveat: the engine does not reliably honour the order (see the priority-order item), but the player can select and rank goals."
+   },
+   {
+    "requirement": "Player enters current visible game state",
+    "status": "met",
+    "evidence": "The StateActivity wizard pages are GOALS, PERSONA, SYNC_INTRO, DATE, CASH, STATS, LINKS, UNLOCK (only when relevant), EPISODES (only when opted in), TOWER and CONFIRM (StateSteps.java:24, 53-79).\nScreenshots exist: qa_out/device/05_date.png, 06_cash.png, 07_stats.png, 08_links.png (RANK grid with a '?' keep-old option), and r2_13_tower.png (highest floor, visits this block, rescue questions).\nStateWizardTest.onboardingEveryPage passes (StateWizardTest 13/13 in my run)."
+   },
+   {
+    "requirement": "Useful day-by-day plan covering every 白天/晚上 slot of the remaining calendar",
+    "status": "met",
+    "evidence": "How it is built: Planner.assemble emits one step per slot from start.slot to t.lastSlot, locked slots included (Planner.java:564-613). PlanValidator rejects a wrong start or step count (PlanValidator.java:123-127).\nTest checks: PlanRealPackTest.run asserts steps == lastSlot-start+1, lastUsefulSlot in the last two weeks, and no budget exhaustion (lines 363-376). EndToEndRealPackTest.settledPlan asserts toSlot == lastSlot after every write.\nMy run: 572 steps from 4/21 and 204 from 10/22, last useful slot 1月31日 白天 in every scenario. My re-run probe of a 1/10 new game: 44 steps, last useful slot 610 of 611, validation clean.\nUI: qa_out/device/14_schedule.png shows '覆盖至1月31日 · 有效安排 440 项 · 空闲 18 个时段'."
+   },
+   {
+    "requirement": "Simulate consequences of every action: money, stats, affinity estimates, ranks, prerequisites, dates, Tartarus",
+    "status": "met",
+    "evidence": "Kernel.java covers each item:\n- meet (568-617): points and rank-ups with Persona and Charm multipliers.\n- activity (684-704): cost, job pay tiers via payFor(shift), stat points.\n- unlock (658-682): fees and steps.\n- tower (706-728): visits per block and rescues.\n- advance/rollover (731-755): dates, story ranks, rescue deadlines, automatic unlocks.\n- prereqsMet (248).\nPlanValidator.java:10-25 states that it is an independent accumulator sharing no code with Kernel, and that it checks predicted ranks and cash against its own recount. Every real-pack plan validates with no errors or warnings.\nCaveat: Tartarus floor progress and tower cash are not forecast. Tower income is 0 by default, or the median of recorded returns (DESIGN_v3 §10.4; PlannerServiceReplanTest.towerIncomeIsTheMedianOfRecordedReturns passes). The handoff only asks for Tartarus visits, so this does not block the item."
+   },
+   {
+    "requirement": "Forecast changes enable later actions in the same plan",
+    "status": "met",
+    "evidence": "midGameOctober22 starts at ¥1,000 with Charm Lv3. It asserts that justice, devil, tower, moon, temperance, star and aeon all open.\nPrinted unlock dates (my run): devil=1月12日 (needs Charm Lv4 and ¥20,000+¥10,000+¥10,000), lovers=1月25日 (Charm trained to Lv6), justice=11月14日, moon=11月7日, tower=12月10日.\nAlso passing: PlanRealPackTest.multiStepUnlocksComplete and devilChainOnTheRealPack, and PlannerTest.jobsFundPaidUnlocksWithoutOverspending."
+   },
+   {
+    "requirement": "Do not stop after the first uncertain meeting; no repeated full-state entry to see further dates",
+    "status": "met",
+    "evidence": "My re-run of the estimates probe (scratchpad/recheck_oo/src/Probe.java, mode 'estimates') on the default new-game plan gave 59 certain rank-ups, 112 estimated rank-ups and 42 ordinary no-rank-up meetings, and the plan still runs to 1/31.\nThe midGameOctober22 log shows many '见面（预计不升级）… ≈' steps followed by later planned rank-ups.\nPlanRealPackTest asserts assertFalse(plan.budgetExhausted) and a last useful slot in the final two weeks.\n14_schedule.png shows the full horizon with '带「≈」的升级是估计'."
+   },
+   {
+    "requirement": "Player may ignore suggestions, return weeks later, edit state and regenerate without reconstructing missed actions",
+    "status": "met",
+    "evidence": "EndToEndRealPackTest.followDeviateCorrectAndSyncKeepsEveryPlanValidAndComplete passes. It advances 42 slots with Engine.advanceTo, changes magician rank and cash to ¥12,000, saves with saveCheckpoint, and asserts the new plan starts at or after the new slot, validates, and covers to the last slot.\nSync page (StateSteps.java:313-323): '这段时间基本照着安排玩了吗？' with 是/一部分/否 prefill options. StateWizardTest.syncAnsweredYesPrefillsForecastAndShowsDiff passes.\nReturn banner: TodayPage.java:172 '上次记录：… · 游戏进度变了吗？'. UiLogicTest.returnBannerAfterEightHours passes.\nCatch-up sheet (ResultActivity.java:1179-1215): 都照安排做完了 / 逐项核对 / 前面的都没做, shown in qa_out/device/r2_20_schedule.png ('前面还有 1 项没记录')."
+   },
+   {
+    "requirement": "Existing values remain filled in; only changed fields need editing",
+    "status": "met",
+    "evidence": "StateDraft stores only edits (null = untouched); untouched values keep their hidden estimates (StateDraft.java:11-19 javadoc).\nAll of these pass in my runs (UiLogicTest 23/23, StateWizardTest 13/13, ProfileChangeReplayTest 3/3):\n- UiLogicTest.untouchedDraftKeepsHiddenEstimates: pts and statPts are kept.\n- UiLogicTest.changedValuesResetOnlyTheirOwnEstimates.\n- UiLogicTest.cashUnknownIsNotZero.\n- UiLogicTest.syncYesWithUnknownRankKeepsTheRecord.\n- StateWizardTest.unchangedEditJustCloses: no saveCheckpoint call.\n- StateWizardTest.draftSurvivesRecreationAndProcessDeath.\n- StateWizardTest.casConflictKeepsEditsAndAsksAgain: asserts '你填的内容都还在' and the cash is kept.\n- ProfileChangeReplayTest.confirmedRanksAndHistorySurviveProfileChanges."
+   },
+   {
+    "requirement": "Hard constraints: story/calendar locks, prerequisites, affordability, time-slot exclusivity",
+    "status": "met",
+    "evidence": "Kernel enforces them:\n- Kernel.legal returns 0 on locked slots (Kernel.java:263-292). Meetings come only from meetMask, which is built from per-day availability and invitations (Tables.buildMeetCell 254-263).\n- unlockGroup checks earliest day, prerequisites, minGapDays and the summed fees (353-372).\n- activityLegal checks cost plus cashBuffer and stat requirements (488-499).\n- side() reserves the main action's fee before side steps (430-451).\n- noteOpen checks the note price.\nPlanValidator reports coverage, locked-slot actions, cash below zero, prerequisites, caps and rank jumps as errors. PlanValidatorTest passes 10/10 and every real-pack plan validates clean.\nRe-run low-money probe (10/22, ¥0, 恶魔 MUST): devil=10, validate=[], minimum cashAfter 0."
+   },
+   {
+    "requirement": "User-defined Tartarus visit caps per story-unlocked stage",
+    "status": "partial",
+    "evidence": "The cap is enforced per block:\n- Model.towerCap = profile.towerCapPerBlock (Model.java:65).\n- Kernel.legal checks st.towerVisits[b] < m.towerCap (Kernel.java:282).\n- Heuristics.java:1020 keeps room for a pending rescue.\n- PlanValidator.java:397 reports 'Tartarus cap … exceeded in block'.\nPlannerTest.towerCapOneStillLeavesRoomForTheRescue and towerCapZeroMeansNoVisitsAndTheMissingLinkIsLost pass.\nBut the cap is a single global integer, Profile.towerCapPerBlock (default 4), and the wanted visits are a single integer too, towerVisitsPerBlock (default 2) (Profile.java:48-51). SettingsPage.java:53-68 edits each with one stepper ('每个区块最多去几次'), and r2_13_tower.png says '上限 4 次，可在「规划设置」里修改'.\nThe v2 source in P3R_Planner_Handoff_20261013.zip stored constraints.visit_caps keyed by STAGE.",
+    "gap": "There is no per-stage (per-block) cap. Each block needs its own user-editable cap (and wanted-visit count), stored in the Profile, enforced by Kernel.legal and Heuristics, checked by PlanValidator, and shown in settings or on the tower page."
+   },
+   {
+    "requirement": "Maximise explicit goals in priority order",
+    "status": "partial",
+    "evidence": "Working cases:\n- MUST beats WANT: PlannerTest.mustBeatsWantWhenTheyCompete passes (synthetic year).\n- Re-run probe at the 10/22 mid-game state: MUST 力量 + WANT 正义 gives 力量 10, 正义 8.\n- Single MUST or WANT 力量, 恋爱 or 正义 each reach 10.\n- 皇帝 MUST reaches MAX on 6/29 on the real pack.\nFailing cases (re-run with scratchpad/recheck_oo/src/Probe.java, mode 'two'):\n- MUST#1 力量 + MUST#2 正义 with 其余社群 on (the default) gives 力量 9, 正义 10. The plan note says '力量：时间不够，预计停在 RANK 9'.\n- The same goals with 其余社群 off give 力量 10, 正义 10, so both are feasible.\n- A 30 s budget with K=8 still gives 力量 9.\n- MUST#1 恋爱 + MUST#2 正义 gives 恋爱 9, 正义 10 at default options. With K=8 it reaches 恋爱 10, which confirms this is a search limit, not infeasibility.\nCause: goals are scalarised as wGoal = 100000 − 100·order (Heuristics.java:265), so order only breaks near-ties, and FORTIFY = 3 is fixed (Planner.java:91). No engine test sets two goals in the same tier and checks their order (RulesFixtures.must is only ever called with one link).\nThe '时间不够' note contradicts the handoff rule against presenting a search failure as infeasibility.",
+    "gap": "Higher-priority goals must be secured first: plan goals lexicographically or in strict priority order before secondary links, or raise the order weight. Add an engine test where two MUST goals compete and the order decides the outcome. Stop labelling a reachable goal '时间不够'; distinguish search limits from real infeasibility."
+   },
+   {
+    "requirement": "With remaining time maximise OTHER links; an easy goal must not leave the calendar arbitrary or empty",
+    "status": "met",
+    "evidence": "其余社群 is on by default (Profile.java:31). A non-goal RANK is worth W_OTHER=300, plus 6×W_OTHER for MAX (Heuristics.java:59-60, 256, 274).\nResults:\n- 皇帝 MUST plan: 458 useful, 1 free, 21/22 MAX. The test asserts others ≥ 19 (PlanRealPackTest:100).\n- GOALS-Persona plan with 3 goals: 21/22.\n- Mid-game single MUST 力量 (re-run probe): 169 useful, 0 free, 12 maxed.\nPlanner.daytimeWaste and WASTE_MARGIN discourage spending daytime off-link (Planner.java:55-57, 199-226).\nWith 其余社群 explicitly off, the re-run probe gives 56 free slots and 209 jobs, which is the expected opt-out behaviour."
+   },
+   {
+    "requirement": "Prefer less fragile routes and sensible resource buffers",
+    "status": "partial",
+    "evidence": "Buffers that exist:\n- The goal buffer (Profile.goalBuffer, on by default) adds one ordinary meeting of margin per point-gated goal rank (Kernel.need and bufferApplies, 202-210).\n- The objective rewards earlier goal completion (Heuristics.objective, EARLY_PER_SLOT term), which gives goals implicit slack.\n- Job pay uses the minimum tier, and tower income is 0 by default.\n- Re-run replay of the 皇帝 MUST plan: 皇帝 still reaches 10 at ordinaryGain 9, 8 and 7, and 9 at gain 5.\nWhere fragility remains (re-run probe, mode 'fragile'):\n- Replaying the 22/22 no-Persona plan with gain 9 instead of 10 gives only 14/22 MAX (13 at gain 7). Non-goal links have no slack.\n- Manual links reach MAX close to the end: lovers 1/25, priestess 1/18, aeon 1/30. Aeon only opens 1/8, so it is late by necessity. Correction to the earlier evidence: judgement (1/29) is a story link, so it is not a fragility case.\n- Profile.cashBuffer defaults to 0 (Profile.java:53). Unlock fees are explicitly 'mandatory (no cash buffer)' (Kernel.java:351).\n- Plans run cash down to ¥220 at the end (mid-game) and ¥910 on 12/1 (皇帝 MUST).\n- PlanRealPackTest asserts cash on 12/1 ≤ ¥60,000 (MODEST_CASH), which discourages holding cash.\nReplanning after a deviation is the only mitigation for non-goal links.",
+    "gap": "Add a robustness preference for non-goal links planned to MAX: slack meetings, or a penalty when a MAX depends on the last available opportunity. Use a non-zero default cash buffer, or reserve cash ahead of mandatory unlock fees."
+   },
+   {
+    "requirement": "Do not force romance just to advance an optional objective",
+    "status": "partial",
+    "evidence": "The engine needs no romance: no link in the pack has eventGainRomance, Profile.route defaults to UNDECIDED, and route is only read in Model.java:84 and PlanValidator.java:651. Dec 24 invitations are declined by default (DESIGN §10.5).\nThe '参考回答' line still recommends romance answers for links the player never chose to romance. Dialogue.WARNING (Dialogue.java:28) drops the guide's route notes.\nPack dialogue checked with Python:\n- 正义 RANK 5 shows '随便问吧（1） / 产生恋爱感情了（1） / 随时欢迎千寻找我倾诉（1） / 握住她的手（1）'. The notes '第二次选择“产生恋爱感情了（1）”会进入恋爱线；选第二项不会进入' and '…关系会破裂' are removed silently (asserted in ReviewFixesTest.copy5_answerLineShowsOnlyCleanGuideAnswers, which passes).\n- 女教皇 RANK 9 ('我喜欢风花（1），恋人线') and 永劫 RANK 8 ('是恋情（1，恋人线）') at least keep the 恋人线 label, but offer no friend alternative.\nNo ui/ class reads or writes Profile.route, so there is no route choice anywhere.",
+    "gap": "Add a per-link 朋友/恋人 choice for romanceable links, defaulting to 朋友. Show friend-route answers, or keep the guide's route warning, instead of recommending romance answers for links that are only being maxed as 其余社群 or as optional goals."
+   },
+   {
+    "requirement": "Suitable offline algorithm; budget exhaustion, coverage and useful-day investigation; independent replay validation",
+    "status": "met",
+    "evidence": "Design: the v2 beam (width 48, 60,000 transitions) was investigated and replaced. DESIGN_v3 §1 records its failure: 1 useful action from June to January, 6 links out of budget by 7/21. The new search screens a 16-tuning portfolio with the base policy, then runs a fortified rollout on the best 3 (Planner.java:72-160).\nResults: in every real-pack run budgetExhausted is false (asserted). Runtime is 166–728 ms on the desktop JVM and 892 ms through the service in my run. Useful actions range from 169 to 458, with full coverage to 1/31.\nValidation: PlanValidator is an independent replay (header, lines 10-25). PlannerTest.tinyTimeBudgetStillGivesACompleteValidPlan and cancellationStopsSearchingButKeepsThePlanComplete pass.\nCaveats (corrected):\n- Extra time budget goes unused. Plans finish in about 200–360 ms even with a 30 s budget.\n- Raising K to 8 changes outcomes non-monotonically: 恋爱 MUST#1 rises from 9 to 10, while WANT 正义 next to MUST 恋爱 drops from 10 to 9.\n- No on-device planning time is recorded anywhere in qa_out. Only desktop timings exist, against an on-device budget of 2.5 s (Wiring.java:28), and DESIGN §5.4 still says 4 s.\n- The '时间不够' mislabelling of a search limit is covered under the priority item."
+   }
+  ],
+  "original": 16,
+  "met": 12
+ },
+ {
+  "section": "forecasting_interaction",
+  "items": [
+   {
+    "requirement": "F1. Never require hidden numbers: no raw affinity or social-stat points are asked for",
+    "status": "met",
+    "evidence": "Verified. StateSteps.pagesFor (StateSteps.java:52-78) builds only visible-value pages: GOALS, PERSONA, DATE, CASH, STATS, LINKS, UNLOCK, EPISODES, TOWER, CONFIRM. The RANK grid holds 0..10 or '?' (StateDraft.UNKNOWN, RankPad.java:121). StateDraft.build() derives hidden values: a changed rank sets pts=0, ready=false (StateDraft.java:459-461), and a changed Lv sets statPts to thresholds[lv] (StateDraft.java:438-443). Screenshots exist: qa_out/v3/ui/state_onboarding_stats.png, state_rankpad.png, state_onboarding_links.png. I re-ran the tests and UiLogicTest passed 23/23, which includes untouchedDraftKeepsHiddenEstimates and changedValuesResetOnlyTheirOwnEstimates. Log: scratchpad/run1.log; XML in scratchpad/results1."
+   },
+   {
+    "requirement": "F2. Start from conservative values compatible with visible ranks and confirmed observations",
+    "status": "met",
+    "evidence": "Verified. StateDraft.newGame sets cash=0, cashExact=false and stats at the Lv1 threshold (StateDraft.java:124-133). Changed ranks start at pts=0 and changed Lv at the lower threshold (StateDraft.java:438-465). Forecast.visibleAt projects only visible values: stats go to thresholds[lv] (Forecast.java:35-39), and setRank zeroes pts only on a rank increase, so forecast ordinary-meeting points are never carried (Forecast.java:116-122). After a rank-up only the scene points carry over, floored (Kernel.java:183-197, 584-587). REPORT.md says those are the lower of aqiu's optimum and the normalised model. UiLogicTest.forecastProjectsVisibleValuesOnly passed in my run.",
+    "gap": "Minor. Choosing 不确定 for cash in 修改进度/同步现状 keeps the prefill figure, i.e. the last record or, after 「是」, the forecast cash (StateDraft.java:431-433). The engine never reads cashExact for affordability; the only cashExact uses are bookkeeping (Simulator.java:123/207, Kernel.java:691/711). A stale balance is therefore not treated conservatively. Scene points assume best answers by default (Profile.answers=BEST). This is disclosed as best_answers but is not the most conservative choice."
+   },
+   {
+    "requirement": "F3. Do not silently assume matching-Persona or Charm bonuses",
+    "status": "met",
+    "evidence": "Verified. Profile.personaMode defaults to NONE (Profile.java:38). Onboarding has a PERSONA page with three choices (StateSteps.java:56-58; StateWizardTest.personaPageOffersThreeChoices passed; state_onboarding_persona.png exists). Charm ×1.51 applies only once the forecast stat reaches its cap (Kernel.charmBonusActive, Kernel.java:173-176). Each meeting that uses it is tagged A_CHARM (Kernel.java:572), and DayDetailSheet shows it under 这一步用到的估计 (Assumptions.java:24; DayDetailSheet.java:85-92). 规划说明 lists it (Assumptions.java:90-92) and 规划设置 has a toggle (SettingsPage.java:38-40). The source value exists: rules/sources/aqiu_gamedata/DT_GeneralCoefficient.tsv:5 'CMM_POINTBONUS_CHARM 1.51'. Pack policy multConf=game_data.",
+    "gap": "charmBonus defaults to true (Profile.java:44) and onboarding never asks about it. It is disclosed, so not silent, but it is opt-out rather than opt-in."
+   },
+   {
+    "requirement": "F4. Keep observed state, forecast state and evidence/model assumptions rigorously separate",
+    "status": "met",
+    "evidence": "Verified. DESIGN_v3.md:244-248 states that observed state is the checkpoint plus replayed non-voided events and that forecasts never write into checkpoints or events. SimState is documented as copied by the planner and never written back (SimState.java:10-14). Pack policy carries ordinaryGainConf=estimate and multConf=game_data with src ids (assets/p3r/p3r_rules.json policy). Step assumptions are rendered under 这一步用到的估计 (DayDetailSheet.java:85-92; seen in qa_out/v3/ui/home_detail_current.png). The wizard tags forecast values 预计 (StateSteps.java:542-552), and the diff page says '带「预计」的数值请对照游戏核对，保存就算确认' (StateSteps.java:756-757). In my run PlannerTest passed 23/23, including observedStateIsNotMutated, and OutcomeTest passed 14/14, including inputStateIsNeverMutated."
+   },
+   {
+    "requirement": "F5. Forecasts propagate forward without pretending to be saved progress",
+    "status": "met",
+    "evidence": "Verified. Forecast.visibleAt works on a copy (Forecast.java:19-48) and is used only to prefill 同步现状「是」 (StateDraft.prefill, StateDraft.java:148-160). Saving needs the CONFIRM diff page and its 预计 notice (StateSteps.java:745-757). Forecast meeting points are dropped (Forecast.java:116-122). Both UiLogicTest.syncYesWithUnknownRankKeepsTheRecord and StateWizardTest.syncAnsweredYesPrefillsForecastAndShowsDiff passed in my run. The plan to Jan 31 is confirmed by realpack.log (below)."
+   },
+   {
+    "requirement": "F6. Use evidence-backed recurring availability with known exceptions; a missing annotation is not proof of unavailability; weekday rules never override forced story events or an accepted invitation",
+    "status": "partial",
+    "evidence": "REPORT.md: 'A slot without a lock is free (handoff: absence of an annotation is not proof of unavailability)'. avail is aqiu cells minus locks and explicit exceptions. RulesPackFactsTest passed 41/41, including meetingsNeverFallOnLockedSlots, april22DaytimeIsTheForcedMagicianIntroduction, fullMoonOperationsLockTheWholeDay and christmasEveIsFreeByDefault. SimulatorTest.holidayInvitationIsADaytimeMeeting also passed. Pack entry 01-21 has dayLock=reserved and conf=estimate.",
+    "gap": "An accepted invitation that the pack assumes was declined cannot be entered ahead of time. The 12-24 pack entry has dayLock=null, eveLock=null and noteZh '平安夜：默认按婉拒所有邀约来安排'. 规划说明 says '12月24日默认不接受邀约' (Assumptions.java:106). No Profile or SimState field marks Dec 24 as taken: Profile.route only switches event gains (Model.java:84-85). A player who accepted a date is still shown a routine action there and must skip it afterwards. This is the weekday-rule-over-accepted-invitation case the handoff names (handoff line 74)."
+   },
+   {
+    "requirement": "F7. Use a conservative ordinary-meeting model with buffers, do not label a safety margin a guarantee, and keep the +10 claim unverified",
+    "status": "met",
+    "evidence": "Verified. Pack policy has ordinaryGain=10 and ordinaryGainConf=estimate. Its pack note reads '只有一份实况记录提到，未经验证'. rules/p3r/ordinary_affinity_numeric_followup.json:5 has status 'single_source_numeric_candidate_not_independently_verified'. In-app text (Assumptions.java:19): '…这是估计值，没有官方数据'. The goal buffer adds one ordinary gain to need (DESIGN_v3.md:154) and is described as '以防估计偏高' (Assumptions.java:94; SettingsPage.java:41-43), never as a guarantee. '一定能升到' is emitted only when fx.certain, i.e. a ready cue or a zero threshold (Labels.java:244; Kernel.java:591). The ready flag is set only from player-reported outcomes (Simulator.java:201). SimulatorTest.goalBufferAppliesOnlyToGoalsAndOnlyWhenThresholdPositive passed in my run.",
+    "gap": "Minor. The +10 is used at its single-source central value, not reduced, and the buffer covers goal links only. Yet 规划说明 says '一律按保守的估计值计算' and '每一步在游戏里都做得到' (Assumptions.java:76, 107), which overstates certainty."
+   },
+   {
+    "requirement": "F8. Estimated meetings and rank-ups are allowed, but the plan continues meaningfully to the end of the calendar",
+    "status": "met",
+    "evidence": "Verified in /private/tmp/claude-501/p3r_audit_qa/realpack.log (EXIT=0; build/test-results PlanRealPackTest had 9 tests, 0 failures). midGameOctober22: 10月22日 白天 → 1月31日 晚上, useful 169, free 0, last useful 1月31日 白天, maxed 12/22. newGameNoPersona: useful 454, free 5, last useful 1月31日 白天, maxed 22/22. In my run PlannerTest passed 23/23, including earlyGameGoalPlusOthersRunsToTheEndOfJanuary, midGameRunsToTheEndOfJanuary and noFreeSlotWhileAProductiveActionIsLegal. Estimated rank-ups carry ≈ (log line '好感还不够升级，先多见面几次 ≈').",
+    "gap": "Not a compliance gap, only plan quality: the mid-game plan never opens 女教皇 or 女皇 (unlocks priestess=NEVER, empress=NEVER)."
+   },
+   {
+    "requirement": "F9. No warning badges on every widget line; important assumptions are explained in app detail",
+    "status": "met",
+    "evidence": "Verified. In qa_out/v3/widget/real/mid-social-422/424/512/569-320x200-sdk31.png there are no estimate badges. Estimated and certain steps differ only in plain text ('这次见面一定能升到 RANK 3' / '好感还不够升级，先多见面几次'). The ❗ line on those renders is a Persona reminder, not an estimate warning. The detail sheet lists the step's estimates (home_detail_current.png shows '这一步用到的估计'). The global list is on 规划说明 (InfoPages.java:57; Assumptions.global). Every Kernel.ASSUMPTION_IDS entry (Kernel.java:39-41) has text in Assumptions.java:19-34. UiLogicTest.assumptionIdsNeverLeak passed."
+   },
+   {
+    "requirement": "F10. Replan when actual results differ or the player changes goals or state",
+    "status": "met",
+    "evidence": "Verified. isCurrent/needsPlan require matching state, profile and rules revisions (PlannerService.java:755-766). finish() discards results computed for an old revision (PlannerService.java:798-806). In my run PlannerServiceReplanTest passed 10/10, including aWriteInstallsAPlanForTheCurrentRevisions and aProfileChangeMakesThePlanStale. PlannerTest.matchingOutcomeKeepsTheNextDaysUnchanged, OutcomeTest.noRankUpForecastsExactlyOneMoreOrdinaryMeeting and EndToEndRealPackTest.followDeviateCorrectAndSyncKeepsEveryPlanValidAndComplete also passed. qa_out/v3/ui/home_today_change_summary.png exists."
+   },
+   {
+    "requirement": "F11. Never claim a failed heuristic search proves infeasibility; distinguish unmet goals, insufficient rule coverage and search limits",
+    "status": "partial",
+    "evidence": "Plan.budgetExhausted is set (Planner.java:154) and shown only on 规划说明 (InfoPages.java:47-48). The goal notes separate a lost rescue, an unmet unlock gate, an open-ended hold and a plain shortfall (Labels.java:575-592). PlannerTest.openEndedHoldIsExplainedInTheNotes passed.",
+    "gap": "(1) Heuristic shortfalls are stated as fact. LinkStatus.java:87-90 gives every short goal '时间不够，先让给了X' and the chip '· 时间不够' without checking budget exhaustion or rule gaps; the shipped screenshot qa_out/v3/ui/home_links_grid.png shows 女教皇 '时间不够，先让给了皇帝、恋爱'. Labels.java:583 and 590 likewise say '时间太紧，这次没能安排解锁' and '时间不够，预计停在 RANK X'. (2) No player-facing category exists for insufficient rule coverage. (3) The budget message '这次没来得及算完，后半段先粗略排好，稍后会自动重排' (InfoPages.java:48) promises a re-run that never happens. budgetExhausted is referenced nowhere in service/ (grep), a plan with current revisions counts as current (PlannerService.java:755-766), and nothing re-queues it before the next write. The budget is 2500 ms on device (Wiring.java:28). The message is also not shown next to the affected goals."
+   },
+   {
+    "requirement": "I1. Clear grouped inputs; keep all saved values and unfinished drafts",
+    "status": "met",
+    "evidence": "Verified. There is one group per wizard page (StateSteps.java:52-78). Every value is prefilled from the record via StateDraft.prefill/rank()/statLv() (StateDraft.java:148-215). DraftStore.java exists. In my run StateWizardTest passed 13/13, including draftSurvivesRecreationAndProcessDeath, draftFromOlderRevisionIsKeptOnTheNewRecord and casConflictKeepsEditsAndAsksAgain. ResultSheetTest passed 40/40, including towerInputSurvivesRotation. qa_out/v3/ui/state_edit_restored.png exists."
+   },
+   {
+    "requirement": "I2. Inputs cover date/time, cash, visible stats, Social Link ranks and relevant unlocks, tower progress, visit limits, goals and priorities",
+    "status": "met",
+    "evidence": "Verified. The pages cover DATE, CASH (with 不确定), STATS, LINKS, UNLOCK and TOWER (StateSteps.java:66-76). TOWER covers floor, visits in the current block and rescues (StateDraft.java:215-265). UNLOCK appears only when relevant (UiLogicTest.unlockPageOnlyForRelevantLinks passed). Visit target and cap per block are in 规划设置 (SettingsPage.java:54-67), goals and tiers in onboarding GOALS and the 社群 tab. HomeBehaviorTest passed 18/18, including tierChipCyclesAndSavesProfile and goalOrderArrowsSwap.",
+    "gap": "Minor. The 'next meeting ranks up' cue (ready) and story holds can be reported only on result sheets, not in 同步现状 or 修改进度."
+   },
+   {
+    "requirement": "I3. Unknown is not zero; an unrelated save must not erase affinity bounds, widen a precise stat interval or reset availability observations",
+    "status": "partial",
+    "evidence": "Untouched ranks and stats keep the prefill pts/statPts (StateDraft.java:438-458). '?' restores base rank, pts, ready, unlockStep and lastStepDay (StateDraft.java:447-454). Cash 不确定 sets cashExact=false (StateDraft.java:431-433). In my run UiLogicTest.untouchedDraftKeepsHiddenEstimates, changedValuesResetOnlyTheirOwnEstimates and cashUnknownIsNotZero passed, as did ProfileChangeReplayTest.confirmedRanksAndHistorySurviveProfileChanges.",
+    "gap": "(1) In onboarding, a RANK of '?' is saved as rank 0 (未解锁), because build() copies base.rank, which is 0 for a new game (StateDraft.java:447-454). The links page offers '不确定的都设为未解锁' (StateSteps.java:484-492), which implies '?' differs from 未解锁, yet saving does the same thing silently. The first-run summary only counts established links (StateDraft.java:592-598). (2) A recorded 没救出 is dropped on any later 修改进度/同步现状 save the player does not re-answer: build() sets rescueFailed=0 (StateDraft.java:479). StateShape.inferRescues then marks it rescued when the window has ended and RANK ≥1 (StateShape.java:85-97), reviving a lost link. Only a note warns about this (ReviewFixesTest passed 28/28; state_edit_rescue_unconfirmed.png). (3) In 同步现状「是」, changes are compared with the forecast prefill, not the record (StateDraft.java:440 and 456). Picking the recorded RANK or Lv when the forecast differs therefore resets pts to 0 and clears ready, or resets statPts to the level's lower threshold, erasing known bounds the record held. For example, in the UiLogicTest fixture, record RANK 6 pts 9 with forecast 7 → picking 6 saves pts 0."
+   },
+   {
+    "requirement": "I4. Social Link choices show arcana + character name + gender; multi-person links are labelled accurately; no unnecessary spoilers",
+    "status": "met",
+    "evidence": "Verified from the pack: every link has arcanaZh, personZh and genderZh, for example 教皇|北村文吉、光子|夫妇, 愚者|特别课外活动部|团体, 审判|伙伴们|团体 (spoiler-safe, per REPORT.md), 死神|法洛斯, 隐者|Ｙ子. qa_out/v3/ui/home_links_grid.png shows '友近健二 · 男', '北村文吉、光子 夫妇·男女' and '特别课外活动部 团体·男女'. RulesPackFactsTest.linksUseOfficialSimplifiedChineseNames passed.",
+    "gap": "Cosmetic. The wizard's RANK grid tiles and the goal-order rows omit gender; the RANK pad header shows it."
+   },
+   {
+    "requirement": "I5. Save state and goals atomically, then recalculate; reject stale results",
+    "status": "met",
+    "evidence": "Verified. saveCheckpoint writes the checkpoint, the optional profile, the profile revision bump and the journal row inside one write() transaction (PlannerService.java:623-657). Retries are idempotent through existing() (PlannerService.java:967-982). finish() discards stale plans (PlannerService.java:798-806). Passing in my run: PlannerServiceReplanTest.aResultForAnOlderRevisionIsDiscardedAndRecomputed and theRevisionCheckAloneKeepsAStaleResultOut; PlannerServiceLedgerTest.staleRevisionIsRejectedWithoutWriting; ResultSheetTest.stalePlanIdShowsCurrentItemAndSavesNothing and casRejectionShowsRefreshMessage; PlanWidgetBehaviourTest.staleDoneTapsNeverRecord (54/54); StateWizardTest.casConflictKeepsEditsAndAsksAgain.",
+    "gap": "Minor. When saveCheckpoint carries a profile, it checks only expectedStateRevision, not the profile revision (PlannerService.java:640-651)."
+   },
+   {
+    "requirement": "I6. Emperor 6→7 opens straight onto that link with 已升到 7 / 没升级 / a compact edit for other results",
+    "status": "met",
+    "evidence": "Verified. socialRankUp asks '升到 RANK 7 了吗？' with primary '升到 RANK 7 了', '没升级' and '其他结果…' (ResultActivity.java:637-673). otherResults offers RANK chips from−1..from+2, 没见到 and 剧情原因暂时升不了 (ResultActivity.java:684-708). qa_out/v3/ui/result_social_rankup.png shows 皇帝 · 小田桐秀利 with 升到 RANK 7 了 / 没升级 / 其他结果…. Passing in my run: ResultSheetTest.rankUpAsPredictedRecordsRank7, otherResultsExpandAndRecordHold, estimatedRankUpShowsEqualChoices and noRankUpWithReadyCue; HomeBehaviorTest.doneOnSocialStepOpensTheResultSheet; PlanWidgetBehaviourTest.socialDoneOpensTheResultSheetWithItsExtras."
+   },
+   {
+    "requirement": "I7. The Tartarus panel shows cash and floor reached, with protagonist level optional; it takes either net change or current balance, never both",
+    "status": "met",
+    "evidence": "Verified. TowerPanel has the floor stepper and 顶层 chip, a single amount behind the segmented control 出塔后余额 | 这次多了多少, the net mode disabled when cash is not exact (TowerPanel.java:84-118), and an optional '＋ 记录主角等级（可选）' (TowerPanel.java:120-131). Replayer applies either balanceMode or net, never both (Replayer.java:347-356). qa_out/v3/ui/result_tower.png shows this. Passing in my run: ResultSheetTest.towerBalanceModeRecordsOnce, towerNetModeIsExclusive and towerUnknownCashForcesBalance; PlannerServiceLedgerTest.towerCashModesAreExclusiveAndAppliedOnce; ReplayerTest.balanceModeSetsCashAndCountsOneVisit and netModeAddsExactlyOncePerRecord (18/18)."
+   },
+   {
+    "requirement": "I8. Training and jobs show only the relevant result, with a one-tap confirm for the normal result and a correction path",
+    "status": "met",
+    "evidence": "Verified. The stat/job panel shows '完成了吗？', '预计 …', a primary '完成了，和预计一样' and a secondary '结果不一样…'. Lv chips appear only for affected stats, plus a CashPad for jobs (ResultActivity.java:805-880). Screenshots exist: result_stat.png, result_stat_different.png, result_job.png, result_job_cashpad.png. Passing in my run: ResultSheetTest.statAsPredicted, statDifferentLevel and jobShowsPayAndBalancePath; HomeBehaviorTest.doneOnTrainingRecordsAtOnceAndCanBeUndone; PlanWidgetBehaviourTest.doneOnTrainingRecordsExactlyOnceEvenWhenTheTapArrivesTwice."
+   },
+   {
+    "requirement": "I9. Full-state editing stays a separate entry point",
+    "status": "met",
+    "evidence": "Verified. StateDraft.Mode has ONBOARDING, SYNC and EDIT (switch at StateSteps.java:54-64). qa_out/v3/ui/home_me.png lists 同步现状, 修改进度 and 记录历史 separately. ResultActivity panels are per action (ResultActivity.java:35 class doc) and never open StateActivity's full form."
+   },
+   {
+    "requirement": "I10. Normal predicted results are easy to accept without re-entering unrelated information",
+    "status": "partial",
+    "evidence": "Social, unlock, note and episode steps take one tap ('升到 RANK 7 了' records asPredicted, ResultActivity.java:655). Training and job steps take one tap ('完成了，和预计一样'; the widget records directly with undo). Catch-up offers 都照安排做完了 (ResultSheetTest.catchUpAllAsPlannedChainsRevisions passed).",
+    "gap": "On a Tartarus step the plan predicts the rescue (header '提齐亚（69-117F）· 救出舞子'), but for new records the rescue question preselects '还没' (TowerPanel.java:136-142: saved=false unless correction). Screenshot: qa_out/v3/ui/result_tower.png. Accepting the normal result takes an extra tap, and saving untouched records 'not rescued', which can turn into a failed rescue when the window closes. Balance mode is also prefilled with the pre-trip cash and 保存 is enabled at once (TowerPanel.java:110-112, 254), so an untouched save records zero gain without asking."
+   },
+   {
+    "requirement": "I11. Each tower trip is recorded once; a correction never uses up a visit; idempotent across retries and restarts",
+    "status": "met",
+    "evidence": "Verified. CommandCheck.tower accepts only the observed next slot, an evening and the current block (CommandCheck.java:131-152). correctTower writes TOWER_FIX and keeps the original slot and block (PlannerService.java:556-598). command_id is UNIQUE (PlanDb.java:70). existing() returns the original receipt for the same fingerprint and a conflict otherwise (PlannerService.java:967-982). UI ids are deterministic (ResultActivity.java:1295, 1307-1308). Passing in my run: PlannerServiceLedgerTest.retriesAreIdempotentAcrossAProcessRestart and correctionAddsNoVisitAndSurvivesRestart; ReplayerTest.correctionReplacesValuesWithoutAddingAVisit; HomeBehaviorTest.towerCorrectionNeverAddsAVisit; PlannerServiceRound2Test.correctingATowerRecordKeepsItsRescueAndLevel; ResultSheetTest.doubleTapUsesTheSameCommandId; PlanWidgetBehaviourTest.commandIdIsStablePerPlanRevisionSlotAndAction. Correction of the prior evidence: the cited '373 tests in 28 classes' cannot be confirmed. test_run.log has no counts, and build/test-results was overwritten. My re-run of the cited classes ran 359 tests in 21 classes with 0 failures and 0 errors (scratchpad/run1.log, scratchpad/results1/*.xml). PlanRealPackTest (9 tests, 0 failures) was confirmed separately from realpack.log and its earlier XML."
+   }
+  ],
+  "original": 22,
+  "met": 18
+ },
+ {
+  "section": "visual_widget_sources",
+  "items": [
+   {
+    "requirement": "[57-59] Native Android app plus widget, offline operation",
+    "status": "met",
+    "evidence": "Re-checked. `aapt dump badging dist/P3R-Planner-3.0.0.apk` gives package app.p3r.planner 3.0.0 (code 30), label 'P3R 规划', minSdk 26/target 35. `aapt dump permissions` lists no permission at all, so there is no INTERNET. The manifest sets usesCleartextTraffic=false (android/app/src/main/AndroidManifest.xml:8). Native launcher activity: .v3.ui.HomeActivity (:13). Widget receivers: .v3.widget.PlanWidget (:30) and the legacy .PlannerWidget (:34). The legacy MainActivity WebView loads only bundled assets/index.html."
+   },
+   {
+    "requirement": "[59] Simplified Chinese guide text with correct Reload terminology (official names)",
+    "status": "met",
+    "evidence": "Reproduced by script. All 22 pack links[].arcanaZh match the zh-Hans column of DatRaceDataAsset.tsv. 20 personZh values match DatPlayerNameDataAsset.tsv (spaces stripped) or DatSocialLinkDataAsset.tsv (特别课外活动部). 北村文吉、光子 is composed from the official 北村 文吉 and 北村 光子 (DatPlayerNameDataAsset.tsv:15-16). The five episode persons match. The legacy guide assets were changed only to official names (伊丽莎白→伊莉莎白, Y子→Ｙ子, per DatPlayerNameDataAsset.tsv:30); IDs are unchanged. A banned-term scan of the pack's zh strings (sources excluded) found no glossary-banned term.",
+    "gap": "Corrections to the earlier evidence. (a) The pack has 406 unique zh strings (535 including repeats), not 330; the conclusion still holds. (b) Judgement shows 伙伴们 instead of the official 倪克斯讨伐队 (DatSocialLinkDataAsset.tsv:23). This is a deliberate spoiler-avoidance choice, documented in REPORT.md:125. (c) Tartarus block names (世俗之庭 台伯勒 …) appear only in cn_guides/3dm_p42.html. The shipped pack labels each block conf=game_data, so their single-source status is stated only in REPORT.md:116, not in the data."
+   },
+   {
+    "requirement": "[59] P3R flat cyan daytime / deep-blue nighttime colors",
+    "status": "met",
+    "evidence": "WidgetPalette.java:12-29 defines DAY/NIGHT, and of(night) is at :85-87. The surfaces are p3r_widget_day #0FB1F5 and p3r_widget_night #034572 (res/values/p3r_colors.xml:23-24). Night is selected for evening slots at CardModel.java:25-26, PlanView.java:155-158 (Rules.isEvening) and PlannerWidget.java:132,240. Viewed renders: qa_out/v3/widget/plan/social-day-320x200-sdk26.png (cyan) and locked-night-250x160-sdk31.png (navy). On device, docs/screenshots/widget_home.png shows the 晚上 slot in navy.",
+    "gap": "The app itself always uses one navy theme, even for 白天/放学后 (rel_today.png, home_today.png). Only the widgets switch palette. This is an allowed redesign. The day palette has no on-device screenshot, only Robolectric renders."
+   },
+   {
+    "requirement": "[59] Paired right-biased line-art motifs and official-style/logo assets already present (art may now be redesigned)",
+    "status": "partial",
+    "evidence": "Both widgets now use diagonal light shafts plus an outlined day numeral on the right and an 'S.E.E.S.' mark (widget_home.png, plan/*.png, legacy/*.png). The app's Today header uses R.drawable.ui_art_protagonist (TodayPage.java:46). The owner allowed an art redesign.",
+    "gap": "Confirmed dead weight. A grep of app/src finds no reference to character_day, character_night, character_day_compact or official_p3r_logo_color, and minifyEnabled=false with no shrinkResources (app/build.gradle:45). They still ship: aapt2 maps res/Vc.png=character_day (575,244 B), A6.png=character_day_compact (899,722 B), qc.png=character_night (712,487 B) and Gb.png=official_p3r_logo_color (14,519 B). That is 2,201,972 B of a 3,192,908 B APK. The official logo is not shown anywhere. Remove these assets or use them."
+   },
+   {
+    "requirement": "[59] No character illustration redesign; existing day/night fade works and must not regress",
+    "status": "met",
+    "evidence": "No character art was redrawn: the old illustrations are unused, and a separate silhouette (ui_art_protagonist.png) is used in the app. I re-ran `./gradlew --no-daemon :app:testDebugUnitTest` for the cited classes (BUILD SUCCESSFUL). WidgetPaletteFadeTest: 8 tests, 0 failures (4 methods; @Config sdk={26,28,35} plus two sdk=28 cases). PlanWidgetBehaviourTest: 54 tests, 0 failures (27 methods × sdk {26,31}), including paletteChangeFadesThenSettles (line 472). PaletteHost.java holds the ViewFlipper crossfade; the test asserts a 220 ms in/out animation."
+   },
+   {
+    "requirement": "[61] Widget: Current on the left, Done on the right as primary action; date-area arrows browse tasks; Current returns to the pending action; tapping the task opens app detail",
+    "status": "met",
+    "evidence": "The renders show 当前 (outlined) on the left and the filled 完成 on the right, with ‹ › around the date plate (docs/screenshots/widget_home.png, plan/social-day-320x200-sdk26.png, plan/locked-night-250x160-sdk31.png). These tests pass in my run (PlanWidgetBehaviourTest 54/54): arrowsBrowseItemsAndCurrentReturnsToThePendingOne (:444), taskTextOpensTheAppOnThatSlot (:487), currentLeavesTheReceiptForTheNextItem (:299), socialDoneOpensTheResultSheetWithItsExtras (:312), staleDoneTapsNeverRecord (:396)."
+   },
+   {
+    "requirement": "[61] Compact readable dialogue choices separated by slashes, with natural wrapping",
+    "status": "partial",
+    "evidence": "The legacy widget joins choices with ' / ' (PlannerWidget.java:209), and WidgetDialogueRenderTest passes 2/2. The app shows '参考回答：A / B' (Dialogue.java:23,89).",
+    "gap": "(1) The adaptive plan widget never shows dialogue. CardModel.java:79 says 'Legacy guide only', and m.dialogue is set only at PlannerWidget.java:180. (2) Legacy wrapping is not natural: in qa_out/v3/widget/legacy/t016_02-320x200-sdk31.png the '（1）' after '你说得对' wraps alone onto the next line, and the location line mixes a full-width '／'. (3) The app evidence (qa_out/v3/ui/home_today.png, '我会帮你的 / 这样的规矩没有意义') comes from test fixtures (Fixtures.java/ReviewFixesTest.java). The real pack has no emperor rank-7 dialogue. The only on-device detail shot (docs/screenshots/step_detail.png) shows the fallback text. home_today_font130.png also breaks '这样的规/矩' across lines."
+   },
+   {
+    "requirement": "[61] Existing fixed-guide widget and progress remain safe alongside adaptive planning",
+    "status": "met",
+    "evidence": "These pass in my run: LegacyWidgetRenderTest 2/2, PlannerIntegrityTest 5/5 (including originalPreferenceKeysAndIndexedProgressRoundTripWithoutLoss and malformedImportAndInvalidDateDoNotDestroyProgress), and PlannerServiceLedgerTest 16/16. In that class, legacyGuidePreferencesAreNeverTouched (:357) asserts that p3r_native_progress_v1 is unchanged after onboarding, tower, record, void, backup and import. The legacy receiver is separate (AndroidManifest.xml:34). Legacy assets differ from the 2.0 handoff source only by official-name text fixes, with IDs unchanged.",
+    "gap": "3.0.0 is a new package, app.p3r.planner (app/build.gradle:16-18; README.md:27), not 2.0's app.p3r.dayplanner(.test). The old install and its progress are untouched, but nothing carries over automatically. The user must export in the old guide and import under 我的 → 逐日攻略 (README.md:29; MainActivity exportJson). No test imports a file actually produced by 2.0.0."
+   },
+   {
+    "requirement": "[65] Verify Persona 3 RELOAD specifically; reject mixed P3/FES/Portable mechanics",
+    "status": "met",
+    "evidence": "I reproduced the game-data cross-checks against the Xrd777 tables. CommunityEventDataAsset row no+1 equals links[].threshold for 22/22 links. HeroParameterDataAsset cumulative sums equal the stats thresholds (学力 20/55/100/155/230, 魅力 15/30/45/70/100, 勇气 15/30/45/60/80). ActivityDataAsset gives 10/10 block start days and top floors (1/31 excluded). HolidayScheduleDataAsset (ArcanaID−1) gives 77/77 invitations on 35 dates. DT_GeneralCoefficient 1.51/1.51/1.21 equals policy personaMult/examTopMult/examGoodMult. For the Bunkichi date, calendar_execution_extension.json versionDiscrepancies prefers atwiki 453 and game8 (Reload) 09-12 over megatenwiki's unlabeled Portable/Reload 09-09, and the pack's missing.fromDay=164 is 9/12. REPORT.md:84 lists the rejected FES/P3P material.",
+    "gap": "Correction to the earlier evidence: not every ev_* file declares an edition. ev_dating_note (affinity_actions_candidate.json), ev_dialogue, ev_identity_labels and ev_romance have no edition/gameEdition key, and ev_ordinary_gain has only version_attribution. Their Reload status rests on their sources, not on a field."
+   },
+   {
+    "requirement": "[65] Preserve source URLs, applicable variant, evidence confidence, and exceptions in structured data",
+    "status": "partial",
+    "evidence": "The pack carries per-value conf (game_data/verified/single/estimate/conflict), src id lists, alt claims, sha256 for local snapshots and the REPORT conflict table. Some evidence files record per-source sections (jobs_wage_rules_candidate.json: section 'Persona 3 Reload').",
+    "gap": "(1) Wrong URLs, confirmed. SOURCES.json gives d_4206993388794169488.html, d_4206993639701168068.html and d_4206994023684392768.html the achievements URL, but they are 'Persona 3 Reload General Discussions' threads. p3r_sc.html, the Steam store page, has the same wrong URL. The pack copies the error into steam_thread_hierophant and steam_thread_rankup. (2) Pack sources[] has only id/kind/url/path/sha256/note: no variant or edition field, so mixed sites (megatenwiki, atwiki) are not marked as mixed. (3) megatenwiki_jobs points only at Chagall_Cafe, but the accessory-shop and cinema wages come from Be_Blue_V oldid=393238 and Port_Island_Station oldid=410086. (4) 21 of 49 pack sources (cn_guide and 20 ev_*) have no url at all. (5) guide_dialogue_reference_map.json sources[] point to /workspace/scratch/... files that do not exist here, so the dialogue provenance cannot be re-checked in the repo. (6) Four evidence files have no edition marker (see the item above)."
+   },
+   {
+    "requirement": "[67] Do not back-translate names/options from English; keep source Chinese text and cross-check it against Reload Simplified Chinese evidence",
+    "status": "partial",
+    "evidence": "Person, arcana, SEES and Elizabeth names come from the zh-Hans game tables, cross-checked as in the names item. Dialogue comes from the CN guide: 134 of 140 pack dialogue fragments appear verbatim in assets/data.json. Venue and item names (夏卡尔咖啡店, 长鸣神社, 桐叶购物中心, 放纵俱乐部, 结缘网站的字条, 白色切花) also come from the CN guide, not from English. Where no official name is known, plain descriptive Chinese is used (饰品店, 电影院; REPORT.md:348).",
+    "gap": "The cross-check against Reload SC evidence covers only person and arcana names. Not cross-checked: (a) dialogue options. The map itself sets sourceOptionOrderVerifiedAgainstChineseGame=false, and no official SC dialogue source is in the repo. (b) Venue and item names. None appear in any official snapshot (steam_schinese, game tables); they exist only in data.json. (c) Tartarus block names, from the 3DM guide only. Also, 6 dialogue fragments were editorially rewritten rather than kept verbatim: justice 5 (3 fragments), justice 9 (2 fragments) and strength 1. The UI filters out justice 5's rewritten warnings."
+   },
+   {
+    "requirement": "[67] Foreign option order must not decide which Chinese choice is meant; do not claim exhaustive official verification",
+    "status": "met",
+    "evidence": "Dialogue.java:28-30,80-83 drops 第N项 ordinals, route warnings and '任意'. The pack note 【对话】 says bracket numbers are the guide's labels and may not match the in-game order. guide_dialogue_reference_map.json has sourceOptionOrderVerifiedAgainstChineseGame=false and pointBindingEnabled=false. DESIGN_v3.md §10.7: 'Never show foreign option ordinals'. A grep of v3 UI strings finds '官方' only at InfoPages.java:134 (a source-kind label) and Assumptions.java:19 ('没有官方数据'). No UI copy claims verification."
+   },
+   {
+    "requirement": "Owner directive: use the correct (Reload-specific) wiki sources",
+    "status": "met",
+    "evidence": "The wiki pages used are Reload pages or Reload sections. jobs_wage_rules_candidate.json sources give section 'Persona 3 Reload' for the megatenwiki pages. ev_slot_locks records 'Persona 3 Reload explicitly in page title' for atwiki. GameFAQs pages are under /persona-3-reload/. Where a mixed paragraph conflicted, the Reload-labelled sources won (Bunkichi 09-12 over megatenwiki 09-09; calendar_execution_extension.json versionDiscrepancies). REPORT.md:84 rejects megatenwiki's Reload calendar with wrong full moons and the FES/P3P pages.",
+    "gap": "The URL and edition-field defects are listed under the 'Preserve source URLs' item."
+   },
+   {
+    "requirement": "Owner directive: art may be redesigned freely but must look good (product-design review of 36 screenshots)",
+    "status": "partial",
+    "evidence": "I re-viewed widget_home.png, schedule.png, links.png, step_detail.png, rel_today.png, r2_27_links_episodes.png, home_today.png, home_today_font130.png, home_settings.png, home_links_grid.png, plan/social-day-320x200-sdk26.png, plan/locked-night-250x160-sdk31.png, plan/unreadable-day-180x150-sdk31.png and legacy/t016_02-320x200-sdk31.png. The look is coherent and recognisably P3R: navy and cyan, slanted cards, condensed italic numerals and a clear primary button. The qa_out/v3 renders (08:19-08:20) were made after the last source edit (08:17), so they reflect the release code.",
+    "gap": "Each defect below was confirmed in the screenshots or code. (1) Words split at line ends: '救出舞/子' and '本区块/第 2 次' (schedule.png); '人/格面具', '和/尚', '规/矩' (home_today_font130.png); '人格面/具。' (home_settings.png); '先让给了皇/帝、恋爱' (home_links_grid.png). (2) ×1.51 is plain in the subtitle but bold italic in the options (home_settings.png). (3) The step total is recomputed as pages are added (StateSteps.java:52-77, StateActivity.java:273), so the counter can change mid-flow. (4) 'RANK 0 → 2' for a locked link (links.png; LinksPage.java:219-224 shows 未解锁 only when projected is also 0). (5) '团体·男女' and '夫妇·男女' without spaces vs '友近健二 · 男' with spaces. (6) The story link 愚者 shows a '未选' chip. (7) At 180x150 the unreadable-state widget truncates its instruction. (8) The day-numeral watermark sits under the title and location text (widget_home.png). (9) The '怎么做' section shows an availability note, because Labels.java:231 sets detailZh=link.noteZh (step_detail.png). (10) The README screenshots and r2_* are stale. They were taken 07:21-07:28, before source edits at 08:17 and the APK at 08:20, and show copy that was later fixed, e.g. the garbled '看完能拿到每一话都有小奖励' (r2_27). Only rel_today.png is from the release build, and the qa_out/v3 renders use fixture data ('提齐亚（69–117F）'). (11) The README.md:14 alt text '一下记录结果' is awkward."
+   },
+   {
+    "requirement": "Owner directive: all UI in natural Simplified Chinese with official ATLUS terms (40-string spot check against docs/GLOSSARY_zh.md)",
+    "status": "partial",
+    "evidence": "The spot-checked strings exist at the cited places (e.g. StateSteps.java:193 '尽量全部升到 MAX', SettingsPage.java:85 dating-note sentence, Assumptions.java:19). ReviewFixesTest passes 28/28 in my run, including f4_episodeCopyIsNaturalChinese. Most copy follows the glossary (社群, 见面, 解锁, 安排, 现金/日元, 白天/放学后/晚上, 羁绊剧情).",
+    "gap": "Deviations confirmed in current code. (1) 'RANK 0 → 2' should be '未解锁 → RANK 2' (LinksPage.java:219-224; Zh.rankStep). (2) Mixed date formats: '预计 1/11 升到 MAX' (LinkStatus.java:71, Zh.shortDate) vs '到1月31日预计只能到 RANK 6' (:87). The glossary specifies '预计 11月20日 升到 MAX'. (3) '主角' (TowerPanel.java:120,214) vs '主人公' in pack episodes[].rewardZh, shown on the Links page (r2_27). The official store text (p3r_sc.txt) uses 主角, so the pack is the outlier. (4) The Me-page subtitle shortens the term to '字条' (MePage.java:88). (5) '假日邀约' (Labels.java:222,236; Assumptions.java:30) follows the glossary row, but conflicts with the pack's own note '休息日邀约' and the official achievement '回应了５次休息日的出游邀请短信'. This is a glossary-vs-official inconsistency, not a glossary violation as previously stated. (6) The widget shows 'S.E.E.S.' and 'P3R' Latin marks. (7) New: the earlier claim that grep finds no visible banned terms is inaccurate. '等待安排' (LinkStatus.java:78) uses the banned 等待, and '进塔前 …' (TowerPanel.java:225,273,277) uses 进塔, which the glossary bans except in short colloquial labels. The glossary itself departs from official ATLUS wording: ach_schinese.txt:109 '解禁了所有社群' (the app uses 解锁) and :101 '…５００００元的收入' (the app uses 日元)."
+   }
+  ],
+  "original": 15,
+  "met": 10
+ },
+ {
+  "section": "defects_engineering",
+  "items": [
+   {
+    "requirement": "Defect: actual plans stopped after a few days (only readiness-proven prefixes compiled, future progression curtailed) — must be fixed",
+    "status": "met",
+    "evidence": "Re-verified. I re-ran the full unit suite offline into a fresh, isolated build dir (init script in my scratchpad; compileDebugJavaWithJavac actually executed): 49 classes, 574 tests, 0 failures, 0 errors, 0 skipped. The real-pack tests did not silently skip via Assume (PlanRealPackTest 9/9, PlannerTest 23/23). PlanRealPackTest.run() (PlanRealPackTest.java:356-378) asserts: steps == lastSlot-start+1, Engine.validate empty, validationWarnings empty (no FREE slot while a legal action exists), lastUsefulSlot >= lastDay-13, budgetExhausted false, deterministic planId. Stdout from my run: new game no Persona 'span 4月21日 白天 → 1月31日 晚上 · steps 572 · useful 454 · free 5 · locked 113 · last useful 1月31日 白天 · maxed 22/22'. Emperor MUST: useful 458, 21/22, '皇帝 MAX 6月29日 白天'. Real-pack mid game 10/22: 'steps 204 · useful 169 · free 0 · locked 35 · last useful 1月31日 白天 · maxed 12/22'. The prior evidence's '184 useful' is from the synthetic PlannerTest.midGameRunsToTheEndOfJanuary, not the real pack. My own scratch harness (scratchpad/harness/Audit.java, against the freshly compiled classes) ran 10/22 with Magician MUST + Sun WANT: 204/204 steps, 169 useful, last useful 1/31 day, 0 errors, 0 warnings, budgetExhausted false.",
+    "gap": ""
+   },
+   {
+    "requirement": "Defect: training/job credited on Dec 24 despite an accepted invitation — fixed or explicitly superseded",
+    "status": "met",
+    "evidence": "Superseded explicitly. In the pack, day 267 (12-24) has dayLock/eveLock null and noteZh '平安夜：默认按婉拒所有邀约来安排' (checked in p3r_rules.json). The policy is in DESIGN_v3.md:341 ('Dec 24 free (all invitations declined) by default') and REPORT.md:110 and :355 ('Christmas Eve invitations … are not modelled'). RulesPackFactsTest.christmasEveIsFreeByDefault (lines 291-296) passed. Forecasts are never written to observed state: PlannerTest.observedStateIsNotMutated passed, and my harness reported observedUnchanged=true. That removes the old crediting mechanism. My new-game plan puts act:job_accessory on 12/24 day and meet:tower on 12/24 evening, consistent with the declined-invitation policy. The note renders only in DayDetailSheet.java:36-41. Correcting after the fact uses 做不了 → 剧情占用了 (Outcomes.java:22; ResultSheetTest.cannotRecordsSkipReason passed).",
+    "gap": "There is no input to declare an accepted Dec 24 invitation in advance. A romance player sees a job or meeting planned that day and has to correct it with 做不了 afterwards. The 12/24 note appears only in that day's detail sheet: grep finds no other day.noteZh renderer for non-locked days, so it is not on the Today hero or the schedule row."
+   },
+   {
+    "requirement": "Defect: Jan 21 conditional handling needed review",
+    "status": "met",
+    "evidence": "Reviewed and decided conservatively. Day 295 (01-21) has dayLock 'reserved' (conf=estimate; lockReasons.reserved = '可能有剧情（先空出）') and noteZh '如果之前把「白色切花」送给了顺平，这天放学后会有剧情，所以先空出来'; the evening is unlocked. RulesPackFactsTest.storyDaysAreLockedConservatively (lines 284-285) and ReviewFixesTest.copy6_heroShowsTheReservedSlotNote passed. Labels.java:207-213 makes the note the subtitle of a reserved step. In my new-game plan, 1/21 day is 'locked:reserved | 可能有剧情（先空出） | 如果之前把…'. REPORT.md §6 lists 1/21 daytime as an owner-verifiable conservative lock.",
+    "gap": "The lock is conservative, with no toggle: a player who never gave Junpei the flowers loses that daytime slot. Also, the prior claim that the 1/21 evening always has a productive action depends on the scenario. In my default new-game plan the 1/21 evening is FREE ('没有能推进目标的安排'), which is legitimate here because the warnings check is clean and nothing productive is legal."
+   },
+   {
+    "requirement": "Defect: Apr 22 mandatory daytime lock omitted in one adapter",
+    "status": "met",
+    "evidence": "Kernel.legal() returns 0 when !t.open(slot) (Kernel.java:263-266). This one gate covers every action type, so there is no per-adapter path that could skip the lock. The pack has day 21 (04-22) dayLock 'forced_event' with the evening free. RulesPackFactsTest.april22DaytimeIsTheForcedMagicianIntroduction (lines 222-229) passed. PlanValidator.java:150 independently errors 'locked slot (…) planned as …', and PlanValidatorTest.actionOnALockedSlotIsRejected passed. My harness output: '4/22 day | locked:forced_event | 剧情事件' and '4/22 eve | act:study_room'.",
+    "gap": ""
+   },
+   {
+    "requirement": "Defect: per-action assumptions stored but not all displayed in app detail",
+    "status": "met",
+    "evidence": "Kernel.ASSUMPTION_IDS (Kernel.java:39-41) lists 10 ids. I checked each against ui/Assumptions.java:17-34. All 10 have specific Chinese text: ordinary_gain_estimate, best_answers, persona_bonus, charm_bonus, goal_buffer, tower_income_estimate, job_pay_minimum, rescue_on_visit, rank_hold, dating_note_gain. Unknown ids collapse to GENERIC. DayDetailSheet.java:85-92 renders '这一步用到的估计' for every step. Device screenshot docs/screenshots/step_detail.png (and qa_out/device/r2_19_emperor_detail.png) shows three lines: +10 estimate, Persona ×1.51 and goal buffer. UiLogicTest.assumptionIdsNeverLeak passed.",
+    "gap": "No test iterates Kernel.ASSUMPTION_IDS. UiLogicTest.assumptionIdsNeverLeak checks only 'ordinary_gain' and one unknown id, so a new engine id could silently fall back to the generic line. Completeness rests on manual inspection."
+   },
+   {
+    "requirement": "Defect: known preparation steps dated today, blocking Devil/Justice/Hanged Man openings",
+    "status": "met",
+    "evidence": "StateDraft.build() (ui/StateDraft.java:466-469) writes only unlockStep for wizard-entered prep. lastStepDay keeps the prefill: -1 for new states (SimState.java:60), or the record's own value. No service or store code rewrites it (grep: PlannerService:1091 and CommandCheck:219 only null-check). The gap rule is in Kernel.java:368/393/485 and is skipped when lastStepDay < 0. My scratch check (scratchpad/harness/Audit.java and Prep2.java on the real pack): Justice at 10/22 opens 10/22 day when prep is entered (lastStepDay=-1) but 10/24 day when dated today. Hanged Man at 5/23 opens 5/23 day when entered but 5/25 when dated today. Devil opens 10/24 evening either way, because its meeting evenings are never consecutive. At 10/22 the Hanged Man opening is correctly blocked by Maiko's missing window (days 203-215). Passing tests: SideStepTest (18/18) and PlanRealPackTest.devilChainOnTheRealPack and midGameOctober22 (justice, devil, tower, moon, temperance, star and aeon open).",
+    "gap": "No repository test pins the wizard → lastStepDay-untouched → same-day-opening path. StateWizardTest.unlockPageListsOnlyRelevantLinks asserts only unlockStep == 2. The behaviour is correct by inspection and by scratch check only."
+   },
+   {
+    "requirement": "Defect: reopening/editing could lose availability or reset/widen previously known values",
+    "status": "met",
+    "evidence": "All cited tests exist and passed in my clean run: UiLogicTest.untouchedDraftKeepsHiddenEstimates, changedValuesResetOnlyTheirOwnEstimates, syncYesWithUnknownRankKeepsTheRecord, cashUnknownIsNotZero; StateWizardTest.draftSurvivesRecreationAndProcessDeath, draftFromOlderRevisionIsKeptOnTheNewRecord, rescueQuestionsWriteTheRescueBits, casConflictKeepsEditsAndAsksAgain; ReviewFixesTest.ui4_correctionPrefillsTheRecordsOwnValues; ProfileChangeReplayTest (3/3); ReplayerTest.aPredictedMeetingKeepsTheRankItRecorded; OutcomeTest.statLevelsClampHiddenPoints; PackLayoutTest (8/8). StateDraft.build keeps base rank, pts, ready, unlockStep and lastStepDay for unknown ranks ('?') and leaves unchanged ranks untouched (StateDraft.java:444-464).",
+    "gap": ""
+   },
+   {
+    "requirement": "Defect: result entry opened a generic form instead of a targeted action panel",
+    "status": "met",
+    "evidence": "ResultActivity.java has per-kind panels. Social panel: question '升到 RANK N 了吗？' (:641), '没升级' (:657), '其他结果…' (:663/668). Meeting, stat, note and episode panels each ask their own question (:716, :740, :759, :796). There are also 做不了 and 改做别的 (:981, :988). TowerPanel adds an optional '记录主角等级' (TowerPanel.java:120). ResultSheetTest passed 40/40 (I counted the methods), including rankUpAsPredictedRecordsRank7: meet:emperor → recordOutcome AS_PREDICTED rank 7, undo '皇帝 RANK 7'. Screenshot qa_out/v3/ui/result_social_rankup.png shows 皇帝·小田桐秀利 with '升到 RANK 7 了吗？', [升到 RANK 7 了] [没升级] [其他结果…], 做不了 and 改做别的. Device: qa_out/device/r2_17_result.png shows a targeted Magician meeting panel.",
+    "gap": ""
+   },
+   {
+    "requirement": "Defect: inadequate secondary optimisation of unspecified Social Links",
+    "status": "met",
+    "evidence": "Profile.otherLinks defaults to true (Profile.java:31; JSON default true at :139). W_OTHER = 300 (Heuristics.java:59; DESIGN §5.3 line 177). My clean run's stdout: new game, no Persona 22/22; every Persona 22/22; 皇帝 MUST 21/22 (Emperor MAX 6/29 + 20 others); GOALS mode 21/22; Link Episodes 21/22; real-pack mid game 10/22 12/22. My scratch run of 10/22 with Magician MUST + Sun WANT: Magician MAX 12/25, Sun 10, 11 links MAX in total.",
+    "gap": ""
+   },
+   {
+    "requirement": "Engineering: inspect/provide build scripts",
+    "status": "met",
+    "evidence": "scripts/setup_toolchain.sh downloads Temurin JDK 17, cmdline-tools, platforms;android-35 and build-tools;35.0.0 into .toolchain/ and writes .toolchain/env.sh (lines 17-51). scripts/build_release.sh runs testDebugUnitTest, lintRelease and assembleRelease, then zipalign -c, apksigner verify, copies to dist/, writes sha256 and runs aapt2 badging. scripts/verify_selfcontained.sh runs an env -i, empty-HOME, --offline build. README '从源码构建' documents all three. Versions: android/build.gradle AGP 8.7.3, gradle-wrapper gradle-8.9, compileSdk 35.",
+    "gap": "Minor: setup_toolchain.sh fetches the 'latest' JDK 17 GA from adoptium (not pinned to a version), so a fresh setup is not bit-reproducible."
+   },
+   {
+    "requirement": "Engineering: data migration and signing identity explained (applicationId change documented, private key not shared, no uninstall advice)",
+    "status": "met",
+    "evidence": "Handoff zip build.gradle: applicationId 'app.p3r.dayplanner' + suffix '.test', signed with the debug config. The new id 'app.p3r.planner' is explained in the android/app/build.gradle comment (lines 18-20), DESIGN_v3.md §9 (lines 316-320), README '关于旧版本' (line 27) and the release notes '安装说明'. grep finds no '卸载'/uninstall advice in README, the release notes or app sources; the only hit is DESIGN:319, which says it avoids that advice. The legacy export exists in the handoff MainActivity (exportJson, :142) and the import in the new MainActivity (:157, reached from HomeActivity.java:792). .signing/ holds p3r-release.jks and keystore.properties, both mode 600, git-ignored (.gitignore:17 via git check-ignore). `git ls-files | grep -iE 'jks|keystore|p12|pem|signing'` returns nothing, and neither the APK nor the handoff zip contains key files. apksigner on the dist APK: CN=P3R Planner, O=nobrainmonkey, SHA-256 90ebc64f…ab8a79a0, matching the release notes. PlanDbTest 7/7 and PlannerServiceLedgerTest.legacyGuidePreferencesAreNeverTouched passed.",
+    "gap": "The old v2 planner state (PlannerStateStore in 2.0.x) is not migrated. The player re-enters it once in the wizard, which is documented in the README and release notes. Guide progress moves by manual export/import, not automatically."
+   },
+   {
+    "requirement": "Work order 1: reproduce a midgame input producing the short plan; inspect algorithm, adapters, UI, persistence",
+    "status": "met",
+    "evidence": "docs/analysis/map_engine.md §5 (lines 150-162) records a run of the unmodified PlannerEngine with beam 48 and budget 60000. Results: Emperor rank 6 (only rank_07 compiled) gives 1 useful step; Devil 3 + Sun 2 + tower from Jun 1 stops on Jan 2 (search_limit); 6 chained links stop on Jul 21 (from Apr 21) or Sep 1 (from Jun 1). Root causes are ranked in §5.1+ with file:line references. The harness it names exists outside the repo at scratchpad/eng/src/Harness.java and Harness2.java (I verified both files are present). Adapter, UI, UX, data and persistence analyses: docs/analysis/map_adapters.md (§7 defect status), map_ui.md, map_ux.md, map_data.md, map_tests.md. Summary in DESIGN_v3.md §1.",
+    "gap": "The reproduction harness is not committed (the v2 code is deleted), so the measurement cannot be re-run from the repo. The reproduced scenarios start Apr 21 or Jun 1 with mid-progression ranks, not an October midgame."
+   },
+   {
+    "requirement": "Work order 2: concise design for full-horizon simulation and event-specific updates, then implement",
+    "status": "met",
+    "evidence": "docs/DESIGN_v3.md covers the rewrite rationale (§1), module map, rules schema, state and transitions, objective weights (§5.3), search, validator, plan format, store with CAS and idempotency, per-kind result sheets, acceptance tests (§8) and identity (§9). It is implemented in v3/engine (Kernel, Simulator, Planner, PlanValidator), v3/store (PlanDb, Ledger, Replayer), v3/service (PlannerService, ReplanWorker), v3/ui (ResultActivity, StateActivity) and v3/widget. All 574 tests pass.",
+    "gap": ""
+   },
+   {
+    "requirement": "Work order 3: validate one early-game and one midgame case through the remaining calendar, with a simple explicit goal plus useful secondary goals",
+    "status": "partial",
+    "evidence": "Early game with an explicit goal: PlanRealPackTest.earlyGameEmperorMustPlusOthers passed (Emperor MUST + others: Emperor MAX 6/29, 21/22, full span, validator clean). EndToEndRealPackTest.followDeviateCorrectAndSyncKeepsEveryPlanValidAndComplete (Emperor MUST + Lovers WANT on the real SQLite store) also passed. Mid game: PlanRealPackTest.midGameOctober22 (real pack) gave 204 steps, 169 useful, 12/22 in my run. The '184 useful, 15/22' quoted before is the synthetic PlannerTest.midGameRunsToTheEndOfJanuary. My scratch run of 10/22 with Magician MUST + Sun WANT was validator-clean: 169 useful, Magician MAX 12/25, Sun 10, 11 MAX in total.",
+    "gap": "Both committed midgame cases use the default profile (others only), with no explicit goal. ProfileChangeReplayTest's Magician MUST cases start 5/23 and only check that the store keeps history unchanged. The midgame + explicit goal case is verified only by auditor scratch runs."
+   },
+   {
+    "requirement": "Work order 4: test skipped actions, no-rank-up, later reentry, low money, tower caps, story locks, known stat intervals, input persistence, stale replan rejection",
+    "status": "met",
+    "evidence": "All cited tests exist and passed in my clean run. EndToEndRealPackTest covers: SKIPPED with reason 'story' (lines ~119-123), NO_RANK_UP keeps the rank and the link is met again (~108-114), a stale receipt is rejected with CODE_STALE (~129-130), a tower trip then a correction adds no visit and sets floor 33 (~147-155), and a sync 42 slots later (~160-167); every plan is checked by settledPlan (Engine.validate, full span, useful actions until late January; lines 187-201). The others: OutcomeTest.skippedAndNotDoneConsumeTheSlotWithoutGains and noRankUpForecastsExactlyOneMoreOrdinaryMeeting; StateWizardTest.syncAnsweredYesPrefillsForecastAndShowsDiff; PlannerTest.noMoneyMeansNoPaidActivities, jobsFundPaidUnlocksWithoutOverspending, towerCapOneStillLeavesRoomForTheRescue and towerCapZeroMeansNoVisitsAndTheMissingLinkIsLost; SimulatorTest.lockedSlotOffersNothing; OutcomeTest.statLevelsClampHiddenPoints; StateWizardTest.draftSurvivesRecreationAndProcessDeath; ResultSheetTest.towerInputSurvivesRotation; PlannerServiceLedgerTest.retriesAreIdempotentAcrossAProcessRestart; PlannerServiceReplanTest.aResultForAnOlderRevisionIsDiscardedAndRecomputed and theRevisionCheckAloneKeepsAStaleResultOut; ReplanWorkerTest (3/3); ResultSheetTest.stalePlanIdShowsCurrentItemAndSavesNothing.",
+    "gap": ""
+   },
+   {
+    "requirement": "Work order 5: test targeted Emperor and tower result flows end to end; inspect actual small-screen/native renders",
+    "status": "partial",
+    "evidence": "UI layer: ResultSheetTest.rankUpAsPredictedRecordsRank7, towerBalanceModeRecordsOnce (exactly one recordTower call, floor 101, rescue 'maiko'), towerNetModeIsExclusive and towerUnknownCashForcesBalance all passed, but they run against FakePlannerApi. Store layer: PlannerServiceLedgerTest.towerCashModesAreExclusiveAndAppliedOnce and correctionAddsNoVisitAndSurvivesRestart, plus EndToEndRealPackTest's tower and correction path, call the real service directly. Renders: qa_out/v3/ui/result_social_rankup.png (Emperor 6→7 sheet, viewed), result_social_rankup_font130.png, result_tower.png, result_tower_net.png; widget renders in qa_out/v3/widget/{real,plan,plan-font115}. Device: qa_out/device/r2_17_result.png (Magician meeting sheet), r2_18_after_rankup.png ('已记录：魔术师 RANK 6', '已重新安排：后面有 90 处变动'), r2_19_emperor_detail.png (Emperor day-detail sheet, not the result sheet), r2_13/r2_14_tower (wizard tower page).",
+    "gap": "No test drives the Emperor or tower result sheet into the real PlannerService/SQLite. The only UI-on-real-store test (PlanWidgetRealServiceTest) covers a job record. No device capture shows the Emperor rank-up result sheet or the tower result sheet; those exist only as Robolectric renders."
+   },
+   {
+    "requirement": "Work order 6: source changes, build instructions, usable release APK, concise explanation of what works and what remains approximate",
+    "status": "met",
+    "evidence": "Local HEAD and origin/main are both b1cfe60, and the working tree is clean. Build instructions are in README '从源码构建'. I rebuilt :app:assembleRelease from HEAD with --offline into a fresh build dir under env -i with an empty fake HOME (41 tasks executed, 0 FROM-CACHE). The unzipped contents are identical to dist/P3R-Planner-3.0.0.apk (diff -rq: no differences), and the signer is the same (90ebc64f…). Approximations are explained in README '安排是怎么算的' (the +10 estimate, a separate observed store, the validator), release notes '关于估计', REPORT.md §6 'Known gaps' (lines 340-362) and the in-app 规划说明 (Assumptions.global).",
+    "gap": ""
+   },
+   {
+    "requirement": "Replay assertions: no double-booked slots, no overspending, no forbidden-date actions, no visit-cap violations, gain/unlock propagation, no mutation of observed state from forecasts",
+    "status": "met",
+    "evidence": "PlanValidator.java (660 lines) imports only model.Profile and model.Rules and recounts state itself. It checks: coverage and order (:122-131), cash < 0 (:135), locked slots (:150-151), meeting availability (:212), recounted ranks and rank jumps (:237-241), recounted cash (:195), activity calendar (:385-391), Tartarus enterability and cap (:395-397), side-step fees (:338), activity and note cost with buffer (:372, :437). PlanValidatorTest's 10 negative tests passed. Non-mutation: PlannerTest.observedStateIsNotMutated (state and profile JSON before == after) and OutcomeTest.inputStateIsNeverMutated passed, and my harness reported observedUnchanged=true for the 10/22 goal plan. EndToEndRealPackTest.settledPlan validates every installed plan (lines 187-201). PlanRealPackTest.run asserts validate and validationWarnings are empty in every real-pack scenario.",
+    "gap": "Minor overstatement in the prior wording: the validator is not completely code-disjoint, since it uses the static helper Tables.contains for weekday and fixed-day membership (PlanValidator.java:357-358). The transition logic itself is independent."
+   },
+   {
+    "requirement": "Plan span and useful action counts reported (not only unit-test totals)",
+    "status": "partial",
+    "evidence": "In the app: SchedulePage.java:201 shows '排到{date} · 共 N 件事' (docs/screenshots/schedule.png, viewed: '排到1月31日 · 共 168 件事'), and InfoPages.java:35-37 shows '排到…' and '要做的事 N 件，剧情占用 …'. Test stdout prints a dated span and useful count per scenario, for example 'span 4月21日 白天 → 1月31日 晚上 · steps 572 · useful 454 …' and 'span 10月22日 白天 → 1月31日 晚上 · steps 204 · useful 169 …', and EndToEnd prints 'followed plan: 414 useful actions'. DESIGN_v3.md:309 lists 'report plan span, useful action count' as an acceptance criterion.",
+    "gap": "No committed document (README, RELEASE_NOTES_3.0.0.md, DESIGN_v3.md, REPORT.md, or the PlanRealPackTest javadoc table) records per-scenario dated spans with useful-action counts. Searching committed .md files finds none. They report MAX counts and '排到 1 月 31 日' only, so the numbers exist only in test stdout and the live app UI."
+   },
+   {
+    "requirement": "APK delivered on GitHub release v3.0.0",
+    "status": "met",
+    "evidence": "`gh release view v3.0.0`: name 'P3R 规划 3.0.0', isDraft false, isPrerelease false, published 2026-10-13T12:22:17Z. Asset P3R-Planner-3.0.0.apk is 3,192,908 bytes with digest sha256:f2433092…8f87, which matches `shasum` of dist/P3R-Planner-3.0.0.apk and android/app/build/outputs/apk/release/app-release.apk. There is also a .sha256 asset. aapt2 badging: package app.p3r.planner, versionCode 30, versionName 3.0.0, label 'P3R 规划', targetSdkVersion 35. The tag is at 82786aa; `git diff --stat 82786aa b1cfe60` touches only README, the CI workflow, setup_toolchain.sh and verify_selfcontained.sh. My offline rebuild from HEAD produced identical APK contents.",
+    "gap": ""
+   },
+   {
+    "requirement": "All build dependencies inside the project directory (verify_selfcontained.sh output)",
+    "status": "met",
+    "evidence": "The prior gap (compile likely UP-TO-DATE) is now closed. (1) I ran the full test suite with --offline into a brand-new build dir outside the repo (init script layout.buildDirectory): compileDebugJavaWithJavac and compileDebugUnitTestJavaWithJavac executed ('24 actionable tasks: 24 executed'), 574 tests passed, and `find ~/.gradle ~/.m2 ~/.android -newer <start marker>` found nothing. (2) I ran `env -i HOME=<empty scratch dir> PATH=/usr/bin:/bin… source .toolchain/env.sh && ./gradlew --offline --no-daemon :app:assembleRelease` into another fresh build dir: BUILD SUCCESSFUL, 41 of 43 tasks executed, 0 FROM-CACHE. The fake HOME stayed empty, and the APK contents equal the released APK. env.sh points JAVA_HOME, ANDROID_HOME, GRADLE_USER_HOME, ANDROID_USER_HOME and ANDROID_AVD_HOME into .toolchain and sets JAVA_TOOL_OPTIONS -Duser.home=.toolchain/home. Robolectric jars resolve from .toolchain/test-home/.m2 (build.gradle sets user.home for tests).",
+    "gap": ".toolchain/ is git-ignored, so a fresh clone needs scripts/setup_toolchain.sh with network access once (by design). I did not re-run scripts/verify_selfcontained.sh itself, because it writes to the shared android/app/build. My equivalent runs used isolated build dirs."
+   },
+   {
+    "requirement": "Repository contains the handoff prompt and the handoff zip",
+    "status": "met",
+    "evidence": "`git ls-files` lists P3R_HANDOFF_PROMPT.md and P3R_Planner_Handoff_20261013.zip. `gh api repos/nobrainmonkey/P3R_widget/contents/...` returns sizes 7,983,142 and 10,374, identical to `stat` of the local files. The prompt ends with the owner's added lines on the APK, keeping all dependencies in the directory, and Simplified Chinese. HEAD == origin/main == b1cfe60.",
+    "gap": ""
+   },
+   {
+    "requirement": "Chinese UI (engineering deliverable; detailed terminology audit is a separate section)",
+    "status": "partial",
+    "evidence": "The v3 planner UI is Chinese. res/values/strings.xml has 5 strings, all Chinese ('P3R 规划', 'P3R 每日安排', 'P3R 逐日攻略', and the widget descriptions). Screenshots viewed: qa_out/v3/ui/result_social_rankup.png, qa_out/device/r2_17/r2_18/r2_19, docs/screenshots/schedule.png and step_detail.png are Chinese apart from RANK/Lv./MAX. Guards passed in my run: UiLogicTest.messagesNeverShowEnglish, PlannerTest.stepTextIsChineseWithoutInternalIds, FeaturesTest.planTextAvoidsBannedWords, glossaryWording and stepCopyFollowsTheGlossary, ReviewFixesTest.copy_menusAndBannersUseTheGlossaryTerms. A scan of v3 ui/widget/service/engine string literals finds no mixed English UI copy besides brand and font names.",
+    "gap": "The retained legacy 逐日攻略, reachable in the shipped APK from HomeActivity.java:792 (MainActivity WebView, assets/index.html), renders English display text: 'DAILY ROUTINE' (index.html:292), the theme toggle word 'DAY'/'NIGHT' (:446, :490), month names 'APRIL'…'MARCH' (MONTHS at :314, rendered at :363/365), and period labels 'AFTER SCHOOL', 'EVENING', 'TODAY' and others (PERIODS at :316, rendered at :412). This conflicts with the owner's 'all UI in Simplified Chinese' directive, although it preserves the legacy design. The prior check covered only v3/ui and v3/widget. RANK, RANK MAX and Lv.N in Latin script are deliberate and belong to the language audit."
+   }
+  ],
+  "original": 23,
+  "met": 20
+ }
+]

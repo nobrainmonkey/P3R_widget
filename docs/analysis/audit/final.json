@@ -1,0 +1,42 @@
+[
+ {
+  "section": "outcome_objective",
+  "items": [
+   {
+    "requirement": "Maximise explicit goals in priority order",
+    "status": "met",
+    "evidence": "Planner.Pool.compareGoals/decidingGoal (Planner.java:414-427) compare plans goal by goal in priority order (MUST then WANT, Heuristics.goalOrder:459): reaching a goal beats missing it, between two misses the higher rank wins; the score decides only among goal ties (best/choose, 429-456). prioritise() (372-405) re-plans with goals 1..k when the best plan misses goal k while a later one exists. tradedFor() (472-486) names only a higher goal the kept plan reaches, else -1; Labels.notes and LinkStatus use it. PlannerService.improves (816) also puts goals first (end rank capped at each target) before completeness, so a complete follow-up can no longer drop a goal the installed plan reaches. Full rerun at 322f8b5: 698 tests, 0 failures, incl. CoreContractTest.goalsAreComparedInStrictPriorityOrderBeforeTheObjective; PlanRealPackTest.goalOrderDecidesWhoGetsMaxWhenTwoMustGoalsCompete, strictGoalPriorityKeepsTheFirstGoalInTheAuditCases, strictGoalPriorityOnRandomMidGameTriples; PlannerServiceFollowUpTest.improvesComparesGoalsInPriorityOrderThenMaxedLinksThenRanks; FinalIntegrationTest.aMissedGoalNamesOnlyTheGoalThePlannerKept."
+   },
+   {
+    "requirement": "Prefer less fragile routes and sensible resource buffers",
+    "status": "met",
+    "evidence": "The fee reserve is a kernel legality rule: feeAffordable (Kernel.java:566-570) pays a fee only with 2,500 left over unless waiting would miss the milestone (feeUrgent); unlockGroup and sideLegal use it (415, 438). optionalHold (462-474) makes paid training (activityLegal, 728) and dating-site notes (noteOpen, 355) leave pending fees (due within 14 days, affordable) plus the reserve, and the reserve on a fee day. Heuristics.feeNeeds adds the reserve to saving targets; Labels.FEE_NOTE states the rules in 需要注意. PlanValidator checks the cash buffer (394, 489) and the fee-day reserve (411-417). Robustness: FRAGILE_MAX_PENALTY, goalBuffer on by default (Profile.java:49), no Tartarus income assumed. Passing: SideStepTest.aFeeThatCanWaitKeepsTheReserve; PlanRealPackTest.devilChainOnTheRealPack and unlockFeeDaysKeepTheReserveOnTheRealPack (5 scenarios, no validator warnings); CoreContractTest.unlockFeesKeepAReserveOnTop, fragileMaxCountsOnlyOtherLinksMaxedOnTheirLastChance. Minor (noted by the auditor): a reserve breach is only a validator warning; the user's own cash buffer defaults to 0."
+   }
+  ]
+ },
+ {
+  "section": "forecasting_interaction",
+  "items": [
+   {
+    "requirement": "F11. Never claim a failed heuristic search proves infeasibility; distinguish unmet goals, insufficient rule coverage and search limits",
+    "status": "met",
+    "evidence": "Plan.followUp (Plan.java:32), followUpPending() and budgetNoteZh() (43-51) say 「稍后会自动再算一次」 only while budgetExhausted && !followUp; otherwise 「后半段是粗略安排；记下一个结果后会重新安排」, which is true (a record changes the revision and triggers a replan). PlannerService queues exactly one follow-up per revision key with twice the budget (needsFollowUpLocked 777-780, nextJob 880-897, runEnded 958-967); a result that is not better, or fails, is marked by followUpDoneLocked (788-802, 918-935), so a restart cannot re-promise. ui/InfoPages.budgetLine (90-95) reads plan.followUp directly. Unmet goals read as this plan's outcome (Labels.java:680-697, LinkStatus.shortfall); rule coverage is worded apart (story holds, lost rescue, tower nights); the search-limit note comes first. No 时间不够/不可能/来不及/排不开 in UI or engine literals. Passing: PlannerServiceFollowUpTest 7/7; ReauditWordingTest budget tests; FinalIntegrationTest.theFollowUpFlagDecidesTheBudgetLine; CoreContractTest budget and notes tests."
+   }
+  ]
+ },
+ {
+  "section": "visual_widget_sources",
+  "items": [
+   {
+    "requirement": "Owner directive: art may be redesigned freely but must look good (product-design review of 36 screenshots)",
+    "status": "met",
+    "evidence": "Rechecked at 322f8b5. README hero docs/screenshots/widget_home.png is a real 900x616 crop of the plan widget (it was an empty crop at 35596a5); today, schedule, links, step_detail (gold-barred 「注意：」 note under the how-to) and result_sheet were retaken from the 3.0.1 build and look good. Legacy guide widget: GuideWords adds TV-shopping goods and exam answers; CardText.joinCounts keeps 「（2）」「（1个）」 with their word; LegacyGuideWordsRenderTest derives quoted names and shopping goods from every record (namedThings) and checks counts never start a line (3/3 pass). The regenerated qa_out/v3/widget/legacy_words/lines.txt no longer splits 毕达哥拉斯, 成瘾症状, 超导, 强光手电, 魔反玉米, 遁逃弹, 强力蛋白粉, 超甜丰水梨, 叶隐泡面 or 超合金机器人 at 180x160 or 320x200. Remaining nits named by the auditor (「期中考试第一/天」, 「全/属性」, 「温吞/白稠鱼烧」) were fixed afterwards in 685b4cf (GuideWords); a lone 「猫）」 line on one 180x160 card remains."
+   },
+   {
+    "requirement": "Owner directive: all UI in natural Simplified Chinese with official ATLUS terms (40-string spot check against docs/GLOSSARY_zh.md)",
+    "status": "met",
+    "evidence": "Rechecked at 322f8b5. Guide text in data.json, display_metadata.json and the copy in index.html: 0 M/D dates (「10月13日 期中考试：选择「成瘾症状」」, 「7月5日截止」), 0 LV, 0 羁绊剧场, 0 主人公; prices 「3,980 日元」; English glosses after Chinese answers removed. Remaining English is in-game class text (Lives, PLACEBO, Geeses, May Blues, MOBA英语对话) or common gamer words (BOSS, SL, DVD, HP/SP). LegacyGuideChineseTest 4/4 incl. theGuideTextFollowsTheGlossary and the skeleton-hash structure check (ids, keys, order unchanged since 2.x). README title 「…社群日程安排」; 规划 only as app name or 「规划说明」/「规划设置」 menus. 关于 reads versionName (FinalIntegrationTest.theAboutPageShowsTheInstalledVersion). v3 app, plan widget and rule pack clean (GlossarySourceTest 3/3, ReauditWordingTest 8/8, AuditFixesTest 21/21). The one leftover the auditor found (「给2万元」「给1万元」「赚取5万元」 on the 逐日攻略 page) was fixed afterwards in 685b4cf (now 万日元; the glossary test also matches the 万元 form)."
+   }
+  ]
+ }
+]

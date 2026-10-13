@@ -22,6 +22,6 @@ OUT="$ROOT/dist/P3R-Planner-$VERSION.apk"
 zipalign -c -P 16 -v 4 "$APK" >/dev/null
 apksigner verify --print-certs "$APK" | sed -n '1,4p'
 cp "$APK" "$OUT"
-shasum -a 256 "$OUT" | tee "$OUT.sha256"
+(cd "$ROOT/dist" && shasum -a 256 "$(basename "$OUT")") | tee "$OUT.sha256"
 aapt2 dump badging "$OUT" | grep -E "^package:|application-label:|sdkVersion|targetSdkVersion" || true
 echo "Release APK: $OUT"
