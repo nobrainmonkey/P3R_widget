@@ -200,7 +200,7 @@ final class PlanValidator {
                 error(slot, "meeting " + link.id + " at rank " + r);
                 return;
             }
-            double m = multiplier();
+            double m = multiplier(l);
             int thr = link.threshold[r + 1];
             int need = thr + (isGoal(l) && profile.goalBuffer && thr > 0 ? ordinaryGain() : 0);
             boolean wasReady = ready[l];
@@ -265,7 +265,7 @@ final class PlanValidator {
                 cash -= Math.max(0, st.cost);
                 if (j == establish && rank[l] == 0) {
                     rank[l] = 1;
-                    pts[l] = answerPoints(l, 1, multiplier());
+                    pts[l] = answerPoints(l, 1, multiplier(l));
                     ready[l] = false;
                 }
             }
@@ -326,7 +326,7 @@ final class PlanValidator {
                 lastStep[l] = d;
                 if (st.establishes && rank[l] == 0) {
                     rank[l] = 1;
-                    pts[l] = answerPoints(l, 1, multiplier());
+                    pts[l] = answerPoints(l, 1, multiplier(l));
                     ready[l] = false;
                 }
             }
@@ -457,7 +457,7 @@ final class PlanValidator {
                 } else if (rank[l] == 0 && link.unlock.steps.isEmpty() && d >= link.unlock.earliestDay
                         && !unavailableOn(l, d) && prereqs(link)) {
                     rank[l] = 1;
-                    pts[l] = answerPoints(l, 1, multiplier());
+                    pts[l] = answerPoints(l, 1, multiplier(l));
                     ready[l] = false;
                 }
             }
@@ -530,8 +530,9 @@ final class PlanValidator {
             return lv;
         }
 
-        private double multiplier() {
-            double m = profile.personaBonus ? rules.policy.personaMult : 1.0;
+        /** Affinity multiplier of link l: the Persona the player carries for it (Profile.personaFor) × Charm Lv6. */
+        private double multiplier(int l) {
+            double m = profile.personaFor(l) ? Math.max(1.0, rules.policy.personaMult) : 1.0;
             Rules.Stat charm = rules.stat("charm");
             if (profile.charmBonus && charm != null && statLevel(charm.idx) >= 6) m *= rules.policy.charmMult;
             return m;

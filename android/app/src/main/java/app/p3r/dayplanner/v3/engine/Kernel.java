@@ -20,6 +20,10 @@ final class Kernel {
     static final int T_UNLOCK = 2;
     static final int T_ACT = 3;
     static final int T_TOWER = 4;
+    /** Dating-site note for a link (evening): bought at the club and used on the dorm PC. */
+    static final int T_NOTE = 5;
+    /** The next Link Episode of a track. */
+    static final int T_EPISODE = 6;
 
     // Assumption bits (ids in ASSUMPTION_IDS, same order).
     static final int A_ORDINARY = 1;
@@ -31,9 +35,10 @@ final class Kernel {
     static final int A_JOB_PAY = 1 << 6;
     static final int A_RESCUE = 1 << 7;
     static final int A_HOLD = 1 << 8;
+    static final int A_NOTE = 1 << 9;
     static final String[] ASSUMPTION_IDS = {
             "ordinary_gain_estimate", "best_answers", "persona_bonus", "charm_bonus", "goal_buffer",
-            "tower_income_estimate", "job_pay_minimum", "rescue_on_visit", "rank_hold"};
+            "tower_income_estimate", "job_pay_minimum", "rescue_on_visit", "rank_hold", "dating_note_gain"};
 
     static int code(int type, int target, int step) {
         return (type << 24) | (target << 8) | (step & 0xff);
@@ -51,6 +56,8 @@ final class Kernel {
             case UNLOCK_STEP: return code(T_UNLOCK, a.target, a.step);
             case ACTIVITY: return code(T_ACT, a.target, 0);
             case TARTARUS: return code(T_TOWER, a.target, 0);
+            case NOTE: return code(T_NOTE, a.target, 0);
+            case EPISODE: return code(T_EPISODE, a.target, 0);
             default: return FREE;
         }
     }
@@ -61,6 +68,8 @@ final class Kernel {
             case T_UNLOCK: return Action.unlock(target(code), step(code));
             case T_ACT: return Action.activity(target(code));
             case T_TOWER: return Action.tower(target(code));
+            case T_NOTE: return Action.note(target(code));
+            case T_EPISODE: return Action.episode(target(code));
             default: return Action.free();
         }
     }
@@ -86,6 +95,12 @@ final class Kernel {
         int rescue = -1;
         /** Job pay (minimum tier). */
         int pay;
+        /** The meeting's or scene's points were computed with the matching-Persona bonus. */
+        boolean persona;
+        /** Episode number watched (1-based) for an episode, else 0. */
+        int episode;
+        /** Points a dating-site note added. */
+        int notePts;
         /** Side steps done in this slot before the main action: link and step index, in order. */
         int sideCount;
         final int[] sideLink = new int[32];
@@ -109,6 +124,9 @@ final class Kernel {
             towerVisit = 0;
             rescue = -1;
             pay = 0;
+            persona = false;
+            episode = 0;
+            notePts = 0;
         }
 
         void addAssumptionIds(List<String> out) {
@@ -133,6 +151,8 @@ final class Kernel {
         c.towerVisits = fit(c.towerVisits, m.t.nBlocks, 0);
         c.shifts = fit(c.shifts, m.t.nActs, 0);
         c.used = fit(c.used, m.t.nActs, 0);
+        c.episodes = fit(c.episodes, m.t.nEps, 0);
+        c.notesUsed = Math.max(0, c.notesUsed);
         for (int l = 0; l < SimState.LINKS; l++) c.rank[l] = Math.max(0, Math.min(10, c.rank[l]));
         if (c.cash < 0) c.cash = 0;
         return c;
@@ -155,8 +175,9 @@ final class Kernel {
         return m.charmMult > 1.0 && ci >= 0 && st.statPts[ci] >= m.t.statCap[ci];
     }
 
-    static double mult(Model m, SimState st) {
-        double x = m.personaMult;
+    /** Affinity multiplier of meetings with {@code link}: its Persona (if carried) × the Charm Lv6 bonus (if reached). */
+    static double mult(Model m, SimState st, int link) {
+        double x = m.personaMult(link);
         if (charmBonusActive(m, st)) x *= m.charmMult;
         return x;
     }
@@ -259,12 +280,55 @@ final class Kernel {
         }
         int b = t.towerBlock[slot];
         if (b >= 0 && st.towerVisits[b] < m.towerCap) out[n++] = code(T_TOWER, b, 0);
+        if (eve && noteOpen(m, st, day)) {
+            for (int l = 0; l < t.nLinks; l++) {
+                if (noteUseful(m, st, l, day)) out[n++] = code(T_NOTE, l, 0);
+            }
+        }
+        for (int e = 0; e < t.nEps; e++) {
+            if (episodeLegal(m, st, e, day, eve)) out[n++] = code(T_EPISODE, e, 0);
+        }
         return n;
     }
 
     /** Upper bound of {@link #legal}'s output size. */
     static int maxLegal(Model m) {
-        return m.t.nLinks * 2 + m.t.nActs + 1;
+        return m.t.nLinks * 3 + m.t.nActs + 1 + m.t.nEps;
+    }
+
+    /**
+     * A dating-site note can be bought and used this evening: the player allows notes, the club
+     * sells them from {@code fromDay}, the cash covers the price plus the buffer (an optional spend)
+     * and the use limit is not reached. The slot itself must be an open evening.
+     */
+    static boolean noteOpen(Model m, SimState st, int day) {
+        Rules.DatingNote note = m.note;
+        if (note == null || day < note.fromDay || st.notesUsed >= m.noteMaxUses) return false;
+        int cost = Math.max(0, note.cost);
+        return st.cash >= cost + (cost > 0 ? m.cashBuffer : 0);
+    }
+
+    /**
+     * The note may target the link (established manual link at RANK 1–9, not missing or lost) and
+     * its points would count: the next rank needs points ({@code threshold > 0}), the rank-up cue
+     * has not shown and the estimated points are still below what the next rank-up needs. Notes
+     * that could not change anything are not offered (like training above Lv6).
+     */
+    static boolean noteUseful(Model m, SimState st, int link, int day) {
+        int r = st.rank[link];
+        if (r < 1 || r >= 10 || st.ready[link] || m.rules.links[link].kind != Rules.LinkKind.MANUAL) return false;
+        if (m.rules.links[link].threshold[r + 1] <= 0 || blocked(m, st, link, day)) return false;
+        return st.pts[link] < need(m, link, r);
+    }
+
+    /**
+     * The next episode of an opted-in track can be watched in this slot (right slot kind, a day
+     * whose calendar cell allows that episode number, episodes left). The slot must be open.
+     */
+    static boolean episodeLegal(Model m, SimState st, int e, int day, boolean eve) {
+        if (!m.episodeWanted[e] || m.t.epEve[e] != eve) return false;
+        int next = st.episodes[e];
+        return next < m.t.epCount[e] && m.rules.episodes[e].allows(day, next + 1);
     }
 
     static boolean meetLegal(Model m, SimState st, int link, int day) {
@@ -331,6 +395,10 @@ final class Kernel {
                 int cost = Math.max(0, m.rules.activities[target(code)].cost);
                 return cost > 0 ? cost + m.cashBuffer : 0;
             }
+            case T_NOTE: {
+                int cost = m.note == null ? 0 : Math.max(0, m.note.cost);
+                return cost > 0 ? cost + m.cashBuffer : 0;
+            }
             case T_UNLOCK: {
                 int link = target(code);
                 List<Rules.Step> steps = m.rules.links[link].unlock.steps;
@@ -372,7 +440,7 @@ final class Kernel {
             st.lastStepDay[l] = day;
             if (k == t.establishIdx[l]) {
                 st.rank[l] = 1;
-                st.pts[l] = eventPts(m, l, 1, mult(m, st));
+                st.pts[l] = eventPts(m, l, 1, mult(m, st, l));
                 st.ready[l] = false;
             }
             if (fx != null && fx.sideCount < fx.sideLink.length) {
@@ -452,6 +520,12 @@ final class Kernel {
             case T_TOWER:
                 tower(m, st, target(code), day, fx);
                 break;
+            case T_NOTE:
+                note(m, st, target(code), day, fx);
+                break;
+            case T_EPISODE:
+                episode(st, target(code), fx);
+                break;
             default:
                 break;
         }
@@ -460,8 +534,8 @@ final class Kernel {
     private static void meet(Model m, SimState st, int link, int day, Effect fx) {
         int r = st.rank[link];
         if (r >= 10) return;
-        double mult = mult(m, st);
-        int extra = (m.personaMult > 1 ? A_PERSONA : 0) | (charmBonusActive(m, st) ? A_CHARM : 0);
+        double mult = mult(m, st, link);
+        int extra = (m.persona[link] ? A_PERSONA : 0) | (charmBonusActive(m, st) ? A_CHARM : 0);
         boolean wasReady = st.ready[link];
         boolean isHeld = !wasReady && held(m, st, link, r + 1, day);
         int need = need(m, link, r);
@@ -486,6 +560,8 @@ final class Kernel {
                 if (!fx.certain) a |= A_ORDINARY | (buffer ? A_BUFFER : 0);
                 if (st.pts[link] > 0) a |= A_BEST | extra;
                 fx.assumptions = a;
+                // The rank scene's answers earn points for the next rank: the Persona counts there.
+                fx.persona = m.persona[link] && to < 10 && st.pts[link] > 0;
             }
             return;
         }
@@ -496,6 +572,44 @@ final class Kernel {
             fx.rankTo = r;
             fx.estimate = true;
             fx.assumptions = A_ORDINARY | extra | (buffer ? A_BUFFER : 0) | (isHeld ? A_HOLD : 0);
+            fx.persona = m.persona[link];
+        }
+    }
+
+    /**
+     * Dating-site note: pay the price and add the note's points to the link (an estimate; no
+     * Persona or Charm multiplier). It never ranks the link up and never sets the rank-up cue; during
+     * a hold the points stop at the threshold, as for meetings.
+     */
+    private static void note(Model m, SimState st, int link, int day, Effect fx) {
+        Rules.DatingNote note = m.note != null ? m.note : m.rules.datingNote;
+        int cost = note == null ? 0 : Math.max(0, note.cost);
+        int gain = note == null ? 0 : Math.max(0, note.gain);
+        st.cash = Math.max(0, st.cash - cost);
+        st.notesUsed++;
+        int r = st.rank[link];
+        int before = st.pts[link];
+        if (r >= 1 && r < 10) {
+            int next = before + gain;
+            if (held(m, st, link, r + 1, day)) next = Math.min(next, Math.max(before, need(m, link, r)));
+            st.pts[link] = next;
+        }
+        if (fx != null) {
+            fx.rankFrom = r;
+            fx.rankTo = r;
+            fx.estimate = true;
+            fx.notePts = st.pts[link] - before;
+            fx.assumptions = A_NOTE;
+        }
+    }
+
+    /** Watch the next episode of track e (certain; Link Episodes give no Social Link points). */
+    private static void episode(SimState st, int e, Effect fx) {
+        if (e < 0 || e >= st.episodes.length) return;
+        st.episodes[e]++;
+        if (fx != null) {
+            fx.episode = st.episodes[e];
+            fx.certain = true;
         }
     }
 
@@ -514,13 +628,14 @@ final class Kernel {
         st.lastStepDay[link] = day;
         if (established && st.rank[link] == 0) {
             st.rank[link] = 1;
-            st.pts[link] = eventPts(m, link, 1, mult(m, st));
+            st.pts[link] = eventPts(m, link, 1, mult(m, st, link));
             st.ready[link] = false;
         }
         if (fx != null) {
             fx.rankTo = st.rank[link];
             fx.rankUp = fx.rankTo > fx.rankFrom;
             fx.certain = true;
+            fx.persona = established && m.persona[link] && st.pts[link] > 0;
         }
     }
 
@@ -591,7 +706,7 @@ final class Kernel {
             }
             if (st.rank[l] == 0 && t.stepCount[l] == 0 && autoUnlocks(m, st, l, day)) {
                 st.rank[l] = 1;
-                st.pts[l] = eventPts(m, l, 1, mult(m, st));
+                st.pts[l] = eventPts(m, l, 1, mult(m, st, l));
                 st.ready[l] = false;
             }
         }

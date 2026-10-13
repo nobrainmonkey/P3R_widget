@@ -149,7 +149,7 @@ final class Heuristics {
     final int[] latestUnlock;
     /** Objective value of establishing the link (seen from the start of the plan). */
     final double[] unlockValue;
-    /** Meetings from a fresh rank 1 to the target (start multiplier). */
+    /** Meetings from a fresh rank 1 to the target (the link's multiplier at the start). */
     final int[] meetsFromOne;
     /** First slot the link could open on (its own calendar and earliest day; requirements ignored). */
     final int[] openSlot;
@@ -193,6 +193,8 @@ final class Heuristics {
     private final double[] load = new double[2];
     /** Bonus per meeting (or unlock action) of a link for the gates it opens for other links. */
     private final double[] linkBonus;
+    /** Affinity multiplier per link in the prepared state (its Persona × the Charm bonus). */
+    private final double[] linkMult;
     /** Value per useful stat point of evening / daytime training. */
     private final double[] eveValue = new double[3];
     private final double[] dayValue = new double[3];
@@ -269,7 +271,6 @@ final class Heuristics {
         cheapestPaid = new int[ns];
         buildStatTables();
 
-        double mult = Kernel.mult(m, start);
         meetsFromOne = new int[n];
         latestUnlock = new int[n];
         unlockValue = new double[n];
@@ -281,6 +282,7 @@ final class Heuristics {
             gateDeadline[l] = t.lastSlot + 1;
             hardDeadline[l] = t.lastSlot + 1;
             if (rules.links[l].kind != Rules.LinkKind.MANUAL) continue;
+            double mult = Kernel.mult(m, start, l);
             int fromOne = meetingsBetween(l, 1, Kernel.eventPts(m, l, 1, mult), false, target[l], mult);
             meetsFromOne[l] = fromOne;
             int needSlots = Math.min(INF, fromOne + t.slotStepsLeft[l][0]);
@@ -335,6 +337,7 @@ final class Heuristics {
         admitted = new boolean[n];
         order = new int[n];
         linkBonus = new double[n];
+        linkMult = new double[n];
     }
 
     private static int[] tierOrder(Profile p, Profile.Tier tier) {
@@ -526,7 +529,7 @@ final class Heuristics {
 
     /** Share of the link's remaining calendar opportunities it still needs (≥ 0, INF when held). */
     double pressure(SimState st, int l) {
-        int need = remainingMeetings(st, l, Kernel.mult(m, st));
+        int need = remainingMeetings(st, l, Kernel.mult(m, st, l));
         if (need >= INF) return INF;
         return need / (double) Math.max(1, t.meetRemain[l][st.slot]);
     }
@@ -535,10 +538,10 @@ final class Heuristics {
 
     /** Prepare per-step values (link demand, contention, gates, money) for {@code st.slot}. */
     void prepare(SimState st) {
-        double mult = Kernel.mult(m, st);
         int slot = st.slot;
         int day = slot >> 1;
-        prepareDemand(st, mult, day);
+        for (int l = 0; l < t.nLinks; l++) linkMult[l] = Kernel.mult(m, st, l);
+        prepareDemand(st, day);
         Arrays.fill(eveValue, 0);
         Arrays.fill(dayValue, 0);
         Arrays.fill(linkBonus, 0);
@@ -558,7 +561,7 @@ final class Heuristics {
                 int s = rs[i];
                 if (s < t.nStats) trainings += Math.max(0, rules.stats[s].thresholds[m.reqStatLv[l][i]] - st.statPts[s]) / eveGain[s];
             }
-            int linkSteps = linkGateBonus(st, l, v, deadline, mult, trainings);
+            int linkSteps = linkGateBonus(st, l, v, deadline, trainings);
             // The link's value needs its stat trainings, its gate meetings and its own meetings.
             double share = trainings / (trainings + linkSteps + Math.max(1, demand[l]));
             boolean statsMet = true;
@@ -629,7 +632,7 @@ final class Heuristics {
      * prerequisite's own opportunities before L's gate deadline. Returns the prerequisite meetings
      * still needed.
      */
-    private int linkGateBonus(SimState st, int l, double v, int deadline, double mult, double trainings) {
+    private int linkGateBonus(SimState st, int l, double v, int deadline, double trainings) {
         int[] rl = m.reqLink[l];
         int total = 0;
         for (int i = 0; i < rl.length; i++) {
@@ -638,6 +641,7 @@ final class Heuristics {
             int need = m.reqLinkRank[l][i];
             int r = st.rank[p];
             if (r >= need || rules.links[p].kind != Rules.LinkKind.MANUAL || Kernel.lost(m, st, p, st.slot >> 1)) continue;
+            double mult = linkMult[p];
             int meetings = r == 0
                     ? unlockSlotsLeft(st, p) + meetingsBetween(p, 1, Kernel.eventPts(m, p, 1, mult), false, need, mult)
                     : meetingsBetween(p, r, st.pts[p], st.ready[p], need, mult);
@@ -652,7 +656,7 @@ final class Heuristics {
     }
 
     /** Per-link remaining meetings and value per meeting, and the contention of each slot kind. */
-    private void prepareDemand(SimState st, double mult, int day) {
+    private void prepareDemand(SimState st, int day) {
         int slot = st.slot;
         double busy0 = 0;
         double busy1 = 0;
@@ -664,6 +668,7 @@ final class Heuristics {
             int r = st.rank[l];
             int goalRank = milestone(l, r);
             if (goalRank <= r) continue;
+            double mult = linkMult[l];
             int need = remainingMeetings(st, l, mult);
             if (need >= INF) continue;
             int remain = t.meetRemain[l][slot];
@@ -676,8 +681,8 @@ final class Heuristics {
         }
         load[0] = busy0 / Math.max(1, openRemain[0][slot]);
         load[1] = busy1 / Math.max(1, openRemain[1][slot]);
-        admit(st, 0, mult);
-        admit(st, 1, mult);
+        admit(st, 0);
+        admit(st, 1);
     }
 
     /** Value per meeting of a link that will not reach its milestone: the ranks its next few meetings bring. */
@@ -693,7 +698,7 @@ final class Heuristics {
      * ranks their next meetings bring. Without this an overbooked calendar spreads its slots over
      * links that all fall short.
      */
-    private void admit(SimState st, int kind, double mult) {
+    private void admit(SimState st, int kind) {
         int n = 0;
         double total = 0;
         for (int l = 0; l < t.nLinks; l++) {
@@ -720,7 +725,7 @@ final class Heuristics {
                 continue;
             }
             admitted[l] = false;
-            perMeeting[l] = partialValue(st, l, t.meetRemain[l][st.slot], mult);
+            perMeeting[l] = partialValue(st, l, t.meetRemain[l][st.slot], linkMult[l]);
         }
     }
 

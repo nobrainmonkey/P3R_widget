@@ -172,7 +172,7 @@ final class Simulator {
     private static void noRankUp(Model m, SimState st, int link) {
         int r = st.rank[link];
         if (r < 1 || r >= 10) return;
-        int gain = Kernel.ordinaryPts(m, Kernel.mult(m, st));
+        int gain = Kernel.ordinaryPts(m, Kernel.mult(m, st, link));
         int need = Kernel.need(m, link, r);
         st.pts[link] = Math.max(st.pts[link] + gain, need - m.ordinaryGain);
         st.ready[link] = false;
@@ -204,7 +204,7 @@ final class Simulator {
 
     private static void setRank(Model m, SimState st, int link, int to) {
         st.rank[link] = to;
-        st.pts[link] = to >= 10 ? 0 : Kernel.eventPts(m, link, to, Kernel.mult(m, st));
+        st.pts[link] = to >= 10 ? 0 : Kernel.eventPts(m, link, to, Kernel.mult(m, st, link));
         st.ready[link] = false;
         st.heldRank[link] = 0;
         if (to >= 1) st.unlockStep[link] = Math.max(st.unlockStep[link], m.t.stepCount[link]);
