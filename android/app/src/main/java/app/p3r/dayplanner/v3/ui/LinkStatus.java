@@ -30,7 +30,7 @@ public final class LinkStatus {
      * planner is a heuristic search and another arrangement might still get there.
      */
     public final String footZh;
-    /** Compact chip text, e.g. "皇帝 6→MAX · 预计 11月20日". */
+    /** Compact chip text, e.g. "皇帝 6 → MAX · 预计 11月20日". */
     public final String chipZh;
 
     private LinkStatus(int link, int observed, int projected, int target, int targetSlot, boolean story,
@@ -74,16 +74,16 @@ public final class LinkStatus {
         } else if (targetSlot >= 0) {
             String when = Zh.date(Rules.dayOf(targetSlot));
             foot = "预计 " + when + " 升到 " + (target >= 10 ? "MAX" : Zh.rank(target));
-            chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(target) + " · 预计 " + when;
+            chip = name + " " + Zh.rankValue(obs) + " → " + Zh.rankValue(target) + " · 预计 " + when;
         } else if (story) {
             foot = "剧情自动推进";
             chip = name + " " + Zh.rankValue(obs) + " · 剧情自动推进";
         } else if (plan == null) {
             foot = "安排排好后显示";
-            chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(target);
+            chip = name + " " + Zh.rankValue(obs) + " → " + Zh.rankValue(target);
         } else if (projected >= target) {
             foot = target >= 10 ? "预计 1月31日前升到 MAX" : "预计升到 " + Zh.rank(target);
-            chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(target);
+            chip = name + " " + Zh.rankValue(obs) + " → " + Zh.rankValue(target);
         } else if (!goal && projected <= obs) {
             foot = obs == 0 ? "暂时不安排解锁" : "暂时不安排提升";
             chip = name + " " + Zh.rankValue(obs);
@@ -91,7 +91,7 @@ public final class LinkStatus {
             String goalText = target >= 10 ? "MAX" : Zh.rank(target);
             String blocker = goal ? higherPriorityBlocker(rules, plan, linkIdx) : null;
             foot = shortfall(goalText, obs, projected, blocker);
-            chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(projected) + " · 没排到 " + goalText;
+            chip = name + " " + Zh.rankValue(obs) + " → " + Zh.rankValue(projected) + " · 没排到 " + goalText;
         }
         return new LinkStatus(linkIdx, obs, projected, target, targetSlot, story, lost, foot, chip);
     }

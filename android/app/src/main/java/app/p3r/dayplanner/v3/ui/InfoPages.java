@@ -167,16 +167,7 @@ final class InfoPages {
         card.setBackground(Ui.card(c));
         Ui.pad(card, 16, 10, 16, 10);
         for (String text : lines) {
-            LinearLayout row = Ui.row(c);
-            row.setGravity(android.view.Gravity.TOP);
-            View dot = new View(c);
-            dot.setBackground(new SlantedPanelDrawable().fill(Ui.col(c, R.color.p3r_cyan_400)).skew(Ui.dp(c, 2)));
-            LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(Ui.dp(c, 6), Ui.dp(c, 6));
-            dp.topMargin = Ui.dp(c, 12);
-            dp.rightMargin = Ui.dp(c, 10);
-            row.addView(dot, dp);
-            row.addView(line(c, text), Ui.weight(1));
-            card.addView(row);
+            card.addView(Ui.bullet(c, line(c, text)));
         }
         return card;
     }

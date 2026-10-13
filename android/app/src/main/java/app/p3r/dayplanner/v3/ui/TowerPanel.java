@@ -87,6 +87,9 @@ final class TowerPanel extends LinearLayout {
         floorRow.addView(floor, Ui.weight(1));
         TextView topChip = Ui.chip(c, "顶层 " + top + "F", false);
         topChip.setTextSize(13);
+        // As tall as the stepper's −/+ buttons beside it.
+        topChip.setMinHeight(Ui.dp(c, Ui.TOUCH));
+        topChip.setMinimumHeight(Ui.dp(c, Ui.TOUCH));
         topChip.setOnClickListener(v -> floor.setValue(top));
         LinearLayout.LayoutParams tp = Ui.wrap();
         tp.leftMargin = Ui.dp(c, 10);

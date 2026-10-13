@@ -86,9 +86,9 @@ final class DayDetailSheet {
         if (!notes.isEmpty()) {
             column.addView(Ui.sectionHeader(c, "这一步用到的估计", null), top(c, 14));
             for (String note : notes) {
-                TextView line = Ui.mixed(c, "· " + note, 13, Ui.col(c, R.color.p3r_ink_muted), false);
+                TextView line = Ui.mixed(c, note, 13, Ui.col(c, R.color.p3r_ink_muted), false);
                 line.setLineSpacing(0f, 1.25f);
-                column.addView(line, top(c, 2));
+                column.addView(Ui.bullet(c, line), top(c, 4));
             }
         }
         column.addView(actions(host, d, step, kind), top(c, 20));

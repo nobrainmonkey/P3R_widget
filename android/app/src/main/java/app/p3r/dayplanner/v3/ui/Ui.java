@@ -102,8 +102,9 @@ public final class Ui {
 
     /**
      * Plain text view (CJK-safe: never italic). Names, venues, words and short tags are kept on one
-     * line ({@link Zh#keepTogether}), a multiplier ("×1.51") is always set in the numeral face, and
-     * no line ends with a " · " separator ({@link ZhTextView}), also for text set later.
+     * line ({@link Zh#keepTogether}), multipliers, ranks and levels ("×1.51", "RANK 7", "MAX",
+     * "Lv.3") are always set in the numeral face, and no line ends with a " · " or "/" separator
+     * ({@link ZhTextView}), also for text set later.
      */
     public static TextView text(Context context, CharSequence value, float sp, int color, boolean bold) {
         TextView view = new ZhTextView(context);
@@ -127,6 +128,8 @@ public final class Ui {
         view.setTypeface(numerals(context));
         view.setIncludeFontPadding(false);
         view.setLineSpacing(0f, 1f);
+        // Again in the numeral face: "Lv.4" needs no numeral spans here ({@link #prepare}).
+        view.setText(value);
         return view;
     }
 
@@ -138,16 +141,30 @@ public final class Ui {
         return NumeralSpan.styleLatinRuns(Zh.keepTogether(value), numerals(context), 1.14f);
     }
 
-    /** Multipliers ("×1.51") look the same in every text: numeral face, like in mixed text. */
-    private static final java.util.regex.Pattern MULTIPLIER = java.util.regex.Pattern.compile("×[\\s\\u2060]*[0-9][0-9.\\u2060]*");
+    /**
+     * Multipliers ("×1.51"), link ranks ("RANK 7", "RANK 6 → 7", "MAX") and stat levels ("Lv.3")
+     * look the same in every text: numeral face, like in mixed text. Word joiners may sit between
+     * any two characters ("R⁠A⁠N⁠K⁠ ⁠7", {@link Zh#keepTogether}).
+     */
+    private static final java.util.regex.Pattern NUMERAL_WORDS = java.util.regex.Pattern.compile(
+        "×[\\s\\u2060]*[0-9][0-9.\\u2060]*"
+            + "|(?<![A-Za-z])(?:R\\u2060?A\\u2060?N\\u2060?K|M\\u2060?A\\u2060?X|L\\u2060?v\\u2060?\\.)"
+            + "(?:[ \\u2060]*(?:[0-9][0-9\\u2060]*|M\\u2060?A\\u2060?X|→|R\\u2060?A\\u2060?N\\u2060?K))*(?![A-Za-z])");
 
-    /** What {@link #text} shows for {@code value}: kept-together names and a styled multiplier. */
-    static CharSequence prepare(Context context, CharSequence value) {
+    /**
+     * What a text view ({@link #text}) shows for {@code value}: kept-together names, and the
+     * {@link #NUMERAL_WORDS} in the numeral face unless the whole view is set in it.
+     */
+    static CharSequence prepare(TextView view, CharSequence value) {
         CharSequence kept = Zh.keepTogether(value);
         if (kept == null || kept.length() == 0) {
             return kept;
         }
-        java.util.regex.Matcher m = MULTIPLIER.matcher(kept);
+        Typeface face = view.getTypeface();
+        if (face != null && (face == numeralItalic || face == numeralUpright)) {
+            return kept;
+        }
+        java.util.regex.Matcher m = NUMERAL_WORDS.matcher(kept);
         android.text.SpannableString out = null;
         while (m.find()) {
             if (kept instanceof Spanned && ((Spanned) kept).getSpans(m.start(), m.end(), NumeralSpan.class).length > 0) {
@@ -156,7 +173,7 @@ public final class Ui {
             if (out == null) {
                 out = new android.text.SpannableString(kept);
             }
-            out.setSpan(new NumeralSpan(numerals(context), 1.14f), m.start(), m.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            NumeralSpan.style(out, m.start(), m.end(), numerals(view.getContext()), 1.14f);
         }
         return out != null ? out : kept;
     }
@@ -407,6 +424,25 @@ public final class Ui {
             row.addView(tail, wrap());
         }
         pad(row, 0, 8, 0, 8);
+        return row;
+    }
+
+    /**
+     * A list item: a small slanted cyan bullet beside {@code line}, centred on its first line
+     * (规划说明, the estimates of the detail sheet).
+     */
+    public static LinearLayout bullet(Context context, TextView line) {
+        LinearLayout row = row(context);
+        row.setGravity(Gravity.TOP);
+        View dot = new View(context);
+        dot.setBackground(new SlantedPanelDrawable().fill(col(context, R.color.p3r_cyan_400)).skew(dp(context, 2)));
+        int size = dp(context, 6);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(size, size);
+        // The middle of a first line of Chinese sits about 0.79 em below the top padding.
+        p.topMargin = line.getPaddingTop() + Math.round(line.getTextSize() * 0.79f) - size / 2;
+        p.rightMargin = dp(context, 10);
+        row.addView(dot, p);
+        row.addView(line, weight(1));
         return row;
     }
 

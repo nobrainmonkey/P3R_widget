@@ -13,6 +13,7 @@ import android.graphics.Color;
 import android.text.Layout;
 import android.text.Spanned;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 
 import org.junit.Test;
@@ -23,6 +24,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import app.p3r.dayplanner.R;
@@ -34,7 +36,10 @@ import app.p3r.dayplanner.v3.model.Rules;
  * The independent design review of the app screens: words never split across lines, no lone last
  * character, no line ending with a " · " separator, the 社群 card footer and story tag, the
  * Tartarus sheet, the stats strip's floor label, the hero's 「做不了…」, number spacing and the
- * load-failed copy. Every render also runs {@link Shots#checkLines}.
+ * load-failed copy; then the second review: no line ending with 「/」, even gaps around the arrow
+ * of 「RANK 6 → 7」, the en dash of ranges, RANK/MAX/Lv.N in the numeral face, even episode chips,
+ * the 「顶层 117F」 chip, styled bullets in the detail sheet and the route labels. Every render also
+ * runs {@link Shots#checkLines}.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34, qualifiers = "zh-rCN-w360dp-h780dp-xxhdpi")
@@ -43,8 +48,12 @@ public class DesignReviewTest extends UiTestBase {
 
     /** A text view of the screens, {@code widthDp} wide, measured, laid out and drawn. */
     private static TextView drawn(CharSequence text, float sp, boolean bold, int widthDp) {
-        Context c = RuntimeEnvironment.getApplication();
-        TextView t = Ui.text(c, text, sp, Color.WHITE, bold);
+        return drawn(Ui.text(RuntimeEnvironment.getApplication(), text, sp, Color.WHITE, bold), widthDp);
+    }
+
+    /** {@code t}, {@code widthDp} wide, measured, laid out and drawn. */
+    private static TextView drawn(TextView t, int widthDp) {
+        Context c = t.getContext();
         int width = Ui.dp(c, widthDp);
         t.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
@@ -196,7 +205,7 @@ public class DesignReviewTest extends UiTestBase {
     private void storyTagInset(String where) {
         HomeActivity a = homeOn("links");
         Shots.capture(a, false);
-        TextView story = (TextView) Shots.find(a, LinksPage.STORY_TAG);
+        TextView story = (TextView) Shots.find(a, Shots.has(a, LinksPage.STORY_TAG) ? LinksPage.STORY_TAG : LinksPage.STORY_TAG_SHORT);
         View tier = null;
         for (String label : new String[]{"未选", "想要", "必须"}) {
             if (Shots.has(a, label)) {
@@ -209,7 +218,7 @@ public class DesignReviewTest extends UiTestBase {
         int tolerance = Ui.dp(a, 2);
         assertTrue(where + ": story tag inset " + rightInset(story) + " vs tier chip " + rightInset(tier),
             Math.abs(rightInset(story) - rightInset(tier)) <= tolerance);
-        assertTrue(where, story.getLineCount() <= 2);
+        assertEquals(where, 1, story.getLineCount());
         Shots.checkLines(story, where);
     }
 
@@ -354,5 +363,306 @@ public class DesignReviewTest extends UiTestBase {
         assertEquals("生成安排时出了问题。" + retry, Messages.loadFailed("生成安排时出了问题，请稍后再试"));
         assertEquals("读取记录失败了。" + retry, Messages.loadFailed(null));
         assertEquals("读取记录失败了。" + retry, Messages.loadFailed("java.io.IOException"));
+    }
+
+    // ================================================================== second review (3.0.2)
+
+    /** Columns of the drawn text of {@code t} (its layout only, no background) that hold ink. */
+    private static boolean[] ink(TextView t) {
+        Layout layout = t.getLayout();
+        Bitmap b = Bitmap.createBitmap(Math.max(1, layout.getWidth()), Math.max(1, layout.getHeight()), Bitmap.Config.ARGB_8888);
+        t.getPaint().setColor(Color.WHITE);
+        layout.draw(new Canvas(b));
+        boolean[] out = new boolean[b.getWidth()];
+        for (int x = 0; x < b.getWidth(); x++) {
+            for (int y = 0; y < b.getHeight() && !out[x]; y++) {
+                out[x] = Color.alpha(b.getPixel(x, y)) > 96;
+            }
+        }
+        return out;
+    }
+
+    /** The visible gap (blank columns) around the space at {@code space} of a one-line text. */
+    private static int gap(TextView t, boolean[] ink, int space) {
+        assertEquals(' ', t.getText().charAt(space));
+        Layout layout = t.getLayout();
+        int mid = Math.round((layout.getPrimaryHorizontal(space) + layout.getPrimaryHorizontal(space + 1)) / 2);
+        int left = mid;
+        while (left > 0 && !ink[left - 1]) {
+            left--;
+        }
+        int right = mid;
+        while (right < ink.length && !ink[right]) {
+            right++;
+        }
+        return right - left;
+    }
+
+    // ------------------------------------------------------------------ 12 「/」 starts the next line
+
+    private static final String ANSWERS = "参考回答：我会帮你的 / 这样的规矩没有意义";
+
+    @Test
+    public void noLineEndsWithASlash() {
+        Zh.useNames(api.rules);
+        boolean seen = false;
+        // From the width that holds 「/ 这样的规矩没有意义」 (a narrower one has to split the answer).
+        for (int w = 160; w <= 340; w += 4) {
+            TextView t = drawn(ANSWERS, 15, false, w);
+            Shots.checkLines(t, ANSWERS + " @" + w);
+            List<String> shown = lines(t);
+            if (shown.size() > 1 && shown.get(0).equals("参考回答：我会帮你的")) {
+                seen = true;
+                assertEquals(shown.toString(), "/ 这样的规矩没有意义", shown.get(1));
+            }
+        }
+        assertTrue("some width wraps at the separator", seen);
+        String both = "不加社群点数，但能拿到道具/特性；勾选后会在可看的日子留出时段。";
+        for (int w = 100; w <= 340; w += 4) {
+            Shots.checkLines(drawn(both, 13, false, w), both + " @" + w);
+        }
+        // Shaped once: it reads the same, and setting it again changes nothing.
+        TextView t = drawn(ANSWERS, 15, false, 200);
+        assertEquals(ANSWERS, Zh.plain(t.getText()));
+        String once = t.getText().toString();
+        assertTrue(once, once.contains(Zh.glue("我会帮你的") + " " + Zh.BREAK + "/" + Zh.WJ + " " + Zh.WJ + "这"));
+        assertEquals(once, Ui.text(t.getContext(), once, 15, Color.WHITE, false).getText().toString());
+        assertEquals("10/22", ZhTextView.separators("10/22").toString());
+    }
+
+    @Test
+    @Config(fontScale = 1.3f)
+    public void theAnswerSeparatorStartsTheNextLineAtLargeFont() {
+        HomeActivity a = home();
+        Shots.capture(a, false);
+        List<String> shown = lines((TextView) Shots.find(a, ANSWERS));
+        assertEquals(Arrays.asList("参考回答：我会帮你的", "/ 这样的规矩没有意义"), shown);
+        ResultActivity r = result(Fixtures.SLOT_NOW, "meet:emperor", Intents.MODE_RESULT);
+        AuditFixesTest.assertNoBreakInsideKeptText(r, "rank-up sheet");
+    }
+
+    // ------------------------------------------------------------------ 13 「RANK 6 → 7」
+
+    @Test
+    public void arrowsHaveTheSameGapOnBothSides() {
+        Context c = RuntimeEnvironment.getApplication();
+        assertEquals("RANK 6 → 7", Zh.rankStep(6, 7));
+        assertEquals("RANK 3 → MAX", Zh.rankStep(3, 10));
+        for (int link : new int[]{2, 4}) {
+            String chip = LinkStatus.of(api.rules, api.snap.profile, api.snap.observed, api.snap.plan, link).chipZh;
+            assertTrue(chip, chip.matches("\\S+ \\S+ → \\S+.*"));
+        }
+        // The hero (20 sp), the 社群 cards (15 sp) and plain text, which sets a step in the
+        // numeral face too. Before, the arrow sat close to the number after it ("6 →7").
+        List<TextView> views = new ArrayList<>();
+        for (String step : new String[]{"RANK 6 → 7", "RANK 3 → MAX", "RANK 9 → MAX", "RANK 1 → 2", "RANK 7 → 8", "皇帝 6 → MAX"}) {
+            views.add(Ui.mixed(c, step, 20, Color.WHITE, true));
+            views.add(Ui.mixed(c, step, 15, Color.WHITE, true));
+        }
+        views.add(Ui.text(c, "皇帝 RANK 6 → 7", 13, Color.WHITE, false));
+        for (TextView t : views) {
+            drawn(t, 300);
+            Spanned text = (Spanned) t.getText();
+            int arrow = text.toString().indexOf('→');
+            assertEquals(Zh.plain(text), 1, text.getSpans(arrow, arrow + 1, NumeralSpan.Arrow.class).length);
+            boolean[] ink = ink(t);
+            int before = gap(t, ink, arrow - 1);
+            int after = gap(t, ink, arrow + 1);
+            assertTrue(Zh.plain(text) + ": " + before + " px before the arrow, " + after + " after",
+                Math.abs(before - after) <= Ui.dp(c, 1) && after >= Ui.dp(c, 3));
+        }
+    }
+
+    // ------------------------------------------------------------------ 14 ranges: 「–」
+
+    @Test
+    public void rangesUseTheTextFacesEnDash() {
+        Context c = RuntimeEnvironment.getApplication();
+        assertEquals("5月12日–1月29日", Zh.dateRange(Fixtures.day(5, 12), Fixtures.day(1, 29)));
+        for (String range : new String[]{"提齐亚（69–117F）· 救出舞子", "奇颜之庭 阿尔卡（23–43F）", "145–172F"}) {
+            Spanned styled = (Spanned) Ui.latin(c, range);
+            int dash = styled.toString().indexOf('–');
+            assertEquals(range, 0, styled.getSpans(dash, dash + 1, NumeralSpan.class).length);
+            assertEquals(range, 1, styled.getSpans(dash - 1, dash, NumeralSpan.class).length);
+            assertEquals(range, 1, styled.getSpans(dash + 1, dash + 2, NumeralSpan.class).length);
+        }
+    }
+
+    // ------------------------------------------------------------------ 15 RANK / MAX / Lv.N
+
+    @Test
+    public void ranksAndLevelsAreInTheNumeralFaceInEveryText() {
+        Context c = RuntimeEnvironment.getApplication();
+        String[][] cases = {
+            {"想把哪些社群升到 MAX，分「想要」和「必须」。", "MAX"},
+            {"日期、现金、个人能力值和社群 RANK，点选就行。", "RANK"},
+            {"魅力升到 MAX 后，社群点数 ×1.51。", "MAX", "×1.51"},
+            {"学力到 Lv.3 以后", "Lv.3"},
+            {"皇帝 RANK 6 → 7", "RANK 6 → 7"},
+            {"恶魔 未解锁 → RANK 7", "RANK 7"},
+        };
+        for (String[] k : cases) {
+            TextView t = Ui.muted(c, k[0]);
+            Shots.checkNumeralWords(t, k[0]);
+            Spanned text = (Spanned) t.getText();
+            List<String> styled = new ArrayList<>();
+            for (NumeralSpan span : text.getSpans(0, text.length(), NumeralSpan.class)) {
+                styled.add(Zh.plain(text.subSequence(text.getSpanStart(span), text.getSpanEnd(span))));
+            }
+            assertEquals(k[0], Arrays.asList(k).subList(1, k.length), styled);
+        }
+        assertFalse(Ui.muted(c, "MAXIMUM").getText() instanceof Spanned);
+        // A view in the numeral face as a whole needs no spans (the stats strip's "Lv.4").
+        CharSequence lv = Ui.numeral(c, "Lv.4", 24, Color.WHITE).getText();
+        assertTrue(!(lv instanceof Spanned) || ((Spanned) lv).getSpans(0, lv.length(), NumeralSpan.class).length == 0);
+        // The welcome page and the settings (every render also runs Shots#checkNumeralWords).
+        api = FakePlannerApi.firstRun();
+        Api.setForTest(api);
+        HomeActivity a = home();
+        Shots.capture(a, false);
+        for (TextView t : AuditFixesTest.textViews(a.getWindow().getDecorView())) {
+            Shots.checkNumeralWords(t, "welcome");
+        }
+    }
+
+    // ------------------------------------------------------------------ 16 episode chips
+
+    private void episodeChipsShareOneWidth(String where) {
+        Context c = RuntimeEnvironment.getApplication();
+        for (Rules.Episode track : api.rules.episodes) {
+            FlowLayout chips = LinksPage.watchedChips(c, track, 0, n -> { });
+            int width = Ui.dp(c, 320);
+            chips.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            chips.layout(0, 0, width, chips.getMeasuredHeight());
+            View first = chips.getChildAt(0);
+            int perLine = 0;
+            for (int i = 0; i < chips.getChildCount(); i++) {
+                TextView chip = (TextView) chips.getChildAt(i);
+                String label = where + " " + Zh.plain(chip.getText());
+                assertEquals(label, first.getWidth(), chip.getWidth());
+                assertEquals(label, first.getHeight(), chip.getHeight());
+                assertEquals(label, 1, chip.getLineCount());
+                perLine += chip.getTop() == 0 ? 1 : 0;
+            }
+            // The first line is filled edge to edge, and the lines are as even as can be.
+            int count = chips.getChildCount();
+            assertTrue(where, width - chips.getChildAt(perLine - 1).getRight() < perLine);
+            int lines = (count + perLine - 1) / perLine;
+            assertEquals(where + ": " + count + " chips on " + lines + " lines", (count + lines - 1) / lines, perLine);
+            // 「1 话」 is spaced like 「2 话」: the narrow "1" has a full digit's box (tabular
+            // figures), so it is never the tighter one, as it was.
+            int[] gaps = new int[2];
+            for (int n = 1; n <= 2; n++) {
+                TextView chip = (TextView) chips.getChildAt(n);
+                gaps[n - 1] = gap(chip, ink(chip), chip.getText().toString().lastIndexOf(' '));
+            }
+            assertTrue(where + ": 1 话 " + gaps[0] + " px, 2 话 " + gaps[1] + " px",
+                gaps[0] >= gaps[1] && gaps[0] - gaps[1] <= Ui.dp(c, 1.5f));
+        }
+    }
+
+    @Test
+    public void episodeChipsShareOneWidth() {
+        episodeChipsShareOneWidth("chips");
+    }
+
+    @Test
+    @Config(fontScale = 1.3f)
+    public void episodeChipsShareOneWidthAtLargeFont() {
+        episodeChipsShareOneWidth("chips_font130");
+    }
+
+    // ------------------------------------------------------------------ 17 「顶层 117F」
+
+    private void topChipMatchesTheStepButtons(String where) {
+        int slot = Rules.slot(Fixtures.day(10, 24), true);
+        api.snap.observed.slot = slot;
+        ResultActivity a = result(slot, "tower:3", Intents.MODE_RESULT);
+        Shots.capture(a, false);
+        View top = Shots.find(a, "顶层 117F");
+        int[] at = new int[2];
+        top.getLocationInWindow(at);
+        for (String button : new String[]{"减少", "增加"}) {
+            View step = Shots.find(a, button);
+            int[] stepAt = new int[2];
+            step.getLocationInWindow(stepAt);
+            assertEquals(where + " " + button, step.getHeight(), top.getHeight());
+            assertTrue(where + " " + button + " at " + stepAt[1] + ", chip at " + at[1], Math.abs(stepAt[1] - at[1]) <= 1);
+        }
+    }
+
+    @Test
+    public void topFloorChipMatchesTheStepButtons() {
+        topChipMatchesTheStepButtons("tower");
+    }
+
+    @Test
+    @Config(fontScale = 1.3f)
+    public void topFloorChipMatchesTheStepButtonsAtLargeFont() {
+        topChipMatchesTheStepButtons("tower_font130");
+    }
+
+    // ------------------------------------------------------------------ 18 estimates: styled bullets
+
+    @Test
+    public void detailSheetEstimatesUseTheStyledBullet() {
+        Intent intent = new Intent(RuntimeEnvironment.getApplication(), HomeActivity.class);
+        intent.putExtra(Intents.EXTRA_OPEN_SLOT, Fixtures.SLOT_NOW + 2);
+        HomeActivity a = home(intent);
+        assertTrue(a.sheets().isShowing());
+        Shots.capture(a, false);
+        int notes = 0;
+        for (TextView t : AuditFixesTest.textViews(a.getWindow().getDecorView())) {
+            String plain = Zh.plain(t.getText());
+            assertFalse(plain, plain.startsWith("·"));
+            if (!plain.startsWith("普通见面按每次")) {
+                continue;
+            }
+            notes++;
+            ViewGroup row = (ViewGroup) t.getParent();
+            View dot = row.getChildAt(0);
+            assertTrue(dot.getBackground() instanceof SlantedPanelDrawable);
+            assertEquals(Ui.dp(a, 6), dot.getWidth());
+            // Centred on the first line.
+            Layout layout = t.getLayout();
+            int lineTop = t.getTop() + t.getPaddingTop() + layout.getLineTop(0);
+            int lineHeight = layout.getLineBottom(0) - layout.getLineTop(0);
+            int middle = dot.getTop() + dot.getHeight() / 2;
+            assertTrue(middle + " in " + lineTop + "+" + lineHeight,
+                middle > lineTop + lineHeight * 0.3 && middle < lineTop + lineHeight * 0.7);
+        }
+        assertTrue("the sheet lists the estimate", notes > 0);
+    }
+
+    // ------------------------------------------------------------------ 19 朋友 / 恋人
+
+    private void routeSegmentsClearTheSlantedEdges(String where) {
+        HomeActivity a = homeOn("links");
+        Shots.capture(a, false);
+        int segments = 0;
+        for (TextView t : AuditFixesTest.textViews(a.getWindow().getDecorView())) {
+            String plain = Zh.plain(t.getText());
+            CharSequence description = t.getContentDescription();
+            if (!(plain.equals("朋友") || plain.equals("恋人")) || description == null || !description.toString().contains("路线")) {
+                continue;
+            }
+            segments++;
+            assertTrue(where, t.getPaddingLeft() >= Ui.dp(a, 8) && t.getPaddingRight() >= Ui.dp(a, 8));
+            float room = t.getWidth() - t.getPaddingLeft() - t.getPaddingRight();
+            assertTrue(where + ": " + plain + " does not fit", t.getPaint().measureText(plain) <= room);
+        }
+        assertTrue(where, segments >= 2);
+    }
+
+    @Test
+    public void routeSegmentsClearTheSlantedEdges() {
+        routeSegmentsClearTheSlantedEdges("links");
+    }
+
+    @Test
+    @Config(fontScale = 1.3f)
+    public void routeSegmentsClearTheSlantedEdgesAtLargeFont() {
+        routeSegmentsClearTheSlantedEdges("links_font130");
     }
 }

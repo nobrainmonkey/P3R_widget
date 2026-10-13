@@ -256,6 +256,8 @@ final class LinksPage {
     }
 
     static final String STORY_TAG = "剧情自动推进";
+    /** {@link #STORY_TAG} where the whole tag does not fit on one line. */
+    static final String STORY_TAG_SHORT = "自动推进";
     /** Under the route choice of every romanceable link. */
     static final String ROUTE_NOTE = "安排不会要求你走恋爱路线";
 
@@ -267,17 +269,21 @@ final class LinksPage {
     }
 
     /**
-     * "剧情自动推进" in place of the tier chip of a story link (not tappable); at a large font it
-     * wraps to two lines ("剧情自动" / "推进") instead of pushing the arcana numeral aside.
+     * "剧情自动推进" in place of the tier chip of a story link (not tappable), always one line: where
+     * it would not fit beside the arcana numeral (a large font), the short {@link #STORY_TAG_SHORT}.
      */
     private TextView storyBadge() {
         TextView badge = Ui.text(c, STORY_TAG, 12, Ui.col(c, R.color.p3r_ink_muted), true);
         badge.setGravity(Gravity.CENTER);
         badge.setMaxWidth(Ui.dp(c, 96));
-        badge.setMaxLines(2);
+        badge.setSingleLine(true);
         badge.setBackground(new SlantedPanelDrawable().skew(Ui.dp(c, 5))
             .fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 120)));
         Ui.pad(badge, 8, 3, 8, 3);
+        float full = badge.getPaint().measureText(STORY_TAG) + badge.getPaddingLeft() + badge.getPaddingRight();
+        if (full > badge.getMaxWidth()) {
+            badge.setText(STORY_TAG_SHORT);
+        }
         return badge;
     }
 
@@ -295,9 +301,11 @@ final class LinksPage {
         seg.setSelected(romance ? 1 : 0);
         for (int i = 0; i < 2; i++) {
             TextView segment = seg.segment(i);
-            segment.setTextSize(13);
+            // The size of the 「路线」 label, so the text stays clear of the slanted edges (the
+            // chip's 6 dp skew) also at a large font in a narrow card.
+            segment.setTextSize(12);
             segment.setSingleLine(true);
-            Ui.pad(segment, 4, 4, 4, 4);
+            Ui.pad(segment, 8, 4, 8, 4);
             segment.setContentDescription(link.arcanaZh + " 路线：" + (i == 0 ? "朋友" : "恋人") + "。" + ROUTE_NOTE);
         }
         seg.setListener(i -> {
@@ -382,13 +390,22 @@ final class LinksPage {
         return state;
     }
 
-    /** Chips "还没看 / 1 话 / … / 全部 5 话" for the episodes of a track already watched. */
+    /**
+     * Chips "还没看 / 1 话 / … / 全部 5 话" for the episodes of a track already watched, all of one
+     * width. Tabular figures give every number the same box, so 「1 话」 is spaced like 「2 话」
+     * (Barlow's proportional "1" is narrow and sat close to its unit).
+     */
     static FlowLayout watchedChips(Context c, Rules.Episode track, int selected, IntConsumer onPick) {
-        FlowLayout chips = new FlowLayout(c, 8, 8);
+        FlowLayout chips = new FlowLayout(c, 8, 8).evenColumns();
         for (int n = 0; n <= track.count; n++) {
             final int value = n;
             String label = n == 0 ? "还没看" : n == track.count ? "全部 " + n + " 话" : n + " 话";
             TextView chip = Ui.chip(c, label, n == selected);
+            chip.setFontFeatureSettings("tnum");
+            // Centred in a column: a narrower inset and a size smaller let four chips share a
+            // line, 「全部 3 话」 still clear of the slanted edges.
+            chip.setTextSize(13);
+            Ui.pad(chip, 8, 6, 8, 6);
             chip.setContentDescription(track.personZh + "：" + StateDraft.episodesText(track, n));
             chip.setOnClickListener(v -> onPick.accept(value));
             chips.addView(chip);

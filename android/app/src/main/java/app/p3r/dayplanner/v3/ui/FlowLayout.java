@@ -7,12 +7,14 @@ import android.view.ViewGroup;
 /**
  * Minimal wrapping row layout for chips (the framework has no flow layout). Children are placed
  * left to right with fixed horizontal/vertical spacing and wrap to a new line when full; with
- * {@link #alignEnd} each line sits at the right edge and its children are centred on the line.
+ * {@link #alignEnd} each line sits at the right edge and its children are centred on the line;
+ * with {@link #evenColumns} they are all as wide as one column of an even grid.
  */
 public final class FlowLayout extends ViewGroup {
     private final int hSpacing;
     private final int vSpacing;
     private boolean alignEnd;
+    private boolean evenColumns;
 
     public FlowLayout(Context context, int hSpacingDp, int vSpacingDp) {
         super(context);
@@ -27,10 +29,23 @@ public final class FlowLayout extends ViewGroup {
         return this;
     }
 
+    /**
+     * Equal-width children that fill each line ("还没看 | 1 话 | 2 话"): as few lines as the widest
+     * child allows, as even as possible, every child as wide (and tall) as one column.
+     */
+    public FlowLayout evenColumns() {
+        evenColumns = true;
+        requestLayout();
+        return this;
+    }
+
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int maxWidth = MeasureSpec.getSize(widthMeasureSpec) - getPaddingLeft() - getPaddingRight();
         boolean unbounded = MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.UNSPECIFIED;
+        if (evenColumns && !unbounded) {
+            measureColumns(maxWidth);
+        }
         int x = 0;
         int lineHeight = 0;
         int height = 0;
@@ -40,10 +55,12 @@ public final class FlowLayout extends ViewGroup {
             if (child.getVisibility() == GONE) {
                 continue;
             }
-            int childWidthSpec = unbounded
-                ? MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
-                : MeasureSpec.makeMeasureSpec(maxWidth, MeasureSpec.AT_MOST);
-            child.measure(childWidthSpec, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+            if (!evenColumns || unbounded) {
+                int childWidthSpec = unbounded
+                    ? MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+                    : MeasureSpec.makeMeasureSpec(maxWidth, MeasureSpec.AT_MOST);
+                child.measure(childWidthSpec, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+            }
             int w = child.getMeasuredWidth();
             if (!unbounded && x > 0 && x + w > maxWidth) {
                 height += lineHeight + vSpacing;
@@ -69,6 +86,40 @@ public final class FlowLayout extends ViewGroup {
                 break;
         }
         setMeasuredDimension(width, resolveSize(height + getPaddingTop() + getPaddingBottom(), heightMeasureSpec));
+    }
+
+    /** Measures every child at the width of one {@link #evenColumns} column, as tall as the tallest. */
+    private void measureColumns(int maxWidth) {
+        int unspecified = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
+        int widest = 0;
+        int count = 0;
+        for (int i = 0; i < getChildCount(); i++) {
+            View child = getChildAt(i);
+            if (child.getVisibility() != GONE) {
+                child.measure(MeasureSpec.makeMeasureSpec(maxWidth, MeasureSpec.AT_MOST), unspecified);
+                widest = Math.max(widest, child.getMeasuredWidth());
+                count++;
+            }
+        }
+        if (count == 0) {
+            return;
+        }
+        int fit = Math.max(1, Math.min(count, (maxWidth + hSpacing) / (widest + hSpacing)));
+        // As many lines as needed, filled evenly: five chips that fit four to a line go 3 + 2.
+        int lines = (count + fit - 1) / fit;
+        int columns = (count + lines - 1) / lines;
+        int column = (maxWidth - hSpacing * (columns - 1)) / columns;
+        int tallest = 0;
+        for (int pass = 0; pass < 2; pass++) {
+            for (int i = 0; i < getChildCount(); i++) {
+                View child = getChildAt(i);
+                if (child.getVisibility() != GONE) {
+                    child.measure(MeasureSpec.makeMeasureSpec(column, MeasureSpec.EXACTLY),
+                        pass == 0 ? unspecified : MeasureSpec.makeMeasureSpec(tallest, MeasureSpec.EXACTLY));
+                    tallest = Math.max(tallest, child.getMeasuredHeight());
+                }
+            }
+        }
     }
 
     @Override
