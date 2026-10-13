@@ -233,6 +233,9 @@ public final class Zh {
     private static final String[] TERMS = {
         "人格面具", "阿尔卡那", "塔尔塔罗斯", "羁绊剧情", "个人能力值", "结缘网站的字条", "失踪者", "满月作战",
         "修学旅行", "平安夜", "影时间", "自由活动", "放学后", "见面", "学力", "魅力", "勇气",
+        "休息日邀约", "平安夜约会", "同步现状", "修改进度", "本区块", "区块", "安排", "解锁", "时段",
+        // App words ICU's dictionary splits wrongly ("小组|件", "不安|排解|锁", "填上|次").
+        "小组件", "小工具", "权利人", "上次",
     };
 
     /**
@@ -388,8 +391,10 @@ public final class Zh {
     /**
      * {@code text} with word joiners inside every name, venue, glossary term and short tag
      * ("救出舞子", "本区块第 2 次", "10月22日", "RANK 7", "2,500 日元", "「皇帝」", "（1）" with the
-     * character before it), each short answer of a "参考回答：" line, and every two- to
-     * four-character Chinese word, so a line never breaks inside one. Idempotent; spans are kept.
+     * character before it), each short answer of a "参考回答：" line, every Chinese word and short
+     * phrase ({@link #words}: "余额", "许可证", "没排到", "玩了吗"), and the last three characters of
+     * every paragraph, so a line never breaks inside one and a paragraph never ends with a lone
+     * character ("吗？", "证）。"). Idempotent; spans are kept.
      */
     public static CharSequence keepTogether(CharSequence text) {
         if (text == null || text.length() < 2) {
@@ -405,11 +410,13 @@ public final class Zh {
                 flat.append(ch);
             }
         }
-        List<int[]> ranges = new ArrayList<>();
-        collect(names.matcher(flat), ranges);
+        List<int[]> named = new ArrayList<>();
+        collect(names.matcher(flat), named);
+        List<int[]> ranges = new ArrayList<>(named);
         collect(TAGS.matcher(flat), ranges);
         answers(flat, ranges);
-        words(flat, ranges);
+        words(flat, named, ranges);
+        tails(flat, ranges);
         if (ranges.isEmpty()) {
             return text;
         }
@@ -491,10 +498,29 @@ public final class Zh {
     private static final ThreadLocal<android.icu.text.BreakIterator> WORDS = new ThreadLocal<>();
 
     /**
-     * Two- to four-character Chinese words found by ICU's dictionary segmentation ("规矩", "奇怪",
-     * "和尚"), so ordinary text also breaks between words, never inside one.
+     * Single characters that end a phrase, particles and place words ("的", "了", "吗", "游戏里",
+     * "撤销后"): kept with the word before them.
      */
-    private static void words(CharSequence flat, List<int[]> out) {
+    private static final String CLOSERS = "的了吗呢吧啊呀着过们么里上中后前";
+    /** Single characters that start a phrase ("没", "在", "和"): kept with the word after them. */
+    private static final String OPENERS = "没不未别把被给对从在向和与跟或很最更也都就才还再又只";
+    /**
+     * Longest phrase {@link #words} keeps on one line (a six-character venue and its particle,
+     * "桐叶购物中心的"), so a narrow column still has break points.
+     */
+    private static final int MAX_PHRASE = 7;
+
+    /**
+     * Chinese words and short phrases. ICU's dictionary segmentation finds the words ("规矩",
+     * "奇怪", "和尚"), but splits a word it does not know into single characters ("余|额", "点|选",
+     * "许可|证"); so in every run of Chinese characters, a single character is kept with a
+     * neighbour: a closing particle with the word before ("玩了吗"), an opening one with the word
+     * after ("没排到", "和晚上"), other single characters with each other ("余额", "点选"), and a
+     * last single character with the word before ("许可证"). Text then only breaks between words.
+     * Names and glossary terms ({@code named}) are words of their own, whatever ICU makes of them
+     * ("放纵俱乐部", not "放纵|俱|乐|部" grouped with the characters after it).
+     */
+    private static void words(CharSequence flat, List<int[]> named, List<int[]> out) {
         android.icu.text.BreakIterator it;
         try {
             it = WORDS.get();
@@ -506,19 +532,118 @@ public final class Zh {
         } catch (RuntimeException | LinkageError unavailable) {
             return;
         }
-        int start = it.first();
-        for (int end = it.next(); end != android.icu.text.BreakIterator.DONE; start = end, end = it.next()) {
-            int length = end - start;
-            if (length < 2 || length > 4) {
+        boolean[] cut = new boolean[flat.length() + 1];
+        for (int at = it.first(); at != android.icu.text.BreakIterator.DONE; at = it.next()) {
+            cut[at] = true;
+        }
+        for (int[] r : named) {
+            for (int k = r[0] + 1; k < r[1]; k++) {
+                cut[k] = false;
+            }
+            cut[r[0]] = true;
+            cut[r[1]] = true;
+        }
+        List<int[]> run = new ArrayList<>();
+        int start = 0;
+        for (int end = 1; end <= flat.length(); end++) {
+            if (!cut[end]) {
                 continue;
             }
             boolean han = true;
             for (int i = start; i < end && han; i++) {
-                han = Character.UnicodeScript.of(flat.charAt(i)) == Character.UnicodeScript.HAN;
+                han = isHan(flat.charAt(i));
+            }
+            if (!han || (!run.isEmpty() && run.get(run.size() - 1)[1] != start)) {
+                phrases(flat, run, out);
+                run.clear();
             }
             if (han) {
-                out.add(new int[]{start, end});
+                run.add(new int[]{start, end});
+            }
+            start = end;
+        }
+        phrases(flat, run, out);
+    }
+
+    /** Groups the ICU segments of one run of Chinese characters into phrases (see {@link #words}). */
+    private static void phrases(CharSequence flat, List<int[]> run, List<int[]> out) {
+        int n = run.size();
+        // join[i]: segment i stays on the line of segment i + 1.
+        boolean[] join = new boolean[n];
+        for (int i = 0; i < n; i++) {
+            if (run.get(i)[1] - run.get(i)[0] != 1) {
+                continue;
+            }
+            char ch = flat.charAt(run.get(i)[0]);
+            if (CLOSERS.indexOf(ch) >= 0) {
+                if (i > 0) {
+                    join[i - 1] = true;
+                }
+            } else if (OPENERS.indexOf(ch) >= 0) {
+                if (i + 1 < n) {
+                    join[i] = true;
+                }
+            } else if (i + 1 < n && plainSingle(flat, run.get(i + 1))) {
+                join[i] = true;
+            } else if (i == n - 1 && i > 0) {
+                join[i - 1] = true;
             }
         }
+        int first = 0;
+        for (int i = 0; i < n; i++) {
+            int from = run.get(first)[0];
+            boolean more = join[i] && i + 1 < n && run.get(i + 1)[1] - from <= MAX_PHRASE;
+            if (!more) {
+                int length = run.get(i)[1] - from;
+                if (length >= 2 && length <= MAX_PHRASE) {
+                    out.add(new int[]{from, run.get(i)[1]});
+                }
+                first = i + 1;
+            }
+        }
+    }
+
+    /** A one-character segment that is neither a closing nor an opening particle. */
+    private static boolean plainSingle(CharSequence flat, int[] segment) {
+        if (segment[1] - segment[0] != 1) {
+            return false;
+        }
+        char ch = flat.charAt(segment[0]);
+        return CLOSERS.indexOf(ch) < 0 && OPENERS.indexOf(ch) < 0;
+    }
+
+    /** Characters at the end of every paragraph kept together (see {@link #keepTogether}). */
+    private static final int TAIL = 3;
+
+    /**
+     * The last {@link #TAIL} Chinese characters before the closing punctuation of every paragraph
+     * ("…玩了吗？", "…许可证）。"), so the last line is never a lone character. Closing
+     * punctuation itself never starts a line.
+     */
+    private static void tails(CharSequence flat, List<int[]> out) {
+        int end = flat.length();
+        while (end > 0) {
+            int start = end - 1;
+            while (start >= 0 && flat.charAt(start) != '\n') {
+                start--;
+            }
+            start++;
+            int last = end;
+            while (last > start && !isHan(flat.charAt(last - 1)) && !Character.isLetterOrDigit(flat.charAt(last - 1))) {
+                last--;
+            }
+            int from = last;
+            while (from > start && last - from < TAIL && isHan(flat.charAt(from - 1))) {
+                from--;
+            }
+            if (last - from >= 2) {
+                out.add(new int[]{from, last});
+            }
+            end = start - 1;
+        }
+    }
+
+    private static boolean isHan(char ch) {
+        return Character.UnicodeScript.of(ch) == Character.UnicodeScript.HAN;
     }
 }

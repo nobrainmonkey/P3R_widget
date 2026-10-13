@@ -257,7 +257,8 @@ Principle: **确认而不是录入** — every field is prefilled (last observed
 ### 7.1 Screens
 - **今天 (HomeActivity tab 1)**: date plate (大号日期 + 周X + 月相 + 放学后/白天/晚上), resource strip
   (现金 · 学力/魅力/勇气 Lv · 塔尔塔罗斯 区块与次数), hero card for the next slot (title "皇帝 · 小田桐秀利",
-  "RANK 6 → 7", location, short why-line), buttons **[做不了/改做别的]** (left) **[完成 ✓]** (right).
+  "RANK 6 → 7", location, short why-line), buttons **[做不了…]** (left; its sheet offers the reasons and
+  「改做别的…」) **[完成 ✓]** (right).
   Below: rest of today + next 3 days; goal progress chips ("皇帝 6→MAX · 预计 11/20"). A return banner
   appears when the last record is >8 h old: "上次记录：5月2日 晚上 · 游戏进度变了吗？ [没变] [同步现状]".
 - **日程 (tab 2)**: whole remaining calendar, month headers, one row per day with 白天/晚上 lines, icons

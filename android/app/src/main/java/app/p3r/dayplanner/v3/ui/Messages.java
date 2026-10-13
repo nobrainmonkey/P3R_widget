@@ -7,7 +7,24 @@ final class Messages {
     static final String GENERIC_ERROR = "没能保存，请再试一次。";
     static final String STALE = "安排刚刚更新了，请再确认一次。";
 
+    /** What to do on a 「暂时读不到记录」 screen, which offers 「重试」. */
+    static final String LOAD_RETRY = "点「重试」再试一次，还不行就重新打开应用。";
+
     private Messages() {}
+
+    /**
+     * Body of a 「暂时读不到记录」 screen: the service's reason ("读取记录失败了"), without its own
+     * instruction (the service's text also serves the widget, which has no 「重试」), then
+     * {@link #LOAD_RETRY}, so the copy matches the button under it.
+     */
+    static String loadFailed(String errorZh) {
+        String reason = errorZh == null || !containsCjk(errorZh) ? "" : errorZh.trim();
+        reason = reason.replaceAll("[，,。；]?\\s*(请重新打开应用|请稍后再试|请再试一次)[。！]?$", "");
+        if (reason.isEmpty()) {
+            reason = "读取记录失败了";
+        }
+        return Zh.sentence(reason) + LOAD_RETRY;
+    }
 
     /** Message for a rejected receipt (stale revision, invalid value, storage error). */
     static String receiptError(PlannerApi.Receipt receipt) {

@@ -96,8 +96,8 @@ final class Shots {
 
     /**
      * Visual rules enforced on every render: no italic/slanted face on text that contains CJK
-     * (italics only via NumeralSpan on Latin runs), no Latin-only internal ids, and no text that is
-     * clipped vertically by its own view.
+     * (italics only via NumeralSpan on Latin runs), no Latin-only internal ids, no text that is
+     * clipped vertically by its own view, and the line breaks of {@link #checkLines}.
      */
     static void checkTypography(View view, String where) {
         if (view.getVisibility() != View.VISIBLE) {
@@ -118,11 +118,53 @@ final class Shots {
                     + t.getCompoundPaddingBottom();
                 assertTrue(where + ": text clipped: " + text, needed <= t.getHeight() + 2);
             }
+            checkLines(t, where);
         }
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++) {
                 checkTypography(group.getChildAt(i), where);
+            }
+        }
+    }
+
+    /**
+     * Line breaks of a drawn text view: none inside a word, name or tag kept together by
+     * {@link Zh#keepTogether} (next to a word joiner), no line that visibly ends with a " · "
+     * separator (a dot there must be hidden by {@link ZhTextView}), and no wrapped line holding a
+     * single character ("吗？", "证）。"). Truncated lines (ellipsis) are not checked.
+     */
+    static void checkLines(TextView t, String where) {
+        android.text.Layout layout = t.getLayout();
+        CharSequence text = t.getText();
+        if (layout == null || layout.getLineCount() < 2 || t.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        for (int line = 0; line < layout.getLineCount(); line++) {
+            if (layout.getEllipsisCount(line) > 0) {
+                return;
+            }
+            int start = layout.getLineStart(line);
+            int end = layout.getLineEnd(line);
+            String shown = Zh.plain(text.subSequence(start, end)).trim();
+            String context = "«" + Zh.plain(text.subSequence(0, end)) + "|" + Zh.plain(text.subSequence(end, text.length())) + "»";
+            if (line < layout.getLineCount() - 1 && end > 0 && end < text.length()) {
+                boolean split = text.charAt(end - 1) == Zh.WJ || text.charAt(end) == Zh.WJ;
+                assertTrue(where + ": line break inside a kept word/name/tag: " + context, !split);
+            }
+            if (shown.endsWith("·") && line < layout.getLineCount() - 1) {
+                // Draw it (a view scrolled out of sight was skipped by the capture).
+                t.draw(new Canvas(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)));
+                int dot = start + text.subSequence(start, end).toString().lastIndexOf('·');
+                ZhTextView.Dot[] spans = text instanceof android.text.Spanned
+                    ? ((android.text.Spanned) text).getSpans(dot, dot + 1, ZhTextView.Dot.class) : new ZhTextView.Dot[0];
+                assertTrue(where + ": line ends with a visible separator dot: " + context, spans.length == 1 && spans[0].hidden);
+            }
+            boolean paragraphStart = start == 0 || text.charAt(start - 1) == '\n';
+            boolean paragraphEnd = end == text.length() || text.charAt(end - 1) == '\n';
+            if (!(paragraphStart && paragraphEnd) && !shown.isEmpty()) {
+                long content = shown.codePoints().filter(Character::isLetterOrDigit).count();
+                assertTrue(where + ": a wrapped line with a single character: " + context, content >= 2);
             }
         }
     }

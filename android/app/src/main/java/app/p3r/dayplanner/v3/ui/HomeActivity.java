@@ -287,8 +287,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         for (View v : tabViews) {
             v.setVisibility(View.GONE);
         }
-        String text = errorZh == null || errorZh.trim().isEmpty() ? "读取记录失败，请稍后再试。" : errorZh.trim();
-        errorText.setText(Zh.sentence(text));
+        errorText.setText(Messages.loadFailed(errorZh));
         errorView.setVisibility(View.VISIBLE);
     }
 

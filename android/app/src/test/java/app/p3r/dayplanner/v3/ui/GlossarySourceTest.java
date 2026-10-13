@@ -114,6 +114,32 @@ public class GlossarySourceTest {
         assertTrue(String.join("\n", issues), issues.isEmpty());
     }
 
+    /** Half-width '?', '!' or "..." next to Chinese; 「?」 is the RANK pad's own key. */
+    private static final Pattern HALF_WIDTH = Pattern.compile(
+        "[\\u4e00-\\u9fff」）][?!]|[?!][\\u4e00-\\u9fff「（]|\\.\\.\\.");
+    /** "预计1月31日前": the glossary writes 「预计 11月20日」. */
+    private static final Pattern ESTIMATE_DATE = Pattern.compile("预计\\d");
+
+    @Test
+    public void chineseTextUsesFullWidthPunctuationAndSpacedDates() throws IOException {
+        assertTrue(HALF_WIDTH.matcher("完成了吗?").find() && HALF_WIDTH.matcher("改做别的...").find());
+        assertFalse(HALF_WIDTH.matcher("完成了吗？改做别的…不记得就选「?」").find());
+        List<String> issues = new ArrayList<>();
+        File[] files = new File(sourceRoot(), "v3/ui").listFiles((d, name) -> name.endsWith(".java"));
+        assertTrue(files != null && files.length > 40);
+        for (File f : files) {
+            for (String literal : literals(read(f))) {
+                if (!literal.codePoints().anyMatch(cp -> cp >= 0x4E00 && cp <= 0x9FFF)) {
+                    continue;
+                }
+                if (HALF_WIDTH.matcher(literal.replace("「?」", "")).find() || ESTIMATE_DATE.matcher(literal).find()) {
+                    issues.add(f.getName() + ": \"" + literal + "\"");
+                }
+            }
+        }
+        assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
     @Test
     public void onlyTheDatePlatesWriteMonthSlashDay() throws IOException {
         for (File f : sources()) {

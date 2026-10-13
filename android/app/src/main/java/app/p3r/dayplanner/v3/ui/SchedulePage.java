@@ -198,7 +198,8 @@ final class SchedulePage {
         Ui.pad(box, 0, 8, 0, 4);
         TextView title = Ui.text(c, "日程", 28, Ui.col(c, R.color.p3r_white), true);
         box.addView(title);
-        String text = "排到" + Zh.date(Rules.dayOf(plan.toSlot)) + " · 共 " + plan.summary.usefulActions + " 件事";
+        // Spaced like every token of the line ("共 179 件事", "1 个时段"): "排到 1月31日".
+        String text = "排到 " + Zh.date(Rules.dayOf(plan.toSlot)) + " · 共 " + plan.summary.usefulActions + " 件事";
         if (plan.summary.freeSlots > 0) {
             text += " · " + plan.summary.freeSlots + " 个时段自由活动";
         }

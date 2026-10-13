@@ -501,8 +501,7 @@ public final class ResultActivity extends Activity {
     private void showLoadFailed(String errorZh) {
         body.removeAllViews();
         body.addView(Ui.title(this, "暂时读不到记录"));
-        String text = errorZh == null || errorZh.trim().isEmpty() ? "读取记录失败，请稍后再试。" : errorZh.trim();
-        body.addView(Ui.body(this, Zh.sentence(text)), top(8));
+        body.addView(Ui.body(this, Messages.loadFailed(errorZh)), top(8));
         TextView close = Ui.secondary(this, "关闭");
         close.setOnClickListener(v -> finish());
         TextView retry = Ui.primary(this, "重试");
@@ -915,11 +914,13 @@ public final class ResultActivity extends Activity {
         }
         Profile profile = snap.profile == null ? new Profile() : snap.profile;
         SimState obs = snap.observed;
-        String sub = SlotRows.subtitle(step);
+        boolean visitLine = block >= 0 && block < obs.towerVisits.length && block < rules.blocks.length;
+        // The visit count has its own line below ("本区块第 1 次 · 上限 4 次"): not twice.
+        String sub = visitLine ? withoutVisit(SlotRows.subtitle(step)) : SlotRows.subtitle(step);
         if (!sub.isEmpty()) {
             body.addView(Ui.mixed(this, sub, 15, Ui.col(this, R.color.p3r_cyan_300), true), top(8));
         }
-        if (block >= 0 && block < obs.towerVisits.length && block < rules.blocks.length) {
+        if (visitLine) {
             String visits = "本区块第 " + (obs.towerVisits[block] + 1) + " 次 · 上限 "
                 + profile.capFor(rules.blocks[block].id) + " 次";
             body.addView(Ui.mixed(this, visits, 13, Ui.col(this, R.color.p3r_ink_muted), false), top(2));
@@ -959,6 +960,12 @@ public final class ResultActivity extends Activity {
             pendingTowerState = null;
         }
         body.addView(towerPanel, top(16));
+    }
+
+    /** "提齐亚（69–117F）· 本区块第 1 次 · 救出舞子" without its "本区块第 1 次" part. */
+    static String withoutVisit(String subtitle) {
+        String out = subtitle.replaceAll("\\s*·?\\s*本区块第\\s*\\d+\\s*次", "").replace("） ·", "）·").trim();
+        return out.startsWith("·") ? out.substring(1).trim() : out;
     }
 
     /**

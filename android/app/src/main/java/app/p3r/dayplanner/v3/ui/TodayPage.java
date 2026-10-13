@@ -22,7 +22,7 @@ import app.p3r.dayplanner.v3.model.Rules;
 
 /**
  * 今天 tab: date plate, return banner, replanning status, resource strip, the hero card for the
- * next slot (with its 人格面具 reminder, "顺便" side steps and [做不了/改做别的] [完成 ✓]), the rest
+ * next slot (with its 人格面具 reminder, "顺便" side steps and [做不了…] [完成 ✓]), the rest
  * of today plus the next 3 days, and goal progress chips. Once Jan 31 is recorded the hero card
  * becomes a closing summary.
  */
@@ -65,7 +65,7 @@ final class TodayPage {
         return root;
     }
 
-    /** The hero card's [做不了/改做别的] [完成 ✓] row, or null. */
+    /** The hero card's [做不了…] [完成 ✓] row, or null. */
     View heroButtons() {
         return heroButtons;
     }
@@ -305,13 +305,24 @@ final class TodayPage {
         p.leftMargin = Ui.dp(c, 8);
         row.addView(label, p);
         if (obs.floor > 0) {
-            TextView floor = Ui.numeral(c, obs.floor + "F", 16, Ui.col(c, R.color.p3r_cyan_300));
+            // Labelled like the cells above it ("现金", "学力"): "最高" over "96F".
+            LinearLayout floor = Ui.column(c);
+            floor.setGravity(Gravity.END);
+            floor.addView(Ui.text(c, FLOOR_LABEL, 12, Ui.col(c, R.color.p3r_ink_muted), false), Ui.wrap());
+            floor.addView(Ui.numeral(c, obs.floor + "F", 16, Ui.col(c, R.color.p3r_cyan_300)), Ui.wrap());
+            floor.setContentDescription(FLOOR_LABEL + " " + obs.floor + "F");
             LinearLayout.LayoutParams fp = Ui.wrap();
             fp.leftMargin = Ui.dp(c, 8);
             row.addView(floor, fp);
         }
         return row;
     }
+
+    /**
+     * Caption over the highest floor reached in the stats strip; two characters like the other
+     * captions, so the tower line beside it still fits at a large font.
+     */
+    static final String FLOOR_LABEL = "最高";
 
     // ------------------------------------------------------------------ hero
 
@@ -448,14 +459,14 @@ final class TodayPage {
             row.addView(go, Ui.weight(1));
             return row;
         }
-        boolean large = c.getResources().getConfiguration().fontScale > 1.15f;
-        TextView cannot = Ui.secondary(c, large ? "做不了/\n改做别的" : "做不了/改做别的");
+        // One short label; the sheet it opens offers the reasons and 「改做别的…」.
+        TextView cannot = Ui.secondary(c, CANNOT_LABEL);
         cannot.setTextSize(15);
         cannot.setMaxLines(2);
-        cannot.setContentDescription("做不了或改做别的");
+        cannot.setContentDescription("做不了，选原因或改做别的");
         Ui.pad(cannot, 10, 8, 10, 8);
         cannot.setOnClickListener(v -> host.openResult(step.slot, step.action, Intents.MODE_CANNOT));
-        row.addView(cannot, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1.3f));
+        row.addView(cannot, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1));
         TextView done = Ui.primary(c, "完成 ✓");
         done.setContentDescription("完成，记录结果");
         done.setOnClickListener(v -> {
@@ -470,6 +481,9 @@ final class TodayPage {
         row.addView(done, doneParams);
         return row;
     }
+
+    /** The hero's secondary button (as 「其他结果…」「改做别的…」: "…" opens more choices). */
+    static final String CANNOT_LABEL = "做不了…";
 
     private View kindTag(StepKind kind) {
         LinearLayout tag = Ui.row(c);

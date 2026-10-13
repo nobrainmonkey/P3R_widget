@@ -25,7 +25,7 @@ public final class LinkStatus {
     public final boolean story;
     public final boolean lost;
     /**
-     * Short footer for the card, e.g. "预计 11月20日 升到 MAX" or "这次的安排里没排到 MAX（先保证了皇帝）".
+     * Short footer for the card, e.g. "预计 11月20日 升到 MAX" or "这次的安排里没排到 MAX，先保证了皇帝".
      * A goal the plan does not reach is described as this plan's outcome, never as impossible: the
      * planner is a heuristic search and another arrangement might still get there.
      */
@@ -82,7 +82,7 @@ public final class LinkStatus {
             foot = "安排排好后显示";
             chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(target);
         } else if (projected >= target) {
-            foot = target >= 10 ? "预计1月31日前升到 MAX" : "预计升到 " + Zh.rank(target);
+            foot = target >= 10 ? "预计 1月31日前升到 MAX" : "预计升到 " + Zh.rank(target);
             chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(target);
         } else if (!goal && projected <= obs) {
             foot = obs == 0 ? "暂时不安排解锁" : "暂时不安排提升";
@@ -97,12 +97,13 @@ public final class LinkStatus {
     }
 
     /**
-     * "这次的安排里没排到 MAX（先保证了皇帝、恋爱）" / "这次的安排里排到 RANK 9，没排到 MAX": what this plan
-     * does, not a claim that the target cannot be reached.
+     * "这次的安排里没排到 MAX，先保证了皇帝" / "这次的安排里排到 RANK 9，没排到 MAX": what this plan
+     * does, not a claim that the target cannot be reached. Two short clauses rather than a note in
+     * brackets, so the narrow card footer wraps at the comma, never inside 「（先」.
      */
     static String shortfall(String goalText, int observed, int projected, String blocker) {
         if (blocker != null) {
-            return "这次的安排里没排到 " + goalText + "（先保证了" + blocker + "）";
+            return "这次的安排里没排到 " + goalText + "，先保证了" + blocker;
         }
         if (projected > observed) {
             return "这次的安排里排到 " + Zh.rank(projected) + "，没排到 " + goalText;

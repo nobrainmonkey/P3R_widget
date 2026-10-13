@@ -203,8 +203,7 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         content.removeAllViews();
         LinearLayout box = Ui.column(this);
         box.addView(Ui.title(this, "暂时读不到记录"));
-        String text = errorZh == null || errorZh.trim().isEmpty() ? "读取记录失败，请稍后再试。" : errorZh.trim();
-        TextView body = Ui.body(this, Zh.sentence(text));
+        TextView body = Ui.body(this, Messages.loadFailed(errorZh));
         LinearLayout.LayoutParams bp = Ui.matchWrap();
         bp.topMargin = Ui.dp(this, 8);
         box.addView(body, bp);
@@ -418,11 +417,11 @@ public final class StateActivity extends Activity implements StateSteps.Callback
 
     /** The step counter ("5/10") (tests). */
     String progressText() {
-        return progress.getText().toString();
+        return Zh.plain(progress.getText());
     }
 
     String noticeText() {
-        return notice.getVisibility() == View.VISIBLE ? notice.getText().toString() : null;
+        return notice.getVisibility() == View.VISIBLE ? Zh.plain(notice.getText()) : null;
     }
 
     /** Slanted segmented progress bar for the wizard. */

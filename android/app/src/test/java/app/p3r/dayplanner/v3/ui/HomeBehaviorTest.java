@@ -66,7 +66,7 @@ public class HomeBehaviorTest extends UiTestBase {
     @Test
     public void cannotOpensReasons() {
         HomeActivity a = home();
-        Shots.click(a, "做不了/改做别的");
+        Shots.click(a, "做不了…");
         Intent next = shadowOf(a).getNextStartedActivity();
         assertEquals(Intents.MODE_CANNOT, next.getStringExtra(Intents.EXTRA_MODE));
     }
