@@ -509,6 +509,13 @@ def collect_locks(ledger: Ledger) -> list[Lock]:
         else:
             raise BuildError(f"unmapped retained lock claim {ident}")
         locks.append(Lock([d], slots, reason, "verified", ["ev_slot_locks", "wiki420"], f"{ident}: explicit source lock"))
+    summary = []
+    for lock in locks:
+        span = md_of(lock.days[0]) if len(lock.days) == 1 else f"{md_of(lock.days[0])}..{md_of(lock.days[-1])}"
+        summary.append(f"{span} {'+'.join(lock.slots)} {lock.reason}")
+    ledger.decide("calendar", "evidence locks", "Taken over from explicit whole-slot claims in "
+                  "global_slot_locks_expansion_candidate.json (wiki420 route notes, aqiu all-dash rows): "
+                  + "; ".join(summary) + ".")
 
     def add(first: str, last: str, slots: tuple[str, ...], reason: str, conf: str, src: list[str], why: str) -> None:
         locks.append(Lock(day_range(first, last), slots, reason, conf, src, why))
@@ -1472,6 +1479,15 @@ def build_notes(ledger: Ledger) -> list[str]:
 
 def build_pack() -> tuple[dict, Ledger]:
     ledger = Ledger()
+    ledger.decide("scope", "editions", "Only the main game (Xrd777) is described. Astrea/Episode Aigis tables are "
+                  "not used; FES/Portable material that the evidence files already rejected stays out (gorillawiki "
+                  "entry 103, the FES July calendar, atwiki page 36, P3P rank tables, samurai-gamers reversal "
+                  "mechanics, the Persona 4 '+10' paragraph, megatenwiki's Reload calendar with wrong full moons). "
+                  "Reload has no female-protagonist route, so no such links exist.")
+    ledger.decide("scope", "precedence", "Evidence order: game-data tables > aqiu calendar cells cross-checked "
+                  "with the atwiki tables and the CN guide > single reports. When sources conflict the strictest "
+                  "Reload claim is used (fewer meeting days, higher requirements, lower gains) and the conflict is "
+                  "listed in section 3.")
     page = AqiuPage(SOURCES_DIR / "aqiu_pages" / "social-events.html")
     day_cells = page.day_cells()
     night_cells = page.night_cells()
@@ -1678,6 +1694,35 @@ KNOWN_GAPS = (
 )
 
 
+FIELD_SEMANTICS = (
+    "`day` = days since 2009-04-01 (4/7 = 6, 1/31 = 305); `wd` is the ISO weekday. Slot `day` is the after-school "
+    "slot on school days and the daytime otherwise; `eve` is the evening.",
+    "`dayLock`/`eveLock`: reason id (see `lockReasons`) or null. A null slot is free; nothing else is implied.",
+    "`tartarus` (per day): an optional Tartarus visit is possible that evening (block open, not a closed night, "
+    "evening not locked). `block` is the block index for the day, -1 outside the plannable blocks.",
+    "`avail`: days with an ordinary meeting cell (already filtered by locks). `invite`: holiday invitation days "
+    "from game data; accepting uses the daytime slot and counts as a meeting. Both require the link to be "
+    "established (rank >= 1) and the person not to be missing.",
+    "`threshold[r]` = points needed while at rank r-1 to reach rank r (0 means the next meeting ranks up). "
+    "`eventGain[r]` = best-answer points of the rank-r scene, counted toward rank r+1.",
+    "`unlock`: `stat`/`link` requirements apply to every step. Steps run in order; `minGapDays` is measured from "
+    "the previous step's day (0 = same day allowed). `consumesSlot=false` steps need a free slot of their kind on "
+    "an allowed day but leave that slot usable for another action; they must still respect `minGapDays`. "
+    "`days`: avail = the link's own `avail`, fixed = `fixedDays` (another link's meeting days), weekdays, any = "
+    "any free slot. The last step (`establishes`) sets rank 1. No steps = automatic: rank 1 once `earliestDay` is "
+    "reached and the requirements hold (Magician on 4/22; Strength when Chariot reaches R2; story links by date).",
+    "`missing`: the person is gone from `fromDay` to `toDay` unless the matching rescue (`tartarus.rescues`) "
+    "happened earlier; without a rescue by `toDay` the link is lost for the rest of the game.",
+    "`storyRanks` (story links) list dated rank events; the loader turns them into `storyRankDay[r]` = first day "
+    "with rank >= r (skipped ranks share the next event's day).",
+    "`activities`: `slots`, `weekdays`, `dayTypes` (empty = all), `fromDay..toDay`, `cost` (yen), `gain` "
+    "(hidden stat points), `requires` (stat Lv). Jobs pay `pay` = [[minShiftNumber, minimum pay], …] for the "
+    "N-th completed shift.",
+    "`conf`: game_data > verified > single > estimate; conflict = strictest claim chosen, alternatives in `alt` "
+    "(activities) or in this report.",
+)
+
+
 def month_label(month: int) -> str:
     return f"{month:02d}"
 
@@ -1699,6 +1744,12 @@ def render_report(pack: dict, ledger: Ledger, pack_text: str) -> str:
                "(sources disagree; the strictest Reload claim is used and the others are listed).")
     out.append("")
 
+    out.append("## 0. Field semantics for consumers")
+    out.append("")
+    for line in FIELD_SEMANTICS:
+        out.append(f"- {line}")
+    out.append("")
+
     out.append("## 1. Sources")
     out.append("")
     out.append("| id | kind | file / url | sha256 |")
@@ -1710,14 +1761,17 @@ def render_report(pack: dict, ledger: Ledger, pack_text: str) -> str:
 
     out.append("## 2. Decisions")
     out.append("")
-    area = None
-    for decision_area, ident, text in ledger.decisions:
-        if decision_area != area:
-            out.append(f"### {decision_area}")
-            out.append("")
-            area = decision_area
-        out.append(f"- **{ident}** — {text}")
-    out.append("")
+    areas: list[str] = []
+    for decision_area, _ident, _text in ledger.decisions:
+        if decision_area not in areas:
+            areas.append(decision_area)
+    for decision_area in areas:
+        out.append(f"### {decision_area}")
+        out.append("")
+        for area, ident, text in ledger.decisions:
+            if area == decision_area:
+                out.append(f"- **{ident}** — {text}")
+        out.append("")
 
     out.append("## 3. Conflicts and resolutions")
     out.append("")
@@ -1756,7 +1810,40 @@ def render_report(pack: dict, ledger: Ledger, pack_text: str) -> str:
             out.append(f"- {link_id}: " + ", ".join(dropped))
     out.append("")
 
-    out.append("### 4.2 Locked slots per month")
+    out.append("### 4.2 Unlock paths")
+    out.append("")
+    out.append("Requirements apply to every step. `days`: avail = the link's own meeting days, fixed = another "
+               "link's meeting days (rumours heard at school), any = any free slot. Steps with consumes=no do not use "
+               "up the slot (the CN guide does another action in the same slot).")
+    out.append("")
+    out.append("| link | earliest | requires | steps | conf |")
+    out.append("|---|---|---|---|---|")
+    for link in pack["links"]:
+        unlock = link["unlock"]
+        reqs = [f"{k} Lv{v}" for k, v in sorted(unlock["stat"].items())]
+        reqs += [f"{k} R{v}" for k, v in sorted(unlock["link"].items())]
+        if link["kind"] == "story":
+            steps = "story ranks by date"
+        elif not unlock["steps"]:
+            steps = "automatic"
+        else:
+            parts = []
+            for s in unlock["steps"]:
+                extra = []
+                if not s["consumesSlot"]:
+                    extra.append("consumes=no")
+                if s["minGapDays"]:
+                    extra.append(f"gap {s['minGapDays']}")
+                if s["cost"]:
+                    extra.append(f"¥{s['cost']:,}")
+                if s["fromDay"] != unlock["earliestDay"]:
+                    extra.append(f"from {md_of(s['fromDay'])}")
+                parts.append(f"{s['id']} ({s['slot']}, {s['days']}{', ' + ', '.join(extra) if extra else ''})")
+            steps = " → ".join(parts)
+        out.append(f"| {link['id']} | {md_of(unlock['earliestDay'])} | {', '.join(reqs) or '—'} | {steps} | {unlock['conf']} |")
+    out.append("")
+
+    out.append("### 4.3 Locked slots per month")
     out.append("")
     out.append("| month | days | daytime locked | evening locked | Tartarus-open evenings |")
     out.append("|---|---|---|---|---|")
@@ -1784,7 +1871,7 @@ def render_report(pack: dict, ledger: Ledger, pack_text: str) -> str:
     out.append("Day types: " + ", ".join(f"{k} {v}" for k, v in sorted(types.items())) + ".")
     out.append("")
 
-    out.append("### 4.3 Tartarus blocks")
+    out.append("### 4.4 Tartarus blocks")
     out.append("")
     out.append("| block | zh | floors | from | to | open evenings |")
     out.append("|---|---|---|---|---|---|")
@@ -1793,7 +1880,7 @@ def render_report(pack: dict, ledger: Ledger, pack_text: str) -> str:
         out.append(f"| {b['id']} | {b['zh']} | {b['floorsZh']} | {md_of(b['fromDay'])} | {md_of(b['toDay'])} | {open_eves} |")
     out.append("")
 
-    out.append("### 4.4 Activities per weekday")
+    out.append("### 4.5 Activities per weekday")
     out.append("")
     out.append("Number of activity records offered per ISO weekday and slot (before day-type and date filters).")
     out.append("")

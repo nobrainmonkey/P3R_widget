@@ -7,6 +7,19 @@ Rebuild: `python3 rules/build/build_p3r_rules.py`; check that the committed file
 
 Confidence vocabulary: `game_data` (tables extracted from the P3R game files), `verified` (two or more independent Reload sources agree), `single` (one Reload source), `estimate` (policy choice), `conflict` (sources disagree; the strictest Reload claim is used and the others are listed).
 
+## 0. Field semantics for consumers
+
+- `day` = days since 2009-04-01 (4/7 = 6, 1/31 = 305); `wd` is the ISO weekday. Slot `day` is the after-school slot on school days and the daytime otherwise; `eve` is the evening.
+- `dayLock`/`eveLock`: reason id (see `lockReasons`) or null. A null slot is free; nothing else is implied.
+- `tartarus` (per day): an optional Tartarus visit is possible that evening (block open, not a closed night, evening not locked). `block` is the block index for the day, -1 outside the plannable blocks.
+- `avail`: days with an ordinary meeting cell (already filtered by locks). `invite`: holiday invitation days from game data; accepting uses the daytime slot and counts as a meeting. Both require the link to be established (rank >= 1) and the person not to be missing.
+- `threshold[r]` = points needed while at rank r-1 to reach rank r (0 means the next meeting ranks up). `eventGain[r]` = best-answer points of the rank-r scene, counted toward rank r+1.
+- `unlock`: `stat`/`link` requirements apply to every step. Steps run in order; `minGapDays` is measured from the previous step's day (0 = same day allowed). `consumesSlot=false` steps need a free slot of their kind on an allowed day but leave that slot usable for another action; they must still respect `minGapDays`. `days`: avail = the link's own `avail`, fixed = `fixedDays` (another link's meeting days), weekdays, any = any free slot. The last step (`establishes`) sets rank 1. No steps = automatic: rank 1 once `earliestDay` is reached and the requirements hold (Magician on 4/22; Strength when Chariot reaches R2; story links by date).
+- `missing`: the person is gone from `fromDay` to `toDay` unless the matching rescue (`tartarus.rescues`) happened earlier; without a rescue by `toDay` the link is lost for the rest of the game.
+- `storyRanks` (story links) list dated rank events; the loader turns them into `storyRankDay[r]` = first day with rank >= r (skipped ranks share the next event's day).
+- `activities`: `slots`, `weekdays`, `dayTypes` (empty = all), `fromDay..toDay`, `cost` (yen), `gain` (hidden stat points), `requires` (stat Lv). Jobs pay `pay` = [[minShiftNumber, minimum pay], …] for the N-th completed shift.
+- `conf`: game_data > verified > single > estimate; conflict = strictest claim chosen, alternatives in `alt` (activities) or in this report.
+
 ## 1. Sources
 
 | id | kind | file / url | sha256 |
@@ -60,8 +73,14 @@ Confidence vocabulary: `game_data` (tables extracted from the P3R game files), `
 
 ## 2. Decisions
 
+### scope
+
+- **editions** — Only the main game (Xrd777) is described. Astrea/Episode Aigis tables are not used; FES/Portable material that the evidence files already rejected stays out (gorillawiki entry 103, the FES July calendar, atwiki page 36, P3P rank tables, samurai-gamers reversal mechanics, the Persona 4 '+10' paragraph, megatenwiki's Reload calendar with wrong full moons). Reload has no female-protagonist route, so no such links exist.
+- **precedence** — Evidence order: game-data tables > aqiu calendar cells cross-checked with the atwiki tables and the CN guide > single reports. When sources conflict the strictest Reload claim is used (fewer meeting days, higher requirements, lower gains) and the conflict is listed in section 3.
+
 ### calendar
 
+- **evidence locks** — Taken over from explicit whole-slot claims in global_slot_locks_expansion_candidate.json (wiki420 route notes, aqiu all-dash rows): 04-07..04-09 day+eve prologue; 05-18..05-22 day+eve exam; 07-14..07-17 day+eve exam; 10-13..10-16 day+eve exam; 12-14..12-18 day+eve exam; 08-10..08-14 day+eve summer_classes; 09-18..09-20 day+eve typhoon_illness; 11-17..11-19 day+eve school_trip; 11-24..11-26 day+eve work_experience; 05-09 day+eve full_moon; 06-08 day+eve full_moon; 07-07 day+eve full_moon; 08-06 day+eve full_moon; 09-05 day+eve full_moon; 10-04 day+eve full_moon; 11-03 day+eve full_moon; 04-10 day+eve prologue; 04-11 day+eve prologue; 04-12 day+eve prologue; 04-13 day+eve prologue; 04-14 day+eve prologue; 04-15 day+eve prologue; 04-16 day+eve prologue; 04-17 day+eve prologue; 04-19 day+eve prologue; 10-05 day story; 11-05 day story; 12-03 day story; 08-16 day+eve festival; 04-22 day forced_event.
 - **lock 04-18 day+eve = prologue** — (estimate) 4/18 SEES joins (Fool R1 that evening); no source lists a free action before 4/21
 - **lock 04-20 day+eve = prologue** — (estimate) 4/20 is the forced Tartarus tutorial; the aqiu calendar and the CN guide start free time on 4/21
 - **lock 05-01 day = story** — (single) Akihiko hospital visit: every link cell is '-' (even Moon/Hierophant); the evening has a CN-guide arcade witness
@@ -83,16 +102,14 @@ Confidence vocabulary: `game_data` (tables extracted from the P3R game files), `
 - **lock 01-31 eve = finale** — (verified) Final operation; the daytime is free (aqiu cells, CN guide shopping)
 - **default** — A slot without a lock is free (handoff: absence of an annotation is not proof of unavailability). Locks come from explicit whole-slot claims (prologue, exams, full moons, trips, summer classes, typhoon/illness, festival, 4/22 forced Magician intro, 10/5, 11/5 and 12/3 daytime) and from days on which aqiu lists no opportunity at all, not even for the always-available Moon and Hierophant. Days after a full moon are free when aqiu has cells for them (5/10, 6/9, 7/8, 8/7, 9/6); 10/5 daytime and 11/4 stay locked.
 - **12-24 free** — Christmas Eve stays free by default (all invitations declined, DESIGN §10.5); aqiu has ordinary cells that day and wiki420 says both slots are free when every invitation is refused.
+- **day types** — school/sunday/holiday/vacation/exam/story with precedence exam > story (both slots locked) > vacation > holiday > sunday > school. Summer vacation 7/26–8/31 and winter break 12/27–1/7 follow the aqiu cells: school links still meet on 7/24–7/25 (exam results, Lovers opening in the classroom on 7/25) and on 12/24–12/26, and resume on 1/8 (class answer that day). Holidays are the 2009-10 Japanese public holidays; every weekday Hermit cell falls on one of them (audited). The 5/6 substitute holiday is not observed in-game (class answer and school-link cells on 5/6).
+- **moon** — Moon phase 0..7 (4 = full) is interpolated between the operation full moons 4/9 … 11/3 and 1/31, with two estimated full moons 12/2 and 1/1 (real 2009 dates) because the game has no operations in between. Decorative only.
+
 ### tartarus
 
 - **blocks** — Block opening dates and floor ranges come from ActivityDataAsset (4/21, 5/10, 6/13, 7/9, 8/8, 9/10, 10/6, 11/6, 12/3, 1/1). The 1/31 row (257F+) is the finale and is not a plannable block. zh names come from the 3DM SC guide (single source); the two halves of a zone share its name and are told apart by floor range.
-### calendar
-
-- **day types** — school/sunday/holiday/vacation/exam/story with precedence exam > story (both slots locked) > vacation > holiday > sunday > school. Summer vacation 7/26–8/31 and winter break 12/27–1/7 follow the aqiu cells: school links still meet on 7/24–7/25 (exam results, Lovers opening in the classroom on 7/25) and on 12/24–12/26, and resume on 1/8 (class answer that day). Holidays are the 2009-10 Japanese public holidays; every weekday Hermit cell falls on one of them (audited). The 5/6 substitute holiday is not observed in-game (class answer and school-link cells on 5/6).
-- **moon** — Moon phase 0..7 (4 = full) is interpolated between the operation full moons 4/9 … 11/3 and 1/31, with two estimated full moons 12/2 and 1/1 (real 2009 dates) because the game has no operations in between. Decorative only.
-### tartarus
-
 - **rescues** — Only the two missing people that gate a Social Link are rescues: 北村文吉 9/12–10/3 (教皇) and 舞子 10/21–11/2 (倒悬者) (aqiu overworld; the game board text says Bunkichi was reported missing on 9/11, but the aqiu calendar still has a Hierophant cell that day). The other 19 missing people only reward items and are left out.
+
 ### links
 
 - **eventGain** — eventGain[r] = best-answer points of the rank-r scene (they count toward r+1), lowest of aqiu's reported optimum and the normalised model; ranks 0-1 and 10 are 0, rank 2 never matters because every link needs 0 points for ranks 1-3 (game data). Romantic and platonic rank-9 scenes give the same points for every romanceable link, so eventGainRomance is null everywhere.
@@ -101,11 +118,13 @@ Confidence vocabulary: `game_data` (tables extracted from the P3R game files), `
 - **names** — Arcana and person names come from the zh-Hans game tables (DatRaceDataAsset, DatPlayerNameDataAsset): 女皇, 倒悬者, 月亮, 贝培, Ｙ子, 舞子 (no surname in-game), 北村文吉、光子. Judgement shows the spoiler-safe 伙伴们 instead of the official label 倪克斯讨伐队; Fool uses the official 特别课外活动部.
 - **avail** — avail = aqiu O cells minus locked slots, minus Empress Monday/Friday cells outside the pre-exam week 12/7-12/12 (DESIGN conflict policy), minus Emperor cells 11/3-11/29 (aqiu note; one contrary cell on 11/16 dropped as the stricter claim). Cells inside rescue windows are kept: the missing window, not the calendar, decides whether the person is there.
 - **holds** — No mid-chain holds are encoded. Moon R9: aqiu says the link 'will momentarily reverse'; the CN guide reaches MAX after one later meeting, so the 15-point R10 threshold already covers the repair. Hierophant R4->R5: a single Steam report of a rumour gate is contradicted by the CN guide (R4 on 5/14, R5 on 5/15). Both are documented in noteZh/notes; players can still report a hold.
+
 ### activities
 
 - **selection** — Planned activities: desk study (evening; daytime on days without school), library (school days, +2 lower bound), Wakatsu/Hagakure/Wilduck regular meals, karaoke, the three arcade games (evening only, the stricter reading), the three weekday movie programmes, Chagall coffee, and the three jobs. Every row is checked against the aqiu table (gains never above aqiu, same price, slots a subset) and, where present, the evidence files and the game's job help text.
 - **excluded** — Not planned: Wakatsu seafood course, Hagakure bowl and the weekend Wilduck set (their unlock needs an observed menu event or Request #11 that the model cannot express), the one-off burger challenge (needs Requests #1/#9/#11), shrine donations (single source, unclear Reload value), dorm hangouts and Link Episodes (DESIGN §10.10), film-festival hangouts and shrine fortunes.
 - **jobs** — Jobs pay the conservative non-busy tier per completed shift (wage tables from megatenwiki/wiki469; base pay confirmed by the game help text: café ¥2,500+ at night, accessory shop ¥3,500+ by day, cinema ¥5,000+ by day). Chagall from 5/4 (first CN-guide witness; earliest date otherwise unknown), accessory shop Mon–Fri from 7/24, cinema on Sundays. Where sources disagree on the second stat only Academics +1 is credited.
+
 ### policy
 
 - **ordinaryGain** — Ordinary (non-rank-up) meeting = +10 points: a single Reload playthrough report, consistent with the two notes shown for a normal hangout at 5 points per note (atwiki 455). conf=estimate. Multipliers 1.51 (matching Persona), 1.51 (Charm Lv6), 1.51/1.21 (exam) are game data; rounding is unknown, so the engine floors per meeting.
@@ -179,7 +198,36 @@ Dropped cells:
 - moon: 01-21 locked (reserved)
 - aeon: 01-21 locked (reserved)
 
-### 4.2 Locked slots per month
+### 4.2 Unlock paths
+
+Requirements apply to every step. `days`: avail = the link's own meeting days, fixed = another link's meeting days (rumours heard at school), any = any free slot. Steps with consumes=no do not use up the slot (the CN guide does another action in the same slot).
+
+| link | earliest | requires | steps | conf |
+|---|---|---|---|---|
+| fool | 04-18 | — | story ranks by date | verified |
+| magician | 04-22 | — | automatic | verified |
+| priestess | 06-19 | courage Lv6, fortune R1 | priestess.open (day, avail) | verified |
+| empress | 11-21 | academics Lv6 | empress.open (day, avail) | conflict |
+| emperor | 04-27 | — | emperor.open (day, avail) | verified |
+| hierophant | 04-25 | — | hierophant.open (day, avail) | verified |
+| lovers | 07-25 | charm Lv6 | lovers.open (day, avail) | verified |
+| chariot | 04-23 | — | chariot.open (day, avail) | verified |
+| justice | 04-28 | emperor R1 | justice.talk1 (day, avail, consumes=no) → justice.talk2 (day, avail, consumes=no, gap 1) → justice.talk3 (day, avail, consumes=no, gap 1) → justice.open (day, avail, gap 1, from 05-07) | verified |
+| hermit | 04-29 | — | hermit.open (day, avail) | verified |
+| fortune | 06-17 | — | fortune.open (day, avail) | verified |
+| strength | 04-24 | chariot R2 | automatic | verified |
+| hanged_man | 05-06 | — | hanged_man.gift (day, avail, consumes=no, ¥510) → hanged_man.open (day, avail, gap 1) | verified |
+| death | 06-12 | — | story ranks by date | verified |
+| temperance | 05-08 | academics Lv2, hierophant R3 | temperance.open (day, avail) | verified |
+| devil | 05-16 | charm Lv4, hermit R4 | devil.pay1 (eve, avail, consumes=no, ¥20,000) → devil.pay2 (eve, avail, consumes=no, gap 1, ¥10,000) → devil.open (eve, avail, gap 1, ¥10,000) | conflict |
+| tower | 05-23 | courage Lv4, strength R4 | tower.rumor (day, fixed, consumes=no) → tower.open (eve, avail) | conflict |
+| star | 08-05 | courage Lv4 | star.open (day, avail) | verified |
+| moon | 04-28 | charm Lv2, magician R3 | moon.rumor (day, fixed, consumes=no) → moon.open (day, avail) | verified |
+| sun | 08-09 | academics Lv4, hanged_man R3 | sun.ask (day, avail, consumes=no) → sun.pen (eve, any, consumes=no) → sun.open (day, avail, gap 1) | conflict |
+| judgement | 12-31 | — | story ranks by date | verified |
+| aeon | 01-08 | — | aeon.open (day, avail) | verified |
+
+### 4.3 Locked slots per month
 
 | month | days | daytime locked | evening locked | Tartarus-open evenings |
 |---|---|---|---|---|
@@ -199,7 +247,7 @@ Locked slots by reason: exam 36, festival 2, finale 1, forced_event 1, full_moon
 
 Day types: exam 18, holiday 10, school 159, story 40, sunday 31, vacation 42.
 
-### 4.3 Tartarus blocks
+### 4.4 Tartarus blocks
 
 | block | zh | floors | from | to | open evenings |
 |---|---|---|---|---|---|
@@ -214,7 +262,7 @@ Day types: exam 18, holiday 10, school 159, story 40, sunday 31, vacation 42.
 | harabah_2 | 焦炎之庭 哈拉瓦 | 199–226F | 12-03 | 12-31 | 15 |
 | adamah | 忧郁之庭 亚达玛 | 227–256F | 01-01 | 01-30 | 30 |
 
-### 4.4 Activities per weekday
+### 4.5 Activities per weekday
 
 Number of activity records offered per ISO weekday and slot (before day-type and date filters).
 
