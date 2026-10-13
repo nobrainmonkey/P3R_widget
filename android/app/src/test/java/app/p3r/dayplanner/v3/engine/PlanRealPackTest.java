@@ -40,8 +40,8 @@ import java.util.regex.Pattern;
  *   <tr><td>new game, Persona for every link (ALL)</td><td>22/22 (22/22)</td><td>0</td></tr>
  *   <tr><td>new game, no Persona</td><td>≥ 21/22 (22/22 with 15 notes; 21/22 without notes)</td><td>0</td></tr>
  *   <tr><td>new game, 皇帝 MUST (MAX by 6/29, every Emperor day used)</td><td>≥ 20/22 (21/22)</td><td>0</td></tr>
- *   <tr><td>mid game 10/22 (¥1,000, Charm Lv3)</td><td>≥ 12/22 (12/22)</td><td>≤ 3</td></tr>
- *   <tr><td>new game, Persona for goals only (GOALS), 皇帝 MUST + 恋爱/女皇 WANT</td><td>≥ 20/22 (21/22)</td><td>≤ 2</td></tr>
+ *   <tr><td>mid game 10/22 (¥1,000, Charm Lv3)</td><td>≥ 12/22 (13/22)</td><td>≤ 3</td></tr>
+ *   <tr><td>new game, Persona for goals only (GOALS), 皇帝 MUST + 恋爱/女皇 WANT</td><td>≥ 20/22 (20/22 with the hard fee reserve)</td><td>≤ 2</td></tr>
  *   <tr><td>new game, every Link Episode track</td><td>every completable track complete; ≥ 19/22 (21/22)</td><td>0</td></tr>
  *   <tr><td>mid game 10/22, 皇帝 必须 + 女教皇 想要</td><td>both MAX; ≥ 10/22 (10/22)</td><td>≤ 30 (jobs that pay the goals' notes)</td></tr>
  *   <tr><td>mid game 10/22, 必须 ① 力量 ② 正义 (either order)</td><td>both MAX (the audit found 力量 9)</td><td>≤ 30</td></tr>
