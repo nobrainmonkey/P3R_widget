@@ -3,7 +3,9 @@ package app.p3r.dayplanner.v3.service;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -67,6 +69,17 @@ public class PlannerServiceLoadTest extends ServiceTestBase {
         assertNull(broken.exportBackup());
         assertTrue(broken.history(0).isEmpty());
         assertTrue(broken.alternatives(TestRules.slot(TestRules.MAY_12, false)).isEmpty());
+    }
+
+    @Test
+    public void getReturnsOneProductionInstancePerApplication() {
+        PlannerApi first = PlannerService.get(context);
+        assertSame(first, PlannerService.get(context.getApplicationContext()));
+        // Loads with or without a bundled rule pack (a missing pack is reported, never thrown).
+        assertNotNull(first.snapshot().profile);
+        ((PlannerService) first).close();
+        assertNotSame(first, PlannerService.get(context));
+        ((PlannerService) PlannerService.get(context)).close();
     }
 
     @Test

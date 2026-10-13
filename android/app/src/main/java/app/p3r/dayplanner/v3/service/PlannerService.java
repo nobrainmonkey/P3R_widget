@@ -85,19 +85,33 @@ public final class PlannerService implements PlannerApi {
 
     private static volatile PlannerService instance;
 
-    /** The process-wide service (created on first use with the production wiring). */
+    /**
+     * The process-wide service, created on first use with the production wiring. Cheap on any
+     * thread: loading happens on the service's worker thread.
+     */
     public static PlannerApi get(Context context) {
+        Context app = applicationOf(context);
         PlannerService s = instance;
-        if (s == null) {
+        if (s == null || s.context != app) {
             synchronized (PlannerService.class) {
                 s = instance;
-                if (s == null) {
-                    s = new PlannerService(context, DefaultWiring.create(context));
+                if (s == null || s.context != app) {
+                    // A different application object only happens in test runners that create one
+                    // per test; the previous instance belongs to a discarded sandbox.
+                    if (s != null) {
+                        s.retire();
+                    }
+                    s = new PlannerService(app, DefaultWiring.create(app));
                     instance = s;
                 }
             }
         }
         return s;
+    }
+
+    private static Context applicationOf(Context context) {
+        Context app = context.getApplicationContext();
+        return app != null ? app : context;
     }
 
     /** A separate instance with custom dependencies (tests); call {@link #close} when done. */
@@ -159,7 +173,7 @@ public final class PlannerService implements PlannerApi {
     private volatile Model model = new Model(null, null, null);
 
     private PlannerService(Context context, Wiring wiring) {
-        this.context = context.getApplicationContext();
+        this.context = applicationOf(context);
         this.wiring = wiring;
         this.worker = Executors.newSingleThreadExecutor(PlannerService::newWorkerThread);
         this.replanner = new ReplanWorker(worker, new ReplanHost(), wiring.planner, wiring.validator, wiring.clock);
@@ -957,6 +971,12 @@ public final class PlannerService implements PlannerApi {
             return false;
         }
         return !replanner.busy();
+    }
+
+    /** Lets the worker thread finish its queue and exit, without waiting for it. */
+    private void retire() {
+        replanner.cancelAll();
+        worker.shutdown();
     }
 
     /**
