@@ -915,7 +915,7 @@ UNLOCKS = {
     "sun": {
         "earliest": "08-09", "stat": {"academics": 4}, "link": {"hanged_man": 3}, "conf": "conflict",
         "src": ["aqiu_social_events", "ev_multistep_unlock", "cn_guide"],
-        "noteZh": "最早按 8月9日开始（aqiu 日历与原版攻略；aqiu 概览另写 8月23日）。",
+        "noteZh": "最早按 8月9日开始（日历和原版攻略都是这一天；也有资料写 8月23日）。",
         "steps": [
             step("sun.ask", "和长鸣神社那位消瘦的青年说话",
                  "倒悬者社群 RANK 3、学力 Lv.4 以上时，星期日白天到长鸣神社的长椅找他，他会提到丢失的红色钢笔。不占用时段。",
@@ -1447,9 +1447,9 @@ def build_activities(ledger: Ledger, page: AqiuPage, guide_text: str) -> list[di
 
 def build_notes(ledger: Ledger) -> list[str]:
     notes = [
-        "【数据来源】社群升级所需点数、个人能力值门槛、加成倍率、休息日邀约日期和塔尔塔罗斯各区域的开放日期，都取自游戏数据表"
-        "（aqiu384/megaten-database 从 P3R 本体提取，不含《Episode Aigis》）；每天能见到谁取自 aqiu 的 P3R 日历，并和原版中文攻略逐日核对。",
-        "【普通见面】没有升级的见面按 +10 点估算（只有一份 Reload 实况记录提到，未经验证）；带着同阿尔卡那的人格面具 ×1.51，"
+        "【数据来源】社群升级所需点数、个人能力值门槛、加成倍率、休息日邀约日期和塔尔塔罗斯各区域的开放日期，都取自从本体提取的"
+        "游戏数据（不含付费追加剧情）；每天能见到谁取自玩家社区整理的日历，并和原版中文攻略逐日核对。",
+        "【普通见面】没有升级的见面按 +10 点估算（只有一份实况记录提到，未经验证）；带着同阿尔卡那的人格面具 ×1.51，"
         "魅力 Lv.6 再 ×1.51（游戏数据）。",
         "【日历】没有记录不代表不能行动：除了已锁定的时段，每个白天和晚上都默认可以自由安排。剧情未确认的日子"
         "（屋久岛 7月20日～23日、11月4日、1月1日白天、1月21日放学后）先保守地锁定。",
@@ -1581,6 +1581,35 @@ def validate_pack(pack: dict) -> None:
     for word in FORBIDDEN_STRINGS:
         if word in text:
             raise BuildError(f"pack contains the outdated term {word!r}")
+    for where, value in player_texts(pack):
+        latin = [w for w in re.findall(r"[A-Za-z]+", value) if w not in ALLOWED_LATIN]
+        if latin:
+            raise BuildError(f"{where}: player-facing text contains Latin words {latin}: {value}")
+
+
+# Latin tokens allowed in player-facing Chinese text: stat levels, ranks, floors, karaoke, and the
+# item name 莫乐蜜G as written in the CN guide.
+ALLOWED_LATIN = ("Lv", "RANK", "MAX", "F", "OK", "G")
+
+
+def player_texts(node, path: str = "") -> list[tuple[str, str]]:
+    """(path, text) of every player-facing string: keys 'zh', '*Zh' and 'notes'; dialogue is verbatim guide text."""
+    found = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            child = f"{path}.{key}" if path else key
+            if key == "dialogue":
+                continue
+            if (key == "zh" or key.endswith("Zh")) and isinstance(value, str):
+                found.append((child, value))
+            elif key == "notes" and isinstance(value, list):
+                found.extend((f"{child}[{i}]", v) for i, v in enumerate(value))
+            else:
+                found.extend(player_texts(value, child))
+    elif isinstance(node, list):
+        for i, value in enumerate(node):
+            found.extend(player_texts(value, f"{path}[{i}]"))
+    return found
 
 
 # --------------------------------------------------------------------------------------------

@@ -23,6 +23,8 @@ public final class Rules {
 
     public String schema = "p3r.rules.v3";
     public String packVersion = "0";
+    /** Game edition the pack describes (developer-facing English, never shown to players). */
+    public String game = "";
     /** Stable identity of the loaded pack: packVersion + "|" + sha256 prefix of the JSON. */
     public String version = "0";
     public int firstDay;
@@ -58,6 +60,18 @@ public final class Rules {
     public Activity activity(String id) {
         for (Activity a : activities) if (a.id.equals(id)) return a;
         return null;
+    }
+
+    /** Index of the link with this id, or -1. */
+    public int linkIndex(String id) {
+        Link l = link(id);
+        return l == null ? -1 : l.idx;
+    }
+
+    /** Index of the activity with this id, or -1. */
+    public int activityIndex(String id) {
+        Activity a = activity(id);
+        return a == null ? -1 : a.idx;
     }
 
     public Stat stat(String id) {
@@ -112,6 +126,8 @@ public final class Rules {
         public int idx;
         public String id;
         public int arcanaNo;
+        /** Roman numeral printed on the arcana card ("0", "I" … "XX"; Aeon shows "XX" too). */
+        public String numeral;
         public String arcanaZh;
         public String personZh;
         public String genderZh;
@@ -156,6 +172,8 @@ public final class Rules {
         public Map<Integer, Integer> linkRank = new HashMap<>();
         /** Ordered steps; the step with {@code establishes=true} sets rank 1. Empty = auto by date. */
         public List<Step> steps = new ArrayList<>();
+        /** Extra player-facing hint about the opening (Chinese), or null. */
+        public String noteZh;
         public String conf;
         public List<String> src = new ArrayList<>();
     }
@@ -222,6 +240,8 @@ public final class Rules {
         public int[][] pay = new int[0][];
         /** Use at most once in the whole game (e.g. a challenge menu). */
         public boolean once;
+        /** Player-facing remark (Chinese), e.g. why a conservative gain is used; may be null. */
+        public String noteZh;
         public String conf;
         public List<String> src = new ArrayList<>();
 
