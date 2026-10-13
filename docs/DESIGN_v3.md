@@ -368,7 +368,7 @@ GitHub release asset.
 - Persona bonus is per link: `Profile.personaFor(link)` (modes NONE / GOALS / ALL); a meeting computed with it carries `hintZh` 「记得带上「X」阿尔卡那的人格面具」.
 - Daytime-waste margin is one RANK of a non-goal link; the 16 plan variants are compared by objective minus that margin per wasted daytime slot; candidate types include the best dating-site note and the next Link Episode.
 - 改做别的 comes from `Engine.alternatives` (labelled like plan steps, ordered by the objective after each action).
-- Measured on the real pack (desktop JVM, default options, 0.55–0.70 s): new game Persona ALL 22/22 MAX; no Persona 22/22 (21/22 with notes off); 皇帝 MUST 21/22 with 皇帝 MAX 6/29; mid game 10/22 12/22; all five Link Episode tracks complete when opted in.
+- Measured on the real pack (desktop JVM, default options, 0.55–0.70 s) at the end of round 2: new game Persona ALL 22/22 MAX; no Persona 22/22 (21/22 with notes off); 皇帝 MUST 21/22 with 皇帝 MAX 6/29; mid game 10/22 12/22; all five Link Episode tracks complete when opted in. Current numbers: §14 and `docs/PLAN_METRICS.md`.
 
 ## 13. Record integrity (final review)
 
@@ -376,3 +376,13 @@ GitHub release asset.
 - AS_PREDICTED outcomes that carry `rank` for MEET/UNLOCK_STEP reconcile to that observed rank, so a later profile change (goal tiers, Persona mode, answers, charm bonus) never rewrites confirmed ranks or history.
 - Opting into a 羁绊剧情 track mid-game asks 「已经看了几话？」 and stores it in a checkpoint; 修改进度 / 同步现状 have a 羁绊剧情 page.
 - After a failed load, 重试 re-opens the rule pack and database (`requestReplan` → `retryOpen`).
+
+## 14. 3.0.1: strict goal priority and the remaining audit gaps
+
+- **Strict goal priority.** Goal weights stay spaced by priority (§5.3), and on top of that the plan kept is compared goal by goal in priority order (`Planner.Pool.compareGoals`: reached beats missed, a missed goal's higher end rank beats a lower one, only then the objective). With two or more goals, when the best plan misses goal *k* while a later goal is reached, the planner re-plans with goals 1…*k* only (the rest count as 「其余社群」) and screens the 「goal first」 tunings (`GOAL_FIRST`), so an earlier goal is never traded for a later one. `Summary.tradedFor[link]` records, for a goal the kept plan misses, the goal the planner kept instead (−1 when no compared plan reached it); the Links page names only that goal in 「没排到 MAX（先保证了…）」.
+- **Hard fee reserve.** `Kernel.FEE_RESERVE` = 2,500 日元 (one café shift): an unlock fee is paid leaving at least that much unless waiting would cost the link its milestone (`feeAffordable`); while a fee is due within 14 days and affordable, paid training and 结缘网站的字条 leave the fee plus the reserve; on a fee day they leave the reserve (`optionalHold`). The 规划说明 sheet states this (`Labels.FEE_NOTE`).
+- **Honest follow-up.** A plan whose time budget ran out says 「稍后会自动再算一次」 only while the service's one follow-up computation is still to come; that computation sets `Plan.followUp` (JSON `followUp`), and the note then reads 「后半段是粗略安排；记下一个结果后会重新安排」 (`Plan.budgetNoteZh`). The UI reads the flag directly.
+- **Meeting how-to.** 「怎么做」 of a meeting is: when/where/whom, the guide's 「参考回答：…」 (engine `DialogueHint`, same filtering as the UI's `Dialogue`), side steps, and the link's own note as 「注意：…」. The UI shows 「参考回答」 and 「注意」 lines as marked notes under the numbered steps (not counted as steps) and drops its separate 参考回答 row when the how-to already has it.
+- **Wording.** 主角 (not 主人公) in the legacy guide data too; dates in text are 「10月23日 周五」 (the date plate keeps 「10/23」); 结缘网站的字条 always in full; legacy widget and app text are shaped so names and short tags never break across lines (only （…） notes of up to 5 characters are glued, so longer ones can wrap at large font sizes).
+- **Measured** (real pack, desktop JVM, default options; full table in `docs/PLAN_METRICS.md`): new game, no Persona 22/22 MAX (21/22 with all five Link Episode tracks); 皇帝 MUST 21/22 with 皇帝 MAX 6月29日; MUST 皇帝 + WANT 恋爱、女皇 with Persona for goals only 20/22, all three goals MAX; every scenario plans to 1月31日 and passes `PlanValidator`.
+
