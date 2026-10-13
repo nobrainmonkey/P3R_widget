@@ -271,34 +271,9 @@ public final class StateDraft {
         step = value;
     }
 
-    /** Cycles a goal tier —→想要→必须→— and appends to the end of the new tier's order. */
+    /** Cycles a goal tier —→想要→必须→— (placing the link last in its new tier). */
     public Profile.Tier cycleTier(int link) {
-        Profile.Tier next;
-        switch (profile.tier[link]) {
-            case NONE:
-                next = Profile.Tier.WANT;
-                break;
-            case WANT:
-                next = Profile.Tier.MUST;
-                break;
-            default:
-                next = Profile.Tier.NONE;
-                break;
-        }
-        setTier(link, next);
-        return next;
-    }
-
-    /** Sets a tier, placing the link last within it. */
-    public void setTier(int link, Profile.Tier tier) {
-        int maxOrder = -1;
-        for (int i = 0; i < Profile.LINKS; i++) {
-            if (i != link && profile.tier[i] == tier) {
-                maxOrder = Math.max(maxOrder, profile.order[i]);
-            }
-        }
-        profile.tier[link] = tier;
-        profile.order[link] = tier == Profile.Tier.NONE ? 0 : maxOrder + 1;
+        return Goals.cycle(profile, link);
     }
 
     // ------------------------------------------------------------------ derived lists
@@ -455,6 +430,27 @@ public final class StateDraft {
         }
         int index = Math.min(done, link.unlock.steps.size()) - 1;
         return "已完成「" + link.unlock.steps.get(index).zh + "」";
+    }
+
+    /** Carries the player's edits over to a draft rebased on a newer record (after a CAS conflict). */
+    public void copyEditsFrom(StateDraft other) {
+        sync = other.sync;
+        slot = other.slot;
+        cash = other.cash;
+        cashUnknown = other.cashUnknown;
+        System.arraycopy(other.statLv, 0, statLv, 0, statLv.length);
+        System.arraycopy(other.rank, 0, rank, 0, rank.length);
+        System.arraycopy(other.unlock, 0, unlock, 0, unlock.length);
+        floor = other.floor;
+        towerVisits = other.towerVisits;
+        step = other.step;
+        if (mode == Mode.ONBOARDING) {
+            System.arraycopy(other.profile.tier, 0, profile.tier, 0, Profile.LINKS);
+            System.arraycopy(other.profile.order, 0, profile.order, 0, Profile.LINKS);
+            profile.personaBonus = other.profile.personaBonus;
+            profile.otherLinks = other.profile.otherLinks;
+        }
+        cachedPrefill = null;
     }
 
     /** True when the profile differs from the one the draft started with. */
