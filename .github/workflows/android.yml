@@ -1,0 +1,31 @@
+name: Android CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Unit tests and debug build
+        working-directory: android
+        env:
+          P3R_TOOLCHAIN: ${{ runner.temp }}/p3r-toolchain
+          P3R_QA_DIR: ${{ runner.temp }}/qa_out
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-renders
+          path: ${{ runner.temp }}/qa_out
+          if-no-files-found: ignore
