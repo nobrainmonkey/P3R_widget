@@ -426,7 +426,10 @@ final class PlanValidator {
             if (!evening()) error(slot, "dating-site note in the daytime");
             if (!profile.datingNotes) error(slot, "dating-site note while the player turned notes off");
             if (day() < note.fromDay) error(slot, "dating-site note before it is sold");
-            if (notesUsed >= Model.NOTE_MAX_USES) error(slot, "dating-site note use limit reached");
+            if (notesUsed >= Math.max(1, note.maxUses)) error(slot, "dating-site note use limit " + note.maxUses + " reached");
+            for (Map.Entry<Integer, Integer> e : note.requiresLv.entrySet()) {
+                if (statLevel(e.getKey()) < e.getValue()) error(slot, "dating-site note needs stat " + e.getKey() + " Lv" + e.getValue());
+            }
             if (link.kind != Rules.LinkKind.MANUAL || r < 1 || r >= 10) error(slot, "dating-site note for " + link.id + " at rank " + r);
             if (unavailable(l)) error(slot, link.id + " is missing or lost");
             int cost = Math.max(0, note.cost);
@@ -443,7 +446,10 @@ final class PlanValidator {
             checkRanks(s, r, rank[l]);
         }
 
-        /** Link Episode: an opted-in track, its slot kind, and a day whose cell allows the next episode. */
+        /**
+         * Link Episode: an opted-in track, its slot kind, and a day whose cell allows the next
+         * episode; adds the episode's stat points.
+         */
         private void episode(int e) {
             if (e < 0 || e >= episodes.length) {
                 error(slot, "unknown episode track " + e);
@@ -456,6 +462,9 @@ final class PlanValidator {
             if (next > ep.count) error(slot, "episode " + next + " of " + ep.id + " beyond its " + ep.count + " episodes");
             if (!episodeAllowed(ep, day(), next)) error(slot, "episode " + next + " of " + ep.id + " not available on day " + day());
             episodes[e]++;
+            if (next >= 1 && next <= ep.gain.length && ep.gain[next - 1] != null) {
+                for (int s = 0; s < Math.min(3, ep.gain[next - 1].length); s++) stat[s] += Math.max(0, ep.gain[next - 1][s]);
+            }
         }
 
         private static boolean episodeAllowed(Rules.Episode ep, int d, int n) {
@@ -499,7 +508,10 @@ final class PlanValidator {
             Rules.DatingNote note = rules.datingNote;
             if (note == null || note.gain <= 0 || !evening() || !profile.datingNotes || d < note.fromDay) return false;
             int cost = Math.max(0, note.cost);
-            if (notesUsed >= Model.NOTE_MAX_USES || cash < cost + (cost > 0 ? Math.max(0, profile.cashBuffer) : 0)) return false;
+            if (notesUsed >= Math.max(1, note.maxUses) || cash < cost + (cost > 0 ? Math.max(0, profile.cashBuffer) : 0)) return false;
+            for (Map.Entry<Integer, Integer> e : note.requiresLv.entrySet()) {
+                if (statLevel(e.getKey()) < e.getValue()) return false;
+            }
             for (Rules.Link link : rules.links) {
                 int l = link.idx;
                 int r = rank[l];

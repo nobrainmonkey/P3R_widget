@@ -30,11 +30,13 @@ import java.util.List;
  * assets/data.json maxes all 22 links with matching Personas and is the feasibility witness):
  *
  * <table>
- *   <tr><th>scenario</th><th>MAX</th><th>daytimeWaste</th></tr>
- *   <tr><td>new game, persona bonus</td><td>22/22</td><td>0</td></tr>
- *   <tr><td>new game, no persona</td><td>21/22</td><td>0</td></tr>
- *   <tr><td>new game, 皇帝 MUST (MAX 6/29, every Emperor day used)</td><td>20/22</td><td>0</td></tr>
- *   <tr><td>mid game 10/22 (¥1,000, Charm Lv3)</td><td>12/22</td><td>≤ 3</td></tr>
+ *   <tr><th>scenario</th><th>bound (reached 2026-10-13, pack with notes and episodes)</th><th>daytimeWaste</th></tr>
+ *   <tr><td>new game, Persona for every link (ALL)</td><td>22/22 (22/22)</td><td>0</td></tr>
+ *   <tr><td>new game, no Persona</td><td>≥ 21/22 (22/22 with 15 notes; 21/22 without notes)</td><td>0</td></tr>
+ *   <tr><td>new game, 皇帝 MUST (MAX by 6/29, every Emperor day used)</td><td>≥ 20/22 (21/22)</td><td>0</td></tr>
+ *   <tr><td>mid game 10/22 (¥1,000, Charm Lv3)</td><td>≥ 12/22 (12/22)</td><td>≤ 3</td></tr>
+ *   <tr><td>new game, Persona for goals only (GOALS), 皇帝 MUST + 恋爱/女皇 WANT</td><td>≥ 20/22 (21/22)</td><td>≤ 2</td></tr>
+ *   <tr><td>new game, every Link Episode track</td><td>every completable track complete; ≥ 19/22 (21/22)</td><td>0</td></tr>
  * </table>
  */
 public class PlanRealPackTest {
@@ -204,7 +206,9 @@ public class PlanRealPackTest {
         profile.order[lovers] = 1;
         profile.tier[empress] = Profile.Tier.WANT;
         profile.order[empress] = 2;
-        Result r = run("新游戏 · 只给目标社群带人格面具 · 必须：皇帝 · 想要：恋爱、女皇", profile, newGame(dayOf(4, 21)), 0);
+        // A 「必须」 goal may trade a couple of early daytime slots for an earlier MAX (worth more by
+        // the objective than the meeting it skips), so this scenario allows two.
+        Result r = run("新游戏 · 只给目标社群带人格面具 · 必须：皇帝 · 想要：恋爱、女皇", profile, newGame(dayOf(4, 21)), 2);
         for (int l : new int[]{emperor, lovers, empress}) assertEquals(rules.links[l].id, 10, r.plan.summary.endRanks[l]);
         int hints = 0;
         for (Plan.Step s : r.plan.steps) {

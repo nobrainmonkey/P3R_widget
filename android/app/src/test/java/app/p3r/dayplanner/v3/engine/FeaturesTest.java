@@ -294,8 +294,19 @@ public class FeaturesTest {
         assertEquals("junpei", ep.entity);
         assertEquals("羁绊剧情 · 伊织顺平", ep.titleZh);
         assertEquals("第 1 话（共 5 话）", ep.subtitleZh);
-        assertTrue(ep.detailZh, ep.detailZh.contains("看完全部 5 话：特性「伊织顺平的心意」"));
+        assertTrue(ep.detailZh, ep.detailZh.startsWith("白天打开手机，答应伊织顺平的邀约"));
+        assertTrue(ep.detailZh, ep.detailZh.contains("看完第 5 话可以得到特性「伊织顺平的心意」"));
+        assertFalse(ep.detailZh, ep.detailZh.contains("这一话的奖励"));
         assertFalse(ep.estimate);
+        // Episode 2 gives Charm +2 (stat points, never Social Link points).
+        SimState second = aug.copy();
+        second.statPts[RulesFixtures.CHARM] = 0;
+        Engine.Applied two = Engine.apply(rules, p, second, Action.episode(0));
+        assertEquals(2, two.state.statPts[RulesFixtures.CHARM]);
+        assertEquals(2, two.predicted.statDelta[RulesFixtures.CHARM]);
+        Plan.Step ep2 = alternative(Engine.alternatives(rules, p, second), "episode:junpei");
+        assertEquals("第 2 话（共 5 话）", ep2.subtitleZh);
+        assertTrue(ep2.detailZh, ep2.detailZh.contains("这一话的奖励：魅力 +2"));
 
         assertEquals(1, Engine.applyOutcome(rules, p, tue, Action.episode(0), Outcome.of(Outcome.Code.AS_PREDICTED)).episodes[0]);
         assertEquals(0, Engine.applyOutcome(rules, p, tue, Action.episode(0), Outcome.of(Outcome.Code.SKIPPED)).episodes[0]);

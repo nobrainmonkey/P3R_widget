@@ -507,7 +507,8 @@ final class Labels {
         }
         String how = note != null && !blank(note.howZh) ? note.howZh.trim()
                 : "在桐叶购物中心的放纵俱乐部买" + NOTE_NAME + "，当晚回宿舍用公用电脑给 " + who(l) + " 加好感";
-        step.detailZh = how + "\n字条只加好感，不会让社群直接升级";
+        String remark = note != null && !blank(note.noteZh) ? note.noteZh.trim() : "字条只加好感，不会让社群直接升级";
+        step.detailZh = how + "\n" + remark;
     }
 
     private void describeEpisode(Plan.Step step, SimState st, int e) {
@@ -530,9 +531,13 @@ final class Labels {
         } else {
             step.whyZh = "你选了要看" + episodePerson(ep) + "的羁绊剧情，这天能看第 " + n + " 话";
         }
-        String note = blank(ep.noteZh) ? null : ep.noteZh.trim();
-        String reward = blank(ep.rewardZh) ? null : "看完全部 " + count + " 话：" + ep.rewardZh.trim();
-        step.detailZh = joinLines(note, reward);
+        List<String> lines = new ArrayList<>();
+        if (!blank(ep.howZh)) lines.add(ep.howZh.trim());
+        String part = ep.rewardOf(n);
+        if (!blank(part)) lines.add("这一话的奖励：" + part.trim());
+        if (!blank(ep.noteZh)) lines.add(ep.noteZh.trim());
+        if (!blank(ep.rewardZh)) lines.add(ep.rewardZh.trim());
+        step.detailZh = lines.isEmpty() ? null : String.join("\n", lines);
     }
 
     /** "伊织顺平" (the title without its prefix, or the id as a last resort). */

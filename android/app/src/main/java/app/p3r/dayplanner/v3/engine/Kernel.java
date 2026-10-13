@@ -298,12 +298,16 @@ final class Kernel {
 
     /**
      * A dating-site note can be bought and used this evening: the player allows notes, the club
-     * sells them from {@code fromDay}, the cash covers the price plus the buffer (an optional spend)
-     * and the use limit is not reached. The slot itself must be an open evening.
+     * sells them from {@code fromDay}, the player's stats get them into the club at night
+     * ({@code requiresLv}, Courage Lv2), the cash covers the price plus the buffer (an optional
+     * spend) and the use limit is not reached. The slot itself must be an open evening.
      */
     static boolean noteOpen(Model m, SimState st, int day) {
         Rules.DatingNote note = m.note;
         if (note == null || day < note.fromDay || st.notesUsed >= m.noteMaxUses) return false;
+        for (java.util.Map.Entry<Integer, Integer> e : note.requiresLv.entrySet()) {
+            if (e.getKey() < m.t.nStats && statLv(m, st, e.getKey()) < e.getValue()) return false;
+        }
         int cost = Math.max(0, note.cost);
         return st.cash >= cost + (cost > 0 ? m.cashBuffer : 0);
     }
@@ -526,7 +530,7 @@ final class Kernel {
                 note(m, st, target(code), day, fx);
                 break;
             case T_EPISODE:
-                episode(st, target(code), fx);
+                episode(m, st, target(code), fx);
                 break;
             default:
                 break;
@@ -605,10 +609,18 @@ final class Kernel {
         }
     }
 
-    /** Watch the next episode of track e (certain; Link Episodes give no Social Link points). */
-    private static void episode(SimState st, int e, Effect fx) {
+    /**
+     * Watch the next episode of track e: certain; it may add stat points (the pack's per-episode
+     * {@code gain}), never Social Link points.
+     */
+    private static void episode(Model m, SimState st, int e, Effect fx) {
         if (e < 0 || e >= st.episodes.length) return;
         st.episodes[e]++;
+        int[] gain = e < m.rules.episodes.length ? m.rules.episodes[e].gainOf(st.episodes[e]) : null;
+        for (int s = 0; gain != null && s < Math.min(gain.length, m.t.nStats); s++) {
+            st.statPts[s] += Math.max(0, gain[s]);
+            if (fx != null && s < 3) fx.statDelta[s] = Math.max(0, gain[s]);
+        }
         if (fx != null) {
             fx.episode = st.episodes[e];
             fx.certain = true;

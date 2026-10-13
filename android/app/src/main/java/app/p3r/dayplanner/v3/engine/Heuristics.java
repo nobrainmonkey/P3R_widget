@@ -1072,7 +1072,8 @@ final class Heuristics {
     /**
      * Next Link Episode of an opted-in track: its objective value (plus its share of finishing the
      * track while the rest of the track still fits), scaled by the urgency of its window: the last
-     * slot that still allows it (and every later episode) beats almost everything.
+     * slot that still allows it (and every later episode) beats almost everything. Stat points the
+     * episode gives count like training in that slot.
      */
     private double episodeScore(SimState st, int e) {
         int n = st.episodes[e];
@@ -1080,7 +1081,13 @@ final class Heuristics {
         if (n >= count) return 0;
         int slack = Math.max(1, t.episodeSlack(e, n, st.slot));
         double v = EPISODE_VALUE + (t.epChain[e][n] ? EPISODE_FINISH / (count - n) : 0);
-        return v * urgency(1.5 / slack);
+        double h = v * urgency(1.5 / slack);
+        int[] gain = rules.episodes[e].gainOf(n + 1);
+        double[] pv = (st.slot & 1) == 1 ? eveValue : dayValue;
+        for (int s = 0; s < Math.min(Math.min(gain.length, t.nStats), 3); s++) {
+            if (gain[s] > 0) h += (0.2 + pv[s]) * Math.min(gain[s], Math.max(0, t.statCap[s] - st.statPts[s]));
+        }
+        return h;
     }
 
     /** Objective value of the Link Episodes watched in opted-in tracks. */

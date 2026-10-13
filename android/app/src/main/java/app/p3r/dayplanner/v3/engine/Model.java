@@ -11,16 +11,6 @@ import java.util.TreeMap;
  * build (the calendar tables are shared through {@link Tables#of}); immutable after construction.
  */
 final class Model {
-    /**
-     * Dating-site notes per playthrough. The note can be bought again and again: Siliconera's
-     * shared-computer guide says that, unlike the vendor's other URLs, you can buy several of it, and
-     * Prima Games' URL list says the same (both checked 2026-10-13); each one is bought and used on
-     * one evening. So the engine sets no cap; {@code
-     * SimState.notesUsed} still counts them, so a cap from the rule pack can be honoured here
-     * without a state change.
-     */
-    static final int NOTE_MAX_USES = Integer.MAX_VALUE;
-
     final Rules rules;
     final Tables t;
     final Profile profile;
@@ -48,7 +38,11 @@ final class Model {
 
     /** The pack's dating-site note when the player allows notes, else null. */
     final Rules.DatingNote note;
-    /** Notes allowed in the whole plan ({@link #NOTE_MAX_USES}). */
+    /**
+     * Notes allowed in one playthrough: the pack's {@code maxUses} ({@link Rules.DatingNote#UNLIMITED}
+     * when the sources say the club keeps selling it; Siliconera and Prima Games both say it can be
+     * bought again), 0 without a note.
+     */
     final int noteMaxUses;
     /** Link Episode tracks the player opted into (Profile.episodeTracks), by track index. */
     final boolean[] episodeWanted;
@@ -73,7 +67,7 @@ final class Model {
         this.towerIncome = options == null ? 0 : Math.max(0, options.towerIncomePerVisit);
         Rules.DatingNote n = rules.datingNote;
         this.note = profile.datingNotes && n != null && n.gain > 0 ? n : null;
-        this.noteMaxUses = NOTE_MAX_USES;
+        this.noteMaxUses = note == null ? 0 : Math.max(1, note.maxUses);
 
         int nl = t.nLinks;
         goal = new boolean[nl];

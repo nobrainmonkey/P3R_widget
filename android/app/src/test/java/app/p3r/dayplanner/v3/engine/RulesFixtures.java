@@ -712,8 +712,11 @@ final class RulesFixtures {
         e.count = count;
         e.dayMask = new int[r.lastDay + 1];
         e.locationZh = "严户台宿舍";
-        e.rewardZh = "特性「" + person + "的心意」";
+        e.howZh = (evening ? "晚上" : "白天") + "打开手机，答应" + person + "的邀约";
+        e.rewardZh = "看完第 " + count + " 话可以得到特性「" + person + "的心意」";
         e.noteZh = "按顺序看，每话占一个" + (evening ? "晚上" : "白天");
+        e.gain = new int[count][3];
+        e.partRewardZh = new String[count];
         return e;
     }
 
@@ -740,6 +743,8 @@ final class RulesFixtures {
         allow(r, junpei, 3, 3, day(11, 7), day(11, 13), 2, 3, 5, 6);
         allow(r, junpei, 4, 4, day(12, 19), day(12, 26), 2, 5, 6);
         allow(r, junpei, 5, 5, day(1, 15), day(1, 29), 2, 5);
+        junpei.gain[1][CHARM] = 2;
+        junpei.partRewardZh[1] = "魅力 +2";
         Rules.Episode akihiko = track(r, 1, "akihiko", "真田明彦", true, 3);
         allow(r, akihiko, 1, 3, day(5, 29), day(7, 10), 5);
         allow(r, akihiko, 2, 3, day(10, 9), day(11, 2), 5);
