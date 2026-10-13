@@ -10,11 +10,13 @@ import java.util.List;
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.Intents;
 import app.p3r.dayplanner.v3.engine.Plan;
+import app.p3r.dayplanner.v3.model.Rules;
 
 /**
- * Detail sheet for one slot: what to do, where, dialogue hint, why the planner chose it, which
- * estimates it relies on, and the actions that make sense for its position (record now, change
- * this slot, or "做到这里" for a future item).
+ * Detail sheet for one slot: the day's note, what to do, where, the 人格面具 reminder, dialogue hint, the "顺便"
+ * side steps, the numbered how-to, why it was chosen, which estimates it relies on, and the
+ * actions that make sense for its position (record now, change this slot, or "已经玩到这里" for
+ * a future item).
  */
 final class DayDetailSheet {
     private DayDetailSheet() {}
@@ -30,8 +32,20 @@ final class DayDetailSheet {
         DatePlate plate = new DatePlate(c, false);
         plate.bind(d.rules, slot);
         column.addView(plate);
+        Rules.Day day = d.rules.day(Rules.dayOf(slot));
+        if (day != null && day.noteZh != null && !day.noteZh.trim().isEmpty()) {
+            LinearLayout note = Ui.row(c);
+            note.setBackground(Ui.card(c).accent(Ui.col(c, R.color.ui_gold), Ui.dp(c, 4)));
+            Ui.pad(note, 14, 8, 12, 8);
+            note.addView(Ui.icon(c, R.drawable.ui_ic_info, Ui.col(c, R.color.ui_gold), 16));
+            TextView text = Ui.mixed(c, "这天：" + day.noteZh.trim(), 13, Ui.col(c, R.color.p3r_ice_100), false);
+            LinearLayout.LayoutParams tp = Ui.weight(1);
+            tp.leftMargin = Ui.dp(c, 8);
+            note.addView(text, tp);
+            column.addView(note, top(c, 10));
+        }
         if (step == null) {
-            column.addView(Ui.body(c, "这个时段不在当前的计划里。"), top(c, 12));
+            column.addView(Ui.body(c, "这个时段不在现在的安排里。"), top(c, 12));
             return column;
         }
         StepKind kind = StepKind.of(step);
@@ -41,6 +55,9 @@ final class DayDetailSheet {
         String subtitle = SlotRows.subtitle(step);
         if (!subtitle.isEmpty()) {
             column.addView(Ui.mixed(c, subtitle, 17, Ui.col(c, R.color.p3r_cyan_400), true), top(c, 2));
+        }
+        if (StepViews.hasHint(step) && kind != StepKind.LOCKED) {
+            column.addView(StepViews.hintChip(c, step.hintZh), top(c, 10));
         }
         if (step.locationZh != null && !step.locationZh.isEmpty()) {
             LinearLayout loc = Ui.row(c);
@@ -55,13 +72,19 @@ final class DayDetailSheet {
         if (dialogue != null) {
             column.addView(Ui.body(c, dialogue), top(c, 8));
         }
+        if (StepViews.hasSide(step)) {
+            column.addView(StepViews.sideBlock(c, step, 14), top(c, 10));
+        }
+        if (StepViews.hasHowTo(step)) {
+            column.addView(StepViews.howToSection(c, step.detailZh, false, true), top(c, 14));
+        }
         if (step.whyZh != null && !step.whyZh.isEmpty()) {
             column.addView(Ui.sectionHeader(c, "为什么这样安排", null), top(c, 14));
             column.addView(Ui.mixed(c, step.whyZh, 14, Ui.col(c, R.color.p3r_ice_100), false));
         }
         List<String> notes = Assumptions.describeAll(step.assumptions, step.estimate);
         if (!notes.isEmpty()) {
-            column.addView(Ui.sectionHeader(c, "其中的估计", null), top(c, 14));
+            column.addView(Ui.sectionHeader(c, "这一步用到的估计", null), top(c, 14));
             for (String note : notes) {
                 TextView line = Ui.mixed(c, "· " + note, 13, Ui.col(c, R.color.p3r_ink_muted), false);
                 line.setLineSpacing(0f, 1.25f);
@@ -81,10 +104,8 @@ final class DayDetailSheet {
             return box;
         }
         if (step.slot > current) {
-            int pending = step.slot - current;
-            box.addView(Ui.muted(c, "这是之后的安排。如果游戏里已经做到这里，点「做到这里」，再确认前面的 "
-                + pending + " 个时段。"));
-            TextView reach = Ui.primary(c, "做到这里");
+            box.addView(Ui.muted(c, "这是之后的安排。如果游戏里已经玩到这里，点「已经玩到这里」，再确认前面没记录的几项。"));
+            TextView reach = Ui.primary(c, "已经玩到这里");
             reach.setOnClickListener(v -> {
                 host.dismissSheet();
                 host.openResult(step.slot, step.action, Intents.MODE_RESULT);
@@ -103,16 +124,21 @@ final class DayDetailSheet {
             box.addView(row);
             return box;
         }
-        TextView change = Ui.secondary(c, "这个时段改为…");
+        TextView change = Ui.secondary(c, "改做别的…");
         change.setOnClickListener(v -> {
             host.dismissSheet();
             host.openResult(step.slot, step.action, Intents.MODE_OTHER);
         });
         row.addView(change, Ui.weight(1));
-        TextView record = Ui.primary(c, "记录结果");
+        TextView record = Ui.primary(c, "完成 ✓");
+        record.setContentDescription("完成，记录结果");
         record.setOnClickListener(v -> {
             host.dismissSheet();
-            host.openResult(step.slot, step.action, Intents.MODE_RESULT);
+            if (kind.directCommit()) {
+                host.commitDirect(step);
+            } else {
+                host.openResult(step.slot, step.action, Intents.MODE_RESULT);
+            }
         });
         LinearLayout.LayoutParams rp = Ui.weight(1);
         rp.leftMargin = Ui.dp(c, 12);

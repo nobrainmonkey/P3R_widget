@@ -15,10 +15,11 @@ import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
 
 /**
- * Tartarus return panel: 最高到达层 stepper (prefilled), cash as exactly one of 现在余额 | 本次增减
+ * Tartarus return panel: 最高到达层 stepper (prefilled), cash as exactly one of 出塔后余额 | 这次多了多少
  * with a live preview ("进塔前 8,200 → 出塔后 14,750 日元"), optional 主角等级, and the rescue
  * question while a missing person can be saved. Used for new records and for corrections (which
- * never add a visit).
+ * never add a visit); a correction of a visit inside a rescue window asks the rescue question
+ * again, preset from the record, so correcting the cash never drops a confirmed rescue.
  */
 final class TowerPanel extends LinearLayout {
     /** Panel callbacks. */
@@ -81,9 +82,9 @@ final class TowerPanel extends LinearLayout {
         addView(floorRow, spaced(c, 6));
 
         addView(label(c, "现金"), spaced(c, 18));
-        cashMode = new SegmentedControl(c, Arrays.asList("现在余额", "本次增减"));
-        cashMode.segment(0).setContentDescription("填写出塔后的现在余额");
-        cashMode.segment(1).setContentDescription("填写这次进塔的现金增减");
+        cashMode = new SegmentedControl(c, Arrays.asList("出塔后余额", "这次多了多少"));
+        cashMode.segment(0).setContentDescription("填写出塔后手上的钱");
+        cashMode.segment(1).setContentDescription("填写这次进塔多了多少钱");
         addView(cashMode, spaced(c, 6));
         amountView = Ui.text(c, "", 26, Ui.col(c, R.color.p3r_white), true);
         amountView.setGravity(Gravity.CENTER_VERTICAL | Gravity.END);
@@ -129,11 +130,14 @@ final class TowerPanel extends LinearLayout {
         addView(levelBox, spaced(c, 4));
         setLevelOn(initial != null && initial.level != null);
 
-        rescue = correction ? null : activeRescue(rules, observed, Rules.dayOf(slot));
+        int day = Rules.dayOf(slot);
+        rescue = correction ? rescueOn(rules, day) : activeRescue(rules, observed, day);
         if (rescue != null) {
-            addView(label(c, "救出" + rescue.zh + "了吗？"), spaced(c, 18));
-            rescueAnswer = new SegmentedControl(c, Arrays.asList("救出了", "还没"));
-            rescueAnswer.setSelected(1);
+            addView(label(c, rescue.zh + "救出来了吗？"), spaced(c, 18));
+            rescueAnswer = new SegmentedControl(c, Arrays.asList("救出了", correction ? "没救出" : "还没"));
+            boolean saved = initial != null ? rescue.id.equals(initial.rescuedId)
+                : correction && rescuedBit(rules, observed, rescue);
+            rescueAnswer.setSelected(saved ? 0 : 1);
             addView(rescueAnswer, spaced(c, 6));
         }
 
@@ -174,6 +178,26 @@ final class TowerPanel extends LinearLayout {
         return null;
     }
 
+    /** Rescue whose window covers {@code day} (settled or not), or null. */
+    static Rules.Rescue rescueOn(Rules rules, int day) {
+        for (Rules.Rescue r : rules.rescues) {
+            if (day >= r.fromDay && day <= r.toDay) {
+                return r;
+            }
+        }
+        return null;
+    }
+
+    /** True when the record says this rescue succeeded. */
+    private static boolean rescuedBit(Rules rules, SimState observed, Rules.Rescue rescue) {
+        for (int i = 0; i < rules.rescues.length && i < 63; i++) {
+            if (rules.rescues[i] == rescue) {
+                return (observed.rescued & (1L << i)) != 0;
+            }
+        }
+        return false;
+    }
+
     private static TextView label(Context c, String text) {
         return Ui.text(c, text, 15, Ui.col(c, R.color.p3r_white), true);
     }
@@ -196,8 +220,10 @@ final class TowerPanel extends LinearLayout {
 
     private void openPad() {
         CashPad.Options options = new CashPad.Options();
-        options.title = balanceMode() ? "出塔后的现在余额" : "这次进塔的现金增减";
-        options.hint = observed.cashExact ? "进塔前 " + Zh.yen(observed.cash) : "进塔前的现金没有记录，请填现在余额";
+        options.title = balanceMode() ? "出塔后手上有多少钱？" : "这次多了多少钱？";
+        options.hint = correction ? (balanceMode() ? null : "少了就填负数")
+            : observed.cashExact ? "进塔前 " + Zh.yen(observed.cash) + (balanceMode() ? "" : "，少了就填负数")
+            : "进塔前的钱没有记录，请直接填出塔后的余额";
         options.initial = amount;
         options.allowUnknown = false;
         options.allowNegative = !balanceMode();
@@ -222,7 +248,7 @@ final class TowerPanel extends LinearLayout {
             String sign = balanceMode() ? "" : (amount < 0 ? "−" : "+");
             amountView.setText(Ui.money(c, sign + number));
         }
-        amountView.setContentDescription((balanceMode() ? "现在余额 " : "本次增减 ")
+        amountView.setContentDescription((balanceMode() ? "出塔后余额 " : "这次多了 ")
             + (amount == null ? "未填写，点按输入" : Zh.yen(amount)));
         preview.setText(Ui.latin(c, previewText()));
         save.setEnabled(amount != null);
@@ -235,11 +261,11 @@ final class TowerPanel extends LinearLayout {
             if (amount == null) {
                 return "填写这次探索后的现金。";
             }
-            return balanceMode() ? "改为：出塔后 " + Zh.yen(amount) : "改为：这次进塔 " + signed(amount) + " 日元";
+            return balanceMode() ? "改为：出塔后 " + Zh.yen(amount) : "改为：这次 " + signed(amount) + " 日元";
         }
         if (!observed.cashExact) {
             if (amount == null) {
-                return "进塔前的现金没有记录，请填出塔后的现在余额。";
+                return "进塔前的钱没有记录，请直接填出塔后的余额。";
             }
             return "出塔后 " + Zh.yen(amount);
         }
@@ -279,7 +305,7 @@ final class TowerPanel extends LinearLayout {
         if (t.level != null) {
             UiPrefs.setTowerLevel(getContext(), t.level);
         }
-        String summary = "塔尔塔罗斯 " + t.floor + "F";
+        String summary = "探索塔尔塔罗斯 · " + t.floor + "F";
         if (t.rescuedId != null && rescue != null) {
             summary += " · 救出" + rescue.zh;
         }

@@ -9,7 +9,8 @@ import app.p3r.dayplanner.v3.model.Rules;
 /**
  * Persists unfinished wizard input per <em>semantic</em> field key ("state.sync.link.emperor.rank",
  * "state.sync.cash", …), so drafts survive rotation and process death and are not lost when the
- * screen layout changes. A draft started from another state revision is discarded.
+ * screen layout changes. When a record was made in the meantime (another state revision), the
+ * player's edits are carried over onto the newer record, as after a save conflict.
  */
 public final class DraftStore {
     static final String PREFS = "p3r_v3_ui_drafts";
@@ -24,19 +25,27 @@ public final class DraftStore {
         return "state." + mode.key + ".";
     }
 
+    /** Result of {@link #restore}. */
+    public enum Restored {
+        /** No saved draft for this mode. */
+        NONE,
+        /** Edits restored onto the same record they were made on. */
+        SAME,
+        /** Edits restored onto a newer record (something was recorded in the meantime). */
+        REBASED
+    }
+
     /**
-     * Restores saved edits into {@code draft} if a draft exists for its mode and revision.
-     * Returns true when something was restored. Call off the main thread on first access.
+     * Restores saved edits into {@code draft} if a draft exists for its mode; edits made on an
+     * older revision are kept and rebased onto the draft's record. Call off the main thread on
+     * first access.
      */
-    public boolean restore(StateDraft draft) {
+    public Restored restore(StateDraft draft) {
         String p = prefix(draft.mode);
         if (!prefs.contains(p + "base.rev")) {
-            return false;
+            return Restored.NONE;
         }
-        if (prefs.getLong(p + "base.rev", Long.MIN_VALUE) != draft.baseRevision) {
-            clear(draft.mode);
-            return false;
-        }
+        boolean rebased = prefs.getLong(p + "base.rev", Long.MIN_VALUE) != draft.baseRevision;
         Rules rules = draft.rules;
         draft.step = prefs.getString(p + "step", null);
         String sync = prefs.getString(p + "sync", null);
@@ -64,13 +73,24 @@ public final class DraftStore {
         }
         draft.floor = getInt(p + "tower.floor");
         draft.towerVisits = getInt(p + "tower.visits");
-        if (prefs.contains(p + "persona")) {
-            draft.profile.personaBonus = prefs.getBoolean(p + "persona", false);
+        for (int i = 0; i < rules.rescues.length; i++) {
+            draft.rescue[i] = getInt(p + "rescue." + rules.rescues[i].id);
+        }
+        String persona = prefs.getString(p + "persona.mode", null);
+        if (persona != null) {
+            try {
+                draft.setPersonaMode(Profile.PersonaMode.valueOf(persona));
+            } catch (IllegalArgumentException ignored) {
+                // An unknown value from a newer build: keep the profile's own answer.
+            }
         }
         if (prefs.contains(p + "others")) {
             draft.profile.otherLinks = prefs.getBoolean(p + "others", true);
         }
-        return true;
+        if (rebased) {
+            save(draft);
+        }
+        return rebased ? Restored.REBASED : Restored.SAME;
     }
 
     /** Writes every edited field of {@code draft} (asynchronously, via apply). */
@@ -107,8 +127,11 @@ public final class DraftStore {
         }
         putInt(e, p + "tower.floor", draft.floor);
         putInt(e, p + "tower.visits", draft.towerVisits);
+        for (int i = 0; i < rules.rescues.length; i++) {
+            putInt(e, p + "rescue." + rules.rescues[i].id, draft.rescue[i]);
+        }
         if (draft.mode == StateDraft.Mode.ONBOARDING) {
-            e.putBoolean(p + "persona", draft.profile.personaBonus);
+            e.putString(p + "persona.mode", draft.profile.effectivePersonaMode().name());
             e.putBoolean(p + "others", draft.profile.otherLinks);
         }
         e.apply();

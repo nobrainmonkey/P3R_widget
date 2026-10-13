@@ -22,8 +22,9 @@ import app.p3r.dayplanner.v3.model.Rules;
 
 /**
  * 今天 tab: date plate, return banner, replanning status, resource strip, the hero card for the
- * next slot with [做不了/改做别的] and [完成 ✓], the rest of today plus the next 3 days, and goal
- * progress chips.
+ * next slot (with its 人格面具 reminder, "顺便" side steps and [做不了/改做别的] [完成 ✓]), the rest
+ * of today plus the next 3 days, and goal progress chips. Once Jan 31 is recorded the hero card
+ * becomes a closing summary.
  */
 final class TodayPage {
     private static final int LOOKAHEAD_DAYS = 3;
@@ -34,6 +35,8 @@ final class TodayPage {
     private final ScrollView scroll;
     private final LinearLayout column;
     private int bottomInset;
+    /** The hero card's button row (null when the hero has none); the undo bar keeps clear of it. */
+    private View heroButtons;
 
     TodayPage(HomeHost host) {
         this.host = host;
@@ -62,6 +65,11 @@ final class TodayPage {
         return root;
     }
 
+    /** The hero card's [做不了/改做别的] [完成 ✓] row, or null. */
+    View heroButtons() {
+        return heroButtons;
+    }
+
     void setBottomInset(int px) {
         bottomInset = px;
         scroll.setPadding(0, 0, 0, px);
@@ -71,14 +79,16 @@ final class TodayPage {
     void bind(UiData d) {
         int y = scroll.getScrollY();
         column.removeAllViews();
+        heroButtons = null;
         if (!d.hasState()) {
             buildWelcome();
             return;
         }
         SimState obs = d.observed();
         Rules rules = d.rules;
+        boolean finished = Slots.finished(rules, obs);
         DatePlate plate = new DatePlate(c, true);
-        plate.bind(rules, obs.slot);
+        plate.bind(rules, finished ? rules.lastSlot() : obs.slot);
         LinearLayout.LayoutParams plateParams = Ui.matchWrap();
         plateParams.topMargin = Ui.dp(c, 8);
         column.addView(plate, plateParams);
@@ -91,12 +101,12 @@ final class TodayPage {
             column.addView(status, spaced(12));
         }
         column.addView(resources(d), spaced(16));
-        column.addView(hero(d), spaced(20));
+        column.addView(finished ? finishedCard(d) : hero(d), spaced(20));
         View upcoming = upcoming(d);
         if (upcoming != null) {
             column.addView(upcoming, spaced(24));
         }
-        View goals = goals(d);
+        View goals = finished ? null : goals(d);
         if (goals != null) {
             column.addView(goals, spaced(20));
         }
@@ -115,7 +125,7 @@ final class TodayPage {
         column.addView(Ui.gap(c, 96));
         TextView title = Ui.text(c, "从现在的存档开始", 28, Ui.col(c, R.color.p3r_white), true);
         column.addView(title);
-        TextView body = Ui.body(c, "告诉我游戏里现在的进度和你想要的社群，我会把到 1月31日 为止的每个"
+        TextView body = Ui.body(c, "告诉我游戏里现在的进度和你想要的社群，我会把到1月31日为止的每个"
             + "白天和晚上都排好。之后每做完一件事点一下「完成」，后面的安排会自动跟上。");
         body.setLineSpacing(0f, 1.3f);
         column.addView(body, spaced(12));
@@ -125,8 +135,8 @@ final class TodayPage {
         TextView hint = Ui.muted(c, "大约需要 2 分钟，所有内容之后都能修改。");
         column.addView(hint, spaced(12));
         String[][] steps = {
-            {"1", "选目标", "想把哪些社群练到 MAX，分「想要」和「必须」。"},
-            {"2", "对照游戏填进度", "日期、现金、个人能力值和社群 RANK，点选即可。"},
+            {"1", "选目标", "想把哪些社群升到 MAX，分「想要」和「必须」。"},
+            {"2", "对照游戏填进度", "日期、现金、个人能力值和社群 RANK，点选就行。"},
             {"3", "照着做，点「完成」", "结果和预计不同时说一声，后面的安排会自动调整。"},
         };
         for (String[] s : steps) {
@@ -283,13 +293,13 @@ final class TodayPage {
         row.addView(Ui.icon(c, R.drawable.ui_ic_tower, Ui.col(c, R.color.p3r_cyan_400), 18));
         String text;
         if (block == null) {
-            text = "塔尔塔罗斯 · 现在没有可探索的区块";
+            text = "塔尔塔罗斯 · 现在没有能探索的区块";
         } else {
             int visits = block.idx < obs.towerVisits.length ? obs.towerVisits[block.idx] : 0;
-            text = "塔尔塔罗斯 · " + block.zh + " · 已去 " + visits + "/" + profile.towerVisitsPerBlock + " 次";
+            text = "塔尔塔罗斯 · " + block.zh + "\n本区块去过 " + visits + " 次，上限 " + profile.towerCapPerBlock + " 次";
         }
         TextView label = Ui.mixed(c, text, 13, Ui.col(c, R.color.p3r_ice_100), false);
-        label.setSingleLine(true);
+        label.setMaxLines(2);
         label.setEllipsize(TextUtils.TruncateAt.END);
         LinearLayout.LayoutParams p = Ui.weight(1);
         p.leftMargin = Ui.dp(c, 8);
@@ -332,11 +342,11 @@ final class TodayPage {
         card.addView(title, spaced(10));
         String subtitle = SlotRows.subtitle(step);
         if (kind == StepKind.LOCKED) {
-            card.addView(Ui.muted(c, "这个时段由剧情安排，游戏里过完后点「继续」。"), spaced(4));
+            card.addView(Ui.muted(c, "这段时间不能自由行动，游戏里过完后点「继续」。"), spaced(4));
         } else if (!subtitle.isEmpty()) {
             LinearLayout subRow = Ui.row(c);
             TextView sub = Ui.mixed(c, subtitle, 20, Ui.col(c, R.color.p3r_cyan_400), true);
-            subRow.addView(sub, Ui.wrap());
+            subRow.addView(sub, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
             if (step.estimate) {
                 TextView est = Ui.text(c, "预计", 11, Ui.col(c, R.color.p3r_cyan_200), true);
                 est.setBackground(new SlantedPanelDrawable().stroke(Ui.col(c, R.color.p3r_cyan_200), Ui.dp(c, 1))
@@ -347,6 +357,9 @@ final class TodayPage {
                 subRow.addView(est, ep);
             }
             card.addView(subRow, spaced(2));
+        }
+        if (StepViews.hasHint(step) && kind != StepKind.LOCKED) {
+            card.addView(StepViews.hintChip(c, step.hintZh), spaced(10));
         }
         if (step.locationZh != null && !step.locationZh.isEmpty()) {
             LinearLayout loc = Ui.row(c);
@@ -362,18 +375,60 @@ final class TodayPage {
             TextView options = Ui.text(c, dialogue, 14, Ui.col(c, R.color.p3r_ice_100), false);
             card.addView(options, spaced(6));
         }
+        if (StepViews.hasSide(step)) {
+            card.addView(StepViews.sideBlock(c, step, 14), spaced(8));
+        }
         if (step.whyZh != null && !step.whyZh.isEmpty()) {
             TextView why = Ui.mixed(c, step.whyZh, 13, Ui.col(c, R.color.p3r_ink_muted), false);
             card.addView(why, spaced(8));
         }
-        card.addView(heroButtons(step, kind), spaced(18));
+        if (StepViews.hasHowTo(step)) {
+            TextView how = Ui.mixed(c, StepViews.howToLabel(step.detailZh) + " · 点卡片查看", 13,
+                Ui.col(c, R.color.p3r_cyan_200), true);
+            card.addView(how, spaced(6));
+        }
+        heroButtons = heroButtons(step, kind);
+        card.addView(heroButtons, spaced(18));
         card.setClickable(true);
         card.setOnClickListener(v -> host.openDetail(step.slot));
         return card;
     }
 
+    /** Shown instead of the hero once every slot up to Jan 31 is recorded. */
+    private View finishedCard(UiData d) {
+        LinearLayout card = Ui.column(c);
+        card.setBackground(Ui.heroCard(c));
+        Ui.pad(card, 22, 18, 18, 20);
+        card.addView(Ui.text(c, "日程已经全部结束", 24, Ui.col(c, R.color.p3r_white), true));
+        card.addView(Ui.muted(c, "1月31日之前的时段都记录完了，辛苦了！"), spaced(6));
+        SimState obs = d.observed();
+        Profile profile = d.profile();
+        int maxed = 0;
+        int goals = 0;
+        int goalsMaxed = 0;
+        for (int i = 0; i < Math.min(obs.rank.length, d.rules.links.length); i++) {
+            boolean max = obs.rank[i] >= 10;
+            if (max) {
+                maxed++;
+            }
+            if (profile.isGoal(i)) {
+                goals++;
+                if (max) {
+                    goalsMaxed++;
+                }
+            }
+        }
+        String line = "升到 MAX 的社群：" + maxed + " 个";
+        if (goals > 0) {
+            line += " · 目标 " + goalsMaxed + "/" + goals + " 个";
+        }
+        card.addView(Ui.mixed(c, line, 17, Ui.col(c, R.color.p3r_cyan_400), true), spaced(12));
+        return card;
+    }
+
     private View heroButtons(Plan.Step step, StepKind kind) {
         LinearLayout row = Ui.row(c);
+        row.setBaselineAligned(false);
         if (kind == StepKind.LOCKED) {
             TextView go = Ui.primary(c, "继续");
             go.setContentDescription("剧情结束，继续到下一个时段");
@@ -381,12 +436,14 @@ final class TodayPage {
             row.addView(go, Ui.weight(1));
             return row;
         }
-        TextView cannot = Ui.secondary(c, "做不了/改做别的");
+        boolean large = c.getResources().getConfiguration().fontScale > 1.15f;
+        TextView cannot = Ui.secondary(c, large ? "做不了/\n改做别的" : "做不了/改做别的");
         cannot.setTextSize(15);
         cannot.setMaxLines(2);
+        cannot.setContentDescription("做不了或改做别的");
         Ui.pad(cannot, 10, 8, 10, 8);
         cannot.setOnClickListener(v -> host.openResult(step.slot, step.action, Intents.MODE_CANNOT));
-        row.addView(cannot, Ui.weight(1.3f));
+        row.addView(cannot, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1.3f));
         TextView done = Ui.primary(c, "完成 ✓");
         done.setContentDescription("完成，记录结果");
         done.setOnClickListener(v -> {
@@ -396,7 +453,7 @@ final class TodayPage {
                 host.openResult(step.slot, step.action, Intents.MODE_RESULT);
             }
         });
-        LinearLayout.LayoutParams doneParams = Ui.weight(1);
+        LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1);
         doneParams.leftMargin = Ui.dp(c, 14);
         row.addView(done, doneParams);
         return row;

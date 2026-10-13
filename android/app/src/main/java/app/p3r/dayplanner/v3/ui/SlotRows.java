@@ -11,7 +11,7 @@ import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.model.Rules;
 
-/** Compact slot lines used by 今天 ("接下来") and the 日程 timeline. */
+/** Compact slot lines used by 今天 ("接下来") and the 日程 timeline; long titles wrap to two lines. */
 final class SlotRows {
     /** Where a slot stands relative to the player's progress. */
     enum State { DONE, CURRENT, FUTURE }
@@ -50,14 +50,16 @@ final class SlotRows {
     }
 
     /**
-     * One slot: optional period label, kind icon, title and subtitle. Locked slots are grey;
-     * recorded slots are dimmed with a tick. Rebindable for list recycling.
+     * One slot: optional period label, kind icon, title (up to two lines), subtitle and the
+     * "顺便：…" side steps. Locked slots are grey; recorded slots are dimmed with a tick.
+     * Rebindable for list recycling.
      */
     static final class Line extends LinearLayout {
         private final TextView period;
         private final ImageView icon;
         private final TextView title;
         private final TextView subtitle;
+        private final TextView side;
 
         Line(Context c) {
             super(c);
@@ -73,14 +75,19 @@ final class SlotRows {
             iconParams.rightMargin = Ui.dp(c, 10);
             addView(icon, iconParams);
             LinearLayout texts = Ui.column(c);
+            Ui.pad(texts, 0, 3, 0, 3);
             title = Ui.text(c, "", 15, Ui.col(c, R.color.p3r_white), false);
-            title.setSingleLine(true);
+            title.setMaxLines(2);
             title.setEllipsize(TextUtils.TruncateAt.END);
             texts.addView(title);
             subtitle = Ui.text(c, "", 13, Ui.col(c, R.color.p3r_cyan_300), false);
-            subtitle.setSingleLine(true);
+            subtitle.setMaxLines(2);
             subtitle.setEllipsize(TextUtils.TruncateAt.END);
             texts.addView(subtitle);
+            side = Ui.text(c, "", 12, Ui.col(c, R.color.ui_gold), false);
+            side.setMaxLines(2);
+            side.setEllipsize(TextUtils.TruncateAt.END);
+            texts.addView(side);
             addView(texts, Ui.weight(1));
         }
 
@@ -109,9 +116,14 @@ final class SlotRows {
             subtitle.setText(Ui.latin(c, subText));
             subtitle.setTextColor(sub);
             subtitle.setVisibility(subText.isEmpty() ? GONE : VISIBLE);
+            String sideText = locked ? "" : String.join("；", StepViews.sideLines(step));
+            side.setText(Ui.latin(c, sideText));
+            side.setTextColor(state == State.DONE ? ink : Ui.col(c, R.color.ui_gold));
+            side.setVisibility(sideText.isEmpty() ? GONE : VISIBLE);
             String state0 = state == State.DONE ? "已记录，" : state == State.CURRENT ? "下一步，" : "";
             setContentDescription(state0 + Zh.period(rules, step.slot) + "，" + titleText
-                + (subText.isEmpty() ? "" : "，" + subText.replace("≈", "预计")));
+                + (subText.isEmpty() ? "" : "，" + subText.replace("≈", "预计"))
+                + (sideText.isEmpty() ? "" : "，" + sideText));
         }
     }
 }

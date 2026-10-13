@@ -9,7 +9,7 @@ import app.p3r.dayplanner.v3.model.Rules;
  * Simplified Chinese wording and number formatting used across the v3 screens.
  *
  * <p>Conventions (docs/DESIGN_v3.md §4, §7): link ranks are "RANK N" with "MAX" at 10, stats are
- * "Lv.N", money is "8,200 日元", dates are "10月22日", the free daytime block is "放学后" on school
+ * "Lv.N" (the top level is "MAX"), money is "8,200 日元", dates are "10月22日", the free daytime block is "放学后" on school
  * days and "白天" otherwise, and the evening is "晚上".
  */
 public final class Zh {
@@ -93,10 +93,10 @@ public final class Zh {
         return date(Rules.dayOf(slot)) + " " + period(rules, slot);
     }
 
-    /** "RANK 7" / "RANK MAX" / "未建立". */
+    /** "RANK 7" / "RANK MAX" / "未解锁". */
     public static String rank(int rank) {
         if (rank <= 0) {
-            return "未建立";
+            return "未解锁";
         }
         return "RANK " + rankValue(rank);
     }
@@ -114,9 +114,28 @@ public final class Zh {
         return "RANK " + rankValue(from) + " → " + rankValue(to);
     }
 
-    /** "Lv.3". */
+    /** "Lv.3"; the top level (6) is written "MAX", as the game and the guide do ("勇气MAX"). */
     public static String lv(int level) {
-        return "Lv." + level;
+        return level >= 6 ? "MAX" : "Lv." + level;
+    }
+
+    /** "1" … "5", "MAX" — compact stat level labels for segmented pickers. */
+    public static String lvValue(int level) {
+        return level >= 6 ? "MAX" : String.valueOf(Math.max(1, level));
+    }
+
+    /** "5月12日–1月29日" for a day range ("5月12日" when both ends are the same day). */
+    public static String dateRange(int fromDay, int toDay) {
+        return fromDay == toDay ? date(fromDay) : date(fromDay) + "–" + date(toDay);
+    }
+
+    /**
+     * "小田桐秀利 · 男"; a long name puts the gender on its own line ("特别课外活动部\n团体·男女")
+     * so it is never cut off.
+     */
+    public static String person(Rules.Link link) {
+        String one = link.personZh + " · " + link.genderZh;
+        return one.length() > 11 ? link.personZh + "\n" + link.genderZh : one;
     }
 
     /** Roman numeral for an arcana number ("0" for the Fool). */

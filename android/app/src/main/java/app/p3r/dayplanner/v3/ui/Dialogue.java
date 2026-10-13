@@ -15,9 +15,9 @@ final class Dialogue {
 
     private Dialogue() {}
 
-    /** "选项：A / B" for a social step, the fallback for other social steps, null otherwise. */
+    /** "推荐回答：A / B" for a social step, the fallback for other social steps, null otherwise. */
     static String line(Rules rules, Plan.Step step) {
-        if (step == null || !"social".equals(step.kind)) {
+        if (step == null || !"social".equals(step.kind) || !StepKind.of(step).social()) {
             return null;
         }
         Rules.Link link = rules == null || step.entity == null ? null : rules.link(step.entity);
@@ -25,7 +25,7 @@ final class Dialogue {
             int target = step.predicted.rankUp ? step.predicted.rankTo : step.predicted.rankFrom;
             List<String> options = link.dialogue.get(target);
             if (options != null && !options.isEmpty()) {
-                return "选项：" + String.join(" / ", options);
+                return "推荐回答：" + String.join(" / ", options);
             }
         }
         return FALLBACK;

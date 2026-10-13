@@ -13,11 +13,16 @@ import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
 
 /**
- * 记录历史: newest first, each record with [撤销] and, for tower returns, [修改] (a correction that
- * never adds a visit). Undo appends a void marker; later state is recomputed from the rest.
+ * 记录历史: newest first. Records that still shape the current progress get [撤销], tower returns
+ * also [修改] (a correction that never adds a visit); older records say they predate the last
+ * 同步现状. Undo appends a void marker; later state is recomputed from the rest.
  */
 final class HistoryPage {
     private static final int LIMIT = 80;
+    private static final String TOWER = "tower";
+    /** Kinds that record what happened in a slot (as opposed to journal rows such as 同步现状). */
+    private static final java.util.Set<String> RECORD_KINDS = new java.util.HashSet<>(
+        java.util.Arrays.asList("outcome", "skip", TOWER, "tower_fix"));
 
     private final HomeHost host;
     private final Context c;
@@ -70,10 +75,12 @@ final class HistoryPage {
         }
         card.addView(summary);
         LinearLayout bottom = Ui.row(c);
-        String meta = (item.voided ? "已撤销 · " : "") + "记录于 " + Zh.age(System.currentTimeMillis(), item.createdMillis);
+        bottom.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        bottom.setMinimumHeight(Ui.dp(c, Ui.TOUCH));
+        String meta = (item.voided ? "已撤销 · " : "") + Zh.age(System.currentTimeMillis(), item.createdMillis) + "记录";
         bottom.addView(Ui.caption(c, meta), Ui.weight(1));
-        if (!item.voided) {
-            if (item.correctable) {
+        if (!item.voided && item.correctable) {
+            if (TOWER.equals(item.kind)) {
                 TextView fix = Ui.quiet(c, "修改");
                 fix.setContentDescription("修改这条记录：" + item.summaryZh);
                 fix.setOnClickListener(v -> openCorrection(item));
@@ -83,6 +90,8 @@ final class HistoryPage {
             undo.setContentDescription("撤销这条记录：" + item.summaryZh);
             undo.setOnClickListener(v -> confirmUndo(item));
             bottom.addView(undo, Ui.wrap());
+        } else if (!item.voided && RECORD_KINDS.contains(item.kind)) {
+            bottom.addView(Ui.caption(c, "同步现状之前的记录"), Ui.wrap());
         }
         card.addView(bottom);
         return card;
@@ -114,7 +123,7 @@ final class HistoryPage {
             Ui.pad(sheet, 20, 12, 20, 20);
             sheet.addView(Ui.title(c, "修改这次探索"));
             sheet.addView(Ui.mixed(c, item.summaryZh, 13, Ui.col(c, R.color.p3r_ink_muted), false));
-            sheet.addView(Ui.muted(c, "只改数值，不会多算一次进塔。"));
+            sheet.addView(Ui.muted(c, "只改数值，不会多算一次探索。"));
             TowerPanel panel = new TowerPanel(c, d.rules, d.observed(), item.slot, blockIdx, null, true, level,
                 new TowerPanel.Listener() {
                     @Override
@@ -136,10 +145,11 @@ final class HistoryPage {
 
     private void saveCorrection(PlannerApi.HistoryItem item, PlannerApi.TowerReturn tower) {
         long rev = host.data().snap.stateRevision;
-        String id = CommandIds.of("tower_fix", rev, item.seq, tower.floor, tower.balanceMode, tower.amount, tower.level);
+        String id = CommandIds.of("tower_fix", rev, item.seq, tower.floor, tower.balanceMode, tower.amount, tower.level,
+            tower.rescuedId);
         Async.run(host.activity(), () -> Api.get(c).correctTower(id, rev, item.seq, tower), receipt -> {
             host.dismissSheet();
-            host.showMessage(receipt.ok ? "已修改：塔尔塔罗斯 " + tower.floor + "F" : Messages.receiptError(receipt));
+            host.showMessage(receipt.ok ? "已修改：探索塔尔塔罗斯 · " + tower.floor + "F" : Messages.receiptError(receipt));
             host.reload();
             load();
         }, error -> host.showMessage(Messages.GENERIC_ERROR));

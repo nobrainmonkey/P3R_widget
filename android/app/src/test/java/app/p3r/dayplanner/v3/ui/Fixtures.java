@@ -15,7 +15,8 @@ import app.p3r.dayplanner.v3.model.Rules;
  * Canned, realistic test data for the UI: a full 2009-04-07 … 2010-01-31 calendar with story
  * locks, the 22 Social Links with their Chinese labels (from rules/p3r/social_goal_identity_labels
  * .json, using the official zh-Hans spellings 贝培 / Ｙ子), Tartarus blocks, rescues, activities,
- * a mid-game observed state (Oct 22) and a plan that covers every step kind.
+ * Link Episode tracks, the dating-site note, a mid-game observed state (Oct 22) and a plan that
+ * covers every step kind (with 人格面具 reminders, how-to text and "顺便" side steps).
  */
 final class Fixtures {
     static final int OCT_22 = 204;
@@ -103,6 +104,16 @@ final class Fixtures {
             rescue("bunkichi", "北村文吉", day(9, 12), day(10, 3), 5),
             rescue("maiko", "舞子", day(10, 21), day(11, 2), 12),
         };
+        r.episodes = new Rules.Episode[]{
+            episode(r, 0, "junpei", "伊织顺平", false, 4, day(5, 12), day(1, 29), "道具「顺平的棒球帽」"),
+            episode(r, 1, "akihiko", "真田明彦", true, 3, day(6, 2), day(1, 28), null),
+        };
+        r.datingNote = new Rules.DatingNote();
+        r.datingNote.zh = "结缘网站的字条";
+        r.datingNote.locationZh = "桐叶购物中心 放纵俱乐部";
+        r.datingNote.fromDay = day(11, 11);
+        r.datingNote.cost = 3000;
+        r.datingNote.gain = 10;
         Rules.Source s1 = new Rules.Source();
         s1.id = "aqiu_gamedata";
         s1.url = "https://github.com/aqiu384/megaten-database";
@@ -111,8 +122,32 @@ final class Fixtures {
         s2.id = "atwiki453";
         s2.url = "https://w.atwiki.jp/wiki10_persona3/pages/453.html";
         s2.kind = "wiki";
-        r.sources.addAll(Arrays.asList(s1, s2));
+        Rules.Source s3 = new Rules.Source();
+        s3.id = "evidence_note";
+        s3.kind = "evidence";
+        r.sources.addAll(Arrays.asList(s1, s2, s3));
         return r;
+    }
+
+    /** A Link Episode track; episode n can be watched on every n-th open weekday of its window. */
+    private static Rules.Episode episode(Rules r, int idx, String id, String person, boolean evening, int count,
+                                         int from, int to, String reward) {
+        Rules.Episode e = new Rules.Episode();
+        e.idx = idx;
+        e.id = id;
+        e.personZh = person;
+        e.titleZh = "羁绊剧情 · " + person;
+        e.evening = evening;
+        e.count = count;
+        e.locationZh = evening ? "宿舍" : "月光馆学园";
+        e.rewardZh = reward;
+        e.dayMask = new int[r.lastDay + 1];
+        for (int d = from; d <= to; d++) {
+            if (Zh.dateOf(d).getDayOfWeek() != DayOfWeek.SUNDAY) {
+                e.dayMask[d] = (1 << count) - 1;
+            }
+        }
+        return e;
     }
 
     private static Rules.Stat stat(int idx, String id, String zh, int... thresholds) {
@@ -194,6 +229,12 @@ final class Fixtures {
         }
         day.block = block == null ? -1 : block.idx;
         day.tartarus = block != null && day.eveLock == null && date.getDayOfWeek() != DayOfWeek.SUNDAY;
+        if (date.equals(LocalDate.of(2009, 10, 25))) {
+            day.noteZh = "周日，商店街和商城白天都开着";
+        }
+        if (date.equals(LocalDate.of(2009, 11, 2))) {
+            day.noteZh = "今天是救出舞子的最后期限";
+        }
         return day;
     }
 
@@ -310,6 +351,7 @@ final class Fixtures {
         s.towerVisits[3] = 1;
         s.floor = 96;
         s.shifts[1] = 6;
+        s.episodes = new int[]{1, 0};
         return s;
     }
 
@@ -322,6 +364,8 @@ final class Fixtures {
         Goals.setTier(p, 15, Profile.Tier.WANT);
         p.towerVisitsPerBlock = 2;
         p.towerCapPerBlock = 4;
+        p.personaMode = Profile.PersonaMode.GOALS;
+        p.episodeTracks = new String[]{"junpei"};
         return p;
     }
 
@@ -380,8 +424,8 @@ final class Fixtures {
         plan.summary.lastUsefulSlot = r.lastSlot() - 1;
         plan.summary.endCash = 64_000;
         plan.summary.endStatLv = new int[]{6, 6, 6};
-        plan.summary.notesZh.add("倒悬者的失踪者营救在 11月2日 截止，已安排 10月24日 晚上进塔。");
-        plan.summary.notesZh.add("女教皇最后差一级：时间不够，优先级低于皇帝和恋爱。");
+        plan.summary.notesZh.add("舞子要在11月2日前救出，已安排10月24日晚上探索塔尔塔罗斯。");
+        plan.summary.notesZh.add("女教皇最后差一级：时间不够，先让给了皇帝和恋爱。");
         return plan;
     }
 
@@ -400,6 +444,10 @@ final class Fixtures {
         if (d == day(10, 22) && !eve) {
             Plan.Step s = social(r, slot, "emperor", 6, 7, true, true);
             s.whyZh = "皇帝只在周一、三、四放学后出现，这周之后要准备考试。";
+            s.hintZh = "记得带上「皇帝」阿尔卡那的人格面具";
+            s.assumptions.add("persona_bonus");
+            s.side.add("unlock:tower:0");
+            s.sideZh.add("顺便：听西胁结子说起奇怪的和尚");
             return s;
         }
         if (d == day(10, 22)) {
@@ -407,8 +455,8 @@ final class Fixtures {
         }
         if (d == day(10, 23) && !eve) {
             Plan.Step s = social(r, slot, "lovers", 4, 4, false, false);
-            s.subtitleZh = "RANK 4 · 加深关系";
             s.estimate = true;
+            s.hintZh = "记得带上「恋爱」阿尔卡那的人格面具";
             s.assumptions.add("ordinary_gain");
             s.whyZh = "恋爱下一级还差点数，先见一次面。";
             return s;
@@ -420,6 +468,8 @@ final class Fixtures {
             s.entity = "job_chagall";
             s.assumptions.add("job_min_pay");
             s.whyZh = "11月要给恶魔准备 10,000 日元。";
+            s.side.add("unlock:devil:0");
+            s.sideZh.add("顺便：在商城 2楼借给田中社长 5,000 日元");
             return s;
         }
         if (d == day(10, 24) && !eve) {
@@ -435,9 +485,9 @@ final class Fixtures {
             s.action = "tower:3";
             s.kind = "tower";
             s.titleZh = "探索塔尔塔罗斯";
-            s.subtitleZh = "提齐亚 · 本区块第 2 次";
+            s.subtitleZh = "提齐亚（69–117F）· 救出舞子";
             s.locationZh = "月光馆学园（影时间）";
-            s.whyZh = "顺便营救失踪者舞子（11月2日 截止）。";
+            s.whyZh = "舞子失踪了，要在11月2日前救出，才能继续倒悬者社群。";
             s.assumptions.add("rescue");
             return s;
         }
@@ -450,7 +500,8 @@ final class Fixtures {
             s.titleZh = "恶魔 · 田中社长";
             s.subtitleZh = "再借给社长 10,000 日元";
             s.locationZh = "波罗尼亚商城 2楼";
-            s.whyZh = "解锁恶魔要先借两次钱。";
+            s.whyZh = "解锁恶魔社群前的准备（第 2 步，共 3 步）";
+            s.detailZh = "1. 白天去波罗尼亚商城 2楼\n2. 找到穿西装的田中社长，和他说话\n3. 选「借给他」，交出 10,000 日元";
             s.predicted.cashDelta = -10_000;
             return s;
         }
@@ -460,7 +511,57 @@ final class Fixtures {
             s.action = "free";
             s.kind = "free";
             s.titleZh = "自由活动";
-            s.subtitleZh = "这个晚上没有更划算的安排";
+            s.subtitleZh = "这个晚上没有更划算的事";
+            return s;
+        }
+        if (d == day(10, 27) && !eve) {
+            Plan.Step s = stat(slot, "act:wakatsu", "在严户台商店街的定食屋「若津」挑战超大份的海鲜盖饭",
+                "勇气 +2 · 800 日元", "严户台商店街", new int[]{0, 0, 2}, -800);
+            s.whyZh = "塔社群需要勇气达到 Lv.4。";
+            return s;
+        }
+        if (d == day(10, 27)) {
+            Plan.Step s = new Plan.Step();
+            s.slot = slot;
+            s.action = "unlock:tower:1";
+            s.kind = "unlock";
+            s.entity = "tower";
+            s.titleZh = "塔 · 无达";
+            s.subtitleZh = "到放纵俱乐部 2楼找那位和尚，按顺序点「基尔酒」「血腥玛丽」「卡西斯橙汁」「乌龙茶」";
+            s.locationZh = "桐叶购物中心 放纵俱乐部";
+            s.whyZh = "完成后塔社群就解锁了";
+            return s;
+        }
+        if (d == day(10, 26) && !eve) {
+            Plan.Step s = new Plan.Step();
+            s.slot = slot;
+            s.action = "episode:junpei";
+            s.kind = "episode";
+            s.entity = "junpei";
+            s.titleZh = "羁绊剧情 · 伊织顺平";
+            s.subtitleZh = "第 2 话 · 不加社群点数";
+            s.locationZh = "月光馆学园 2楼 教室";
+            s.whyZh = "你勾选了伊织顺平的羁绊剧情，这天能看第 2 话。";
+            s.assumptions.add("link_episode");
+            return s;
+        }
+        if (d == day(10, 26)) {
+            Plan.Step s = new Plan.Step();
+            s.slot = slot;
+            s.action = "note:priestess";
+            s.kind = "social";
+            s.entity = "priestess";
+            s.titleZh = "女教皇 · 山岸风花";
+            s.subtitleZh = "结缘网站的字条 · 只加好感";
+            s.locationZh = "桐叶购物中心 放纵俱乐部 → 宿舍";
+            s.whyZh = "女教皇还差点数，晚上用字条补一点。";
+            s.detailZh = "1. 晚上去桐叶购物中心的放纵俱乐部\n2. 买一张结缘网站的字条（3,000 日元）\n"
+                + "3. 回宿舍，用公用电脑使用字条，选山岸风花";
+            s.predicted.rankFrom = 5;
+            s.predicted.rankTo = 5;
+            s.predicted.cashDelta = -3000;
+            s.estimate = true;
+            s.assumptions.add("dating_note");
             return s;
         }
         return null;
@@ -474,7 +575,7 @@ final class Fixtures {
         s.kind = "social";
         s.entity = id;
         s.titleZh = link.labelZh;
-        s.subtitleZh = up ? Zh.rankStep(from, to) : Zh.rank(from) + " · 加深关系";
+        s.subtitleZh = up ? Zh.rankStep(from, to) : Zh.rank(from) + " · 见面（预计不升级）";
         s.locationZh = link.locationZh;
         s.predicted.rankFrom = from;
         s.predicted.rankTo = to;
@@ -504,7 +605,7 @@ final class Fixtures {
         s.action = "locked:" + lock;
         s.kind = "locked";
         s.titleZh = r.lockReasonsZh.get(lock);
-        s.subtitleZh = "剧情推进，无需安排";
+        s.subtitleZh = "这段时间不能自由行动";
         return s;
     }
 
@@ -529,7 +630,7 @@ final class Fixtures {
                     s.action = "tower:" + Math.max(0, blockIdx(r, slot));
                     s.kind = "tower";
                     s.titleZh = "探索塔尔塔罗斯";
-                    s.subtitleZh = "向上推进";
+                    s.subtitleZh = "继续往上走";
                     return s;
                 }
                 default:

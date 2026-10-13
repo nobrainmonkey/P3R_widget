@@ -9,7 +9,7 @@ import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 
 /**
- * Editing model behind the state wizard (onboarding / 同步现状 / 完整修改).
+ * Editing model behind the state wizard (onboarding / 同步现状 / 修改进度).
  *
  * <p>Every field starts from a prefill — the last confirmed value, or in sync mode after "是" the
  * plan's forecast — and only edits are stored (null = untouched). {@link #build()} produces the
@@ -38,8 +38,13 @@ public final class StateDraft {
         }
     }
 
-    /** Answer to "这段时间基本按计划了吗？". */
+    /** Answer to "这段时间基本照着安排玩了吗？". */
     public enum SyncAnswer { YES, PARTLY, NO }
+
+    /** Answer to "北村文吉救出来了吗？" (stored per rescue index). */
+    public static final int RESCUE_UNSURE = 0;
+    public static final int RESCUE_DONE = 1;
+    public static final int RESCUE_FAILED = 2;
 
     /** RANK value meaning "?" (not sure — keep what was stored). */
     public static final int UNKNOWN = -1;
@@ -80,6 +85,8 @@ public final class StateDraft {
     final Integer[] unlock = new Integer[Profile.LINKS];
     Integer floor;
     Integer towerVisits;
+    /** Rescue answers per index into {@code rules.rescues} ({@link #RESCUE_DONE} …), null = untouched. */
+    final Integer[] rescue;
     String step;
 
     private int cachedPrefillSlot = Integer.MIN_VALUE;
@@ -95,6 +102,7 @@ public final class StateDraft {
         this.originalProfile = profile == null ? new Profile() : profile;
         this.profile = this.originalProfile.copy();
         this.base = observed != null ? observed.copy() : newGame(rules);
+        this.rescue = new Integer[rules.rescues.length];
     }
 
     /** A new-game state at the first free slot: everything at the bottom, cash unknown. */
@@ -194,8 +202,9 @@ public final class StateDraft {
         return rules.blockOn(Rules.dayOf(slot()));
     }
 
+    /** Highest floor reached, never above what the chosen date allows. */
     public int floor() {
-        return floor != null ? floor : prefill().floor;
+        return Math.max(0, Math.min(towerTop(), floor != null ? floor : prefill().floor));
     }
 
     public int towerVisits() {
@@ -205,6 +214,59 @@ public final class StateDraft {
         Rules.Block b = block();
         SimState p = prefill();
         return b == null || b.idx >= p.towerVisits.length ? 0 : p.towerVisits[b.idx];
+    }
+
+    /** Highest floor reachable by the chosen date: the top of the last block that has opened, 0 if none. */
+    public int towerTop() {
+        int day = Rules.dayOf(slot());
+        int top = 0;
+        for (Rules.Block b : rules.blocks) {
+            if (b.fromDay <= day) {
+                top = Math.max(top, b.top);
+            }
+        }
+        return top;
+    }
+
+    /**
+     * Rescues to ask about on the 塔尔塔罗斯 page: those that decide whether a link can continue
+     * and whose window has started by the chosen date (indices into {@code rules.rescues}).
+     */
+    public List<Integer> rescuesToAsk() {
+        List<Integer> out = new ArrayList<>();
+        int day = Rules.dayOf(slot());
+        for (int i = 0; i < rules.rescues.length && i < 63; i++) {
+            Rules.Rescue r = rules.rescues[i];
+            if (r.link >= 0 && day >= r.fromDay) {
+                out.add(i);
+            }
+        }
+        return out;
+    }
+
+    /** True while the rescue window is still running on the chosen date ("还没救出" is fine then). */
+    public boolean rescueOpen(int index) {
+        return Rules.dayOf(slot()) <= rules.rescues[index].toDay;
+    }
+
+    /** Displayed answer: the edit, else what the record (or the forecast) says. */
+    public int rescueAnswer(int index) {
+        if (rescue[index] != null) {
+            return rescue[index];
+        }
+        long bit = 1L << index;
+        SimState p = prefill();
+        if ((p.rescued & bit) != 0) {
+            return RESCUE_DONE;
+        }
+        if ((p.rescueFailed & bit) != 0) {
+            return RESCUE_FAILED;
+        }
+        return RESCUE_UNSURE;
+    }
+
+    public void setRescue(int index, int answer) {
+        rescue[index] = Math.max(RESCUE_UNSURE, Math.min(RESCUE_FAILED, answer));
     }
 
     public String currentStep() {
@@ -271,7 +333,7 @@ public final class StateDraft {
         step = value;
     }
 
-    /** Cycles a goal tier —→想要→必须→— (placing the link last in its new tier). */
+    /** Cycles a goal tier 未选→想要→必须→未选 (placing the link last in its new tier). */
     public Profile.Tier cycleTier(int link) {
         return Goals.cycle(profile, link);
     }
@@ -319,7 +381,16 @@ public final class StateDraft {
         for (Rules.Link link : rules.links) {
             int i = link.idx;
             int r = rank(i);
-            if (r == UNKNOWN || r == p.rank[i]) {
+            if (r == UNKNOWN) {
+                // "?" keeps the confirmed record, never the forecast shown after "是".
+                s.rank[i] = base.rank[i];
+                s.pts[i] = base.pts[i];
+                s.ready[i] = base.ready[i];
+                s.unlockStep[i] = base.unlockStep[i];
+                s.lastStepDay[i] = base.lastStepDay[i];
+                continue;
+            }
+            if (r == p.rank[i]) {
                 continue;
             }
             s.rank[i] = r;
@@ -339,6 +410,19 @@ public final class StateDraft {
             s.towerVisits[b.idx] = towerVisits();
         }
         s.floor = floor();
+        for (int i = 0; i < rescue.length && i < 63; i++) {
+            if (rescue[i] == null) {
+                continue;
+            }
+            long bit = 1L << i;
+            s.rescued &= ~bit;
+            s.rescueFailed &= ~bit;
+            if (rescue[i] == RESCUE_DONE) {
+                s.rescued |= bit;
+            } else if (rescue[i] == RESCUE_FAILED) {
+                s.rescueFailed |= bit;
+            }
+        }
         return s;
     }
 
@@ -379,13 +463,28 @@ public final class StateDraft {
             }
         }
         if (before.floor != after.floor) {
-            out.add(new Change("塔尔塔罗斯 最高层", before.floor + "F", after.floor + "F"));
+            out.add(new Change("最高到达层", before.floor + "F", after.floor + "F"));
+        }
+        for (int i = 0; i < rules.rescues.length && i < 63; i++) {
+            String a = rescueText(before, i);
+            String c = rescueText(after, i);
+            if (!a.equals(c)) {
+                out.add(new Change("救出" + rules.rescues[i].zh, a, c));
+            }
         }
         Rules.Block b = block();
         if (b != null && b.idx < before.towerVisits.length && before.towerVisits[b.idx] != after.towerVisits[b.idx]) {
             out.add(new Change(b.zh + " 已去", before.towerVisits[b.idx] + " 次", after.towerVisits[b.idx] + " 次"));
         }
         return out;
+    }
+
+    private static String rescueText(SimState s, int index) {
+        long bit = 1L << index;
+        if ((s.rescued & bit) != 0) {
+            return "救出了";
+        }
+        return (s.rescueFailed & bit) != 0 ? "没救出" : "不确定";
     }
 
     private List<Change> summaryForFirstRun(SimState after) {
@@ -406,11 +505,27 @@ public final class StateDraft {
                 established++;
             }
         }
-        out.add(new Change("社群", null, established == 0 ? "都还没建立" : "已建立 " + established + " 个"));
+        out.add(new Change("社群", null, established == 0 ? "都还没解锁" : "已解锁 " + established + " 个"));
         List<Integer> goals = LinkStatus.goalOrder(profile);
         out.add(new Change("目标", null, goals.isEmpty() ? "没有指定，所有社群尽量提升" : goalSummary(goals)));
-        out.add(new Change("人格面具", null, profile.personaBonus ? "约会时通常带着同阿尔卡那的" : "不计加成"));
+        out.add(new Change("人格面具", null, personaShort(profile.effectivePersonaMode())));
+        for (int i : rescuesToAsk()) {
+            String answer = rescueText(after, i);
+            out.add(new Change("救出" + rules.rescues[i].zh, null, answer));
+        }
         return out;
+    }
+
+    /** Short value for the confirm page ("只给目标社群带"). */
+    static String personaShort(Profile.PersonaMode mode) {
+        switch (mode) {
+            case ALL:
+                return "基本都带";
+            case GOALS:
+                return "只给目标社群带";
+            default:
+                return "不带/不一定";
+        }
     }
 
     /** "必须 皇帝、恋爱 · 想要 太阳". */
@@ -462,14 +577,21 @@ public final class StateDraft {
         System.arraycopy(other.unlock, 0, unlock, 0, unlock.length);
         floor = other.floor;
         towerVisits = other.towerVisits;
+        System.arraycopy(other.rescue, 0, rescue, 0, Math.min(rescue.length, other.rescue.length));
         step = other.step;
         if (mode == Mode.ONBOARDING) {
             System.arraycopy(other.profile.tier, 0, profile.tier, 0, Profile.LINKS);
             System.arraycopy(other.profile.order, 0, profile.order, 0, Profile.LINKS);
-            profile.personaBonus = other.profile.personaBonus;
+            setPersonaMode(other.profile.effectivePersonaMode());
             profile.otherLinks = other.profile.otherLinks;
         }
         cachedPrefill = null;
+    }
+
+    /** Sets the 人格面具 answer (onboarding), keeping the legacy boolean in step. */
+    public void setPersonaMode(Profile.PersonaMode mode) {
+        profile.personaMode = mode;
+        profile.personaBonus = mode == Profile.PersonaMode.ALL;
     }
 
     /** True when the profile differs from the one the draft started with. */

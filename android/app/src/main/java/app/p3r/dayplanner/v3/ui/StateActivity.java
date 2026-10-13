@@ -21,7 +21,7 @@ import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
 
 /**
- * State wizard for onboarding, 同步现状 and 完整修改状态 ({@link Intents#EXTRA_STATE_MODE}).
+ * State wizard for onboarding, 同步现状 and 修改进度 ({@link Intents#EXTRA_STATE_MODE}).
  *
  * <p>One question per page, everything prefilled; the player only changes what differs from the
  * game. Unfinished input is kept per semantic field in {@link DraftStore} and survives rotation
@@ -154,7 +154,7 @@ public final class StateActivity extends Activity implements StateSteps.Callback
             case SYNC:
                 return "同步现状";
             default:
-                return "修改状态";
+                return "修改进度";
         }
     }
 
@@ -165,7 +165,7 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         PlannerApi api;
         PlannerApi.Snapshot snapshot;
         StateDraft draft;
-        boolean restored;
+        DraftStore.Restored restored = DraftStore.Restored.NONE;
     }
 
     /** Loads the snapshot and the saved draft; {@code previous} edits are carried over when given. */
@@ -206,7 +206,9 @@ public final class StateActivity extends Activity implements StateSteps.Callback
                 }
             }
         }
-        if (l.restored && start > 0) {
+        if (l.restored == DraftStore.Restored.REBASED) {
+            showNotice("记录有更新，已保留你填过的内容。");
+        } else if (l.restored == DraftStore.Restored.SAME && start > 0) {
             showNotice("已恢复上次没填完的内容。");
         }
         next.setEnabled(true);
@@ -237,7 +239,7 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         boolean last = page == StateSteps.Page.CONFIRM;
         boolean unchanged = last && draft.observed != null && draft.changes().isEmpty() && !draft.profileChanged();
         if (last) {
-            next.setText(unchanged ? "完成" : mode == StateDraft.Mode.ONBOARDING ? "保存并开始规划" : "保存并重新规划");
+            next.setText(unchanged ? "完成" : mode == StateDraft.Mode.ONBOARDING ? "保存并开始安排" : "保存并重新安排");
         } else {
             next.setText("下一步");
         }
@@ -259,6 +261,10 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         }
         if (draft.observed != null && draft.changes().isEmpty() && !draft.profileChanged()) {
             drafts.clear(mode);
+            if (mode == StateDraft.Mode.SYNC && snap != null) {
+                // Nothing changed in the game: the "游戏进度变了吗？" question is answered.
+                UiPrefs.setBannerDismissedFor(this, snap.lastRecordMillis);
+            }
             finish();
             return;
         }
@@ -307,7 +313,7 @@ public final class StateActivity extends Activity implements StateSteps.Callback
                 return;
             }
             if (Messages.isStale(receipt)) {
-                showNotice("游戏记录刚刚有更新，已按最新记录重新核对，你的修改都还在。请再确认一次。");
+                showNotice("刚才有新的记录（比如在桌面小组件上点了完成），已经合并进来，你填的内容都还在，请再确认一次。");
                 load(current);
                 return;
             }

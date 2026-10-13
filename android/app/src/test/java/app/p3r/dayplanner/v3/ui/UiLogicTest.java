@@ -41,11 +41,13 @@ public class UiLogicTest {
         assertEquals("放学后", Zh.period(rules, Fixtures.SLOT_NOW));
         assertEquals("晚上", Zh.period(rules, Fixtures.SLOT_NOW + 1));
         assertEquals("白天", Zh.period(rules, Rules.slot(Fixtures.day(10, 25), false)));
-        assertEquals("未建立", Zh.rank(0));
+        assertEquals("未解锁", Zh.rank(0));
         assertEquals("RANK 7", Zh.rank(7));
         assertEquals("RANK MAX", Zh.rank(10));
         assertEquals("RANK 9 → MAX", Zh.rankStep(9, 10));
         assertEquals("Lv.3", Zh.lv(3));
+        assertEquals("MAX", Zh.lv(6));
+        assertEquals("5月12日–1月29日", Zh.dateRange(Fixtures.day(5, 12), Fixtures.day(1, 29)));
         assertEquals("0", Zh.roman(0));
         assertEquals("XIV", Zh.roman(14));
         assertEquals("10月21日 晚上", Zh.lastRecorded(rules, Fixtures.SLOT_NOW));
@@ -90,7 +92,7 @@ public class UiLogicTest {
         assertEquals(30_000, diff.cashBalance);
 
         Plan.Step meet = plan.at(Fixtures.SLOT_NOW + 2);
-        assertEquals("恋爱 · 完成会面", Outcomes.summary(rules, meet, Outcomes.met(meet, false)));
+        assertEquals("恋爱 · 见面", Outcomes.summary(rules, meet, Outcomes.met(meet, false)));
         assertEquals(4, Outcomes.met(meet, false).rank);
     }
 
@@ -235,19 +237,104 @@ public class UiLogicTest {
         Plan other = Fixtures.planMid(rules, obs, obs.slot, "plan-2");
         other.steps.set(3, Fixtures.social(rules, obs.slot + 3, "moon", 3, 4, true, false));
         assertEquals(1, PlanDiff.changedSlots(plan, other, obs.slot));
-        assertEquals("已重新规划：覆盖至 1月31日 · 调整 1 处", PlanDiff.summary(rules, plan, other, obs.slot));
-        assertEquals("已重新规划：覆盖至 1月31日 · 后面的安排不变", PlanDiff.summary(rules, plan, plan, obs.slot));
+        assertEquals("已重新安排：后面有 1 处变动", PlanDiff.summary(rules, plan, other, obs.slot));
+        assertEquals("已重新安排：后面的安排没变", PlanDiff.summary(rules, plan, plan, obs.slot));
     }
 
     @Test
     public void linkStatusFooters() {
         Profile p = Fixtures.profileMid();
-        assertEquals("预计 11/20 MAX", LinkStatus.of(rules, p, obs, plan, 4).footZh);
+        assertEquals("预计 11/20 升到 MAX", LinkStatus.of(rules, p, obs, plan, 4).footZh);
         assertEquals("皇帝 6→MAX · 预计 11/20", LinkStatus.of(rules, p, obs, plan, 4).chipZh);
         assertEquals("剧情自动推进", LinkStatus.of(rules, p, obs, plan, 13).footZh);
-        assertTrue(LinkStatus.of(rules, p, obs, plan, 2).footZh.startsWith("时间不够：优先级低于 皇帝、恋爱"));
+        assertTrue(LinkStatus.of(rules, p, obs, plan, 2).footZh.startsWith("时间不够，先让给了皇帝、恋爱"));
         obs.rescueFailed = 2L;
         assertTrue(LinkStatus.of(rules, p, obs, plan, 12).lost);
+    }
+
+    @Test
+    public void syncYesWithUnknownRankKeepsTheRecord() {
+        obs.pts[4] = 9;
+        StateDraft d = new StateDraft(StateDraft.Mode.SYNC, rules, obs, Fixtures.profileMid(), plan, 12);
+        d.setSync(StateDraft.SyncAnswer.YES);
+        d.setSlot(Rules.slot(Fixtures.day(10, 25), false));
+        assertEquals(7, d.rank(4));
+        d.setRank(4, StateDraft.UNKNOWN);
+        SimState built = d.build();
+        assertEquals(6, built.rank[4]);
+        assertEquals(9, built.pts[4]);
+        for (StateDraft.Change change : d.changes()) {
+            assertFalse(change.labelZh, change.labelZh.equals("皇帝"));
+        }
+    }
+
+    @Test
+    public void forecastCarriesSideStepsRescuesAndEpisodes() {
+        int target = Rules.slot(Fixtures.day(10, 27), false);
+        SimState f = Forecast.visibleAt(rules, obs, plan, target);
+        // 10/22 side step "unlock:tower:0", 10/24 tower visit inside 舞子's window, 10/26 episode.
+        assertEquals(1, f.unlockStep[16]);
+        assertEquals(2L, f.rescued & 2L);
+        assertEquals(2, f.episodes[0]);
+        assertEquals(0, obs.unlockStep[16]);
+    }
+
+    @Test
+    public void openSlotsFollowTheCalendarLocks() {
+        int nov2eve = Rules.slot(Fixtures.day(11, 2), true);
+        assertEquals(nov2eve, Slots.firstOpen(rules, nov2eve));
+        assertEquals(Rules.slot(Fixtures.day(11, 5), false), Slots.firstOpen(rules, Rules.slot(Fixtures.day(11, 3), true)));
+        assertEquals(3, Slots.openBetween(rules, nov2eve, Rules.slot(Fixtures.day(11, 6), false)));
+        assertEquals(rules.lastSlot() + 1, Slots.firstOpen(rules, rules.lastSlot()));
+        SimState done = obs.copy();
+        done.slot = rules.lastSlot() + 1;
+        assertTrue(Slots.finished(rules, done));
+        assertFalse(Slots.finished(rules, obs));
+    }
+
+    @Test
+    public void howToAndSideLinesAreCleanedUp() {
+        assertEquals(java.util.Arrays.asList("去商城", "找社长", "借钱"),
+            StepViews.howToLines("1. 去商城\n2、找社长\n\n③ 借钱"));
+        assertEquals(java.util.Arrays.asList("只有一步"), StepViews.howToLines("第 1 步：只有一步"));
+        assertEquals("怎么做 · 3 步", StepViews.howToLabel("a\nb\nc"));
+        assertEquals("怎么做", StepViews.howToLabel("a"));
+        Plan.Step step = new Plan.Step();
+        step.sideZh.add("把钱交给社长");
+        step.sideZh.add("顺便：听说和尚的事");
+        step.sideZh.add(" ");
+        assertEquals(java.util.Arrays.asList("顺便：把钱交给社长", "顺便：听说和尚的事"), StepViews.sideLines(step));
+        assertTrue(StepViews.hasSide(step));
+        assertFalse(StepViews.hasHint(step));
+    }
+
+    @Test
+    public void rescueWindowPassedWithoutRecordExplainsTheLostLink() {
+        Profile p = Fixtures.profileMid();
+        obs.rescued = 0;
+        LinkStatus hierophant = LinkStatus.of(rules, p, obs, plan, 5);
+        assertTrue(hierophant.lost);
+        assertEquals("还没记录救出北村文吉，可以在「修改进度」里补上", hierophant.footZh);
+        obs.rescueFailed = 1L;
+        assertEquals("没能救出失踪者，这个社群无法继续", LinkStatus.of(rules, p, obs, plan, 5).footZh);
+    }
+
+    @Test
+    public void summariesForTheNewPanels() {
+        Rules.Episode junpei = rules.episodes[0];
+        assertEquals("白天 · 5月12日–1月29日能看 · 已看 1 话 · 看完能拿到道具「顺平的棒球帽」",
+            LinksPage.episodeSummary(junpei, 1));
+        assertTrue(LinksPage.episodeSummary(junpei, 4).contains("已经看完"));
+        assertEquals("在桐叶购物中心 放纵俱乐部买结缘网站的字条，当晚回宿舍用公用电脑给一个已解锁的社群加好感，不会直接升级。"
+            + "每张 3,000 日元。11月11日起能买到。", SettingsPage.datingNoteText(rules.datingNote));
+        assertEquals(java.util.Arrays.asList("游戏数据 · 1 项", "资料站 · 1 项"), InfoPages.sourceLines(rules.sources));
+        assertEquals("小田桐秀利 · 男", Zh.person(rules.links[4]));
+        assertEquals("特别课外活动部\n团体·男女", Zh.person(rules.links[0]));
+        Plan.Step planned = plan.at(Fixtures.SLOT_NOW);
+        assertEquals("做了列表以外的事",
+            Outcomes.summary(rules, planned, Outcomes.withSide(Outcomes.skipped(Outcomes.REASON_OTHER, -1), true)));
+        assertEquals(StepKind.NOTE, StepKind.of(plan.at(Rules.slot(Fixtures.day(10, 26), true))));
+        assertEquals(StepKind.EPISODE, StepKind.of(plan.at(Rules.slot(Fixtures.day(10, 26), false))));
     }
 
     @Test

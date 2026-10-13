@@ -86,6 +86,11 @@ public final class SheetHost extends FrameLayout {
         return getVisibility() == VISIBLE;
     }
 
+    /** Top edge of the sheet panel in this view's coordinates, or -1 before it is laid out. */
+    public int panelTop() {
+        return panel.getHeight() > 0 ? panel.getTop() + Math.round(panel.getTranslationY()) : -1;
+    }
+
     /** Closes the sheet; returns false when nothing was showing. */
     public boolean dismiss() {
         if (!isShowing()) {

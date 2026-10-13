@@ -82,8 +82,16 @@ final class SchedulePage {
     void bind(UiData d) {
         data = d;
         Plan plan = d.plan();
-        if (!d.hasState() || plan == null) {
-            empty.setText(d.hasState() ? "正在安排整个日程…" : "先在「今天」里完成设置，这里会显示到 1月31日 的完整日程。");
+        if (!d.hasState() || plan == null || PlanDiff.finished(plan)) {
+            String text;
+            if (!d.hasState()) {
+                text = "先在「今天」里完成设置，这里会显示到1月31日的完整日程。";
+            } else if (plan == null) {
+                text = "正在安排整个日程…";
+            } else {
+                text = "日程已经全部结束。";
+            }
+            empty.setText(text);
             empty.setVisibility(View.VISIBLE);
             list.setVisibility(View.GONE);
             adapter.setItems(new ArrayList<>());
@@ -190,14 +198,13 @@ final class SchedulePage {
         Ui.pad(box, 0, 8, 0, 4);
         TextView title = Ui.text(c, "日程", 28, Ui.col(c, R.color.p3r_white), true);
         box.addView(title);
-        String text = "覆盖至 " + Zh.date(Rules.dayOf(plan.toSlot)) + " · 有效安排 " + plan.summary.usefulActions
-            + " 项";
+        String text = "排到" + Zh.date(Rules.dayOf(plan.toSlot)) + " · 共 " + plan.summary.usefulActions + " 件事";
         if (plan.summary.freeSlots > 0) {
-            text += " · 空闲 " + plan.summary.freeSlots + " 个时段";
+            text += " · " + plan.summary.freeSlots + " 个时段自由活动";
         }
         TextView sub = Ui.mixed(c, text, 13, Ui.col(c, R.color.p3r_ink_muted), false);
         box.addView(sub);
-        TextView legend = Ui.mixed(c, "带「≈」的升级是估计，灰色时段被剧情占用。", 12,
+        TextView legend = Ui.mixed(c, "带「≈」的升级是估计，灰色时段被剧情占用，金色的是顺便要做的事。", 12,
             Ui.col(c, R.color.p3r_ink_faint), false);
         LinearLayout.LayoutParams lp = Ui.matchWrap();
         lp.topMargin = Ui.dp(c, 4);
