@@ -70,8 +70,18 @@ final class Fakes {
         }
     }
 
-    /** Daytime: meet the Emperor; evening: study, café job, Tartarus. */
+    /** Daytime: meet the Emperor; evening: study, café job, Tartarus. Counts plain advances. */
     static final class Forecaster implements app.p3r.dayplanner.v3.service.Forecaster {
+        final AtomicInteger advances = new AtomicInteger();
+
+        @Override
+        public SimState advanceTo(Rules rules, Profile profile, SimState state, int slot) {
+            advances.incrementAndGet();
+            SimState out = state.copy();
+            out.slot = Math.max(state.slot, slot);
+            return out;
+        }
+
         @Override
         public List<Action> legalActions(Rules rules, Profile profile, SimState state) {
             List<Action> out = new ArrayList<>();
