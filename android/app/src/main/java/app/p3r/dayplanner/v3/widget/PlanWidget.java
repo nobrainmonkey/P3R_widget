@@ -17,6 +17,7 @@ import android.widget.RemoteViews;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongSupplier;
 
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.Intents;
@@ -363,14 +364,14 @@ public class PlanWidget extends AppWidgetProvider {
 
     // ------------------------------------------------------------------ test hooks
 
-    private static volatile java.util.function.LongSupplier clock = System::currentTimeMillis;
+    private static volatile LongSupplier clock = System::currentTimeMillis;
 
     static long now() {
         return clock.getAsLong();
     }
 
     /** Replaces the wall clock (null restores it). */
-    static void setClockForTest(java.util.function.LongSupplier testClock) {
+    static void setClockForTest(LongSupplier testClock) {
         clock = testClock == null ? System::currentTimeMillis : testClock;
     }
 
