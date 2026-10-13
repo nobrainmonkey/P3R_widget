@@ -236,6 +236,17 @@ public class ResultSheetTest extends UiTestBase {
         assertEquals(Outcome.Code.AS_PREDICTED, api.last().outcome.code);
     }
 
+    @Test
+    public void freeSlotContinues() {
+        int slot = Rules.slot(Fixtures.day(10, 25), true);
+        advanceTo(slot);
+        ResultActivity a = result(slot, "free", Intents.MODE_RESULT);
+        Shots.shot(a, "result_free");
+        Shots.click(a, "继续");
+        assertEquals("free", api.last().actionKey);
+        assertEquals(Outcome.Code.AS_PREDICTED, api.last().outcome.code);
+    }
+
     // ------------------------------------------------------------------ deviations
 
     @Test

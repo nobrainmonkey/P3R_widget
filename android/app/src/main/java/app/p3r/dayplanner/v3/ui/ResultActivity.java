@@ -717,7 +717,7 @@ public final class ResultActivity extends Activity {
     }
 
     private void freePanel(Plan.Step step) {
-        body.addView(Ui.body(this, "这个时段没有能推进进度的安排，可以自由活动。"), top(6));
+        body.addView(Ui.body(this, "这个时段没有能推进进度的安排。想做点什么，可以点「改做别的」。"), top(6));
         TextView go = Ui.primary(this, "继续");
         go.setOnClickListener(v -> submit(step, Outcomes.asPredicted(step)));
         body.addView(go, top(18));

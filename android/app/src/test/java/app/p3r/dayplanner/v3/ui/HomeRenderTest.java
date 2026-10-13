@@ -46,6 +46,21 @@ public class HomeRenderTest extends UiTestBase {
         Shots.shot(a, "home_today_scrolled");
     }
 
+    /** The last visible ScrollView in drawing order (the topmost page). */
+    private static android.widget.ScrollView lastScroll(android.view.View v, android.widget.ScrollView found) {
+        android.widget.ScrollView result = found;
+        if (v instanceof android.widget.ScrollView && v.isShown()) {
+            result = (android.widget.ScrollView) v;
+        }
+        if (v instanceof android.view.ViewGroup) {
+            android.view.ViewGroup g = (android.view.ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) {
+                result = lastScroll(g.getChildAt(i), result);
+            }
+        }
+        return result;
+    }
+
     private static android.widget.ScrollView findScroll(android.view.View v) {
         if (v instanceof android.widget.ScrollView && v.isShown()) {
             return (android.widget.ScrollView) v;
@@ -131,6 +146,25 @@ public class HomeRenderTest extends UiTestBase {
         a.popPage();
         Shots.click(a, "关于");
         Shots.shot(a, "home_about");
+    }
+
+    @Test
+    public void settingsLowerHalfAndBackupPaste() {
+        api.snap.profile.excludedActivities = new String[]{"wakatsu"};
+        Intent intent = new Intent(RuntimeEnvironment.getApplication(), HomeActivity.class);
+        intent.putExtra(Intents.EXTRA_TAB, "me");
+        HomeActivity a = home(intent);
+        Shots.click(a, "规划设置");
+        Shots.capture(a, false);
+        android.widget.ScrollView scroll = lastScroll(a.getWindow().getDecorView(), null);
+        scroll.scrollTo(0, 5000);
+        assertTrue(Shots.has(a, "定食屋「若津」吃大份套餐"));
+        Shots.shot(a, "home_settings_lower");
+        a.popPage();
+        Shots.click(a, "备份与恢复");
+        Shots.click(a, "粘贴文字");
+        assertTrue(a.sheets().isShowing());
+        Shots.shot(a, "home_backup_paste");
     }
 
     @Test
