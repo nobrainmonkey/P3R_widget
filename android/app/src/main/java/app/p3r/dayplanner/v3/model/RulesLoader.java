@@ -692,7 +692,12 @@ public final class RulesLoader {
             n.cost = nonNegative(o, "cost", where);
             n.gain = nonNegative(o, "gain", where);
             if (n.gain == 0) throw fail(where + ".gain must be positive");
-            n.maxUses = o.isNull("maxUses") ? Rules.DatingNote.UNLIMITED : intInRange(o, "maxUses", where, 1, 1000);
+            // Missing key = the conservative single use; explicit null = no limit (sources say it can be re-bought).
+            if (!o.has("maxUses")) {
+                n.maxUses = 1;
+            } else {
+                n.maxUses = o.isNull("maxUses") ? Rules.DatingNote.UNLIMITED : intInRange(o, "maxUses", where, 1, 1000);
+            }
             if (!o.isNull("requires")) {
                 JSONObject requires = reqObject(o, "requires", where);
                 Iterator<String> keys = requires.keys();

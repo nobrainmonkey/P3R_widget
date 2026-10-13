@@ -99,6 +99,8 @@ public class RulesLoaderTest {
         Rules.DatingNote once = RulesLoader.parse(root.toString()).datingNote;
         assertEquals(1, once.maxUses);
         assertTrue(!once.unlimited());
+        root.getJSONObject("datingNote").remove("maxUses");
+        assertEquals("missing key = the conservative single use", 1, RulesLoader.parse(root.toString()).datingNote.maxUses);
     }
 
     @Test
