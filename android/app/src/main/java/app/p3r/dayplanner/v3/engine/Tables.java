@@ -29,6 +29,8 @@ final class Tables {
     final int nBlocks;
     final int nStats;
     final int nRescues;
+    /** Link Episode tracks ({@link Rules#episodes}). */
+    final int nEps;
 
     /** Lock reason id per slot, null when the slot is free. */
     final String[] lock;
@@ -80,6 +82,23 @@ final class Tables {
     final int[][] gapDaysLeft;
     /** [link][k][day] the step's own day rule and fromDay allow that day. */
     final boolean[][][] stepDayOk;
+    /** Episodes per track (0 for a track without a calendar). */
+    final int[] epCount;
+    /** Track episodes are watched in the evening. */
+    final boolean[] epEve;
+    /**
+     * [track][n][slot] open slots ≥ slot of the track's kind on days that allow episode n+1 (n is
+     * 0-based; length count, each lastSlot + 2).
+     */
+    final int[][][] epRemain;
+    /**
+     * [track][n] latest slot for episode n+1 that still leaves every later episode a later slot
+     * (backward earliest-deadline schedule). When the rest of the track cannot fit at all
+     * ({@link #epChain} false), the latest slot of episode n+1 on its own; -1 when it has none.
+     */
+    final int[][] epLatest;
+    /** [track][n] episodes n+1 … count can all still be watched in order when n+1 is watched by {@link #epLatest}. */
+    final boolean[][] epChain;
     /** Index of the charm stat, or -1. */
     final int charmIdx;
     /** thresholds of each stat at Lv6 (points at which further gains are useless). */
@@ -106,6 +125,7 @@ final class Tables {
         this.nBlocks = rules.blocks.length;
         this.nStats = rules.stats.length;
         this.nRescues = rules.rescues.length;
+        this.nEps = rules.episodes == null ? 0 : rules.episodes.length;
         if (nLinks > 30) throw new IllegalArgumentException("too many links: " + nLinks);
         if (nRescues > 62) throw new IllegalArgumentException("too many rescues: " + nRescues);
 
@@ -177,6 +197,13 @@ final class Tables {
             for (boolean b : sideStep[link.idx]) if (b) side |= 1 << link.idx;
         }
         sideMask = side;
+
+        epCount = new int[nEps];
+        epEve = new boolean[nEps];
+        epRemain = new int[nEps][][];
+        epLatest = new int[nEps][];
+        epChain = new boolean[nEps][];
+        for (int e = 0; e < nEps; e++) buildEpisodes(e, rules.episodes[e]);
 
         int ci = -1;
         statCap = new int[nStats];
@@ -296,6 +323,59 @@ final class Tables {
         }
         stepDayOk[l] = new boolean[n][];
         for (int k = 0; k < n; k++) stepDayOk[l][k] = stepDays(link, steps.get(k));
+    }
+
+    private void buildEpisodes(int e, Rules.Episode ep) {
+        int count = Math.max(0, Math.min(31, ep.count));
+        int size = lastSlot + 2;
+        epCount[e] = count;
+        epEve[e] = ep.evening;
+        epRemain[e] = new int[count][size];
+        epLatest[e] = new int[count];
+        int kind = ep.evening ? 1 : 0;
+        for (int slot = lastSlot; slot >= 0; slot--) {
+            boolean usable = (slot & 1) == kind && open(slot);
+            int day = slot >> 1;
+            int mask = usable && ep.dayMask != null && day < ep.dayMask.length ? ep.dayMask[day] : 0;
+            for (int n = 0; n < count; n++) {
+                epRemain[e][n][slot] = epRemain[e][n][slot + 1] + ((mask & (1 << n)) != 0 ? 1 : 0);
+            }
+        }
+        epChain[e] = new boolean[count];
+        boolean chain = true;
+        for (int n = count - 1; n >= 0; n--) {
+            int limit = chain && n + 1 < count ? epLatest[e][n + 1] - 1 : lastSlot;
+            int latest = latestAllowed(e, n, limit);
+            if (latest < 0 && limit < lastSlot) {
+                chain = false; // the later episodes leave no room: fall back to this episode alone
+                latest = latestAllowed(e, n, lastSlot);
+            }
+            if (latest < 0) chain = false;
+            epLatest[e][n] = latest;
+            epChain[e][n] = chain;
+        }
+    }
+
+    /** Latest slot ≤ {@code limit} that allows episode n+1 of track e, or -1. */
+    private int latestAllowed(int e, int n, int limit) {
+        int[] rem = epRemain[e][n];
+        for (int slot = Math.min(limit, lastSlot); slot >= firstSlot; slot--) {
+            if (rem[slot] > rem[slot + 1]) return slot;
+        }
+        return -1;
+    }
+
+    /**
+     * Slack of episode {@code n} (0-based) of track e at {@code slot}: its allowed open slots from
+     * {@code slot} up to its latest slot that keeps the rest of the track possible (all its remaining
+     * slots when that latest slot has passed). At least 1 when the episode is possible now.
+     */
+    int episodeSlack(int e, int n, int slot) {
+        int[] rem = epRemain[e][n];
+        int latest = epLatest[e][n];
+        int all = rem[Math.min(slot, lastSlot + 1)];
+        if (latest < slot) return all;
+        return all - rem[Math.min(lastSlot + 1, latest + 1)];
     }
 
     private boolean[] stepDays(Rules.Link link, Rules.Step step) {

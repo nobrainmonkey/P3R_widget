@@ -45,6 +45,13 @@ import java.util.List;
  *   <li><b>Tartarus</b>: required visits become mandatory as a block's open evenings run out (on the
  *       last possible evening they beat everything); a visit inside a missing-person window is a
  *       strong priority while the link still matters, and a must on the window's last evening.</li>
+ *   <li><b>Dating-site notes</b> (evenings, from mid-November): the share of an ordinary meeting
+ *       their points replace, valued where a saved meeting matters (a link short of its milestone,
+ *       or an overbooked slot kind), minus the fees the price eats into.</li>
+ *   <li><b>Link Episodes</b> of opted-in tracks: {@link #EPISODE_VALUE} each in the objective
+ *       (plus {@link #EPISODE_FINISH} for the whole track); H scales that by the urgency of the
+ *       episode's calendar window, so the last slot that keeps the track complete beats almost
+ *       everything.</li>
  *   <li>FREE is never chosen while any productive action is legal.</li>
  * </ul>
  */
@@ -71,12 +78,24 @@ final class Heuristics {
     static final double MAX_FEE_YEN_VALUE = 1.0;
     /** Meetings over which a link that cannot reach its milestone is valued (its next ranks). */
     static final int PARTIAL_HORIZON = 6;
+    /** Share of the next RANK a meeting is worth when the next meetings bring no RANK under the model. */
+    static final double PROGRESS_SHARE = 0.1;
     /** A link must open while it still has this many times its needed meeting opportunities. */
     static final double HARD_SLACK = 1.3;
     /** Evenings in which Charm should reach Lv6, per needed training (the bonus is wanted soon). */
     static final double CHARM_EVENINGS_PER_TRAINING = 2.5;
     /** Score of a Tartarus visit beyond the required ones (under the cap). */
     static final double SPARE_TOWER = 2.0;
+    /**
+     * Objective value of each Link Episode watched in a track the player opted into: more than a
+     * whole "其余社群" link per track, less than one RANK of a 「想要」 goal, so opted-in tracks are
+     * completed whenever their windows allow without costing a goal anything.
+     */
+    static final double EPISODE_VALUE = 2_500;
+    /** Extra objective value of watching every episode of an opted-in track. */
+    static final double EPISODE_FINISH = 4_000;
+    /** Share of a meeting's value a dating-site note keeps in H (its points are only an estimate). */
+    static final double NOTE_SHARE = 0.9;
     private static final int MAX_GATES = 64;
 
     /**
@@ -149,7 +168,7 @@ final class Heuristics {
     final int[] latestUnlock;
     /** Objective value of establishing the link (seen from the start of the plan). */
     final double[] unlockValue;
-    /** Meetings from a fresh rank 1 to the target (start multiplier). */
+    /** Meetings from a fresh rank 1 to the target (the link's multiplier at the start). */
     final int[] meetsFromOne;
     /** First slot the link could open on (its own calendar and earliest day; requirements ignored). */
     final int[] openSlot;
@@ -193,6 +212,8 @@ final class Heuristics {
     private final double[] load = new double[2];
     /** Bonus per meeting (or unlock action) of a link for the gates it opens for other links. */
     private final double[] linkBonus;
+    /** Affinity multiplier per link in the prepared state (its Persona × the Charm bonus). */
+    private final double[] linkMult;
     /** Value per useful stat point of evening / daytime training. */
     private final double[] eveValue = new double[3];
     private final double[] dayValue = new double[3];
@@ -269,7 +290,6 @@ final class Heuristics {
         cheapestPaid = new int[ns];
         buildStatTables();
 
-        double mult = Kernel.mult(m, start);
         meetsFromOne = new int[n];
         latestUnlock = new int[n];
         unlockValue = new double[n];
@@ -281,6 +301,7 @@ final class Heuristics {
             gateDeadline[l] = t.lastSlot + 1;
             hardDeadline[l] = t.lastSlot + 1;
             if (rules.links[l].kind != Rules.LinkKind.MANUAL) continue;
+            double mult = Kernel.mult(m, start, l);
             int fromOne = meetingsBetween(l, 1, Kernel.eventPts(m, l, 1, mult), false, target[l], mult);
             meetsFromOne[l] = fromOne;
             int needSlots = Math.min(INF, fromOne + t.slotStepsLeft[l][0]);
@@ -335,6 +356,7 @@ final class Heuristics {
         admitted = new boolean[n];
         order = new int[n];
         linkBonus = new double[n];
+        linkMult = new double[n];
     }
 
     private static int[] tierOrder(Profile p, Profile.Tier tier) {
@@ -526,7 +548,7 @@ final class Heuristics {
 
     /** Share of the link's remaining calendar opportunities it still needs (≥ 0, INF when held). */
     double pressure(SimState st, int l) {
-        int need = remainingMeetings(st, l, Kernel.mult(m, st));
+        int need = remainingMeetings(st, l, Kernel.mult(m, st, l));
         if (need >= INF) return INF;
         return need / (double) Math.max(1, t.meetRemain[l][st.slot]);
     }
@@ -535,10 +557,10 @@ final class Heuristics {
 
     /** Prepare per-step values (link demand, contention, gates, money) for {@code st.slot}. */
     void prepare(SimState st) {
-        double mult = Kernel.mult(m, st);
         int slot = st.slot;
         int day = slot >> 1;
-        prepareDemand(st, mult, day);
+        for (int l = 0; l < t.nLinks; l++) linkMult[l] = Kernel.mult(m, st, l);
+        prepareDemand(st, day);
         Arrays.fill(eveValue, 0);
         Arrays.fill(dayValue, 0);
         Arrays.fill(linkBonus, 0);
@@ -558,7 +580,7 @@ final class Heuristics {
                 int s = rs[i];
                 if (s < t.nStats) trainings += Math.max(0, rules.stats[s].thresholds[m.reqStatLv[l][i]] - st.statPts[s]) / eveGain[s];
             }
-            int linkSteps = linkGateBonus(st, l, v, deadline, mult, trainings);
+            int linkSteps = linkGateBonus(st, l, v, deadline, trainings);
             // The link's value needs its stat trainings, its gate meetings and its own meetings.
             double share = trainings / (trainings + linkSteps + Math.max(1, demand[l]));
             boolean statsMet = true;
@@ -629,7 +651,7 @@ final class Heuristics {
      * prerequisite's own opportunities before L's gate deadline. Returns the prerequisite meetings
      * still needed.
      */
-    private int linkGateBonus(SimState st, int l, double v, int deadline, double mult, double trainings) {
+    private int linkGateBonus(SimState st, int l, double v, int deadline, double trainings) {
         int[] rl = m.reqLink[l];
         int total = 0;
         for (int i = 0; i < rl.length; i++) {
@@ -638,6 +660,7 @@ final class Heuristics {
             int need = m.reqLinkRank[l][i];
             int r = st.rank[p];
             if (r >= need || rules.links[p].kind != Rules.LinkKind.MANUAL || Kernel.lost(m, st, p, st.slot >> 1)) continue;
+            double mult = linkMult[p];
             int meetings = r == 0
                     ? unlockSlotsLeft(st, p) + meetingsBetween(p, 1, Kernel.eventPts(m, p, 1, mult), false, need, mult)
                     : meetingsBetween(p, r, st.pts[p], st.ready[p], need, mult);
@@ -652,7 +675,7 @@ final class Heuristics {
     }
 
     /** Per-link remaining meetings and value per meeting, and the contention of each slot kind. */
-    private void prepareDemand(SimState st, double mult, int day) {
+    private void prepareDemand(SimState st, int day) {
         int slot = st.slot;
         double busy0 = 0;
         double busy1 = 0;
@@ -664,6 +687,7 @@ final class Heuristics {
             int r = st.rank[l];
             int goalRank = milestone(l, r);
             if (goalRank <= r) continue;
+            double mult = linkMult[l];
             int need = remainingMeetings(st, l, mult);
             if (need >= INF) continue;
             int remain = t.meetRemain[l][slot];
@@ -676,14 +700,21 @@ final class Heuristics {
         }
         load[0] = busy0 / Math.max(1, openRemain[0][slot]);
         load[1] = busy1 / Math.max(1, openRemain[1][slot]);
-        admit(st, 0, mult);
-        admit(st, 1, mult);
+        admit(st, 0);
+        admit(st, 1);
     }
 
     /** Value per meeting of a link that will not reach its milestone: the ranks its next few meetings bring. */
     private double partialValue(SimState st, int l, int remain, double mult) {
         int k = Math.max(1, Math.min(remain, PARTIAL_HORIZON));
-        return (val[l][ranksAfter(st, l, k, mult)] - val[l][st.rank[l]]) / k;
+        int r = st.rank[l];
+        double v = (val[l][ranksAfter(st, l, k, mult)] - val[l][r]) / k;
+        if (v <= 0 && r >= 1 && r < 10) {
+            // The next meetings bring no RANK under the model, but their points still count (the
+            // estimate may be low, and notes may add the rest): a small share of the next rank.
+            v = PROGRESS_SHARE * (val[l][r + 1] - val[l][r]) / k;
+        }
+        return v;
     }
 
     /**
@@ -693,7 +724,7 @@ final class Heuristics {
      * ranks their next meetings bring. Without this an overbooked calendar spreads its slots over
      * links that all fall short.
      */
-    private void admit(SimState st, int kind, double mult) {
+    private void admit(SimState st, int kind) {
         int n = 0;
         double total = 0;
         for (int l = 0; l < t.nLinks; l++) {
@@ -720,7 +751,7 @@ final class Heuristics {
                 continue;
             }
             admitted[l] = false;
-            perMeeting[l] = partialValue(st, l, t.meetRemain[l][st.slot], mult);
+            perMeeting[l] = partialValue(st, l, t.meetRemain[l][st.slot], linkMult[l]);
         }
     }
 
@@ -882,6 +913,12 @@ final class Heuristics {
             case Kernel.T_TOWER:
                 h = towerScore(st, Kernel.target(code));
                 break;
+            case Kernel.T_NOTE:
+                h = noteScore(st, Kernel.target(code));
+                break;
+            case Kernel.T_EPISODE:
+                h = episodeScore(st, Kernel.target(code));
+                break;
             default:
                 return 0;
         }
@@ -1004,6 +1041,67 @@ final class Heuristics {
         return pending;
     }
 
+    /**
+     * Dating-site note for link l (evening): worth the share of an ordinary meeting its points
+     * replace (only points below the next rank-up count), at the value of that meeting where a saved
+     * meeting matters: always for a link that will not reach its milestone (every point brings it
+     * closer), for a link that will only as far as its slot kind is overbooked (the meeting it saves
+     * goes to another link), plus a goal's earlier target. The price is charged like paid training.
+     */
+    private double noteScore(SimState st, int l) {
+        Rules.DatingNote note = m.note;
+        if (note == null || demand[l] <= 0 || !wanted[l]) return 0.01;
+        int r = st.rank[l];
+        int room = Kernel.need(m, l, r) - st.pts[l];
+        if (room <= 0) return 0.01;
+        double share = Math.min(1.0, Math.min(note.gain, room) / (double) Kernel.ordinaryPts(m, linkMult[l]));
+        double worth;
+        if (!admitted[l]) {
+            worth = perMeeting[l];
+        } else {
+            double overbooked = Math.min(1.0, Math.max(0, load[kind(l)] - tuning.admitShare));
+            int remain = Math.max(1, t.meetRemain[l][st.slot]);
+            double early = m.goal[l] ? wGoal[l] * EARLY_PER_SLOT * (lastSlot - st.slot) / (double) remain : 0;
+            worth = perMeeting[l] * overbooked + early;
+        }
+        double h = worth * share * NOTE_SHARE;
+        if (note.cost > 0) h -= costPenalty(st.cash, note.cost);
+        return Math.max(0.01, h);
+    }
+
+    /**
+     * Next Link Episode of an opted-in track: its objective value (plus its share of finishing the
+     * track while the rest of the track still fits), scaled by the urgency of its window: the last
+     * slot that still allows it (and every later episode) beats almost everything. Stat points the
+     * episode gives count like training in that slot.
+     */
+    private double episodeScore(SimState st, int e) {
+        int n = st.episodes[e];
+        int count = t.epCount[e];
+        if (n >= count) return 0;
+        int slack = Math.max(1, t.episodeSlack(e, n, st.slot));
+        double v = EPISODE_VALUE + (t.epChain[e][n] ? EPISODE_FINISH / (count - n) : 0);
+        double h = v * urgency(1.5 / slack);
+        int[] gain = rules.episodes[e].gainOf(n + 1);
+        double[] pv = (st.slot & 1) == 1 ? eveValue : dayValue;
+        for (int s = 0; s < Math.min(Math.min(gain.length, t.nStats), 3); s++) {
+            if (gain[s] > 0) h += (0.2 + pv[s]) * Math.min(gain[s], Math.max(0, t.statCap[s] - st.statPts[s]));
+        }
+        return h;
+    }
+
+    /** Objective value of the Link Episodes watched in opted-in tracks. */
+    double episodeValue(SimState end) {
+        double v = 0;
+        for (int e = 0; e < t.nEps; e++) {
+            if (!m.episodeWanted[e]) continue;
+            int count = t.epCount[e];
+            int seen = Math.min(count, e < end.episodes.length ? end.episodes[e] : 0);
+            v += EPISODE_VALUE * seen + (count > 0 && seen >= count ? EPISODE_FINISH : 0);
+        }
+        return v;
+    }
+
     private void addNeed(long yen, double perYen, boolean fee) {
         if (yen <= 0 || needs >= needYen.length) return;
         needYen[needs] = yen;
@@ -1060,7 +1158,11 @@ final class Heuristics {
 
     // ------------------------------------------------------------------ objective
 
-    /** Objective J of a complete trajectory ending in {@code end}; {@code reached[i]} per goal link. */
+    /**
+     * Objective J of a complete trajectory ending in {@code end}; {@code reached[i]} per goal link:
+     * rank values (with MAX bonuses), earlier goal targets, stat levels, opted-in Link Episodes,
+     * a little cash, minus a penalty per unmet Tartarus visit or missed rescue.
+     */
     double objective(SimState end, int[] reached) {
         double j = 0;
         for (int l = 0; l < t.nLinks; l++) j += val[l][end.rank[l]];
@@ -1068,6 +1170,7 @@ final class Heuristics {
             if (reached[i] >= 0) j += wGoal[goalLinks[i]] * EARLY_PER_SLOT * (lastSlot - reached[i]);
         }
         for (int s = 0; s < t.nStats; s++) j += 0.5 * Kernel.statLv(m, end, s);
+        j += episodeValue(end);
         j += 0.0001 * end.cash;
         int unmet = 0;
         for (int b = 0; b < t.nBlocks; b++) unmet += Math.max(0, towerTarget[b] - end.towerVisits[b]);

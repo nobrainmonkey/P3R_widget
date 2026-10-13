@@ -30,15 +30,19 @@ import java.util.List;
  * assets/data.json maxes all 22 links with matching Personas and is the feasibility witness):
  *
  * <table>
- *   <tr><th>scenario</th><th>MAX</th><th>daytimeWaste</th></tr>
- *   <tr><td>new game, persona bonus</td><td>22/22</td><td>0</td></tr>
- *   <tr><td>new game, no persona</td><td>21/22</td><td>0</td></tr>
- *   <tr><td>new game, 皇帝 MUST (MAX 6/29, every Emperor day used)</td><td>20/22</td><td>0</td></tr>
- *   <tr><td>mid game 10/22 (¥1,000, Charm Lv3)</td><td>12/22</td><td>≤ 3</td></tr>
+ *   <tr><th>scenario</th><th>bound (reached 2026-10-13, pack with notes and episodes)</th><th>daytimeWaste</th></tr>
+ *   <tr><td>new game, Persona for every link (ALL)</td><td>22/22 (22/22)</td><td>0</td></tr>
+ *   <tr><td>new game, no Persona</td><td>≥ 21/22 (22/22 with 15 notes; 21/22 without notes)</td><td>0</td></tr>
+ *   <tr><td>new game, 皇帝 MUST (MAX by 6/29, every Emperor day used)</td><td>≥ 20/22 (21/22)</td><td>0</td></tr>
+ *   <tr><td>mid game 10/22 (¥1,000, Charm Lv3)</td><td>≥ 12/22 (12/22)</td><td>≤ 3</td></tr>
+ *   <tr><td>new game, Persona for goals only (GOALS), 皇帝 MUST + 恋爱/女皇 WANT</td><td>≥ 20/22 (21/22)</td><td>≤ 2</td></tr>
+ *   <tr><td>new game, every Link Episode track</td><td>every completable track complete; ≥ 19/22 (21/22)</td><td>0</td></tr>
  * </table>
  */
 public class PlanRealPackTest {
     private static Rules rules;
+    /** The pack's JSON, to load independent copies that a scenario may extend (null for the synthetic year). */
+    private static String packJson;
 
     @BeforeClass
     public static void loadPack() throws Exception {
@@ -50,6 +54,7 @@ public class PlanRealPackTest {
         File pack = findPack();
         Assume.assumeTrue("rule pack not built yet", pack != null);
         String json = new String(Files.readAllBytes(pack.toPath()), StandardCharsets.UTF_8);
+        packJson = json;
         try {
             rules = RulesLoader.parse(json);
         } catch (UnsupportedOperationException notYet) {
@@ -185,6 +190,148 @@ public class PlanRealPackTest {
         assertEquals(1, Engine.apply(rules, profile, last, Action.unlock(devil, 2)).state.rank[devil]);
     }
 
+    /**
+     * 只给目标社群带人格面具 (GOALS): the ×1.51 only for the goals; their meetings carry the
+     * "记得带上…" hint and no other meeting does.
+     */
+    @Test
+    public void goalsPersonaMode() {
+        int emperor = link("emperor");
+        int lovers = link("lovers");
+        int empress = link("empress");
+        Profile profile = new Profile();
+        profile.personaMode = Profile.PersonaMode.GOALS;
+        profile.tier[emperor] = Profile.Tier.MUST;
+        profile.tier[lovers] = Profile.Tier.WANT;
+        profile.order[lovers] = 1;
+        profile.tier[empress] = Profile.Tier.WANT;
+        profile.order[empress] = 2;
+        // A 「必须」 goal may trade a couple of early daytime slots for an earlier MAX (worth more by
+        // the objective than the meeting it skips), so this scenario allows two.
+        Result r = run("新游戏 · 只给目标社群带人格面具 · 必须：皇帝 · 想要：恋爱、女皇", profile, newGame(dayOf(4, 21)), 2);
+        for (int l : new int[]{emperor, lovers, empress}) assertEquals(rules.links[l].id, 10, r.plan.summary.endRanks[l]);
+        int hints = 0;
+        for (Plan.Step s : r.plan.steps) {
+            if (s.hintZh == null) continue;
+            hints++;
+            int l = rules.linkIndex(s.entity);
+            assertTrue(s.entity + " is not a goal", l >= 0 && profile.isGoal(l));
+            assertEquals("记得带上「" + rules.links[l].arcanaZh + "」阿尔卡那的人格面具", s.hintZh);
+        }
+        System.out.println("GOALS persona: maxed " + r.metrics.maxed + "/" + rules.links.length + " · steps with the Persona hint " + hints);
+        assertTrue("hints " + hints, hints >= 20);
+        // Three goals bind more daytime than 皇帝 alone, which already settles at 20/22.
+        assertTrue("maxed " + r.metrics.maxed, r.metrics.maxed >= 20);
+    }
+
+    /**
+     * 结缘网站的字条 on the real calendar: the pack's note, or, until the rules module ships it, the
+     * evidence's numbers (rules/p3r/affinity_actions_candidate.json: +10 points, 3,000 日元, one
+     * evening, on sale from 11/16). Notes are on by default, so the three benchmarks must hold with
+     * them too: no Persona ≥ 21 MAX, every Persona 22/22, 皇帝 MUST by 6/29 with ≥ 20 MAX, no wasted
+     * daytime.
+     */
+    @Test
+    public void datingNotesOnTheRealCalendar() throws Exception {
+        Rules pack = freshPack();
+        boolean injected = pack.datingNote == null;
+        if (injected) pack.datingNote = RulesFixtures.datingNote(dayOf(11, 16));
+        String tag = injected ? "（按证据补上）" : "";
+        SimState start = newGame(dayOf(4, 21));
+
+        Result none = run(pack, "新游戏 · 不带人格面具 · 结缘网站的字条" + tag, new Profile(), start, 0);
+        int notes = 0;
+        for (Plan.Step s : none.plan.steps) {
+            if (!s.action.startsWith("note:")) continue;
+            notes++;
+            assertEquals("note", s.kind);
+            assertTrue((s.slot & 1) == 1 && (s.slot >> 1) >= pack.datingNote.fromDay);
+            assertTrue(s.titleZh, s.titleZh.startsWith("在放纵俱乐部买结缘网站的字条，给 "));
+        }
+        assertTrue("maxed " + none.metrics.maxed, none.metrics.maxed >= 21);
+
+        Profile all = new Profile();
+        all.personaMode = Profile.PersonaMode.ALL;
+        Result persona = run(pack, "新游戏 · 基本都带人格面具 · 结缘网站的字条" + tag, all, start, 0);
+        assertEquals(pack.links.length, persona.metrics.maxed);
+
+        int emperor = link("emperor");
+        Profile must = new Profile();
+        must.tier[emperor] = Profile.Tier.MUST;
+        Result goal = run(pack, "新游戏 · 必须：皇帝 · 结缘网站的字条" + tag, must, start, 0);
+        assertEquals(10, goal.plan.summary.endRanks[emperor]);
+        assertTrue(goal.plan.summary.maxSlot[emperor] <= Rules.slot(dayOf(6, 29), false));
+        assertTrue("maxed " + goal.metrics.maxed, goal.metrics.maxed >= 20);
+        System.out.println("dating notes: no Persona " + none.metrics.maxed + "/22 with " + notes + " notes · every Persona "
+                + persona.metrics.maxed + "/22 with " + persona.metrics.notes + " · 皇帝 MUST " + goal.metrics.maxed + "/22 with "
+                + goal.metrics.notes + ", 皇帝 MAX " + PlanReport.date(pack, goal.plan.summary.maxSlot[emperor]));
+    }
+
+    /**
+     * 羁绊剧情 on the real calendar: every track of the pack, or, until the rules module ships them,
+     * the daytime tracks read from the aqiu day calendar (rules/sources/aqiu_pages): 顺平, 小丸,
+     * 真次郎, 绫时. Every track that can still be completed is completed.
+     */
+    @Test
+    public void linkEpisodesOnTheRealCalendar() throws Exception {
+        Rules pack = freshPack();
+        boolean injected = pack.episodes == null || pack.episodes.length == 0;
+        if (injected) pack.episodes = aqiuTracks(pack);
+        Assume.assumeTrue("no Link Episode data", pack.episodes.length > 0);
+        SimState start = newGame(dayOf(4, 21));
+        Profile profile = new Profile();
+        String[] ids = new String[pack.episodes.length];
+        for (int e = 0; e < ids.length; e++) ids[e] = pack.episodes[e].id;
+        profile.episodeTracks = ids;
+        Result r = run(pack, "新游戏 · 不带人格面具 · 全部羁绊剧情" + (injected ? "（按日历补上）" : ""), profile, start, 0);
+        Tables t = Tables.of(pack);
+        int[] watched = new int[pack.episodes.length];
+        for (Plan.Step s : r.plan.steps) {
+            Action a = Action.parse(pack, s.action);
+            if (a != null && a.type == Action.Type.EPISODE) watched[a.target]++;
+        }
+        StringBuilder sb = new StringBuilder("episodes:");
+        for (int e = 0; e < watched.length; e++) {
+            Rules.Episode ep = pack.episodes[e];
+            sb.append(' ').append(ep.id).append(' ').append(watched[e]).append('/').append(ep.count);
+            boolean completable = t.epCount[e] > 0 && t.epChain[e][0] && t.epLatest[e][0] >= start.slot;
+            if (completable) assertEquals(ep.id + " completes", ep.count, watched[e]);
+        }
+        System.out.println(sb + " · maxed " + r.metrics.maxed + "/" + pack.links.length);
+        assertTrue("maxed " + r.metrics.maxed, r.metrics.maxed >= 19);
+    }
+
+    /** Daytime Link Episode tracks from the aqiu day calendar (cells "1", "1-4"), or none when the file is missing. */
+    private static Rules.Episode[] aqiuTracks(Rules pack) throws Exception {
+        File f = null;
+        for (String c : new String[]{"../../rules/sources/aqiu_pages/social_events_day_calendar.json",
+                "../rules/sources/aqiu_pages/social_events_day_calendar.json", "rules/sources/aqiu_pages/social_events_day_calendar.json"}) {
+            if (new File(c).isFile()) f = new File(c);
+        }
+        if (f == null) return new Rules.Episode[0];
+        org.json.JSONArray rows = new org.json.JSONArray(new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8));
+        String[][] cols = {{"Junpei", "junpei", "伊织顺平"}, {"Koromaru", "koromaru", "克罗丸"},
+                {"Shinjiro", "shinjiro", "荒垣真次郎"}, {"Ryoji", "ryoji", "望月绫时"}};
+        java.util.List<Rules.Episode> out = new java.util.ArrayList<>();
+        for (String[] col : cols) {
+            Rules.Episode ep = RulesFixtures.track(pack, out.size(), col[1], col[2], false, 0);
+            for (int i = 0; i < rows.length(); i++) {
+                org.json.JSONObject row = rows.getJSONObject(i);
+                String cell = row.optString(col[0], "-").trim();
+                if (cell.isEmpty() || cell.equals("-")) continue;
+                String[] md = row.getString("Date").split("/");
+                int day = dayOf(Integer.parseInt(md[0]), Integer.parseInt(md[1]));
+                String[] range = cell.split("-");
+                int lo = Integer.parseInt(range[0].trim());
+                int hi = Integer.parseInt(range[range.length - 1].trim());
+                for (int n = lo; n <= hi; n++) ep.dayMask[day] |= 1 << (n - 1);
+                ep.count = Math.max(ep.count, hi);
+            }
+            if (ep.count > 0) out.add(ep);
+        }
+        return out.toArray(new Rules.Episode[0]);
+    }
+
     // ------------------------------------------------------------------ helpers
 
     /** A plan and its metrics. */
@@ -199,6 +346,10 @@ public class PlanRealPackTest {
     }
 
     private Result run(String title, Profile profile, SimState start, int maxWaste) {
+        return run(rules, title, profile, start, maxWaste);
+    }
+
+    private Result run(Rules rules, String title, Profile profile, SimState start, int maxWaste) {
         Engine.plan(rules, profile, start, null, null); // JIT warm-up
         long t0 = System.nanoTime();
         Plan plan = Engine.plan(rules, profile, start, null, new Engine.Options());
@@ -225,6 +376,12 @@ public class PlanRealPackTest {
         assertFalse("budget exhausted", plan.budgetExhausted);
         assertTrue(plan.planId.equals(Engine.plan(rules, profile, start, null, new Engine.Options()).planId));
         return new Result(plan, pm);
+    }
+
+    /** A copy of the pack that a scenario may extend without touching {@link #rules}. */
+    private static Rules freshPack() throws Exception {
+        if (packJson == null) return RulesFixtures.fullYear();
+        return RulesLoader.parse(packJson);
     }
 
     private static int dayOf(int month, int dom) {

@@ -91,8 +91,10 @@ public final class Engine {
 
     /**
      * Every legal productive action for {@code state.slot} as a labeled {@link Plan.Step} (Chinese
-     * title, subtitle, location, reason and forecast), best first. For "改做别的"; the list is empty
-     * when the slot is locked or nothing productive is possible.
+     * title, subtitle, location, reason, how-to and forecast), most useful first: ordered by the
+     * objective of taking the action and following the base policy to the end of the calendar. For
+     * "改做别的" (the caller marks the planned one); the list is empty when the slot is locked or
+     * nothing productive is possible.
      */
     public static List<Plan.Step> alternatives(Rules rules, Profile profile, SimState state) {
         return Planner.alternatives(rules, profile, state);
