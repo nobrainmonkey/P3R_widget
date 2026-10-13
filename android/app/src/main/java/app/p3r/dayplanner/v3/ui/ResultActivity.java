@@ -617,6 +617,9 @@ public final class ResultActivity extends Activity {
             }
             SegmentedControl seg = new SegmentedControl(this, labels);
             final int stat = i;
+            // Preselect the current level: saving unchanged means "done, but no level-up".
+            seg.setSelected(0);
+            chosen[stat] = now;
             seg.setListener(index -> chosen[stat] = values.get(index));
             more.addView(seg, top(6));
         }

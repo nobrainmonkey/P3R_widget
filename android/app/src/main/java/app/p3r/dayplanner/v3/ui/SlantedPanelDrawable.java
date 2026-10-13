@@ -10,6 +10,7 @@ import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
 
@@ -48,6 +49,8 @@ public final class SlantedPanelDrawable extends Drawable {
     private boolean pressed;
     private boolean enabled = true;
     private int alpha = 255;
+    private Shader gradientShader;
+    private final RectF gradientRect = new RectF();
 
     /** Solid fill colour (ARGB). */
     public SlantedPanelDrawable fill(int color) {
@@ -62,6 +65,7 @@ public final class SlantedPanelDrawable extends Drawable {
         this.fill = start;
         this.fillEnd = end;
         this.gradient = true;
+        this.gradientShader = null;
         invalidateSelf();
         return this;
     }
@@ -174,7 +178,7 @@ public final class SlantedPanelDrawable extends Drawable {
         int faceColor = pressed && hasPressed ? pressedFill : fill;
         fillPaint.setStyle(Paint.Style.FILL);
         if (gradient && !(pressed && hasPressed)) {
-            fillPaint.setShader(new LinearGradient(left, top, right, bottom, fill, fillEnd, Shader.TileMode.CLAMP));
+            fillPaint.setShader(gradientFor(left, top, right, bottom));
             fillPaint.setAlpha(effectiveAlpha);
         } else {
             fillPaint.setShader(null);
@@ -208,6 +212,16 @@ public final class SlantedPanelDrawable extends Drawable {
             strokePaint.setAlpha(scaleAlpha(strokeColor, effectiveAlpha));
             canvas.drawPath(face, strokePaint);
         }
+    }
+
+    /** The diagonal fill gradient, rebuilt only when the face rectangle changes. */
+    private Shader gradientFor(float left, float top, float right, float bottom) {
+        if (gradientShader == null || gradientRect.left != left || gradientRect.top != top
+            || gradientRect.right != right || gradientRect.bottom != bottom) {
+            gradientRect.set(left, top, right, bottom);
+            gradientShader = new LinearGradient(left, top, right, bottom, fill, fillEnd, Shader.TileMode.CLAMP);
+        }
+        return gradientShader;
     }
 
     /** Builds the chamfered parallelogram for the given face rectangle. */

@@ -33,6 +33,7 @@ public final class SlantTabBar extends LinearLayout {
     private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fill = new Paint();
     private int selected = -1;
+    private int edgeWidth = -1;
     private Listener listener;
 
     public SlantTabBar(Context context, String[] titles, int[] iconResources) {
@@ -112,9 +113,12 @@ public final class SlantTabBar extends LinearLayout {
         fill.setColor(Ui.alpha(Ui.col(getContext(), R.color.p3r_navy_950), 242));
         canvas.drawRect(0, 0, w, h, fill);
         float line = Math.max(1f, Ui.dp(getContext(), 1));
-        edge.setShader(new LinearGradient(0, 0, w, 0,
-            Ui.alpha(Ui.col(getContext(), R.color.p3r_cyan_400), 30),
-            Ui.alpha(Ui.col(getContext(), R.color.p3r_cyan_400), 200), Shader.TileMode.CLAMP));
+        if (edgeWidth != w) {
+            edgeWidth = w;
+            edge.setShader(new LinearGradient(0, 0, w, 0,
+                Ui.alpha(Ui.col(getContext(), R.color.p3r_cyan_400), 30),
+                Ui.alpha(Ui.col(getContext(), R.color.p3r_cyan_400), 200), Shader.TileMode.CLAMP));
+        }
         canvas.drawRect(0, 0, w, line, edge);
         super.onDraw(canvas);
     }

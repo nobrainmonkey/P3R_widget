@@ -30,7 +30,8 @@ public final class OceanDrawable extends Drawable {
     private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint shaft = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Path path = new Path();
+    private final Path[] shaftPaths = new Path[SHAFTS.length];
+    private final Shader[] shaftShaders = new Shader[SHAFTS.length];
     private final int top;
     private final int middle;
     private final int bottom;
@@ -73,6 +74,23 @@ public final class OceanDrawable extends Drawable {
         glow.setShader(new RadialGradient(b.right - b.width() * 0.1f, b.top + b.height() * 0.04f, radius,
             new int[]{withAlpha(glowColor, 110), withAlpha(glowColor, 30), withAlpha(glowColor, 0)},
             new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
+        float w = b.width();
+        float h = b.height();
+        float drift = h * 0.55f;
+        for (int i = 0; i < SHAFTS.length; i++) {
+            float[] s = SHAFTS[i];
+            float x = b.left + w * s[0];
+            float width = w * s[1];
+            Path path = new Path();
+            path.moveTo(x, b.top);
+            path.lineTo(x + width, b.top);
+            path.lineTo(x + width - drift, b.bottom);
+            path.lineTo(x - drift * 1.08f, b.bottom);
+            path.close();
+            shaftPaths[i] = path;
+            shaftShaders[i] = new LinearGradient(x, b.top, x - drift, b.top + h * 0.85f,
+                withAlpha(lightColor, (int) s[2]), withAlpha(lightColor, 0), Shader.TileMode.CLAMP);
+        }
     }
 
     @Override
@@ -88,18 +106,9 @@ public final class OceanDrawable extends Drawable {
         float w = b.width();
         float h = b.height();
         float drift = h * 0.55f;
-        for (float[] s : SHAFTS) {
-            float x = b.left + w * s[0];
-            float width = w * s[1];
-            path.reset();
-            path.moveTo(x, b.top);
-            path.lineTo(x + width, b.top);
-            path.lineTo(x + width - drift, b.bottom);
-            path.lineTo(x - drift * 1.08f, b.bottom);
-            path.close();
-            shaft.setShader(new LinearGradient(x, b.top, x - drift, b.top + h * 0.85f,
-                withAlpha(lightColor, (int) s[2]), withAlpha(lightColor, 0), Shader.TileMode.CLAMP));
-            canvas.drawPath(path, shaft);
+        for (int i = 0; i < SHAFTS.length; i++) {
+            shaft.setShader(shaftShaders[i]);
+            canvas.drawPath(shaftPaths[i], shaft);
         }
 
         line.setStrokeWidth(Math.max(1f, w / 400f));
