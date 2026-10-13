@@ -353,3 +353,12 @@ GitHub release asset.
 11. Date pickers offer months 4–12 and 1 only; the horizon ends Jan 31 (daytime).
 12. **Engine option** `towerIncomePerVisit` and `previous plan` stability bonus are part of
     `Engine.Options`/`Engine.plan` (engine module adds the field).
+
+## 11. Persistence schema 2 (round 2)
+
+1. `checkpoints` and `events` gain a nullable `rules_version` column, added by migrations that can safely run twice.
+2. Checkpoint JSON carries a `layout` object (ids of links, blocks, activities, rescues, episodes and unlock steps per link) and is remapped by id on load, so a rule-pack update never reinterprets stored arrays by position; records that no longer fit are counted and surfaced as `Snapshot.noticeZh` (suggesting 同步现状).
+3. Outcome payloads may carry `stepId`; tower payloads may carry `sideDone:false`.
+4. Backup checkpoints and events may carry `rulesVersion`.
+5. Replay applies each row at its own slot, skips locked slots only after the last row, and moves time only through `Engine.advanceTo` (same day rollover as the forecast).
+6. Rescue inference at checkpoint time: if a rescue window ended before the checkpoint date, the player did not answer, and the linked Social Link's rank ≥ 1, it counts as rescued; only an explicit 没救出 sets `rescueFailed`.
