@@ -96,7 +96,7 @@ public class LegacyGuideChineseTest {
     @Test
     public void theGuideTextFollowsTheGlossary() throws Exception {
         // Final audit: 「10/13 期中考试：选择「成瘾症状（Addiction）」」, 「7/5截止」, 「3980元」, 「LV2」, 「羁绊剧场」.
-        Pattern[] avoid = {Pattern.compile("(?<![\\d/#.])\\d{1,2}/\\d{1,2}(?![\\d/])"), Pattern.compile("\\d{4,}\\s*(日元|元)"),
+        Pattern[] avoid = {Pattern.compile("(?<![\\d/#.])\\d{1,2}/\\d{1,2}(?![\\d/])"), Pattern.compile("\\d{4,}\\s*(日元|元)|\\d万元"),
             Pattern.compile("LV\\d"), Pattern.compile("羁绊剧场"), Pattern.compile("[（(][A-Za-z][A-Za-z .,'\\-]*[）)]")};
         String page = page();
         for (String text : new String[]{block(page, "data"), block(page, "display-metadata"), asset("data.json"), asset("display_metadata.json")}) {
