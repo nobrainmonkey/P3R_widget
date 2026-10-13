@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Barlow Condensed (SIL OFL 1.1, docs/licenses/BarlowCondensed-OFL.txt): Latin numerals/labels only, never CJK.
-     The upright semibold and bold files carry an added 「→」 (scripts/add_font_arrow.py), so 「RANK 4→5」 draws
-     the same arrow on every Android version instead of a system fallback glyph. -->
+<!-- Barlow Condensed (SIL OFL 1.1, docs/licenses/BarlowCondensed-OFL.txt): Latin numerals/labels only, never CJK. -->
 <font-family xmlns:android="http://schemas.android.com/apk/res/android">
     <font android:fontStyle="normal" android:fontWeight="600" android:font="@font/barlow_condensed_semibold" />
     <font android:fontStyle="normal" android:fontWeight="700" android:font="@font/barlow_condensed_bold" />

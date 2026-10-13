@@ -505,12 +505,11 @@ public class PlanWidgetRenderTest {
     }
 
     /**
-     * Review: before Android 12 the card had square corners (nothing clips the flush-left plate), and
-     * 「RANK 4→5」 borrowed a smaller, lower arrow there. The corner is transparent on every version,
-     * and the chip's arrow is the bundled numeral face's own.
+     * Review: before Android 12 the card had square corners (nothing clips the flush-left plate). The
+     * corner is transparent on every version.
      */
     @Test
-    public void cornersAreRoundAndTheChipArrowIsTheSameEverywhere() throws Exception {
+    public void cornersAreRoundOnEveryVersion() throws Exception {
         float density = app.getResources().getDisplayMetrics().density;
         for (int[] size : SIZES) {
             state("social");
@@ -524,14 +523,33 @@ public class PlanWidgetRenderTest {
                     android.graphics.Color.alpha(bitmap.getPixel(bitmap.getWidth() - 2, bitmap.getHeight() - 2)));
             assertTrue(tag + " the card itself is opaque", android.graphics.Color.alpha(bitmap.getPixel(bitmap.getWidth() / 2, 2)) == 255);
         }
-        android.graphics.Paint paint = new android.graphics.Paint();
-        paint.setTypeface(CardRenderer.numerals(app, android.graphics.Typeface.BOLD));
-        paint.setTextSize(1000);
-        assertTrue("the numeral face has its own 「→」", paint.hasGlyph("→"));
-        // scripts/add_font_arrow.py: 617 units in the semibold file, 623 in the bold one (a fallback
-        // glyph from a system font has some other width).
-        float arrow = paint.measureText("→");
-        assertTrue("the arrow is the bundled one: " + arrow, Math.abs(arrow - 617) <= 1 || Math.abs(arrow - 623) <= 1);
+    }
+
+    /**
+     * The bundled Barlow Condensed files are the upstream ones, unmodified. Android takes a font
+     * family's character coverage from its first font: a 「→」 added to the upright files made the
+     * italic numerals (which lack it) draw a missing-glyph box instead of falling back to the system
+     * arrow on a device (「RANK 5 ▯ 6」 on the Today card).
+     */
+    @Test
+    public void bundledFontsAreTheUnmodifiedBarlowFiles() throws Exception {
+        String[][] pinned = {
+                {"barlow_condensed_bold.ttf", "e476562ec9c1e16cf16475895b511f08c804f438cc9a9f80a44ea50a0eeb5b65"},
+                {"barlow_condensed_semibold.ttf", "7b619d14bc2327509a9ef32b0890f709626f7ecc9ff61191c2a4314c5499d2d9"},
+                {"barlow_condensed_bolditalic.ttf", "d8694f65cd70c3e5e600ead37657aab0adb5f63b275d0c1f6f4a7046de222145"},
+                {"barlow_condensed_extrabolditalic.ttf", "331783dae9ec0c398f4d32c9fd5a56d4c602caa0c1628c2b9cbfe93f48eb68c9"},
+        };
+        for (String[] font : pinned) {
+            java.io.File file = null;
+            for (String dir : new String[]{"src/main/res/font/", "app/src/main/res/font/", "android/app/src/main/res/font/"}) {
+                if (new java.io.File(dir + font[0]).isFile()) file = new java.io.File(dir + font[0]);
+            }
+            assertTrue(font[0], file != null);
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(java.nio.file.Files.readAllBytes(file.toPath()));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : digest) hex.append(String.format("%02x", b));
+            assertEquals(font[0], font[1], hex.toString());
+        }
     }
 
     /** The text a reader sees (the invisible line-break marks removed). */
