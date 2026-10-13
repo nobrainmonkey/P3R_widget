@@ -244,6 +244,7 @@ final class PlanView {
         m.tag = compactTag(receipt.subtitle);
         m.location = blankToNull(receipt.location);
         m.cue = "✓ 已记录 · 再点撤销";
+        m.cueEssential = true; // explains why 完成 now reads 撤销
         m.taskDescription = describe(m) + "，已记录";
         m.doneLabel = "撤销";
         m.doneIcon = CardModel.DoneIcon.UNDO;

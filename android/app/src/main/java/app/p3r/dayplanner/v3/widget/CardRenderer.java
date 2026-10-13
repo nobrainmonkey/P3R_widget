@@ -111,8 +111,10 @@ public final class CardRenderer {
                 .setIncludePad(false)
                 .setLineSpacing(lineSpacingExtraDp * metrics.density, 1f)
                 .setMaxLines(Math.max(1, maxLines));
-        if (Build.VERSION.SDK_INT >= 28) {
-            // TextView does the same for apps targeting P+: CJK fallback fonts make lines taller.
+        boolean fitsOneLine = paint.measureText(text) <= width && text.indexOf('\n') < 0;
+        if (Build.VERSION.SDK_INT >= 28 && !fitsOneLine) {
+            // Like TextView for apps targeting P+: wrapped text (StaticLayout) gets the taller CJK
+            // fallback line spacing, single-line text (BoringLayout) keeps the primary font's.
             builder.setUseLineSpacingFromFallbacks(true);
         }
         return builder.build().getHeight() / metrics.density;
@@ -124,7 +126,8 @@ public final class CardRenderer {
         float tag = isBlank(model.tag) ? 0 : textHeightDp(c, model.tag, sp, numerals(c, Typeface.BOLD), 999, 1, 0) + 3;
         float location = isBlank(model.location) ? 0 : textHeightDp(c, model.location, sp, false, 999, 1);
         float row = Math.max(tag, location);
-        return row == 0 ? 0 : row + ROW_GAP_DP + (size == WidgetSize.REGULAR ? 1 : 0);
+        float gap = size == WidgetSize.REGULAR ? ROW_GAP_DP + 1 : ROW_GAP_DP;
+        return row == 0 ? 0 : row + gap;
     }
 
     /** Height in dp of the cue line including its top gap (0 if hidden). */
@@ -267,13 +270,20 @@ public final class CardRenderer {
             return;
         }
         views.setViewVisibility(R.id.widget_watermark, View.VISIBLE);
-        views.setViewVisibility(R.id.widget_watermark_tens, day >= 10 ? View.VISIBLE : View.GONE);
+        views.setInt(R.id.widget_watermark_tens, "setImageAlpha", palette.watermarkImageAlpha);
+        views.setInt(R.id.widget_watermark_units, "setImageAlpha", palette.watermarkImageAlpha);
         if (day >= 10) {
             views.setImageViewResource(R.id.widget_watermark_tens, DIGITS[day / 10]);
-            views.setInt(R.id.widget_watermark_tens, "setImageAlpha", palette.watermarkImageAlpha);
+            views.setImageViewResource(R.id.widget_watermark_units, DIGITS[day % 10]);
+            views.setViewVisibility(R.id.widget_watermark_units, View.VISIBLE);
+        } else {
+            // A lone digit sits one numeral in from the edge (the units slot keeps its width), so a
+            // narrow "1" reads as a numeral rather than a sliver on the border.
+            views.setImageViewResource(R.id.widget_watermark_tens, DIGITS[day]);
+            views.setImageViewResource(R.id.widget_watermark_units, DIGITS[0]);
+            views.setViewVisibility(R.id.widget_watermark_units, View.INVISIBLE);
         }
-        views.setImageViewResource(R.id.widget_watermark_units, DIGITS[day % 10]);
-        views.setInt(R.id.widget_watermark_units, "setImageAlpha", palette.watermarkImageAlpha);
+        views.setViewVisibility(R.id.widget_watermark_tens, View.VISIBLE);
     }
 
     private static void applyPlate(Context c, RemoteViews views, CardModel model, WidgetPalette palette, WidgetSize size) {
@@ -397,7 +407,11 @@ public final class CardRenderer {
         views.setContentDescription(R.id.button_spec_done, model.doneDescription);
         boolean icon = model.doneIcon != CardModel.DoneIcon.NONE;
         views.setViewVisibility(R.id.button_spec_check, icon ? View.VISIBLE : View.GONE);
-        if (icon) {
+        if (!icon) {
+            // Without the trailing glyph the label centres on the whole face.
+            int side = Math.round(10 * c.getResources().getDisplayMetrics().density);
+            views.setViewPadding(R.id.button_spec_done_text, side, 0, side, 0);
+        } else {
             views.setImageViewResource(R.id.button_spec_check,
                     model.doneIcon == CardModel.DoneIcon.UNDO ? R.drawable.widget_icon_undo : R.drawable.widget_icon_check);
             views.setInt(R.id.button_spec_check, "setColorFilter", doneInk);

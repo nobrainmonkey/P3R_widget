@@ -3,11 +3,13 @@
      PlannerWidget. XML defaults are a realistic day-palette sample so this file doubles as the picker
      preview; CardRenderer overwrites every text, image and palette resource at runtime. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_surface_day"
-    android:clipToOutline="true">
+    android:clipToOutline="true"
+    tools:ignore="UnusedAttribute">
 
     <ImageView
         android:id="@+id/widget_shafts"
@@ -86,6 +88,7 @@
                     android:text="10/22"
                     android:textColor="#FFFFFFFF"
                     android:textSize="27dp"
+                    tools:ignore="SpUsage"
                     android:textStyle="bold|italic" />
 
                 <LinearLayout
@@ -110,12 +113,14 @@
                         android:text="周四"
                         android:textColor="#FF0642B7"
                         android:textSize="10dp"
+                        tools:ignore="SpUsage"
                         android:textStyle="bold" />
 
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="1dp"
+                        tools:ignore="UseCompoundDrawables"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -136,6 +141,7 @@
                             android:text="放学后"
                             android:textColor="#FFFFFFFF"
                             android:textSize="10.5dp"
+                            tools:ignore="SpUsage"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </LinearLayout>
@@ -163,7 +169,7 @@
                     android:layout_width="30dp"
                     android:layout_height="8.5dp"
                     android:layout_marginBottom="5dp"
-                    android:contentDescription="S.E.E.S."
+                    android:importantForAccessibility="no"
                     android:scaleType="fitCenter"
                     android:src="@drawable/widget_sees_day" />
 

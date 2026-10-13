@@ -7,6 +7,7 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
@@ -197,6 +198,8 @@ public class PlanWidget extends AppWidgetProvider {
         String commandId = WidgetIntents.commitCommandId(planId, slot, action);
         PlannerApi.Receipt receipt = loaded.api.recordOutcome(commandId, revision, slot, action, Outcome.of(Outcome.Code.AS_PREDICTED));
         if (receipt == null || !receipt.ok) return false;
+        WidgetPrefs.clearCursor(app, id);
+        if (receipt.eventSeq < 0) return !receipt.duplicate; // recorded, but nothing the widget could undo
         WidgetPrefs.Receipt saved = new WidgetPrefs.Receipt();
         saved.eventSeq = receipt.eventSeq;
         saved.stateRevision = receipt.stateRevision;
@@ -210,7 +213,6 @@ public class PlanWidget extends AppWidgetProvider {
         saved.kind = step.kind;
         saved.createdMillis = System.currentTimeMillis();
         WidgetPrefs.setReceipt(app, id, saved);
-        WidgetPrefs.clearCursor(app, id);
         scheduleReceiptExpiry(app);
         return !receipt.duplicate;
     }
@@ -293,7 +295,7 @@ public class PlanWidget extends AppWidgetProvider {
         CardModel model = loaded.view.toCard(loaded.rules);
         Bundle options = manager.getAppWidgetOptions(id);
         List<SizeF> sizes = WidgetSize.reportedSizes(options);
-        if (!sizes.isEmpty()) {
+        if (Build.VERSION.SDK_INT >= 31 && !sizes.isEmpty()) {
             Map<SizeF, RemoteViews> variants = new LinkedHashMap<>();
             for (SizeF size : sizes) {
                 variants.put(size, host(app, id, loaded.view, model, size.getWidth(), size.getHeight(), fade));

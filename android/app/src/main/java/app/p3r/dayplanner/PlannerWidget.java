@@ -7,6 +7,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -250,7 +251,7 @@ public class PlannerWidget extends AppWidgetProvider {
         FADES.invalidate(id);
         Bundle options = manager.getAppWidgetOptions(id);
         List<SizeF> sizes = WidgetSize.reportedSizes(options);
-        if (!sizes.isEmpty()) {
+        if (Build.VERSION.SDK_INT >= 31 && !sizes.isEmpty()) {
             Map<SizeF, RemoteViews> variants = new LinkedHashMap<>();
             for (SizeF size : sizes) variants.put(size, hostViews(c, id, size.getWidth(), size.getHeight(), fade));
             manager.updateAppWidget(id, new RemoteViews(variants));

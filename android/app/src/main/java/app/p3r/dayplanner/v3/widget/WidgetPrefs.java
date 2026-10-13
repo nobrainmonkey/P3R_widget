@@ -9,7 +9,8 @@ import org.json.JSONObject;
 /**
  * Per-widget UI state of the plan widget in SharedPreferences {@value #PREFS} (never the planner's
  * data): the browsing cursor, keyed by the plan id it belongs to, and the receipt of the last direct
- * record (what "再点撤销" would undo). Accessed only from the widget thread.
+ * record (what "再点撤销" would undo). Accessed only from the widget thread; {@code apply()} updates
+ * the in-memory values immediately, so later reads on that thread always see them.
  */
 final class WidgetPrefs {
     static final String PREFS = "p3r_v3_widget";
@@ -80,11 +81,11 @@ final class WidgetPrefs {
     }
 
     static void setCursor(Context c, int widgetId, String planId, int slot) {
-        prefs(c).edit().putString(CURSOR_PLAN + widgetId, planId).putInt(CURSOR + widgetId, slot).commit();
+        prefs(c).edit().putString(CURSOR_PLAN + widgetId, planId).putInt(CURSOR + widgetId, slot).apply();
     }
 
     static void clearCursor(Context c, int widgetId) {
-        prefs(c).edit().remove(CURSOR_PLAN + widgetId).remove(CURSOR + widgetId).commit();
+        prefs(c).edit().remove(CURSOR_PLAN + widgetId).remove(CURSOR + widgetId).apply();
     }
 
     static Receipt receipt(Context c, int widgetId) {
@@ -99,14 +100,14 @@ final class WidgetPrefs {
 
     static void setReceipt(Context c, int widgetId, Receipt receipt) {
         try {
-            prefs(c).edit().putString(RECEIPT + widgetId, receipt.toJson().toString()).commit();
+            prefs(c).edit().putString(RECEIPT + widgetId, receipt.toJson().toString()).apply();
         } catch (JSONException e) {
             clearReceipt(c, widgetId);
         }
     }
 
     static void clearReceipt(Context c, int widgetId) {
-        prefs(c).edit().remove(RECEIPT + widgetId).commit();
+        prefs(c).edit().remove(RECEIPT + widgetId).apply();
     }
 
     /** Removes everything stored for a deleted widget. */
@@ -115,6 +116,6 @@ final class WidgetPrefs {
                 .remove(CURSOR_PLAN + widgetId)
                 .remove(CURSOR + widgetId)
                 .remove(RECEIPT + widgetId)
-                .commit();
+                .apply();
     }
 }

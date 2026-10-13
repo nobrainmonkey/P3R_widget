@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Initial layout of both widgets, shown only until the provider's first (background) render. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widget_loading_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_surface_day"
-    android:clipToOutline="true">
+    android:clipToOutline="true"
+    tools:ignore="UnusedAttribute">
 
     <ImageView
         android:layout_width="match_parent"
@@ -37,6 +39,7 @@
                 android:text="P3R"
                 android:textColor="#FFFFFFFF"
                 android:textSize="27dp"
+                tools:ignore="SpUsage"
                 android:textStyle="bold|italic" />
         </LinearLayout>
 
