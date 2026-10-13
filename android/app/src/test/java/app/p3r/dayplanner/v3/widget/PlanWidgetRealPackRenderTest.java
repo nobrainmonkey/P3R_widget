@@ -36,7 +36,8 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * Plans with the shipped rule pack and renders the steps with the longest real engine wording of
- * every kind (and every step with side steps or a reminder) at the small and default widget sizes,
+ * every kind (and every step with side steps or a reminder) from the smallest resize (130dp high)
+ * to the default widget sizes,
  * into $p3r.qa.dir/v3/widget/real. Fails on clipped text, a starved location or internal words.
  */
 @RunWith(RobolectricTestRunner.class)
@@ -44,7 +45,7 @@ import static org.junit.Assert.assertTrue;
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class PlanWidgetRealPackRenderTest {
     private static final int ID = 57;
-    private static final int[][] SIZES = {{180, 150}, {250, 160}, {320, 200}};
+    private static final int[][] SIZES = {{180, 130}, {180, 150}, {250, 130}, {250, 160}, {320, 200}};
     /** Words the widget itself must never show (the engine's own why-lines are checked by the engine). */
     private static final String[] INTERNAL = {"act:", "meet:", "unlock:", "tower:", "locked:", "note:", "episode:",
             "null", "Lv.6", "Persona", "FREE", "剧情安排，", "加深关系", "自由时间", "预计 +"};

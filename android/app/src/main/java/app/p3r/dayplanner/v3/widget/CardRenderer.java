@@ -126,6 +126,14 @@ public final class CardRenderer {
         return innerWidthDp - titleIconDp(size) - TITLE_ICON_GAP_DP;
     }
 
+    /** Height (dp) of the first {@code lines} lines of the bold title at {@code sp} wrapped to {@code widthDp}. */
+    static float titleHeightDp(Context c, String title, float sp, float widthDp, int lines) {
+        if (isBlank(title)) return 0;
+        StaticLayout layout = layout(c, title, sp, Typeface.DEFAULT_BOLD, widthDp, Integer.MAX_VALUE, 0f);
+        int last = Math.max(0, Math.min(lines, layout.getLineCount()) - 1);
+        return layout.getLineBottom(last) / c.getResources().getDisplayMetrics().density;
+    }
+
     /**
      * Lines the title will take in a box {@code boxDp} high, following the layout's autosize: the
      * largest size from {@link #maxTitleSp} down to {@link #MIN_TITLE_SP} whose text fits the box
@@ -389,9 +397,17 @@ public final class CardRenderer {
             fitted.cue = null;
             cue = 0;
         }
+        // On the shortest cards even the smallest title may not fit all its lines: keep the lines that
+        // fit and let the last one end in "…" rather than be cut in half.
+        float box = body - dialogue - meta - hint - side - cue;
+        int fitLines = lines;
+        while (fitLines > 1 && titleHeightDp(c, fitted.title, MIN_TITLE_SP, titleWidth, fitLines) > box) fitLines--;
+        if (fitLines != fitted.titleMaxLines) {
+            if (fitted == model) fitted = fitted.copy();
+            fitted.titleMaxLines = fitLines;
+        }
         // A kind mark sits on the title's first line: a title that will wrap hangs from the top.
-        boolean top = hasTitleIcon(fitted)
-                && titleLines(c, fitted.title, size, titleWidth, body - dialogue - meta - hint - side - cue, lines) > 1;
+        boolean top = hasTitleIcon(fitted) && titleLines(c, fitted.title, size, titleWidth, box, fitLines) > 1;
         if (top != fitted.titleTop) {
             if (fitted == model) fitted = fitted.copy();
             fitted.titleTop = top;

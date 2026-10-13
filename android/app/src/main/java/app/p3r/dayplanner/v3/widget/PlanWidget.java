@@ -34,8 +34,9 @@ import app.p3r.dayplanner.v3.service.PlannerApi;
  * SQLite read, outcome write or RemoteViews build ever runs on the main thread.
  *
  * <p>Safety: a direct record only happens when the tapped intent's plan id, state revision, slot and
- * action all still match the latest snapshot, and it uses a stable command id, so a stale or doubled
- * tap can never record twice; it only refreshes the widget.
+ * action all still match the latest snapshot, and it uses a command id derived from all four, so a
+ * stale or doubled tap can never record twice; it only refreshes the widget. An undo tap within
+ * {@link PlanView#UNDO_ARM_MS} of the record is the second half of a double tap and is ignored.
  */
 public class PlanWidget extends AppWidgetProvider {
     private static final String TAG = "P3RPlanWidget";
