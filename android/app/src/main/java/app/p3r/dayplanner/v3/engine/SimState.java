@@ -44,6 +44,13 @@ public final class SimState {
     public int[] shifts = new int[0];
     /** Times used per activity index (for once-only activities). */
     public int[] used = new int[0];
+    /**
+     * Player-reported rank holds: {@code heldRank[L] = r} means the game said link L cannot rank up
+     * into rank r for now ("游戏提示暂时无法升级"). Meetings still add points (up to the threshold)
+     * but the forecast never ranks the link up past {@code r-1} until the player reports progress
+     * (a rank-up or a ready cue; a checkpoint that changes the rank should clear it). 0 = no hold.
+     */
+    public int[] heldRank = new int[LINKS];
 
     public SimState() {
         Arrays.fill(lastStepDay, -1);
@@ -73,6 +80,7 @@ public final class SimState {
         s.floor = floor;
         s.shifts = shifts.clone();
         s.used = used.clone();
+        s.heldRank = heldRank.clone();
         return s;
     }
 
@@ -95,6 +103,7 @@ public final class SimState {
         o.put("floor", floor);
         o.put("shifts", arr(shifts));
         o.put("used", arr(used));
+        o.put("heldRank", arr(heldRank));
         return o;
     }
 
@@ -119,6 +128,7 @@ public final class SimState {
         s.shifts = ints(sh, sh == null ? 0 : sh.length());
         JSONArray us = o.optJSONArray("used");
         s.used = ints(us, us == null ? 0 : us.length());
+        s.heldRank = ints(o.optJSONArray("heldRank"), LINKS);
         return s;
     }
 
