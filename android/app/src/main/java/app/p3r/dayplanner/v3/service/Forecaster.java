@@ -30,7 +30,15 @@ public interface Forecaster {
         return out;
     }
 
-    /** {@link Engine#legalActions}, {@link Engine#apply} and {@link Engine#advanceTo}. */
+    /**
+     * Fully labelled alternatives for {@code state.slot}, most useful first, or null when this
+     * forecaster has none of its own (the service then labels {@link #legalActions} itself).
+     */
+    default List<app.p3r.dayplanner.v3.engine.Plan.Step> alternatives(Rules rules, Profile profile, SimState state) {
+        return null;
+    }
+
+    /** {@link Engine#legalActions}, {@link Engine#apply}, {@link Engine#advanceTo} and {@link Engine#alternatives}. */
     Forecaster ENGINE = new Forecaster() {
         @Override
         public List<Action> legalActions(Rules rules, Profile profile, SimState state) {
@@ -45,6 +53,11 @@ public interface Forecaster {
         @Override
         public SimState advanceTo(Rules rules, Profile profile, SimState state, int slot) {
             return Engine.advanceTo(rules, profile, state, slot);
+        }
+
+        @Override
+        public List<app.p3r.dayplanner.v3.engine.Plan.Step> alternatives(Rules rules, Profile profile, SimState state) {
+            return Engine.alternatives(rules, profile, state);
         }
     };
 }

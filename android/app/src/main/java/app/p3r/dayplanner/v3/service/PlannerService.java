@@ -344,6 +344,11 @@ public final class PlannerService implements PlannerApi {
         Profile profile = v.profile.copy();
         try {
             SimState state = forecastUntil(rules, profile, v.observed.copy(), m.plan, slot);
+            // The engine labels its alternatives exactly like plan steps and orders them by value.
+            List<Plan.Step> labelled = wiring.forecaster.alternatives(rules, profile, state);
+            if (labelled != null) {
+                return labelled;
+            }
             List<Plan.Step> out = new ArrayList<>();
             for (Action action : wiring.forecaster.legalActions(rules, profile, state)) {
                 if (!action.isProductive()) {

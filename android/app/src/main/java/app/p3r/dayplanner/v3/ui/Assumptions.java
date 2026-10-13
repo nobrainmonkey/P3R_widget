@@ -26,6 +26,7 @@ public final class Assumptions {
         put("打工收入按最低档工资估计，实际可能更多。", "job_pay_minimum", "job_min_pay");
         put("塔尔塔罗斯的收入按你最近几次的记录估计。", "tower_income_estimate", "tower_income");
         put("假定这次进塔能顺利救出失踪者。", "rescue_on_visit", "rescue");
+        TEXT.put("dating_note_gain", "结缘网站的字条按每次 +10 点估计，不计人格面具和魅力加成。");
         TEXT.put("invite", "这是假日邀约，接受后会占用白天。");
         TEXT.put("stat_lower_bound", "个人能力值按当前等级的最低点数估计。");
         put("剧情推进前这个社群暂时升不了，这次只加点数。", "rank_hold", "hold");

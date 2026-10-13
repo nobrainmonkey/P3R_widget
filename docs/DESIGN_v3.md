@@ -361,3 +361,11 @@ GitHub release asset.
 4. Backup checkpoints and events may carry `rulesVersion`.
 5. Replay applies each row at its own slot, skips locked slots only after the last row, and moves time only through `Engine.advanceTo` (same day rollover as the forecast).
 6. Rescue inference at checkpoint time: if a rescue window ended before the checkpoint date, the player did not answer, and the linked Social Link's rank ≥ 1, it counts as rescued; only an explicit 没救出 sets `rescueFailed`.
+
+## 12. Round 2 engine notes
+
+- Objective adds 2,500 per Link Episode watched in an opted-in track plus 4,000 for finishing the track; dating-site notes affect the objective only through ranks and cash.
+- Persona bonus is per link: `Profile.personaFor(link)` (modes NONE / GOALS / ALL); a meeting computed with it carries `hintZh` 「记得带上「X」阿尔卡那的人格面具」.
+- Daytime-waste margin is one RANK of a non-goal link; the 16 plan variants are compared by objective minus that margin per wasted daytime slot; candidate types include the best dating-site note and the next Link Episode.
+- 改做别的 comes from `Engine.alternatives` (labelled like plan steps, ordered by the objective after each action).
+- Measured on the real pack (desktop JVM, default options, 0.55–0.70 s): new game Persona ALL 22/22 MAX; no Persona 22/22 (21/22 with notes off); 皇帝 MUST 21/22 with 皇帝 MAX 6/29; mid game 10/22 12/22; all five Link Episode tracks complete when opted in.
