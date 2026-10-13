@@ -162,6 +162,7 @@ public class PlannerWidget extends AppWidgetProvider {
         boolean canComplete = task != null && task.isCheckable();
         m.title = task == null ? "暂无任务" : task.widgetTitle;
         m.location = task == null || task.locationLabel.isEmpty() ? null : locationText(task.locationLabel);
+        m.guideText = true; // names, places and words stay whole when the title wraps
         m.titleMaxLines = size == WidgetSize.COMPACT ? 2 : 3;
         String choices = task == null ? "" : dialogueText(task);
         String shownChoices = choices.isEmpty() ? null : fitChoices(c, task, width, height, choices, m);
@@ -209,12 +210,19 @@ public class PlannerWidget extends AppWidgetProvider {
     /**
      * The choices as the card shows them, or null when they do not fit (the cue then points to the
      * app). Choices matter more than body padding, and more than the location on a tiny card. They
-     * wrap only between whole choices ({@link CardText#choices}) where that fits; otherwise inside a
-     * choice, but never leaving its 「（1）」 or a slash alone at a line start ({@link CardText#choicesLoose}).
+     * wrap only between whole choices ({@link CardText#choices}) where that fits and every choice fits a
+     * line; otherwise inside a choice, but never leaving its 「（1）」, its last character or a slash alone
+     * at a line start, and after the 「或者」 of two alternatives if that fits ({@link CardText#choicesLoose}).
      * Sets {@code m.tightBody} and drops {@code m.location} as needed.
      */
     private static String fitChoices(Context c, PlannerStore.Task task, float width, float height, String choices, CardModel m) {
-        String[] shapes = {CardText.choices(choices), CardText.choicesLoose(choices)};
+        float innerWidth = width - 2 * CardRenderer.bodyPaddingDp(WidgetSize.of(width, height));
+        List<String> shapes = new java.util.ArrayList<>();
+        // A choice wider than the card cannot stay whole: the line breaker would cut it anywhere.
+        if (CardRenderer.choicesFitWhole(c, choices, innerWidth)) shapes.add(CardText.choices(choices));
+        shapes.add(CardText.choicesLoose(choices));
+        String looser = CardText.choicesLoose(choices, false);
+        if (!shapes.contains(looser)) shapes.add(looser);
         for (boolean keepLocation : new boolean[]{true, false}) {
             for (String shaped : shapes) {
                 for (boolean tight : keepLocation ? new boolean[]{false, true} : new boolean[]{true}) {
@@ -244,9 +252,11 @@ public class PlannerWidget extends AppWidgetProvider {
         WidgetSize size = WidgetSize.of(width, height);
         float innerWidth = width - 2 * CardRenderer.bodyPaddingDp(size);
         CardModel rows = new CardModel();
-        rows.location = keepLocation && !task.locationLabel.isEmpty() ? task.locationLabel : null;
+        rows.location = keepLocation && !task.locationLabel.isEmpty() ? locationText(task.locationLabel) : null;
         rows.cue = task.dialogueCue.isEmpty() ? null : task.dialogueCue;
-        float needed = CardRenderer.textHeightDp(c, task.widgetTitle, CardRenderer.MIN_TITLE_SP, true, innerWidth, 3)
+        // The title as the card wraps it (words whole), so it is measured with the same line breaks.
+        String title = CardRenderer.guideTitle(task.widgetTitle, rows.location);
+        float needed = CardRenderer.textHeightDp(c, title, CardRenderer.MIN_TITLE_SP, true, innerWidth, 3)
                 + 3 + CardRenderer.textHeightDp(c, choices, 12, false, innerWidth, 20, 1)
                 + CardRenderer.metaRowHeightDp(c, rows, size)
                 + CardRenderer.cueRowHeightDp(c, rows, size);

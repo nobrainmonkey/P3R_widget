@@ -33,6 +33,7 @@ import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.model.RulesLoader;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -182,5 +183,42 @@ public class PlanWidgetRealPackRenderTest {
         assertTrue("nothing rendered", rendered > 0);
         assertTrue("no card showed the guide answers of a meeting", answers > 0);
         assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
+    /**
+     * Re-audit: the note's how-to says 「结缘网站的字条」 in full (never 「买字条」), and still fits one line
+     * of the 250-wide card, where the location row already says where it is sold.
+     */
+    @Test
+    public void theNoteHowToUsesTheFullNameAndFitsOneLine() throws Exception {
+        Rules rules = loadPack();
+        Assume.assumeTrue("rule pack not available", rules != null);
+        Plan plan = Engine.plan(rules, new Profile(), start(rules, dayOf(rules, 4, 21)), null, new Engine.Options());
+        int checked = 0;
+        for (Plan.Step step : plan.steps) {
+            if (!"note".equals(step.kind) && (step.action == null || !step.action.startsWith("note:"))) continue;
+            FakePlannerApi fake = new FakePlannerApi();
+            fake.rules = rules;
+            fake.plan = plan;
+            fake.observed = start(rules, Rules.dayOf(step.slot));
+            fake.observed.slot = step.slot;
+            WidgetApi.setOverrideForTest(fake);
+            app.getSharedPreferences(WidgetPrefs.PREFS, 0).edit().clear().commit();
+            for (int[] size : new int[][]{{250, 160}, {320, 200}}) {
+                PlanWidget.Loaded loaded = PlanWidget.load(app, ID);
+                CardModel model = loaded.view.toCard(loaded.rules);
+                View root = RenderSupport.layout(app, PlanWidget.card(app, ID, loaded.view, model, size[0], size[1]), size[0], size[1]);
+                String tag = "note-" + step.slot + "-" + size[0] + "x" + size[1];
+                TextView cue = root.findViewById(R.id.widget_detail_cue);
+                if (cue.getVisibility() != View.VISIBLE || !CardText.plain(cue.getText().toString()).equals(StepCopy.NOTE_HOW)) continue;
+                RenderSupport.save(root, RenderSupport.outputDir("real"), tag);
+                assertEquals(tag + " ends in …", 0, cue.getLayout().getEllipsisCount(cue.getLineCount() - 1));
+                assertTrue(CardText.plain(((TextView) root.findViewById(R.id.widget_location)).getText().toString()).contains("放纵俱乐部"));
+                checked++;
+            }
+            if (checked >= 2) break;
+        }
+        assertTrue("no note card showed the how-to", checked > 0);
+        assertTrue(StepCopy.NOTE_HOW.contains("结缘网站的字条"));
     }
 }

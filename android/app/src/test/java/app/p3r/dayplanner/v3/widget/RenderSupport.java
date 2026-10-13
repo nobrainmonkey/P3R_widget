@@ -146,6 +146,81 @@ final class RenderSupport {
         collectSplits(dialogue, tag + " dialogue", issues);
     }
 
+    /**
+     * A shaped free-form title (the legacy guide, {@link CardText#guide}) never wraps inside a word it
+     * keeps whole: no line ends or starts at a word joiner, unless the unbreakable run there is wider
+     * than the title (the line breaker had to cut it).
+     */
+    static void collectJoinerBreaks(View root, String tag, List<String> issues) {
+        TextView title = root.findViewById(app.p3r.dayplanner.R.id.widget_task);
+        if (title == null || title.getVisibility() != View.VISIBLE || title.getLayout() == null) return;
+        android.text.Layout layout = title.getLayout();
+        String s = title.getText().toString();
+        for (int line = 0; line < layout.getLineCount() - 1; line++) {
+            if (layout.getEllipsisCount(line) > 0) continue;
+            int start = layout.getLineStart(line);
+            int end = layout.getLineEnd(line);
+            boolean inside = (end > 0 && s.charAt(end - 1) == CardText.WJ) || (end < s.length() && s.charAt(end) == CardText.WJ);
+            if (inside && !forcedBreak(title, end)) {
+                issues.add(tag + " title splits a word: '" + CardText.plain(s.substring(start, end)) + "' / '"
+                        + CardText.plain(s.substring(end)) + "'");
+            }
+        }
+    }
+
+    /** The visible lines of a title, joined with 「/」 (for reports). */
+    static String lines(TextView text) {
+        if (text == null || text.getLayout() == null) return "";
+        android.text.Layout layout = text.getLayout();
+        String s = text.getText().toString();
+        StringBuilder out = new StringBuilder();
+        for (int line = 0; line < layout.getLineCount(); line++) {
+            if (line > 0) out.append(" / ");
+            out.append(CardText.plain(s.substring(layout.getLineStart(line), layout.getLineEnd(line))).trim());
+        }
+        return out.toString();
+    }
+
+    /**
+     * Whether a line break at offset {@code at} of a shaped text falls inside a run of characters
+     * linked by word joiners (or no-break spaces) that is wider than the text box: the line breaker
+     * had no choice but to cut it.
+     */
+    static boolean forcedBreak(TextView text, int at) {
+        String s = text.getText().toString();
+        int from = at;
+        while (from > 0 && linked(s, from)) from = previousVisible(s, from);
+        int to = at;
+        while (to < s.length() && linked(s, to)) to = nextVisible(s, to);
+        String run = CardText.plain(s.substring(from, to));
+        return text.getPaint().measureText(run) > text.getLayout().getWidth();
+    }
+
+    /** Whether the visible characters on both sides of offset {@code k} are kept together. */
+    private static boolean linked(String s, int k) {
+        int before = k - 1;
+        while (before >= 0 && s.charAt(before) == CardText.WJ) before--;
+        int after = k;
+        while (after < s.length() && s.charAt(after) == CardText.WJ) after++;
+        if (before < 0 || after >= s.length()) return false;
+        boolean joiner = after > before + 1;
+        return joiner || s.charAt(before) == CardText.NBSP || s.charAt(after) == CardText.NBSP;
+    }
+
+    /** Offset of the start of the visible character before offset {@code k}. */
+    private static int previousVisible(String s, int k) {
+        int i = k - 1;
+        while (i > 0 && s.charAt(i) == CardText.WJ) i--;
+        return i;
+    }
+
+    /** Offset just after the visible character at or after offset {@code k}. */
+    private static int nextVisible(String s, int k) {
+        int i = k;
+        while (i < s.length() && s.charAt(i) == CardText.WJ) i++;
+        return Math.min(s.length(), i + 1);
+    }
+
     private static void collectSplits(TextView text, String tag, List<String> issues) {
         if (text == null || text.getVisibility() != View.VISIBLE || text.getLayout() == null) return;
         android.text.Layout layout = text.getLayout();

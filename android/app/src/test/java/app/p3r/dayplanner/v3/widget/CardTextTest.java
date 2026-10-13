@@ -89,6 +89,79 @@ public class CardTextTest {
         assertEquals("皇帝 · 小田桐秀利", CardText.keepNumbersTogether("皇帝 · 小田桐秀利"));
     }
 
+    @Test
+    public void guideTextKeepsNamesPlacesAndNumbersWhole() {
+        // Re-audit: the legacy guide card wrapped as 「交给伊莉莎/白」 and 「委托/11」.
+        String text = "收集12种饮料交给伊莉莎白，接取委托11";
+        String shaped = CardText.guide(text, CardText.locationWords("桐叶购物中心 · 天鹅绒房间"));
+        assertEquals(text, CardText.plain(shaped));
+        assertTrue(shaped.contains("伊" + WJ + "莉" + WJ + "莎" + WJ + "白"));
+        assertTrue("「委托11」 stays whole", shaped.contains("委" + WJ + "托" + WJ + "1" + WJ + "1"));
+        assertTrue("a number keeps its counter and the word before it", shaped.contains("集" + WJ + "1" + WJ + "2" + WJ + "种"));
+        assertTrue("it may still wrap between words", shaped.contains("给伊") && shaped.contains("，接"));
+
+        String velvet = CardText.guide("派出所旁小巷进入天鹅绒房间，确认人格面具合成功能", null);
+        assertTrue(velvet.contains("天" + WJ + "鹅" + WJ + "绒" + WJ + "房" + WJ + "间"));
+        assertTrue(velvet.contains("人" + WJ + "格" + WJ + "面" + WJ + "具"));
+
+        String rank = CardText.guide("和教室的友近对话 · 魔术师→RANK2", CardText.locationWords("学园"));
+        assertTrue("「魔术师→RANK2」 stays whole", rank.contains("魔" + WJ + "术" + WJ + "师" + WJ + "→" + WJ + "R"));
+        assertTrue(rank.contains("话" + NBSP + "· 魔"));
+
+        assertTrue("a name the dictionary splits stays whole",
+                CardText.guide("和山岸风花一起看书，学力+♪", null).contains("山" + WJ + "岸" + WJ + "风" + WJ + "花"));
+        assertTrue("「+♪」 stays with its stat", CardText.guide("和山岸风花一起看书，学力+♪", null).contains("力" + WJ + "+" + WJ + "♪"));
+        assertTrue(CardText.guide("喷泉前与西装男对话，交1万日元（恶魔前置3）", null).contains("1" + WJ + "万" + WJ + "日" + WJ + "元"));
+        assertTrue(CardText.guide("电视购物 · 名牌钱包+香水，6980日元", null).contains("6" + WJ + "9" + WJ + "8" + WJ + "0" + WJ + "日" + WJ + "元"));
+        assertTrue("a short “…” name stays whole",
+                CardText.guide("用公用电脑学习“山间补习班”，学力升级LV2", null).contains("“" + WJ + "山" + WJ + "间"));
+        assertTrue(CardText.guide("探索塔，愚者LV2", null).contains("者" + WJ + "L" + WJ + "V" + WJ + "2"));
+    }
+
+    @Test
+    public void aPlusBetweenTwoThingsToBuyStartsTheNextOne() {
+        // Joined to both sides, 「汽水10个+莫乐蜜G20个，」 was one run wider than the small card, which the
+        // line breaker then cut as 「同位素汽水」/「10个+…」. The 「+」 goes with the next item instead.
+        String shaped = CardText.guide("电视购物 · 同位素汽水10个+莫乐蜜G20个，3980日元", null);
+        assertTrue(shaped.contains("个+" + WJ + "莫"));
+        assertFalse("a line may break before the 「+」", shaped.contains("个" + WJ + "+"));
+        assertTrue("the count stays with its item", shaped.contains("水" + WJ + "1" + WJ + "0" + WJ + "个"));
+        assertTrue(CardText.guide("电视购物 · 名牌钱包+香水，6980日元", null).contains("包+" + WJ + "香"));
+        // A stat bonus keeps its 「+」 (「学力+♪」, 「勇气+2」, a 「+」 at the end).
+        assertTrue(CardText.guide("看书，学力+♪", null).contains("力" + WJ + "+" + WJ + "♪"));
+        assertTrue(CardText.guide("吃饭，勇气+2", null).contains("气" + WJ + "+" + WJ + "2"));
+        assertTrue(CardText.guide("吃饭，勇气+", null).endsWith("气" + WJ + "+"));
+    }
+
+    @Test
+    public void looseChoicesNeverLeaveOneCharacterAloneAndWrapAfterAlternatives() {
+        // Re-audit render: 「我也去看看吧或者我在这里等」/「她 / 任意 / …」 on the 180x160 card.
+        String shaped = CardText.choicesLoose("我也去看看吧或者我在这里等她 / 任意 / 真担心啊（3）");
+        assertEquals("我也去看看吧或者我在这里等她 / 任意 / 真担心啊（3）", CardText.plain(shaped));
+        assertTrue("each alternative stays whole", shaped.contains("我" + WJ + "也" + WJ + "去" + WJ + "看" + WJ + "看" + WJ
+                + "吧" + WJ + "或" + WJ + "者我" + WJ + "在" + WJ + "这" + WJ + "里" + WJ + "等" + WJ + "她"));
+        assertTrue("its count stays with the last character", shaped.contains("啊" + WJ + "（" + WJ + "3" + WJ + "）"));
+        String question = CardText.choicesLoose("你说得对 / 不是或者什么意思？");
+        assertTrue(question.contains("意" + WJ + "思" + WJ + "？"));
+        assertTrue(question.contains("对" + NBSP + "/ "));
+        String longer = CardText.choicesLoose("不去看汉堡堆成的山并继续吃");
+        assertTrue("the last two characters stay together", longer.endsWith("继续" + WJ + "吃"));
+        assertFalse("but the rest may wrap", longer.startsWith("不" + WJ));
+        assertEquals(shaped, CardText.choicesLoose(shaped));
+    }
+
+    @Test
+    public void guideShapingTwiceChangesNothing() {
+        for (String text : Arrays.asList("收集12种饮料交给伊莉莎白，接取委托11", "和教室的友近对话 · 魔术师→RANK2",
+                "10/13 期中考试：选择「成瘾症状（Addiction）」", "课堂 · 鲤鱼旗（3）。魅力+♪", "考试 · 选择 May Blues",
+                "桐叶购物中心 · 天鹅绒房间；宿舍2楼 / 3楼、严户台")) {
+            String once = CardText.guide(text, CardText.locationWords("桐叶购物中心 · 天鹅绒房间"));
+            assertEquals(text, CardText.plain(once));
+            assertEquals(text, once, CardText.guide(once, CardText.locationWords("桐叶购物中心 · 天鹅绒房间")));
+        }
+        assertNull(CardText.guide(null, null));
+    }
+
     /** Plain spaces left in the text: the only places a line may break besides opening brackets. */
     private static int breakableSpaces(String s) {
         int n = 0;

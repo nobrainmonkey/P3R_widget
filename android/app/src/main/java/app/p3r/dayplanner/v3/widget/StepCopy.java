@@ -21,8 +21,12 @@ final class StepCopy {
     static final String EPISODE_TITLE = "羁绊剧情";
     static final String FREE_TITLE = "自由活动";
     static final String TOWER_TITLE = "探索塔尔塔罗斯";
-    /** How the note is used, for the cue line (the title and chip already say who and what for). */
-    static final String NOTE_HOW = "在放纵俱乐部买字条，当晚回宿舍用公用电脑";
+    /**
+     * How the note is used, for the cue line (the title and chip already say who and what for, the
+     * location row where it is sold). The full name, as the glossary writes it, and short enough for
+     * one line of the 250-wide card.
+     */
+    static final String NOTE_HOW = "买结缘网站的字条，当晚回宿舍用公用电脑";
 
     /** "RANK 6 → 7", "RANK 9 → MAX", and the older "RANK 9 → RANK MAX". */
     private static final Pattern RANK_STEP = Pattern.compile("RANK\\s*(\\d+|MAX)\\s*→\\s*(?:RANK\\s*)?(\\d+|MAX)");

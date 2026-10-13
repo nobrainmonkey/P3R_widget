@@ -68,10 +68,18 @@ public final class Zh {
         return date.getMonthValue() + "月" + date.getDayOfMonth() + "日";
     }
 
-    /** "10/22" — the numeral form used on date plates. */
+    /**
+     * "10/22" — the numeral form of the big date plates ({@link DatePlate}) only. Body and list text
+     * writes {@link #date} (「10月22日」), {@link #dayAndWeekday} or {@link #slot}.
+     */
     public static String shortDate(int day) {
         LocalDate date = dateOf(day);
         return date.getMonthValue() + "/" + date.getDayOfMonth();
+    }
+
+    /** "4月22日 周三": a day header in a list. */
+    public static String dayAndWeekday(int day) {
+        return date(day) + " " + weekdayOf(day);
     }
 
     /** "周四" for ISO weekday 1..7. */

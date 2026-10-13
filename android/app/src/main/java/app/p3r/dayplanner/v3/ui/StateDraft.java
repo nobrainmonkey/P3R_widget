@@ -553,7 +553,8 @@ public final class StateDraft {
             return summaryForFirstRun(after);
         }
         if (before.slot != after.slot) {
-            out.add(new Change("日期", shortSlot(before.slot), shortSlot(after.slot)));
+            // 「10月25日 白天」, as in the rest of the app's text (M/D is for date plates only).
+            out.add(new Change("日期", Zh.slot(rules, before.slot), Zh.slot(rules, after.slot)));
         }
         if (before.cash != after.cash || before.cashExact != after.cashExact) {
             out.add(new Change("现金", cashText(before), cashText(after)));
@@ -689,11 +690,6 @@ public final class StateDraft {
             text.append(text.length() > 0 ? " · " : "").append("想要 ").append(want);
         }
         return text.toString();
-    }
-
-    /** "10/25 白天" — compact enough for one line in the diff. */
-    private String shortSlot(int slot) {
-        return Zh.shortDate(Rules.dayOf(slot)) + " " + Zh.period(rules, slot);
     }
 
     private static String cashText(SimState s) {

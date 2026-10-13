@@ -508,7 +508,7 @@ final class TodayPage {
                 dayCard = Ui.column(c);
                 dayCard.setBackground(Ui.card(c));
                 Ui.pad(dayCard, 14, 8, 12, 6);
-                String head = day == firstDay ? "今天" : Zh.shortDate(day) + " " + Zh.weekdayOf(day);
+                String head = day == firstDay ? "今天" : Zh.dayAndWeekday(day);
                 TextView dayLabel = Ui.mixed(c, head, 13, Ui.col(c, R.color.p3r_cyan_300), true);
                 dayCard.addView(dayLabel);
                 box.addView(dayCard, spaced(8));
