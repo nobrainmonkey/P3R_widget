@@ -28,7 +28,7 @@ import static org.junit.Assert.*;
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class WidgetDialogueRenderTest {
  private Context c;private JSONObject metadata;
- private final File output=new File("/workspace/shared/p3r_dialogue_qa");
+ private final File output=new File(System.getProperty("p3r.qa.dir","build/qa")+"/p3r_dialogue_qa");
  @Before public void setup()throws Exception {
   c=RuntimeEnvironment.getApplication();
   c.getSharedPreferences("p3r_native_progress_v1",0).edit().clear().commit();

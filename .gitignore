@@ -14,3 +14,4 @@ qa_out/
 __pycache__/
 *.pyc
 local_state.sqlite
+.signing/

@@ -26,7 +26,7 @@ import static org.junit.Assert.*;
 public class WidgetNativeRenderTest {
     private Context c;private static final int W=73;
     private final List<String> buttonIssues=new ArrayList<>(),buttonMetrics=new ArrayList<>();
-    private final File output=new File("/workspace/shared/p3r_native_final_qa");
+    private final File output=new File(System.getProperty("p3r.qa.dir","build/qa")+"/p3r_native_final_qa");
     @Before public void clean(){c=RuntimeEnvironment.getApplication();c.getSharedPreferences("p3r_native_progress_v1",0).edit().clear().commit();output.mkdirs();}
     private View render(String id,int width,int height,String tag)throws Exception{
         PlannerStore.setWidgetCursor(c,W,id);

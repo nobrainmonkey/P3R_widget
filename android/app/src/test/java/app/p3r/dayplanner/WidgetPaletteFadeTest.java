@@ -92,10 +92,10 @@ public class WidgetPaletteFadeTest {
    org.robolectric.util.ReflectionHelpers.setField(attach,"mDrawingTime",time);
    android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(500,400,android.graphics.Bitmap.Config.ARGB_8888);
    root.draw(new android.graphics.Canvas(bitmap));pixels[index]=bitmap.getPixel(250,160);
-   try(java.io.FileOutputStream file=new java.io.FileOutputStream("/workspace/shared/p3r_native_final_qa/fade-frame-"+index+".png")){bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,file);}
+   try(java.io.FileOutputStream file=new java.io.FileOutputStream(System.getProperty("p3r.qa.dir","build/qa")+"/p3r_native_final_qa/fade-frame-"+index+".png")){bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,file);}
    index++;
   }
-  java.nio.file.Files.write(java.nio.file.Paths.get("/workspace/shared/p3r_native_final_qa/fade-frame-pixels.txt"),java.util.Arrays.asList(java.util.Arrays.toString(pixels)));
+  java.nio.file.Files.write(java.nio.file.Paths.get(System.getProperty("p3r.qa.dir","build/qa")+"/p3r_native_final_qa/fade-frame-pixels.txt"),java.util.Arrays.asList(java.util.Arrays.toString(pixels)));
   assertEquals("Outgoing card is opaque at start",255,android.graphics.Color.alpha(pixels[0]));
   assertNotEquals("Start differs from midpoint",pixels[0],pixels[1]);
   assertNotEquals("Midpoint differs from end",pixels[1],pixels[2]);

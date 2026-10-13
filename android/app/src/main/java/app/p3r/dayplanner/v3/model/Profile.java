@@ -1,0 +1,122 @@
+package app.p3r.dayplanner.v3.model;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.Arrays;
+
+/**
+ * Player goals and planning options (persisted as JSON in the {@code profile} table).
+ * Pure data; defaults follow docs/DESIGN_v3.md §5–7.
+ */
+public final class Profile {
+    public enum Tier { NONE, WANT, MUST }
+    public enum AnswerPolicy { BEST, NONE }
+    public enum Route { UNDECIDED, FRIEND, ROMANCE }
+
+    public static final int LINKS = 22;
+
+    /** Goal tier per link index. */
+    public Tier[] tier = new Tier[LINKS];
+    /** Order within tier (lower = more important); only meaningful for WANT/MUST. */
+    public int[] order = new int[LINKS];
+    /** Target rank per link (default 10 = MAX). */
+    public int[] target = new int[LINKS];
+    public Route[] route = new Route[LINKS];
+
+    /** "其余社群也尽量提升" — secondary optimisation of non-goal links. */
+    public boolean otherLinks = true;
+    /** Player declares they usually carry a matching-arcana Persona (×1.51). */
+    public boolean personaBonus = false;
+    /** Apply the Charm Lv6 ×1.51 bonus once (forecast) Charm reaches Lv6. */
+    public boolean charmBonus = true;
+    /** Explicit goals get one extra ordinary meeting of margin per point-gated rank. */
+    public boolean goalBuffer = true;
+    public AnswerPolicy answers = AnswerPolicy.BEST;
+    /** Desired Tartarus visits in each block (scheduled as requirements). */
+    public int towerVisitsPerBlock = 2;
+    /** Hard cap of Tartarus visits per block (≥ towerVisitsPerBlock). */
+    public int towerCapPerBlock = 4;
+    /** Keep at least this much cash when choosing optional purchases. */
+    public int cashBuffer = 0;
+    /** Activity ids the player does not want scheduled. */
+    public String[] excludedActivities = new String[0];
+
+    public Profile() {
+        Arrays.fill(tier, Tier.NONE);
+        Arrays.fill(target, 10);
+        Arrays.fill(route, Route.UNDECIDED);
+    }
+
+    public boolean isGoal(int link) { return tier[link] != Tier.NONE; }
+
+    public boolean hasAnyGoal() {
+        for (Tier t : tier) if (t != Tier.NONE) return true;
+        return false;
+    }
+
+    public boolean excluded(String activityId) {
+        for (String s : excludedActivities) if (s.equals(activityId)) return true;
+        return false;
+    }
+
+    public Profile copy() {
+        try { return fromJson(toJson()); } catch (JSONException e) { throw new IllegalStateException(e); }
+    }
+
+    public JSONObject toJson() throws JSONException {
+        JSONObject o = new JSONObject();
+        JSONArray goals = new JSONArray();
+        for (int i = 0; i < LINKS; i++) {
+            JSONObject g = new JSONObject();
+            g.put("tier", tier[i].name());
+            g.put("order", order[i]);
+            g.put("target", target[i]);
+            g.put("route", route[i].name());
+            goals.put(g);
+        }
+        o.put("schema", "p3r.profile.v3");
+        o.put("links", goals);
+        o.put("otherLinks", otherLinks);
+        o.put("personaBonus", personaBonus);
+        o.put("charmBonus", charmBonus);
+        o.put("goalBuffer", goalBuffer);
+        o.put("answers", answers.name());
+        o.put("towerVisitsPerBlock", towerVisitsPerBlock);
+        o.put("towerCapPerBlock", towerCapPerBlock);
+        o.put("cashBuffer", cashBuffer);
+        JSONArray ex = new JSONArray();
+        for (String s : excludedActivities) ex.put(s);
+        o.put("excludedActivities", ex);
+        return o;
+    }
+
+    public static Profile fromJson(JSONObject o) throws JSONException {
+        Profile p = new Profile();
+        JSONArray goals = o.optJSONArray("links");
+        if (goals != null) {
+            for (int i = 0; i < Math.min(LINKS, goals.length()); i++) {
+                JSONObject g = goals.getJSONObject(i);
+                p.tier[i] = Tier.valueOf(g.optString("tier", "NONE"));
+                p.order[i] = g.optInt("order", 0);
+                p.target[i] = Math.max(1, Math.min(10, g.optInt("target", 10)));
+                p.route[i] = Route.valueOf(g.optString("route", "UNDECIDED"));
+            }
+        }
+        p.otherLinks = o.optBoolean("otherLinks", true);
+        p.personaBonus = o.optBoolean("personaBonus", false);
+        p.charmBonus = o.optBoolean("charmBonus", true);
+        p.goalBuffer = o.optBoolean("goalBuffer", true);
+        p.answers = AnswerPolicy.valueOf(o.optString("answers", "BEST"));
+        p.towerVisitsPerBlock = Math.max(0, o.optInt("towerVisitsPerBlock", 2));
+        p.towerCapPerBlock = Math.max(p.towerVisitsPerBlock, o.optInt("towerCapPerBlock", 4));
+        p.cashBuffer = Math.max(0, o.optInt("cashBuffer", 0));
+        JSONArray ex = o.optJSONArray("excludedActivities");
+        if (ex != null) {
+            p.excludedActivities = new String[ex.length()];
+            for (int i = 0; i < ex.length(); i++) p.excludedActivities[i] = ex.getString(i);
+        }
+        return p;
+    }
+}

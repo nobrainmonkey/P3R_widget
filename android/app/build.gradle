@@ -1,39 +1,67 @@
 plugins { id 'com.android.application' }
 
+// Release signing: a private keystore kept in ../.signing (git-ignored, never published).
+def signingProps = new Properties()
+def signingFile = rootProject.file('../.signing/keystore.properties')
+if (signingFile.exists()) signingFile.withInputStream { signingProps.load(it) }
+
+// Shared, project-local test toolchain paths (work from git worktrees too).
+def toolchainDir = System.getenv('P3R_TOOLCHAIN') ? new File(System.getenv('P3R_TOOLCHAIN')) : rootProject.file('../.toolchain')
+def qaDir = System.getenv('P3R_QA_DIR') ? new File(System.getenv('P3R_QA_DIR')) : rootProject.file('../qa_out')
+
 android {
     namespace 'app.p3r.dayplanner'
     compileSdk 35
 
     defaultConfig {
-        applicationId 'app.p3r.dayplanner'
+        // v3 ships under a new package: the installed 2.0.0 (app.p3r.dayplanner.test) is signed with a
+        // certificate that is not available here, so an in-place update is impossible. See README.
+        applicationId 'app.p3r.planner'
         minSdk 26
         targetSdk 35
-        versionCode 11
-        versionName '2.0.1'
+        versionCode 30
+        versionName '3.0.0'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+    signingConfigs {
+        release {
+            if (signingProps['storeFile']) {
+                storeFile rootProject.file('../.signing/' + signingProps['storeFile'])
+                storePassword signingProps['storePassword']
+                keyAlias signingProps['keyAlias']
+                keyPassword signingProps['keyPassword']
+            }
+        }
+    }
     buildTypes {
         debug {
-            applicationIdSuffix '.test'
-            resValue 'string', 'app_name', 'P3R'
+            applicationIdSuffix '.debug'
         }
         release {
-            applicationIdSuffix '.test' // Preserve the installed package and progress.
-            resValue 'string', 'app_name', 'P3R'
             debuggable false
             minifyEnabled false
-            signingConfig signingConfigs.debug // Existing certificate: compatible private release update.
+            signingConfig signingProps['storeFile'] ? signingConfigs.release : signingConfigs.debug
         }
+    }
+    lint {
+        abortOnError true
+        checkReleaseBuilds true
     }
     testOptions {
         unitTests.includeAndroidResources = true
         unitTests.all {
-            systemProperty 'user.home', rootProject.file('../.toolchain/test-home').absolutePath
+            systemProperty 'user.home', new File(toolchainDir, 'test-home').absolutePath
             systemProperty 'robolectric.graphicsMode', 'NATIVE'
             systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+            systemProperty 'p3r.qa.dir', qaDir.absolutePath
+            maxHeapSize '3g'
+            doFirst {
+                new File(toolchainDir, 'test-home/.m2').mkdirs()
+                ['p3r_dialogue_qa', 'p3r_native_final_qa', 'v3/ui', 'v3/widget', 'v3/engine'].each { new File(qaDir, it).mkdirs() }
+            }
             ['https.proxyHost', 'https.proxyPort', 'http.proxyHost', 'http.proxyPort'].each { key ->
                 if (System.getProperty(key)) systemProperty key, System.getProperty(key)
             }
@@ -41,4 +69,9 @@ android {
     }
 }
 
-dependencies { testImplementation "junit:junit:4.13.2"; testImplementation "org.robolectric:robolectric:4.14.1" }
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.14.1'
+    // Real org.json for plain-JVM engine/rules tests (android.jar only has stubs).
+    testImplementation 'org.json:json:20240303'
+}

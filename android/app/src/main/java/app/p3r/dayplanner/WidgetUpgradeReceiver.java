@@ -9,7 +9,7 @@ public class WidgetUpgradeReceiver extends BroadcastReceiver {
     @Override public void onReceive(Context context, Intent intent) {
         if (intent != null && Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())) {
             PlannerWidget.refreshAll(context);
-            app.p3r.dayplanner.v2.GoalPlannerWidget.refreshAll(context);
+            app.p3r.dayplanner.v3.widget.PlanWidget.refreshAll(context);
         }
     }
 }

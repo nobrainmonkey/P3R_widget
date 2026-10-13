@@ -1,4 +1,7 @@
 <resources>
-    <string name="app_name">P3R 日程</string>
-    <string name="widget_description">自适应大小的游戏日期和待办。下一待办在桌面内切换。</string>
+    <string name="app_name">P3R 规划</string>
+    <string name="widget_description">游戏日期与下一步安排，在桌面上直接记录结果。</string>
+    <string name="plan_widget_label">P3R 每日安排</string>
+    <string name="guide_widget_label">P3R 固定攻略</string>
+    <string name="plan_widget_description">按你的目标排好的每日安排：显示下一步要做什么，点「完成」即可记录。</string>
 </resources>
