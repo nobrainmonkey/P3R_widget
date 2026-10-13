@@ -51,6 +51,7 @@ public class PlanWidgetBehaviourTest {
     private ShadowAppWidgetManager host;
     private int id;
     private final List<Runnable> scheduled = new ArrayList<>();
+    private final java.util.concurrent.atomic.AtomicLong clock = new java.util.concurrent.atomic.AtomicLong(1_700_000_000_000L);
 
     @Before
     public void setUp() {
@@ -59,6 +60,7 @@ public class PlanWidgetBehaviourTest {
         fake = new FakePlannerApi();
         WidgetApi.setOverrideForTest(fake);
         WidgetWorker.setForTest(Runnable::run, (task, delay) -> scheduled.add(task));
+        PlanWidget.setClockForTest(clock::get);
         host = shadowOf(AppWidgetManager.getInstance(app));
         id = host.createWidget(PlanWidget.class, R.layout.widget_loading);
         idle();
@@ -69,6 +71,12 @@ public class PlanWidgetBehaviourTest {
     public void tearDown() {
         WidgetApi.setOverrideForTest(null);
         WidgetWorker.setForTest(null, null);
+        PlanWidget.setClockForTest(null);
+    }
+
+    /** Lets the receipt's undo arm (a real undo comes well after the record). */
+    private void later() {
+        clock.addAndGet(PlanView.UNDO_ARM_MS + 500);
     }
 
     // ------------------------------------------------------------------ helpers
@@ -125,7 +133,7 @@ public class PlanWidgetBehaviourTest {
         Intent done = lastBroadcast();
         assertEquals(1, fake.recordCalls.size());
         FakePlannerApi.Call call = fake.recordCalls.get(0);
-        assertEquals(WidgetIntents.commitCommandId(FakePlannerApi.PLAN_ID, S + 1, "act:study_room"), call.commandId);
+        assertEquals(WidgetIntents.commitCommandId(FakePlannerApi.PLAN_ID, 7, S + 1, "act:study_room"), call.commandId);
         assertEquals(7, call.expectedRevision);
         assertEquals(S + 1, call.slot);
         assertEquals("act:study_room", call.action);
@@ -141,12 +149,13 @@ public class PlanWidgetBehaviourTest {
     }
 
     @Test
-    public void commandIdIsStablePerPlanSlotAndAction() {
-        String a = WidgetIntents.commitCommandId("plan-A", 10, "act:study_room");
-        assertEquals(a, WidgetIntents.commitCommandId("plan-A", 10, "act:study_room"));
-        assertNotEquals(a, WidgetIntents.commitCommandId("plan-A", 11, "act:study_room"));
-        assertNotEquals(a, WidgetIntents.commitCommandId("plan-B", 10, "act:study_room"));
-        assertNotEquals(a, WidgetIntents.commitCommandId("plan-A", 10, "act:job_chagall"));
+    public void commandIdIsStablePerPlanRevisionSlotAndAction() {
+        String a = WidgetIntents.commitCommandId("plan-A", 7, 10, "act:study_room");
+        assertEquals(a, WidgetIntents.commitCommandId("plan-A", 7, 10, "act:study_room"));
+        assertNotEquals(a, WidgetIntents.commitCommandId("plan-A", 7, 11, "act:study_room"));
+        assertNotEquals(a, WidgetIntents.commitCommandId("plan-B", 7, 10, "act:study_room"));
+        assertNotEquals(a, WidgetIntents.commitCommandId("plan-A", 7, 10, "act:job_chagall"));
+        assertNotEquals("a re-record after an undo is a new command", a, WidgetIntents.commitCommandId("plan-A", 9, 10, "act:study_room"));
     }
 
     @Test
@@ -158,6 +167,7 @@ public class PlanWidgetBehaviourTest {
         assertEquals("撤销", text(R.id.button_spec_done_text));
         assertNotNull(shadowOf(app.getSystemService(AlarmManager.class)).getNextScheduledAlarm());
 
+        later();
         tap(R.id.button_spec_done);
         Intent undo = lastBroadcast();
         assertEquals(1, fake.voidCalls.size());
@@ -169,6 +179,44 @@ public class PlanWidgetBehaviourTest {
 
         redeliver(undo);
         assertEquals("a stale undo never voids again", 1, fake.voidCalls.size());
+    }
+
+    @Test
+    public void aQuickDoubleTapOnDoneKeepsTheRecord() {
+        fake.observeAt("act:study_room");
+        refresh();
+        tap(R.id.button_spec_done);
+        clock.addAndGet(250); // the second tap of a double tap lands on the re-rendered 撤销
+        tap(R.id.button_spec_done);
+        assertTrue("an undo that soon is never applied", fake.voidCalls.isEmpty());
+        assertEquals(S + 2, fake.observed.slot);
+        assertEquals("撤销", text(R.id.button_spec_done_text));
+        assertNotNull(WidgetPrefs.receipt(app, id));
+        later();
+        tap(R.id.button_spec_done);
+        assertEquals("a deliberate undo still works", 1, fake.voidCalls.size());
+    }
+
+    @Test
+    public void doneAgainAfterAnUndoRecordsAgain() {
+        fake.observeAt("act:study_room");
+        refresh();
+        tap(R.id.button_spec_done);
+        later();
+        tap(R.id.button_spec_done); // 撤销: observed is back on the same slot, the plan id is unchanged
+        assertEquals(S + 1, fake.observed.slot);
+        assertEquals("在宿舍房间学习", text(R.id.widget_task));
+        assertEquals("完成", text(R.id.button_spec_done_text));
+        long before = fake.stateRevision;
+
+        tap(R.id.button_spec_done);
+        assertEquals(2, fake.recordCalls.size());
+        assertNotEquals("the voided record must not answer as a duplicate",
+                fake.recordCalls.get(0).commandId, fake.recordCalls.get(1).commandId);
+        assertEquals(before + 1, fake.stateRevision);
+        assertEquals(S + 2, fake.observed.slot);
+        assertEquals("撤销", text(R.id.button_spec_done_text));
+        assertEquals("✓ 已记录 · 再点撤销", text(R.id.widget_detail_cue));
     }
 
     @Test
@@ -215,6 +263,36 @@ public class PlanWidgetBehaviourTest {
     }
 
     @Test
+    public void noteEpisodeAndTheFreeSlotOpenTheSheet() {
+        fake.rules = FakePlannerApi.miniRules();
+        fake.plan.steps.set(2, FakePlannerApi.episodeStep(S + 2));
+        fake.plan.steps.set(3, FakePlannerApi.noteStep(S + 3));
+        String[][] cases = {
+                {"episode:junpei", "羁绊剧情 · 伊织顺平 · 第 2 话"},
+                {"note:priestess", "结缘网站的字条 · 山岸风花"},
+                {"free", "自由活动"}};
+        for (String[] c : cases) {
+            fake.observeAt(c[0]);
+            refresh();
+            assertEquals(c[1], text(R.id.widget_task));
+            assertEquals("完成", text(R.id.button_spec_done_text));
+            tap(R.id.button_spec_done);
+            Intent sheet = shadowOf(app).getNextStartedActivity();
+            assertNotNull(c[0], sheet);
+            assertEquals(WidgetIntents.RESULT_ACTIVITY, sheet.getComponent().getClassName());
+            assertEquals(Intents.MODE_RESULT, sheet.getStringExtra(Intents.EXTRA_MODE));
+            assertEquals(c[0], sheet.getStringExtra(Intents.EXTRA_ACTION));
+        }
+        assertTrue("these need the player's confirmation", fake.recordCalls.isEmpty());
+        fake.observeAt("note:priestess");
+        refresh();
+        assertEquals(View.VISIBLE, card().findViewById(R.id.widget_title_icon).getVisibility());
+        fake.observeAt("meet:hanged");
+        refresh();
+        assertEquals(View.GONE, card().findViewById(R.id.widget_title_icon).getVisibility());
+    }
+
+    @Test
     public void stalePlanSendsTrainingToTheSheetInsteadOfRecording() {
         fake.observeAt("act:study_room");
         fake.planCurrent = false;
@@ -228,7 +306,7 @@ public class PlanWidgetBehaviourTest {
     public void doneOnAFutureItemOpensCatchUp() {
         tap(R.id.widget_next);
         assertEquals("在宿舍房间学习", text(R.id.widget_task));
-        assertEquals("做到这里", text(R.id.button_spec_done_text));
+        assertEquals("已玩到这里", text(R.id.button_spec_done_text));
         tap(R.id.button_spec_done);
         Intent sheet = shadowOf(app).getNextStartedActivity();
         assertEquals(Intents.MODE_CATCHUP, sheet.getStringExtra(Intents.EXTRA_MODE));
@@ -254,7 +332,7 @@ public class PlanWidgetBehaviourTest {
 
         tap(R.id.button_spec_done); // fresh card: records normally
         assertEquals(1, fake.recordCalls.size());
-        assertEquals(WidgetIntents.commitCommandId("plan-B", S + 1, "act:study_room"), fake.recordCalls.get(0).commandId);
+        assertEquals(WidgetIntents.commitCommandId("plan-B", 8, S + 1, "act:study_room"), fake.recordCalls.get(0).commandId);
     }
 
     @Test
@@ -360,6 +438,19 @@ public class PlanWidgetBehaviourTest {
         refresh();
         assertEquals("暂时读不到安排", text(R.id.widget_task));
         assertFalse(card().findViewById(R.id.button_spec_done).isEnabled());
+        assertFalse(card().findViewById(R.id.button_spec_current).isEnabled());
+    }
+
+    @Test
+    public void unreadableRecordsNeverInviteOnboarding() {
+        fake.observed = null;
+        fake.planErrorZh = "游戏资料读取失败，请重新打开应用";
+        refresh();
+        assertEquals("暂时读不到安排", text(R.id.widget_task));
+        assertEquals("游戏资料读取失败，请重新打开应用", text(R.id.widget_detail_cue));
+        assertFalse(card().findViewById(R.id.button_spec_done).isEnabled());
+        tap(R.id.widget_task_area);
+        assertEquals(WidgetIntents.HOME_ACTIVITY, shadowOf(app).getNextStartedActivity().getComponent().getClassName());
     }
 
     @Test

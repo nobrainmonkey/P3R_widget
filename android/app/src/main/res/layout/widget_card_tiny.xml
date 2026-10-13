@@ -183,7 +183,7 @@
                         android:layout_marginRight="4dp"
                         android:includeFontPadding="false"
                         android:maxLines="1"
-                        android:text="今日"
+                        android:text="今天"
                         android:textColor="#FF0A2A5C"
                         android:textSize="10sp"
                         android:textStyle="bold" />
@@ -205,23 +205,45 @@
             android:paddingRight="10dp"
             android:paddingBottom="3dp">
 
-            <TextView
-                android:id="@+id/widget_task"
+            <LinearLayout
+                android:id="@+id/widget_title_row"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
-                android:autoSizeMaxTextSize="15sp"
-                android:autoSizeMinTextSize="12sp"
-                android:autoSizeStepGranularity="1sp"
-                android:autoSizeTextType="uniform"
-                android:ellipsize="end"
-                android:gravity="left|bottom"
-                android:includeFontPadding="false"
-                android:maxLines="3"
-                android:text="皇帝 · 小田桐秀利"
-                android:textColor="#FF0A2A5C"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                android:baselineAligned="false"
+                android:gravity="bottom"
+                android:orientation="horizontal">
+
+                <!-- Kind mark (dating-site note, Link Episode), one title line high: the row's gravity puts it on
+                     the title's only line, or on its first line when the title wraps (set from code). -->
+                <ImageView
+                    android:id="@+id/widget_title_icon"
+                    android:layout_width="14dp"
+                    android:layout_height="15dp"
+                    android:layout_marginRight="4dp"
+                    android:importantForAccessibility="no"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/widget_icon_note"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/widget_task"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:autoSizeMaxTextSize="15sp"
+                    android:autoSizeMinTextSize="12sp"
+                    android:autoSizeStepGranularity="1sp"
+                    android:autoSizeTextType="uniform"
+                    android:ellipsize="end"
+                    android:gravity="left|bottom"
+                    android:includeFontPadding="false"
+                    android:maxLines="3"
+                    android:text="皇帝 · 小田桐秀利"
+                    android:textColor="#FF0A2A5C"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/widget_dialogue_choices"
@@ -247,6 +269,7 @@
                     android:id="@+id/widget_tag"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:ellipsize="end"
                     android:layout_marginRight="8dp"
                     android:background="@drawable/widget_tag_day"
                     android:fontFamily="@font/p3r_numerals"
@@ -277,6 +300,34 @@
                     android:textSize="11sp" />
             </LinearLayout>
 
+            <TextView
+                android:id="@+id/widget_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:drawableLeft="@drawable/widget_icon_hint_day"
+                android:drawablePadding="3dp"
+                android:ellipsize="end"
+                android:gravity="center_vertical"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="记得带上「皇帝」阿尔卡那的人格面具"
+                android:textColor="#FF0A2A5C"
+                android:textSize="10.5sp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/widget_side"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="顺便：把 20,000 日元交给穿西装的男人"
+                android:textColor="#FF0A2A5C"
+                android:textSize="10.5sp"
+                android:visibility="gone" />
             <TextView
                 android:id="@+id/widget_detail_cue"
                 android:layout_width="match_parent"

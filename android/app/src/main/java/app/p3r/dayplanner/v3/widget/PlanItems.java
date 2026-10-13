@@ -8,8 +8,9 @@ import app.p3r.dayplanner.v3.engine.Plan;
 
 /**
  * The widget's browsable list: plan steps from the observed slot onward that are productive, plus
- * story-locked slots shown as information items (e.g. 满月作战). Free slots are skipped, and runs of
- * consecutive locked slots with the same reason collapse into one item (an exam week is one card).
+ * story-locked slots shown as information items (e.g. 满月作战). Free slots are skipped except the
+ * observed one (自由活动, so 完成 can record it instead of sending the player into catch-up), and runs
+ * of consecutive locked slots with the same reason collapse into one item (an exam week is one card).
  */
 public final class PlanItems {
 
@@ -42,6 +43,16 @@ public final class PlanItems {
         return "locked".equals(step.kind) || step.action.startsWith("locked:");
     }
 
+    /**
+     * Whether the step is something to do: {@link Plan.Step#productive()}, and also a dating-site
+     * note or a Link Episode whatever coarse kind the engine files it under.
+     */
+    public static boolean isProductive(Plan.Step step) {
+        if (step == null || isLocked(step)) return false;
+        String action = step.action == null ? "" : step.action;
+        return step.productive() || action.startsWith("note:") || action.startsWith("episode:");
+    }
+
     /** Items of {@code plan} at or after {@code fromSlot}, in slot order. */
     public static List<Item> of(Plan plan, int fromSlot) {
         if (plan == null || plan.steps == null) return Collections.emptyList();
@@ -65,7 +76,7 @@ public final class PlanItems {
                 runStep = step;
                 runStart = step.slot;
                 runEnd = step.slot;
-            } else if (step.productive()) {
+            } else if (isProductive(step) || step.slot == fromSlot) {
                 items.add(new Item(step, step.slot, step.slot));
             }
         }

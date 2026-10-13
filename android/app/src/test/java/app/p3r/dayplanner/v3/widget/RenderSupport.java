@@ -106,6 +106,16 @@ final class RenderSupport {
         }
     }
 
+    /** A shown location must keep enough width to read (a long tag chip must not starve it). */
+    static void collectSqueezedLocation(View root, String tag, List<String> issues) {
+        View location = root.findViewById(app.p3r.dayplanner.R.id.widget_location);
+        if (location == null || location.getVisibility() != View.VISIBLE) return;
+        float density = root.getResources().getDisplayMetrics().density;
+        if (location.getWidth() < 40 * density) {
+            issues.add(tag + " location squeezed to " + location.getWidth() / density + "dp '" + ((TextView) location).getText() + "'");
+        }
+    }
+
     /** The status cluster (progress label/ticks, wordmark) must never overlap the calendar plate. */
     static void collectHeaderOverlap(View root, String tag, List<String> issues) {
         View plate = root.findViewById(app.p3r.dayplanner.R.id.widget_plate);

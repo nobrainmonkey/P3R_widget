@@ -114,6 +114,8 @@ public class PlannerWidget extends AppWidgetProvider {
         if (paletteNight != null) model = model.withNight(paletteNight);
         RemoteViews views = CardRenderer.render(c, model, width, height);
         String id = task == null ? null : task.id;
+        // Header and background open the guide on the viewed date, as the 2.x brand area did.
+        views.setOnClickPendingIntent(R.id.widget_root, open(c, widgetId, 3, day.date, id));
         views.setOnClickPendingIntent(R.id.widget_task_area, open(c, widgetId, 5, day.date, id));
         views.setOnClickPendingIntent(R.id.widget_date, open(c, widgetId, 4, day.date, id));
         views.setOnClickPendingIntent(R.id.widget_prev, broadcast(c, widgetId, 1, ACTION_PREVIOUS, id));
@@ -143,7 +145,7 @@ public class PlannerWidget extends AppWidgetProvider {
         int position = PlannerStore.viewedOrdinal(c, widgetId);
         int count = day.tasks.size();
         m.progressLabel = position + "/" + count;
-        m.progressDescription = "当前任务 " + position + "，共 " + count + " 项";
+        m.progressDescription = "第 " + position + " 项，共 " + count + " 项";
         if (count <= CardRenderer.MAX_TICKS) {
             for (int index = 1; index <= count; index++) {
                 PlannerStore.Task entry = day.tasks.get(index - 1);
@@ -190,7 +192,7 @@ public class PlannerWidget extends AppWidgetProvider {
         m.doneEnabled = canComplete;
         m.doneLabel = complete && canComplete ? "撤销" : "完成";
         m.doneIcon = complete && canComplete ? CardModel.DoneIcon.UNDO : CardModel.DoneIcon.CHECK;
-        m.doneDescription = canComplete ? (complete ? "撤销：取消这一项的完成状态" : "完成：完成这一项并进入下一项") : "此项无需打卡";
+        m.doneDescription = canComplete ? (complete ? "撤销：把这一项改回没完成" : "完成：勾掉这一项，再看下一项") : "这一项不用打卡";
         m.currentDescription = "当前：回到最早未完成的任务";
         return m;
     }

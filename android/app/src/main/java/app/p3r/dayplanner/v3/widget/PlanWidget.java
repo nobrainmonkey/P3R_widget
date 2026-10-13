@@ -17,6 +17,7 @@ import android.widget.RemoteViews;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongSupplier;
 
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.Intents;
@@ -34,8 +35,9 @@ import app.p3r.dayplanner.v3.service.PlannerApi;
  * SQLite read, outcome write or RemoteViews build ever runs on the main thread.
  *
  * <p>Safety: a direct record only happens when the tapped intent's plan id, state revision, slot and
- * action all still match the latest snapshot, and it uses a stable command id, so a stale or doubled
- * tap can never record twice; it only refreshes the widget.
+ * action all still match the latest snapshot, and it uses a command id derived from all four, so a
+ * stale or doubled tap can never record twice; it only refreshes the widget. An undo tap within
+ * {@link PlanView#UNDO_ARM_MS} of the record is the second half of a double tap and is ignored.
  */
 public class PlanWidget extends AppWidgetProvider {
     private static final String TAG = "P3RPlanWidget";
@@ -192,10 +194,12 @@ public class PlanWidget extends AppWidgetProvider {
                 && revision == snap.stateRevision
                 && slot == snap.observed.slot;
         Plan.Step step = current ? snap.plan.at(slot) : null;
-        if (step == null || !action.equals(step.action) || !PlanView.isDirect(step.kind)) {
+        if (step == null || !action.equals(step.action) || !PlanView.isDirect(step)) {
             return false; // stale or tampered tap: never record, just refresh
         }
-        String commandId = WidgetIntents.commitCommandId(planId, slot, action);
+        // The revision is part of the key: after an undo the same plan, slot and action is a new
+        // record (the voided one must not answer it as a duplicate).
+        String commandId = WidgetIntents.commitCommandId(planId, revision, slot, action);
         PlannerApi.Receipt receipt = loaded.api.recordOutcome(commandId, revision, slot, action, Outcome.of(Outcome.Code.AS_PREDICTED));
         if (receipt == null || !receipt.ok) return false;
         WidgetPrefs.clearCursor(app, id);
@@ -211,7 +215,7 @@ public class PlanWidget extends AppWidgetProvider {
         saved.subtitle = step.subtitleZh;
         saved.location = step.locationZh;
         saved.kind = step.kind;
-        saved.createdMillis = System.currentTimeMillis();
+        saved.createdMillis = now();
         WidgetPrefs.setReceipt(app, id, saved);
         scheduleReceiptExpiry(app);
         return !receipt.duplicate;
@@ -226,6 +230,10 @@ public class PlanWidget extends AppWidgetProvider {
         if (loaded.api == null || snap == null || saved == null || seq < 0) return false;
         if (saved.eventSeq != seq || saved.stateRevision != revision || snap.stateRevision != revision) {
             return false; // stale tap or the state moved on: never void
+        }
+        long age = now() - saved.createdMillis;
+        if (age >= 0 && age < PlanView.UNDO_ARM_MS) {
+            return false; // second half of a double tap on 完成 that landed on 撤销: keep the record
         }
         PlannerApi.Receipt receipt = loaded.api.voidEvent(WidgetIntents.voidCommandId(seq, revision), revision, seq);
         if (receipt == null || !receipt.ok) return false;
@@ -267,7 +275,7 @@ public class PlanWidget extends AppWidgetProvider {
         PlannerApi.Snapshot snap = loaded.snapshot;
         String planId = snap != null && snap.plan != null ? snap.plan.planId : "";
         int cursor = WidgetPrefs.cursorSlot(app, id, planId);
-        loaded.view = PlanView.resolve(snap, cursor, WidgetPrefs.receipt(app, id), System.currentTimeMillis());
+        loaded.view = PlanView.resolve(snap, cursor, WidgetPrefs.receipt(app, id), now());
         return loaded;
     }
 
@@ -355,6 +363,17 @@ public class PlanWidget extends AppWidgetProvider {
     }
 
     // ------------------------------------------------------------------ test hooks
+
+    private static volatile LongSupplier clock = System::currentTimeMillis;
+
+    static long now() {
+        return clock.getAsLong();
+    }
+
+    /** Replaces the wall clock (null restores it). */
+    static void setClockForTest(LongSupplier testClock) {
+        clock = testClock == null ? System::currentTimeMillis : testClock;
+    }
 
     /** The settled card of widget {@code id} at a size, exactly as the provider would draw it. */
     static RemoteViews renderForTest(Context context, int id, float widthDp, float heightDp) {

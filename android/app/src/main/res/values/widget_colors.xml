@@ -12,6 +12,8 @@
     <color name="widget_day_accent">#FF0642B7</color>
     <color name="widget_day_button_ink">@color/p3r_widget_ink_day</color>
     <color name="widget_day_button_ink_disabled">#990A2A5C</color>
+    <!-- 当前 label while the button does nothing (status cards); matches the dimmed outline. -->
+    <color name="widget_day_ghost_ink_disabled">#800A2A5C</color>
 
     <!-- Night: deep-blue surface #034572. White ink is 10:1; navy on the cyan plate is 12:1. -->
     <color name="widget_night_ink">@color/p3r_white</color>
@@ -23,4 +25,5 @@
     <color name="widget_night_button_ink">#FF0A2A5C</color>
     <color name="widget_night_button_ink_disabled">#B3A8E7FF</color>
     <color name="widget_night_ghost_ink">#FFE8FBFF</color>
+    <color name="widget_night_ghost_ink_disabled">#80E8FBFF</color>
 </resources>

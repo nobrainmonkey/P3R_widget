@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import app.p3r.dayplanner.R;
+import app.p3r.dayplanner.v3.engine.Plan;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -75,8 +76,47 @@ public class PlanWidgetRenderTest {
                 fake.observeAt("meet:hanged");
                 WidgetPrefs.setCursor(app, ID, FakePlannerApi.PLAN_ID, FakePlannerApi.FIRST_SLOT + 9);
                 break;
+            case "note":
+                fake.rules = FakePlannerApi.miniRules();
+                fake.plan.steps.set(3, FakePlannerApi.noteStep(FakePlannerApi.FIRST_SLOT + 3));
+                fake.observeAt("note:priestess");
+                break;
+            case "episode":
+                fake.rules = FakePlannerApi.miniRules();
+                fake.plan.steps.set(2, FakePlannerApi.episodeStep(FakePlannerApi.FIRST_SLOT + 2));
+                fake.observeAt("episode:junpei");
+                break;
+            case "hint": {
+                // A meeting with the Persona reminder and a payment done 顺便 in the same slot.
+                Plan.Step emperor = fake.plan.steps.get(2);
+                emperor.hintZh = "记得带上「皇帝」阿尔卡那的人格面具";
+                emperor.side.add("unlock:devil:0");
+                emperor.sideZh.add("顺便：把 20,000 日元交给穿西装的男人");
+                fake.observeAt("meet:emperor");
+                break;
+            }
+            case "long-stat":
+            case "long": {
+                // The engine's longest real wording on one card: an invite, a level-up, a long place.
+                Plan.Step invite = FakePlannerApi.rank(FakePlannerApi.step(FakePlannerApi.FIRST_SLOT, "meet:hanged", "social",
+                        "倒悬者 · 舞子", "假日邀约 · 加深关系（未升级）", "月光馆学园 · 1 楼教职员室前走廊", "对方发来了假日邀约，赴约也算一次见面"), 4, 4);
+                fake.plan.steps.set(0, invite);
+                fake.plan.steps.set(1, FakePlannerApi.step(FakePlannerApi.FIRST_SLOT + 1, "act:study_room", "stat",
+                        "在宿舍房间学习", "魅力 +4（升到 Lv.2）、学力 +2（升到 Lv.6） · 1,500 日元", "严户台商店街 · 旧书店「书虫」", null));
+                fake.observeAt(name.equals("long") ? "meet:hanged" : "act:study_room");
+                break;
+            }
+            case "unlock-talk":
+                fake.plan.steps.set(4, FakePlannerApi.step(FakePlannerApi.FIRST_SLOT + 4, "unlock:sun:0", "unlock", "太阳 · 神木秋成",
+                        "去喷泉广场找那个胖乎乎的学生 · 花费 1,000 日元", "桐叶购物中心 · 放纵俱乐部 2 楼", "完成后太阳社群就解锁了"));
+                fake.observeAt("unlock:sun:0");
+                break;
+            case "free": fake.observeAt("free"); break;
             case "empty": fake.observed = null; break;
             case "planning": fake.plan = null; fake.planning = true; break;
+            case "error": fake.plan = null; fake.planErrorZh = "生成安排时出了问题，请稍后再试"; break;
+            case "unreadable": fake.observed = null; fake.planErrorZh = "游戏资料读取失败，请重新打开应用"; break;
+            case "finished": fake.observed.slot = FakePlannerApi.FIRST_SLOT + 20; break;
             case "receipt": {
                 fake.observeAt("meet:emperor");
                 WidgetPrefs.Receipt r = new WidgetPrefs.Receipt();
@@ -107,7 +147,8 @@ public class PlanWidgetRenderTest {
     public void everyStateRendersCleanlyInBothPalettesAndAllSizes() throws Exception {
         File dir = RenderSupport.outputDir("plan");
         List<String> issues = new ArrayList<>();
-        String[] states = {"social", "stat", "job", "unlock", "tower", "locked", "story-run", "future", "receipt", "empty", "planning"};
+        String[] states = {"social", "stat", "job", "unlock", "unlock-talk", "tower", "locked", "story-run", "future", "receipt",
+                "note", "episode", "hint", "long", "long-stat", "free", "empty", "planning", "error", "unreadable", "finished"};
         for (String name : states) {
             for (boolean night : new boolean[]{false, true}) {
                 for (int[] size : SIZES) {
@@ -117,7 +158,8 @@ public class PlanWidgetRenderTest {
                     RenderSupport.save(root, dir, tag);
                     RenderSupport.collectTextIssues(root, tag, issues);
                     RenderSupport.collectOverflow(root, R.id.widget_plate, tag, issues);
-                RenderSupport.collectHeaderOverlap(root, tag, issues);
+                    RenderSupport.collectHeaderOverlap(root, tag, issues);
+                    RenderSupport.collectSqueezedLocation(root, tag, issues);
                     TextView title = root.findViewById(R.id.widget_task);
                     assertFalse(tag + " blank title", title.getText().toString().trim().isEmpty());
                     assertTrue(tag + " title collapsed", title.getHeight() > 0);
@@ -132,7 +174,7 @@ public class PlanWidgetRenderTest {
         RuntimeEnvironment.setFontScale(1.15f);
         File dir = RenderSupport.outputDir("plan-font115");
         List<String> issues = new ArrayList<>();
-        for (String name : new String[]{"social", "stat", "future", "receipt", "empty"}) {
+        for (String name : new String[]{"social", "stat", "future", "receipt", "empty", "note", "episode", "hint", "long", "long-stat", "unlock-talk"}) {
             for (int[] size : SIZES) {
                 state(name);
                 View root = render(false, size[0], size[1]);
@@ -141,6 +183,7 @@ public class PlanWidgetRenderTest {
                 RenderSupport.collectTextIssues(root, tag, issues);
                 RenderSupport.collectOverflow(root, R.id.widget_plate, tag, issues);
                 RenderSupport.collectHeaderOverlap(root, tag, issues);
+                RenderSupport.collectSqueezedLocation(root, tag, issues);
             }
         }
         assertTrue(String.join("\n", issues), issues.isEmpty());
@@ -151,7 +194,7 @@ public class PlanWidgetRenderTest {
         Map<String, String[]> expected = new LinkedHashMap<>();
         expected.put("social", new String[]{"倒悬者 · 舞子", "RANK 4→5", "完成"});
         expected.put("stat", new String[]{"在宿舍房间学习", "学力 +2", "完成"});
-        expected.put("future", new String[]{"探索塔尔塔罗斯", "本区块第 2 次", "做到这里"});
+        expected.put("future", new String[]{"探索塔尔塔罗斯", "本区块第 2 次", "已玩到这里"});
         expected.put("receipt", new String[]{"在宿舍房间学习", "学力 +2", "撤销"});
         expected.put("locked", new String[]{"满月作战", null, "完成"});
         expected.put("empty", new String[]{"设置目标，从当前存档开始", null, "开始设置"});
@@ -168,19 +211,60 @@ public class PlanWidgetRenderTest {
         state("locked");
         View locked = render(false, 320, 200);
         assertFalse("locked items are information only", locked.findViewById(R.id.button_spec_done).isEnabled());
-        assertEquals("剧情推进，无需选择", text(locked, R.id.widget_detail_cue));
+        assertEquals("这段时间不能自由行动", text(locked, R.id.widget_detail_cue));
         state("story-run");
-        assertEquals("剧情推进，无需选择 · 持续到11月5日", text(render(false, 320, 200), R.id.widget_detail_cue));
+        assertEquals("到11月5日都不能自由行动", text(render(false, 320, 200), R.id.widget_detail_cue));
         state("social");
         View social = render(false, 320, 200);
         assertEquals("11/1", text(social, R.id.widget_date));
         assertEquals("周日", text(social, R.id.widget_weekday));
         assertEquals("白天", text(social, R.id.widget_period_word));
-        assertEquals("今日", text(social, R.id.widget_progress));
+        assertEquals("今天", text(social, R.id.widget_progress));
         state("stat");
         assertEquals("晚上", text(render(true, 320, 200), R.id.widget_period_word));
         state("future");
         assertEquals("4天后", text(render(true, 320, 200), R.id.widget_progress));
+    }
+
+    @Test
+    public void newStepKindsShowTheirMarkHintAndSideLines() {
+        state("note");
+        View note = render(true, 320, 200);
+        assertEquals("结缘网站的字条 · 山岸风花", text(note, R.id.widget_task));
+        assertEquals(View.VISIBLE, note.findViewById(R.id.widget_title_icon).getVisibility());
+        assertEquals("RANK 6 · 加好感", text(note, R.id.widget_tag));
+        assertEquals("当晚回宿舍用公用电脑给山岸风花加好感", text(note, R.id.widget_hint));
+        state("episode");
+        View episode = render(false, 320, 200);
+        assertEquals("羁绊剧情 · 伊织顺平 · 第 2 话", text(episode, R.id.widget_task));
+        assertEquals(View.VISIBLE, episode.findViewById(R.id.widget_title_icon).getVisibility());
+        state("hint");
+        View hint = render(false, 320, 200);
+        assertEquals("记得带上「皇帝」阿尔卡那的人格面具", text(hint, R.id.widget_hint));
+        assertEquals("顺便：把 20,000 日元交给穿西装的男人", text(hint, R.id.widget_side));
+        assertEquals(View.GONE, hint.findViewById(R.id.widget_title_icon).getVisibility());
+        // On the smallest card the side step outlives the reminder; the title always stays.
+        View small = render(false, 180, 150);
+        assertTrue(small.findViewById(R.id.widget_task).getHeight() > 0);
+        if (small.findViewById(R.id.widget_hint).getVisibility() == View.VISIBLE) {
+            assertEquals(View.VISIBLE, small.findViewById(R.id.widget_side).getVisibility());
+        }
+        state("social");
+        View plain = render(false, 320, 200);
+        assertEquals(View.GONE, plain.findViewById(R.id.widget_hint).getVisibility());
+        assertEquals(View.GONE, plain.findViewById(R.id.widget_side).getVisibility());
+    }
+
+    @Test
+    public void statusCardsDimTheDeadCurrentButton() {
+        state("planning");
+        View planning = render(true, 250, 160);
+        TextView current = planning.findViewById(R.id.button_spec_current_text);
+        assertFalse(planning.findViewById(R.id.button_spec_current).isEnabled());
+        assertTrue("disabled 当前 label is dimmed", android.graphics.Color.alpha(current.getCurrentTextColor()) < 255);
+        state("social");
+        TextView live = render(true, 250, 160).findViewById(R.id.button_spec_current_text);
+        assertEquals(255, android.graphics.Color.alpha(live.getCurrentTextColor()));
     }
 
     private static String text(View root, int id) {

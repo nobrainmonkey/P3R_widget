@@ -16,13 +16,13 @@ final class PlanView {
     enum Mode {
         /** No observed state yet: invite the player to set up. */
         EMPTY,
-        /** Observed state exists but no plan has been installed yet. */
+        /** Observed state exists but no usable plan yet (none installed, or the installed one starts later). */
         PLANNING,
-        /** No plan and the last planning attempt failed. */
+        /** No usable plan and the last planning attempt failed, or the records could not be read. */
         ERROR,
         /** The plan has nothing left to show. */
         FINISHED,
-        /** A plan item (productive step or story-locked marker). */
+        /** A plan item (productive step, the pending free slot, or a story-locked marker). */
         ITEM,
         /** The step the widget just recorded, offering undo. */
         RECEIPT
@@ -45,6 +45,11 @@ final class PlanView {
 
     /** How long the "✓ 已记录 · 再点撤销" card stays before the widget moves on to the next item. */
     static final long RECEIPT_TTL_MS = 60_000L;
+    /**
+     * An undo tap this soon after the direct record is the second half of a double tap on 完成 (it
+     * landed on the re-rendered button), never a deliberate undo.
+     */
+    static final long UNDO_ARM_MS = 700L;
 
     final Mode mode;
     final PlannerApi.Snapshot snapshot;
@@ -72,8 +77,15 @@ final class PlanView {
      */
     static PlanView resolve(PlannerApi.Snapshot snap, int cursorSlot, WidgetPrefs.Receipt receipt, long nowMillis) {
         List<PlanItems.Item> none = Collections.emptyList();
-        if (snap == null || snap.observed == null) return new PlanView(Mode.EMPTY, snap, none, -1, null, Done.ONBOARD);
-        if (snap.plan == null) {
+        if (snap == null) return new PlanView(Mode.EMPTY, null, none, -1, null, Done.ONBOARD);
+        if (snap.observed == null) {
+            // No records: a fresh install invites setup, but a failed load must not pose as one.
+            if (snap.planErrorZh != null) return new PlanView(Mode.ERROR, snap, none, -1, null, Done.NONE);
+            return new PlanView(Mode.EMPTY, snap, none, -1, null, Done.ONBOARD);
+        }
+        if (snap.plan == null || (!snap.planCurrent && snap.plan.fromSlot > snap.observed.slot)) {
+            // A lagging plan that starts after the observed slot (e.g. right after an undo or a sync
+            // to an earlier date) cannot describe the pending slot: wait for the replan.
             Mode mode = snap.planErrorZh != null && !snap.planning ? Mode.ERROR : Mode.PLANNING;
             return new PlanView(mode, snap, none, -1, null, Done.NONE);
         }
@@ -99,16 +111,22 @@ final class PlanView {
                 && age >= 0 && age < RECEIPT_TTL_MS;
     }
 
-    /** Kinds whose predicted outcome is certain enough to record from the widget (docs/DESIGN_v3.md §7.2). */
-    static boolean isDirect(String kind) {
-        return "stat".equals(kind) || "job".equals(kind);
+    /**
+     * Steps whose predicted outcome is certain enough to record from the widget (docs/DESIGN_v3.md
+     * §7.2): plain training and jobs. Everything else needs the result sheet: meetings, unlock steps,
+     * Tartarus, the dating-site note and Link Episodes, and any step with side steps ("顺便：…"),
+     * whose payment or talk the player may have skipped.
+     */
+    static boolean isDirect(Plan.Step step) {
+        if (step == null || step.action == null || !step.action.startsWith("act:")) return false;
+        if (step.side != null && !step.side.isEmpty()) return false;
+        return "stat".equals(step.kind) || "job".equals(step.kind);
     }
 
     private static Done doneFor(PlannerApi.Snapshot snap, PlanItems.Item item) {
         if (item.locked()) return Done.NONE;
         if (item.slot > snap.observed.slot) return Done.CATCHUP;
-        boolean direct = isDirect(item.step.kind) && snap.planCurrent;
-        return direct ? Done.COMMIT : Done.RESULT;
+        return isDirect(item.step) && snap.planCurrent ? Done.COMMIT : Done.RESULT;
     }
 
     // ------------------------------------------------------------------ derived facts
@@ -193,16 +211,18 @@ final class PlanView {
             m.cue = "排好后会自动显示在这里";
         } else if (mode == Mode.ERROR) {
             String error = snapshot == null ? null : blankToNull(snapshot.planErrorZh);
-            m.title = snapshot == null ? "暂时读不到安排" : "安排没能生成";
-            m.cue = error == null ? "点开规划看看" : error;
+            boolean unreadable = snapshot == null || snapshot.observed == null;
+            m.title = unreadable ? "暂时读不到安排" : "暂时没有安排";
+            m.cue = error == null ? "点开应用看看" : error;
         } else {
-            m.title = "之后没有需要安排的行动了";
+            m.title = "后面没有要做的安排了";
             m.cue = "可以在应用里查看完整日程";
         }
-        m.taskDescription = m.title + "。点击打开规划";
+        m.taskDescription = m.title + "。点击打开应用";
         m.currentEnabled = false;
+        m.currentDescription = "当前：现在没有可以回到的安排";
         m.doneEnabled = false;
-        m.doneDescription = "现在没有可以记录的项目";
+        m.doneDescription = "现在没有可以记录的安排";
     }
 
     private void itemCard(CardModel m, Rules rules) {
@@ -210,27 +230,31 @@ final class PlanView {
         plate(m, item.slot, rules);
         m.prevEnabled = index > 0;
         m.nextEnabled = index < items.size() - 1;
-        progress(m, item.slot, item.lastSlot);
-        m.title = titleOf(step.titleZh, step.kind);
-        m.tag = compactTag(step.subtitleZh);
-        m.location = blankToNull(step.locationZh);
-        m.cue = cueFor(step, rules);
-        if (m.tag != null && m.cue != null && m.cue.contains(m.tag)) m.tag = null; // e.g. 剧情推进 twice
+        progress(m, item.slot, item.lastSlot, rules);
+        StepCopy copy = StepCopy.of(step, rules, snapshot.observed, snapshot.plan);
+        m.title = copy.title;
+        m.titleIcon = copy.icon;
+        m.tag = copy.tag;
+        m.location = copy.location;
+        m.hint = copy.hint;
+        m.side = copy.side;
+        m.cue = cueFor(step, copy, rules);
         m.taskDescription = describe(m) + "。点击查看详情";
         switch (done) {
             case COMMIT:
-                m.doneDescription = "完成：按计划记录「" + m.title + "」";
+                m.doneDescription = "完成：按安排记录「" + m.title + "」";
                 break;
             case RESULT:
                 m.doneDescription = "完成：记录「" + m.title + "」的结果";
                 break;
             case CATCHUP:
-                m.doneLabel = "做到这里";
-                m.doneDescription = "做到这里：补记这一项之前的安排";
+                m.doneLabel = "已玩到这里";
+                m.doneIcon = CardModel.DoneIcon.NONE;
+                m.doneDescription = "已玩到这里：补记这一项前面还没记录的安排";
                 break;
             default:
                 m.doneEnabled = false;
-                m.doneDescription = "剧情时段，无需记录";
+                m.doneDescription = "这段时间不能自由行动，不用记录";
                 break;
         }
     }
@@ -239,9 +263,9 @@ final class PlanView {
         plate(m, receipt.slot, rules);
         m.prevEnabled = false;
         m.nextEnabled = !items.isEmpty();
-        progress(m, receipt.slot, receipt.slot);
-        m.title = titleOf(receipt.title, receipt.kind);
-        m.tag = compactTag(receipt.subtitle);
+        progress(m, receipt.slot, receipt.slot, rules);
+        m.title = StepCopy.titleOf(receipt.title, receipt.kind);
+        m.tag = StepCopy.tag(receipt.kind, receipt.subtitle, null);
         m.location = blankToNull(receipt.location);
         m.cue = "✓ 已记录 · 再点撤销";
         m.cueEssential = true; // explains why 完成 now reads 撤销
@@ -262,8 +286,8 @@ final class PlanView {
         m.motif = WidgetMotif.forDay(info.day);
     }
 
-    /** Relative-day label plus one tick per slot of the shown day (白天, 晚上). */
-    private void progress(CardModel m, int shownFirst, int shownLast) {
+    /** Relative-day label plus one tick per slot of the shown day (白天/放学后, 晚上). */
+    private void progress(CardModel m, int shownFirst, int shownLast, Rules rules) {
         int day = Rules.dayOf(shownFirst);
         int observed = observedSlot();
         m.progressLabel = relativeDay(day, Rules.dayOf(observed));
@@ -273,36 +297,45 @@ final class PlanView {
             CardModel.Tick tick;
             if (slot >= shownFirst && slot <= shownLast) tick = CardModel.Tick.CURRENT;
             else if (slot < observed) tick = CardModel.Tick.DONE;
-            else tick = productiveAt(slot) ? CardModel.Tick.PENDING : CardModel.Tick.LOCKED;
+            else tick = slot == observed || productiveAt(slot) ? CardModel.Tick.PENDING : CardModel.Tick.LOCKED;
             m.ticks.add(tick);
-            spoken.append(evening == 0 ? "：白天" : "，晚上").append(tickWord(tick));
+            String period = GameCalendar.ofSlot(slot, rules).periodZh();
+            spoken.append(evening == 0 ? "：" : "，").append(period).append(tickWord(tick));
         }
         m.progressDescription = spoken.toString();
     }
 
     private boolean productiveAt(int slot) {
         Plan.Step step = snapshot.plan == null ? null : snapshot.plan.at(slot);
-        return step != null && step.productive() && !PlanItems.isLocked(step);
+        return PlanItems.isProductive(step);
     }
 
-    private String cueFor(Plan.Step step, Rules rules) {
-        if (item.locked()) {
-            if (Rules.dayOf(item.lastSlot) > Rules.dayOf(item.slot)) {
-                GameCalendar.Info end = GameCalendar.ofSlot(item.lastSlot, rules);
-                return "剧情推进，无需选择 · 持续到" + end.month + "月" + end.dayOfMonth + "日";
-            }
-            return "剧情推进，无需选择";
+    private String cueFor(Plan.Step step, StepCopy copy, Rules rules) {
+        if (item.locked()) return lockCue(step, rules);
+        if (!snapshot.planCurrent && snapshot.planning) return "正在根据最新记录重新安排…";
+        if (!snapshot.planCurrent && snapshot.planErrorZh != null) return "安排还没更新，点开看看";
+        if (copy.instruction != null) return copy.instruction;
+        if ("free".equals(StepCopy.kindOf(step))) return "这个时段想做什么都行";
+        return StepCopy.glossary(blankToNull(step.whyZh));
+    }
+
+    /** "这段时间不能自由行动" (or the engine's specific note), "到11月5日都不能自由行动" for a run. */
+    private String lockCue(Plan.Step step, Rules rules) {
+        if (Rules.dayOf(item.lastSlot) > Rules.dayOf(item.slot)) {
+            GameCalendar.Info end = GameCalendar.ofSlot(item.lastSlot, rules);
+            return "到" + end.month + "月" + end.dayOfMonth + "日都不能自由行动";
         }
-        if (!snapshot.planCurrent && snapshot.planning) return "正在根据最新记录调整安排…";
-        if (!snapshot.planCurrent && snapshot.planErrorZh != null) return "安排暂未更新，点开查看";
-        return blankToNull(step.whyZh);
+        String sub = blankToNull(step.subtitleZh);
+        boolean generic = sub == null || sub.contains("不能自由行动") || sub.contains("剧情安排") || sub.contains("剧情推进")
+                || sub.trim().equals(blankToNull(step.titleZh) == null ? "" : step.titleZh.trim());
+        return generic ? "这段时间不能自由行动" : StepCopy.glossary(sub.trim());
     }
 
     // ------------------------------------------------------------------ text helpers
 
     static String relativeDay(int day, int observedDay) {
         int delta = day - observedDay;
-        if (delta == 0) return "今日";
+        if (delta == 0) return "今天";
         if (delta == 1) return "明天";
         if (delta == 2) return "后天";
         if (delta == -1) return "昨天";
@@ -313,36 +346,27 @@ final class PlanView {
         switch (tick) {
             case DONE: return "已记录";
             case CURRENT: return "正在显示";
-            case LOCKED: return "无需安排";
+            case LOCKED: return "没有安排";
             default: return "待做";
         }
     }
 
     /** "RANK 6 → 7" → "RANK 6→7"; blank → null. */
     static String compactTag(String subtitle) {
-        String s = blankToNull(subtitle);
-        return s == null ? null : s.trim().replaceAll("\\s*→\\s*", "→");
+        return StepCopy.compact(subtitle);
     }
 
     /** Never shows an empty title: falls back to a plain description of the step kind. */
     static String titleOf(String title, String kind) {
-        String t = blankToNull(title);
-        if (t != null) return t.trim();
-        switch (kind == null ? "" : kind) {
-            case "social": return "社群";
-            case "unlock": return "解锁社群";
-            case "stat": return "提升个人能力值";
-            case "job": return "打工";
-            case "tower": return "探索塔尔塔罗斯";
-            case "locked": return "剧情时段";
-            default: return "自由行动";
-        }
+        return StepCopy.titleOf(title, kind);
     }
 
     private static String describe(CardModel m) {
         StringBuilder sb = new StringBuilder(m.title);
         if (m.tag != null) sb.append("，").append(m.tag);
         if (m.location != null) sb.append("，地点：").append(m.location);
+        if (m.hint != null) sb.append("。").append(m.hint);
+        if (m.side != null) sb.append("。").append(m.side);
         return sb.toString();
     }
 

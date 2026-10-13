@@ -11,18 +11,20 @@ import app.p3r.dayplanner.R;
  */
 public enum WidgetPalette {
     DAY(R.drawable.widget_surface_day, R.drawable.widget_plate_day, R.drawable.widget_weekday_day,
-            R.drawable.widget_tag_day, R.drawable.widget_icon_pin_day, R.drawable.widget_sees_day,
-            R.drawable.button_spec_current_day, R.drawable.button_spec_done_day,
+            R.drawable.widget_tag_day, R.drawable.widget_icon_pin_day, R.drawable.widget_icon_hint_day,
+            R.drawable.widget_sees_day, R.drawable.button_spec_current_day, R.drawable.button_spec_done_day,
             R.color.widget_day_ink, R.color.widget_day_ink_soft, R.color.widget_day_plate_ink,
             R.color.widget_day_chip_ink, R.color.widget_day_tag_ink, R.color.widget_day_accent,
-            R.color.widget_day_ink, R.color.widget_day_button_ink, R.color.widget_day_button_ink_disabled,
+            R.color.widget_day_ink, R.color.widget_day_ghost_ink_disabled,
+            R.color.widget_day_button_ink, R.color.widget_day_button_ink_disabled,
             255, 255),
     NIGHT(R.drawable.widget_surface_night, R.drawable.widget_plate_night, R.drawable.widget_weekday_night,
-            R.drawable.widget_tag_night, R.drawable.widget_icon_pin_night, R.drawable.widget_sees_night,
-            R.drawable.button_spec_current_night, R.drawable.button_spec_done_night,
+            R.drawable.widget_tag_night, R.drawable.widget_icon_pin_night, R.drawable.widget_icon_hint_night,
+            R.drawable.widget_sees_night, R.drawable.button_spec_current_night, R.drawable.button_spec_done_night,
             R.color.widget_night_ink, R.color.widget_night_ink_soft, R.color.widget_night_plate_ink,
             R.color.widget_night_chip_ink, R.color.widget_night_tag_ink, R.color.widget_night_accent,
-            R.color.widget_night_ghost_ink, R.color.widget_night_button_ink, R.color.widget_night_button_ink_disabled,
+            R.color.widget_night_ghost_ink, R.color.widget_night_ghost_ink_disabled,
+            R.color.widget_night_button_ink, R.color.widget_night_button_ink_disabled,
             150, 150);
 
     public final int surface;
@@ -30,6 +32,8 @@ public enum WidgetPalette {
     public final int weekdayChip;
     public final int tag;
     public final int pin;
+    /** Glyph in front of the reminder line ("记得带上…"). */
+    public final int hintIcon;
     public final int wordmark;
     public final int currentButton;
     public final int doneButton;
@@ -40,6 +44,7 @@ public enum WidgetPalette {
     final int tagInkRes;
     final int accentRes;
     final int ghostInkRes;
+    final int ghostInkDisabledRes;
     final int buttonInkRes;
     final int buttonInkDisabledRes;
     /**
@@ -50,15 +55,16 @@ public enum WidgetPalette {
     /** Image alpha applied to the outlined day-number watermark (day strength is baked in). */
     public final int watermarkImageAlpha;
 
-    WidgetPalette(int surface, int plate, int weekdayChip, int tag, int pin, int wordmark,
+    WidgetPalette(int surface, int plate, int weekdayChip, int tag, int pin, int hintIcon, int wordmark,
                   int currentButton, int doneButton, int inkRes, int inkSoftRes, int plateInkRes,
-                  int chipInkRes, int tagInkRes, int accentRes, int ghostInkRes, int buttonInkRes,
-                  int buttonInkDisabledRes, int shaftImageAlpha, int watermarkImageAlpha) {
+                  int chipInkRes, int tagInkRes, int accentRes, int ghostInkRes, int ghostInkDisabledRes,
+                  int buttonInkRes, int buttonInkDisabledRes, int shaftImageAlpha, int watermarkImageAlpha) {
         this.surface = surface;
         this.plate = plate;
         this.weekdayChip = weekdayChip;
         this.tag = tag;
         this.pin = pin;
+        this.hintIcon = hintIcon;
         this.wordmark = wordmark;
         this.currentButton = currentButton;
         this.doneButton = doneButton;
@@ -69,6 +75,7 @@ public enum WidgetPalette {
         this.tagInkRes = tagInkRes;
         this.accentRes = accentRes;
         this.ghostInkRes = ghostInkRes;
+        this.ghostInkDisabledRes = ghostInkDisabledRes;
         this.buttonInkRes = buttonInkRes;
         this.buttonInkDisabledRes = buttonInkDisabledRes;
         this.shaftImageAlpha = shaftImageAlpha;
@@ -97,6 +104,11 @@ public enum WidgetPalette {
 
     /** Label and icon colour of the ghost 当前 button. */
     public int ghostInk(Context c) { return c.getColor(ghostInkRes); }
+
+    /** Label colour of the ghost 当前 button while it does nothing (status cards). */
+    public int ghostInk(Context c, boolean enabled) {
+        return c.getColor(enabled ? ghostInkRes : ghostInkDisabledRes);
+    }
 
     /** Label colour on the white 完成 face. */
     public int buttonInk(Context c, boolean enabled) {
