@@ -41,7 +41,7 @@ public class WidgetPaletteFadeTest {
   Context c=RuntimeEnvironment.getApplication();
   android.appwidget.AppWidgetManager manager=android.appwidget.AppWidgetManager.getInstance(c);
   org.robolectric.shadows.ShadowAppWidgetManager host=org.robolectric.Shadows.shadowOf(manager);
-  int id=host.createWidget(PlannerWidget.class,R.layout.widget_final_day);
+  int id=host.createWidget(PlannerWidget.class,R.layout.widget_loading);
   PlannerWidget provider=(PlannerWidget)host.getAppWidgetProviderFor(id);
   assertEquals(View.VISIBLE,host.getViewFor(id).findViewById(R.id.widget_palette_static).getVisibility());
   String previous=null, before=null;

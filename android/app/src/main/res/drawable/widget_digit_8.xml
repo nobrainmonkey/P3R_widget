@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Outlined numeral 8 for the widget day watermark (day-surface alpha baked in; night dims
+     it with image alpha). Glyph outline from Barlow Condensed
+     ExtraBold Italic (SIL OFL 1.1, docs/licenses/BarlowCondensed-OFL.txt). Generated; do not hand-edit. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="47.9dp" android:height="77.4dp"
+    android:viewportWidth="479" android:viewportHeight="774">
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="14" android:strokeAlpha="0.42"
+        android:strokeLineJoin="round"
+        android:pathData="M368,371Q363,376 368,378Q398,399 409,437Q417,467 417,499Q417,509 415,533Q410,580 387,624Q359,680 307.5,713Q256,746 194,746Q132,746 88,713.5Q44,681 29,624Q24,603 24,571Q24,546 26,533Q32,479 53,439Q72,400 110,379Q115,376 111,372Q80,350 70,311Q62,282 62,253Q62,242 64,222Q70,170 92,132Q119,82 170,53Q221,24 283,24Q343,24 387,51.5Q431,79 446,132Q455,159 455,193Q455,260 425,310Q404,348 368,371ZM227,207Q223,221 220,238Q218,263 219,273Q219,292 226.5,303Q234,314 247,314Q261,314 271.5,302.5Q282,291 286,272Q292,244 292,239Q294,216 293,207Q293,188 286,177Q279,166 265,166Q252,166 242,177.5Q232,189 227,207ZM252,558Q256,537 257,523Q260,498 259,483Q260,463 252.5,451.5Q245,440 231,440Q218,440 207.5,452Q197,464 192,484Q186,515 186,520Q183,542 183,561Q183,581 190.5,592.5Q198,604 211,604Q226,604 236.5,591.5Q247,579 252,558Z" />
+</vector>

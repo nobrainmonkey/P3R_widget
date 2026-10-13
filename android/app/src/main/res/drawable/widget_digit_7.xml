@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Outlined numeral 7 for the widget day watermark (day-surface alpha baked in; night dims
+     it with image alpha). Glyph outline from Barlow Condensed
+     ExtraBold Italic (SIL OFL 1.1, docs/licenses/BarlowCondensed-OFL.txt). Generated; do not hand-edit. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="46.4dp" android:height="77.4dp"
+    android:viewportWidth="464" android:viewportHeight="774">
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="14" android:strokeAlpha="0.42"
+        android:strokeLineJoin="round"
+        android:pathData="M36,738Q30,738 28,734Q26,730 28,724L250,186Q253,180 247,180L165,180Q161,180 159,185L155,219Q154,224 150.5,227.5Q147,231 142,231L35,231Q30,231 27,227.5Q24,224 25,219L47,50Q48,45 51.5,41.5Q55,38 60,38L428,38Q433,38 436.5,41.5Q440,45 439,50L424,173L420,187L195,728Q192,738 182,738L36,738Z" />
+</vector>

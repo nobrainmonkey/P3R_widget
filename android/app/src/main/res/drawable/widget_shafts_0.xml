@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Diagonal light shafts, variant 0 (chosen per game date; stretched to the card). Generated from widget design constants; keep edits consistent across siblings. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="100dp" android:height="60dp"
+    android:viewportWidth="100" android:viewportHeight="60">
+    <path android:fillColor="#FFFFFFFF" android:fillAlpha="0.16" android:pathData="M62,0L79,0L60,60L43,60Z" />
+    <path android:fillColor="#FFFFFFFF" android:fillAlpha="0.11" android:pathData="M84,0L87.5,0L68.5,60L65,60Z" />
+</vector>

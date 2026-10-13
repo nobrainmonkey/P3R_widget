@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Progress tick: slot still to do. Generated from widget design constants; keep edits consistent across siblings. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="12dp" android:height="8dp"
+    android:viewportWidth="12" android:viewportHeight="8">
+    <path android:fillColor="#00000000" android:strokeColor="#FF0A2A5C" android:strokeWidth="1.2" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:pathData="M2.96,1.6L10.4,1.6L9.04,6.4L1.6,6.4Z" />
+</vector>

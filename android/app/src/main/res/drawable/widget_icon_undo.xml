@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Undo arrow shown on the Done button after a direct record. Generated from widget design constants; keep edits consistent across siblings. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="20dp" android:height="20dp"
+    android:viewportWidth="20" android:viewportHeight="20">
+    <path android:fillColor="#00000000" android:strokeColor="#FF0A2A5C" android:strokeWidth="1.9" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:pathData="M6.5,3.5L2.5,7.5L6.5,11.5M2.5,7.5H12A5,5 0,0 1,12,17.5H6" />
+</vector>

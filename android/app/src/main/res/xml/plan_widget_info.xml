@@ -1,2 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android" android:minWidth="220dp" android:minHeight="160dp" android:minResizeWidth="180dp" android:minResizeHeight="160dp" android:targetCellWidth="4" android:targetCellHeight="2" android:initialLayout="@layout/widget_final_day" android:previewLayout="@layout/widget_final_day" android:resizeMode="horizontal|vertical" android:updatePeriodMillis="0" android:widgetCategory="home_screen" />
+<!-- P3R 每日安排 widget. Targets 4x2 cells, resizable down to about 3x2; updates are pushed by the app
+     (PlanWidget.refreshAll), never polled. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/plan_widget_description"
+    android:initialLayout="@layout/widget_loading"
+    android:minWidth="250dp"
+    android:minHeight="140dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="130dp"
+    android:previewImage="@drawable/widget_preview_plan"
+    android:previewLayout="@layout/widget_card_regular"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />
