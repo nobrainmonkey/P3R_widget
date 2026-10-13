@@ -1,0 +1,3587 @@
+{
+  "schema": "p3r.calendar.execution_contract.v1",
+  "gameEdition": "P3R-base",
+  "kind": "data_contract_only_no_engine_modification",
+  "dateAxis": {
+    "epoch": "2009-04-01",
+    "epochOrdinal": 0,
+    "canonicalGameYearStart": 2009,
+    "neverUseDeviceYear": true
+  },
+  "sourceArtifacts": [
+    {
+      "artifact": "calendar_full_candidate.json",
+      "sha256": "442d4255261df6b3849c9ae6a40f7a5472af61ad44e1305505c1bf9980871ff9"
+    },
+    {
+      "artifact": "calendar_global_constraints_candidate.json",
+      "sha256": "faa884bd1bf0c9e27fec76d4b8d2f570476c521d51c56a2cedaf684359b1e20f"
+    },
+    {
+      "artifact": "early_link_calendar_witnesses.json",
+      "sha256": "0b27c781e88eb9bec62ac4627db6771ee8a413235c2c140f77f13530d2c0c7c6"
+    },
+    {
+      "artifact": "social_links.json",
+      "sha256": "df4ba0d50aff864bd4037b471a498485b3d2ec22f2e0b750f31cb9fe007af41f"
+    }
+  ],
+  "sourcePriority": [
+    "explicit_Wiki_slot_rule",
+    "validated_current_checkpoint_or_user_override",
+    "Wiki_positive_route_witness",
+    "Wiki_general_entity_rule",
+    "Aqiu_exact_date_symbol"
+  ],
+  "coverage": {
+    "calendarSourceWindow": {
+      "startInclusive": {
+        "mmdd": "04-21",
+        "ordinal": 20,
+        "weekday": 2
+      },
+      "endInclusive": {
+        "mmdd": "01-31",
+        "ordinal": 305,
+        "weekday": 7
+      }
+    },
+    "allGameVerified": false,
+    "ordinarySourceOCount": 1357,
+    "quarantinedOCount": 5,
+    "conditionalOViewCount": 1352,
+    "minimalArbitraryCheckpointScope": "Two entities across full source window, every non-quarantined exact O date, with present state guards; no replayed route or witness-rank restriction.",
+    "magicianCandidateDates": 63,
+    "chariotCandidateDates": 80,
+    "omittedEntityDateSemantics": "unknown_or_not_listed_by_source; never proven globally impossible"
+  },
+  "viewSchema": {
+    "type": "conditional_ordinary_visit",
+    "required": [
+      "entityId",
+      "date",
+      "slot",
+      "sourceRuleId",
+      "requiredGuardSet",
+      "evidenceClass",
+      "status"
+    ],
+    "date": "{mmdd: MM-DD, ordinal: days since 2009-04-01, weekday: ISO1–7}",
+    "rankDomain": "1–9 is ordinary active-link scope, not assertion of arbitrary rank-up readiness",
+    "availableResult": "An evidence-tagged candidate plus evaluated guard outcomes, assumptions, blockers and rankUpGuarantee=false unless separate transition model proves it."
+  },
+  "materialization": {
+    "input": "calendar_full_candidate.json cells",
+    "include": "rawSymbol == O and no quarantine reason",
+    "join": [
+      "calendar_global_constraints_candidate explicit source locks and special conditions",
+      "social_links entity-specific unlock and availability guards",
+      "optional date-matched early_link_calendar_witnesses evidence"
+    ],
+    "neverJoinAsGuard": [
+      "fixed_route_starting_rank",
+      "route_recommended_prior_visits",
+      "unrelated_route_choices_or_completion_of_other_links"
+    ],
+    "rule": "Instantiate generic ordinary-visit action at rank1–9 only when present-state guards pass. A concrete rank-up scene is a separate action/outcome, not implied by a calendar cell.",
+    "viewResultCountsByEntity": {
+      "p3r.social_link.magician": 63,
+      "p3r.social_link.chariot": 80,
+      "p3r.social_link.hierophant": 185,
+      "p3r.social_link.strength": 43,
+      "p3r.social_link.emperor": 54,
+      "p3r.social_link.moon": 215,
+      "p3r.social_link.hermit": 46,
+      "p3r.social_link.hanged_man": 89,
+      "p3r.social_link.justice": 60,
+      "p3r.social_link.temperance": 56,
+      "p3r.social_link.fortune": 41,
+      "p3r.social_link.priestess": 51,
+      "p3r.social_link.lovers": 50,
+      "p3r.social_link.star": 61,
+      "p3r.social_link.sun": 23,
+      "p3r.social_link.empress": 30,
+      "p3r.social_link.aeon": 18,
+      "p3r.social_link.devil": 61,
+      "p3r.social_link.tower": 126
+    }
+  },
+  "guardSets": {
+    "ordinary_visit_v1": [
+      {
+        "id": "game_edition",
+        "fact": "gameEdition",
+        "operator": "eq",
+        "value": "P3R-base",
+        "onUnknown": "unknown_eligibility",
+        "inputPaths": [
+          "gameEdition"
+        ]
+      },
+      {
+        "id": "date_not_before_checkpoint",
+        "fact": "date.ordinal >= checkpoint.date.ordinal",
+        "onFalse": "blocked_past_date",
+        "onUnknown": "unknown_eligibility",
+        "inputPaths": [
+          "checkpoint.date.ordinal"
+        ]
+      },
+      {
+        "id": "unlocked",
+        "fact": "socialLinks.{slug}.alreadyUnlocked",
+        "operator": "eq",
+        "value": true,
+        "onUnknown": "unknown_eligibility",
+        "mustNotInferFrom": "O symbol or route rank",
+        "inputPaths": [
+          "socialLinks.{slug}.alreadyUnlocked"
+        ]
+      },
+      {
+        "id": "rank_domain",
+        "fact": "socialLinks.{slug}.rank",
+        "operator": "integer_between_inclusive",
+        "value": [
+          1,
+          9
+        ],
+        "onUnknown": "unknown_eligibility",
+        "rank10Meaning": "Outside active-rank visit contract; post-max hangouts need separate actions.",
+        "inputPaths": [
+          "socialLinks.{slug}.rank"
+        ]
+      },
+      {
+        "id": "relationship_normal",
+        "fact": "socialLinks.{slug}.relationshipState",
+        "operator": "eq",
+        "value": "normal",
+        "onUnknown": "unknown_eligibility",
+        "inputPaths": [
+          "socialLinks.{slug}.relationshipState"
+        ]
+      },
+      {
+        "id": "current_slot_capacity",
+        "fact": "slotCapacity(date,slot)",
+        "operator": "gte",
+        "value": 1,
+        "onUnknown": "unknown_eligibility",
+        "evaluation": "For checkpoint day, subtract actual already-spent slots. Future slots use simulated plan reservations, not requests for future history.",
+        "inputPaths": [
+          "calendar.slotStates.{slotIndex}.remainingCapacity"
+        ]
+      },
+      {
+        "id": "story_date_guard",
+        "fact": "storyLock(date,slot)",
+        "operator": "eq",
+        "value": false,
+        "onTrue": "blocked_known_story_lock",
+        "onUnknown": "conditional_assumption_only_if_no_explicit_conflict",
+        "assumptionId": "A.calendar_context_complete_enough",
+        "inputPaths": [
+          "calendar.slotStates.{slotIndex}.knownStoryLock"
+        ]
+      },
+      {
+        "id": "entity_specific_guard",
+        "fact": "entitySpecificUnavailable(entityId,date,state)",
+        "operator": "eq",
+        "value": false,
+        "onTrue": "blocked_known_entity_guard",
+        "onUnknown": "unknown_eligibility",
+        "examples": [
+          "rescue/death state for Hierophant/Hanged Man",
+          "relationship reversal",
+          "temporary entity-specific absence",
+          "validated progression flags"
+        ],
+        "inputPaths": [
+          "calendar.entityDateStates.{slug}.{ordinal}.knownUnavailable"
+        ]
+      },
+      {
+        "id": "checkpoint_consistency",
+        "fact": "checkpointIsConsistentWithKnownIntroductionAndDateFacts",
+        "operator": "eq",
+        "value": true,
+        "onUnknown": "unknown_eligibility",
+        "note": "Do not force replay of history. Validate present checkpoint fields against known hard constraints; ask only about missing decisive current facts.",
+        "inputPaths": [
+          "checkpoint.consistencyValidated"
+        ]
+      }
+    ]
+  },
+  "evaluationOrder": [
+    "date/schema scope check",
+    "quarantine conflict or introduction",
+    "explicit source story/slot exclusions and current checkpoint facts",
+    "interpret O versus D versus dash/empty",
+    "evaluate unlocked,rank,relationship,entity-specific state and current/future slot capacity",
+    "evaluate special Christmas/Jan21 guard",
+    "return conditional candidate with provenance and any explicitly permitted source-completeness assumption",
+    "evaluate affinity/threshold/scene rules separately if requesting guaranteed rank-up"
+  ],
+  "resultStates": [
+    "conditional_available",
+    "conditional_available_with_assumption",
+    "blocked_known_state",
+    "unknown_eligibility",
+    "quarantined_intro_or_conflict",
+    "not_listed_by_source",
+    "invitation_candidate_separate",
+    "unknown_source_cell",
+    "requires_story_progression_to_planning_boundary"
+  ],
+  "plannerModes": {
+    "conditional_planning": {
+      "purpose": "Useful prospective plan across all source-positive dates without claiming a proven complete game model",
+      "mayAssume": [
+        "A.calendar_context_complete_enough: no unmodeled compulsory story/event lock on an O date, only when no known conflicting special event or dispute exists"
+      ],
+      "mustExposeAssumptions": true,
+      "mustNotAssume": [
+        "unknown_unlocked",
+        "unknown_rank",
+        "unknown_relationship",
+        "unknown_current_slot_spend",
+        "unknown_rescue_status_if_relevant",
+        "missing_specific_Jan21_or_Christmas_condition",
+        "affinity_readiness",
+        "all_Wiki_route_ranks_apply_to_user"
+      ],
+      "successLabel": "conditional plan based on listed date availability and current checkpoint",
+      "infeasibilityLabel": "no plan found within currently supported candidates; not proven impossible"
+    },
+    "confirmed_only": {
+      "unknownGuardResult": "unknown_eligibility",
+      "limitation": "Sparse evidence may prevent full plan; do not fabricate a negative result"
+    }
+  },
+  "safeHardExclusions": [
+    {
+      "kind": "known_current_state_failure",
+      "examples": [
+        "already spent current slot",
+        "link not unlocked",
+        "rank10 outside active-link contract",
+        "known reverse/broken relationship",
+        "known entity unavailable due to rescue/story state"
+      ]
+    },
+    {
+      "kind": "explicit_Wiki_action_lock",
+      "source": "calendar_global_constraints_candidate.json explicitActionLockClaims",
+      "caveat": "Do not generalize day-only lock to evening; early general no-action notes have source scope caveat."
+    },
+    {
+      "kind": "forced_Magician_intro",
+      "date": "04-22",
+      "scope": "ordinary visit action only; forced introduction remains a separate story action"
+    },
+    {
+      "kind": "Aeon_Jan25",
+      "scope": "Aigis ordinary visit only, not global daytime"
+    },
+    {
+      "kind": "mandatory_Aug16_festival",
+      "scope": "ordinary player day/evening planning slots per explicit Wiki whole-day-event statement"
+    }
+  ],
+  "conservativeQuarantinesNotProvenImpossibilities": [
+    {
+      "sourceRuleId": "p3r.calendar.candidate.daytime.04-22.magician",
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "04-22",
+        "ordinal": 21,
+        "weekday": 3
+      },
+      "reason": "forced_Magician_introduction"
+    },
+    {
+      "sourceRuleId": "p3r.calendar.candidate.daytime.04-23.chariot",
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "04-23",
+        "ordinal": 22,
+        "weekday": 4
+      },
+      "reason": "only_introduction_witness_for_earliest_date_conservative_quarantine"
+    },
+    {
+      "sourceRuleId": "p3r.calendar.candidate.daytime.04-28.justice",
+      "entityId": "p3r.social_link.justice",
+      "date": {
+        "mmdd": "04-28",
+        "ordinal": 27,
+        "weekday": 2
+      },
+      "reason": "O_precedes_Wiki_earliest_start_unresolved_presence_vs_unlock"
+    },
+    {
+      "sourceRuleId": "p3r.calendar.candidate.daytime.04-30.justice",
+      "entityId": "p3r.social_link.justice",
+      "date": {
+        "mmdd": "04-30",
+        "ordinal": 29,
+        "weekday": 4
+      },
+      "reason": "O_precedes_Wiki_earliest_start_unresolved_presence_vs_unlock"
+    },
+    {
+      "sourceRuleId": "p3r.calendar.candidate.daytime.05-02.justice",
+      "entityId": "p3r.social_link.justice",
+      "date": {
+        "mmdd": "05-02",
+        "ordinal": 31,
+        "weekday": 6
+      },
+      "reason": "O_precedes_Wiki_earliest_start_unresolved_presence_vs_unlock"
+    }
+  ],
+  "unsafeHardExclusions": [
+    "Any date just because a walkthrough chose a different action",
+    "All daytime/evening slots on exam final day",
+    "All trip return nights",
+    "Any date merely because school links have source dashes",
+    "Any school break/pre-exam boundary inferred only from matrix patterns",
+    "Different rank than the fixed-route witness",
+    "Unmodeled date or entity as globally impossible"
+  ],
+  "specialGuardDefinitions": {
+    "christmas_all_invitations_declined": {
+      "date": "12-24",
+      "requiresKnown": true,
+      "falseEffect": "Chosen Christmas event occupies relevant ordinary slots; do not insert ordinary visits",
+      "source": "Wiki420 Dec24 notes explicitly release afternoon/evening if all invitations declined",
+      "inputPaths": [
+        "storyFlags.christmasAllInvitationsDeclined"
+      ]
+    },
+    "jan21_conditional_story_event_resolved": {
+      "date": "01-21",
+      "requiresKnown": true,
+      "rule": "If white-flower-triggered event occurs, resolve actual daytime lock before candidate can be confirmed. Unknown flag or unknown event-slot effect cannot be bypassed by general completeness assumption.",
+      "source": "Wiki420 Jan21 daytime cell; Wiki453 Aeon explanation",
+      "inputPaths": [
+        "storyFlags.junpeiWhiteFlowersGiven",
+        "calendar.slotStates.590.knownStoryLock"
+      ]
+    }
+  },
+  "invitationContract": {
+    "include": "D cells in separate invitation view",
+    "requiredGuards": [
+      "link_unlocked",
+      "invitation_received_and_offered_to_this_entity",
+      "eligible_rank_relationship_for_invitation",
+      "slot_capacity",
+      "story_event_not_blocking"
+    ],
+    "effect": "affinity/event action only; no ordinary rank-up guarantee",
+    "sourceInternalDisputes": "Lovers Aug03/Aug09 are dedicated-table-only invitations conflicting with calendar dashes and absent Wiki invitation list; quarantined, not silently promoted"
+  },
+  "effects": {
+    "ordinaryVisit": "reserve one slot; record selected visit, but rank/affinity changes require separate validated model or observed result",
+    "noAutomaticEffects": [
+      "rank += 1",
+      "affinity += guessed value",
+      "other_social_link_unlock",
+      "story_progression_flags",
+      "rescue_completion"
+    ],
+    "rebase": "Load current checkpoint, compute forward from it, preserve unknowns; do not require past route replay."
+  },
+  "minimalTwoLinkCandidateDates": [
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "04-23",
+        "ordinal": 22,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.04-23.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "04-24",
+        "ordinal": 23,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.04-24.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "04-24",
+        "ordinal": 23,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.04-24.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.chariot.04-24",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "04-27",
+        "ordinal": 26,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.04-27.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "04-28",
+        "ordinal": 27,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.04-28.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.magician.04-28",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "04-28",
+        "ordinal": 27,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.04-28.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "04-30",
+        "ordinal": 29,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.04-30.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.magician.04-30",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "04-30",
+        "ordinal": 29,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.04-30.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "05-07",
+        "ordinal": 36,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.05-07.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.magician.05-07",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "05-07",
+        "ordinal": 36,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.05-07.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "05-08",
+        "ordinal": 37,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.05-08.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.magician.05-08",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "05-08",
+        "ordinal": 37,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.05-08.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "05-25",
+        "ordinal": 54,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.05-25.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "05-26",
+        "ordinal": 55,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.05-26.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "05-26",
+        "ordinal": 55,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.05-26.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "05-28",
+        "ordinal": 57,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.05-28.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "05-28",
+        "ordinal": 57,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.05-28.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "05-29",
+        "ordinal": 58,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.05-29.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "05-29",
+        "ordinal": 58,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.05-29.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-01",
+        "ordinal": 61,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-01.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.chariot.06-01",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "06-02",
+        "ordinal": 62,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-02.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-02",
+        "ordinal": 62,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-02.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "06-04",
+        "ordinal": 64,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-04.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-04",
+        "ordinal": 64,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-04.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "06-05",
+        "ordinal": 65,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-05.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-05",
+        "ordinal": 65,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-05.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "06-09",
+        "ordinal": 69,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-09.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-09",
+        "ordinal": 69,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-09.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.chariot.06-09",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "06-11",
+        "ordinal": 71,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-11.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.magician.06-11",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-11",
+        "ordinal": 71,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-11.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "06-12",
+        "ordinal": 72,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-12.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-12",
+        "ordinal": 72,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-12.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.chariot.06-12",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-15",
+        "ordinal": 75,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-15.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.chariot.06-15",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "06-16",
+        "ordinal": 76,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-16.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-16",
+        "ordinal": 76,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-16.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "06-18",
+        "ordinal": 78,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-18.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-18",
+        "ordinal": 78,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-18.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "06-19",
+        "ordinal": 79,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-19.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-19",
+        "ordinal": 79,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-19.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-22",
+        "ordinal": 82,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-22.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "06-23",
+        "ordinal": 83,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-23.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-23",
+        "ordinal": 83,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-23.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "06-25",
+        "ordinal": 85,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-25.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-25",
+        "ordinal": 85,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-25.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "06-26",
+        "ordinal": 86,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-26.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-26",
+        "ordinal": 86,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-26.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-29",
+        "ordinal": 89,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-29.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "06-30",
+        "ordinal": 90,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-30.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-30",
+        "ordinal": 90,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.06-30.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.chariot.06-30",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "07-02",
+        "ordinal": 92,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.07-02.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "07-02",
+        "ordinal": 92,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.07-02.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "07-03",
+        "ordinal": 93,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.07-03.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "07-03",
+        "ordinal": 93,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.07-03.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "07-06",
+        "ordinal": 96,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.07-06.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.chariot.07-06",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "07-24",
+        "ordinal": 114,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.07-24.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "07-24",
+        "ordinal": 114,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.07-24.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "09-01",
+        "ordinal": 153,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-01.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "09-01",
+        "ordinal": 153,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-01.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "09-03",
+        "ordinal": 155,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-03.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "09-03",
+        "ordinal": 155,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-03.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "09-04",
+        "ordinal": 156,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-04.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "09-04",
+        "ordinal": 156,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-04.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "09-07",
+        "ordinal": 159,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-07.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "09-08",
+        "ordinal": 160,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-08.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "09-08",
+        "ordinal": 160,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-08.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "09-10",
+        "ordinal": 162,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-10.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "09-10",
+        "ordinal": 162,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-10.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "09-11",
+        "ordinal": 163,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-11.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "09-11",
+        "ordinal": 163,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-11.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "09-14",
+        "ordinal": 166,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-14.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "09-15",
+        "ordinal": 167,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-15.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "09-15",
+        "ordinal": 167,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-15.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "09-17",
+        "ordinal": 169,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-17.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "09-17",
+        "ordinal": 169,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-17.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "09-24",
+        "ordinal": 176,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-24.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "09-24",
+        "ordinal": 176,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-24.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "09-25",
+        "ordinal": 177,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-25.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "09-25",
+        "ordinal": 177,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-25.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "09-28",
+        "ordinal": 180,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-28.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "09-29",
+        "ordinal": 181,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-29.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "09-29",
+        "ordinal": 181,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.09-29.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "10-01",
+        "ordinal": 183,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-01.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "10-01",
+        "ordinal": 183,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-01.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "10-02",
+        "ordinal": 184,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-02.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "10-02",
+        "ordinal": 184,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-02.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "10-19",
+        "ordinal": 201,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-19.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "10-20",
+        "ordinal": 202,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-20.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "10-20",
+        "ordinal": 202,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-20.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "10-22",
+        "ordinal": 204,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-22.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.magician.10-22",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "10-22",
+        "ordinal": 204,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-22.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "10-23",
+        "ordinal": 205,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-23.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "10-23",
+        "ordinal": 205,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-23.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "10-26",
+        "ordinal": 208,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-26.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "10-27",
+        "ordinal": 209,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-27.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.magician.10-27",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "10-27",
+        "ordinal": 209,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-27.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "10-29",
+        "ordinal": 211,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-29.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "10-29",
+        "ordinal": 211,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-29.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "10-30",
+        "ordinal": 212,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-30.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.magician.10-30",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "10-30",
+        "ordinal": 212,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.10-30.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "11-02",
+        "ordinal": 215,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.11-02.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.chariot.11-02",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "11-06",
+        "ordinal": 219,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.11-06.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "11-06",
+        "ordinal": 219,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.11-06.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "11-10",
+        "ordinal": 223,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.11-10.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.magician.11-10",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "11-10",
+        "ordinal": 223,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.11-10.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "11-12",
+        "ordinal": 225,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.11-12.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "11-12",
+        "ordinal": 225,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.11-12.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "11-13",
+        "ordinal": 226,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.11-13.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "11-13",
+        "ordinal": 226,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.11-13.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "11-16",
+        "ordinal": 229,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.11-16.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "11-30",
+        "ordinal": 243,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.11-30.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.chariot.11-30",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "12-01",
+        "ordinal": 244,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.12-01.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "12-01",
+        "ordinal": 244,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.12-01.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "12-04",
+        "ordinal": 247,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.12-04.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [],
+      "positiveRouteWitnessId": "p3r.calendar.witness.magician.12-04",
+      "witnessUse": "Corroborates date/slot possibility; historical route rank and unrelated route choices do not constrain ordinary visit availability."
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "12-04",
+        "ordinal": 247,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.12-04.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "12-21",
+        "ordinal": 264,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.12-21.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "12-22",
+        "ordinal": 265,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.12-22.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "12-22",
+        "ordinal": 265,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.12-22.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "12-24",
+        "ordinal": 267,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.12-24.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [
+        "christmas_all_invitations_declined"
+      ]
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "12-24",
+        "ordinal": 267,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.12-24.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [
+        "christmas_all_invitations_declined"
+      ]
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "12-25",
+        "ordinal": 268,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.12-25.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "12-25",
+        "ordinal": 268,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.12-25.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "01-08",
+        "ordinal": 282,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-08.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "01-08",
+        "ordinal": 282,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-08.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "01-12",
+        "ordinal": 286,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-12.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "01-12",
+        "ordinal": 286,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-12.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "01-14",
+        "ordinal": 288,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-14.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "01-14",
+        "ordinal": 288,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-14.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "01-15",
+        "ordinal": 289,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-15.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "01-15",
+        "ordinal": 289,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-15.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "01-18",
+        "ordinal": 292,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-18.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "01-19",
+        "ordinal": 293,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-19.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "01-19",
+        "ordinal": 293,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-19.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "01-21",
+        "ordinal": 295,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-21.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [
+        "jan21_conditional_story_event_resolved"
+      ]
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "01-21",
+        "ordinal": 295,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-21.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": [
+        "jan21_conditional_story_event_resolved"
+      ]
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "01-22",
+        "ordinal": 296,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-22.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "01-22",
+        "ordinal": 296,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-22.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "01-25",
+        "ordinal": 299,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-25.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "01-26",
+        "ordinal": 300,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-26.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "01-26",
+        "ordinal": 300,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-26.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "01-28",
+        "ordinal": 302,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-28.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "01-28",
+        "ordinal": 302,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-28.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "01-29",
+        "ordinal": 303,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-29.magician",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "01-29",
+        "ordinal": 303,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "sourceRuleId": "p3r.calendar.candidate.daytime.01-29.chariot",
+      "evidenceClass": "Wiki_weekly_rule_plus_exact_Aqiu_O",
+      "generalRankDomain": {
+        "minInclusive": 1,
+        "maxInclusive": 9
+      },
+      "rankMatchToFixedRouteRequired": false,
+      "status": "conditional_ordinary_visit_candidate",
+      "requiredGuardSet": "ordinary_visit_v1",
+      "knownSpecialGuardIds": []
+    }
+  ],
+  "fixtureDefaultState": {
+    "edition": "P3R-base",
+    "dateNotBeforeCheckpoint": true,
+    "unlocked": true,
+    "normal": true,
+    "slotCapacity": 1,
+    "storyLock": false,
+    "entitySpecificUnavailable": false,
+    "checkpointConsistent": true,
+    "note": "Explicit fixture setup only, never defaults for missing real user data."
+  },
+  "fixtures": [
+    {
+      "id": "forced_magician_intro",
+      "entity": "magician",
+      "date": "04-22",
+      "slot": "daytime",
+      "state": {
+        "rank": 1
+      },
+      "expected": "quarantined_intro_or_conflict",
+      "explanation": "An O introduction cannot become an ordinary repeat visit.",
+      "actual": "quarantined_intro_or_conflict",
+      "passed": true
+    },
+    {
+      "id": "chariot_initial_date",
+      "entity": "chariot",
+      "date": "04-23",
+      "slot": "daytime",
+      "state": {
+        "rank": 1
+      },
+      "expected": "quarantined_intro_or_conflict",
+      "explanation": "Conservative introduction-only exclusion, not proof that every conceivable checkpoint that date is impossible.",
+      "actual": "quarantined_intro_or_conflict",
+      "passed": true
+    },
+    {
+      "id": "arbitrary_rank_differs_from_route",
+      "entity": "magician",
+      "date": "10-22",
+      "slot": "daytime",
+      "state": {
+        "rank": 2
+      },
+      "expected": "conditional_available",
+      "explanation": "Wiki route rank5 is not required for ordinary visit at rank2.",
+      "actual": "conditional_available",
+      "passed": true
+    },
+    {
+      "id": "non_route_date_arbitrary_rank",
+      "entity": "chariot",
+      "date": "06-04",
+      "slot": "daytime",
+      "state": {
+        "rank": 6
+      },
+      "expected": "conditional_available",
+      "explanation": "Exact O plus normal current state supports candidate without a matching fixed-route action.",
+      "actual": "conditional_available",
+      "passed": true
+    },
+    {
+      "id": "exam_final_day_is_not_global_lock",
+      "entity": "justice",
+      "date": "05-23",
+      "slot": "daytime",
+      "state": {
+        "rank": 2
+      },
+      "expected": "conditional_available",
+      "explanation": "Wiki ordinary Justice witness survives an exam final-day label.",
+      "actual": "conditional_available",
+      "passed": true
+    },
+    {
+      "id": "july_exam_final_evening",
+      "entity": "tower",
+      "date": "07-18",
+      "slot": "evening",
+      "state": {
+        "rank": 2
+      },
+      "expected": "conditional_available",
+      "explanation": "Source evening O is not suppressed by a blanket exam-final-day lock.",
+      "actual": "conditional_available",
+      "passed": true
+    },
+    {
+      "id": "core_exam_dash_not_global_impossibility",
+      "entity": "magician",
+      "date": "05-19",
+      "slot": "daytime",
+      "state": {
+        "rank": 2
+      },
+      "expected": "not_listed_by_source",
+      "explanation": "No ordinary candidate from dash; never return globally impossible for every action.",
+      "actual": "not_listed_by_source",
+      "passed": true
+    },
+    {
+      "id": "D_is_invitation",
+      "entity": "magician",
+      "date": "04-26",
+      "slot": "daytime",
+      "state": {
+        "rank": 1
+      },
+      "expected": "invitation_candidate_separate",
+      "explanation": "Must not dispatch rank-up or ordinary-visit action.",
+      "actual": "invitation_candidate_separate",
+      "passed": true
+    },
+    {
+      "id": "unlocked_unknown",
+      "entity": "chariot",
+      "date": "06-04",
+      "slot": "daytime",
+      "state": {
+        "rank": 6,
+        "unlocked": null
+      },
+      "expected": "unknown_eligibility",
+      "actual": "unknown_eligibility",
+      "passed": true
+    },
+    {
+      "id": "known_locked",
+      "entity": "chariot",
+      "date": "06-04",
+      "slot": "daytime",
+      "state": {
+        "rank": 0,
+        "unlocked": false
+      },
+      "expected": "blocked_known_state",
+      "actual": "blocked_known_state",
+      "passed": true
+    },
+    {
+      "id": "spent_checkpoint_slot",
+      "entity": "magician",
+      "date": "10-22",
+      "slot": "daytime",
+      "state": {
+        "rank": 2,
+        "slotCapacity": 0
+      },
+      "expected": "blocked_known_state",
+      "actual": "blocked_known_state",
+      "passed": true
+    },
+    {
+      "id": "rankup_readiness_unknown_does_not_kill_visit",
+      "entity": "chariot",
+      "date": "06-04",
+      "slot": "daytime",
+      "state": {
+        "rank": 6,
+        "affinityReady": null
+      },
+      "expected": "conditional_available",
+      "expectedRankUpGuarantee": false,
+      "actual": "conditional_available",
+      "passed": true
+    },
+    {
+      "id": "christmas_acceptance_blocks_free_slot_assumption",
+      "entity": "magician",
+      "date": "12-24",
+      "slot": "daytime",
+      "state": {
+        "rank": 5,
+        "christmasDeclinedAll": false
+      },
+      "expected": "blocked_known_state",
+      "actual": "blocked_known_state",
+      "passed": true
+    },
+    {
+      "id": "christmas_declined_ordinary_candidate",
+      "entity": "chariot",
+      "date": "12-24",
+      "slot": "daytime",
+      "state": {
+        "rank": 5,
+        "christmasDeclinedAll": true
+      },
+      "expected": "conditional_available",
+      "actual": "conditional_available",
+      "passed": true
+    },
+    {
+      "id": "jan21_story_flag_unknown",
+      "entity": "chariot",
+      "date": "01-21",
+      "slot": "daytime",
+      "state": {
+        "rank": 5,
+        "jan21StoryResolved": null
+      },
+      "expected": "unknown_eligibility",
+      "actual": "unknown_eligibility",
+      "passed": true
+    },
+    {
+      "id": "early_Justice_O_is_quarantined",
+      "entity": "justice",
+      "date": "04-28",
+      "slot": "daytime",
+      "state": {
+        "rank": 1
+      },
+      "expected": "quarantined_intro_or_conflict",
+      "actual": "quarantined_intro_or_conflict",
+      "passed": true
+    },
+    {
+      "id": "empty_lovers_preserved",
+      "entity": "lovers",
+      "date": "01-05",
+      "slot": "daytime",
+      "state": {
+        "rank": 5
+      },
+      "expected": "unknown_source_cell",
+      "actual": "unknown_source_cell",
+      "passed": true
+    },
+    {
+      "id": "Empress_preexam_exception",
+      "entity": "empress",
+      "date": "12-09",
+      "slot": "daytime",
+      "state": {
+        "rank": 4
+      },
+      "expected": "conditional_available",
+      "actual": "conditional_available",
+      "passed": true
+    },
+    {
+      "id": "known_story_lock_beats_O",
+      "entity": "magician",
+      "date": "10-22",
+      "slot": "daytime",
+      "state": {
+        "rank": 2,
+        "storyLock": true
+      },
+      "expected": "blocked_known_state",
+      "actual": "blocked_known_state",
+      "passed": true
+    },
+    {
+      "id": "unknown_general_story_guard_conditional_mode",
+      "entity": "magician",
+      "date": "10-22",
+      "slot": "daytime",
+      "state": {
+        "rank": 2,
+        "storyLock": null
+      },
+      "expected": "conditional_available_with_assumption",
+      "actual": "conditional_available_with_assumption",
+      "passed": true
+    },
+    {
+      "id": "unknown_general_story_guard_confirmed_mode",
+      "entity": "magician",
+      "date": "10-22",
+      "slot": "daytime",
+      "mode": "confirmed_only",
+      "state": {
+        "rank": 2,
+        "storyLock": null
+      },
+      "expected": "unknown_eligibility",
+      "actual": "unknown_eligibility",
+      "passed": true
+    },
+    {
+      "id": "pre_matrix_tutorial_checkpoint",
+      "checkpoint": {
+        "date": {
+          "mmdd": "04-10",
+          "ordinal": 9
+        }
+      },
+      "requestedEntity": "magician",
+      "expected": "requires_story_progression_to_planning_boundary",
+      "expectedBoundary": {
+        "mmdd": "04-21",
+        "ordinal": 20
+      },
+      "expectedSeparateMilestone": "p3r.story.magician_intro_0422",
+      "mustNotReturn": "globally_impossible_or_unending_unknown",
+      "validation": "Contract routing fixture; not a game replay"
+    }
+  ],
+  "tests": [
+    {
+      "name": "fixture_reference_evaluation",
+      "passed": true,
+      "count": 21
+    },
+    {
+      "name": "143_distinct_two_link_conditional_dates",
+      "passed": true
+    },
+    {
+      "name": "every_two_link_record_is_exact_O_not_quarantined",
+      "passed": true
+    },
+    {
+      "name": "no_fixed_route_rank_guard",
+      "passed": true
+    },
+    {
+      "name": "guard_input_paths_are_explicit_and_143_dates_retained",
+      "passed": true
+    }
+  ],
+  "guardPathConvention": {
+    "entitySlug": "Final segment of entityId; magician, chariot, etc.",
+    "entityRoot": "socialLinks.{slug}",
+    "slotIndex": "date.ordinal * 2 + (slot == daytime ? 0 : 1)",
+    "pathSyntax": "Dot paths; placeholders must be replaced before lookup. Missing values are unknown, never false.",
+    "adapterStatus": "Contract paths for adapter implementation; does not assert these fields already exist in production engine."
+  },
+  "stateFieldSchema": {
+    "gameEdition": "string",
+    "checkpoint.date.ordinal": "integer",
+    "checkpoint.consistencyValidated": "boolean|null",
+    "socialLinks.{slug}.alreadyUnlocked": "boolean|null",
+    "socialLinks.{slug}.rank": "integer 0–10|null",
+    "socialLinks.{slug}.relationshipState": "normal|reversed|broken|unknown",
+    "calendar.slotStates.{slotIndex}.remainingCapacity": "0|1|null; initialize future slots from planning resource model, subtract reserved actions",
+    "calendar.slotStates.{slotIndex}.knownStoryLock": "boolean|null; retain evidence and assumptions separately",
+    "calendar.entityDateStates.{slug}.{ordinal}.knownUnavailable": "boolean|null; derive entity-specific guards; not a new user question per date when rule says not applicable",
+    "storyFlags.christmasAllInvitationsDeclined": "boolean|null",
+    "storyFlags.junpeiWhiteFlowersGiven": "boolean|null"
+  },
+  "entityGuardApplicability": {
+    "magician": {
+      "rescueGuard": "not_applicable",
+      "unknownRescueStatusMustNotBlock": true
+    },
+    "chariot": {
+      "rescueGuard": "not_applicable",
+      "unknownRescueStatusMustNotBlock": true
+    },
+    "otherEntities": "Evaluate only guards actually relevant to that entity. Nonapplicable guards evaluate satisfied; do not invent missing flags."
+  },
+  "compatibilityWithObservedReadyActions": {
+    "calendar.explicitOrdinaryVisitAvailable": "Set true only for confirmed input guard result; never convert conditional-with-assumption into explicit fact. Keep candidate eligibility and source assumptions in separate planner result.",
+    "sceneSpecialConditionsSatisfied": "Resolve separately when selecting rank-specific scene; plain ordinary visit does not prove rank-up scene readiness.",
+    "normalConditionalOResult": "May schedule source-tagged candidate in conditional-planning mode without assigning explicitOrdinaryVisitAvailable=true in permanent state."
+  },
+  "preMatrixTutorialBaseline": {
+    "sourceMatrixStartsAt": {
+      "mmdd": "04-21",
+      "ordinal": 20
+    },
+    "uncoveredMatrixRange": {
+      "startInclusive": {
+        "mmdd": "04-01",
+        "ordinal": 0
+      },
+      "endInclusive": {
+        "mmdd": "04-20",
+        "ordinal": 19
+      }
+    },
+    "status": "story_baseline_requirement_not_endless_unknown_calendar",
+    "whenCheckpointPrecedesMatrix": "Return requires_story_progression_to_planning_boundary with boundary Apr21, plus any specifically requested later link-introduction prerequisite. Do not query or replay every prior date. Do not issue a global impossible result.",
+    "baselineActionKind": "required_story_progression",
+    "doesNotConsumeInventedOptionalSlots": true,
+    "doesNotInventStateEffects": [
+      "money",
+      "stats",
+      "affinity",
+      "unobserved_optional_link_unlocks"
+    ],
+    "sourceEvidence": [
+      "Wiki420 Apr20 Tartarus tutorial and Apr21 optional route activities",
+      "calendar_global_constraints_candidate.json explicit early no-action notes"
+    ],
+    "plannedBoundaryState": "Can plan conditionally from boundary with declared required facts. On reaching boundary, reconcile actual checkpoint; only missing decisive fields need user input.",
+    "milestones": [
+      {
+        "id": "p3r.story.magician_intro_0422",
+        "date": {
+          "mmdd": "04-22",
+          "ordinal": 21
+        },
+        "slot": "daytime",
+        "kind": "forced_introduction",
+        "resultClaim": {
+          "socialLinks.magician.alreadyUnlocked": true,
+          "socialLinks.magician.rank": 1
+        },
+        "applyWhen": "Story event completed or explicit declared future-baseline assumption; never from O symbol alone",
+        "consumesDaytime": true,
+        "ordinaryVisitAlsoAllowedSameSlot": false,
+        "source": "Wiki453 Magician explanation and Wiki420 Apr22"
+      },
+      {
+        "id": "p3r.prerequisite.chariot_introduction",
+        "earliestDate": {
+          "mmdd": "04-23",
+          "ordinal": 22
+        },
+        "kind": "required_unlock_action_if_not_already_unlocked",
+        "forcedOnEarliestDate": false,
+        "rule": "Opening track-club link is a separate action. Do not automatically award it on Apr23; Wiki453 reports forced enrollment if still absent by May28. Exact forced-action integration remains separate from normal-visit calendar.",
+        "source": "Wiki453 Chariot basic information"
+      }
+    ]
+  }
+}

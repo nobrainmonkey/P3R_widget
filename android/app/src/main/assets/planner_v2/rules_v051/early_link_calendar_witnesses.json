@@ -1,0 +1,1410 @@
+{
+  "schema": "p3r.calendar.ordinary_visit_witness_allowlist.v1",
+  "gameEdition": "P3R-base",
+  "dateAxis": {
+    "epoch": "2009-04-01",
+    "epochOrdinal": 0,
+    "canonicalGameYearStart": 2009,
+    "neverUseDeviceYear": true
+  },
+  "coverage": "Conservative positive witnesses for already-unlocked Magician and Chariot; full route examined, omitted dates unknown",
+  "missingDateSemantics": "unknown_not_false",
+  "globalCalendarComplete": false,
+  "sources": [
+    {
+      "id": "wiki_420_full_route",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+      "title": "◆コミュ全MAXチャート/リロード 新 - PERSONA3 @Wiki【10/13更新】 | ペルソナ3 - atwiki（アットウィキ）",
+      "retrievedAtUtc": "2026-10-13T00:50:32.812344+00:00",
+      "snapshotSha256": "381b057794b21349959afc62f61b6c4c9a05dabba85bffc449d18235abe067c7",
+      "snapshotBytes": 274407,
+      "lastUpdatedPageText": "最終更新：2026年10月13日 00:00",
+      "type": "community_wiki_route_claim",
+      "edition": "Reload explicit in title",
+      "authorityLimit": "A recommended route demonstrates a conditional positive witness; it is not exhaustive primary game data."
+    },
+    {
+      "id": "aqiu_calendar",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "retrievedAtUtc": "2026-10-13T00:44:54.101291+00:00",
+      "snapshotSha256": "404dea95268f8344576b33d9595037b08bfb89be7a390449b41635d22c3e4ec8",
+      "snapshotBytes": 190914,
+      "pageLastUpdatedText": null,
+      "version": "No explicit version observed",
+      "edition": "Persona 3 Reload",
+      "evidenceType": "community_source_claim",
+      "independence": "Aqiu/marendarade are not assumed independent"
+    },
+    {
+      "id": "wiki_453",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/453.html",
+      "retrievedAtUtc": "2026-10-13T00:45:06.189255+00:00",
+      "snapshotSha256": "a94a13d70c9e12dcfff5981378f085f70c542a3ae11c3716656614c4caeee682",
+      "snapshotBytes": 239236,
+      "pageLastUpdatedText": "最終更新：2026年08月17日 21:53",
+      "version": "最終更新：2026年08月17日 21:53",
+      "edition": "Persona 3 Reload",
+      "evidenceType": "community_source_claim",
+      "independence": "Wiki-first crosscheck, not primary game-data verification"
+    }
+  ],
+  "selectionMethod": "Direct date table rows only, daytime action column only; ordinary named spend-time action with rank1–9→next-rank route scene, intersected with exact entity/date Aqiu O. Exclude rank0 introductions, film invitations, evening mentions and nested wrapper-table duplicates.",
+  "records": [
+    {
+      "id": "p3r.calendar.witness.chariot.04-24",
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "04-24",
+        "ordinal": 23,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 1,
+          "toRankWitness": 2,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 6,
+          "sourceRowIndexZeroBased": 19,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "4月",
+          "rowDateHeader": "24(金)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[3]/tbody/tr/td[3]/table/tr[20]/td[3]",
+          "cellTextSha256": "bb49e812e54eb806ee357618f35fb222eb5783dd8cb8a8ccd709f004d1a3f8f6",
+          "sectionAnchor": "id_aa7faf20",
+          "sectionHeading": "4月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.04-24.chariot",
+          "rawSymbol": "O",
+          "sourceAnchor": "april",
+          "sourceTableIndexZeroBased": 1,
+          "sourceRowIndexZeroBased": 4,
+          "sourceColumnIndexZeroBased": 8
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ],
+      "additionalSceneCondition": {
+        "kind": "companion_introduction_side_effect",
+        "detail": "Route follows Chariot 1→2 with a second invitation to Yuko and Strength introduction. This record does not assume those flags or apply Strength progression."
+      }
+    },
+    {
+      "id": "p3r.calendar.witness.magician.04-28",
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "04-28",
+        "ordinal": 27,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 1,
+          "toRankWitness": 2,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 6,
+          "sourceRowIndexZeroBased": 23,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "4月",
+          "rowDateHeader": "28(火)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[3]/tbody/tr/td[3]/table/tr[24]/td[3]",
+          "cellTextSha256": "f3649eef3d59ec84ad6750cd8a96d5e1bdde3cef0a86a98af6b65bf5000e2ecc",
+          "sectionAnchor": "id_aa7faf20",
+          "sectionHeading": "4月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.04-28.magician",
+          "rawSymbol": "O",
+          "sourceAnchor": "april",
+          "sourceTableIndexZeroBased": 1,
+          "sourceRowIndexZeroBased": 8,
+          "sourceColumnIndexZeroBased": 2
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ]
+    },
+    {
+      "id": "p3r.calendar.witness.magician.04-30",
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "04-30",
+        "ordinal": 29,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 2,
+          "toRankWitness": 3,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 6,
+          "sourceRowIndexZeroBased": 25,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "4月",
+          "rowDateHeader": "30(木)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[3]/tbody/tr/td[3]/table/tr[26]/td[3]",
+          "cellTextSha256": "934f2c918ba3872680c234ceed0060311388d2c9354b7cc254a1afda9b5eb735",
+          "sectionAnchor": "id_aa7faf20",
+          "sectionHeading": "4月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.04-30.magician",
+          "rawSymbol": "O",
+          "sourceAnchor": "april",
+          "sourceTableIndexZeroBased": 1,
+          "sourceRowIndexZeroBased": 10,
+          "sourceColumnIndexZeroBased": 2
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ]
+    },
+    {
+      "id": "p3r.calendar.witness.magician.05-07",
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "05-07",
+        "ordinal": 36,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 3,
+          "toRankWitness": 4,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 9,
+          "sourceRowIndexZeroBased": 7,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "5月",
+          "rowDateHeader": "7(木)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[5]/tbody/tr/td[3]/table/tr[8]/td[3]",
+          "cellTextSha256": "ebe0cf610f67c0324891e83b6b4bd893dbb84cbd0a118696b303aee3ca6e2552",
+          "sectionAnchor": "id_20516311",
+          "sectionHeading": "5月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.05-07.magician",
+          "rawSymbol": "O",
+          "sourceAnchor": "may",
+          "sourceTableIndexZeroBased": 2,
+          "sourceRowIndexZeroBased": 7,
+          "sourceColumnIndexZeroBased": 2
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ],
+      "routeBranch": {
+        "kind": "conditional_route_alternative",
+        "scope": "Magician 3→4 is proposed if prior Chihiro introductory conversations were missed; route otherwise opens Justice here.",
+        "mustNotDoBothDayActions": true
+      }
+    },
+    {
+      "id": "p3r.calendar.witness.magician.05-08",
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "05-08",
+        "ordinal": 37,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 3,
+          "toRankWitness": 4,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness.",
+          "routeBranch": "default_no_Magician_visit_on_May07"
+        },
+        {
+          "fromRank": 4,
+          "toRankWitness": 5,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness.",
+          "routeBranch": "visited_Magician_on_May07"
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 9,
+          "sourceRowIndexZeroBased": 8,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "5月",
+          "rowDateHeader": "8(金)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[5]/tbody/tr/td[3]/table/tr[9]/td[3]",
+          "cellTextSha256": "dc5d609c981fba2e3dfbf35fa91f064c77f801c60017c0c6cebbaec68aef936a",
+          "sectionAnchor": "id_20516311",
+          "sectionHeading": "5月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.05-08.magician",
+          "rawSymbol": "O",
+          "sourceAnchor": "may",
+          "sourceTableIndexZeroBased": 2,
+          "sourceRowIndexZeroBased": 8,
+          "sourceColumnIndexZeroBased": 2
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ],
+      "routeBranch": {
+        "kind": "alternative_rank_scenes",
+        "scope": "Default witness is Magician 3→4. If Magician was visited on May7, alternative witness is 4→5. These are mutually exclusive checkpoint states.",
+        "mustNotDoBothDayActions": true
+      }
+    },
+    {
+      "id": "p3r.calendar.witness.chariot.06-01",
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-01",
+        "ordinal": 61,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 2,
+          "toRankWitness": 3,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 15,
+          "sourceRowIndexZeroBased": 1,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "6月",
+          "rowDateHeader": "1(月)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[7]/tbody/tr/td[3]/table/tr[2]/td[3]",
+          "cellTextSha256": "31537ee229677550cad76f0ebf1473e55b18517def62e052d32141e65d4680e6",
+          "sectionAnchor": "id_cce14014",
+          "sectionHeading": "6月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.06-01.chariot",
+          "rawSymbol": "O",
+          "sourceAnchor": "june",
+          "sourceTableIndexZeroBased": 3,
+          "sourceRowIndexZeroBased": 1,
+          "sourceColumnIndexZeroBased": 8
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ]
+    },
+    {
+      "id": "p3r.calendar.witness.chariot.06-09",
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-09",
+        "ordinal": 69,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 3,
+          "toRankWitness": 4,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 15,
+          "sourceRowIndexZeroBased": 9,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "6月",
+          "rowDateHeader": "9(火)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[7]/tbody/tr/td[3]/table/tr[10]/td[3]",
+          "cellTextSha256": "75e00f843e150df36eb2b45da18a8c19bf8011acb151233ef4dde6b83571858f",
+          "sectionAnchor": "id_cce14014",
+          "sectionHeading": "6月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.06-09.chariot",
+          "rawSymbol": "O",
+          "sourceAnchor": "june",
+          "sourceTableIndexZeroBased": 3,
+          "sourceRowIndexZeroBased": 9,
+          "sourceColumnIndexZeroBased": 8
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ]
+    },
+    {
+      "id": "p3r.calendar.witness.magician.06-11",
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "06-11",
+        "ordinal": 71,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 4,
+          "toRankWitness": 5,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 15,
+          "sourceRowIndexZeroBased": 11,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "6月",
+          "rowDateHeader": "11(木)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[7]/tbody/tr/td[3]/table/tr[12]/td[3]",
+          "cellTextSha256": "60cb7b669e4f78c386eb08ee5acb4749c6300972cfeecaf1ceca2a359ca47cf6",
+          "sectionAnchor": "id_cce14014",
+          "sectionHeading": "6月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.06-11.magician",
+          "rawSymbol": "O",
+          "sourceAnchor": "june",
+          "sourceTableIndexZeroBased": 3,
+          "sourceRowIndexZeroBased": 11,
+          "sourceColumnIndexZeroBased": 2
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ],
+      "routeBranch": {
+        "kind": "conditional_route_alternative",
+        "scope": "Route shows Magician 4→5; if Justice is rank5 it instead proposes Justice 5→6. This is a route choice condition, not evidence that Justice rank5 blocks Magician availability.",
+        "mustNotDoBothDayActions": true
+      }
+    },
+    {
+      "id": "p3r.calendar.witness.chariot.06-12",
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-12",
+        "ordinal": 72,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 4,
+          "toRankWitness": 5,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 15,
+          "sourceRowIndexZeroBased": 12,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "6月",
+          "rowDateHeader": "12(金)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[7]/tbody/tr/td[3]/table/tr[13]/td[3]",
+          "cellTextSha256": "510fc305b57f7b9b81ceb706d42929116788f20d9b3bfe74df4acf32edae854a",
+          "sectionAnchor": "id_cce14014",
+          "sectionHeading": "6月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.06-12.chariot",
+          "rawSymbol": "O",
+          "sourceAnchor": "june",
+          "sourceTableIndexZeroBased": 3,
+          "sourceRowIndexZeroBased": 12,
+          "sourceColumnIndexZeroBased": 8
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ]
+    },
+    {
+      "id": "p3r.calendar.witness.chariot.06-15",
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-15",
+        "ordinal": 75,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 5,
+          "toRankWitness": 6,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 15,
+          "sourceRowIndexZeroBased": 15,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "6月",
+          "rowDateHeader": "15(月)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[7]/tbody/tr/td[3]/table/tr[16]/td[3]",
+          "cellTextSha256": "3807e4db72ffccbc38d77e99fec4714c326dc6932ed91f89ddc77677e6c3e379",
+          "sectionAnchor": "id_cce14014",
+          "sectionHeading": "6月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.06-15.chariot",
+          "rawSymbol": "O",
+          "sourceAnchor": "june",
+          "sourceTableIndexZeroBased": 3,
+          "sourceRowIndexZeroBased": 15,
+          "sourceColumnIndexZeroBased": 8
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ]
+    },
+    {
+      "id": "p3r.calendar.witness.chariot.06-30",
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "06-30",
+        "ordinal": 90,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 6,
+          "toRankWitness": 7,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 15,
+          "sourceRowIndexZeroBased": 30,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "6月",
+          "rowDateHeader": "30(火)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[7]/tbody/tr/td[3]/table/tr[31]/td[3]",
+          "cellTextSha256": "6df58ec7a72e44e24c4e35f576aa52710a893210bae5cd5adca9bb9e2cc5a8cf",
+          "sectionAnchor": "id_cce14014",
+          "sectionHeading": "6月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.06-30.chariot",
+          "rawSymbol": "O",
+          "sourceAnchor": "june",
+          "sourceTableIndexZeroBased": 3,
+          "sourceRowIndexZeroBased": 30,
+          "sourceColumnIndexZeroBased": 8
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ]
+    },
+    {
+      "id": "p3r.calendar.witness.chariot.07-06",
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "07-06",
+        "ordinal": 96,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 7,
+          "toRankWitness": 8,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 19,
+          "sourceRowIndexZeroBased": 6,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "7月",
+          "rowDateHeader": "6(月)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[9]/tbody/tr/td[3]/table/tr[7]/td[3]",
+          "cellTextSha256": "391fcb8ff0ba20437171af7a94e1cfac14e856a11e51f5932149babd609c2ad9",
+          "sectionAnchor": "id_5750e38e",
+          "sectionHeading": "7月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.07-06.chariot",
+          "rawSymbol": "O",
+          "sourceAnchor": "july",
+          "sourceTableIndexZeroBased": 4,
+          "sourceRowIndexZeroBased": 6,
+          "sourceColumnIndexZeroBased": 8
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ]
+    },
+    {
+      "id": "p3r.calendar.witness.magician.10-22",
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "10-22",
+        "ordinal": 204,
+        "weekday": 4
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 5,
+          "toRankWitness": 6,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 32,
+          "sourceRowIndexZeroBased": 22,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "10月",
+          "rowDateHeader": "22(木)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[15]/tbody/tr/td[3]/table/tr[23]/td[3]",
+          "cellTextSha256": "54b6444cd371522db2c3ae30bd333eeb4fa32cf41fcca608aeb3a766d5b6a112",
+          "sectionAnchor": "id_4c5b4dfa",
+          "sectionHeading": "10月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.10-22.magician",
+          "rawSymbol": "O",
+          "sourceAnchor": "october",
+          "sourceTableIndexZeroBased": 7,
+          "sourceRowIndexZeroBased": 22,
+          "sourceColumnIndexZeroBased": 2
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ]
+    },
+    {
+      "id": "p3r.calendar.witness.magician.10-27",
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "10-27",
+        "ordinal": 209,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 6,
+          "toRankWitness": 7,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 32,
+          "sourceRowIndexZeroBased": 27,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "10月",
+          "rowDateHeader": "27(火)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[15]/tbody/tr/td[3]/table/tr[28]/td[3]",
+          "cellTextSha256": "3f8604e9a238c0229f349caa5263b05eb4a49e9963bd51ce84ac7d6600366bce",
+          "sectionAnchor": "id_4c5b4dfa",
+          "sectionHeading": "10月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.10-27.magician",
+          "rawSymbol": "O",
+          "sourceAnchor": "october",
+          "sourceTableIndexZeroBased": 7,
+          "sourceRowIndexZeroBased": 27,
+          "sourceColumnIndexZeroBased": 2
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ]
+    },
+    {
+      "id": "p3r.calendar.witness.magician.10-30",
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "10-30",
+        "ordinal": 212,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 7,
+          "toRankWitness": 8,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 32,
+          "sourceRowIndexZeroBased": 30,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "10月",
+          "rowDateHeader": "30(金)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[15]/tbody/tr/td[3]/table/tr[31]/td[3]",
+          "cellTextSha256": "e98b5188da2aaf058cf6a6fa9fd572c78d5f09c1e7b9a15cf67289cdb0273f83",
+          "sectionAnchor": "id_4c5b4dfa",
+          "sectionHeading": "10月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.10-30.magician",
+          "rawSymbol": "O",
+          "sourceAnchor": "october",
+          "sourceTableIndexZeroBased": 7,
+          "sourceRowIndexZeroBased": 30,
+          "sourceColumnIndexZeroBased": 2
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ]
+    },
+    {
+      "id": "p3r.calendar.witness.chariot.11-02",
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "11-02",
+        "ordinal": 215,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 8,
+          "toRankWitness": 9,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 36,
+          "sourceRowIndexZeroBased": 2,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "11月",
+          "rowDateHeader": "2(月)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[17]/tbody/tr/td[3]/table/tr[3]/td[3]",
+          "cellTextSha256": "1dd92578375883ebde8d6c3cf5d561c419e191f85b2c93a7e50372313b0caf54",
+          "sectionAnchor": "id_a1f0543d",
+          "sectionHeading": "11月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.11-02.chariot",
+          "rawSymbol": "O",
+          "sourceAnchor": "november",
+          "sourceTableIndexZeroBased": 8,
+          "sourceRowIndexZeroBased": 2,
+          "sourceColumnIndexZeroBased": 8
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ]
+    },
+    {
+      "id": "p3r.calendar.witness.magician.11-10",
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "11-10",
+        "ordinal": 223,
+        "weekday": 2
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 8,
+          "toRankWitness": 9,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 36,
+          "sourceRowIndexZeroBased": 10,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "11月",
+          "rowDateHeader": "10(火)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[17]/tbody/tr/td[3]/table/tr[11]/td[3]",
+          "cellTextSha256": "39edab001c8c44bc712bac1556ea54783119fa981aa119dc069584babfcac602",
+          "sectionAnchor": "id_a1f0543d",
+          "sectionHeading": "11月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.11-10.magician",
+          "rawSymbol": "O",
+          "sourceAnchor": "november",
+          "sourceTableIndexZeroBased": 8,
+          "sourceRowIndexZeroBased": 10,
+          "sourceColumnIndexZeroBased": 2
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ]
+    },
+    {
+      "id": "p3r.calendar.witness.chariot.11-30",
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "11-30",
+        "ordinal": 243,
+        "weekday": 1
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 9,
+          "toRankWitness": 10,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 36,
+          "sourceRowIndexZeroBased": 30,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "11月",
+          "rowDateHeader": "30(月)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[17]/tbody/tr/td[3]/table/tr[31]/td[3]",
+          "cellTextSha256": "d2c6b33bf0dd7a357a0e5cabf71fb8cd55fa78a965e3e5b2e0a4273b67cd6fca",
+          "sectionAnchor": "id_a1f0543d",
+          "sectionHeading": "11月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.11-30.chariot",
+          "rawSymbol": "O",
+          "sourceAnchor": "november",
+          "sourceTableIndexZeroBased": 8,
+          "sourceRowIndexZeroBased": 30,
+          "sourceColumnIndexZeroBased": 8
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ]
+    },
+    {
+      "id": "p3r.calendar.witness.magician.12-04",
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "12-04",
+        "ordinal": 247,
+        "weekday": 5
+      },
+      "slot": "daytime",
+      "actionKind": "ordinary_social_link_visit",
+      "calendarEvidenceStatus": "corroborated_positive_route_witness",
+      "scope": "Source-backed possible ordinary visit for witnessed route state; not game-data verification or unconditional availability.",
+      "availableForArbitraryCheckpoint": null,
+      "rankScenes": [
+        {
+          "fromRank": 9,
+          "toRankWitness": 10,
+          "rankUpRequiresSeparateAffinityReadiness": true,
+          "pointThresholdValidatedHere": false,
+          "scope": "Only this starting rank has a concrete route-scene witness here; do not extrapolate all ranks from a date witness."
+        }
+      ],
+      "evidence": [
+        {
+          "sourceId": "wiki_420_full_route",
+          "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+          "sourceTableIndexZeroBased": 42,
+          "sourceRowIndexZeroBased": 4,
+          "sourceColumnIndexZeroBased": 2,
+          "monthTableHeader": "12月",
+          "rowDateHeader": "4(金)",
+          "columnHeader": "放課後/昼間",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[19]/tbody/tr/td[3]/table/tr[5]/td[3]",
+          "cellTextSha256": "14408d3d1e45785fd8c416332c2733d64738d88ce4adc3720e2a956276266abe",
+          "sectionAnchor": "id_e13feb8f",
+          "sectionHeading": "12月"
+        },
+        {
+          "sourceId": "aqiu_calendar",
+          "sourceUrl": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+          "ruleId": "p3r.calendar.candidate.daytime.12-04.magician",
+          "rawSymbol": "O",
+          "sourceAnchor": "december",
+          "sourceTableIndexZeroBased": 9,
+          "sourceRowIndexZeroBased": 4,
+          "sourceColumnIndexZeroBased": 2
+        }
+      ],
+      "requiredIndependentGuards": [
+        "matching_witnessed_starting_rank",
+        "link_already_unlocked",
+        "normal_relationship_state",
+        "current_daytime_slot_unspent",
+        "no_conflicting_player_branch_or_story_lock",
+        "affinity_readiness_known_if_rank_up_is_requested"
+      ],
+      "effectsNotAuthorizedByCalendar": [
+        "rank_increment",
+        "affinity_increment",
+        "automatic_companion_or_introduction_flags"
+      ]
+    }
+  ],
+  "excludedWitnesses": [
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "04-22",
+        "ordinal": 21,
+        "weekday": 3
+      },
+      "reason": "introduction_or_story_not_ordinary_visit",
+      "evidence": {
+        "sourceId": "wiki_420_full_route",
+        "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+        "sourceTableIndexZeroBased": 6,
+        "sourceRowIndexZeroBased": 17,
+        "sourceColumnIndexZeroBased": 2,
+        "monthTableHeader": "4月",
+        "rowDateHeader": "22(水)",
+        "columnHeader": "放課後/昼間",
+        "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[3]/tbody/tr/td[3]/table/tr[18]/td[3]",
+        "cellTextSha256": "ad2543253051e8f3b93e6d46ef4f59c6af8c6a3a4d7eb5bed47de9cb77f1ddf7",
+        "sectionAnchor": "id_aa7faf20",
+        "sectionHeading": "4月"
+      }
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "04-23",
+        "ordinal": 22,
+        "weekday": 4
+      },
+      "reason": "introduction_or_story_not_ordinary_visit",
+      "evidence": {
+        "sourceId": "wiki_420_full_route",
+        "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+        "sourceTableIndexZeroBased": 6,
+        "sourceRowIndexZeroBased": 18,
+        "sourceColumnIndexZeroBased": 2,
+        "monthTableHeader": "4月",
+        "rowDateHeader": "23(木)",
+        "columnHeader": "放課後/昼間",
+        "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[3]/tbody/tr/td[3]/table/tr[19]/td[3]",
+        "cellTextSha256": "421cfab4bfa6d4303e40e2da4f17a8f4f03d8e9c529cec84713c9243e80e26dc",
+        "sectionAnchor": "id_aa7faf20",
+        "sectionHeading": "4月"
+      }
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "date": {
+        "mmdd": "08-17",
+        "ordinal": 138,
+        "weekday": 1
+      },
+      "reason": "film_festival_invitation_not_ordinary_visit",
+      "evidence": {
+        "sourceId": "wiki_420_full_route",
+        "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+        "sourceTableIndexZeroBased": 24,
+        "sourceRowIndexZeroBased": 17,
+        "sourceColumnIndexZeroBased": 2,
+        "monthTableHeader": "8月",
+        "rowDateHeader": "17(月)",
+        "columnHeader": "放課後/昼間",
+        "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[11]/tbody/tr/td[3]/table/tr[18]/td[3]",
+        "cellTextSha256": "e51eaa5c41d7e0556a2c23665bae39a52e5cf5e7147f345e542c31919e45f064",
+        "sectionAnchor": "id_417f5146",
+        "sectionHeading": "8月"
+      }
+    },
+    {
+      "entityId": "p3r.social_link.chariot",
+      "date": {
+        "mmdd": "08-22",
+        "ordinal": 143,
+        "weekday": 6
+      },
+      "reason": "film_festival_invitation_not_ordinary_visit",
+      "evidence": {
+        "sourceId": "wiki_420_full_route",
+        "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+        "sourceTableIndexZeroBased": 24,
+        "sourceRowIndexZeroBased": 22,
+        "sourceColumnIndexZeroBased": 2,
+        "monthTableHeader": "8月",
+        "rowDateHeader": "22(土)",
+        "columnHeader": "放課後/昼間",
+        "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[11]/tbody/tr/td[3]/table/tr[23]/td[3]",
+        "cellTextSha256": "0952db1631528400cfb8b74076b7e19c73ba10dcf20ca9c60bab9b25ae995d37",
+        "sectionAnchor": "id_417f5146",
+        "sectionHeading": "8月"
+      }
+    }
+  ],
+  "rankSceneWarnings": [
+    {
+      "entityId": "p3r.social_link.chariot",
+      "sourceId": "wiki_453",
+      "locator": "07. 戦車 / 正解の選択肢一覧 and 解説",
+      "detail": "Wiki reports modifier/affinity requirements, including extra affinity needed around rank7→8 and modifier2+ for the early 2→3 progression. Calendar witness alone must not promise rank advancement; exact thresholds not modeled here."
+    },
+    {
+      "entityId": "p3r.social_link.magician",
+      "sourceId": "wiki_453",
+      "locator": "01. 魔術師 / 正解の選択肢一覧",
+      "detail": "Later rank scenes have affinity/modifier requirements; do not treat every ordinary visit as automatic rank-up."
+    }
+  ],
+  "tests": [
+    {
+      "name": "all_11_month_tables_scanned_including_March_epilogue",
+      "passed": true
+    },
+    {
+      "name": "all_source_row_weekdays_match_canonical_date_axis",
+      "passed": true
+    },
+    {
+      "name": "every_positive_has_exact_aqiu_O_intersection",
+      "passed": true,
+      "count": 19
+    },
+    {
+      "name": "every_positive_has_named_ordinary_visit_and_nonzero_rank_scene",
+      "passed": true
+    },
+    {
+      "name": "unique_positive_date_entity_pairs",
+      "passed": true,
+      "count": 19
+    },
+    {
+      "name": "all_19_Wiki_XPaths_resolve_and_cell_hashes_match",
+      "passed": true
+    },
+    {
+      "name": "two_introductions_and_two_film_invites_excluded",
+      "passed": true,
+      "count": 4
+    }
+  ],
+  "summary": {
+    "positiveDates": 19,
+    "rankSceneWitnesses": 20,
+    "countsByEntity": {
+      "p3r.social_link.chariot": 9,
+      "p3r.social_link.magician": 10
+    },
+    "conditionalRouteRows": 3
+  }
+}

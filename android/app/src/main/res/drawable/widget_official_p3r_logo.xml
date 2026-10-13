@@ -1,0 +1,3 @@
+<inset xmlns:android="http://schemas.android.com/apk/res/android" android:insetLeft="-10.2326%" android:insetRight="-8.9923%" android:insetTop="-14.9554%" android:insetBottom="-14.9554%">
+ <bitmap android:src="@drawable/official_p3r_logo_color" android:gravity="fill" android:filter="true" />
+</inset>

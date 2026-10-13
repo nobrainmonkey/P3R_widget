@@ -1,0 +1,662 @@
+{
+  "schema": "p3r.full_horizon_forecast_policy.v1",
+  "checkedAtUtc": "2026-10-13",
+  "purpose": "Produce an actionable remaining-calendar scenario without asking for hidden points or mandatory observation at every ordinary meeting",
+  "mode": "conservative_scenario_estimate_not_guaranteed_lower_bound",
+  "stateIsolation": {
+    "observedLedger": "never mutated by projected actions",
+    "verifiedLowerBounds": "remain independent; do not add estimated ordinary affinity to verified lower bounds",
+    "scenarioState": "may propagate estimated affinity/readiness, expected costs/base income, unlock progress and chosen route under explicit assumptions",
+    "reentry": "retain visible inputs; ask for changed outcomes/deviations only, not routine re-entry every2days"
+  },
+  "ordinaryMeetingModel": {
+    "baseGainEstimate": 10,
+    "sourceClaimStatus": "single_explicit_Reload_playthrough_not_independently_verified",
+    "source": "https://lpbeach.co.uk/viewtopic.php?t=1712#p15208",
+    "evidenceFile": "ordinary_affinity_numeric_followup.json",
+    "claimIsGuaranteedMinimum": false,
+    "bonusEstimate": 0,
+    "startingUnknownAffinityEstimate": 0,
+    "safetyExtraMeetingsPerPositiveDeficit": 1,
+    "safetyBufferEvidenceStatus": "product_model_choice_not_game_rule",
+    "formula": "If readiness observed true or incoming threshold is known0:0 filler meetings. Else d=max(0, gate-modelAffinity). If d>0 reserve ceil(d/10)+1 ordinary meetings. Then rank-up event consumes a separate later slot.",
+    "observedNotReadyOverridesEstimate": "If current readiness is observed false but numeric estimate reaches the gate, reserve at least1 ordinary meeting as safety and mark model mismatch; do not claim current readiness true",
+    "knownThresholdConflict": "Use a separately declared conservative source-envelope scenario only where supported; preserve conflict. Do not call chosen threshold verified.",
+    "unknownThreshold": "Use explicit budget scenario rather than mathematically proving readiness; unsupported target remains estimated/unknown, never impossible",
+    "slotCost": 1,
+    "rankDeltaDuringFiller": 0,
+    "resetRule": "After completed projected rank event, discard pre-event surplus and replace scenario affinity by that scene’s modeled answer gain; no carry-through",
+    "userFacingSummaryZh": "按较保守的会面次数预留时间；实际升阶更快时可提前调整",
+    "notRequired": "No actual raw affinity input or confirmation after every planned filler meeting"
+  },
+  "dialogueScenarioPolicy": {
+    "defaultPolicy": "declared_best_known_non_reversing_source_responses",
+    "sourceMaximumIsAssumed": true,
+    "noChineseOptionNumbersFromForeignOrdinals": true,
+    "ChineseGuideReferences": "Show literal matched references where available; otherwise explain the recommended action without inventing exact game choices",
+    "romance": "Respect explicit relationship preference/current flags. If unspecified, compare legal non-reversing branches or use shared conservative progress; do not silently set romance/friendship/eligibility as observed",
+    "reversal": "Known reversed state needs repair model/observation; do not assume normal or count ordinary affinity while reversed",
+    "partialEvents": "Moon9 and other branching events require full projected scene completion, not intermediate reversal state"
+  },
+  "availability": {
+    "weeklyRules": [
+      {
+        "entityId": "p3r.social_link.magician",
+        "arcanaZhHans": "魔术师",
+        "isoWeekdays": [
+          2,
+          4,
+          5
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "forbidden",
+        "schoolLink": true,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "魔術師 basic information; lines 304 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.priestess",
+        "arcanaZhHans": "女教皇",
+        "isoWeekdays": [
+          1,
+          5,
+          6
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "forbidden",
+        "schoolLink": true,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "女教皇 basic information; lines 370 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.empress",
+        "arcanaZhHans": "女皇",
+        "isoWeekdays": [
+          2,
+          3,
+          4,
+          6
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "forbidden",
+        "schoolLink": true,
+        "monthOverrides": [
+          {
+            "months": [
+              11,
+              12
+            ],
+            "add_iso_weekdays": [
+              1,
+              5
+            ],
+            "evidence": [
+              {
+                "source_id": "wiki_453",
+                "locator": "line 464"
+              },
+              {
+                "source_id": "wiki_455",
+                "locator": "line 300"
+              }
+            ]
+          }
+        ],
+        "examBlackoutExempt": true,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "女帝 basic information; lines 461 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.emperor",
+        "arcanaZhHans": "皇帝",
+        "isoWeekdays": [
+          1,
+          3,
+          5
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "forbidden",
+        "schoolLink": true,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "皇帝 basic information; lines 544 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.hierophant",
+        "arcanaZhHans": "教皇",
+        "isoWeekdays": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "allowed_on_normal_weekdays",
+        "schoolLink": false,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "法王 basic information; lines 592 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.lovers",
+        "arcanaZhHans": "恋爱",
+        "isoWeekdays": [
+          1,
+          3,
+          4,
+          6
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "forbidden",
+        "schoolLink": true,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "恋愛 basic information; lines 657 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.chariot",
+        "arcanaZhHans": "战车",
+        "isoWeekdays": [
+          1,
+          2,
+          4,
+          5
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "forbidden",
+        "schoolLink": true,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "戦車 basic information; lines 732 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.justice",
+        "arcanaZhHans": "正义",
+        "isoWeekdays": [
+          2,
+          4,
+          6
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "forbidden",
+        "schoolLink": true,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "正義 basic information; lines 798 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.hermit",
+        "arcanaZhHans": "隐者",
+        "isoWeekdays": [
+          7
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "any_weekday",
+        "schoolLink": false,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "隠者 basic information; lines 877 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.fortune",
+        "arcanaZhHans": "命运",
+        "isoWeekdays": [
+          2,
+          3,
+          4
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "forbidden",
+        "schoolLink": true,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "運命 basic information; lines 931 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.strength",
+        "arcanaZhHans": "力量",
+        "isoWeekdays": [
+          3,
+          6
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "forbidden",
+        "schoolLink": true,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "剛毅 basic information; lines 996 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.hanged_man",
+        "arcanaZhHans": "倒悬者",
+        "isoWeekdays": [
+          1,
+          3,
+          6
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "allowed_on_normal_weekdays",
+        "schoolLink": false,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "刑死者 basic information; lines 1087 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.temperance",
+        "arcanaZhHans": "节制",
+        "isoWeekdays": [
+          2,
+          3,
+          5
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "forbidden",
+        "schoolLink": true,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "節制 basic information; lines 1167 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.devil",
+        "arcanaZhHans": "恶魔",
+        "isoWeekdays": [
+          2,
+          6
+        ],
+        "slot": "evening",
+        "holidayPolicy": "allowed_on_normal_weekdays",
+        "schoolLink": false,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "悪魔 basic information; lines 1229 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.tower",
+        "arcanaZhHans": "塔",
+        "isoWeekdays": [
+          4,
+          5,
+          6,
+          7
+        ],
+        "slot": "evening",
+        "holidayPolicy": "allowed_on_normal_weekdays",
+        "schoolLink": false,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "塔 basic information; lines 1259 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.star",
+        "arcanaZhHans": "星",
+        "isoWeekdays": [
+          3,
+          5,
+          7
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "allowed_on_normal_weekdays",
+        "schoolLink": false,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "星 basic information; lines 1313 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.moon",
+        "arcanaZhHans": "月亮",
+        "isoWeekdays": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "all_weekdays_after_unlock",
+        "schoolLink": false,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "月 basic information; lines 1375 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.sun",
+        "arcanaZhHans": "太阳",
+        "isoWeekdays": [
+          7
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "sunday_only_no_weekday_holiday_extension",
+        "schoolLink": false,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "太陽 basic information; lines 1425 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      },
+      {
+        "entityId": "p3r.social_link.aeon",
+        "arcanaZhHans": "永劫",
+        "isoWeekdays": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "slot": "daytime",
+        "holidayPolicy": "forbidden",
+        "schoolLink": true,
+        "monthOverrides": [],
+        "examBlackoutExempt": false,
+        "excludedMonthDays": [
+          {
+            "month_day": "01-25",
+            "evidence": [
+              {
+                "source_id": "wiki_453",
+                "locator": "line 1485"
+              }
+            ]
+          }
+        ],
+        "evidence": [
+          {
+            "source_id": "wiki_453",
+            "locator": "永劫 basic information; lines 1482 onward"
+          },
+          {
+            "source_id": "wiki_455",
+            "locator": "activity table and notes; lines 279–302"
+          }
+        ],
+        "sourceFile": "social_links.json",
+        "status": "source_backed_weekly_rule_for_conditional_forecast_not_observed_date_fact"
+      }
+    ],
+    "priority": [
+      "observed current constraints and confirmed accepted events",
+      "explicit global whole-slot locks and applicable entity/rescue/story exceptions",
+      "source-positive exact-date O witness with source context",
+      "source-backed weekly/month rule plus known calendar exceptions, marked forecast assumption"
+    ],
+    "exactDatePositiveCells": 1352,
+    "ordinarySourceOFile": "calendar_execution_extension.json",
+    "weeklyFallback": "Enabled only in scenario mode for an unlocked/conditionally-unlocked normal link; a lack of a positive record is not itself a global hard stop",
+    "dashPolicy": "Raw dash is not proof of a universal impossibility; do not mislabel weekly fallback as exact-date verified",
+    "schoolPolicy": "Apply school closures/exam preparation windows and holidays to ordinary school links; Empress exam exemption/month overrides, Hermit holidays, Moon non-school behavior and Aeon Jan25 exclusion retain their separate rules",
+    "explicitExceptions": [
+      "April22 forced daytime excludes optional activities",
+      "Christmas accepted invitation blocks relevant slots; all invitations declined permits separate ordinary schedule",
+      "January21 event conditions retained",
+      "Emperor Nov16 positive witness defeats blanket Nov3–29 absence claim",
+      "Hierophant/HangedMan rescue state cannot be inferred from floor alone"
+    ],
+    "globalLocksFile": "global_slot_locks_expansion_candidate.json",
+    "dungeonOnlyClosures": "Never apply them to ordinary social/stat activities",
+    "capacity": "Only one time-consuming action per daytime/evening; zero-slot preparations retain distinct-date semantics"
+  },
+  "resultLabels": {
+    "status": "forecast_estimate",
+    "guaranteedMax": false,
+    "shortfall": "estimated_unmet_under_current_assumptions_not_proven_impossible",
+    "requiredAssumptionDisclosure": [
+      "ordinary base10 is an estimate with safety buffer",
+      "future response strategy is modeled",
+      "weekly availability assumes normal progression except known exceptions"
+    ],
+    "briefUiZh": "预估日程 · 已预留余量"
+  },
+  "fixtures": [
+    {
+      "gate": 30,
+      "modelAffinity": 15,
+      "fillers": 3,
+      "laterRankEventSlots": 1
+    },
+    {
+      "gate": 15,
+      "modelAffinity": 0,
+      "fillers": 3,
+      "laterRankEventSlots": 1
+    },
+    {
+      "gate": 0,
+      "modelAffinity": 0,
+      "fillers": 0
+    },
+    {
+      "gate": 30,
+      "modelAffinity": 30,
+      "fillers": 0
+    },
+    {
+      "pointFreeLink": "sun",
+      "fillers": 0
+    },
+    {
+      "estimatedOrdinaryGain": 10,
+      "verifiedLowerBoundIncrement": 0,
+      "observedLedgerIncrement": 0
+    }
+  ]
+}

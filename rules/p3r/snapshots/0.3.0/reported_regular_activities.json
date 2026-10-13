@@ -1,0 +1,889 @@
+{
+  "schemaVersion": 1,
+  "sourceHtmlSha256": "404dea95268f8344576b33d9595037b08bfb89be7a390449b41635d22c3e4ec8",
+  "activities": [
+    {
+      "ruleId": "p3r.reported_activity.01",
+      "sourceActivityName": "Donate to shrine",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 2,
+        "charm": 0,
+        "courage": 0
+      },
+      "reportedPriceSigned": 100,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "D",
+        "mon": "D",
+        "tue": "D",
+        "wed": "D",
+        "thu": "D",
+        "fri": "D",
+        "sat": "D"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.02",
+      "sourceActivityName": "Donate to shrine",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 3,
+        "charm": 0,
+        "courage": 0
+      },
+      "reportedPriceSigned": 1000,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "D",
+        "mon": "D",
+        "tue": "D",
+        "wed": "D",
+        "thu": "D",
+        "fri": "D",
+        "sat": "D"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.03",
+      "sourceActivityName": "Donate to shrine",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 4,
+        "charm": 0,
+        "courage": 0
+      },
+      "reportedPriceSigned": 10000,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "D",
+        "mon": "D",
+        "tue": "D",
+        "wed": "D",
+        "thu": "D",
+        "fri": "D",
+        "sat": "D"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.04",
+      "sourceActivityName": "Study at library*",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 4,
+        "charm": 0,
+        "courage": 0
+      },
+      "reportedPriceSigned": 0,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "-",
+        "mon": "D",
+        "tue": "D",
+        "wed": "D",
+        "thu": "D",
+        "fri": "D",
+        "sat": "D"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.05",
+      "sourceActivityName": "Study at your desk*",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 2,
+        "charm": 0,
+        "courage": 0
+      },
+      "reportedPriceSigned": 0,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "B",
+        "mon": "E",
+        "tue": "E",
+        "wed": "E",
+        "thu": "E",
+        "fri": "E",
+        "sat": "E"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.06",
+      "sourceActivityName": "Wakatsu: Prodigy Platter",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 3,
+        "charm": 0,
+        "courage": 0
+      },
+      "reportedPriceSigned": 680,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "B",
+        "mon": "B",
+        "tue": "-",
+        "wed": "B",
+        "thu": "B",
+        "fri": "B",
+        "sat": "B"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.07",
+      "sourceActivityName": "Wakatsu: Seafood Full Course*",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 4,
+        "charm": 0,
+        "courage": 0
+      },
+      "reportedPriceSigned": 900,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "E",
+        "mon": "E",
+        "tue": "-",
+        "wed": "-",
+        "thu": "E",
+        "fri": "E",
+        "sat": "-"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.08",
+      "sourceActivityName": "Arcade: You're the Answer",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 4,
+        "charm": 0,
+        "courage": 0
+      },
+      "reportedPriceSigned": 3000,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "-",
+        "mon": "-",
+        "tue": "-",
+        "wed": "B",
+        "thu": "-",
+        "fri": "-",
+        "sat": "B"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.09",
+      "sourceActivityName": "Screenshot: Watch movies",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 4,
+        "charm": 0,
+        "courage": 0
+      },
+      "reportedPriceSigned": 1500,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "-",
+        "mon": "-",
+        "tue": "-",
+        "wed": "D",
+        "thu": "-",
+        "fri": "-",
+        "sat": "D"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.10",
+      "sourceActivityName": "Chagall: Pheremone Coffee",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 0,
+        "charm": 2,
+        "courage": 0
+      },
+      "reportedPriceSigned": 500,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "B",
+        "mon": "E",
+        "tue": "E",
+        "wed": "B",
+        "thu": "B",
+        "fri": "B",
+        "sat": "B"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.11",
+      "sourceActivityName": "Hagakure: Pork Ramen",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 0,
+        "charm": 3,
+        "courage": 0
+      },
+      "reportedPriceSigned": 900,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "-",
+        "mon": "B",
+        "tue": "B",
+        "wed": "B",
+        "thu": "B",
+        "fri": "B",
+        "sat": "-"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.12",
+      "sourceActivityName": "Hagakure: Hagakure Bowl*",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 0,
+        "charm": 4,
+        "courage": 0
+      },
+      "reportedPriceSigned": 1200,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "-",
+        "mon": "-",
+        "tue": "E",
+        "wed": "E",
+        "thu": "-",
+        "fri": "E",
+        "sat": "-"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.13",
+      "sourceActivityName": "Arcade: High School of Youth",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 0,
+        "charm": 4,
+        "courage": 0
+      },
+      "reportedPriceSigned": 1500,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "-",
+        "mon": "B",
+        "tue": "-",
+        "wed": "-",
+        "thu": "B",
+        "fri": "-",
+        "sat": "-"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.14",
+      "sourceActivityName": "Screenshot: Watch movies",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 0,
+        "charm": 4,
+        "courage": 0
+      },
+      "reportedPriceSigned": 1500,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "-",
+        "mon": "-",
+        "tue": "D",
+        "wed": "-",
+        "thu": "-",
+        "fri": "D",
+        "sat": "-"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.15",
+      "sourceActivityName": "Karaoke",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 0,
+        "charm": 0,
+        "courage": 2
+      },
+      "reportedPriceSigned": 800,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "-",
+        "mon": "B",
+        "tue": "B",
+        "wed": "B",
+        "thu": "B",
+        "fri": "B",
+        "sat": "B"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.16",
+      "sourceActivityName": "Wilduck: Mystery Burger",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 0,
+        "charm": 0,
+        "courage": 3
+      },
+      "reportedPriceSigned": 1000,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "B",
+        "mon": "B",
+        "tue": "B",
+        "wed": "B",
+        "thu": "-",
+        "fri": "B",
+        "sat": "B"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.17",
+      "sourceActivityName": "Wilduck: Weekend Wilduck Set*",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 0,
+        "charm": 0,
+        "courage": 4
+      },
+      "reportedPriceSigned": 1200,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "E",
+        "mon": "-",
+        "tue": "-",
+        "wed": "-",
+        "thu": "-",
+        "fri": "-",
+        "sat": "E"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.18",
+      "sourceActivityName": "Arcade: House of the Deceased",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 0,
+        "charm": 0,
+        "courage": 4
+      },
+      "reportedPriceSigned": 3000,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "-",
+        "mon": "-",
+        "tue": "B",
+        "wed": "-",
+        "thu": "-",
+        "fri": "B",
+        "sat": "-"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.19",
+      "sourceActivityName": "Screenshot: Watch movies",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 0,
+        "charm": 0,
+        "courage": 4
+      },
+      "reportedPriceSigned": 1500,
+      "priceMeaning": "reported yen cost",
+      "reportedWeekdaySymbols": {
+        "sun": "-",
+        "mon": "D",
+        "tue": "-",
+        "wed": "-",
+        "thu": "D",
+        "fri": "-",
+        "sat": "-"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.20",
+      "sourceActivityName": "Chagall: Part-time Job",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 0,
+        "charm": 1,
+        "courage": 1
+      },
+      "reportedPriceSigned": -2500,
+      "priceMeaning": "negative indicates reported base wage, not guaranteed actual income",
+      "reportedWeekdaySymbols": {
+        "sun": "-",
+        "mon": "E",
+        "tue": "E*",
+        "wed": "E",
+        "thu": "-",
+        "fri": "-",
+        "sat": "-"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state",
+        "variable wage mechanics"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.21",
+      "sourceActivityName": "Be Blue V: Part-time Job*",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 1,
+        "charm": 0,
+        "courage": 1
+      },
+      "reportedPriceSigned": -3500,
+      "priceMeaning": "negative indicates reported base wage, not guaranteed actual income",
+      "reportedWeekdaySymbols": {
+        "sun": "-",
+        "mon": "D",
+        "tue": "D",
+        "wed": "D",
+        "thu": "D",
+        "fri": "D",
+        "sat": "D"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state",
+        "variable wage mechanics"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    },
+    {
+      "ruleId": "p3r.reported_activity.22",
+      "sourceActivityName": "Screenshot: Part-time Job*",
+      "labelZh": null,
+      "sourceLanguage": "en",
+      "reportedBaseStatDelta": {
+        "academics": 1,
+        "charm": 1,
+        "courage": 0
+      },
+      "reportedPriceSigned": -5000,
+      "priceMeaning": "negative indicates reported base wage, not guaranteed actual income",
+      "reportedWeekdaySymbols": {
+        "sun": "D",
+        "mon": "-",
+        "tue": "-",
+        "wed": "-",
+        "thu": "-",
+        "fri": "-",
+        "sat": "-"
+      },
+      "reportedSymbolLegend": {
+        "D": "daytime",
+        "E": "evening",
+        "B": "both",
+        "-": "not listed as available",
+        "*": "additional condition; see source note"
+      },
+      "slotCost": null,
+      "prerequisites": null,
+      "verificationStatus": "source_observed_claim",
+      "planningEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "blockingUnknowns": [
+        "complete date locks",
+        "full prerequisite closure",
+        "boost state",
+        "variable wage mechanics"
+      ],
+      "note": "Use separately corroborated five-action subset in stats_actions.json where applicable; never infer exact money from this reference."
+    }
+  ]
+}

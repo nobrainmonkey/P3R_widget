@@ -1,0 +1,4 @@
+<ViewFlipper xmlns:android="http://schemas.android.com/apk/res/android"
+ android:id="@+id/widget_palette_flipper" android:layout_width="match_parent" android:layout_height="match_parent"
+ android:animateFirstView="false" android:autoStart="false"
+ android:inAnimation="@anim/widget_palette_in" android:outAnimation="@anim/widget_palette_out"/>

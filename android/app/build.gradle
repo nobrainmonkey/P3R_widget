@@ -1,0 +1,44 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'app.p3r.dayplanner'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'app.p3r.dayplanner'
+        minSdk 26
+        targetSdk 35
+        versionCode 11
+        versionName '2.0.1'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    buildTypes {
+        debug {
+            applicationIdSuffix '.test'
+            resValue 'string', 'app_name', 'P3R'
+        }
+        release {
+            applicationIdSuffix '.test' // Preserve the installed package and progress.
+            resValue 'string', 'app_name', 'P3R'
+            debuggable false
+            minifyEnabled false
+            signingConfig signingConfigs.debug // Existing certificate: compatible private release update.
+        }
+    }
+    testOptions {
+        unitTests.includeAndroidResources = true
+        unitTests.all {
+            systemProperty 'user.home', rootProject.file('../.toolchain/test-home').absolutePath
+            systemProperty 'robolectric.graphicsMode', 'NATIVE'
+            systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+            ['https.proxyHost', 'https.proxyPort', 'http.proxyHost', 'http.proxyPort'].each { key ->
+                if (System.getProperty(key)) systemProperty key, System.getProperty(key)
+            }
+        }
+    }
+}
+
+dependencies { testImplementation "junit:junit:4.13.2"; testImplementation "org.robolectric:robolectric:4.14.1" }

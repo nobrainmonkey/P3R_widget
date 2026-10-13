@@ -1,0 +1,1221 @@
+{
+  "schema": "p3r.chariot_base_model.v1",
+  "status": "candidate_not_merged",
+  "entity_id": "p3r.social_link.chariot",
+  "name_zh_cn": "战车",
+  "name_origin": {
+    "source_id": "baseline",
+    "record_ids": [
+      "t007_02",
+      "t008_01",
+      "t012_02"
+    ],
+    "policy": "exact existing label, not retranslated"
+  },
+  "unlock": {
+    "rule_id": "p3r.social_link.chariot.unlock",
+    "status": "source_observed_claim",
+    "earliest_month_day_claim": "04-23",
+    "earliest_date_is_sufficient": false,
+    "all_of": [
+      {
+        "type": "flag_true",
+        "flag_id": "chariot.joined_track_club"
+      }
+    ],
+    "evidence": [
+      {
+        "source_id": "wiki_453",
+        "locator": "戦車 basic information; lines 732 onward"
+      }
+    ],
+    "conflicts": [],
+    "unknowns": [
+      "Complete event/calendar feasibility and introduction-state validation are not proved by earliest-date claim."
+    ],
+    "executable": false
+  },
+  "sources": [
+    {
+      "id": "chariot_wiki",
+      "url": "https://megatenwiki.com/wiki/Gameplay:Kazushi_Miyamoto",
+      "edition_note": "Page says Reload and Portable data; raw rank tables crosschecked against Reload-only aqiu and Wiki453",
+      "cited_original": "Reload Official Complete Guide pp242-278, original pages not inspected"
+    },
+    {
+      "id": "wiki_453",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/453.html",
+      "edition": "Reload",
+      "type": "community_wiki"
+    },
+    {
+      "id": "wiki_455",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/455.html",
+      "edition": "Reload",
+      "type": "community_wiki"
+    },
+    {
+      "id": "aqiu",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "edition": "Reload",
+      "type": "community_structured_guide"
+    }
+  ],
+  "modes": {
+    "base_only": {
+      "executable": true,
+      "semantics": "sound lower-bound deductions under cited source claims, not exact game balance"
+    },
+    "bonus_readiness_lookup": {
+      "executable": true,
+      "default_enabled": false,
+      "scope": "Chariot only; excludes conflicting rank7 row; local wiki claim, no universal rounding"
+    }
+  },
+  "incoming_thresholds": [
+    {
+      "rule_id": "p3r.chariot.incoming_rank_02",
+      "from_rank": 1,
+      "to_rank": 2,
+      "required_raw_affinity": 0,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Points, rank2"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank1 next-rank threshold"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.chariot.incoming_rank_03",
+      "from_rank": 2,
+      "to_rank": 3,
+      "required_raw_affinity": 0,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Points, rank3"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank2 next-rank threshold"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.chariot.incoming_rank_04",
+      "from_rank": 3,
+      "to_rank": 4,
+      "required_raw_affinity": 15,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Points, rank4"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank3 next-rank threshold"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.chariot.incoming_rank_05",
+      "from_rank": 4,
+      "to_rank": 5,
+      "required_raw_affinity": 15,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Points, rank5"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank4 next-rank threshold"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.chariot.incoming_rank_06",
+      "from_rank": 5,
+      "to_rank": 6,
+      "required_raw_affinity": 15,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Points, rank6"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank5 next-rank threshold"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.chariot.incoming_rank_07",
+      "from_rank": 6,
+      "to_rank": 7,
+      "required_raw_affinity": 15,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Points, rank7"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank6 next-rank threshold"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.chariot.incoming_rank_08",
+      "from_rank": 7,
+      "to_rank": 8,
+      "required_raw_affinity": 22,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Points, rank8"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank7 next-rank threshold"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.chariot.incoming_rank_09",
+      "from_rank": 8,
+      "to_rank": 9,
+      "required_raw_affinity": 22,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Points, rank9"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank8 next-rank threshold"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.chariot.incoming_rank_10",
+      "from_rank": 9,
+      "to_rank": 10,
+      "required_raw_affinity": 22,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Points, rank10"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank9 next-rank threshold"
+        }
+      ]
+    }
+  ],
+  "rank_events": [
+    {
+      "rule_id": "p3r.chariot.event_rank_02",
+      "from_rank": 1,
+      "to_rank": 2,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank2 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank2 prompt1 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            2
+          ]
+        },
+        {
+          "prompt_ordinal": 2,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank2 prompt2 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank2 prompt2 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1,
+            2
+          ]
+        },
+        {
+          "prompt_ordinal": 3,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank2 prompt3 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank2 prompt3 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1,
+            2
+          ]
+        }
+      ],
+      "optimal_base_gain": 5,
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Events, rank2"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank2"
+        }
+      ],
+      "executable": true
+    },
+    {
+      "rule_id": "p3r.chariot.event_rank_03",
+      "from_rank": 2,
+      "to_rank": 3,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank3 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank3 prompt1 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            2
+          ]
+        },
+        {
+          "prompt_ordinal": 2,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank3 prompt2 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank3 prompt2 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1
+          ]
+        }
+      ],
+      "optimal_base_gain": 10,
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Events, rank3"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank3"
+        }
+      ],
+      "executable": true
+    },
+    {
+      "rule_id": "p3r.chariot.event_rank_04",
+      "from_rank": 3,
+      "to_rank": 4,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank4 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank4 prompt1 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1,
+            2
+          ]
+        },
+        {
+          "prompt_ordinal": 2,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank4 prompt2 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 15,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank4 prompt2 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            2
+          ]
+        }
+      ],
+      "optimal_base_gain": 15,
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Events, rank4"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank4"
+        }
+      ],
+      "executable": true
+    },
+    {
+      "rule_id": "p3r.chariot.event_rank_05",
+      "from_rank": 4,
+      "to_rank": 5,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank5 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank5 prompt1 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1
+          ]
+        },
+        {
+          "prompt_ordinal": 2,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 15,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank5 prompt2 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank5 prompt2 response2"
+            },
+            {
+              "source_option_ordinal": 3,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank5 prompt2 response3"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1
+          ]
+        }
+      ],
+      "optimal_base_gain": 20,
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Events, rank5"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank5"
+        }
+      ],
+      "executable": true
+    },
+    {
+      "rule_id": "p3r.chariot.event_rank_06",
+      "from_rank": 5,
+      "to_rank": 6,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank6 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank6 prompt1 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            2
+          ]
+        },
+        {
+          "prompt_ordinal": 2,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank6 prompt2 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank6 prompt2 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            2
+          ]
+        },
+        {
+          "prompt_ordinal": 3,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank6 prompt3 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank6 prompt3 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            2
+          ]
+        }
+      ],
+      "optimal_base_gain": 15,
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Events, rank6"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank6"
+        }
+      ],
+      "executable": true
+    },
+    {
+      "rule_id": "p3r.chariot.event_rank_07",
+      "from_rank": 6,
+      "to_rank": 7,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank7 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank7 prompt1 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1
+          ]
+        },
+        {
+          "prompt_ordinal": 2,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 15,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank7 prompt2 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank7 prompt2 response2"
+            },
+            {
+              "source_option_ordinal": 3,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank7 prompt2 response3"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1
+          ]
+        }
+      ],
+      "optimal_base_gain": 20,
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Events, rank7"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank7"
+        }
+      ],
+      "executable": true
+    },
+    {
+      "rule_id": "p3r.chariot.event_rank_08",
+      "from_rank": 7,
+      "to_rank": 8,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank8 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank8 prompt1 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            2
+          ]
+        }
+      ],
+      "optimal_base_gain": 5,
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Events, rank8"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank8"
+        }
+      ],
+      "executable": true
+    },
+    {
+      "rule_id": "p3r.chariot.event_rank_09",
+      "from_rank": 8,
+      "to_rank": 9,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 15,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank9 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank9 prompt1 response2"
+            },
+            {
+              "source_option_ordinal": 3,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank9 prompt1 response3"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1
+          ]
+        }
+      ],
+      "optimal_base_gain": 15,
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Events, rank9"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank9"
+        }
+      ],
+      "executable": true
+    },
+    {
+      "rule_id": "p3r.chariot.event_rank_10",
+      "from_rank": 9,
+      "to_rank": 10,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank10 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank10 prompt1 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1,
+            2
+          ]
+        },
+        {
+          "prompt_ordinal": 2,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 15,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank10 prompt2 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank10 prompt2 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1
+          ]
+        },
+        {
+          "prompt_ordinal": 3,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank10 prompt3 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kazushi Rank10 prompt3 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1,
+            2
+          ]
+        }
+      ],
+      "optimal_base_gain": 20,
+      "evidence": [
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank Up Events, rank10"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank10"
+        }
+      ],
+      "executable": true
+    }
+  ],
+  "state_contract": {
+    "required": [
+      "rank",
+      "exact_date_visit_legal",
+      "affinity_lower_bound",
+      "affinity_provenance",
+      "rank_up_ready"
+    ],
+    "unknown_affinity": {
+      "lower_bound": 0,
+      "upper_bound": null,
+      "actual_value": null
+    },
+    "unknown_choice_contribution": 0,
+    "unknown_choice_means_optimal": false,
+    "non_optimal_choice_handling": "Use exact raw points from mapped option; never use optimal sum for unrecorded choice",
+    "after_rank_up": "Replace knowledge lower bound with sum of identified selected raw gains in the completed event. Do not add prior-rank balance or subtract threshold from old balance. This deliberately discards knowledge, not a claim of exact game reset.",
+    "readiness_inference": "true if lower_bound >= incoming threshold of rank+1; otherwise null unless a current observation establishes false",
+    "readiness_invalidated_on_rank_change": true,
+    "rank10": "terminal; no next-rank readiness",
+    "negative_or_unknown_event": "invalidate derived bound and require observation; never invent zero-loss behavior",
+    "exact_balance_after_event": null
+  },
+  "normal_visit_contract": {
+    "rule_id": "p3r.chariot.normal_visit",
+    "requires": [
+      "Link already unlocked",
+      "rank1..9",
+      "Exact legal date and free school daytime slot",
+      "No contradictory current readiness observation"
+    ],
+    "if_ready_true": "Normal visit is a rank-up event; increase rank exactly1 after confirmed completion, then process that event choices",
+    "if_ready_false": "Ordinary non-rank hangout; rank unchanged; point delta unknown in strict model; re-observe readiness",
+    "if_ready_unknown": "No deterministic rank prediction. Observe before commitment, or return branching policy; do not treat unknown as false",
+    "no_double_visit": "One slot cannot produce hangout plus a same-slot rank-up",
+    "monotonicity": "Only derive from recorded events inside known current-rank state; arbitrary imported state needs provenance"
+  },
+  "readiness_truth_table": [
+    {
+      "rule_id": "p3r.chariot.optimal_next_ready.rank_03",
+      "completed_event_to_rank": 3,
+      "next_rank": 4,
+      "optimal_answers_required": true,
+      "minimum_verified_151_bonus_count_at_event": 2,
+      "qualifying_categories": [
+        "matching_arcana_in_stock",
+        "charm_rank6",
+        "exam_top_class"
+      ],
+      "top_ten_counts": false,
+      "result_if_conditions_hold": true,
+      "result_if_conditions_fail_or_unknown": null,
+      "executable": true,
+      "evidence": [
+        {
+          "source_id": "wiki_453",
+          "locator": "Chariot 2->3, lines743-779"
+        }
+      ],
+      "conflict_id": null
+    },
+    {
+      "rule_id": "p3r.chariot.optimal_next_ready.rank_04",
+      "completed_event_to_rank": 4,
+      "next_rank": 5,
+      "optimal_answers_required": true,
+      "minimum_verified_151_bonus_count_at_event": 0,
+      "qualifying_categories": [
+        "matching_arcana_in_stock",
+        "charm_rank6",
+        "exam_top_class"
+      ],
+      "top_ten_counts": false,
+      "result_if_conditions_hold": true,
+      "result_if_conditions_fail_or_unknown": null,
+      "executable": true,
+      "evidence": [
+        {
+          "source_id": "wiki_453",
+          "locator": "Chariot 3->4, lines743-779"
+        }
+      ],
+      "conflict_id": null
+    },
+    {
+      "rule_id": "p3r.chariot.optimal_next_ready.rank_05",
+      "completed_event_to_rank": 5,
+      "next_rank": 6,
+      "optimal_answers_required": true,
+      "minimum_verified_151_bonus_count_at_event": 0,
+      "qualifying_categories": [
+        "matching_arcana_in_stock",
+        "charm_rank6",
+        "exam_top_class"
+      ],
+      "top_ten_counts": false,
+      "result_if_conditions_hold": true,
+      "result_if_conditions_fail_or_unknown": null,
+      "executable": true,
+      "evidence": [
+        {
+          "source_id": "wiki_453",
+          "locator": "Chariot 4->5, lines743-779"
+        }
+      ],
+      "conflict_id": null
+    },
+    {
+      "rule_id": "p3r.chariot.optimal_next_ready.rank_06",
+      "completed_event_to_rank": 6,
+      "next_rank": 7,
+      "optimal_answers_required": true,
+      "minimum_verified_151_bonus_count_at_event": 0,
+      "qualifying_categories": [
+        "matching_arcana_in_stock",
+        "charm_rank6",
+        "exam_top_class"
+      ],
+      "top_ten_counts": false,
+      "result_if_conditions_hold": true,
+      "result_if_conditions_fail_or_unknown": null,
+      "executable": true,
+      "evidence": [
+        {
+          "source_id": "wiki_453",
+          "locator": "Chariot 5->6, lines743-779"
+        }
+      ],
+      "conflict_id": null
+    },
+    {
+      "rule_id": "p3r.chariot.optimal_next_ready.rank_07",
+      "completed_event_to_rank": 7,
+      "next_rank": 8,
+      "optimal_answers_required": true,
+      "minimum_verified_151_bonus_count_at_event": 0,
+      "qualifying_categories": [
+        "matching_arcana_in_stock",
+        "charm_rank6",
+        "exam_top_class"
+      ],
+      "top_ten_counts": false,
+      "result_if_conditions_hold": true,
+      "result_if_conditions_fail_or_unknown": null,
+      "executable": false,
+      "evidence": [
+        {
+          "source_id": "wiki_453",
+          "locator": "Chariot 6->7, lines743-779"
+        }
+      ],
+      "conflict_id": "chariot_rank7_readiness"
+    },
+    {
+      "rule_id": "p3r.chariot.optimal_next_ready.rank_08",
+      "completed_event_to_rank": 8,
+      "next_rank": 9,
+      "optimal_answers_required": true,
+      "minimum_verified_151_bonus_count_at_event": null,
+      "qualifying_categories": [
+        "matching_arcana_in_stock",
+        "charm_rank6",
+        "exam_top_class"
+      ],
+      "top_ten_counts": false,
+      "result_if_conditions_hold": null,
+      "result_if_conditions_fail_or_unknown": null,
+      "executable": true,
+      "evidence": [
+        {
+          "source_id": "wiki_453",
+          "locator": "Chariot 7->8, lines743-779"
+        }
+      ],
+      "conflict_id": null
+    },
+    {
+      "rule_id": "p3r.chariot.optimal_next_ready.rank_09",
+      "completed_event_to_rank": 9,
+      "next_rank": 10,
+      "optimal_answers_required": true,
+      "minimum_verified_151_bonus_count_at_event": 1,
+      "qualifying_categories": [
+        "matching_arcana_in_stock",
+        "charm_rank6",
+        "exam_top_class"
+      ],
+      "top_ten_counts": false,
+      "result_if_conditions_hold": true,
+      "result_if_conditions_fail_or_unknown": null,
+      "executable": true,
+      "evidence": [
+        {
+          "source_id": "wiki_453",
+          "locator": "Chariot 8->9, lines743-779"
+        }
+      ],
+      "conflict_id": null
+    }
+  ],
+  "cross_link_flags": [
+    {
+      "rule_id": "p3r.chariot.strength_intro_after_rank1",
+      "after_chariot_event_rank": 1,
+      "target_entity_id": "p3r.social_link.strength",
+      "separate_post_event_yuko_interaction": true,
+      "source_option_ordinals": [
+        1,
+        1
+      ],
+      "effect": "Record this distinct walk-home invitation; both distinct interactions required for Strength introduction",
+      "evidence": [
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank1, Strength Flag0.1"
+        },
+        {
+          "source_id": "wiki_453",
+          "locator": "1002"
+        }
+      ],
+      "executable": false,
+      "unknowns": [
+        "Localized identity and separate interaction completion must be confirmed; not rank-event affinity prompts"
+      ]
+    },
+    {
+      "rule_id": "p3r.chariot.strength_intro_after_rank2",
+      "after_chariot_event_rank": 2,
+      "target_entity_id": "p3r.social_link.strength",
+      "separate_post_event_yuko_interaction": true,
+      "source_option_ordinals": [
+        1,
+        1
+      ],
+      "effect": "Record this distinct walk-home invitation; both distinct interactions required for Strength introduction",
+      "evidence": [
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank2, Strength Flag0.2"
+        },
+        {
+          "source_id": "wiki_453",
+          "locator": "1002"
+        }
+      ],
+      "executable": false,
+      "unknowns": [
+        "Localized identity and separate interaction completion must be confirmed; not rank-event affinity prompts"
+      ]
+    }
+  ],
+  "conflicts": [
+    {
+      "id": "chariot_rank7_readiness",
+      "wiki_claim": "Optimal rank7 event with zero bonuses suffices for next rank",
+      "numeric_crosscheck": {
+        "event_raw_optimal_gain": 20,
+        "incoming_rank8_threshold": 22
+      },
+      "evidence": [
+        {
+          "source_id": "wiki_453",
+          "locator": "767-771"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Chariot Rank7 20/22"
+        },
+        {
+          "source_id": "chariot_wiki",
+          "locator": "Rank7 options and Rank8 requirement"
+        }
+      ],
+      "resolution": "Disable rank7 wiki lookup, base-only yields unknown at20; observed readiness or extra verified points required"
+    },
+    {
+      "id": "chariot_january_invite_typo",
+      "wiki_453_date": "01-06",
+      "chariot_wiki_date": "01-16",
+      "resolution": "Do not import holiday date list from chariot_wiki into calendar"
+    }
+  ],
+  "test_fixtures": [
+    {
+      "id": "chariot_rank2_optimal_base",
+      "event_to_rank": 2,
+      "selected_source_options": [
+        2,
+        1,
+        1
+      ],
+      "expected_lower_bound": 5,
+      "expected_next_ready": true
+    },
+    {
+      "id": "chariot_rank3_optimal_base",
+      "event_to_rank": 3,
+      "selected_source_options": [
+        2,
+        1
+      ],
+      "expected_lower_bound": 10,
+      "expected_next_ready": null
+    },
+    {
+      "id": "chariot_rank4_optimal_base",
+      "event_to_rank": 4,
+      "selected_source_options": [
+        1,
+        2
+      ],
+      "expected_lower_bound": 15,
+      "expected_next_ready": true
+    },
+    {
+      "id": "chariot_rank5_optimal_base",
+      "event_to_rank": 5,
+      "selected_source_options": [
+        1,
+        1
+      ],
+      "expected_lower_bound": 20,
+      "expected_next_ready": true
+    },
+    {
+      "id": "chariot_rank6_optimal_base",
+      "event_to_rank": 6,
+      "selected_source_options": [
+        2,
+        2,
+        2
+      ],
+      "expected_lower_bound": 15,
+      "expected_next_ready": true
+    },
+    {
+      "id": "chariot_rank7_optimal_base",
+      "event_to_rank": 7,
+      "selected_source_options": [
+        1,
+        1
+      ],
+      "expected_lower_bound": 20,
+      "expected_next_ready": null
+    },
+    {
+      "id": "chariot_rank8_optimal_base",
+      "event_to_rank": 8,
+      "selected_source_options": [
+        2
+      ],
+      "expected_lower_bound": 5,
+      "expected_next_ready": null
+    },
+    {
+      "id": "chariot_rank9_optimal_base",
+      "event_to_rank": 9,
+      "selected_source_options": [
+        1
+      ],
+      "expected_lower_bound": 15,
+      "expected_next_ready": null
+    }
+  ],
+  "validation": {
+    "incoming_thresholds": 9,
+    "rank_events": 9,
+    "per_answer_rows": 41,
+    "base_fixtures_executed": 8,
+    "base_fixtures_passed": 8,
+    "rank7_conflicting_lookup_disabled": true,
+    "only_new_file_written": true
+  }
+}

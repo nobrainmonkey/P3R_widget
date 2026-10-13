@@ -1,0 +1,12 @@
+{
+  "allPassed": true,
+  "checks": {
+    "602unique_slots": true,
+    "date_roundtrip": true,
+    "no_complement_free": true,
+    "no_blind_execution": true,
+    "worker9_checks": true,
+    "newgroups16": true
+  },
+  "scope": "Independent overlay integrity plus recorded source-locator checks; no game replay"
+}

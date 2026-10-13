@@ -1,0 +1,31 @@
+{
+  "packVersion": "0.3.0",
+  "gameEdition": "P3R-base",
+  "files": {
+    "affinity_model_evidence.json": "d8731f2f478beb62f7dfd5b170d41be6094dc6c4a6da781ae664ab7cdd718dd3",
+    "calendar_execution_contract.json": "ddf0d50e40a8f7a9b41ceb4527f0fd7dc4ad56e3c37cd872ce07f45f2d4ebc84",
+    "calendar_full_candidate.json": "442d4255261df6b3849c9ae6a40f7a5472af61ad44e1305505c1bf9980871ff9",
+    "calendar_global_constraints_candidate.json": "faa884bd1bf0c9e27fec76d4b8d2f570476c521d51c56a2cedaf684359b1e20f",
+    "calendar_january_slice.json": "e192be4e76d7057e649f76194738995cdb7edbf88da3025067dfa7012e204cd7",
+    "chariot_base_model.json": "ed23ae96eb2755a7a657f2a889682942b2f76dc54d736a302bcbbe97945e1cea",
+    "coverage.json": "57f961c63a7048cdfe3e22c073e2a731faabc72543cd3fb659b2d84ba290cc3b",
+    "early_link_calendar_witnesses.json": "0b27c781e88eb9bec62ac4627db6771ee8a413235c2c140f77f13530d2c0c7c6",
+    "execution_registry.json": "f65f48fff2c0829369dca88e525a704d72712048d5e71b389f8bf9042be736ff",
+    "integration_contract.json": "fe68aca95b2d053c1548d0db7de2efda928799a388b3fb170383cb132e60913b",
+    "jobs_wage_rules_candidate.json": "3c156857be4ea79f8d5edea378f09949183f3385282117263c07842f0e288798",
+    "magician_base_model.json": "7556bf2d2148f4a7cc2ce8f1e104c9332edeb36bc0487f90f89b28950852f001",
+    "observation_gated_rank_actions.json": "4f3a2f66145e503ef4b35eb78240948dc5a96be8fa43e9a219894efc09c4b8b2",
+    "playable_actions.json": "1b1a1d646918a30eef310b60f5657d5dbcbcbd6d078b2f01f4d83b538a282542",
+    "reported_rank_points.json": "0073c5a5ab5943a8b342ba35f666e111915e1bdaaf52c23db8e325210baca6c6",
+    "reported_regular_activities.json": "9ece23cf9dc3477e294f3c04ed6cd45d0b85f0e882067d2172d42191e68b6e15",
+    "rescues_january.json": "31988ecb8e2f2d685eb929b6b78a29856a348e4a3b7d852c2ada1fc3d6cb4d39",
+    "romance_rank_rules_candidate.json": "9e2b16cda534d78c62cde274bd69629c8995a1a04821333438c842a907cdc6e5",
+    "social_links.json": "df4ba0d50aff864bd4037b471a498485b3d2ec22f2e0b750f31cb9fe007af41f",
+    "sources_calendar_tower.json": "04b7f18fc1f467f44095ad36c36fcf57472d3983622826b7db2e3a8c71672e5d",
+    "stats_actions.json": "c2be0c4deb076553c65d79a5f2b04e9fcfed5007ac74f1497e655106dc3213f4",
+    "test_fixtures.json": "f647969bfefb419fe9b6fb4e705e73193e71b4b8175ba5b8ebdec7c83c33ce4d",
+    "tower_stages.json": "db057ddb133de8f84bd48fc40ecfd818adae65a9153c749770ba12bec4679884",
+    "validation.json": "4678c0fe1116720fac0d0c8e6a11579bdf9ec5c9844d534d9a402042ee474786",
+    "validation_expansion.json": "858e5c1fd1b698ddad2a526e7f9732482b0eea1bdefc24cae61bc807dea93a17"
+  }
+}

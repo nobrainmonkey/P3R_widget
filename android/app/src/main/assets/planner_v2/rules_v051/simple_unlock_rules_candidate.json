@@ -1,0 +1,1208 @@
+{
+  "schema": "p3r.simple_unlock_rules.v1",
+  "gameEdition": "P3R-base",
+  "sources": [
+    {
+      "id": "wiki453",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/453.html",
+      "section": "Reload per-link unlock procedures"
+    },
+    {
+      "id": "wiki420",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+      "snapshotSha256": "381b057794b21349959afc62f61b6c4c9a05dabba85bffc449d18235abe067c7",
+      "section": "Exact0→1 introduction cells; positive witnesses, not fixed-route obligations"
+    },
+    {
+      "id": "reload_priestess",
+      "url": "https://megatenwiki.com/wiki/Gameplay:Fuuka_Yamagishi",
+      "section": "Rank Up Events(P3R) rank1"
+    },
+    {
+      "id": "reload_empress",
+      "url": "https://megatenwiki.com/wiki/Gameplay:Mitsuru_Kirijo",
+      "section": "Rank Up Events(P3R) rank1"
+    },
+    {
+      "id": "reload_lovers",
+      "url": "https://megatenwiki.com/wiki/Gameplay:Yukari_Takeba",
+      "section": "Social Link(P3R) rank1"
+    },
+    {
+      "id": "baseline",
+      "path": "data.candidate.json",
+      "sha256": "ff93b7653ec19049667856a8f439f69d5f722772a21f57e504f85e145a3c68d1"
+    }
+  ],
+  "actions": [
+    {
+      "ruleId": "p3r.unlock.priestess",
+      "entityId": "p3r.social_link.priestess",
+      "labelZh": "解锁女教皇社群",
+      "literalGuideHeading": "到教室前走廊和山岸风花对话，女教皇解锁，需要勇气MAX",
+      "guideTaskId": "t067_01",
+      "kind": "compound_single_slot_introduction",
+      "slot": "daytime",
+      "slotCost": 1,
+      "yenCost": 0,
+      "earliestDate": {
+        "mmdd": "06-19",
+        "ordinal": 79
+      },
+      "preconditions": [
+        {
+          "field": "socialLinks.priestess.rank",
+          "op": "eq",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.priestess.alreadyUnlocked",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "calendar.currentSlotRemaining",
+          "op": "gte",
+          "value": 1
+        },
+        {
+          "field": "stats.courage.rawLowerBound",
+          "op": "gte",
+          "value": 80,
+          "equivalentRankAtLeast": 6
+        },
+        {
+          "field": "socialLinks.fortune.rank",
+          "op": "gte",
+          "value": 1
+        }
+      ],
+      "preparationSequenceSemantics": [
+        "Accept meeting and complete first social-link event"
+      ],
+      "foreignSequenceNotForLocalizedDisplay": true,
+      "calendarPolicy": {
+        "input": "calendar_full_candidate exact O cell OR independently observed introduction availability OR exact Wiki420 intro witness",
+        "useOrdinaryUnlockedGuard": false,
+        "requireFreeSlotAndStoryContext": true,
+        "mode": "source_conditional",
+        "missingOrNegativeSourceDate": "unknown_not_proven_impossible"
+      },
+      "onConfirmedComplete": [
+        {
+          "field": "socialLinks.priestess.rank",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "field": "socialLinks.priestess.alreadyUnlocked",
+          "op": "set",
+          "value": true
+        },
+        {
+          "field": "socialLinks.priestess.relationshipState",
+          "op": "set",
+          "value": "normal"
+        },
+        {
+          "field": "socialLinks.priestess.affinityLowerBound",
+          "op": "set",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.priestess.affinityExact",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "readinessAfterUnlock": "derive from enabled rank2 threshold; do not assume exact hidden affinity",
+      "evidence": [
+        {
+          "source": "wiki453",
+          "locator": "女教皇 activity unlock condition"
+        },
+        {
+          "source": "wiki420",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[7]/tbody/tr/td[3]/table/tr[20]/td[3]",
+          "cellSha256": "cad60c2e98bae865bde396248ea6e7865ea65b1834c2381e2881e204fb1d43a3",
+          "monthClaim": 6,
+          "dayClaim": 19,
+          "slot": "daytime",
+          "deducedSlotCost": 1,
+          "costEvidence": "This whole introduction appears in the single daytime activity cell; preparations bundled, not additional slots"
+        }
+      ],
+      "planningEnabled": true,
+      "unknownPreconditionPolicy": "unknown_or_prerequisite_needed_not_impossible",
+      "sideEffectsNotIncluded": "Optional embedded flags, items, other links, stats and dialogue effects require their own evidenced rule"
+    },
+    {
+      "ruleId": "p3r.unlock.empress",
+      "entityId": "p3r.social_link.empress",
+      "labelZh": "解锁女皇社群",
+      "literalGuideHeading": "去教职员室外和桐条美鹤对话，女皇解锁（需要学力MAX）",
+      "guideTaskId": "t199_03",
+      "kind": "compound_single_slot_introduction",
+      "slot": "daytime",
+      "slotCost": 1,
+      "yenCost": 0,
+      "earliestDate": {
+        "mmdd": "11-21",
+        "ordinal": 234
+      },
+      "preconditions": [
+        {
+          "field": "socialLinks.empress.rank",
+          "op": "eq",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.empress.alreadyUnlocked",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "calendar.currentSlotRemaining",
+          "op": "gte",
+          "value": 1
+        },
+        {
+          "field": "stats.academics.rawLowerBound",
+          "op": "gte",
+          "value": 230,
+          "equivalentRankAtLeast": 6
+        }
+      ],
+      "preparationSequenceSemantics": [
+        "Accept meeting and complete first social-link event"
+      ],
+      "foreignSequenceNotForLocalizedDisplay": true,
+      "calendarPolicy": {
+        "input": "calendar_full_candidate exact O cell OR independently observed introduction availability OR exact Wiki420 intro witness",
+        "useOrdinaryUnlockedGuard": false,
+        "requireFreeSlotAndStoryContext": true,
+        "mode": "source_conditional",
+        "missingOrNegativeSourceDate": "unknown_not_proven_impossible"
+      },
+      "onConfirmedComplete": [
+        {
+          "field": "socialLinks.empress.rank",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "field": "socialLinks.empress.alreadyUnlocked",
+          "op": "set",
+          "value": true
+        },
+        {
+          "field": "socialLinks.empress.relationshipState",
+          "op": "set",
+          "value": "normal"
+        },
+        {
+          "field": "socialLinks.empress.affinityLowerBound",
+          "op": "set",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.empress.affinityExact",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "readinessAfterUnlock": "derive from enabled rank2 threshold; do not assume exact hidden affinity",
+      "evidence": [
+        {
+          "source": "wiki453",
+          "locator": "女帝 activity unlock condition"
+        },
+        {
+          "source": "wiki420",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[17]/tbody/tr/td[3]/table/tr[22]/td[3]",
+          "cellSha256": "6f939ffbf92b2a5dada3079dd2d1ae49a2b3adb0d8222f1fe4fb4359f383226f",
+          "monthClaim": 11,
+          "dayClaim": 21,
+          "slot": "daytime",
+          "deducedSlotCost": 1,
+          "costEvidence": "This whole introduction appears in the single daytime activity cell; preparations bundled, not additional slots"
+        }
+      ],
+      "planningEnabled": true,
+      "unknownPreconditionPolicy": "unknown_or_prerequisite_needed_not_impossible",
+      "sideEffectsNotIncluded": "Optional embedded flags, items, other links, stats and dialogue effects require their own evidenced rule",
+      "unresolvedExtraCondition": {
+        "id": "empress_exam_first_place",
+        "claims": {
+          "wiki453_and_reload_gameplay_section": "Academics6 plus date/meeting stated sufficient",
+          "aqiu": "first place on an exam additionally listed"
+        },
+        "policy": "require observedIntroductionAvailable=true OR explicit source-conditional assumption accepting Wiki-first gate; never infer exam first place from Academics6",
+        "defaultExactExecutionEnabled": false
+      }
+    },
+    {
+      "ruleId": "p3r.unlock.emperor",
+      "entityId": "p3r.social_link.emperor",
+      "labelZh": "解锁皇帝社群",
+      "literalGuideHeading": "到教职员室签名，然后去教室对面的学生会活动室，皇帝解锁",
+      "guideTaskId": "t011_03",
+      "kind": "compound_single_slot_introduction",
+      "slot": "daytime",
+      "slotCost": 1,
+      "yenCost": 0,
+      "earliestDate": {
+        "mmdd": "04-27",
+        "ordinal": 26
+      },
+      "preconditions": [
+        {
+          "field": "socialLinks.emperor.rank",
+          "op": "eq",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.emperor.alreadyUnlocked",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "calendar.currentSlotRemaining",
+          "op": "gte",
+          "value": 1
+        }
+      ],
+      "preparationSequenceSemantics": [
+        "Speak to teacher about student council",
+        "Join student council in its room"
+      ],
+      "foreignSequenceNotForLocalizedDisplay": true,
+      "calendarPolicy": {
+        "input": "calendar_full_candidate exact O cell OR independently observed introduction availability OR exact Wiki420 intro witness",
+        "useOrdinaryUnlockedGuard": false,
+        "requireFreeSlotAndStoryContext": true,
+        "mode": "source_conditional",
+        "missingOrNegativeSourceDate": "unknown_not_proven_impossible"
+      },
+      "onConfirmedComplete": [
+        {
+          "field": "socialLinks.emperor.rank",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "field": "socialLinks.emperor.alreadyUnlocked",
+          "op": "set",
+          "value": true
+        },
+        {
+          "field": "socialLinks.emperor.relationshipState",
+          "op": "set",
+          "value": "normal"
+        },
+        {
+          "field": "socialLinks.emperor.affinityLowerBound",
+          "op": "set",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.emperor.affinityExact",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "readinessAfterUnlock": "derive from enabled rank2 threshold; do not assume exact hidden affinity",
+      "evidence": [
+        {
+          "source": "wiki453",
+          "locator": "皇帝 activity unlock condition"
+        },
+        {
+          "source": "wiki420",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[3]/tbody/tr/td[3]/table/tr[23]/td[3]",
+          "cellSha256": "94df33728b2ecf1b812a14f9b58a892a4d904e169a3cf50f779cd581adbb46c1",
+          "monthClaim": 4,
+          "dayClaim": 27,
+          "slot": "daytime",
+          "deducedSlotCost": 1,
+          "costEvidence": "This whole introduction appears in the single daytime activity cell; preparations bundled, not additional slots"
+        }
+      ],
+      "planningEnabled": true,
+      "unknownPreconditionPolicy": "unknown_or_prerequisite_needed_not_impossible",
+      "sideEffectsNotIncluded": "Optional embedded flags, items, other links, stats and dialogue effects require their own evidenced rule"
+    },
+    {
+      "ruleId": "p3r.unlock.hierophant",
+      "entityId": "p3r.social_link.hierophant",
+      "labelZh": "解锁教皇社群",
+      "literalGuideHeading": "前往严户台商店街的旧书店书虫，然后返回学校连接走廊，调查树苗获得“柿子树叶”，然后回旧书店，教皇解锁",
+      "guideTaskId": "t009_01",
+      "kind": "compound_single_slot_introduction",
+      "slot": "daytime",
+      "slotCost": 1,
+      "yenCost": 0,
+      "earliestDate": {
+        "mmdd": "04-25",
+        "ordinal": 24
+      },
+      "preconditions": [
+        {
+          "field": "socialLinks.hierophant.rank",
+          "op": "eq",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.hierophant.alreadyUnlocked",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "calendar.currentSlotRemaining",
+          "op": "gte",
+          "value": 1
+        }
+      ],
+      "preparationSequenceSemantics": [
+        "Hear request at used bookstore",
+        "Inspect school persimmon tree for leaf",
+        "Return and show leaf"
+      ],
+      "foreignSequenceNotForLocalizedDisplay": true,
+      "calendarPolicy": {
+        "input": "calendar_full_candidate exact O cell OR independently observed introduction availability OR exact Wiki420 intro witness",
+        "useOrdinaryUnlockedGuard": false,
+        "requireFreeSlotAndStoryContext": true,
+        "mode": "source_conditional",
+        "missingOrNegativeSourceDate": "unknown_not_proven_impossible"
+      },
+      "onConfirmedComplete": [
+        {
+          "field": "socialLinks.hierophant.rank",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "field": "socialLinks.hierophant.alreadyUnlocked",
+          "op": "set",
+          "value": true
+        },
+        {
+          "field": "socialLinks.hierophant.relationshipState",
+          "op": "set",
+          "value": "normal"
+        },
+        {
+          "field": "socialLinks.hierophant.affinityLowerBound",
+          "op": "set",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.hierophant.affinityExact",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "readinessAfterUnlock": "derive from enabled rank2 threshold; do not assume exact hidden affinity",
+      "evidence": [
+        {
+          "source": "wiki453",
+          "locator": "法王 activity unlock condition"
+        },
+        {
+          "source": "wiki420",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[3]/tbody/tr/td[3]/table/tr[21]/td[3]",
+          "cellSha256": "3c274845153b6b7d497df6576d129acd3bdcfaa2950d65f0e74cfec816b54e2e",
+          "monthClaim": 4,
+          "dayClaim": 25,
+          "slot": "daytime",
+          "deducedSlotCost": 1,
+          "costEvidence": "This whole introduction appears in the single daytime activity cell; preparations bundled, not additional slots"
+        }
+      ],
+      "planningEnabled": true,
+      "unknownPreconditionPolicy": "unknown_or_prerequisite_needed_not_impossible",
+      "sideEffectsNotIncluded": "Optional embedded flags, items, other links, stats and dialogue effects require their own evidenced rule"
+    },
+    {
+      "ruleId": "p3r.unlock.lovers",
+      "entityId": "p3r.social_link.lovers",
+      "labelZh": "解锁恋爱社群",
+      "literalGuideHeading": "在教室和岳羽由加莉对话，恋爱解锁，需要魅力MAX",
+      "guideTaskId": "t091_02",
+      "kind": "compound_single_slot_introduction",
+      "slot": "daytime",
+      "slotCost": 1,
+      "yenCost": 0,
+      "earliestDate": {
+        "mmdd": "07-25",
+        "ordinal": 115
+      },
+      "preconditions": [
+        {
+          "field": "socialLinks.lovers.rank",
+          "op": "eq",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.lovers.alreadyUnlocked",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "calendar.currentSlotRemaining",
+          "op": "gte",
+          "value": 1
+        },
+        {
+          "field": "stats.charm.rawLowerBound",
+          "op": "gte",
+          "value": 100,
+          "equivalentRankAtLeast": 6
+        }
+      ],
+      "preparationSequenceSemantics": [
+        "Accept meeting and complete first social-link event"
+      ],
+      "foreignSequenceNotForLocalizedDisplay": true,
+      "calendarPolicy": {
+        "input": "calendar_full_candidate exact O cell OR independently observed introduction availability OR exact Wiki420 intro witness",
+        "useOrdinaryUnlockedGuard": false,
+        "requireFreeSlotAndStoryContext": true,
+        "mode": "source_conditional",
+        "missingOrNegativeSourceDate": "unknown_not_proven_impossible"
+      },
+      "onConfirmedComplete": [
+        {
+          "field": "socialLinks.lovers.rank",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "field": "socialLinks.lovers.alreadyUnlocked",
+          "op": "set",
+          "value": true
+        },
+        {
+          "field": "socialLinks.lovers.relationshipState",
+          "op": "set",
+          "value": "normal"
+        },
+        {
+          "field": "socialLinks.lovers.affinityLowerBound",
+          "op": "set",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.lovers.affinityExact",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "readinessAfterUnlock": "derive from enabled rank2 threshold; do not assume exact hidden affinity",
+      "evidence": [
+        {
+          "source": "wiki453",
+          "locator": "恋愛 activity unlock condition"
+        },
+        {
+          "source": "wiki420",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[9]/tbody/tr/td[3]/table/tr[26]/td[3]",
+          "cellSha256": "7a76a3703b5ecf81ec4dde355fd220dcd09f2fe6559ee89caee989fab47be0ec",
+          "monthClaim": 7,
+          "dayClaim": 25,
+          "slot": "daytime",
+          "deducedSlotCost": 1,
+          "costEvidence": "This whole introduction appears in the single daytime activity cell; preparations bundled, not additional slots"
+        }
+      ],
+      "planningEnabled": true,
+      "unknownPreconditionPolicy": "unknown_or_prerequisite_needed_not_impossible",
+      "sideEffectsNotIncluded": "Optional embedded flags, items, other links, stats and dialogue effects require their own evidenced rule"
+    },
+    {
+      "ruleId": "p3r.unlock.chariot",
+      "entityId": "p3r.social_link.chariot",
+      "labelZh": "解锁战车社群",
+      "literalGuideHeading": "前往运动场前走廊进入操场，加入田径社，战车解锁",
+      "guideTaskId": "t007_02",
+      "kind": "compound_single_slot_introduction",
+      "slot": "daytime",
+      "slotCost": 1,
+      "yenCost": 0,
+      "earliestDate": {
+        "mmdd": "04-23",
+        "ordinal": 22
+      },
+      "preconditions": [
+        {
+          "field": "socialLinks.chariot.rank",
+          "op": "eq",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.chariot.alreadyUnlocked",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "calendar.currentSlotRemaining",
+          "op": "gte",
+          "value": 1
+        }
+      ],
+      "preparationSequenceSemantics": [
+        "Join track club"
+      ],
+      "foreignSequenceNotForLocalizedDisplay": true,
+      "calendarPolicy": {
+        "input": "calendar_full_candidate exact O cell OR independently observed introduction availability OR exact Wiki420 intro witness",
+        "useOrdinaryUnlockedGuard": false,
+        "requireFreeSlotAndStoryContext": true,
+        "mode": "source_conditional",
+        "missingOrNegativeSourceDate": "unknown_not_proven_impossible"
+      },
+      "onConfirmedComplete": [
+        {
+          "field": "socialLinks.chariot.rank",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "field": "socialLinks.chariot.alreadyUnlocked",
+          "op": "set",
+          "value": true
+        },
+        {
+          "field": "socialLinks.chariot.relationshipState",
+          "op": "set",
+          "value": "normal"
+        },
+        {
+          "field": "socialLinks.chariot.affinityLowerBound",
+          "op": "set",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.chariot.affinityExact",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "readinessAfterUnlock": "derive from enabled rank2 threshold; do not assume exact hidden affinity",
+      "evidence": [
+        {
+          "source": "wiki453",
+          "locator": "戦車 activity unlock condition"
+        },
+        {
+          "source": "wiki420",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[3]/tbody/tr/td[3]/table/tr[19]/td[3]",
+          "cellSha256": "4ca7a5d01528802d20eeadc26d2862c6a051dba394d7df5daee9dcd4a80c8135",
+          "monthClaim": 4,
+          "dayClaim": 23,
+          "slot": "daytime",
+          "deducedSlotCost": 1,
+          "costEvidence": "This whole introduction appears in the single daytime activity cell; preparations bundled, not additional slots"
+        }
+      ],
+      "planningEnabled": true,
+      "unknownPreconditionPolicy": "unknown_or_prerequisite_needed_not_impossible",
+      "sideEffectsNotIncluded": "Optional embedded flags, items, other links, stats and dialogue effects require their own evidenced rule"
+    },
+    {
+      "ruleId": "p3r.unlock.hermit",
+      "entityId": "p3r.social_link.hermit",
+      "labelZh": "解锁隐者社群",
+      "literalGuideHeading": null,
+      "guideTaskId": null,
+      "kind": "compound_single_slot_introduction",
+      "slot": "daytime",
+      "slotCost": 1,
+      "yenCost": 0,
+      "earliestDate": {
+        "mmdd": "04-29",
+        "ordinal": 28
+      },
+      "preconditions": [
+        {
+          "field": "socialLinks.hermit.rank",
+          "op": "eq",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.hermit.alreadyUnlocked",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "calendar.currentSlotRemaining",
+          "op": "gte",
+          "value": 1
+        },
+        {
+          "field": "inventory.onlineGameAvailable",
+          "op": "eq",
+          "value": true
+        }
+      ],
+      "preparationSequenceSemantics": [
+        "Play received online game at room desk"
+      ],
+      "foreignSequenceNotForLocalizedDisplay": true,
+      "calendarPolicy": {
+        "input": "calendar_full_candidate exact O cell OR independently observed introduction availability OR exact Wiki420 intro witness",
+        "useOrdinaryUnlockedGuard": false,
+        "requireFreeSlotAndStoryContext": true,
+        "mode": "source_conditional",
+        "missingOrNegativeSourceDate": "unknown_not_proven_impossible"
+      },
+      "onConfirmedComplete": [
+        {
+          "field": "socialLinks.hermit.rank",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "field": "socialLinks.hermit.alreadyUnlocked",
+          "op": "set",
+          "value": true
+        },
+        {
+          "field": "socialLinks.hermit.relationshipState",
+          "op": "set",
+          "value": "normal"
+        },
+        {
+          "field": "socialLinks.hermit.affinityLowerBound",
+          "op": "set",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.hermit.affinityExact",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "readinessAfterUnlock": "derive from enabled rank2 threshold; do not assume exact hidden affinity",
+      "evidence": [
+        {
+          "source": "wiki453",
+          "locator": "隠者 activity unlock condition"
+        },
+        {
+          "source": "wiki420",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[3]/tbody/tr/td[3]/table/tr[25]/td[3]",
+          "cellSha256": "54677470f08fc9e59bf70093112304407975679548bd279618007260eba89a0b",
+          "monthClaim": 4,
+          "dayClaim": 29,
+          "slot": "daytime",
+          "deducedSlotCost": 1,
+          "costEvidence": "This whole introduction appears in the single daytime activity cell; preparations bundled, not additional slots"
+        }
+      ],
+      "planningEnabled": true,
+      "unknownPreconditionPolicy": "unknown_or_prerequisite_needed_not_impossible",
+      "sideEffectsNotIncluded": "Optional embedded flags, items, other links, stats and dialogue effects require their own evidenced rule"
+    },
+    {
+      "ruleId": "p3r.unlock.fortune",
+      "entityId": "p3r.social_link.fortune",
+      "labelZh": "解锁命运社群",
+      "literalGuideHeading": "到学校1楼实习室前走廊进入美术教室，命运解锁",
+      "guideTaskId": "t066_02",
+      "kind": "compound_single_slot_introduction",
+      "slot": "daytime",
+      "slotCost": 1,
+      "yenCost": 0,
+      "earliestDate": {
+        "mmdd": "06-17",
+        "ordinal": 77
+      },
+      "preconditions": [
+        {
+          "field": "socialLinks.fortune.rank",
+          "op": "eq",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.fortune.alreadyUnlocked",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "calendar.currentSlotRemaining",
+          "op": "gte",
+          "value": 1
+        }
+      ],
+      "preparationSequenceSemantics": [
+        "Join art club"
+      ],
+      "foreignSequenceNotForLocalizedDisplay": true,
+      "calendarPolicy": {
+        "input": "calendar_full_candidate exact O cell OR independently observed introduction availability OR exact Wiki420 intro witness",
+        "useOrdinaryUnlockedGuard": false,
+        "requireFreeSlotAndStoryContext": true,
+        "mode": "source_conditional",
+        "missingOrNegativeSourceDate": "unknown_not_proven_impossible"
+      },
+      "onConfirmedComplete": [
+        {
+          "field": "socialLinks.fortune.rank",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "field": "socialLinks.fortune.alreadyUnlocked",
+          "op": "set",
+          "value": true
+        },
+        {
+          "field": "socialLinks.fortune.relationshipState",
+          "op": "set",
+          "value": "normal"
+        },
+        {
+          "field": "socialLinks.fortune.affinityLowerBound",
+          "op": "set",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.fortune.affinityExact",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "readinessAfterUnlock": "derive from enabled rank2 threshold; do not assume exact hidden affinity",
+      "evidence": [
+        {
+          "source": "wiki453",
+          "locator": "運命 activity unlock condition"
+        },
+        {
+          "source": "wiki420",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[7]/tbody/tr/td[3]/table/tr[18]/td[3]",
+          "cellSha256": "da51f55420bdf320174888793a7c00393b5615a5ad7afbbf6b627dd7a5fa6e92",
+          "monthClaim": 6,
+          "dayClaim": 17,
+          "slot": "daytime",
+          "deducedSlotCost": 1,
+          "costEvidence": "This whole introduction appears in the single daytime activity cell; preparations bundled, not additional slots"
+        }
+      ],
+      "planningEnabled": true,
+      "unknownPreconditionPolicy": "unknown_or_prerequisite_needed_not_impossible",
+      "sideEffectsNotIncluded": "Optional embedded flags, items, other links, stats and dialogue effects require their own evidenced rule"
+    },
+    {
+      "ruleId": "p3r.unlock.temperance",
+      "entityId": "p3r.social_link.temperance",
+      "labelZh": "解锁节制社群",
+      "literalGuideHeading": null,
+      "guideTaskId": null,
+      "kind": "compound_single_slot_introduction",
+      "slot": "daytime",
+      "slotCost": 1,
+      "yenCost": 0,
+      "earliestDate": null,
+      "preconditions": [
+        {
+          "field": "socialLinks.temperance.rank",
+          "op": "eq",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.temperance.alreadyUnlocked",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "calendar.currentSlotRemaining",
+          "op": "gte",
+          "value": 1
+        },
+        {
+          "field": "stats.academics.rawLowerBound",
+          "op": "gte",
+          "value": 20,
+          "equivalentRankAtLeast": 2
+        },
+        {
+          "field": "socialLinks.hierophant.rank",
+          "op": "gte",
+          "value": 3
+        },
+        {
+          "field": "socialLinks.temperance.metBebe",
+          "op": "eq",
+          "value": true,
+          "mayBeEstablishedBy": "completed Hierophant rank3 event or current player confirmation",
+          "deriveFromCurrentRankAtLeast": {
+            "entityId": "p3r.social_link.hierophant",
+            "rank": 3,
+            "evidence": "Mandatory meeting during Hierophant rank3; no optional answer flag required"
+          }
+        }
+      ],
+      "preparationSequenceSemantics": [
+        "After meeting Bebe at Hierophant3, visit home economics club and accept introduction"
+      ],
+      "foreignSequenceNotForLocalizedDisplay": true,
+      "calendarPolicy": {
+        "input": "calendar_full_candidate exact O cell OR independently observed introduction availability OR exact Wiki420 intro witness",
+        "useOrdinaryUnlockedGuard": false,
+        "requireFreeSlotAndStoryContext": true,
+        "mode": "source_conditional",
+        "missingOrNegativeSourceDate": "unknown_not_proven_impossible"
+      },
+      "onConfirmedComplete": [
+        {
+          "field": "socialLinks.temperance.rank",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "field": "socialLinks.temperance.alreadyUnlocked",
+          "op": "set",
+          "value": true
+        },
+        {
+          "field": "socialLinks.temperance.relationshipState",
+          "op": "set",
+          "value": "normal"
+        },
+        {
+          "field": "socialLinks.temperance.affinityLowerBound",
+          "op": "set",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.temperance.affinityExact",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "readinessAfterUnlock": "derive from enabled rank2 threshold; do not assume exact hidden affinity",
+      "evidence": [
+        {
+          "source": "wiki453",
+          "locator": "節制 activity unlock condition"
+        },
+        {
+          "source": "wiki420",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[5]/tbody/tr/td[3]/table/tr[30]/td[3]",
+          "cellSha256": "e1b3705bb10acd73a74c729a1d892182486e66fc7e9e78a20d2f9520b5716e50",
+          "monthClaim": 5,
+          "dayClaim": 29,
+          "slot": "daytime",
+          "deducedSlotCost": 1,
+          "costEvidence": "This whole introduction appears in the single daytime activity cell; preparations bundled, not additional slots"
+        }
+      ],
+      "planningEnabled": true,
+      "unknownPreconditionPolicy": "unknown_or_prerequisite_needed_not_impossible",
+      "sideEffectsNotIncluded": "Optional embedded flags, items, other links, stats and dialogue effects require their own evidenced rule",
+      "earliestDateClaimNotHardGate": "05-08 source catalogue; not explicit in Wiki453 unlock procedure. Only supported introduction-presence dates are proposed."
+    },
+    {
+      "ruleId": "p3r.unlock.star",
+      "entityId": "p3r.social_link.star",
+      "labelZh": "解锁星社群",
+      "literalGuideHeading": "到严户台和早濑护对话，星解锁",
+      "guideTaskId": "t113_01",
+      "kind": "compound_single_slot_introduction",
+      "slot": "daytime",
+      "slotCost": 1,
+      "yenCost": 0,
+      "earliestDate": {
+        "mmdd": "08-05",
+        "ordinal": 126
+      },
+      "preconditions": [
+        {
+          "field": "socialLinks.star.rank",
+          "op": "eq",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.star.alreadyUnlocked",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "calendar.currentSlotRemaining",
+          "op": "gte",
+          "value": 1
+        },
+        {
+          "field": "stats.courage.rawLowerBound",
+          "op": "gte",
+          "value": 45,
+          "equivalentRankAtLeast": 4
+        }
+      ],
+      "preparationSequenceSemantics": [
+        "Accept meeting and complete first social-link event"
+      ],
+      "foreignSequenceNotForLocalizedDisplay": true,
+      "calendarPolicy": {
+        "input": "calendar_full_candidate exact O cell OR independently observed introduction availability OR exact Wiki420 intro witness",
+        "useOrdinaryUnlockedGuard": false,
+        "requireFreeSlotAndStoryContext": true,
+        "mode": "source_conditional",
+        "missingOrNegativeSourceDate": "unknown_not_proven_impossible"
+      },
+      "onConfirmedComplete": [
+        {
+          "field": "socialLinks.star.rank",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "field": "socialLinks.star.alreadyUnlocked",
+          "op": "set",
+          "value": true
+        },
+        {
+          "field": "socialLinks.star.relationshipState",
+          "op": "set",
+          "value": "normal"
+        },
+        {
+          "field": "socialLinks.star.affinityLowerBound",
+          "op": "set",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.star.affinityExact",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "readinessAfterUnlock": "derive from enabled rank2 threshold; do not assume exact hidden affinity",
+      "evidence": [
+        {
+          "source": "wiki453",
+          "locator": "星 activity unlock condition"
+        },
+        {
+          "source": "wiki420",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[11]/tbody/tr/td[3]/table/tr[6]/td[3]",
+          "cellSha256": "14f36951aa041a95d3550f235198b5cd036685eef16228921ca8b12765c6208b",
+          "monthClaim": 8,
+          "dayClaim": 5,
+          "slot": "daytime",
+          "deducedSlotCost": 1,
+          "costEvidence": "This whole introduction appears in the single daytime activity cell; preparations bundled, not additional slots"
+        }
+      ],
+      "planningEnabled": true,
+      "unknownPreconditionPolicy": "unknown_or_prerequisite_needed_not_impossible",
+      "sideEffectsNotIncluded": "Optional embedded flags, items, other links, stats and dialogue effects require their own evidenced rule"
+    },
+    {
+      "ruleId": "p3r.unlock.aeon",
+      "entityId": "p3r.social_link.aeon",
+      "labelZh": "解锁永劫社群",
+      "literalGuideHeading": "和埃癸斯对话，永劫解锁",
+      "guideTaskId": "t240_02",
+      "kind": "compound_single_slot_introduction",
+      "slot": "daytime",
+      "slotCost": 1,
+      "yenCost": 0,
+      "earliestDate": {
+        "mmdd": "01-08",
+        "ordinal": 282
+      },
+      "preconditions": [
+        {
+          "field": "socialLinks.aeon.rank",
+          "op": "eq",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.aeon.alreadyUnlocked",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "calendar.currentSlotRemaining",
+          "op": "gte",
+          "value": 1
+        }
+      ],
+      "preparationSequenceSemantics": [
+        "Accept walking home and complete first social-link event"
+      ],
+      "foreignSequenceNotForLocalizedDisplay": true,
+      "calendarPolicy": {
+        "input": "calendar_full_candidate exact O cell OR independently observed introduction availability OR exact Wiki420 intro witness",
+        "useOrdinaryUnlockedGuard": false,
+        "requireFreeSlotAndStoryContext": true,
+        "mode": "source_conditional",
+        "missingOrNegativeSourceDate": "unknown_not_proven_impossible"
+      },
+      "onConfirmedComplete": [
+        {
+          "field": "socialLinks.aeon.rank",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "field": "socialLinks.aeon.alreadyUnlocked",
+          "op": "set",
+          "value": true
+        },
+        {
+          "field": "socialLinks.aeon.relationshipState",
+          "op": "set",
+          "value": "normal"
+        },
+        {
+          "field": "socialLinks.aeon.affinityLowerBound",
+          "op": "set",
+          "value": 0
+        },
+        {
+          "field": "socialLinks.aeon.affinityExact",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "readinessAfterUnlock": "derive from enabled rank2 threshold; do not assume exact hidden affinity",
+      "evidence": [
+        {
+          "source": "wiki453",
+          "locator": "永劫 activity unlock condition"
+        },
+        {
+          "source": "wiki420",
+          "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[21]/tbody/tr/td[3]/table/tr[9]/td[3]",
+          "cellSha256": "4f6b7f8530f6ac13ca47ce2763d14ec5500559a68d1489100e724dc96fab2e83",
+          "monthClaim": 1,
+          "dayClaim": 8,
+          "slot": "daytime",
+          "deducedSlotCost": 1,
+          "costEvidence": "This whole introduction appears in the single daytime activity cell; preparations bundled, not additional slots"
+        }
+      ],
+      "planningEnabled": true,
+      "unknownPreconditionPolicy": "unknown_or_prerequisite_needed_not_impossible",
+      "sideEffectsNotIncluded": "Optional embedded flags, items, other links, stats and dialogue effects require their own evidenced rule"
+    }
+  ],
+  "dependencies": [
+    {
+      "target": "p3r.social_link.priestess",
+      "statOrLinkRequirements": [
+        {
+          "field": "stats.courage.rawLowerBound",
+          "op": "gte",
+          "value": 80,
+          "equivalentRankAtLeast": 6
+        },
+        {
+          "field": "socialLinks.fortune.rank",
+          "op": "gte",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "target": "p3r.social_link.empress",
+      "statOrLinkRequirements": [
+        {
+          "field": "stats.academics.rawLowerBound",
+          "op": "gte",
+          "value": 230,
+          "equivalentRankAtLeast": 6
+        }
+      ]
+    },
+    {
+      "target": "p3r.social_link.emperor",
+      "statOrLinkRequirements": []
+    },
+    {
+      "target": "p3r.social_link.hierophant",
+      "statOrLinkRequirements": []
+    },
+    {
+      "target": "p3r.social_link.lovers",
+      "statOrLinkRequirements": [
+        {
+          "field": "stats.charm.rawLowerBound",
+          "op": "gte",
+          "value": 100,
+          "equivalentRankAtLeast": 6
+        }
+      ]
+    },
+    {
+      "target": "p3r.social_link.chariot",
+      "statOrLinkRequirements": []
+    },
+    {
+      "target": "p3r.social_link.hermit",
+      "statOrLinkRequirements": []
+    },
+    {
+      "target": "p3r.social_link.fortune",
+      "statOrLinkRequirements": []
+    },
+    {
+      "target": "p3r.social_link.temperance",
+      "statOrLinkRequirements": [
+        {
+          "field": "stats.academics.rawLowerBound",
+          "op": "gte",
+          "value": 20,
+          "equivalentRankAtLeast": 2
+        },
+        {
+          "field": "socialLinks.hierophant.rank",
+          "op": "gte",
+          "value": 3
+        }
+      ]
+    },
+    {
+      "target": "p3r.social_link.star",
+      "statOrLinkRequirements": [
+        {
+          "field": "stats.courage.rawLowerBound",
+          "op": "gte",
+          "value": 45,
+          "equivalentRankAtLeast": 4
+        }
+      ]
+    },
+    {
+      "target": "p3r.social_link.aeon",
+      "statOrLinkRequirements": []
+    }
+  ],
+  "magicianAutomaticIntroduction": {
+    "date": {
+      "mmdd": "04-22",
+      "ordinal": 21
+    },
+    "requires": "actual completed forced introduction OR explicit future story-baseline assumption",
+    "effects": {
+      "socialLinks.magician.rank": 1,
+      "socialLinks.magician.alreadyUnlocked": true
+    },
+    "additionalOptionalSlotCost": 0,
+    "scheduledStorySlot": "daytime occupied; no ordinary visit also allowed",
+    "source": "wiki453 and wiki420 Apr22"
+  },
+  "validation": {
+    "unique11Actions": true,
+    "allHaveWikiIntroWitness": true,
+    "slotCostExactlyOne": true,
+    "statGatesCount": 5,
+    "allEffectsRequireConfirmedCompletion": true
+  },
+  "scope": "11 direct/compound manual unlocks plus forced Magician milestone. Seven multi-step manual chains are separate. Does not reconstruct prior action history or invent missing preparation flags."
+}

@@ -1,0 +1,47 @@
+{
+  "schema": "p3r.reversal_repair_research.v1",
+  "checkedAtUtc": "2026-10-13",
+  "status": "researched_not_enough_for_numeric_or_exact_choice_execution",
+  "sources": [
+    {
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/455.html",
+      "edition": "Reload",
+      "locator": "Affinity methods introduction",
+      "supportedClaim": "Reversed Lovers/Justice do not accumulate affinity and relevant events do not occur",
+      "repairCountProvided": false
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=HJymI8smyNg",
+      "title": "Reversing and Fixing Chihiro’s Social Link - Persona 3 Reload",
+      "type": "player-recorded primary gameplay evidence lead",
+      "inspection": "Metadata only; actual frames not inspected",
+      "supportsExactRepairProcedure": false
+    },
+    {
+      "url": "https://samurai-gamers.com/persona-3-reload/p3re-how-to-fix-reverse-and-broken-social-links/",
+      "status": "rejected_as_rule_authority",
+      "reason": "Claims inactivity/booking jealousy and broken-link mechanics, suggesting old-edition contamination; its three-talk/shrine repair claims not accepted wholesale"
+    },
+    {
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/36.html",
+      "status": "excluded_wrong_edition",
+      "reason": "Old game community page includes broken-link mechanics, not Reload-specific"
+    },
+    {
+      "url": "https://gamefaqs.gamespot.com/ps5/410283-persona-3-reload/faqs/81261/walkthrough",
+      "status": "qualitative_corroboration_only",
+      "claim": "Repair through speaking to character may take multiple days; no exact count/slot proof in inspected excerpt"
+    }
+  ],
+  "adapterPolicy": {
+    "normalRankActionsEnabledWhileReversed": false,
+    "affinityActionsEnabledWhileReversed": false,
+    "suggestedObservation": "寻找当事人，查看能否和好",
+    "fixedRepairVisitCount": null,
+    "repairSlotCost": null,
+    "guaranteedNormalEffect": false,
+    "completion": "Only observed successful reconciliation may set relationshipState=normal; resulting rank/readiness observed separately",
+    "cannotConcludeGoalImpossible": true
+  },
+  "nextEvidence": "Inspect primary Reload gameplay repair footage or source-attributed game-guide repair table before assigning exact costs, dates or Chinese choices"
+}

@@ -1,0 +1,122 @@
+{
+  "version": "p3r-rules-0.5.0",
+  "sourcesVerifiedOn": "2026-10-13",
+  "evidenceLevel": "community_sources_crosschecked_not_game_replayed",
+  "supported": {
+    "catalogLinks": 22,
+    "weeklyCandidateSchedules": 19,
+    "executableLinkTransitions": 2,
+    "exactCalendarCells": 58,
+    "slice": "01-02 through01-30, already-unlocked normal Sun/Devil only",
+    "statThresholdSets": 3,
+    "guardedNightStatActions": 5,
+    "towerStageRecords": 11,
+    "enabledTowerStages": [
+      "p3r.tower.stage_10"
+    ],
+    "safeExplorationDates": [
+      "01-20",
+      "01-28"
+    ],
+    "observationGatedAdditionalLinks": 17,
+    "lowerBoundAffinityModels": [
+      "magician",
+      "chariot",
+      "priestess",
+      "empress",
+      "lovers",
+      "justice",
+      "strength",
+      "aeon",
+      "emperor",
+      "hierophant",
+      "hermit",
+      "fortune",
+      "hanged_man",
+      "temperance",
+      "tower",
+      "star",
+      "moon"
+    ],
+    "guardedMinimumIncomeJobs": 1,
+    "conditionalEarlyLinkCalendarDates": 143,
+    "earlyLinkCalendarCounts": {
+      "magician": 63,
+      "chariot": 80
+    },
+    "allManualLinkConditionalCalendarCells": 1352,
+    "manualIntroductionProcedures": 19,
+    "structuredAdditionalStatActions": 12,
+    "automaticMilestoneTransitions": 25,
+    "guardedLateAffinityActions": 2,
+    "conservativeStageIdentityWindows": 10,
+    "adaptiveOrdinaryMeetingPolicy": true
+  },
+  "criticalGaps": [
+    {
+      "id": "other_link_point_models",
+      "blocks": "Arbitrary goals for 20 remaining links, including story-driven links",
+      "required": "All17 affinity-dependent manual links now have raw-answer lower-bound models. Exact ordinary-hangout increments, reset/rounding, selected-path observations and localized answer binding remain separate; no checkbox inference."
+    },
+    {
+      "id": "unlock_chains",
+      "blocks": "starting lockedlinks automatically",
+      "required": "All19 introduction procedures structured. Devil/Tower/Sun/Empress conflicting gates retain explicit policies; adapter integration and observed success required."
+    },
+    {
+      "id": "general_calendar",
+      "blocks": "arbitrary-date activity plans",
+      "required": "Whole 286-day source calendar extracted; verify exact-date exceptions and global free/locked slots. Weekly matches are not independent exact-date proof."
+    },
+    {
+      "id": "tower_boundaries",
+      "blocks": "automatic stage assignment aroundJune/December",
+      "required": "Use conservative operational stage contract and preserve ambiguous gaps; actual night entry and observed stage remain independent."
+    },
+    {
+      "id": "rescue_deadline_endpoint",
+      "blocks": "last-evening rescue guarantees",
+      "required": "inclusive deadline evidence andindividualrescued state; safeearliernight subset available"
+    },
+    {
+      "id": "job_income_state",
+      "blocks": "guaranteed money optimization",
+      "required": "Three wage-tier source tables collected. Chagall lower-bound income supported with explicit availability/free-slot guards; exact tier boundaries and software/busy-day state are not yet enabled."
+    },
+    {
+      "id": "stat_boost_flag",
+      "blocks": "exact activitydelta withunknownbonus",
+      "required": "Temperance buffactive flag or intervaleffects; unknowncannotpass"
+    }
+  ],
+  "nextExpansionOrder": [
+    "Complete early Magician vertical slice with ordinary-visit date witnesses and affinity transition evidence",
+    "Apply reusable model to Chariot and six romanceable links, preserving romance flags and conflicts",
+    "Complete remaining manual links and calendar exceptions across all dates",
+    "Expand story progression, unlock chains, jobs and tower boundary conflicts"
+  ],
+  "unmodeledOutcome": "unsupported_or_unknown_never_proven_impossible",
+  "rebase": "currentcheckpoint replaces assumedpast; nohistoryreconstruction",
+  "collectedCandidates": {
+    "dateRange": "04-21 through 01-31",
+    "days": 286,
+    "socialCalendarCells": 5434,
+    "calendarEntities": 19,
+    "rankPointRows": 175,
+    "pointDependentLinks": 17,
+    "romanceableLinks": 6,
+    "romanceRankEventRows": 65,
+    "romanceFlags": 10,
+    "regularActivityRows": 22,
+    "execution": "Candidate counts do not mean fully executable or independently verified rules",
+    "ordinaryVisitDateWitnesses": 19,
+    "jobWageSchedules": 3,
+    "jobWageTiers": 12,
+    "globalCalendarConstraintSourceFiles": 1,
+    "normalizedRawAnswerValues": 897,
+    "normalizedRankEventBranches": 168,
+    "normalizedIncomingThresholds": 153
+  },
+  "dataVersusAdapter": "Counts describe structured source-backed rules and explicit conditional policies; consumer integration and game replay are separate. No claim all goals or all calendars are fully solved.",
+  "remainingRulesLedger": "missing_rules_ledger.json"
+}

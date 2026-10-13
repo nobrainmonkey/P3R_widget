@@ -1,0 +1,208 @@
+{
+  "schema": "p3r.ordinary_hangout_candidate.v1",
+  "checked_at_utc": "2026-10-13",
+  "gameEdition": "P3R-base",
+  "manifested": true,
+  "decision": {
+    "ordinary_raw_gain_verified": false,
+    "do_not_infer_points_from_notes": true,
+    "ordinary_numeric_effect_enabled": false,
+    "qualitative_action_supported": true,
+    "recommended_late_numeric_alternative": "dating_site_note_base_lower_bound_10",
+    "guarantee_scope": "Community-source agreement, not inspected game code or original official-guide pages"
+  },
+  "sources": [
+    {
+      "id": "appmedia_reload",
+      "url": "https://appmedia.jp/p3r/77578729",
+      "kind": "Reload-specific editorial guide",
+      "claims": [
+        "When rank-up affinity is insufficient, ordinary interaction produces a choice-free generic event that increases affinity.",
+        "Crossing the threshold unlocks the rank event on the next interaction, not during the filler interaction.",
+        "Required affinity varies by link and rank. Surplus does not carry beyond the next rank-up; rank-event dialogue gains serve the following rank."
+      ],
+      "raw_amount_given": false
+    },
+    {
+      "id": "atwiki_reload455",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/455.html",
+      "kind": "Reload-specific community wiki",
+      "claims": [
+        "Ordinary meetings follow link availability, consume time and show two notes.",
+        "Listed affinity methods receive bonuses; ordinary and shrine gains are equal.",
+        "Matching carried Arcana and Charm6 each multiply by1.51; exam first1.51 or top-ten1.21 are mutually exclusive.",
+        "Reversed Yukari/Chihiro cannot accumulate affinity.",
+        "Dating notes are described as available11/16, usable at night, infinitely purchasable."
+      ],
+      "raw_ordinary_amount_given": false
+    },
+    {
+      "id": "steam_hayate_reload",
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3152126713",
+      "kind": "Reload-specific author guide",
+      "claims": [
+        "Affinity does not carry between rank-ups; rank-event gains target subsequent rank.",
+        "Arcana and Charm6 multipliers1.51; exam category1.21 or1.51 active until next exam.",
+        "Dating Site Note listed from11/11."
+      ],
+      "rounding_specified": false
+    },
+    {
+      "id": "aqiu_overworld",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/overworld.html",
+      "kind": "Reload structured author guide; same lineage as marendarade GameFAQs, not independent from it",
+      "claims": [
+        "Dating Site Note:3000yen, unlock11/11, grants10 affinity points to chosen link.",
+        "All URL notes consume one night slot at shared dorm computer."
+      ]
+    },
+    {
+      "id": "game8jp_urls",
+      "url": "https://game8.jp/p3re/721432",
+      "kind": "Reload-specific editorial guide",
+      "claims": [
+        "Dating note row explicitly lists10 community points,3000yen,11/11."
+      ],
+      "conflict": "Page general usage text says note usage does not pass time; conflicts with one-night description elsewhere. Do not import that time claim."
+    },
+    {
+      "id": "megaten_naganaki",
+      "url": "https://megatenwiki.com/wiki/Naganaki_Shrine",
+      "kind": "mixed-edition community article",
+      "claim": "Fortune Draw describes subsequent releases as granting10 affinity points, matching Arcana affected; time passes.",
+      "limitation": "No Reload-specific raw numeric citation. Only page reference is FES shrine inscription, not affinity mechanics."
+    }
+  ],
+  "ordinary_hangout": {
+    "action_type": "affinity_only_meeting",
+    "consumes_link_activity_slot": true,
+    "rank_delta": 0,
+    "availability": "reuse verified link calendar, exceptions, unlocked/current normal relationship predicates",
+    "precondition": "not currently ready for rank-up; excludes automatic/guaranteed-rank cases",
+    "raw_gain": null,
+    "numeric_effect_status": "unresolved",
+    "postcondition": "rank unchanged; readiness must be re-observed or retained as unknown",
+    "excluded_numeric_shortcuts": [
+      "two notes=>10 raw",
+      "P4 generic+10 passage",
+      "one filler always guarantees next rank",
+      "extra5 on every visit from one uncorroborated blog"
+    ],
+    "safe_schedule_use": "May schedule a conditional affinity-building action with explicit follow-up readiness check. Do not increment rank or mark ready=true automatically.",
+    "evidence": [
+      "appmedia_reload",
+      "atwiki_reload455"
+    ]
+  },
+  "reset_and_threshold_timing": {
+    "status": "cross_source_corroborated",
+    "surplus_external_affinity_carries_past_rankup": false,
+    "rankup_event_choices_target": "next rank",
+    "ordinary_hangout_can_rank_up_same_slot": false,
+    "evidence": [
+      "appmedia_reload",
+      "steam_hayate_reload"
+    ],
+    "not_established": [
+      "exact engine reset instruction timing",
+      "rounding per choice versus event aggregate"
+    ]
+  },
+  "modifier_policy": {
+    "status": "corroborated_factors_rounding_unresolved",
+    "matching_arcana": 1.51,
+    "charm_rank6": 1.51,
+    "charm_rank1_to5": 1,
+    "exam_first": 1.51,
+    "exam_top_category": 1.21,
+    "exam_categories_mutually_exclusive": true,
+    "stacking": "multiplicative",
+    "exam_expiry": "next exam per Steam author; exact results/announcement boundary unresolved",
+    "executable_exact_formula": false,
+    "safe_lower_bound": "Ignore positive modifiers when raw base gain is independently known",
+    "evidence": [
+      "atwiki_reload455",
+      "steam_hayate_reload"
+    ]
+  },
+  "dating_site_alternative": {
+    "action_id_candidate": "p3r.action.use_dating_site_note",
+    "japanese_item": "縁結びサイトのメモ",
+    "chinese_localized_name": "结缘网站的字条",
+    "base_affinity_gain": 10,
+    "base_gain_status": "corroborated",
+    "cost_yen": 3000,
+    "cost_model": "Purchase consumes3000yen; use consumes owned note. Do not charge both purchase and bundled acquisition twice.",
+    "earliest_sale_claim": "11/11",
+    "sale_date_status": "two agreeing sources with atwiki11/16 conflict",
+    "conservative_available_from": "11/16",
+    "time_cost": "one evening slot",
+    "availability_guards": [
+      "existing unlocked nonmax eligible link",
+      "normal/not reversed relationship",
+      "shared PC usable that evening",
+      "owned note or verified seller access and cash purchase",
+      "do not override fixed story event"
+    ],
+    "rank_delta": 0,
+    "lower_bound_gain": 10,
+    "upper_bound_gain": null,
+    "readiness": "May prove ready when current-rank lower bound+10 reaches verified threshold; otherwise unknown",
+    "do_not_assume": [
+      "free action",
+      "guaranteed one-use rank-up",
+      "future balance from dungeon loot",
+      "ability to accumulate for multiple future ranks"
+    ],
+    "evidence": [
+      "aqiu_overworld",
+      "game8jp_urls",
+      "atwiki_reload455",
+      "steam_hayate_reload"
+    ],
+    "chinese_name_provenance": {
+      "source": "data.candidate.json",
+      "taskId": "t189_02",
+      "policy": "Exact existing audited guide name; not newly translated or independently game-text certified"
+    }
+  },
+  "research_limit": "Targeted Japanese/English/Chinese searches found no direct Reload-specific ordinary-meeting raw amount or reliable universal rounding implementation. Exact ordinary10 remains unverified. Lack of a complete numeric model must not become proven game infeasibility.",
+  "shrine_alternative": {
+    "raw_gain_candidate": 10,
+    "status": "mixed_edition_single_numeric_source_not_reload_corroborrated",
+    "executable_numeric_effect": false,
+    "evidence": [
+      "megaten_naganaki",
+      "atwiki_reload455"
+    ],
+    "supported_qualitative": "Consumes daytime, available independently of link weekday; raises affinity but not rank.",
+    "unknowns": [
+      "Reload-specific raw numeric evidence",
+      "upfront draw cost and balance-loss handling need verification"
+    ],
+    "negative_result": "aqiu Overworld search contains Club Escapade combat fortunes and item tables, no direct Naganaki relationship-fortune raw gain found. Academic offering gains are unrelated and excluded."
+  },
+  "missing_data_ledger": [
+    {
+      "mechanic": "ordinary non-rank-up meeting exact raw gain",
+      "research_status": "researched_unresolved",
+      "needed": "Reload-specific original guide table, tested game data, or direct numeric guide independent of note conversion",
+      "not_a_claim": "Not inaccessible, not zero, not impossible"
+    },
+    {
+      "mechanic": "ordinary per-answer/event multiplier rounding",
+      "research_status": "researched_unresolved",
+      "needed": "Resolve known Magician/Strength contradictions with direct game test/data"
+    },
+    {
+      "mechanic": "Naganaki raw relationship fortune amount",
+      "research_status": "mixed_edition_claim_only",
+      "needed": "Reload-specific numeric corroboration"
+    },
+    {
+      "mechanic": "Dating Site earliest sale",
+      "research_status": "11/11_corroborated_11/16_outlier",
+      "safe_policy": "Use11/16 conservative lower coverage boundary or user-confirmed owned item earlier; do not prove infeasibility from omitted earlier availability"
+    }
+  ]
+}

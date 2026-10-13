@@ -1,0 +1,29 @@
+{
+  "allPassed": true,
+  "checks": {
+    "priestess_nine_gates": true,
+    "priestess_all_ranks": true,
+    "priestess_acyclic_paths_and_gains": true,
+    "empress_nine_gates": true,
+    "empress_all_ranks": true,
+    "empress_acyclic_paths_and_gains": true,
+    "lovers_nine_gates": true,
+    "lovers_all_ranks": true,
+    "lovers_acyclic_paths_and_gains": true,
+    "justice_nine_gates": true,
+    "justice_all_ranks": true,
+    "justice_acyclic_paths_and_gains": true,
+    "strength_nine_gates": true,
+    "strength_all_ranks": true,
+    "strength_acyclic_paths_and_gains": true,
+    "aeon_nine_gates": true,
+    "aeon_all_ranks": true,
+    "aeon_acyclic_paths_and_gains": true,
+    "independent_optimal_path_readiness_fixtures": true,
+    "441_answers": true,
+    "69_branch_tables": true,
+    "conflicting_gate_default_off": true
+  },
+  "independentlyReevaluatedPathReadinessFixtures": 58,
+  "scope": "All graph maxima and source-point arithmetic independently reevaluated; no game replay or native integration claim."
+}

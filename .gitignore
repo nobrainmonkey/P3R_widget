@@ -1,0 +1,16 @@
+# Project-local toolchain (JDK, Android SDK, Gradle caches) - fetched by scripts/setup_toolchain.sh
+.toolchain/
+# Build outputs
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+*.iml
+.DS_Store
+# Local QA renders
+qa_out/
+# Python
+__pycache__/
+*.pyc
+local_state.sqlite

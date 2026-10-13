@@ -1,0 +1,1296 @@
+{
+  "schema": "p3r.magician_base_model.v1",
+  "status": "candidate_data_not_merged",
+  "entity_id": "p3r.social_link.magician",
+  "name_zh_cn": "魔术师",
+  "sources": [
+    {
+      "id": "wiki_453",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/453.html",
+      "edition": "Reload",
+      "type": "community_wiki"
+    },
+    {
+      "id": "wiki_455",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/455.html",
+      "edition": "Reload",
+      "type": "community_wiki"
+    },
+    {
+      "id": "aqiu",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "edition": "Reload",
+      "type": "community_structured_guide"
+    },
+    {
+      "id": "kenji_wiki",
+      "url": "https://megatenwiki.com/wiki/Gameplay:Kenji_Tomochika",
+      "type": "community_reference",
+      "edition_note": "Page explicitly says rank dialogue is Reload; points cite Reload and Portable official guides",
+      "cited_original": "Persona 3 Reload Official Complete Guide, Dengeki/Kadokawa, 2024, pp242-278; original pages not inspected"
+    },
+    {
+      "id": "mechanics_wiki",
+      "url": "https://megatenwiki.com/wiki/Social_Link",
+      "edition_section": "Persona 3 Reload",
+      "cited_original": "Persona 3 Reload Official Complete Guide p54; original page not inspected"
+    },
+    {
+      "id": "gamefaqs_mechanics",
+      "url": "https://gamefaqs.gamespot.com/ps5/410283-persona-3-reload/faqs/81261/gameplay-mechanics",
+      "type": "authored_guide"
+    },
+    {
+      "id": "yahoo_reset",
+      "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q14293983274",
+      "type": "player_answer",
+      "date": "2024-02-25",
+      "strength": "low"
+    },
+    {
+      "id": "shrine_wiki",
+      "url": "https://megatenwiki.com/wiki/Naganaki_Shrine",
+      "type": "mixed_edition_community_reference"
+    }
+  ],
+  "affinity_units": "raw points; not musical-note count",
+  "modes": {
+    "base_only": {
+      "executable": true,
+      "semantics": "sound lower-bound deductions under cited source claims, not exact game balance"
+    },
+    "bonus_readiness_lookup": {
+      "executable": true,
+      "confidence": "community_wiki_link_local_claim",
+      "default_enabled": false,
+      "warning": "Opt-in discrete sufficiency lookup; do not infer a universal rounding formula",
+      "evidence": {
+        "source_id": "wiki_453",
+        "locator": "Magician optimal choices and bonus-count table, 304-353"
+      }
+    }
+  },
+  "incoming_thresholds": [
+    {
+      "rule_id": "p3r.magician.incoming_rank_02",
+      "from_rank": 1,
+      "to_rank": 2,
+      "required_raw_affinity": 0,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "Rank Up Points row 2"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 1: points to next rank / zero-point introductory note"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.magician.incoming_rank_03",
+      "from_rank": 2,
+      "to_rank": 3,
+      "required_raw_affinity": 0,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "Rank Up Points row 3"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 2: points to next rank / zero-point introductory note"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.magician.incoming_rank_04",
+      "from_rank": 3,
+      "to_rank": 4,
+      "required_raw_affinity": 15,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "Rank Up Points row 4"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 3: points to next rank / zero-point introductory note"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.magician.incoming_rank_05",
+      "from_rank": 4,
+      "to_rank": 5,
+      "required_raw_affinity": 15,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "Rank Up Points row 5"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 4: points to next rank / zero-point introductory note"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.magician.incoming_rank_06",
+      "from_rank": 5,
+      "to_rank": 6,
+      "required_raw_affinity": 15,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "Rank Up Points row 6"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 5: points to next rank / zero-point introductory note"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.magician.incoming_rank_07",
+      "from_rank": 6,
+      "to_rank": 7,
+      "required_raw_affinity": 15,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "Rank Up Points row 7"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 6: points to next rank / zero-point introductory note"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.magician.incoming_rank_08",
+      "from_rank": 7,
+      "to_rank": 8,
+      "required_raw_affinity": 22,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "Rank Up Points row 8"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 7: points to next rank / zero-point introductory note"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.magician.incoming_rank_09",
+      "from_rank": 8,
+      "to_rank": 9,
+      "required_raw_affinity": 22,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "Rank Up Points row 9"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 8: points to next rank / zero-point introductory note"
+        }
+      ]
+    },
+    {
+      "rule_id": "p3r.magician.incoming_rank_10",
+      "from_rank": 9,
+      "to_rank": 10,
+      "required_raw_affinity": 22,
+      "status": "cross_source_agreement",
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "Rank Up Points row 10"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 9: points to next rank / zero-point introductory note"
+        }
+      ]
+    }
+  ],
+  "rank_events": [
+    {
+      "rule_id": "p3r.magician.event_rank_02",
+      "from_rank": 1,
+      "to_rank": 2,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank2 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kenji rank2 prompt1 response2"
+            },
+            {
+              "source_option_ordinal": 3,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kenji rank2 prompt1 response3"
+            }
+          ],
+          "optimal_option_ordinals": [
+            2,
+            3
+          ]
+        },
+        {
+          "prompt_ordinal": 2,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kenji rank2 prompt2 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank2 prompt2 response2"
+            },
+            {
+              "source_option_ordinal": 3,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kenji rank2 prompt2 response3"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1,
+            3
+          ]
+        }
+      ],
+      "optimal_base_gain": 10,
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "lines 52-65"
+        },
+        {
+          "source_id": "wiki_453",
+          "locator": "Magician 1->2 choice notes"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 2"
+        }
+      ],
+      "option_order_warning": "Source English ordering only; game localization mapping required, never translate labels automatically"
+    },
+    {
+      "rule_id": "p3r.magician.event_rank_03",
+      "from_rank": 2,
+      "to_rank": 3,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank3 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank3 prompt1 response2"
+            },
+            {
+              "source_option_ordinal": 3,
+              "source_language": "en",
+              "raw_affinity_points": 15,
+              "localized_text": null,
+              "source_locator": "Kenji rank3 prompt1 response3"
+            }
+          ],
+          "optimal_option_ordinals": [
+            3
+          ]
+        },
+        {
+          "prompt_ordinal": 2,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank3 prompt2 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kenji rank3 prompt2 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            2
+          ]
+        }
+      ],
+      "optimal_base_gain": 20,
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "lines 66-78"
+        },
+        {
+          "source_id": "wiki_453",
+          "locator": "Magician 2->3 choice notes"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 3"
+        }
+      ],
+      "option_order_warning": "Source English ordering only; game localization mapping required, never translate labels automatically"
+    },
+    {
+      "rule_id": "p3r.magician.event_rank_04",
+      "from_rank": 3,
+      "to_rank": 4,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank4 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank4 prompt1 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1,
+            2
+          ]
+        },
+        {
+          "prompt_ordinal": 2,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 15,
+              "localized_text": null,
+              "source_locator": "Kenji rank4 prompt2 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank4 prompt2 response2"
+            },
+            {
+              "source_option_ordinal": 3,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank4 prompt2 response3"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1
+          ]
+        }
+      ],
+      "optimal_base_gain": 15,
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "lines 79-91"
+        },
+        {
+          "source_id": "wiki_453",
+          "locator": "Magician 3->4 choice notes"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 4"
+        }
+      ],
+      "option_order_warning": "Source English ordering only; game localization mapping required, never translate labels automatically"
+    },
+    {
+      "rule_id": "p3r.magician.event_rank_05",
+      "from_rank": 4,
+      "to_rank": 5,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kenji rank5 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 15,
+              "localized_text": null,
+              "source_locator": "Kenji rank5 prompt1 response2"
+            },
+            {
+              "source_option_ordinal": 3,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank5 prompt1 response3"
+            }
+          ],
+          "optimal_option_ordinals": [
+            2
+          ]
+        }
+      ],
+      "optimal_base_gain": 15,
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "lines 92-100"
+        },
+        {
+          "source_id": "wiki_453",
+          "locator": "Magician 4->5 choice notes"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 5"
+        }
+      ],
+      "option_order_warning": "Source English ordering only; game localization mapping required, never translate labels automatically"
+    },
+    {
+      "rule_id": "p3r.magician.event_rank_06",
+      "from_rank": 5,
+      "to_rank": 6,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank6 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank6 prompt1 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1,
+            2
+          ]
+        },
+        {
+          "prompt_ordinal": 2,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 15,
+              "localized_text": null,
+              "source_locator": "Kenji rank6 prompt2 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank6 prompt2 response2"
+            },
+            {
+              "source_option_ordinal": 3,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank6 prompt2 response3"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1
+          ]
+        }
+      ],
+      "optimal_base_gain": 15,
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "lines 101-113"
+        },
+        {
+          "source_id": "wiki_453",
+          "locator": "Magician 5->6 choice notes"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 6"
+        }
+      ],
+      "option_order_warning": "Source English ordering only; game localization mapping required, never translate labels automatically"
+    },
+    {
+      "rule_id": "p3r.magician.event_rank_07",
+      "from_rank": 6,
+      "to_rank": 7,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kenji rank7 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank7 prompt1 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1
+          ]
+        },
+        {
+          "prompt_ordinal": 2,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank7 prompt2 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank7 prompt2 response2"
+            },
+            {
+              "source_option_ordinal": 3,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kenji rank7 prompt2 response3"
+            }
+          ],
+          "optimal_option_ordinals": [
+            3
+          ]
+        },
+        {
+          "prompt_ordinal": 3,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kenji rank7 prompt3 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank7 prompt3 response2"
+            },
+            {
+              "source_option_ordinal": 3,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank7 prompt3 response3"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1
+          ]
+        }
+      ],
+      "optimal_base_gain": 15,
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "lines 114-131"
+        },
+        {
+          "source_id": "wiki_453",
+          "locator": "Magician 6->7 choice notes"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 7"
+        }
+      ],
+      "option_order_warning": "Source English ordering only; game localization mapping required, never translate labels automatically"
+    },
+    {
+      "rule_id": "p3r.magician.event_rank_08",
+      "from_rank": 7,
+      "to_rank": 8,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kenji rank8 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 15,
+              "localized_text": null,
+              "source_locator": "Kenji rank8 prompt1 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            2
+          ]
+        },
+        {
+          "prompt_ordinal": 2,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kenji rank8 prompt2 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kenji rank8 prompt2 response2"
+            },
+            {
+              "source_option_ordinal": 3,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank8 prompt2 response3"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1,
+            2
+          ]
+        }
+      ],
+      "optimal_base_gain": 20,
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "lines 132-144"
+        },
+        {
+          "source_id": "wiki_453",
+          "locator": "Magician 7->8 choice notes"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 8"
+        }
+      ],
+      "option_order_warning": "Source English ordering only; game localization mapping required, never translate labels automatically"
+    },
+    {
+      "rule_id": "p3r.magician.event_rank_09",
+      "from_rank": 8,
+      "to_rank": 9,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank9 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 15,
+              "localized_text": null,
+              "source_locator": "Kenji rank9 prompt1 response2"
+            },
+            {
+              "source_option_ordinal": 3,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank9 prompt1 response3"
+            }
+          ],
+          "optimal_option_ordinals": [
+            2
+          ]
+        }
+      ],
+      "optimal_base_gain": 15,
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "lines 145-153"
+        },
+        {
+          "source_id": "wiki_453",
+          "locator": "Magician 8->9 choice notes"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 9"
+        }
+      ],
+      "option_order_warning": "Source English ordering only; game localization mapping required, never translate labels automatically"
+    },
+    {
+      "rule_id": "p3r.magician.event_rank_10",
+      "from_rank": 9,
+      "to_rank": 10,
+      "prompts": [
+        {
+          "prompt_ordinal": 1,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kenji rank10 prompt1 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank10 prompt1 response2"
+            },
+            {
+              "source_option_ordinal": 3,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank10 prompt1 response3"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1
+          ]
+        },
+        {
+          "prompt_ordinal": 2,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 5,
+              "localized_text": null,
+              "source_locator": "Kenji rank10 prompt2 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 15,
+              "localized_text": null,
+              "source_locator": "Kenji rank10 prompt2 response2"
+            },
+            {
+              "source_option_ordinal": 3,
+              "source_language": "en",
+              "raw_affinity_points": 15,
+              "localized_text": null,
+              "source_locator": "Kenji rank10 prompt2 response3"
+            }
+          ],
+          "optimal_option_ordinals": [
+            2,
+            3
+          ]
+        },
+        {
+          "prompt_ordinal": 3,
+          "options": [
+            {
+              "source_option_ordinal": 1,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank10 prompt3 response1"
+            },
+            {
+              "source_option_ordinal": 2,
+              "source_language": "en",
+              "raw_affinity_points": 0,
+              "localized_text": null,
+              "source_locator": "Kenji rank10 prompt3 response2"
+            }
+          ],
+          "optimal_option_ordinals": [
+            1,
+            2
+          ]
+        }
+      ],
+      "optimal_base_gain": 20,
+      "evidence": [
+        {
+          "source_id": "kenji_wiki",
+          "locator": "lines 154-171"
+        },
+        {
+          "source_id": "wiki_453",
+          "locator": "Magician 9->10 choice notes"
+        },
+        {
+          "source_id": "aqiu",
+          "locator": "Magician Rank 10"
+        }
+      ],
+      "option_order_warning": "Source English ordering only; game localization mapping required, never translate labels automatically"
+    }
+  ],
+  "state_contract": {
+    "required": [
+      "rank",
+      "exact_date_visit_legal",
+      "affinity_lower_bound",
+      "affinity_provenance",
+      "rank_up_ready"
+    ],
+    "unknown_affinity": {
+      "lower_bound": 0,
+      "upper_bound": null,
+      "actual_value": null
+    },
+    "unknown_choice_contribution": 0,
+    "unknown_choice_means_optimal": false,
+    "non_optimal_choice_handling": "Use exact raw points from mapped option; never use optimal sum for unrecorded choice",
+    "after_rank_up": "Replace knowledge lower bound with sum of identified selected raw gains in the completed event. Do not add prior-rank balance or subtract threshold from old balance. This deliberately discards knowledge, not a claim of exact game reset.",
+    "readiness_inference": "true if lower_bound >= incoming threshold of rank+1; otherwise null unless a current observation establishes false",
+    "readiness_invalidated_on_rank_change": true,
+    "rank10": "terminal; no next-rank readiness",
+    "negative_or_unknown_event": "invalidate derived bound and require observation; never invent zero-loss behavior",
+    "exact_balance_after_event": null
+  },
+  "normal_visit_contract": {
+    "rule_id": "p3r.magician.normal_visit",
+    "requires": [
+      "Link already unlocked",
+      "rank1..9",
+      "Exact legal date and free school daytime slot",
+      "No contradictory current readiness observation"
+    ],
+    "if_ready_true": "Normal visit is a rank-up event; increase rank exactly1 after confirmed completion, then process that event choices",
+    "if_ready_false": "Ordinary non-rank hangout; rank unchanged; point delta unknown in strict model; re-observe readiness",
+    "if_ready_unknown": "No deterministic rank prediction. Observe before commitment, or return branching policy; do not treat unknown as false",
+    "no_double_visit": "One slot cannot produce hangout plus a same-slot rank-up",
+    "monotonicity": "Only derive from recorded events inside known current-rank state; arbitrary imported state needs provenance"
+  },
+  "readiness_truth_table": [
+    {
+      "rule_id": "p3r.magician.optimal_next_ready.rank_03",
+      "completed_event_to_rank": 3,
+      "next_rank": 4,
+      "optimal_answers_required": true,
+      "minimum_verified_151_bonus_count_at_event": 0,
+      "qualifying_categories": [
+        "matching_arcana_in_stock",
+        "charm_rank6",
+        "exam_top_class"
+      ],
+      "exam_top_ten_121_counts": false,
+      "result_if_conditions_hold": true,
+      "result_if_conditions_unknown_or_fail": null,
+      "event_time_snapshot_required": true,
+      "evidence": [
+        {
+          "source_id": "wiki_453",
+          "locator": "317-321"
+        }
+      ],
+      "not_a_claim": "Does not calculate exact points, rounding, or carryover; false table entries do not prove current not-ready"
+    },
+    {
+      "rule_id": "p3r.magician.optimal_next_ready.rank_04",
+      "completed_event_to_rank": 4,
+      "next_rank": 5,
+      "optimal_answers_required": true,
+      "minimum_verified_151_bonus_count_at_event": 0,
+      "qualifying_categories": [
+        "matching_arcana_in_stock",
+        "charm_rank6",
+        "exam_top_class"
+      ],
+      "exam_top_ten_121_counts": false,
+      "result_if_conditions_hold": true,
+      "result_if_conditions_unknown_or_fail": null,
+      "event_time_snapshot_required": true,
+      "evidence": [
+        {
+          "source_id": "wiki_453",
+          "locator": "322-326"
+        }
+      ],
+      "not_a_claim": "Does not calculate exact points, rounding, or carryover; false table entries do not prove current not-ready"
+    },
+    {
+      "rule_id": "p3r.magician.optimal_next_ready.rank_05",
+      "completed_event_to_rank": 5,
+      "next_rank": 6,
+      "optimal_answers_required": true,
+      "minimum_verified_151_bonus_count_at_event": 0,
+      "qualifying_categories": [
+        "matching_arcana_in_stock",
+        "charm_rank6",
+        "exam_top_class"
+      ],
+      "exam_top_ten_121_counts": false,
+      "result_if_conditions_hold": true,
+      "result_if_conditions_unknown_or_fail": null,
+      "event_time_snapshot_required": true,
+      "evidence": [
+        {
+          "source_id": "wiki_453",
+          "locator": "327-330"
+        }
+      ],
+      "not_a_claim": "Does not calculate exact points, rounding, or carryover; false table entries do not prove current not-ready"
+    },
+    {
+      "rule_id": "p3r.magician.optimal_next_ready.rank_06",
+      "completed_event_to_rank": 6,
+      "next_rank": 7,
+      "optimal_answers_required": true,
+      "minimum_verified_151_bonus_count_at_event": 0,
+      "qualifying_categories": [
+        "matching_arcana_in_stock",
+        "charm_rank6",
+        "exam_top_class"
+      ],
+      "exam_top_ten_121_counts": false,
+      "result_if_conditions_hold": true,
+      "result_if_conditions_unknown_or_fail": null,
+      "event_time_snapshot_required": true,
+      "evidence": [
+        {
+          "source_id": "wiki_453",
+          "locator": "331-335"
+        }
+      ],
+      "not_a_claim": "Does not calculate exact points, rounding, or carryover; false table entries do not prove current not-ready"
+    },
+    {
+      "rule_id": "p3r.magician.optimal_next_ready.rank_07",
+      "completed_event_to_rank": 7,
+      "next_rank": 8,
+      "optimal_answers_required": true,
+      "minimum_verified_151_bonus_count_at_event": 1,
+      "qualifying_categories": [
+        "matching_arcana_in_stock",
+        "charm_rank6",
+        "exam_top_class"
+      ],
+      "exam_top_ten_121_counts": false,
+      "result_if_conditions_hold": true,
+      "result_if_conditions_unknown_or_fail": null,
+      "event_time_snapshot_required": true,
+      "evidence": [
+        {
+          "source_id": "wiki_453",
+          "locator": "336-341"
+        }
+      ],
+      "not_a_claim": "Does not calculate exact points, rounding, or carryover; false table entries do not prove current not-ready"
+    },
+    {
+      "rule_id": "p3r.magician.optimal_next_ready.rank_08",
+      "completed_event_to_rank": 8,
+      "next_rank": 9,
+      "optimal_answers_required": true,
+      "minimum_verified_151_bonus_count_at_event": 1,
+      "qualifying_categories": [
+        "matching_arcana_in_stock",
+        "charm_rank6",
+        "exam_top_class"
+      ],
+      "exam_top_ten_121_counts": false,
+      "result_if_conditions_hold": true,
+      "result_if_conditions_unknown_or_fail": null,
+      "event_time_snapshot_required": true,
+      "evidence": [
+        {
+          "source_id": "wiki_453",
+          "locator": "342-346"
+        }
+      ],
+      "not_a_claim": "Does not calculate exact points, rounding, or carryover; false table entries do not prove current not-ready"
+    },
+    {
+      "rule_id": "p3r.magician.optimal_next_ready.rank_09",
+      "completed_event_to_rank": 9,
+      "next_rank": 10,
+      "optimal_answers_required": true,
+      "minimum_verified_151_bonus_count_at_event": 1,
+      "qualifying_categories": [
+        "matching_arcana_in_stock",
+        "charm_rank6",
+        "exam_top_class"
+      ],
+      "exam_top_ten_121_counts": false,
+      "result_if_conditions_hold": true,
+      "result_if_conditions_unknown_or_fail": null,
+      "event_time_snapshot_required": true,
+      "evidence": [
+        {
+          "source_id": "wiki_453",
+          "locator": "347-350"
+        }
+      ],
+      "not_a_claim": "Does not calculate exact points, rounding, or carryover; false table entries do not prove current not-ready"
+    }
+  ],
+  "test_fixtures": [
+    {
+      "id": "rank2_unknown_zero_gate",
+      "input": {
+        "rank": 2,
+        "lower_bound": 0
+      },
+      "expected_next_ready": true
+    },
+    {
+      "id": "rank3_optimal_base",
+      "input": {
+        "completed_event_to_rank": 3,
+        "options": [
+          3,
+          2
+        ],
+        "lower_bound_after": 20
+      },
+      "expected_next_ready": true
+    },
+    {
+      "id": "rank7_no_bonus",
+      "input": {
+        "completed_event_to_rank": 7,
+        "options": [
+          1,
+          3,
+          1
+        ],
+        "lower_bound_after": 15,
+        "mode": "base_only"
+      },
+      "expected_next_ready": null
+    },
+    {
+      "id": "rank7_matching_lookup",
+      "input": {
+        "completed_event_to_rank": 7,
+        "options": [
+          1,
+          3,
+          1
+        ],
+        "mode": "bonus_readiness_lookup",
+        "matching_arcana_at_event": true
+      },
+      "expected_next_ready": true
+    },
+    {
+      "id": "rank7_matching_only_at_next_visit",
+      "input": {
+        "completed_event_to_rank": 7,
+        "options": [
+          1,
+          3,
+          1
+        ],
+        "mode": "bonus_readiness_lookup",
+        "matching_arcana_at_event": null,
+        "matching_arcana_now": true
+      },
+      "expected_next_ready": null
+    },
+    {
+      "id": "rank7_top_ten_only",
+      "input": {
+        "completed_event_to_rank": 7,
+        "options": [
+          1,
+          3,
+          1
+        ],
+        "mode": "bonus_readiness_lookup",
+        "exam_top_ten_at_event": true,
+        "other_bonus_flags": false
+      },
+      "expected_next_ready": null
+    },
+    {
+      "id": "rank7_unknown_answer",
+      "input": {
+        "completed_event_to_rank": 7,
+        "options": [
+          1,
+          null,
+          1
+        ],
+        "lower_bound_after": 10,
+        "mode": "bonus_readiness_lookup",
+        "matching_arcana_at_event": true
+      },
+      "expected_next_ready": null
+    },
+    {
+      "id": "rank8_base_shortfall",
+      "input": {
+        "completed_event_to_rank": 8,
+        "options": [
+          2,
+          2
+        ],
+        "lower_bound_after": 20
+      },
+      "expected_next_ready": null
+    },
+    {
+      "id": "rank9_base_shortfall",
+      "input": {
+        "completed_event_to_rank": 9,
+        "options": [
+          2
+        ],
+        "lower_bound_after": 15
+      },
+      "expected_next_ready": null
+    },
+    {
+      "id": "known_current_rank9_affinity",
+      "input": {
+        "rank": 9,
+        "lower_bound": 22,
+        "trusted_current_rank_provenance": true
+      },
+      "expected_next_ready": true
+    },
+    {
+      "id": "unknown_ordinary_visit_delta",
+      "input": {
+        "rank": 7,
+        "ready_before": false,
+        "ordinary_hangout_completed": true
+      },
+      "expected_next_ready": null
+    },
+    {
+      "id": "stale_ready_after_rankup",
+      "input": {
+        "rank_before": 8,
+        "ready_before": true,
+        "completed_event_to_rank": 9,
+        "options": [
+          2
+        ],
+        "mode": "base_only"
+      },
+      "expected_next_ready": null
+    }
+  ],
+  "validation": {
+    "incoming_threshold_rows": 9,
+    "rank_event_rows": 9,
+    "per_answer_rows": 48,
+    "source_optimal_sums": {
+      "2": 10,
+      "3": 20,
+      "4": 15,
+      "5": 15,
+      "6": 15,
+      "7": 15,
+      "8": 20,
+      "9": 15,
+      "10": 20
+    },
+    "fixtures": 12,
+    "rule_ids_unique": true,
+    "unknown_not_ready_conflation_forbidden": true,
+    "manifest_untouched": true,
+    "fixtures_executed": 12,
+    "fixtures_passed": 12,
+    "fixture_runner_scope": "Pure reference evaluator executed against candidate data; no engine integration tests claimed"
+  }
+}

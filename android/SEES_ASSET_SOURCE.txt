@@ -1,0 +1,10 @@
+S.E.E.S. wordmark provenance
+Source: https://p3re.jp/en/ (official Atlus Persona 3 Reload website, character-section heading)
+Retrieved 2026-10-12. Original SVG paths preserved exactly; converted to Android VectorDrawable and tinted with the widget's existing day/night accent colors.
+Reference SVG preserved in /workspace/shared/p3r_sees_logo/official_character_heading.svg.
+This is the official serif S.E.E.S. wordmark, not the circular armband emblem. Atlus/SEGA artwork; no open-source license or redistribution rights are claimed.
+
+Main Persona 3 Reload logo: official all-white hero h1 SVG from https://p3re.jp/en/, original viewBox303x211, single path converted unchanged to widget_official_p3r_logo.xml. Aspect ratio preserved with fitCenter.
+Final main logo uses the official white/cyan PNG unchanged from https://persona.atlus.com/p3r/media/img/p3_logo_sm.png (769x582). Android InsetDrawable removes transparent padding only: content rectangle(66,67)-(711,515),645x448. Original alpha and colored artwork bytes are preserved in drawable-nodpi/official_p3r_logo_color.png; fitCenter preserves content aspect ratio.
+
+Flat palette: day#0FB1F5 sampled dominant cyan in official logo PNG; night#034572 literal .pv cover background in https://p3re.jp/en/resources/css/top.5d53a2fee5bff25a494c.css. Day text#1D384A from same official CSS; contrast5.03:1 oncyan. Night white contrast10.01:1. These are evidence-based official asset/site colors, not a claimed canonical in-game day/night palette.

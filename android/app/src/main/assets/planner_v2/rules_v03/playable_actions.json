@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "actions": [
+    {
+      "ruleId": "p3r.action.visit_sun",
+      "entityId": "p3r.social_link.sun",
+      "labelZh": "和消瘦的青年对话 · 太阳",
+      "locationZh": "长鸣神社",
+      "slot": "daytime",
+      "slotCost": 1,
+      "moneyCost": 0,
+      "moneyIncome": 0,
+      "preconditions": [
+        {
+          "path": "socialLinks.sun.rank",
+          "operator": "gte",
+          "value": 1
+        },
+        {
+          "path": "socialLinks.sun.rank",
+          "operator": "lt",
+          "value": 10
+        },
+        {
+          "path": "socialLinks.sun.relationshipState",
+          "operator": "eq",
+          "value": "normal"
+        },
+        {
+          "path": "calendar.entitySlotAvailable",
+          "operator": "eq",
+          "value": true
+        }
+      ],
+      "onCompletedNormalVisit": {
+        "rankDelta": 1,
+        "rankCap": 10
+      },
+      "predictionModel": "rank_increment_if_visit_completed",
+      "affinityRequired": false,
+      "personaArcanaRequired": false,
+      "availabilityRuleIds": [
+        "p3r.calendar.jan.sun.02",
+        "p3r.calendar.jan.sun.03",
+        "p3r.calendar.jan.sun.04",
+        "p3r.calendar.jan.sun.05",
+        "p3r.calendar.jan.sun.06",
+        "p3r.calendar.jan.sun.07",
+        "p3r.calendar.jan.sun.08",
+        "p3r.calendar.jan.sun.09",
+        "p3r.calendar.jan.sun.10",
+        "p3r.calendar.jan.sun.11",
+        "p3r.calendar.jan.sun.12",
+        "p3r.calendar.jan.sun.13",
+        "p3r.calendar.jan.sun.14",
+        "p3r.calendar.jan.sun.15",
+        "p3r.calendar.jan.sun.16",
+        "p3r.calendar.jan.sun.17",
+        "p3r.calendar.jan.sun.18",
+        "p3r.calendar.jan.sun.19",
+        "p3r.calendar.jan.sun.20",
+        "p3r.calendar.jan.sun.21",
+        "p3r.calendar.jan.sun.22",
+        "p3r.calendar.jan.sun.23",
+        "p3r.calendar.jan.sun.24",
+        "p3r.calendar.jan.sun.25",
+        "p3r.calendar.jan.sun.26",
+        "p3r.calendar.jan.sun.27",
+        "p3r.calendar.jan.sun.28",
+        "p3r.calendar.jan.sun.29",
+        "p3r.calendar.jan.sun.30"
+      ],
+      "verificationStatus": "corroborated",
+      "evidenceRefs": [
+        "wiki_links",
+        "aqiu_calendar"
+      ],
+      "calendarScope": "01-02..01-30 only",
+      "unmetPrecondition": "unknown_or_unavailable_do_not_infer_unlocked",
+      "localization": "original candidate descriptions, no inferred personal names"
+    },
+    {
+      "ruleId": "p3r.action.visit_devil",
+      "entityId": "p3r.social_link.devil",
+      "labelZh": "和西装男对话 · 恶魔",
+      "locationZh": "桐叶购物中心",
+      "slot": "evening",
+      "slotCost": 1,
+      "moneyCost": 0,
+      "moneyIncome": 0,
+      "preconditions": [
+        {
+          "path": "socialLinks.devil.rank",
+          "operator": "gte",
+          "value": 1
+        },
+        {
+          "path": "socialLinks.devil.rank",
+          "operator": "lt",
+          "value": 10
+        },
+        {
+          "path": "socialLinks.devil.relationshipState",
+          "operator": "eq",
+          "value": "normal"
+        },
+        {
+          "path": "calendar.entitySlotAvailable",
+          "operator": "eq",
+          "value": true
+        }
+      ],
+      "onCompletedNormalVisit": {
+        "rankDelta": 1,
+        "rankCap": 10
+      },
+      "predictionModel": "rank_increment_if_visit_completed",
+      "affinityRequired": false,
+      "personaArcanaRequired": false,
+      "availabilityRuleIds": [
+        "p3r.calendar.jan.devil.02",
+        "p3r.calendar.jan.devil.03",
+        "p3r.calendar.jan.devil.04",
+        "p3r.calendar.jan.devil.05",
+        "p3r.calendar.jan.devil.06",
+        "p3r.calendar.jan.devil.07",
+        "p3r.calendar.jan.devil.08",
+        "p3r.calendar.jan.devil.09",
+        "p3r.calendar.jan.devil.10",
+        "p3r.calendar.jan.devil.11",
+        "p3r.calendar.jan.devil.12",
+        "p3r.calendar.jan.devil.13",
+        "p3r.calendar.jan.devil.14",
+        "p3r.calendar.jan.devil.15",
+        "p3r.calendar.jan.devil.16",
+        "p3r.calendar.jan.devil.17",
+        "p3r.calendar.jan.devil.18",
+        "p3r.calendar.jan.devil.19",
+        "p3r.calendar.jan.devil.20",
+        "p3r.calendar.jan.devil.21",
+        "p3r.calendar.jan.devil.22",
+        "p3r.calendar.jan.devil.23",
+        "p3r.calendar.jan.devil.24",
+        "p3r.calendar.jan.devil.25",
+        "p3r.calendar.jan.devil.26",
+        "p3r.calendar.jan.devil.27",
+        "p3r.calendar.jan.devil.28",
+        "p3r.calendar.jan.devil.29",
+        "p3r.calendar.jan.devil.30"
+      ],
+      "verificationStatus": "corroborated",
+      "evidenceRefs": [
+        "wiki_links",
+        "aqiu_calendar"
+      ],
+      "calendarScope": "01-02..01-30 only",
+      "unmetPrecondition": "unknown_or_unavailable_do_not_infer_unlocked",
+      "localization": "original candidate descriptions, no inferred personal names"
+    },
+    {
+      "ruleId": "p3r.action.explore_stage_10",
+      "entityId": "p3r.tower.stage_10",
+      "labelZh": "探索塔尔塔罗斯",
+      "slot": "evening",
+      "slotCost": 1,
+      "preconditions": [
+        {
+          "path": "activeStageId",
+          "operator": "eq",
+          "value": "p3r.tower.stage_10"
+        },
+        {
+          "path": "stageVisitsRemaining",
+          "operator": "gte",
+          "value": 1
+        },
+        {
+          "path": "calendar.explorationAllowed",
+          "operator": "eq",
+          "value": true
+        }
+      ],
+      "onCompletedVisit": {
+        "visitCountDelta": 1,
+        "cash": "user_observed_only",
+        "highestFloor": "user_observed_only",
+        "rescueState": "user_observed_only"
+      },
+      "expectedMoney": null,
+      "expectedFloor": null,
+      "allowedDateSubset": [
+        "01-20",
+        "01-28"
+      ],
+      "verificationStatus": "corroborated_safe_subset",
+      "evidenceRefs": [
+        "wiki_calendar_route"
+      ],
+      "noPlanMeaning": "unknown_for_uncovered_nights_not_impossible"
+    }
+  ]
+}

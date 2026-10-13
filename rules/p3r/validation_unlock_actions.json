@@ -1,0 +1,26 @@
+{
+  "allPassed": true,
+  "checks": {
+    "19_unique_manual_unlock_coverage": true,
+    "simple_11_one_slot_actions": true,
+    "simple_dates_roundtrip": true,
+    "justice_costs_0001": true,
+    "devil_three_payments_40k": true,
+    "devil_slot_costs001": true,
+    "all_chain_steps_require_success": true,
+    "current_baseline_no_history_required": true,
+    "story25_no_extra_slots": true,
+    "story_flags_not_dates": true,
+    "12_stat_expansion_actions": true,
+    "ordinary_raw_gain_not_invented": true,
+    "two_dating_actions_no_same_slot_rankup": true,
+    "owned_note_not_double_charged": true,
+    "dating_conservative_date_roundtrip": true,
+    "stage_identification_independent_from_permission": true,
+    "contested_date_stages_keep_verified_ceilings": true,
+    "july18_not_july9_operational_start": true,
+    "three_ambiguous_intervals_keep_counts": true,
+    "no_identification_window_overlaps": true
+  },
+  "scope": "Independent cross-file structural and resource-semantics checks; no engine integration or game replay claim"
+}

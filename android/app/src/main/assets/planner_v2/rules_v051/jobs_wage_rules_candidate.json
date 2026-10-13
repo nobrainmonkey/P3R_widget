@@ -1,0 +1,324 @@
+{
+  "schemaVersion": 1,
+  "gameEdition": "P3R-base",
+  "checkedAt": "2026-10-13",
+  "sources": [
+    {
+      "id": "wiki_chagall",
+      "url": "https://megatenwiki.com/index.php?title=Chagall_Cafe&oldid=423201",
+      "section": "Persona 3 Reload",
+      "checked": "2026-10-13"
+    },
+    {
+      "id": "wiki_be_blue",
+      "url": "https://megatenwiki.com/index.php?title=Be_Blue_V&oldid=393238",
+      "section": "Persona 3 Reload",
+      "checked": "2026-10-13"
+    },
+    {
+      "id": "wiki_cinema",
+      "url": "https://megatenwiki.com/index.php?title=Port_Island_Station&oldid=410086",
+      "section": "Screen Shot: Reload part-time wage table only; adjacent movie table not imported",
+      "checked": "2026-10-13"
+    },
+    {
+      "id": "wiki469",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/469.html",
+      "section": "アルバイト",
+      "checked": "2026-10-13"
+    },
+    {
+      "id": "siliconera",
+      "url": "https://www.siliconera.com/how-to-get-a-job-in-persona-3-reload/",
+      "section": "All jobs; base wages crosscheck ONLY; stats and unlock date conflicts recorded",
+      "checked": "2026-10-13"
+    }
+  ],
+  "jobs": [
+    {
+      "ruleId": "p3r.job.chagall",
+      "labelZh": "夏卡尔咖啡店",
+      "labelOrigin": "baseline t163_03",
+      "isoWeekdays": [
+        1,
+        2,
+        3
+      ],
+      "slot": "evening",
+      "slotCost": 1,
+      "yenCost": 0,
+      "baseStatDelta": {
+        "charm": 1,
+        "courage": 1
+      },
+      "busyIsoWeekday": 2,
+      "firstShiftNormalException": true,
+      "reportedWageTiers": [
+        {
+          "shiftInclusiveMin": 1,
+          "shiftInclusiveMax": 4,
+          "normal": 2500,
+          "busy": 3500,
+          "softwareNormal": 4300,
+          "softwareBusy": 5300
+        },
+        {
+          "shiftInclusiveMin": 5,
+          "shiftInclusiveMax": 14,
+          "normal": 3000,
+          "busy": 4000,
+          "softwareNormal": 4800,
+          "softwareBusy": 5800
+        },
+        {
+          "shiftInclusiveMin": 15,
+          "shiftInclusiveMax": 29,
+          "normal": 3500,
+          "busy": 4500,
+          "softwareNormal": 5300,
+          "softwareBusy": 6300
+        },
+        {
+          "shiftInclusiveMin": 30,
+          "shiftInclusiveMax": null,
+          "normal": 5000,
+          "busy": 6000,
+          "softwareNormal": 6800,
+          "softwareBusy": 7800
+        }
+      ],
+      "shiftIndexPolicy": "source displays 1-based shift number; boundary execution awaits in-game/cross-source verification",
+      "minimumYenAcrossAllReportedTiers": 2500,
+      "exactWageExecutionEnabled": false,
+      "unlockDate": null,
+      "sources": [
+        "wiki_chagall",
+        "wiki469",
+        "siliconera"
+      ],
+      "verificationStatus": "source_observed_tiers_base_wage_corroborated"
+    },
+    {
+      "ruleId": "p3r.job.be_blue_v",
+      "labelZh": null,
+      "labelOrigin": "pending_exact_CN_baseline",
+      "isoWeekdays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "slot": "daytime",
+      "slotCost": 1,
+      "yenCost": 0,
+      "baseStatDelta": {
+        "academics": 1,
+        "charm": 1
+      },
+      "busyIsoWeekday": 5,
+      "firstShiftNormalException": true,
+      "reportedWageTiers": [
+        {
+          "shiftInclusiveMin": 1,
+          "shiftInclusiveMax": 2,
+          "normal": 3500,
+          "busy": 4500,
+          "softwareNormal": 5500,
+          "softwareBusy": 7000
+        },
+        {
+          "shiftInclusiveMin": 3,
+          "shiftInclusiveMax": 5,
+          "normal": 4500,
+          "busy": 5500,
+          "softwareNormal": 6500,
+          "softwareBusy": 8000
+        },
+        {
+          "shiftInclusiveMin": 6,
+          "shiftInclusiveMax": 9,
+          "normal": 5500,
+          "busy": 6500,
+          "softwareNormal": 7500,
+          "softwareBusy": 9000
+        },
+        {
+          "shiftInclusiveMin": 10,
+          "shiftInclusiveMax": null,
+          "normal": 7000,
+          "busy": 8500,
+          "softwareNormal": 9000,
+          "softwareBusy": 10500
+        }
+      ],
+      "shiftIndexPolicy": "source displays 1-based shift number; boundary execution awaits in-game/cross-source verification",
+      "minimumYenAcrossAllReportedTiers": 3500,
+      "exactWageExecutionEnabled": false,
+      "unlockDate": null,
+      "sources": [
+        "wiki_be_blue",
+        "wiki469",
+        "siliconera"
+      ],
+      "verificationStatus": "source_observed_tiers_base_wage_corroborated"
+    },
+    {
+      "ruleId": "p3r.job.screen_shot",
+      "labelZh": null,
+      "labelOrigin": "pending_exact_CN_baseline",
+      "isoWeekdays": [
+        7
+      ],
+      "slot": "daytime",
+      "slotCost": 1,
+      "yenCost": 0,
+      "baseStatDelta": {
+        "academics": 1,
+        "courage": 1
+      },
+      "busyIsoWeekday": null,
+      "firstShiftNormalException": null,
+      "reportedWageTiers": [
+        {
+          "shiftInclusiveMin": 1,
+          "shiftInclusiveMax": 2,
+          "normal": 5000,
+          "busy": 7000,
+          "softwareNormal": 7000,
+          "softwareBusy": 9000
+        },
+        {
+          "shiftInclusiveMin": 3,
+          "shiftInclusiveMax": 5,
+          "normal": 6000,
+          "busy": 8000,
+          "softwareNormal": 8000,
+          "softwareBusy": 10000
+        },
+        {
+          "shiftInclusiveMin": 6,
+          "shiftInclusiveMax": 9,
+          "normal": 7000,
+          "busy": 9000,
+          "softwareNormal": 9000,
+          "softwareBusy": 11000
+        },
+        {
+          "shiftInclusiveMin": 10,
+          "shiftInclusiveMax": null,
+          "normal": 9000,
+          "busy": 11000,
+          "softwareNormal": 11000,
+          "softwareBusy": 13000
+        }
+      ],
+      "shiftIndexPolicy": "source displays 1-based shift number; boundary execution awaits in-game/cross-source verification",
+      "minimumYenAcrossAllReportedTiers": 5000,
+      "exactWageExecutionEnabled": false,
+      "unlockDate": null,
+      "sources": [
+        "wiki_cinema",
+        "wiki469",
+        "siliconera"
+      ],
+      "verificationStatus": "source_observed_tiers_base_wage_corroborated"
+    }
+  ],
+  "guardedMinimumIncomeActions": [
+    {
+      "ruleId": "p3r.action.job_chagall_minimum",
+      "labelZh": "到夏卡尔咖啡店打工",
+      "slot": "evening",
+      "isoWeekdays": [
+        1,
+        2,
+        3
+      ],
+      "slotCost": 1,
+      "yenCost": 0,
+      "preconditions": [
+        {
+          "field": "calendar.slotState",
+          "op": "eq",
+          "value": "free"
+        },
+        {
+          "field": "job.chagall.currentlyAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "temperanceStatBonusActive",
+          "op": "eq",
+          "value": false
+        }
+      ],
+      "effects": [
+        {
+          "field": "yenLowerBound",
+          "op": "add",
+          "value": 2500
+        },
+        {
+          "field": "stats.charm",
+          "op": "add",
+          "value": 1
+        },
+        {
+          "field": "stats.courage",
+          "op": "add",
+          "value": 1
+        }
+      ],
+      "moneySemantics": "Guaranteed minimum under the corroborated job wage model; not exact cash. Must retain lower-bound state or use actual observed pay; never overwrite exact yen with minimum as if exact",
+      "actualReturn": [
+        "yenDelta OR absoluteYenBalance",
+        "completedShiftCount if known"
+      ],
+      "unknownPreconditionPolicy": "do_not_schedule",
+      "planningEnabled": true,
+      "requiredAdapterCapability": "lower_bound_money_and_actual_reconciliation",
+      "evidence": [
+        "wiki_chagall",
+        "wiki469",
+        "siliconera"
+      ],
+      "verificationStatus": "corroborated_base_only_guarded"
+    }
+  ],
+  "conflicts": [
+    {
+      "id": "be_blue_time",
+      "claims": {
+        "wiki_be_blue": "day or night",
+        "wiki469": "daytime only"
+      },
+      "resolution": "night disabled; actual job availability must be confirmed"
+    },
+    {
+      "id": "be_blue_unlock",
+      "claims": {
+        "wiki469": "07-23",
+        "siliconera": "07-22"
+      },
+      "resolution": "automatic unlock disabled"
+    },
+    {
+      "id": "job_stat_gain",
+      "claims": {
+        "wiki_chagall_and_wiki469": "+1 each",
+        "siliconera": "+2 each"
+      },
+      "resolution": "Wiki-first +1 with corroboration between distinct Wiki pages; news value preserved as conflicting"
+    },
+    {
+      "id": "chagall_earliest",
+      "claims": {
+        "siliconera": "May; same page says first month"
+      },
+      "resolution": "no automatic earliest date inference"
+    }
+  ],
+  "scope": "Factual wage-tier candidates; one guarded minimum-income action. No tower income estimate. No job may run on an unverified free slot."
+}

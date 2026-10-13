@@ -1,0 +1,4283 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-13",
+  "gameEdition": "P3R-base",
+  "sourceHtmlSha256": "404dea95268f8344576b33d9595037b08bfb89be7a390449b41635d22c3e4ec8",
+  "scope": "17 point-dependent social-link tables; factual numeric candidate extraction, no foreign dialogue translated",
+  "rows": [
+    {
+      "ruleId": "p3r.reported_points.magician.rank_1.unspecified",
+      "entityId": "p3r.social_link.magician",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#magician",
+      "evidenceLocator": "Magician / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.magician.rank_2.unspecified",
+      "entityId": "p3r.social_link.magician",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#magician",
+      "evidenceLocator": "Magician / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.magician.rank_3.unspecified",
+      "entityId": "p3r.social_link.magician",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#magician",
+      "evidenceLocator": "Magician / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.magician.rank_4.unspecified",
+      "entityId": "p3r.social_link.magician",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#magician",
+      "evidenceLocator": "Magician / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.magician.rank_5.unspecified",
+      "entityId": "p3r.social_link.magician",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#magician",
+      "evidenceLocator": "Magician / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.magician.rank_6.unspecified",
+      "entityId": "p3r.social_link.magician",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#magician",
+      "evidenceLocator": "Magician / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.magician.rank_7.unspecified",
+      "entityId": "p3r.social_link.magician",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#magician",
+      "evidenceLocator": "Magician / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.magician.rank_8.unspecified",
+      "entityId": "p3r.social_link.magician",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#magician",
+      "evidenceLocator": "Magician / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.magician.rank_9.unspecified",
+      "entityId": "p3r.social_link.magician",
+      "sourceSceneRankLabel": 9,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#magician",
+      "evidenceLocator": "Magician / Rank 9 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.magician.rank_10.unspecified",
+      "entityId": "p3r.social_link.magician",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#magician",
+      "evidenceLocator": "Magician / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.priestess.rank_1.unspecified",
+      "entityId": "p3r.social_link.priestess",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#priestess",
+      "evidenceLocator": "Priestess / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.priestess.rank_2.unspecified",
+      "entityId": "p3r.social_link.priestess",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#priestess",
+      "evidenceLocator": "Priestess / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.priestess.rank_3.unspecified",
+      "entityId": "p3r.social_link.priestess",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 30,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#priestess",
+      "evidenceLocator": "Priestess / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.priestess.rank_4.unspecified",
+      "entityId": "p3r.social_link.priestess",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#priestess",
+      "evidenceLocator": "Priestess / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.priestess.rank_5.unspecified",
+      "entityId": "p3r.social_link.priestess",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 35,
+      "reportedPointsToNextRank": 30,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#priestess",
+      "evidenceLocator": "Priestess / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.priestess.rank_6.unspecified",
+      "entityId": "p3r.social_link.priestess",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 30,
+      "reportedPointsToNextRank": 30,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#priestess",
+      "evidenceLocator": "Priestess / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.priestess.rank_7.unspecified",
+      "entityId": "p3r.social_link.priestess",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 5,
+      "reportedPointsToNextRank": 35,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 0,
+          "displayNotes": 0
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#priestess",
+      "evidenceLocator": "Priestess / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.priestess.rank_8.unspecified",
+      "entityId": "p3r.social_link.priestess",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 10,
+      "reportedPointsToNextRank": 40,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#priestess",
+      "evidenceLocator": "Priestess / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.priestess.rank_9.romantic",
+      "entityId": "p3r.social_link.priestess",
+      "sourceSceneRankLabel": 9,
+      "branch": "romantic",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 55,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#priestess",
+      "evidenceLocator": "Priestess / Rank 9 romantic"
+    },
+    {
+      "ruleId": "p3r.reported_points.priestess.rank_9.platonic",
+      "entityId": "p3r.social_link.priestess",
+      "sourceSceneRankLabel": 9,
+      "branch": "platonic",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 55,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#priestess",
+      "evidenceLocator": "Priestess / Rank 9 platonic"
+    },
+    {
+      "ruleId": "p3r.reported_points.priestess.rank_10.unspecified",
+      "entityId": "p3r.social_link.priestess",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#priestess",
+      "evidenceLocator": "Priestess / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.empress.rank_1.unspecified",
+      "entityId": "p3r.social_link.empress",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#empress",
+      "evidenceLocator": "Empress / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.empress.rank_2.unspecified",
+      "entityId": "p3r.social_link.empress",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#empress",
+      "evidenceLocator": "Empress / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.empress.rank_3.unspecified",
+      "entityId": "p3r.social_link.empress",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 30,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#empress",
+      "evidenceLocator": "Empress / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.empress.rank_4.unspecified",
+      "entityId": "p3r.social_link.empress",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#empress",
+      "evidenceLocator": "Empress / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.empress.rank_5.unspecified",
+      "entityId": "p3r.social_link.empress",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 35,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#empress",
+      "evidenceLocator": "Empress / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.empress.rank_6.unspecified",
+      "entityId": "p3r.social_link.empress",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 0,
+          "displayNotes": 0
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#empress",
+      "evidenceLocator": "Empress / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.empress.rank_7.unspecified",
+      "entityId": "p3r.social_link.empress",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#empress",
+      "evidenceLocator": "Empress / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.empress.rank_8.unspecified",
+      "entityId": "p3r.social_link.empress",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 35,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 0,
+          "displayNotes": 0
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#empress",
+      "evidenceLocator": "Empress / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.empress.rank_9.romantic",
+      "entityId": "p3r.social_link.empress",
+      "sourceSceneRankLabel": 9,
+      "branch": "romantic",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#empress",
+      "evidenceLocator": "Empress / Rank 9 romantic"
+    },
+    {
+      "ruleId": "p3r.reported_points.empress.rank_9.platonic",
+      "entityId": "p3r.social_link.empress",
+      "sourceSceneRankLabel": 9,
+      "branch": "platonic",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#empress",
+      "evidenceLocator": "Empress / Rank 9 platonic"
+    },
+    {
+      "ruleId": "p3r.reported_points.empress.rank_10.unspecified",
+      "entityId": "p3r.social_link.empress",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#empress",
+      "evidenceLocator": "Empress / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.emperor.rank_1.unspecified",
+      "entityId": "p3r.social_link.emperor",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#emperor",
+      "evidenceLocator": "Emperor / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.emperor.rank_2.unspecified",
+      "entityId": "p3r.social_link.emperor",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#emperor",
+      "evidenceLocator": "Emperor / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.emperor.rank_3.unspecified",
+      "entityId": "p3r.social_link.emperor",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#emperor",
+      "evidenceLocator": "Emperor / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.emperor.rank_4.unspecified",
+      "entityId": "p3r.social_link.emperor",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#emperor",
+      "evidenceLocator": "Emperor / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.emperor.rank_5.unspecified",
+      "entityId": "p3r.social_link.emperor",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#emperor",
+      "evidenceLocator": "Emperor / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.emperor.rank_6.unspecified",
+      "entityId": "p3r.social_link.emperor",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#emperor",
+      "evidenceLocator": "Emperor / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.emperor.rank_7.unspecified",
+      "entityId": "p3r.social_link.emperor",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#emperor",
+      "evidenceLocator": "Emperor / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.emperor.rank_8.unspecified",
+      "entityId": "p3r.social_link.emperor",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#emperor",
+      "evidenceLocator": "Emperor / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.emperor.rank_9.unspecified",
+      "entityId": "p3r.social_link.emperor",
+      "sourceSceneRankLabel": 9,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#emperor",
+      "evidenceLocator": "Emperor / Rank 9 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.emperor.rank_10.unspecified",
+      "entityId": "p3r.social_link.emperor",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#emperor",
+      "evidenceLocator": "Emperor / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hierophant.rank_1.unspecified",
+      "entityId": "p3r.social_link.hierophant",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hierophant",
+      "evidenceLocator": "Hierophant / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hierophant.rank_2.unspecified",
+      "entityId": "p3r.social_link.hierophant",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hierophant",
+      "evidenceLocator": "Hierophant / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hierophant.rank_3.unspecified",
+      "entityId": "p3r.social_link.hierophant",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hierophant",
+      "evidenceLocator": "Hierophant / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hierophant.rank_4.unspecified",
+      "entityId": "p3r.social_link.hierophant",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hierophant",
+      "evidenceLocator": "Hierophant / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hierophant.rank_5.unspecified",
+      "entityId": "p3r.social_link.hierophant",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 10,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hierophant",
+      "evidenceLocator": "Hierophant / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hierophant.rank_6.unspecified",
+      "entityId": "p3r.social_link.hierophant",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hierophant",
+      "evidenceLocator": "Hierophant / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hierophant.rank_7.unspecified",
+      "entityId": "p3r.social_link.hierophant",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hierophant",
+      "evidenceLocator": "Hierophant / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hierophant.rank_8.unspecified",
+      "entityId": "p3r.social_link.hierophant",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hierophant",
+      "evidenceLocator": "Hierophant / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hierophant.rank_9.unspecified",
+      "entityId": "p3r.social_link.hierophant",
+      "sourceSceneRankLabel": 9,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 5,
+      "reportedPointsToNextRank": 30,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hierophant",
+      "evidenceLocator": "Hierophant / Rank 9 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hierophant.rank_10.unspecified",
+      "entityId": "p3r.social_link.hierophant",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hierophant",
+      "evidenceLocator": "Hierophant / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.lovers.rank_1.unspecified",
+      "entityId": "p3r.social_link.lovers",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#lovers",
+      "evidenceLocator": "Lovers / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.lovers.rank_2.unspecified",
+      "entityId": "p3r.social_link.lovers",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#lovers",
+      "evidenceLocator": "Lovers / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.lovers.rank_3.unspecified",
+      "entityId": "p3r.social_link.lovers",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 0,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#lovers",
+      "evidenceLocator": "Lovers / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.lovers.rank_4.unspecified",
+      "entityId": "p3r.social_link.lovers",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#lovers",
+      "evidenceLocator": "Lovers / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.lovers.rank_5.unspecified",
+      "entityId": "p3r.social_link.lovers",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#lovers",
+      "evidenceLocator": "Lovers / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.lovers.rank_6.unspecified",
+      "entityId": "p3r.social_link.lovers",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 10,
+      "reportedPointsToNextRank": 35,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#lovers",
+      "evidenceLocator": "Lovers / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.lovers.rank_7.unspecified",
+      "entityId": "p3r.social_link.lovers",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 35,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#lovers",
+      "evidenceLocator": "Lovers / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.lovers.rank_8.unspecified",
+      "entityId": "p3r.social_link.lovers",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 40,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#lovers",
+      "evidenceLocator": "Lovers / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.lovers.rank_9.romantic",
+      "entityId": "p3r.social_link.lovers",
+      "sourceSceneRankLabel": 9,
+      "branch": "romantic",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 55,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#lovers",
+      "evidenceLocator": "Lovers / Rank 9 romantic"
+    },
+    {
+      "ruleId": "p3r.reported_points.lovers.rank_9.platonic",
+      "entityId": "p3r.social_link.lovers",
+      "sourceSceneRankLabel": 9,
+      "branch": "platonic",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 55,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#lovers",
+      "evidenceLocator": "Lovers / Rank 9 platonic"
+    },
+    {
+      "ruleId": "p3r.reported_points.lovers.rank_10.unspecified",
+      "entityId": "p3r.social_link.lovers",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#lovers",
+      "evidenceLocator": "Lovers / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.chariot.rank_1.unspecified",
+      "entityId": "p3r.social_link.chariot",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#chariot",
+      "evidenceLocator": "Chariot / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.chariot.rank_2.unspecified",
+      "entityId": "p3r.social_link.chariot",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#chariot",
+      "evidenceLocator": "Chariot / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.chariot.rank_3.unspecified",
+      "entityId": "p3r.social_link.chariot",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 10,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#chariot",
+      "evidenceLocator": "Chariot / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.chariot.rank_4.unspecified",
+      "entityId": "p3r.social_link.chariot",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#chariot",
+      "evidenceLocator": "Chariot / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.chariot.rank_5.unspecified",
+      "entityId": "p3r.social_link.chariot",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#chariot",
+      "evidenceLocator": "Chariot / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.chariot.rank_6.unspecified",
+      "entityId": "p3r.social_link.chariot",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#chariot",
+      "evidenceLocator": "Chariot / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.chariot.rank_7.unspecified",
+      "entityId": "p3r.social_link.chariot",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#chariot",
+      "evidenceLocator": "Chariot / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.chariot.rank_8.unspecified",
+      "entityId": "p3r.social_link.chariot",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 5,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#chariot",
+      "evidenceLocator": "Chariot / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.chariot.rank_9.unspecified",
+      "entityId": "p3r.social_link.chariot",
+      "sourceSceneRankLabel": 9,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#chariot",
+      "evidenceLocator": "Chariot / Rank 9 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.chariot.rank_10.unspecified",
+      "entityId": "p3r.social_link.chariot",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#chariot",
+      "evidenceLocator": "Chariot / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.justice.rank_1.unspecified",
+      "entityId": "p3r.social_link.justice",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#justice",
+      "evidenceLocator": "Justice / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.justice.rank_2.unspecified",
+      "entityId": "p3r.social_link.justice",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#justice",
+      "evidenceLocator": "Justice / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.justice.rank_3.unspecified",
+      "entityId": "p3r.social_link.justice",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 10,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#justice",
+      "evidenceLocator": "Justice / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.justice.rank_4.unspecified",
+      "entityId": "p3r.social_link.justice",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#justice",
+      "evidenceLocator": "Justice / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.justice.rank_5.unspecified",
+      "entityId": "p3r.social_link.justice",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 50,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 10,
+          "displayNotes": 2
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 10,
+          "displayNotes": 2
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#justice",
+      "evidenceLocator": "Justice / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.justice.rank_6.unspecified",
+      "entityId": "p3r.social_link.justice",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 30,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#justice",
+      "evidenceLocator": "Justice / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.justice.rank_7.unspecified",
+      "entityId": "p3r.social_link.justice",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 10,
+      "reportedPointsToNextRank": 30,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#justice",
+      "evidenceLocator": "Justice / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.justice.rank_8.unspecified",
+      "entityId": "p3r.social_link.justice",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 5,
+      "reportedPointsToNextRank": 30,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#justice",
+      "evidenceLocator": "Justice / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.justice.rank_9.romantic",
+      "entityId": "p3r.social_link.justice",
+      "sourceSceneRankLabel": 9,
+      "branch": "romantic",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 40,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#justice",
+      "evidenceLocator": "Justice / Rank 9 romantic"
+    },
+    {
+      "ruleId": "p3r.reported_points.justice.rank_9.platonic",
+      "entityId": "p3r.social_link.justice",
+      "sourceSceneRankLabel": 9,
+      "branch": "platonic",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 40,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#justice",
+      "evidenceLocator": "Justice / Rank 9 platonic"
+    },
+    {
+      "ruleId": "p3r.reported_points.justice.rank_10.unspecified",
+      "entityId": "p3r.social_link.justice",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#justice",
+      "evidenceLocator": "Justice / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hermit.rank_1.unspecified",
+      "entityId": "p3r.social_link.hermit",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hermit",
+      "evidenceLocator": "Hermit / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hermit.rank_2.unspecified",
+      "entityId": "p3r.social_link.hermit",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hermit",
+      "evidenceLocator": "Hermit / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hermit.rank_3.unspecified",
+      "entityId": "p3r.social_link.hermit",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hermit",
+      "evidenceLocator": "Hermit / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hermit.rank_4.unspecified",
+      "entityId": "p3r.social_link.hermit",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hermit",
+      "evidenceLocator": "Hermit / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hermit.rank_5.unspecified",
+      "entityId": "p3r.social_link.hermit",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 10,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hermit",
+      "evidenceLocator": "Hermit / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hermit.rank_6.unspecified",
+      "entityId": "p3r.social_link.hermit",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hermit",
+      "evidenceLocator": "Hermit / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hermit.rank_7.unspecified",
+      "entityId": "p3r.social_link.hermit",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hermit",
+      "evidenceLocator": "Hermit / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hermit.rank_8.unspecified",
+      "entityId": "p3r.social_link.hermit",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hermit",
+      "evidenceLocator": "Hermit / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hermit.rank_9.unspecified",
+      "entityId": "p3r.social_link.hermit",
+      "sourceSceneRankLabel": 9,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 10,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hermit",
+      "evidenceLocator": "Hermit / Rank 9 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hermit.rank_10.unspecified",
+      "entityId": "p3r.social_link.hermit",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hermit",
+      "evidenceLocator": "Hermit / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.fortune.rank_1.unspecified",
+      "entityId": "p3r.social_link.fortune",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#fortune",
+      "evidenceLocator": "Fortune / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.fortune.rank_2.unspecified",
+      "entityId": "p3r.social_link.fortune",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#fortune",
+      "evidenceLocator": "Fortune / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.fortune.rank_3.unspecified",
+      "entityId": "p3r.social_link.fortune",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#fortune",
+      "evidenceLocator": "Fortune / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.fortune.rank_4.unspecified",
+      "entityId": "p3r.social_link.fortune",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 10,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#fortune",
+      "evidenceLocator": "Fortune / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.fortune.rank_5.unspecified",
+      "entityId": "p3r.social_link.fortune",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#fortune",
+      "evidenceLocator": "Fortune / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.fortune.rank_6.unspecified",
+      "entityId": "p3r.social_link.fortune",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#fortune",
+      "evidenceLocator": "Fortune / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.fortune.rank_7.unspecified",
+      "entityId": "p3r.social_link.fortune",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#fortune",
+      "evidenceLocator": "Fortune / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.fortune.rank_8.unspecified",
+      "entityId": "p3r.social_link.fortune",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#fortune",
+      "evidenceLocator": "Fortune / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.fortune.rank_9.unspecified",
+      "entityId": "p3r.social_link.fortune",
+      "sourceSceneRankLabel": 9,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#fortune",
+      "evidenceLocator": "Fortune / Rank 9 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.fortune.rank_10.unspecified",
+      "entityId": "p3r.social_link.fortune",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#fortune",
+      "evidenceLocator": "Fortune / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.strength.rank_1.unspecified",
+      "entityId": "p3r.social_link.strength",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#strength",
+      "evidenceLocator": "Strength / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.strength.rank_2.unspecified",
+      "entityId": "p3r.social_link.strength",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#strength",
+      "evidenceLocator": "Strength / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.strength.rank_3.unspecified",
+      "entityId": "p3r.social_link.strength",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 10,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#strength",
+      "evidenceLocator": "Strength / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.strength.rank_4.unspecified",
+      "entityId": "p3r.social_link.strength",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 5,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#strength",
+      "evidenceLocator": "Strength / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.strength.rank_5.unspecified",
+      "entityId": "p3r.social_link.strength",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 10,
+          "displayNotes": 2
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#strength",
+      "evidenceLocator": "Strength / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.strength.rank_6.unspecified",
+      "entityId": "p3r.social_link.strength",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 10,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#strength",
+      "evidenceLocator": "Strength / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.strength.rank_7.unspecified",
+      "entityId": "p3r.social_link.strength",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 35,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#strength",
+      "evidenceLocator": "Strength / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.strength.rank_8.unspecified",
+      "entityId": "p3r.social_link.strength",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 5,
+      "reportedPointsToNextRank": 40,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#strength",
+      "evidenceLocator": "Strength / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.strength.rank_9.romantic",
+      "entityId": "p3r.social_link.strength",
+      "sourceSceneRankLabel": 9,
+      "branch": "romantic",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 40,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#strength",
+      "evidenceLocator": "Strength / Rank 9 romantic"
+    },
+    {
+      "ruleId": "p3r.reported_points.strength.rank_9.platonic",
+      "entityId": "p3r.social_link.strength",
+      "sourceSceneRankLabel": 9,
+      "branch": "platonic",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 40,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#strength",
+      "evidenceLocator": "Strength / Rank 9 platonic"
+    },
+    {
+      "ruleId": "p3r.reported_points.strength.rank_10.unspecified",
+      "entityId": "p3r.social_link.strength",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#strength",
+      "evidenceLocator": "Strength / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hanged_man.rank_1.unspecified",
+      "entityId": "p3r.social_link.hanged_man",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hanged",
+      "evidenceLocator": "Hanged / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hanged_man.rank_2.unspecified",
+      "entityId": "p3r.social_link.hanged_man",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hanged",
+      "evidenceLocator": "Hanged / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hanged_man.rank_3.unspecified",
+      "entityId": "p3r.social_link.hanged_man",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hanged",
+      "evidenceLocator": "Hanged / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hanged_man.rank_4.unspecified",
+      "entityId": "p3r.social_link.hanged_man",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hanged",
+      "evidenceLocator": "Hanged / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hanged_man.rank_5.unspecified",
+      "entityId": "p3r.social_link.hanged_man",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hanged",
+      "evidenceLocator": "Hanged / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hanged_man.rank_6.unspecified",
+      "entityId": "p3r.social_link.hanged_man",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 30,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hanged",
+      "evidenceLocator": "Hanged / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hanged_man.rank_7.unspecified",
+      "entityId": "p3r.social_link.hanged_man",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 0,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hanged",
+      "evidenceLocator": "Hanged / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hanged_man.rank_8.unspecified",
+      "entityId": "p3r.social_link.hanged_man",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 35,
+      "reportedPointsToNextRank": 30,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hanged",
+      "evidenceLocator": "Hanged / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hanged_man.rank_9.unspecified",
+      "entityId": "p3r.social_link.hanged_man",
+      "sourceSceneRankLabel": 9,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 30,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hanged",
+      "evidenceLocator": "Hanged / Rank 9 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.hanged_man.rank_10.unspecified",
+      "entityId": "p3r.social_link.hanged_man",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#hanged",
+      "evidenceLocator": "Hanged / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.temperance.rank_1.unspecified",
+      "entityId": "p3r.social_link.temperance",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#temperance",
+      "evidenceLocator": "Temperance / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.temperance.rank_2.unspecified",
+      "entityId": "p3r.social_link.temperance",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#temperance",
+      "evidenceLocator": "Temperance / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.temperance.rank_3.unspecified",
+      "entityId": "p3r.social_link.temperance",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#temperance",
+      "evidenceLocator": "Temperance / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.temperance.rank_4.unspecified",
+      "entityId": "p3r.social_link.temperance",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#temperance",
+      "evidenceLocator": "Temperance / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.temperance.rank_5.unspecified",
+      "entityId": "p3r.social_link.temperance",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 10,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#temperance",
+      "evidenceLocator": "Temperance / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.temperance.rank_6.unspecified",
+      "entityId": "p3r.social_link.temperance",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#temperance",
+      "evidenceLocator": "Temperance / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.temperance.rank_7.unspecified",
+      "entityId": "p3r.social_link.temperance",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 10,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#temperance",
+      "evidenceLocator": "Temperance / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.temperance.rank_8.unspecified",
+      "entityId": "p3r.social_link.temperance",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#temperance",
+      "evidenceLocator": "Temperance / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.temperance.rank_9.unspecified",
+      "entityId": "p3r.social_link.temperance",
+      "sourceSceneRankLabel": 9,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#temperance",
+      "evidenceLocator": "Temperance / Rank 9 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.temperance.rank_10.unspecified",
+      "entityId": "p3r.social_link.temperance",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#temperance",
+      "evidenceLocator": "Temperance / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.tower.rank_1.unspecified",
+      "entityId": "p3r.social_link.tower",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 4,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 4,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#tower",
+      "evidenceLocator": "Tower / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.tower.rank_2.unspecified",
+      "entityId": "p3r.social_link.tower",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#tower",
+      "evidenceLocator": "Tower / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.tower.rank_3.unspecified",
+      "entityId": "p3r.social_link.tower",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 25,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#tower",
+      "evidenceLocator": "Tower / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.tower.rank_4.unspecified",
+      "entityId": "p3r.social_link.tower",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 25,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#tower",
+      "evidenceLocator": "Tower / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.tower.rank_5.unspecified",
+      "entityId": "p3r.social_link.tower",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 25,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#tower",
+      "evidenceLocator": "Tower / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.tower.rank_6.unspecified",
+      "entityId": "p3r.social_link.tower",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 30,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#tower",
+      "evidenceLocator": "Tower / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.tower.rank_7.unspecified",
+      "entityId": "p3r.social_link.tower",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 30,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#tower",
+      "evidenceLocator": "Tower / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.tower.rank_8.unspecified",
+      "entityId": "p3r.social_link.tower",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 25,
+      "reportedPointsToNextRank": 40,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#tower",
+      "evidenceLocator": "Tower / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.tower.rank_9.unspecified",
+      "entityId": "p3r.social_link.tower",
+      "sourceSceneRankLabel": 9,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 40,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#tower",
+      "evidenceLocator": "Tower / Rank 9 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.tower.rank_10.unspecified",
+      "entityId": "p3r.social_link.tower",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#tower",
+      "evidenceLocator": "Tower / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.star.rank_1.unspecified",
+      "entityId": "p3r.social_link.star",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#star",
+      "evidenceLocator": "Star / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.star.rank_2.unspecified",
+      "entityId": "p3r.social_link.star",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#star",
+      "evidenceLocator": "Star / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.star.rank_3.unspecified",
+      "entityId": "p3r.social_link.star",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 10,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#star",
+      "evidenceLocator": "Star / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.star.rank_4.unspecified",
+      "entityId": "p3r.social_link.star",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#star",
+      "evidenceLocator": "Star / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.star.rank_5.unspecified",
+      "entityId": "p3r.social_link.star",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 10,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#star",
+      "evidenceLocator": "Star / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.star.rank_6.unspecified",
+      "entityId": "p3r.social_link.star",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 20,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#star",
+      "evidenceLocator": "Star / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.star.rank_7.unspecified",
+      "entityId": "p3r.social_link.star",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 25,
+      "reportedPointsToNextRank": 30,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#star",
+      "evidenceLocator": "Star / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.star.rank_8.unspecified",
+      "entityId": "p3r.social_link.star",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 30,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#star",
+      "evidenceLocator": "Star / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.star.rank_9.unspecified",
+      "entityId": "p3r.social_link.star",
+      "sourceSceneRankLabel": 9,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 20,
+      "reportedPointsToNextRank": 30,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 5,
+          "displayNotes": 1
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#star",
+      "evidenceLocator": "Star / Rank 9 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.star.rank_10.unspecified",
+      "entityId": "p3r.social_link.star",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#star",
+      "evidenceLocator": "Star / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.moon.rank_1.unspecified",
+      "entityId": "p3r.social_link.moon",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": null,
+          "displayNotes": null
+        },
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#moon",
+      "evidenceLocator": "Moon / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.moon.rank_2.unspecified",
+      "entityId": "p3r.social_link.moon",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#moon",
+      "evidenceLocator": "Moon / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.moon.rank_3.unspecified",
+      "entityId": "p3r.social_link.moon",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#moon",
+      "evidenceLocator": "Moon / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.moon.rank_4.unspecified",
+      "entityId": "p3r.social_link.moon",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#moon",
+      "evidenceLocator": "Moon / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.moon.rank_5.unspecified",
+      "entityId": "p3r.social_link.moon",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#moon",
+      "evidenceLocator": "Moon / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.moon.rank_6.unspecified",
+      "entityId": "p3r.social_link.moon",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#moon",
+      "evidenceLocator": "Moon / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.moon.rank_7.unspecified",
+      "entityId": "p3r.social_link.moon",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 3,
+          "basePointGain": 15,
+          "displayNotes": 3
+        },
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#moon",
+      "evidenceLocator": "Moon / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.moon.rank_8.unspecified",
+      "entityId": "p3r.social_link.moon",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 22,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 2,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#moon",
+      "evidenceLocator": "Moon / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.moon.rank_9.unspecified",
+      "entityId": "p3r.social_link.moon",
+      "sourceSceneRankLabel": 9,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 0,
+      "reportedPointsToNextRank": 15,
+      "options": [
+        {
+          "kind": "any",
+          "optionOrdinal": null,
+          "basePointGain": null,
+          "displayNotes": null
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#moon",
+      "evidenceLocator": "Moon / Rank 9 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.moon.rank_10.unspecified",
+      "entityId": "p3r.social_link.moon",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#moon",
+      "evidenceLocator": "Moon / Rank 10 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.aeon.rank_1.unspecified",
+      "entityId": "p3r.social_link.aeon",
+      "sourceSceneRankLabel": 1,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#aeon",
+      "evidenceLocator": "Aeon / Rank 1 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.aeon.rank_2.unspecified",
+      "entityId": "p3r.social_link.aeon",
+      "sourceSceneRankLabel": 2,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#aeon",
+      "evidenceLocator": "Aeon / Rank 2 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.aeon.rank_3.unspecified",
+      "entityId": "p3r.social_link.aeon",
+      "sourceSceneRankLabel": 3,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#aeon",
+      "evidenceLocator": "Aeon / Rank 3 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.aeon.rank_4.unspecified",
+      "entityId": "p3r.social_link.aeon",
+      "sourceSceneRankLabel": 4,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#aeon",
+      "evidenceLocator": "Aeon / Rank 4 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.aeon.rank_5.unspecified",
+      "entityId": "p3r.social_link.aeon",
+      "sourceSceneRankLabel": 5,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#aeon",
+      "evidenceLocator": "Aeon / Rank 5 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.aeon.rank_6.unspecified",
+      "entityId": "p3r.social_link.aeon",
+      "sourceSceneRankLabel": 6,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#aeon",
+      "evidenceLocator": "Aeon / Rank 6 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.aeon.rank_7.unspecified",
+      "entityId": "p3r.social_link.aeon",
+      "sourceSceneRankLabel": 7,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#aeon",
+      "evidenceLocator": "Aeon / Rank 7 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.aeon.rank_8.unspecified",
+      "entityId": "p3r.social_link.aeon",
+      "sourceSceneRankLabel": 8,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#aeon",
+      "evidenceLocator": "Aeon / Rank 8 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.aeon.rank_9.unspecified",
+      "entityId": "p3r.social_link.aeon",
+      "sourceSceneRankLabel": 9,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": 15,
+      "reportedPointsToNextRank": 30,
+      "options": [
+        {
+          "kind": "numbered_source_option",
+          "optionOrdinal": 1,
+          "basePointGain": 15,
+          "displayNotes": 3
+        }
+      ],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#aeon",
+      "evidenceLocator": "Aeon / Rank 9 unspecified"
+    },
+    {
+      "ruleId": "p3r.reported_points.aeon.rank_10.unspecified",
+      "entityId": "p3r.social_link.aeon",
+      "sourceSceneRankLabel": 10,
+      "branch": "unspecified",
+      "reportedOptimalSceneGain": null,
+      "reportedPointsToNextRank": null,
+      "options": [],
+      "missingPointValue": "unknown_not_zero",
+      "verificationStatus": "source_observed_claim",
+      "numericExecutionEnabled": false,
+      "sourceURL": "https://aqiu384.github.io/megaten-database/p3r/social-events#aeon",
+      "evidenceLocator": "Aeon / Rank 10 unspecified"
+    }
+  ],
+  "semantics": {
+    "sourceRankLabel": "Scene reaching Rank n; numerator is reported unboosted optimal gain in that scene. Denominator is reported points to following rank. Cross-check model indexing before execution.",
+    "notYetVerified": [
+      "reset/carryover timing",
+      "bonus scope and rounding order",
+      "all nonoptimal answers",
+      "branch availability and earlier flags",
+      "current hidden affinity"
+    ],
+    "omittedRanks": "Do not replace missing entries by zero even where source general note suggests zero; keep explicit until crosschecked."
+  }
+}
