@@ -13,6 +13,8 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.RemoteViews;
 
+import java.util.regex.Pattern;
+
 import app.p3r.dayplanner.R;
 
 /**
@@ -270,9 +272,26 @@ public final class CardRenderer {
      */
     public static RemoteViews render(Context context, CardModel model, float widthDp, float heightDp) {
         WidgetSize size = WidgetSize.of(widthDp, heightDp);
-        CardModel fitted = fitHeader(context, fit(context, model, size, widthDp, heightDp), size, widthDp);
+        CardModel shown = model;
+        String title = keepNumbersTogether(model.title);
+        if (title != null && !title.equals(model.title)) {
+            // Measure the title exactly as it will wrap.
+            shown = model.copy();
+            shown.title = title;
+        }
+        CardModel fitted = fitHeader(context, fit(context, shown, size, widthDp, heightDp), size, widthDp);
         return render(context, fitted, size);
     }
+
+    /**
+     * The title with the spaces beside a number made non-breaking, so 「羁绊剧情 · 伊织顺平（第 2 话）」
+     * wraps before 「（」 and never as 「第 2」 / 「话）」.
+     */
+    static String keepNumbersTogether(String text) {
+        return text == null ? null : NUMBER_SPACE.matcher(text).replaceAll("\u00A0");
+    }
+
+    private static final Pattern NUMBER_SPACE = Pattern.compile("(?<=\\d) (?=\\S)|(?<=\\S) (?=\\d)");
 
     /** Plate numeral size in dp per bucket. Mirrors the layout XML. */
     static float dateTextDp(WidgetSize size) {
@@ -524,7 +543,7 @@ public final class CardRenderer {
         }
         int ink = palette.ink(c);
         int soft = palette.inkSoft(c);
-        views.setTextViewText(R.id.widget_task, model.title);
+        views.setTextViewText(R.id.widget_task, keepNumbersTogether(model.title));
         views.setTextColor(R.id.widget_task, ink);
         views.setInt(R.id.widget_task, "setMaxLines", Math.max(1, model.titleMaxLines));
         views.setContentDescription(R.id.widget_task_area, model.taskDescription);
@@ -606,8 +625,9 @@ public final class CardRenderer {
         boolean icon = model.doneIcon != CardModel.DoneIcon.NONE;
         views.setViewVisibility(R.id.button_spec_check, icon ? View.VISIBLE : View.GONE);
         if (!icon) {
-            // Without the trailing glyph the label centres on the whole face.
-            int side = Math.round(10 * c.getResources().getDisplayMetrics().density);
+            // Without the trailing glyph the label centres on the whole face. The narrow face keeps
+            // just clear of its slanted ends so 「已经玩到这里」 fits on one line at font scale 1.15.
+            int side = Math.round((size == WidgetSize.TINY ? 6 : 10) * c.getResources().getDisplayMetrics().density);
             views.setViewPadding(R.id.button_spec_done_text, side, 0, side, 0);
         } else {
             views.setImageViewResource(R.id.button_spec_check,

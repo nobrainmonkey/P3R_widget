@@ -65,4 +65,26 @@ public class CardRendererTest {
         }
         assertTrue(String.join("\n", issues), issues.isEmpty());
     }
+
+    /** A wrapped title breaks before 「（第 2 话）」, never inside it. */
+    @Test
+    public void aNumberStaysWithItsWordsWhenTheTitleWraps() {
+        Context c = RuntimeEnvironment.getApplication();
+        for (int[] size : new int[][]{{180, 150}, {250, 160}, {320, 200}}) {
+            CardModel m = sample(false);
+            m.title = "羁绊剧情 · 伊织顺平（第 2 话）";
+            m.titleIcon = CardModel.TitleIcon.EPISODE;
+            m.tag = null;
+            TextView title = RenderSupport.layout(c, CardRenderer.render(c, m, size[0], size[1]), size[0], size[1])
+                    .findViewById(R.id.widget_task);
+            String text = title.getText().toString();
+            for (int line = 0; line < title.getLineCount(); line++) {
+                String part = text.substring(title.getLayout().getLineStart(line), title.getLayout().getLineEnd(line));
+                if (part.contains("第")) assertTrue(size[0] + "dp: '" + part + "'", part.contains("话"));
+            }
+        }
+        assertEquals("羁绊剧情 · 伊织顺平（第\u00A02\u00A0话）", CardRenderer.keepNumbersTogether("羁绊剧情 · 伊织顺平（第 2 话）"));
+        assertEquals("再交\u00A010,000\u00A0日元", CardRenderer.keepNumbersTogether("再交 10,000 日元"));
+        assertEquals("皇帝 · 小田桐秀利", CardRenderer.keepNumbersTogether("皇帝 · 小田桐秀利"));
+    }
 }

@@ -219,6 +219,82 @@ public class PlanWidgetBehaviourTest {
         assertEquals("✓ 已记录 · 再点撤销", text(R.id.widget_detail_cue));
     }
 
+    // ------------------------------------------------------------------ Done: side steps (顺便)
+
+    private static final String DEVIL_PAY = "顺便：在喷泉前把 20,000 日元交给田中社长";
+
+    /**
+     * The store keeps the side-step keys of a record, taking them from the installed plan's step.
+     * A direct record only ever happens on a step without side steps, so it never stores a payment
+     * or talk the player was not asked about, while the plan's other steps carry side steps.
+     */
+    @Test
+    public void directRecordsStillWorkWhenThePlanCarriesSideSteps() {
+        FakePlannerApi.side(fake.plan.steps.get(2), "unlock:justice:0", "顺便：和伏见千寻搭话（第 1 次）");
+        FakePlannerApi.side(fake.plan.steps.get(3), "unlock:devil:0", DEVIL_PAY);
+        fake.observeAt("act:study_room");
+        refresh();
+        assertEquals("完成", text(R.id.button_spec_done_text));
+
+        tap(R.id.button_spec_done);
+        assertEquals(1, fake.recordCalls.size());
+        FakePlannerApi.Call call = fake.recordCalls.get(0);
+        assertEquals("act:study_room", call.action);
+        assertEquals(Outcome.Code.AS_PREDICTED, call.outcome.code);
+        assertTrue(call.outcome.sideDone);
+        assertTrue("nothing 顺便 is stored with a plain training", call.sideKeys.isEmpty());
+        assertEquals(S + 2, fake.observed.slot);
+        assertEquals("✓ 已记录 · 再点撤销", text(R.id.widget_detail_cue));
+        later();
+        tap(R.id.button_spec_done);
+        assertEquals("the record can still be undone", 1, fake.voidCalls.size());
+        assertEquals(S + 1, fake.observed.slot);
+    }
+
+    @Test
+    public void aJobWithASideStepOpensTheSheetInsteadOfRecording() {
+        FakePlannerApi.side(fake.plan.steps.get(3), "unlock:devil:0", DEVIL_PAY);
+        fake.observeAt("act:job_chagall");
+        refresh();
+        assertEquals("咖啡店打工", text(R.id.widget_task));
+        assertEquals(DEVIL_PAY, text(R.id.widget_side));
+        assertEquals("完成", text(R.id.button_spec_done_text));
+
+        tap(R.id.button_spec_done);
+        Intent sheet = shadowOf(app).getNextStartedActivity();
+        assertNotNull("the sheet asks whether the payment was made too", sheet);
+        assertEquals(WidgetIntents.RESULT_ACTIVITY, sheet.getComponent().getClassName());
+        assertEquals(Intents.MODE_RESULT, sheet.getStringExtra(Intents.EXTRA_MODE));
+        assertEquals("act:job_chagall", sheet.getStringExtra(Intents.EXTRA_ACTION));
+        assertEquals(S + 3, sheet.getIntExtra(Intents.EXTRA_SLOT, -1));
+        assertTrue(fake.recordCalls.isEmpty());
+
+        // A forged direct record for the same current step is refused too.
+        redeliver(commitIntent(FakePlannerApi.PLAN_ID, fake.stateRevision, S + 3, "act:job_chagall"));
+        assertTrue(fake.recordCalls.isEmpty());
+    }
+
+    @Test
+    public void aDoneTapDrawnBeforeAReplanAddedASideStepNeverRecords() {
+        fake.observeAt("act:job_chagall");
+        refresh();
+        Intent drawn = commitIntent(FakePlannerApi.PLAN_ID, fake.stateRevision, S + 3, "act:job_chagall");
+        fake.installPlan("plan-B");
+        FakePlannerApi.side(fake.plan.steps.get(3), "unlock:devil:0", DEVIL_PAY);
+
+        redeliver(drawn);
+        assertTrue("the old card's tap must not store the new payment", fake.recordCalls.isEmpty());
+        assertEquals(DEVIL_PAY, text(R.id.widget_side));
+        tap(R.id.button_spec_done);
+        assertEquals(Intents.MODE_RESULT, shadowOf(app).getNextStartedActivity().getStringExtra(Intents.EXTRA_MODE));
+        assertTrue(fake.recordCalls.isEmpty());
+    }
+
+    /** The broadcast a 完成 (direct record) PendingIntent carries for this widget. */
+    private Intent commitIntent(String planId, long revision, int slot, String action) {
+        return shadowOf(WidgetIntents.commit(app, id, planId, revision, slot, action)).getSavedIntent();
+    }
+
     @Test
     public void currentLeavesTheReceiptForTheNextItem() {
         fake.observeAt("act:study_room");
@@ -268,7 +344,7 @@ public class PlanWidgetBehaviourTest {
         fake.plan.steps.set(2, FakePlannerApi.episodeStep(S + 2));
         fake.plan.steps.set(3, FakePlannerApi.noteStep(S + 3));
         String[][] cases = {
-                {"episode:junpei", "羁绊剧情 · 伊织顺平 · 第 2 话"},
+                {"episode:junpei", "羁绊剧情 · 伊织顺平（第\u00A02\u00A0话）"}, // non-breaking around the number
                 {"note:priestess", "结缘网站的字条 · 山岸风花"},
                 {"free", "自由活动"}};
         for (String[] c : cases) {
@@ -306,7 +382,7 @@ public class PlanWidgetBehaviourTest {
     public void doneOnAFutureItemOpensCatchUp() {
         tap(R.id.widget_next);
         assertEquals("在宿舍房间学习", text(R.id.widget_task));
-        assertEquals("已玩到这里", text(R.id.button_spec_done_text));
+        assertEquals("已经玩到这里", text(R.id.button_spec_done_text));
         tap(R.id.button_spec_done);
         Intent sheet = shadowOf(app).getNextStartedActivity();
         assertEquals(Intents.MODE_CATCHUP, sheet.getStringExtra(Intents.EXTRA_MODE));
