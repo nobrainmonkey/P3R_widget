@@ -288,6 +288,13 @@ public class ResultSheetTest extends UiTestBase {
     }
 
     @Test
+    public void explicitCatchUpModeFromTheWidget() {
+        ResultActivity a = resultController(NOW + 3, "act:job_chagall", Intents.MODE_CATCHUP, false).get();
+        assertTrue(Shots.has(a, "前面还有 3 项没记录"));
+        assertTrue(api.calls.isEmpty());
+    }
+
+    @Test
     public void catchUpOneByOne() {
         int target = NOW + 2;
         ResultActivity a = result(target, "meet:lovers", Intents.MODE_RESULT);

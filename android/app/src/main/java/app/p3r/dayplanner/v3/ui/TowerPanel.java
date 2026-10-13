@@ -43,6 +43,8 @@ final class TowerPanel extends LinearLayout {
     private final TextView levelToggle;
     private final Stepper level;
     private final Rules.Rescue rescue;
+    /** Editing an earlier record: the cash before that visit is not known here. */
+    private final boolean correction;
     private SegmentedControl rescueAnswer;
     private Long amount;
     private boolean levelOn;
@@ -60,6 +62,7 @@ final class TowerPanel extends LinearLayout {
         this.slot = slot;
         this.block = block;
         this.listener = listener;
+        this.correction = correction;
         Rules.Block b = block >= 0 && block < rules.blocks.length ? rules.blocks[block] : null;
         int top = b != null ? b.top : maxTop(rules);
 
@@ -98,17 +101,18 @@ final class TowerPanel extends LinearLayout {
         preview = Ui.mixed(c, "", 13, Ui.col(c, R.color.p3r_cyan_200), false);
         addView(preview, spaced(c, 6));
 
-        boolean exactBefore = observed.cashExact;
+        boolean exactBefore = observed.cashExact || correction;
         cashMode.setSegmentEnabled(1, exactBefore);
         if (initial != null) {
             cashMode.setSelected(initial.balanceMode || !exactBefore ? 0 : 1);
             amount = initial.amount;
         } else {
             cashMode.setSelected(0);
-            amount = exactBefore ? observed.cash : null;
+            amount = observed.cashExact && !correction ? observed.cash : null;
         }
         cashMode.setListener(i -> {
-            amount = i == 0 && observed.cashExact ? observed.cash : (i == 1 ? 0L : null);
+            boolean prefill = i == 0 && observed.cashExact && !correction;
+            amount = prefill ? Long.valueOf(observed.cash) : (i == 1 ? Long.valueOf(0L) : null);
             render();
         });
 
@@ -227,6 +231,12 @@ final class TowerPanel extends LinearLayout {
 
     /** "进塔前 8,200 → 出塔后 14,750 日元（+6,550）". */
     String previewText() {
+        if (correction) {
+            if (amount == null) {
+                return "填写这次探索后的现金。";
+            }
+            return balanceMode() ? "改为：出塔后 " + Zh.yen(amount) : "改为：这次进塔 " + signed(amount) + " 日元";
+        }
         if (!observed.cashExact) {
             if (amount == null) {
                 return "进塔前的现金没有记录，请填出塔后的现在余额。";

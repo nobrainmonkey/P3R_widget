@@ -74,6 +74,6 @@ public final class NumeralSpan extends MetricAffectingSpan {
 
     private static boolean isLatinPart(char c) {
         return isLatinStart(c) || c == ' ' || c == '.' || c == ',' || c == '/' || c == '→' || c == '-'
-            || c == '%' || c == ':';
+            || c == '%' || c == ':' || c == '–';
     }
 }

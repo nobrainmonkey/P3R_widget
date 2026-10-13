@@ -408,16 +408,30 @@ public final class StateDraft {
         }
         out.add(new Change("社群", null, established == 0 ? "都还没建立" : "已建立 " + established + " 个"));
         List<Integer> goals = LinkStatus.goalOrder(profile);
-        StringBuilder goalText = new StringBuilder();
-        for (int g : goals) {
-            if (goalText.length() > 0) {
-                goalText.append("、");
-            }
-            goalText.append(rules.links[g].arcanaZh);
-        }
-        out.add(new Change("目标", null, goals.isEmpty() ? "没有指定，所有社群尽量提升" : goalText.toString()));
+        out.add(new Change("目标", null, goals.isEmpty() ? "没有指定，所有社群尽量提升" : goalSummary(goals)));
         out.add(new Change("人格面具", null, profile.personaBonus ? "约会时通常带着同阿尔卡那的" : "不计加成"));
         return out;
+    }
+
+    /** "必须 皇帝、恋爱 · 想要 太阳". */
+    private String goalSummary(List<Integer> goals) {
+        StringBuilder must = new StringBuilder();
+        StringBuilder want = new StringBuilder();
+        for (int g : goals) {
+            StringBuilder target = profile.tier[g] == Profile.Tier.MUST ? must : want;
+            if (target.length() > 0) {
+                target.append("、");
+            }
+            target.append(rules.links[g].arcanaZh);
+        }
+        StringBuilder text = new StringBuilder();
+        if (must.length() > 0) {
+            text.append("必须 ").append(must);
+        }
+        if (want.length() > 0) {
+            text.append(text.length() > 0 ? " · " : "").append("想要 ").append(want);
+        }
+        return text.toString();
     }
 
     /** "10/25 白天" — compact enough for one line in the diff. */

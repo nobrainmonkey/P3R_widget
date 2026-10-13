@@ -301,7 +301,8 @@ public final class ResultActivity extends Activity {
             body.addView(closeButton("好的"), top(20));
             return;
         }
-        if (substitute == null && Intents.MODE_RESULT.equals(mode) && slot > obs.slot) {
+        boolean resultLike = Intents.MODE_RESULT.equals(mode) || Intents.MODE_CATCHUP.equals(mode);
+        if (substitute == null && resultLike && slot > obs.slot) {
             catchUpPanel(step);
             return;
         }
@@ -719,7 +720,7 @@ public final class ResultActivity extends Activity {
 
     private void cannotPanel(Plan.Step step) {
         body.addView(question("这个时段没能按计划进行？"), top(4));
-        body.addView(Ui.muted(this, "选一个原因，这个时段就算过去了，后面的安排会重新调整。"), top(4));
+        body.addView(Ui.muted(this, "选一个原因，这个时段就算过去了，后面会重新安排。"), top(4));
         List<TextView> buttons = new ArrayList<>();
         for (String reason : Outcomes.SKIP_REASONS.keySet()) {
             TextView button = Ui.secondary(this, Outcomes.SKIP_REASONS.get(reason));
