@@ -87,11 +87,29 @@ final class Planner {
             new Heuristics.Tuning(1.0, 1.0, 0.3, 2.5, 0.8, 1.0, 1.0),
             new Heuristics.Tuning(1.0, 1.0, 0.5, 4.0, 0.6, 4.0, 100)};
 
+    /**
+     * Extra tunings screened only when the profile has goals: goals in strict priority order
+     * ({@link Heuristics.Tuning#goalFirst}). When goals compete for the same days the balanced
+     * tunings may share the days out so that no goal makes it; these give every chance to the
+     * first goal, then the next. The objective (goal weights spaced by priority) picks the winner.
+     */
+    static final Heuristics.Tuning[] GOAL_FIRST = {
+            Heuristics.Tuning.DEFAULT.goalFirst(),
+            new Heuristics.Tuning(1.6, 2.0, 0.3, 4.0, 1.0, 4.0, 1.15, true)};
+
+    /** The tunings screened for this profile: {@link #PORTFOLIO}, plus {@link #GOAL_FIRST} when there are goals. */
+    static Heuristics.Tuning[] portfolioFor(Profile profile) {
+        if (!profile.hasAnyGoal()) return PORTFOLIO;
+        Heuristics.Tuning[] all = Arrays.copyOf(PORTFOLIO, PORTFOLIO.length + GOAL_FIRST.length);
+        System.arraycopy(GOAL_FIRST, 0, all, PORTFOLIO.length, GOAL_FIRST.length);
+        return all;
+    }
+
     /** Screened tunings whose fortified rollout runs (best screened objective first) while the budget allows. */
     static final int FORTIFY = 3;
 
     static Plan plan(Rules rules, Profile profile, SimState observed, Plan previous, Engine.Options options) {
-        return plan(rules, profile, observed, previous, options, PORTFOLIO);
+        return plan(rules, profile, observed, previous, options, portfolioFor(profile));
     }
 
     /**
@@ -131,7 +149,8 @@ final class Planner {
             if (best == null || c.score > best.score + EPS) best = c;
             if (keepsPreviousWindow(c.h, start.slot, c.codes) && (bestStable == null || c.score > bestStable.score + EPS)) bestStable = c;
         }
-        int fortify = search ? Math.min(FORTIFY, order.length) : 0;
+        Candidate[] fortifyOrder = search ? fortifyOrder(order, portfolio, profile) : new Candidate[0];
+        int fortify = fortifyOrder.length;
         long fortifyStart = System.nanoTime();
         for (int k = 0; k < fortify; k++) {
             long now = System.nanoTime();
@@ -139,7 +158,7 @@ final class Planner {
                 exhausted = true; // not enough time left for another full rollout
                 break;
             }
-            Candidate base = order[k];
+            Candidate base = fortifyOrder[k];
             Heuristics h = new Heuristics(m, start, previous, portfolio[base.variant]);
             float from = SCREEN_SHARE + (1 - SCREEN_SHARE) * k / fortify;
             Search fortified = new Search(m, h, options, deadline, from, (1 - SCREEN_SHARE) / fortify);
@@ -152,11 +171,36 @@ final class Planner {
         Candidate chosen = bestStable != null && best.score <= bestStable.score + SWITCH_MARGIN ? bestStable : best;
         Plan plan = assemble(m, chosen.h, start, chosen.codes);
         plan.budgetExhausted = exhausted;
+        if (exhausted) plan.summary.notesZh.add(0, options.followUp ? Labels.BUDGET_NOTE_FOLLOW_UP : Labels.BUDGET_NOTE);
         plan.elapsedMillis = (System.nanoTime() - t0) / 1_000_000L;
         plan.createdMillis = System.currentTimeMillis();
         plan.planId = PlanHash.of(rules, profile, start, options, plan);
         if (options.progress != null) options.progress.onProgress(1f);
         return plan;
+    }
+
+    /**
+     * The screened tunings to fortify, in order: the best {@link #FORTIFY} by screened objective,
+     * with the {@link Heuristics.Tuning#goalFirst} ones that are not among them right after the
+     * best (a goal-first base policy often screens below a balanced one that sacrifices the first
+     * goal, while its fortified plan beats it; one goal-first tuning for a single goal, all of them
+     * when goals can compete for the same days).
+     */
+    static Candidate[] fortifyOrder(Candidate[] order, Heuristics.Tuning[] portfolio, Profile profile) {
+        List<Candidate> out = new ArrayList<>();
+        for (int i = 0; i < Math.min(FORTIFY, order.length); i++) out.add(order[i]);
+        int goals = 0;
+        for (int l = 0; l < profile.tier.length; l++) if (profile.isGoal(l)) goals++;
+        int extra = goals == 0 ? 0 : goals == 1 ? 1 : Integer.MAX_VALUE;
+        int at = Math.min(1, out.size());
+        for (Candidate c : order) {
+            if (extra <= 0) break;
+            if (!portfolio[c.variant].goalFirst) continue;
+            extra--;
+            if (out.contains(c)) continue;
+            out.add(at++, c);
+        }
+        return out.toArray(new Candidate[0]);
     }
 
     /** Share of the progress bar used by the screening phase. */
@@ -273,9 +317,9 @@ final class Planner {
             this.scores = new double[buf.length];
         }
 
-        /** Sizes the scratch used by {@link #rollout} for {@code goals} goal links (done by {@link #run}). */
-        void prepareRollouts(int goals) {
-            reachedScratch = new int[goals];
+        /** Sizes the scratch used by {@link #rollout} for a {@code reached} array of that length (done by {@link #run}). */
+        void prepareRollouts(int length) {
+            reachedScratch = new int[length];
         }
 
         /** The base policy's action code per slot from {@code start.slot} to the last slot (no rollouts). */
@@ -380,7 +424,11 @@ final class Planner {
             return Planner.cancelled(options);
         }
 
-        /** Objective J of following {@code codes} from {@code start}. */
+        /**
+         * Objective J of following {@code codes} from {@code start}, less the robustness penalty for
+         * 「其余社群」 links that reach MAX on their last meeting opportunity
+         * ({@link Heuristics#FRAGILE_MAX_PENALTY}): the value complete plans are compared by.
+         */
         double objectiveOf(SimState start, int[] codes) {
             SimState st = start.copy();
             int[] reached = h.initialReached(start);
@@ -389,7 +437,7 @@ final class Planner {
                 Kernel.apply(m, st, code, null);
                 h.track(st, slot, reached);
             }
-            return h.objective(st, reached);
+            return h.objective(st, reached) - Heuristics.FRAGILE_MAX_PENALTY * h.fragileMaxes(st, reached);
         }
 
         /** Scores every legal code into {@link #scores}; returns the index of the base policy's choice. */

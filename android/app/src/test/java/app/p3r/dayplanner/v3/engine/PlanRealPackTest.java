@@ -8,6 +8,7 @@ import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.model.RulesLoader;
 
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -15,7 +16,10 @@ import org.junit.Test;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Integration with the real rule pack {@code assets/p3r/p3r_rules.json} (built by the rules module).
@@ -23,7 +27,9 @@ import java.util.List;
  *
  * <p>Prints, per scenario: plan span, useful actions, maxed links, elapsed time, the first 30 days
  * of the plan in Chinese and the quality metrics of {@link PlanMetrics} (daytimeWaste, jobs, cash
- * on Dec 1 and at the end, the day each link opens, Tartarus visits per block). Asserts full
+ * on Dec 1 and at the end, the day each link opens, Tartarus visits per block), and writes one
+ * markdown table of every scenario (start, span, steps, useful actions, free slots, maxed links,
+ * goal MAX dates, runtime) to {@code android/app/build/plan_metrics.md}. Asserts full
  * coverage, a clean independent validation, useful actions until the last two weeks of January,
  * every Tartarus requirement and rescue, runtime, and the plan-quality benchmarks below as lower
  * bounds (the numbers this planner reaches with default options; the legacy CN walkthrough in
@@ -37,6 +43,9 @@ import java.util.List;
  *   <tr><td>mid game 10/22 (¥1,000, Charm Lv3)</td><td>≥ 12/22 (12/22)</td><td>≤ 3</td></tr>
  *   <tr><td>new game, Persona for goals only (GOALS), 皇帝 MUST + 恋爱/女皇 WANT</td><td>≥ 20/22 (21/22)</td><td>≤ 2</td></tr>
  *   <tr><td>new game, every Link Episode track</td><td>every completable track complete; ≥ 19/22 (21/22)</td><td>0</td></tr>
+ *   <tr><td>mid game 10/22, 皇帝 必须 + 女教皇 想要</td><td>both MAX; ≥ 10/22 (10/22)</td><td>≤ 30 (jobs that pay the goals' notes)</td></tr>
+ *   <tr><td>mid game 10/22, 必须 ① 力量 ② 正义 (either order)</td><td>both MAX (the audit found 力量 9)</td><td>≤ 30</td></tr>
+ *   <tr><td>1/8, 力量 6 + 正义 6, both 必须</td><td>the first goal reaches MAX, the second does not; swapping swaps them</td><td>—</td></tr>
  * </table>
  */
 public class PlanRealPackTest {
@@ -119,6 +128,19 @@ public class PlanRealPackTest {
     @Test
     public void midGameOctober22() {
         Profile profile = new Profile();
+        SimState start = midGameState();
+        Result r = run("中期 · 10月22日 · 魔术师 2、太阳 7、1,000 日元、魅力 Lv.3", profile, start, 3);
+        assertTrue(r.plan.summary.endRanks[link("magician")] > 2);
+        assertTrue("maxed " + r.metrics.maxed, r.metrics.maxed >= 12);
+        // Every chain that can still complete does: the Justice talks, the Devil payments (Charm Lv4 and
+        // ¥40,000 from ¥1,000), the Tower and Moon rumours; Temperance, Star and Aeon open too.
+        for (String id : new String[]{"justice", "devil", "tower", "moon", "temperance", "star", "aeon"}) {
+            assertTrue(id + " never opened", r.plan.summary.endRanks[link(id)] >= 1);
+        }
+    }
+
+    /** The mid-game benchmark state: 10/22 daytime, 1,000 日元, a few links underway, 文吉 rescued. */
+    private static SimState midGameState() {
         SimState start = newGame(dayOf(10, 22));
         start.cash = 1_000;
         start.cashExact = true;
@@ -140,14 +162,98 @@ public class PlanRealPackTest {
         }
         Rules.Block block = rules.blockOn(start.slot >> 1);
         if (block != null) start.towerVisits[block.idx] = 1;
-        Result r = run("中期 · 10月22日 · 魔术师 2、太阳 7、1,000 日元、魅力 Lv.3", profile, start, 3);
-        assertTrue(r.plan.summary.endRanks[link("magician")] > 2);
-        assertTrue("maxed " + r.metrics.maxed, r.metrics.maxed >= 12);
-        // Every chain that can still complete does: the Justice talks, the Devil payments (Charm Lv4 and
-        // ¥40,000 from ¥1,000), the Tower and Moon rumours; Temperance, Star and Aeon open too.
-        for (String id : new String[]{"justice", "devil", "tower", "moon", "temperance", "star", "aeon"}) {
-            assertTrue(id + " never opened", r.plan.summary.endRanks[link(id)] >= 1);
+        return start;
+    }
+
+    /**
+     * Daytime slots a late-game plan with goals may give to jobs while a 「其余社群」 link could be
+     * met: the pay buys the 结缘网站的字条 that bring the goals to MAX in time (goals come first).
+     */
+    private static final int GOAL_WASTE = 30;
+
+    /** 「必须」 goals in this order (order 0, 1, …). */
+    private static Profile must(int... links) {
+        Profile p = new Profile();
+        for (int i = 0; i < links.length; i++) {
+            p.tier[links[i]] = Profile.Tier.MUST;
+            p.order[links[i]] = i;
         }
+        return p;
+    }
+
+    /**
+     * Work order 3, mid game with an explicit goal: 皇帝 必须 and 女教皇 想要 from the 10/22
+     * benchmark state, with the other links as secondary goals. Full coverage and a clean
+     * validation (asserted by {@link #run}), both goals at MAX, and the other links still useful.
+     */
+    @Test
+    public void midGameOctober22WithGoals() {
+        int emperor = link("emperor");
+        int priestess = link("priestess");
+        Profile profile = must(emperor);
+        profile.tier[priestess] = Profile.Tier.WANT;
+        Result r = run("中期 · 10月22日 · 必须：皇帝 · 想要：女教皇 + 其余社群", profile, midGameState(), GOAL_WASTE);
+        assertEquals("皇帝 MAX", 10, r.plan.summary.endRanks[emperor]);
+        assertEquals("女教皇 MAX", 10, r.plan.summary.endRanks[priestess]);
+        assertTrue(r.plan.summary.maxSlot[emperor] < r.plan.summary.maxSlot[priestess]);
+        assertEquals("皇帝：预计 " + noteDate(r.plan.summary.maxSlot[emperor]) + " 升到 MAX", r.plan.summary.notesZh.get(0));
+        assertEquals("女教皇：预计 " + noteDate(r.plan.summary.maxSlot[priestess]) + " 升到 MAX", r.plan.summary.notesZh.get(1));
+        assertTrue("maxed " + r.metrics.maxed, r.metrics.maxed >= 10);
+        System.out.println("皇帝 MAX " + PlanReport.date(rules, r.plan.summary.maxSlot[emperor]) + " · 女教皇 MAX "
+                + PlanReport.date(rules, r.plan.summary.maxSlot[priestess]));
+    }
+
+    /**
+     * Audit case ("maximise explicit goals in priority order"): 必须 ① 力量 ② 正义 from the 10/22
+     * state used to end 力量 9 / 正义 10 with 其余社群 on. Both fit, in either order.
+     */
+    @Test
+    public void twoMustGoalsBothFitInTheMidGame() {
+        int strength = link("strength");
+        int justice = link("justice");
+        Result a = run("中期 · 10月22日 · 必须：①力量 ②正义 + 其余社群", must(strength, justice), midGameState(), GOAL_WASTE);
+        assertEquals(10, a.plan.summary.endRanks[strength]);
+        assertEquals(10, a.plan.summary.endRanks[justice]);
+        Result b = run("中期 · 10月22日 · 必须：①正义 ②力量 + 其余社群", must(justice, strength), midGameState(), GOAL_WASTE);
+        assertEquals(10, b.plan.summary.endRanks[strength]);
+        assertEquals(10, b.plan.summary.endRanks[justice]);
+    }
+
+    /**
+     * Goal order is decisive: from 1/8 with 力量 RANK 6 and 正义 RANK 6, each reaches MAX alone, but
+     * they meet on the same days and only one of them can. Whichever goal is first gets MAX; swapping
+     * the order swaps who gets it, and the note says what this plan did instead of calling the other
+     * goal impossible.
+     */
+    @Test
+    public void goalOrderDecidesWhoGetsMaxWhenTwoMustGoalsCompete() {
+        int strength = link("strength");
+        int justice = link("justice");
+        SimState start = Engine.advanceTo(rules, new Profile(), midGameState(), Rules.slot(dayOf(1, 8), false));
+        start.rank[strength] = 6;
+        start.pts[strength] = 0;
+        start.rank[justice] = 6;
+        start.pts[justice] = 0;
+        assertEquals("力量 alone", 10, run("1月8日 · 力量 6、正义 6 · 必须：力量", must(strength), start, 99).plan.summary.endRanks[strength]);
+        assertEquals("正义 alone", 10, run("1月8日 · 力量 6、正义 6 · 必须：正义", must(justice), start, 99).plan.summary.endRanks[justice]);
+
+        Result sj = run("1月8日 · 力量 6、正义 6 · 必须：①力量 ②正义", must(strength, justice), start, 99);
+        assertEquals(10, sj.plan.summary.endRanks[strength]);
+        assertTrue("正义 " + sj.plan.summary.endRanks[justice], sj.plan.summary.endRanks[justice] < 10);
+        assertEquals("正义：这次的安排里没排到 MAX（先保证了力量），预计停在 RANK " + sj.plan.summary.endRanks[justice],
+                sj.plan.summary.notesZh.get(1));
+
+        Result js = run("1月8日 · 力量 6、正义 6 · 必须：①正义 ②力量", must(justice, strength), start, 99);
+        assertEquals(10, js.plan.summary.endRanks[justice]);
+        assertTrue("力量 " + js.plan.summary.endRanks[strength], js.plan.summary.endRanks[strength] < 10);
+        assertEquals("力量：这次的安排里没排到 MAX（先保证了正义），预计停在 RANK " + js.plan.summary.endRanks[strength],
+                js.plan.summary.notesZh.get(1));
+    }
+
+    /** "12月21日" as the summary notes write a date. */
+    private static String noteDate(int slot) {
+        Rules.Day d = rules.day(slot >> 1);
+        return d.month() + "月" + d.dayOfMonth() + "日";
     }
 
     /** Every multi-step chain (non-consuming side steps, REPORT §0) completes in a new game. */
@@ -375,7 +481,102 @@ public class PlanRealPackTest {
         assertTrue("took " + ms + " ms", ms <= MAX_MILLIS);
         assertFalse("budget exhausted", plan.budgetExhausted);
         assertTrue(plan.planId.equals(Engine.plan(rules, profile, start, null, new Engine.Options()).planId));
+        record(rules, title, profile, start, plan, pm, ms);
         return new Result(plan, pm);
+    }
+
+    // ------------------------------------------------------------------ metrics table (plan_metrics.md)
+
+    /** One row of the metrics table per scenario run. */
+    private static final List<String[]> ROWS = new ArrayList<>();
+
+    private static void record(Rules rules, String title, Profile profile, SimState start, Plan plan, PlanMetrics pm, long ms) {
+        StringBuilder goals = new StringBuilder();
+        for (int l : goalOrder(profile)) {
+            if (goals.length() > 0) goals.append("；");
+            String name = rules.links[l].arcanaZh;
+            int target = Math.max(1, Math.min(10, profile.target[l]));
+            int at = plan.summary.maxSlot[l];
+            if (start.rank[l] >= target) {
+                goals.append(name).append(" 已经 MAX");
+            } else if (plan.summary.endRanks[l] >= target && at >= 0) {
+                goals.append(name).append(' ').append(PlanReport.date(rules, at));
+            } else {
+                goals.append(name).append(" 停在 RANK ").append(plan.summary.endRanks[l]);
+            }
+        }
+        synchronized (ROWS) {
+            ROWS.add(new String[]{title, PlanReport.date(rules, start.slot),
+                    PlanReport.date(rules, plan.fromSlot) + " → " + PlanReport.date(rules, plan.toSlot),
+                    String.valueOf(plan.steps.size()), String.valueOf(plan.summary.usefulActions),
+                    String.valueOf(plan.summary.freeSlots), pm.maxed + "/" + rules.links.length,
+                    goals.length() == 0 ? "—" : goals.toString(), ms + " ms"});
+        }
+    }
+
+    /** Goal links in priority order: 「必须」 then 「想要」, each by order. */
+    private static List<Integer> goalOrder(Profile p) {
+        List<Integer> out = new ArrayList<>();
+        for (Profile.Tier tier : new Profile.Tier[]{Profile.Tier.MUST, Profile.Tier.WANT}) {
+            List<Integer> part = new ArrayList<>();
+            for (int l = 0; l < p.tier.length; l++) if (p.tier[l] == tier) part.add(l);
+            part.sort((a, b) -> p.order[a] != p.order[b] ? Integer.compare(p.order[a], p.order[b]) : Integer.compare(a, b));
+            out.addAll(part);
+        }
+        return out;
+    }
+
+    /**
+     * Writes {@code build/plan_metrics.md} of the app module (the integrator commits it): one row per
+     * scenario run on the real pack, sorted by start date then title, so only the runtimes change
+     * from run to run.
+     */
+    @AfterClass
+    public static void writeMetrics() throws Exception {
+        List<String[]> rows;
+        synchronized (ROWS) {
+            rows = new ArrayList<>(ROWS);
+        }
+        if (rows.isEmpty() || rules == null || packJson == null) return;
+        rows.sort((a, b) -> {
+            int c = Integer.compare(dateKey(a[1]), dateKey(b[1]));
+            return c != 0 ? c : a[0].compareTo(b[0]);
+        });
+        StringBuilder md = new StringBuilder();
+        md.append("# 安排质量（真实规则包）\n\n");
+        md.append("由 `PlanRealPackTest` 生成：规则包 ").append(rules.packVersion)
+                .append("，默认选项（时间预算 2.5 秒），桌面 JVM，用时随机器而变。")
+                .append("每个场景都排到 1月31日，并通过独立校验（PlanValidator）。\n\n");
+        md.append("| 场景 | 开始 | 安排范围 | 步数 | 要做的事 | 自由活动 | MAX 社群 | 目标升到 MAX | 用时 |\n");
+        md.append("|---|---|---|---|---|---|---|---|---|\n");
+        for (String[] r : rows) {
+            md.append('|');
+            for (String cell : r) md.append(' ').append(cell.replace("|", "／")).append(" |");
+            md.append('\n');
+        }
+        File out = metricsFile();
+        File parent = out.getAbsoluteFile().getParentFile();
+        if (parent != null && !parent.isDirectory() && !parent.mkdirs()) return;
+        Files.write(out.toPath(), md.toString().getBytes(StandardCharsets.UTF_8));
+        System.out.println("plan metrics: " + out.getAbsolutePath());
+    }
+
+    /** Sort key of a "10月22日 白天" cell, April first. */
+    private static int dateKey(String date) {
+        Matcher m = Pattern.compile("(\\d+)月(\\d+)日 (白天|晚上)").matcher(date);
+        if (!m.find()) return Integer.MAX_VALUE;
+        int month = Integer.parseInt(m.group(1));
+        int key = (month < 4 ? month + 12 : month) * 100 + Integer.parseInt(m.group(2));
+        return key * 2 + ("晚上".equals(m.group(3)) ? 1 : 0);
+    }
+
+    /** {@code android/app/build/plan_metrics.md}, wherever Gradle runs the tests from. */
+    private static File metricsFile() {
+        String override = System.getProperty("p3r.metrics.out");
+        if (override != null && !override.isEmpty()) return new File(override);
+        if (new File("src/main/assets/p3r").isDirectory()) return new File("build/plan_metrics.md");
+        if (new File("app/src/main/assets/p3r").isDirectory()) return new File("app/build/plan_metrics.md");
+        return new File("android/app/build/plan_metrics.md");
     }
 
     /** A copy of the pack that a scenario may extend without touching {@link #rules}. */

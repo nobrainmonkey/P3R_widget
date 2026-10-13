@@ -137,6 +137,14 @@ public interface PlannerApi {
         /** Rescue id confirmed during this visit, or null. */
         public String rescuedId;
         /**
+         * 「不记得钱了」: the player does not know the cash after the visit. Sent with
+         * {@code balanceMode = false} and {@code amount = 0} (anything else is refused); the cash
+         * stays as before the visit as a lower bound ({@code SimState.cashExact} becomes false) and
+         * the visit is left out of the tower income estimate. Payload key {@code cashUnknown}; a
+         * correction carries its own value.
+         */
+        public boolean cashUnknown;
+        /**
          * False when the player says the slot's side steps (the plan's "顺便：…" lines) were not
          * done; they are applied with the visit otherwise. Kept from the original record by
          * {@code correctTower}.

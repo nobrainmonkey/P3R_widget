@@ -44,6 +44,14 @@ final class PlanHash {
         for (String e : p.episodeTracks) str(e);
         str(p.answers.name()).num(p.towerVisitsPerBlock).num(p.towerCapPerBlock).num(p.cashBuffer);
         for (String e : p.excludedActivities) str(e);
+        // Added in 3.0.1; left out while unset so earlier plan ids stay the same.
+        if (!p.towerCapByBlock.isEmpty() || !p.towerVisitsByBlock.isEmpty() || p.christmasTaken()) {
+            str("blocks");
+            for (java.util.Map.Entry<String, Integer> e : new java.util.TreeMap<>(p.towerCapByBlock).entrySet()) str(e.getKey()).num(e.getValue() == null ? -1 : e.getValue());
+            str("visits");
+            for (java.util.Map.Entry<String, Integer> e : new java.util.TreeMap<>(p.towerVisitsByBlock).entrySet()) str(e.getKey()).num(e.getValue() == null ? -1 : e.getValue());
+            str(p.christmasTaken() ? p.christmasLink.trim() : null);
+        }
         return this;
     }
 

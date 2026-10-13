@@ -178,6 +178,7 @@ final class HistoryText {
         t.amount = rec.amount;
         t.level = rec.level;
         t.rescuedId = rec.rescuedId;
+        t.cashUnknown = rec.cashUnknown;
         t.sideDone = rec.sideDone;
         t.sideKeys = rec.side == null ? null : new ArrayList<>(rec.side);
         return t;
@@ -296,7 +297,7 @@ final class HistoryText {
             case EPISODE:
                 return episodeTitle(rules, action.target, traced == null ? -1 : episodeNumber(traced.before, action.target));
             case LOCKED: {
-                String reason = rules.lockReasonsZh.get(action.reason);
+                String reason = rules.lockReasonZh(action.reason);
                 return reason != null ? reason : "剧情";
             }
             default:
@@ -420,7 +421,9 @@ final class HistoryText {
     /** "到达 27F · 出塔后余额 14,750 日元 · 救出了北村文吉". */
     static String towerDetails(Rules rules, TowerRecord rec) {
         String cash;
-        if (rec.balanceMode) {
+        if (rec.cashUnknown) {
+            cash = "不记得钱了，现金按没变记";
+        } else if (rec.balanceMode) {
             cash = "出塔后余额 " + ZhText.yen(rec.amount);
         } else if (rec.amount > 0) {
             cash = "多了 " + ZhText.yen(rec.amount);

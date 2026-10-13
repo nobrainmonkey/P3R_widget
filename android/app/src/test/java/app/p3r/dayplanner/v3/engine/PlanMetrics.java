@@ -60,7 +60,8 @@ final class PlanMetrics {
         for (int l = 0; l < t.nLinks; l++) pm.unlockDay[l] = st.rank[l] > 0 ? -2 : -1;
         for (int b = 0; b < t.nBlocks; b++) {
             int open = t.towerRemain[b][st.slot] + st.towerVisits[b];
-            pm.towerRequired[b] = Math.min(Math.min(profile.towerVisitsPerBlock, profile.towerCapPerBlock), open);
+            String id = rules.blocks[b].id;
+            pm.towerRequired[b] = Math.min(Math.min(profile.visitsFor(id), profile.capFor(id)), open);
         }
         for (int i = 0; i < t.nRescues; i++) {
             int l = t.rescueLink[i];
@@ -69,7 +70,7 @@ final class PlanMetrics {
             boolean possible = false;
             for (int s = Math.max(st.slot, t.rescueFrom[i] * 2); s <= Math.min(t.lastSlot, t.rescueTo[i] * 2 + 1); s++) {
                 int b = t.towerBlock[s];
-                if (b >= 0 && st.towerVisits[b] < profile.towerCapPerBlock) possible = true;
+                if (b >= 0 && st.towerVisits[b] < profile.capFor(rules.blocks[b].id)) possible = true;
             }
             if (open && possible && l >= 0 && l < t.nLinks && st.rank[l] < 10 && (m.goal[l] || profile.otherLinks)) {
                 pm.rescueNeeded |= 1L << i;

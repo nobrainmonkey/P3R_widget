@@ -28,6 +28,9 @@ import java.util.function.LongSupplier;
  *   <li>A write during a computation cancels it early through {@code Engine.Options.cancelled}
  *       (its result would be discarded anyway). Only computations for older revisions are
  *       cancelled, so a late cancel can never hit the computation for the latest state.</li>
+ *   <li>Follow-up: when the installed plan ran out of time ({@link Plan#budgetExhausted}), the
+ *       host queues exactly one more computation for the same revisions with twice the budget
+ *       ({@link Job#followUp}) and installs its result only if it is complete or better.</li>
  * </ul>
  */
 final class ReplanWorker {
@@ -42,6 +45,11 @@ final class ReplanWorker {
         long stateRevision;
         long profileRevision;
         Engine.Options options;
+        /**
+         * The one extra computation, with twice the time budget, that follows an installed plan
+         * which ran out of time ({@link Plan#budgetExhausted}) for the same revisions.
+         */
+        boolean followUp;
     }
 
     /** The service side of the worker. */

@@ -5,6 +5,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Player goals and planning options (persisted as JSON in the {@code profile} table).
@@ -49,6 +52,23 @@ public final class Profile {
     public int towerVisitsPerBlock = 2;
     /** Hard cap of Tartarus visits per block (≥ towerVisitsPerBlock). */
     public int towerCapPerBlock = 4;
+    /**
+     * Per-block hard caps (block id → cap ≥ 0). A block without an entry uses
+     * {@link #towerCapPerBlock}; read through {@link #capFor}. JSON key {@code towerCapByBlock}.
+     */
+    public Map<String, Integer> towerCapByBlock = new TreeMap<>();
+    /**
+     * Per-block wanted visits (block id → visits ≥ 0). A block without an entry uses
+     * {@link #towerVisitsPerBlock}; read through {@link #visitsFor}. The planner schedules
+     * {@code min(visitsFor, capFor)} visits. JSON key {@code towerVisitsByBlock}.
+     */
+    public Map<String, Integer> towerVisitsByBlock = new TreeMap<>();
+    /**
+     * Link id of the 12/24 invitation the player accepted, or null when every invitation is
+     * declined (the default, DESIGN §10.5). When set, the daytime and the evening of 12/24 are
+     * taken (lock reason {@link Rules#LOCK_CHRISTMAS}, 「平安夜约会」). JSON key {@code christmasLink}.
+     */
+    public String christmasLink;
     /** Keep at least this much cash when choosing optional purchases. */
     public int cashBuffer = 0;
     /** Activity ids the player does not want scheduled. */
@@ -61,6 +81,45 @@ public final class Profile {
     }
 
     public boolean isGoal(int link) { return tier[link] != Tier.NONE; }
+
+    /**
+     * The player chose the romance route with this link. {@link Route#UNDECIDED} (the default)
+     * counts as the friend route: the planner never assumes romance on its own.
+     */
+    public boolean romance(int link) {
+        return link >= 0 && link < route.length && route[link] == Route.ROMANCE;
+    }
+
+    /** Hard cap of Tartarus visits in the block with this id (its own entry, else {@link #towerCapPerBlock}). */
+    public int capFor(String blockId) {
+        Integer v = blockId == null ? null : towerCapByBlock.get(blockId);
+        return Math.max(0, v != null ? v : towerCapPerBlock);
+    }
+
+    /**
+     * Wanted Tartarus visits in the block with this id (its own entry, else
+     * {@link #towerVisitsPerBlock}); the planner schedules at most {@link #capFor} of them.
+     */
+    public int visitsFor(String blockId) {
+        Integer v = blockId == null ? null : towerVisitsByBlock.get(blockId);
+        return Math.max(0, v != null ? v : towerVisitsPerBlock);
+    }
+
+    /** A 12/24 invitation was accepted ({@link #christmasLink} set). */
+    public boolean christmasTaken() {
+        return christmasLink != null && !christmasLink.trim().isEmpty();
+    }
+
+    /**
+     * Lock reason of {@code slot} under this profile: the pack's lock, else
+     * {@link Rules#LOCK_CHRISTMAS} for both slots of 12/24 when an invitation was accepted, else
+     * null (free). Labels: {@link Rules#lockReasonZh}.
+     */
+    public String lockOf(Rules rules, int slot) {
+        String lock = rules.lockOf(slot);
+        if (lock != null || !christmasTaken()) return lock;
+        return Rules.dayOf(slot) == rules.christmasEveDay() ? Rules.LOCK_CHRISTMAS : null;
+    }
 
     /** True if meetings with this link get the matching-Persona bonus under the current mode. */
     public boolean personaFor(int link) {
@@ -118,6 +177,9 @@ public final class Profile {
         o.put("towerVisitsPerBlock", towerVisitsPerBlock);
         o.put("towerCapPerBlock", towerCapPerBlock);
         o.put("cashBuffer", cashBuffer);
+        o.put("towerCapByBlock", blockMap(towerCapByBlock));
+        o.put("towerVisitsByBlock", blockMap(towerVisitsByBlock));
+        if (christmasTaken()) o.put("christmasLink", christmasLink.trim());
         JSONArray ex = new JSONArray();
         for (String s : excludedActivities) ex.put(s);
         o.put("excludedActivities", ex);
@@ -152,11 +214,34 @@ public final class Profile {
         p.towerVisitsPerBlock = Math.max(0, o.optInt("towerVisitsPerBlock", 2));
         p.towerCapPerBlock = Math.max(p.towerVisitsPerBlock, o.optInt("towerCapPerBlock", 4));
         p.cashBuffer = Math.max(0, o.optInt("cashBuffer", 0));
+        readBlockMap(o.optJSONObject("towerCapByBlock"), p.towerCapByBlock);
+        readBlockMap(o.optJSONObject("towerVisitsByBlock"), p.towerVisitsByBlock);
+        String christmas = o.isNull("christmasLink") ? null : o.optString("christmasLink", "").trim();
+        p.christmasLink = christmas == null || christmas.isEmpty() ? null : christmas;
         JSONArray ex = o.optJSONArray("excludedActivities");
         if (ex != null) {
             p.excludedActivities = new String[ex.length()];
             for (int i = 0; i < ex.length(); i++) p.excludedActivities[i] = ex.getString(i);
         }
         return p;
+    }
+
+    private static JSONObject blockMap(Map<String, Integer> map) throws JSONException {
+        JSONObject o = new JSONObject();
+        for (Map.Entry<String, Integer> e : new TreeMap<>(map).entrySet()) {
+            if (e.getKey() != null && e.getValue() != null) o.put(e.getKey(), Math.max(0, e.getValue()));
+        }
+        return o;
+    }
+
+    /** Reads a block id → count object; non-numeric entries are skipped, negatives become 0. */
+    private static void readBlockMap(JSONObject o, Map<String, Integer> into) {
+        if (o == null) return;
+        for (Iterator<String> it = o.keys(); it.hasNext(); ) {
+            String key = it.next();
+            Object v = o.opt(key);
+            if (key == null || key.isEmpty() || !(v instanceof Number)) continue;
+            into.put(key, Math.max(0, ((Number) v).intValue()));
+        }
     }
 }

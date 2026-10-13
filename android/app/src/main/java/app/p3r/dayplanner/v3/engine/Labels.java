@@ -9,7 +9,8 @@ import java.util.Locale;
 
 /**
  * User-facing Simplified Chinese copy for plan steps and the plan summary, following
- * docs/GLOSSARY_zh.md: 社群 / RANK / 升到 MAX, 解锁 (never 开启), 见面, 安排, 学力/魅力/勇气 Lv.1–Lv.5
+ * docs/GLOSSARY_zh.md: 社群 / RANK / 升到 MAX, 解锁 (never 开启), 见面 (休息日邀约; 约会 only in
+ * 「平安夜约会」), 安排, 学力/魅力/勇气 Lv.1–Lv.5
  * then MAX, 探索塔尔塔罗斯 / 区块, 自由活动, 结缘网站的字条, 羁绊剧情, amounts as "2,500 日元".
  * Never shows ids or English. Sentences about where someone is use the person's name (an arcana
  * name is only used as a label, or as "X社群" for links of several people).
@@ -23,6 +24,18 @@ final class Labels {
     static final String FREE_TITLE = "自由活动";
     static final String NOTE_NAME = "结缘网站的字条";
     static final String EPISODE_NAME = "羁绊剧情";
+    /**
+     * First summary note of a plan whose time budget ran out ({@link Plan#budgetExhausted}): the
+     * service computes it once more with a larger budget (DESIGN §10.6).
+     */
+    static final String BUDGET_NOTE = "这次没来得及算完，稍后会自动再算一次";
+    /** The same for that second computation ({@link Engine.Options#followUp}): no further automatic run. */
+    static final String BUDGET_NOTE_FOLLOW_UP = "这次没来得及算完，记下一个结果后会重新安排";
+    /**
+     * A Sunday or holiday outing invitation (docs/GLOSSARY_zh.md: the official achievement text
+     * 「休息日的出游邀请短信」; never 假日邀约 / 节日邀约).
+     */
+    static final String INVITE = "休息日邀约";
     /** The result-sheet answer for a story hold the player reports (outcome NOT_DONE, reason "hold"). */
     static final String HOLD_ANSWER = "剧情原因暂时升不了";
 
@@ -99,10 +112,18 @@ final class Labels {
     }
 
     String lockTitle(String reason) {
-        String zh = reason == null ? null : rules.lockReasonsZh.get(reason);
+        // Rules.lockReasonZh also labels the reasons the engine adds itself (平安夜约会).
+        String zh = rules.lockReasonZh(reason);
         if (!blank(zh)) return zh;
         if ("out_of_range".equals(reason)) return "不在安排的日期内";
         return "剧情事件";
+    }
+
+    /** Person of the accepted 12/24 invitation ({@link Profile#christmasLink}), or null. */
+    private String christmasPartner() {
+        String id = m.profile.christmasLink;
+        int l = id == null ? -1 : rules.linkIndex(id.trim());
+        return l < 0 ? null : who(l);
     }
 
     private static boolean blank(String s) {
@@ -203,6 +224,13 @@ final class Labels {
     void describeLocked(Plan.Step step, String reason) {
         step.kind = "locked";
         step.titleZh = lockTitle(reason);
+        if (Rules.LOCK_CHRISTMAS.equals(reason)) {
+            // The day's own note says invitations are declined by default; this player accepted one.
+            step.subtitleZh = "这段时间不能自由行动";
+            String with = christmasPartner();
+            step.detailZh = with == null ? "已经答应了平安夜的邀约" : "已经答应了" + with + "的平安夜邀约";
+            return;
+        }
         Rules.Day d = rules.day(step.slot >> 1);
         String note = d == null || blank(d.noteZh) ? null : d.noteZh.trim();
         if ("reserved".equals(reason) && note != null) {
@@ -219,7 +247,7 @@ final class Labels {
         step.entity = link.id;
         step.titleZh = linkLabel(l);
         step.locationZh = fx.invite ? "应邀外出" : link.locationZh;
-        String invite = fx.invite ? "假日邀约 · " : "";
+        String invite = fx.invite ? INVITE + " · " : "";
         if (fx.rankUp) {
             step.subtitleZh = invite + "RANK " + rankName(fx.rankFrom) + " → " + rankName(fx.rankTo);
         } else if (fx.held) {
@@ -233,7 +261,7 @@ final class Labels {
     }
 
     private String meetWhy(SimState st, int l, Kernel.Effect fx) {
-        if (fx.invite) return "对方发来了假日邀约，赴约也算一次见面";
+        if (fx.invite) return "对方发来了" + INVITE + "，赴约也算一次见面";
         if (fx.held) return holdWhy(st, l);
         double pressure = h.pressure(st, l);
         if (pressure >= 0.6 && pressure < Heuristics.INF) return scarceWhy(l, st.slot >> 1);
@@ -581,14 +609,17 @@ final class Labels {
             if (Kernel.lost(m, end, l, endDay)) {
                 out.add(arcana(l) + "：没能及时救出" + rescuedPerson(l) + "，社群无法继续");
             } else if (end.rank[l] == 0) {
+                // A heuristic plan never proves a goal impossible: say what this plan does, not why it must be so.
                 String gate = unmetGate(end, l);
-                out.add(arcana(l) + "：" + (gate != null ? "来不及满足解锁条件（需要" + gate + "）" : "时间太紧，这次没能安排解锁"));
+                out.add(arcana(l) + "：" + (gate != null ? "这次的安排里还没满足解锁条件（需要" + gate + "）" : "这次的安排里还没排上解锁"));
             } else if (openEndedHold(end, l) != null) {
                 out.add(arcana(l) + "：" + openEndedHold(end, l) + "，先安排到 RANK " + rankName(end.rank[l]));
             } else {
-                String higher = higherGoal(goals, gi, l);
-                out.add(arcana(l) + "：时间不够，预计停在 RANK " + rankName(end.rank[l])
-                        + (higher == null ? "" : "，" + higher + "排在前面"));
+                String higher = higherGoal(goals, gi, l, end);
+                String stop = "RANK " + rankName(end.rank[l]);
+                out.add(arcana(l) + "：" + (higher != null
+                        ? "这次的安排里没排到 " + what + "（先保证了" + higher + "），预计停在 " + stop
+                        : "按这次的安排预计停在 " + stop));
             }
         }
         if (p.otherLinks) {
@@ -598,11 +629,14 @@ final class Labels {
         }
         episodeNotes(plan, start, end, out);
         for (int b = 0; b < h.t.nBlocks; b++) {
-            int want = Math.min(p.towerVisitsPerBlock, m.towerCap);
+            int want = m.towerWant[b];
             int open = h.t.towerRemain[b][start.slot] + start.towerVisits[b];
             if (want > 0 && open < want && h.t.towerRemain[b][start.slot] > 0) {
                 out.add(rules.blocks[b].zh + "：只剩 " + open + " 个晚上能去塔尔塔罗斯，不够想去的 " + want + " 次");
             }
+        }
+        if (paysUnlockFees(plan)) {
+            out.add("需要付钱解锁的社群，安排会在付钱前尽量多留 " + yen(Heuristics.FEE_RESERVE));
         }
         int notesPlanned = 0;
         for (Plan.Step s : plan.steps) if (s.action != null && s.action.startsWith("note:")) notesPlanned++;
@@ -624,6 +658,24 @@ final class Labels {
         } else {
             out.add("升级时间按每次普通见面约 " + m.ordinaryGain + " 点好感（约 ♪♪）估计");
         }
+    }
+
+    /** The plan pays an unlock fee (a paid unlock step as the action or on the side). */
+    private boolean paysUnlockFees(Plan plan) {
+        for (Plan.Step s : plan.steps) {
+            if (feeOf(s.action) > 0) return true;
+            for (String side : s.side) if (feeOf(side) > 0) return true;
+        }
+        return false;
+    }
+
+    /** Fee of an unlock step key ("unlock:devil:0"), else 0. */
+    private long feeOf(String key) {
+        if (key == null || !key.startsWith("unlock:")) return 0;
+        Action a = Action.parse(rules, key);
+        if (a == null || a.type != Action.Type.UNLOCK_STEP) return 0;
+        List<Rules.Step> steps = rules.links[a.target].unlock.steps;
+        return a.step >= 0 && a.step < steps.size() ? Math.max(0, steps.get(a.step).cost) : 0;
     }
 
     /** One line per opted-in Link Episode track: when it is finished, or how far it gets. */
@@ -651,11 +703,11 @@ final class Labels {
                 for (Plan.Step s : plan.steps) if (key.equals(s.action)) last = s.slot;
                 out.add(head + (last >= 0 ? "预计 " + date(last >> 1) + " 看完全部 " + count + " 话" : "预计能看完全部 " + count + " 话"));
             } else if (seenEnd > seenStart) {
-                out.add(head + "预计能看到第 " + seenEnd + " 话（共 " + count + " 话），后面几话的日子排不开");
+                out.add(head + "预计能看到第 " + seenEnd + " 话（共 " + count + " 话），这次的安排里没排上后面几话");
             } else if (!episodeStillPossible(ep, seenStart + 1, start.slot >> 1)) {
                 out.add(head + "第 " + (seenStart + 1) + " 话能看的日子已经过了；如果已经看过，请在「修改进度」里填上已看几话");
             } else {
-                out.add(head + "能看的日子排不开，这次没能安排");
+                out.add(head + "这次的安排里没排上");
             }
         }
     }
@@ -700,12 +752,20 @@ final class Labels {
         return out;
     }
 
-    private String higherGoal(Integer[] goals, int index, int l) {
+    /**
+     * The goal placed before {@code goals[index]} that shares its slot kind (daytime or evening),
+     * preferring one that reaches its target in this plan, or null.
+     */
+    private String higherGoal(Integer[] goals, int index, int l, SimState end) {
         boolean eve = rules.links[l].evening;
+        String fallback = null;
         for (int i = index - 1; i >= 0; i--) {
-            if (rules.links[goals[i]].evening == eve) return arcana(goals[i]);
+            int g = goals[i];
+            if (rules.links[g].evening != eve) continue;
+            if (end.rank[g] >= h.target[g]) return arcana(g);
+            if (fallback == null) fallback = arcana(g);
         }
-        return null;
+        return fallback;
     }
 
     /** "学力 Lv.3" / "魅力 MAX" / "皇帝 RANK 1" for the first unmet unlock condition, or null. */

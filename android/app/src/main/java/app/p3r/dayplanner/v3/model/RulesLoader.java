@@ -189,6 +189,7 @@ public final class RulesLoader {
                 s.url = optString(o, "url", where);
                 s.kind = optString(o, "kind", where);
                 s.sha256 = optString(o, "sha256", where);
+                s.edition = optString(o, "edition", where);
                 s.note = optString(o, "note", where);
                 String edition = reqString(o, "edition", where);
                 if (!EDITIONS.contains(edition)) {

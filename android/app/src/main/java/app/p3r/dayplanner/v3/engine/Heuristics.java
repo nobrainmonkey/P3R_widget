@@ -96,7 +96,46 @@ final class Heuristics {
     static final double EPISODE_FINISH = 4_000;
     /** Share of a meeting's value a dating-site note keeps in H (its points are only an estimate). */
     static final double NOTE_SHARE = 0.9;
+    /**
+     * Robustness (handoff: "prefer less fragile routes"): a 「其余社群」 link planned to MAX on its
+     * last calendar meeting opportunity loses the MAX if one meeting ranks up later than estimated;
+     * with one opportunity to spare a replan can still catch up. Complete plans (the tunings of the
+     * portfolio) are compared with this much subtracted per such fragile MAX: a fifth of a RANK, so
+     * it decides between otherwise close plans and never trades a RANK for slack. It is left out of
+     * the rollouts, where it would steer the search (measured on the real pack: fewer ranks, no
+     * gain in a lower-gain replay). Goals have their own margin (Profile.goalBuffer) and an
+     * earlier-MAX bonus.
+     */
+    static final double FRAGILE_MAX_PENALTY = 0.2 * W_OTHER;
+    /**
+     * Cash kept ahead of a mandatory unlock fee (Devil payments, the Hanged Man gift): the money
+     * need of an upcoming fee is the fee plus this reserve (the pay of one café shift), so evening
+     * jobs earn a little more than the fee and paid training and notes do not eat into it. A
+     * planning preference only: the fee itself is legal as soon as the cash covers it
+     * (Kernel.unlockGroup / sideLegal), and Profile.cashBuffer still guards optional spends.
+     */
+    static final long FEE_RESERVE = 2_500;
     private static final int MAX_GATES = 64;
+    /**
+     * Weight per RANK of the first 「必须」 goal is {@code MUST_BASE + MUST_STEP·(n−1)} for n
+     * 「必须」 goals, and every later one weighs {@link #MUST_STEP} less, down to {@code MUST_BASE}
+     * for the last: with the MAX bonus (6 ranks' worth) a goal's MAX outweighs the next goal's MAX
+     * by {@code 7·MUST_STEP}, so when two goals compete for the same days the earlier one wins.
+     * 「想要」 goals are spaced the same way far below (at most 50,000 for 22 goals).
+     */
+    static final double MUST_BASE = 100_000;
+    static final double MUST_STEP = 25_000;
+    static final double WANT_BASE = 8_000;
+    static final double WANT_STEP = 2_000;
+    /**
+     * H of a meeting or unlock step that moves a goal towards its target under a
+     * {@link Tuning#goalFirst} tuning: above a rescue visit (200,000), below a mandatory Tartarus
+     * visit ({@link #MANDATORY}); each place in the goal order adds {@link #GOAL_FIRST_STEP}.
+     */
+    static final double GOAL_FIRST = 300_000;
+    static final double GOAL_FIRST_STEP = 1_000;
+    /** Like {@link #GOAL_FIRST} for a dating-site note that adds points to a goal (below a rescue visit). */
+    static final double GOAL_FIRST_NOTE = 150_000;
 
     /**
      * Knobs of the base policy. The planner runs a small portfolio of tunings and keeps the plan with
@@ -117,9 +156,21 @@ final class Heuristics {
         final double feeWeight;
         /** Share of a slot kind's open slots the admitted links' demand may fill (admission control). */
         final double admitShare;
+        /**
+         * Goals in strict priority order: a meeting or unlock step that moves a goal towards its
+         * target beats every other action except a mandatory Tartarus visit, and a higher goal beats
+         * a lower one ({@link #GOAL_FIRST}). Lexicographic, so the first goal gets every chance it
+         * can use; the balanced tunings of the portfolio cover the plans where every goal fits.
+         */
+        final boolean goalFirst;
 
         Tuning(double statWeight, double moneyWeight, double patience, double openSlack, double eveShare, double feeWeight,
                double admitShare) {
+            this(statWeight, moneyWeight, patience, openSlack, eveShare, feeWeight, admitShare, false);
+        }
+
+        Tuning(double statWeight, double moneyWeight, double patience, double openSlack, double eveShare, double feeWeight,
+               double admitShare, boolean goalFirst) {
             this.statWeight = statWeight;
             this.moneyWeight = moneyWeight;
             this.patience = patience;
@@ -127,6 +178,12 @@ final class Heuristics {
             this.eveShare = eveShare;
             this.feeWeight = feeWeight;
             this.admitShare = admitShare;
+            this.goalFirst = goalFirst;
+        }
+
+        /** The same knobs with goals in strict priority order. */
+        Tuning goalFirst() {
+            return new Tuning(statWeight, moneyWeight, patience, openSlack, eveShare, feeWeight, admitShare, true);
         }
 
         /** The best all-round tuning on the real pack's benchmark states (first in the portfolio). */
@@ -134,7 +191,7 @@ final class Heuristics {
 
         @Override public String toString() {
             return "Tuning(" + statWeight + ", " + moneyWeight + ", " + patience + ", " + openSlack + ", " + eveShare + ", "
-                    + feeWeight + ", " + admitShare + ")";
+                    + feeWeight + ", " + admitShare + (goalFirst ? ", goalFirst" : "") + ")";
         }
     }
 
@@ -152,6 +209,8 @@ final class Heuristics {
     /** [link][rank] cumulative objective value of having that rank. */
     final double[][] val;
     final int[] goalLinks;
+    /** Place of each goal in the priority order (「必须」 by order, then 「想要」 by order), -1 for non-goals. */
+    final int[] goalRank;
     /** The plan wants the link at all (a goal, or every link when 其余社群 is on). */
     final boolean[] wanted;
 
@@ -256,13 +315,24 @@ final class Heuristics {
         wOther = p.otherLinks ? W_OTHER : 0;
         int[] mustOrder = tierOrder(p, Profile.Tier.MUST);
         int[] wantOrder = tierOrder(p, Profile.Tier.WANT);
+        int nMust = 0;
+        int nWant = 0;
+        for (int l = 0; l < n; l++) {
+            if (!m.goal[l]) continue;
+            if (p.tier[l] == Profile.Tier.MUST) nMust++;
+            else nWant++;
+        }
         int goals = 0;
+        goalRank = new int[n];
+        Arrays.fill(goalRank, -1);
         for (int l = 0; l < n; l++) {
             target[l] = m.target(l);
             wanted[l] = m.goal[l] || p.otherLinks;
             if (!m.goal[l]) continue;
             goals++;
-            wGoal[l] = p.tier[l] == Profile.Tier.MUST ? 100_000 - 100.0 * mustOrder[l] : 8_000 - 10.0 * wantOrder[l];
+            boolean must = p.tier[l] == Profile.Tier.MUST;
+            wGoal[l] = must ? MUST_BASE + MUST_STEP * (nMust - 1 - mustOrder[l]) : WANT_BASE + WANT_STEP * (nWant - 1 - wantOrder[l]);
+            goalRank[l] = must ? mustOrder[l] : nMust + wantOrder[l];
         }
         goalLinks = new int[goals];
         for (int l = 0, i = 0; l < n; l++) if (m.goal[l]) goalLinks[i++] = l;
@@ -319,8 +389,7 @@ final class Heuristics {
         towerTarget = new int[t.nBlocks];
         for (int b = 0; b < t.nBlocks; b++) {
             int open = t.towerRemain[b][startSlot];
-            int want = Math.min(p.towerVisitsPerBlock, m.towerCap);
-            towerTarget[b] = Math.min(want, start.towerVisits[b] + open);
+            towerTarget[b] = Math.min(m.towerWant[b], start.towerVisits[b] + open);
         }
         rescueMatters = new boolean[t.nRescues];
         for (int i = 0; i < t.nRescues; i++) {
@@ -601,7 +670,7 @@ final class Heuristics {
                 for (int j = k; j < steps.size(); j++) cost += Math.max(0, steps.get(j).cost);
                 if (cost > 0) {
                     double perYen = v / Math.max(1.0, load[kind(l)]) * (statsMet ? 1.0 : 0.6) / cost;
-                    addNeed(cost, tuning.feeWeight * Math.min(MAX_FEE_YEN_VALUE, perYen), true);
+                    addNeed(cost + feeReserve(cost), tuning.feeWeight * Math.min(MAX_FEE_YEN_VALUE, perYen), true);
                 }
             }
         }
@@ -616,6 +685,7 @@ final class Heuristics {
         double trainYen = tuning.moneyWeight * Math.max(0.0005, Math.min(MAX_STAT_YEN_VALUE, statYen));
         if (training > 0) addNeed(training, trainYen, false);
         if (m.cashBuffer > 0) addNeed(m.cashBuffer, trainYen, true);
+        if (tuning.goalFirst) addGoalNoteNeed(st, day);
         spareYen = 0.05 * trainYen;
         sortNeeds();
         long reserve = 0;
@@ -628,6 +698,30 @@ final class Heuristics {
         return rules.links[l].evening ? 1 : 0;
     }
 
+    /** Reserve kept on top of unlock fees totalling {@code fee} yen ({@link #FEE_RESERVE}, none without a fee). */
+    static long feeReserve(long fee) {
+        return fee <= 0 ? 0 : FEE_RESERVE;
+    }
+
+    /** Dating-site notes a {@link Tuning#goalFirst} plan saves up for (about a week of evenings). */
+    static final int GOAL_NOTES_AHEAD = 3;
+
+    /**
+     * {@link Tuning#goalFirst}: while a goal still needs points and dating-site notes are (about to
+     * be) on sale, the price of the next few notes is a money need worth as much per yen as an
+     * unlock fee, so evening jobs pay for the notes that bring the goals to their targets.
+     */
+    private void addGoalNoteNeed(SimState st, int day) {
+        Rules.DatingNote note = m.note;
+        if (note == null || note.cost <= 0 || day < note.fromDay - MONEY_LOOKAHEAD_DAYS || st.notesUsed >= m.noteMaxUses) return;
+        for (int l : goalLinks) {
+            if (st.rank[l] >= 1 && st.rank[l] < target[l] && demand[l] > 0) {
+                addNeed((long) note.cost * GOAL_NOTES_AHEAD, MAX_FEE_YEN_VALUE, true);
+                return;
+            }
+        }
+    }
+
     private boolean linksMet(SimState st, int l) {
         int[] rl = m.reqLink[l];
         for (int i = 0; i < rl.length; i++) {
@@ -636,11 +730,16 @@ final class Heuristics {
         return true;
     }
 
-    /** A wanted, unfinished link can be met in this slot. */
+    /**
+     * A wanted, unfinished link can be met in this slot (under {@link Tuning#goalFirst}: a goal
+     * below its target, since only a goal's meeting would take the slot from a job there).
+     */
     private boolean wantedMeetable(SimState st, int slot, int day) {
         int mask = t.meetMask[slot];
         for (int l = 0; mask != 0; l++, mask >>>= 1) {
-            if ((mask & 1) != 0 && demand[l] > 0 && Kernel.meetLegal(m, st, l, day)) return true;
+            if ((mask & 1) == 0 || demand[l] <= 0) continue;
+            if (tuning.goalFirst && !(m.goal[l] && st.rank[l] < target[l])) continue;
+            if (Kernel.meetLegal(m, st, l, day)) return true;
         }
         return false;
     }
@@ -779,8 +878,15 @@ final class Heuristics {
         if (v <= 0) return;
         int deficit = t.statCap[ci] - st.statPts[ci];
         double evenings = CHARM_EVENINGS_PER_TRAINING * deficit / eveGain[ci];
+        int due = eveningSlotAfter(st.slot, evenings);
+        if (tuning.goalFirst) {
+            // Goal meetings dominate avgPer here: count only the daytime left once Lv6 can be reached.
+            v *= openRemain[0][Math.min(t.lastSlot + 1, eveningSlotAfter(st.slot, deficit / eveGain[ci]))]
+                    / (double) Math.max(1, openRemain[0][st.slot]);
+            if (v <= 0) return;
+        }
         // No hard deadline: the bonus is never worth a daytime meeting.
-        addGate(ci, deficit, eveningSlotAfter(st.slot, evenings), -1, v * tuning.statWeight);
+        addGate(ci, deficit, due, -1, v * tuning.statWeight);
     }
 
     /** The slot by which {@code evenings} open evenings have passed (or the last slot). */
@@ -922,9 +1028,31 @@ final class Heuristics {
             default:
                 return 0;
         }
+        if (tuning.goalFirst) h = goalFirst(st, code, h);
         int slot = st.slot;
         if (slot < stabilityEnd && prevCode[slot] == code) h += 0.02 * Math.abs(h) + 1e-3;
         return h;
+    }
+
+    /**
+     * {@link Tuning#goalFirst}: a meeting or unlock step that moves a goal towards its target, or
+     * a dating-site note whose points still count for it, scores by the goal's place in the
+     * priority order ({@link #GOAL_FIRST}, {@link #GOAL_FIRST_NOTE}); anything else keeps {@code h}.
+     */
+    private double goalFirst(SimState st, int code, double h) {
+        int type = Kernel.type(code);
+        if (type != Kernel.T_MEET && type != Kernel.T_UNLOCK && type != Kernel.T_NOTE) return h;
+        int l = Kernel.target(code);
+        if (!m.goal[l] || st.rank[l] >= target[l] || demand[l] <= 0 || h <= 0) return h;
+        double base;
+        if (type == Kernel.T_NOTE) {
+            if (Kernel.need(m, l, st.rank[l]) - st.pts[l] <= 0) return h;
+            base = GOAL_FIRST_NOTE;
+        } else {
+            if (h <= 1.0) return h; // a meeting that cannot add anything (banked points during a hold)
+            base = GOAL_FIRST;
+        }
+        return base + GOAL_FIRST_STEP * (goalLinks.length - goalRank[l]) + Math.min(h, GOAL_FIRST_STEP - 1);
     }
 
     /** The base policy's choice among {@code n} legal codes (FREE when none). */
@@ -1017,7 +1145,7 @@ final class Heuristics {
                 return rescueLastSlot[i][block] <= st.slot ? MANDATORY : 200_000;
             }
         }
-        if (st.towerVisits[block] + 1 > m.towerCap - pendingRescues(st, block)) return VETO;
+        if (st.towerVisits[block] + 1 > m.towerCap[block] - pendingRescues(st, block)) return VETO;
         double income = m.towerIncome > 0 ? moneyValue(st.cash, m.towerIncome) : 0;
         int remaining = towerTarget[block] - st.towerVisits[block];
         if (remaining > 0) {
@@ -1159,14 +1287,16 @@ final class Heuristics {
     // ------------------------------------------------------------------ objective
 
     /**
-     * Objective J of a complete trajectory ending in {@code end}; {@code reached[i]} per goal link:
-     * rank values (with MAX bonuses), earlier goal targets, stat levels, opted-in Link Episodes,
-     * a little cash, minus a penalty per unmet Tartarus visit or missed rescue.
+     * Objective J of a complete trajectory ending in {@code end}; {@code reached} as kept by
+     * {@link #track}: rank values (with MAX bonuses), earlier goal targets, stat levels, opted-in
+     * Link Episodes, a little cash, minus a penalty per unmet Tartarus visit or missed rescue.
+     * Complete plans are compared by this less {@link #FRAGILE_MAX_PENALTY} per {@link #fragileMaxes}.
      */
     double objective(SimState end, int[] reached) {
         double j = 0;
         for (int l = 0; l < t.nLinks; l++) j += val[l][end.rank[l]];
-        for (int i = 0; i < goalLinks.length; i++) {
+        int g = goalLinks.length;
+        for (int i = 0; i < g; i++) {
             if (reached[i] >= 0) j += wGoal[goalLinks[i]] * EARLY_PER_SLOT * (lastSlot - reached[i]);
         }
         for (int s = 0; s < t.nStats; s++) j += 0.5 * Kernel.statLv(m, end, s);
@@ -1180,19 +1310,47 @@ final class Heuristics {
         return j - PENALTY * unmet;
     }
 
-    /** Record the slot at which each goal first reaches its target. */
+    /**
+     * 「其余社群」 links the trajectory brings to MAX on their last calendar meeting opportunity
+     * (none left after the MAX meeting); see {@link #FRAGILE_MAX_PENALTY}.
+     */
+    int fragileMaxes(SimState end, int[] reached) {
+        if (wOther <= 0) return 0;
+        int g = goalLinks.length;
+        int n = 0;
+        for (int l = 0; l < t.nLinks; l++) {
+            int at = reached[g + l];
+            if (at >= 0 && !m.goal[l] && end.rank[l] >= 10 && t.meetRemain[l][Math.min(lastSlot + 1, at + 1)] <= 0) n++;
+        }
+        return n;
+    }
+
+    /**
+     * Record, in {@code reached}, the slot at which each goal first reaches its target (first
+     * {@code goalLinks.length} entries) and each link first reaches MAX (one entry per link after
+     * them; {@link #MAX_BEFORE} when it was MAX before the plan).
+     */
     void track(SimState st, int slot, int[] reached) {
-        for (int i = 0; i < goalLinks.length; i++) {
+        int g = goalLinks.length;
+        for (int i = 0; i < g; i++) {
             if (reached[i] < 0 && st.rank[goalLinks[i]] >= target[goalLinks[i]]) reached[i] = slot;
+        }
+        for (int l = 0; l < t.nLinks; l++) {
+            if (reached[g + l] == -1 && st.rank[l] >= 10) reached[g + l] = slot;
         }
     }
 
-    /** Initial goal-reached slots for a plan starting at {@code start}. */
+    /** Marks a link that was already MAX when the plan starts (no slack to keep). */
+    static final int MAX_BEFORE = -2;
+
+    /** Initial reached slots for a plan starting at {@code start} (see {@link #track}). */
     int[] initialReached(SimState start) {
-        int[] reached = new int[goalLinks.length];
-        for (int i = 0; i < reached.length; i++) {
+        int g = goalLinks.length;
+        int[] reached = new int[g + t.nLinks];
+        for (int i = 0; i < g; i++) {
             reached[i] = start.rank[goalLinks[i]] >= target[goalLinks[i]] ? startSlot : -1;
         }
+        for (int l = 0; l < t.nLinks; l++) reached[g + l] = start.rank[l] >= 10 ? MAX_BEFORE : -1;
         return reached;
     }
 
@@ -1221,6 +1379,13 @@ final class Heuristics {
     }
 
     long shortfall() { return shortfall; }
+
+    /** Yen the prepared state holds back for unlock fees (fees plus {@link #FEE_RESERVE}, and the cash buffer). */
+    long feeNeeds() {
+        long sum = 0;
+        for (int i = 0; i < needs; i++) if (needFee[i]) sum += needYen[i];
+        return sum;
+    }
 
     /** The previous plan's action for {@code slot} inside the stability window (next 3 days), or -1. */
     int previousCode(int slot) {

@@ -7,8 +7,10 @@ import java.util.List;
 
 /**
  * Static calendar tables derived once from a {@link Rules} pack (docs/DESIGN_v3.md §5.4 "precompute
- * static tables once per plan"). Everything here depends only on the rule pack, never on the
- * profile or the state, so one instance can be shared by every simulation over the same pack.
+ * static tables once per plan"). Everything here depends only on the rule pack and on whether the
+ * player accepted a 12/24 invitation (both slots of that day then carry the lock
+ * {@link Rules#LOCK_CHRISTMAS}), never on the rest of the profile or the state, so one instance can
+ * be shared by every simulation over the same pack and Christmas Eve choice.
  *
  * <p>Slot-indexed arrays use absolute slot numbers ({@code day*2 + evening}) and have length
  * {@code lastSlot + 2}, so suffix counts can be read at {@code lastSlot + 1} (= 0) without a bounds
@@ -21,6 +23,8 @@ final class Tables {
     static final int HOLD_FOREVER = Integer.MAX_VALUE;
 
     final Rules rules;
+    /** Day whose both slots are taken by an accepted 12/24 invitation, or -1. */
+    final int christmasDay;
     final int firstSlot;
     final int lastSlot;
     final int lastDay;
@@ -105,18 +109,34 @@ final class Tables {
     final int[] statCap;
 
     private static volatile Tables cached;
+    private static volatile Tables cachedChristmas;
 
-    /** Tables for a pack, reusing the last instance when called again with the same pack object. */
+    /** Tables for a pack with every 12/24 invitation declined (see {@link #of(Rules, boolean)}). */
     static Tables of(Rules rules) {
-        Tables t = cached;
+        return of(rules, false);
+    }
+
+    /**
+     * Tables for a pack, reusing the last instance when called again with the same pack object and
+     * the same Christmas Eve choice. With {@code christmasTaken} both slots of 12/24 are locked
+     * ({@link Rules#LOCK_CHRISTMAS}) unless the pack already locks them.
+     */
+    static Tables of(Rules rules, boolean christmasTaken) {
+        Tables t = christmasTaken ? cachedChristmas : cached;
         if (t != null && t.rules == rules) return t;
-        t = new Tables(rules);
-        cached = t;
+        t = new Tables(rules, christmasTaken ? rules.christmasEveDay() : -1);
+        if (christmasTaken) cachedChristmas = t;
+        else cached = t;
         return t;
     }
 
     Tables(Rules rules) {
+        this(rules, -1);
+    }
+
+    Tables(Rules rules, int christmasDay) {
         this.rules = rules;
+        this.christmasDay = christmasDay;
         this.firstSlot = rules.firstSlot();
         this.lastSlot = rules.lastSlot();
         this.lastDay = rules.lastDay;
@@ -154,6 +174,7 @@ final class Tables {
                 continue;
             }
             lock[slot] = rules.lockOf(slot);
+            if (lock[slot] == null && christmasDay >= 0 && Rules.dayOf(slot) == christmasDay) lock[slot] = Rules.LOCK_CHRISTMAS;
             if (lock[slot] != null) continue;
             int day = Rules.dayOf(slot);
             boolean eve = Rules.isEvening(slot);
