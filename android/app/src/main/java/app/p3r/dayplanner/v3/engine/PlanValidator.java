@@ -15,7 +15,9 @@ import java.util.Map;
  *
  * <p>Errors (plan must be rejected): wrong coverage or order of slots, actions on locked slots or
  * in the wrong slot kind, meetings outside the link's O/D days or while missing/lost, unlock steps
- * out of order / too early / without prerequisites, excluded or unavailable activities, spending
+ * out of order / too early / without prerequisites, side steps ({@link Plan.Step#side}: listed
+ * non-consuming unlock steps, checked for order, slot kind, day rule, minGapDays, requirements and
+ * fees, and counted in the unlock progress), excluded or unavailable activities, spending
  * below zero, Tartarus caps, ranks that skip, regress or exceed MAX, predicted ranks or cash that
  * disagree with the recount, and a summary whose end ranks disagree. Warnings: a FREE slot where a
  * productive action was verifiably legal. Messages are developer-facing English.
@@ -138,6 +140,7 @@ final class PlanValidator {
             String lock = rules.lockOf(slot);
             if (lock != null) {
                 if (!s.action.equals("locked:" + lock) || !"locked".equals(s.kind)) error(slot, "locked slot (" + lock + ") planned as " + s.action);
+                if (!s.side.isEmpty()) error(slot, "side steps on a locked slot");
                 return;
             }
             Action a = Action.parse(rules, s.action);
@@ -145,6 +148,7 @@ final class PlanValidator {
                 error(slot, "unparseable action " + s.action);
                 return;
             }
+            long sideCost = side(s, a);
             switch (a.type) {
                 case LOCKED:
                     error(slot, "free slot marked locked");
@@ -167,7 +171,7 @@ final class PlanValidator {
                     break;
                 case TARTARUS:
                     expectKind(s, "tower");
-                    tower(s, a.target);
+                    tower(s, a.target, sideCost);
                     break;
                 default:
                     break;
@@ -270,6 +274,65 @@ final class PlanValidator {
             checkRanks(s, from, rank[l]);
         }
 
+        /**
+         * Side steps listed on the step: each must be the link's next unlock step, non-consuming
+         * (and not the chain's last step), of a link the plan wants, other than the main unlock's
+         * link, at most one per link, in the right slot kind on an allowed day, after the earliest
+         * day and minGapDays, with every prerequisite met and the fee affordable. Returns the fees.
+         */
+        private long side(Plan.Step s, Action main) {
+            if (s.side.isEmpty()) return 0;
+            if (s.sideZh.size() != s.side.size()) error(slot, "side and sideZh differ in length");
+            int d = day();
+            boolean[] seen = new boolean[nLinks];
+            long spent = 0;
+            for (String key : s.side) {
+                Action a = Action.parse(rules, key);
+                if (a == null || a.type != Action.Type.UNLOCK_STEP || a.target < 0 || a.target >= nLinks) {
+                    error(slot, "side step " + key + " is not an unlock step");
+                    continue;
+                }
+                int l = a.target;
+                int k = a.step;
+                Rules.Link link = rules.links[l];
+                List<Rules.Step> steps = link.unlock.steps;
+                if (seen[l]) error(slot, "two side steps of " + link.id + " in one slot");
+                seen[l] = true;
+                if (main.type == Action.Type.UNLOCK_STEP && main.target == l) error(slot, "side step of " + link.id + " beside its own unlock action");
+                if (!isGoal(l) && !profile.otherLinks) error(slot, "side step for " + link.id + ", which the plan does not want");
+                if (k != step[l] || k < 0 || k >= steps.size()) {
+                    error(slot, "side step " + k + " of " + link.id + " out of order (next is " + step[l] + ")");
+                    continue;
+                }
+                Rules.Step st = steps.get(k);
+                if (st.consumesSlot || k == steps.size() - 1) error(slot, "side step " + k + " of " + link.id + " consumes a slot");
+                if (link.kind != Rules.LinkKind.MANUAL || rank[l] != 0) error(slot, "side step for " + link.id + " at rank " + rank[l]);
+                if (st.evening != evening()) error(slot, "side step " + k + " of " + link.id + " in the wrong slot kind");
+                if (d < link.unlock.earliestDay) error(slot, "side step of " + link.id + " before its earliest day");
+                if (!stepDayAllowed(link, st, d)) error(slot, "side step " + k + " of " + link.id + " not allowed on day " + d);
+                if (unavailable(l)) error(slot, link.id + " is missing or lost");
+                for (Map.Entry<Integer, Integer> e : link.unlock.statLv.entrySet()) {
+                    if (statLevel(e.getKey()) < e.getValue()) error(slot, link.id + " side step needs stat " + e.getKey() + " Lv" + e.getValue());
+                }
+                for (Map.Entry<Integer, Integer> e : link.unlock.linkRank.entrySet()) {
+                    if (rank[e.getKey()] < e.getValue()) error(slot, link.id + " side step needs link " + e.getKey() + " rank " + e.getValue());
+                }
+                if (lastStep[l] >= 0 && d - lastStep[l] < st.minGapDays) error(slot, "side step " + k + " of " + link.id + " too soon");
+                int fee = Math.max(0, st.cost);
+                if (cash < fee) error(slot, "side step " + k + " of " + link.id + " costs " + fee + " with cash " + cash);
+                cash -= fee;
+                spent += fee;
+                step[l] = k + 1;
+                lastStep[l] = d;
+                if (st.establishes && rank[l] == 0) {
+                    rank[l] = 1;
+                    pts[l] = answerPoints(l, 1, multiplier());
+                    ready[l] = false;
+                }
+            }
+            return spent;
+        }
+
         private boolean stepDayAllowed(Rules.Link link, Rules.Step st, int d) {
             if (d < st.fromDay) return false;
             Rules.Day day = rules.day(d);
@@ -311,14 +374,16 @@ final class PlanValidator {
             return a.dayTypes.isEmpty() || a.dayTypes.contains(d.type);
         }
 
-        private void tower(Plan.Step s, int b) {
+        private void tower(Plan.Step s, int b, long sideCost) {
             Rules.Day d = rules.day(day());
             if (!evening() || d == null || !d.tartarus || d.block != b) error(slot, "Tartarus block " + b + " not enterable in this slot");
             if (b < 0 || b >= nBlocks) return;
             if (visits[b] >= profile.towerCapPerBlock) error(slot, "Tartarus cap " + profile.towerCapPerBlock + " exceeded in block " + b);
             visits[b]++;
-            if (s.predicted.cashDelta < 0) error(slot, "Tartarus visit loses money in the forecast");
-            cash += Math.max(0, s.predicted.cashDelta);
+            // The step's cash delta also carries the side steps' fees, which were paid already.
+            long income = s.predicted.cashDelta + sideCost;
+            if (income < 0) error(slot, "Tartarus visit loses money in the forecast");
+            cash += Math.max(0, income);
             int dd = day();
             for (int i = 0; i < rules.rescues.length; i++) {
                 long bit = 1L << i;

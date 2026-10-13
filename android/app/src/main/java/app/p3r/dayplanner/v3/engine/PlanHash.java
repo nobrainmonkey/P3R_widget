@@ -25,7 +25,10 @@ final class PlanHash {
         x.state(start);
         x.num(options.candidates).num(options.towerIncomePerVisit);
         x.num(plan.fromSlot).num(plan.toSlot);
-        for (Plan.Step s : plan.steps) x.num(s.slot).str(s.action);
+        for (Plan.Step s : plan.steps) {
+            x.num(s.slot).str(s.action);
+            for (String side : s.side) x.str(side);
+        }
         StringBuilder hex = new StringBuilder(Long.toHexString(x.h));
         while (hex.length() < 16) hex.insert(0, '0');
         return hex.toString();

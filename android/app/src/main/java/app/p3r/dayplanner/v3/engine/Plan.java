@@ -95,6 +95,14 @@ public final class Plan {
         public boolean estimate;
         /** Assumption ids used (explained in 规划说明). */
         public List<String> assumptions = new ArrayList<>();
+        /**
+         * Side steps done in this slot before the main action: non-consuming unlock steps as action
+         * keys ("unlock:devil:0"), in order. They use no slot of their own; their fees are part of
+         * {@link Predicted#cashDelta}. Empty when none.
+         */
+        public List<String> side = new ArrayList<>();
+        /** Chinese lines for {@link #side}, same order, e.g. "顺便：把 20,000 日元交给穿西装的男人". */
+        public List<String> sideZh = new ArrayList<>();
 
         public boolean productive() { return !"locked".equals(kind) && !"free".equals(kind); }
 
@@ -113,6 +121,14 @@ public final class Plan {
             JSONArray a = new JSONArray();
             for (String s : assumptions) a.put(s);
             o.put("assumptions", a);
+            if (!side.isEmpty()) {
+                JSONArray keys = new JSONArray();
+                for (String s : side) keys.put(s);
+                o.put("side", keys);
+                JSONArray zh = new JSONArray();
+                for (String s : sideZh) zh.put(s);
+                o.put("sideZh", zh);
+            }
             return o;
         }
 
@@ -131,6 +147,10 @@ public final class Plan {
             s.estimate = o.optBoolean("estimate");
             JSONArray a = o.optJSONArray("assumptions");
             for (int i = 0; a != null && i < a.length(); i++) s.assumptions.add(a.getString(i));
+            JSONArray side = o.optJSONArray("side");
+            for (int i = 0; side != null && i < side.length(); i++) s.side.add(side.getString(i));
+            JSONArray sideZh = o.optJSONArray("sideZh");
+            for (int i = 0; sideZh != null && i < sideZh.length(); i++) s.sideZh.add(sideZh.getString(i));
             return s;
         }
     }

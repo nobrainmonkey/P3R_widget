@@ -90,6 +90,24 @@ final class Labels {
         }
     }
 
+    /** Side steps of the slot ("顺便：…"), from the effect of the slot's action. */
+    void describeSide(Plan.Step step, Kernel.Effect fx) {
+        for (int i = 0; i < fx.sideCount; i++) {
+            int l = fx.sideLink[i];
+            int k = fx.sideStep[i];
+            step.side.add(Action.unlock(l, k).key(rules));
+            step.sideZh.add(sideZh(l, k));
+        }
+    }
+
+    /** "顺便：把 20,000 日元交给穿西装的男人" for a non-consuming unlock step. */
+    String sideZh(int l, int k) {
+        Rules.Step s = rules.links[l].unlock.steps.get(k);
+        String what = s.zh != null && !s.zh.isEmpty() ? s.zh : "为开启" + arcana(l) + "社群做准备";
+        if (s.cost > 0 && !what.contains("日元")) what += "（" + yen(s.cost) + "）";
+        return "顺便：" + what;
+    }
+
     void describeLocked(Plan.Step step, String reason) {
         step.kind = "locked";
         step.titleZh = lockTitle(reason);
@@ -188,9 +206,7 @@ final class Labels {
         if (from <= establish && establish <= last) {
             step.whyZh = "完成后" + arcana(l) + "社群就正式开始了";
         } else {
-            int total = h.groupsLeft(l, 0);
-            int done = total - h.groupsLeft(l, from);
-            step.whyZh = "开启" + arcana(l) + "社群前的准备（第 " + (done + 1) + " 步，共 " + total + " 步）";
+            step.whyZh = "开启" + arcana(l) + "社群前的准备（第 " + (last + 1) + " 步，共 " + steps.size() + " 步）";
         }
     }
 

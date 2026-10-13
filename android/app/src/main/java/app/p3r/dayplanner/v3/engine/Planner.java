@@ -356,6 +356,7 @@ final class Planner {
         Kernel.effect(m, after, code, fx);
         step.action = Kernel.decode(code).key(m.rules);
         labels.describe(step, st, code, fx);
+        labels.describeSide(step, fx);
         if (code != Kernel.FREE) {
             step.predicted = Simulator.predicted(fx);
             step.estimate = fx.estimate;

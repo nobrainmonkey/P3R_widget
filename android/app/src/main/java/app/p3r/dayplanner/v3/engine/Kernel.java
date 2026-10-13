@@ -86,8 +86,13 @@ final class Kernel {
         int rescue = -1;
         /** Job pay (minimum tier). */
         int pay;
+        /** Side steps done in this slot before the main action: link and step index, in order. */
+        int sideCount;
+        final int[] sideLink = new int[32];
+        final int[] sideStep = new int[32];
 
         void reset() {
+            sideCount = 0;
             rankFrom = -1;
             rankTo = -1;
             rankUp = false;
@@ -268,10 +273,12 @@ final class Kernel {
     }
 
     /**
-     * The unlock step group legal for a link on this day: returns the index of the consuming step
-     * that ends the group (non-consuming steps before it are folded in), or -1. Unlock steps are
-     * offered only while the link is not established (rank 0). Every step needs the unlock
-     * prerequisites (earliest day, stat Lv, link ranks); costs are mandatory (no cash buffer).
+     * The slot-consuming unlock action legal for a link on this day: returns the index of the
+     * consuming step that ends the group (non-consuming steps of a same-slot chain before it are
+     * folded in, see {@link Tables#groupEnd}), or -1. Non-consuming steps that cannot fold are never
+     * a slot's action; they happen as side steps ({@link #side}). Unlock steps are offered only
+     * while the link is not established (rank 0). Every step needs the unlock prerequisites
+     * (earliest day, stat Lv, link ranks); costs are mandatory (no cash buffer).
      */
     static int unlockGroup(Model m, SimState st, int link, int day, boolean eve) {
         Tables t = m.t;
@@ -280,6 +287,7 @@ final class Kernel {
         Rules.Link l = m.rules.links[link];
         if (l.kind != Rules.LinkKind.MANUAL) return -1;
         int c = t.groupEnd[link][k];
+        if (c < 0) return -1;
         List<Rules.Step> steps = l.unlock.steps;
         if (steps.get(c).evening != eve) return -1;
         if (day < l.unlock.earliestDay || blocked(m, st, link, day) || !prereqsMet(m, st, link)) return -1;
@@ -287,14 +295,92 @@ final class Kernel {
         for (int j = k; j <= c; j++) {
             Rules.Step s = steps.get(j);
             if (!t.stepDayOk[link][j][day]) return -1;
-            if (j == k) {
-                if (st.lastStepDay[link] >= 0 && day - st.lastStepDay[link] < s.minGapDays) return -1;
-            } else if (s.minGapDays > 0) {
-                return -1;
-            }
+            if (j == k && st.lastStepDay[link] >= 0 && day - st.lastStepDay[link] < s.minGapDays) return -1;
             cost += Math.max(0, s.cost);
         }
         return st.cash >= cost ? c : -1;
+    }
+
+    /** The link wants its unlock steps done on the side (a goal, or every link when 其余社群 is on). */
+    static boolean wantsSide(Model m, int link) {
+        return m.goal[link] || m.profile.otherLinks;
+    }
+
+    /**
+     * The pending non-consuming step of {@code link} can happen on the side in this slot with
+     * {@code cash} yen available: right slot kind, day rule and fromDay, earliest day, not missing,
+     * prerequisites, minGapDays since the previous step, and the fee.
+     */
+    static boolean sideLegal(Model m, SimState st, int link, int day, boolean eve, long cash) {
+        Tables t = m.t;
+        int k = st.unlockStep[link];
+        if (st.rank[link] != 0 || k < 0 || k >= t.stepCount[link] || !t.sideStep[link][k]) return false;
+        Rules.Link l = m.rules.links[link];
+        if (l.kind != Rules.LinkKind.MANUAL) return false;
+        Rules.Step s = l.unlock.steps.get(k);
+        if (s.evening != eve || !t.stepDayOk[link][k][day]) return false;
+        if (day < l.unlock.earliestDay || blocked(m, st, link, day) || !prereqsMet(m, st, link)) return false;
+        if (st.lastStepDay[link] >= 0 && day - st.lastStepDay[link] < s.minGapDays) return false;
+        return cash >= Math.max(0, s.cost);
+    }
+
+    /** Cash the main action needs at the start of the slot (fees, plus the buffer for optional spends). */
+    static long mainCashNeed(Model m, SimState st, int code) {
+        switch (type(code)) {
+            case T_ACT: {
+                int cost = Math.max(0, m.rules.activities[target(code)].cost);
+                return cost > 0 ? cost + m.cashBuffer : 0;
+            }
+            case T_UNLOCK: {
+                int link = target(code);
+                List<Rules.Step> steps = m.rules.links[link].unlock.steps;
+                long cost = 0;
+                for (int j = Math.max(0, st.unlockStep[link]); j <= step(code) && j < steps.size(); j++) {
+                    cost += Math.max(0, steps.get(j).cost);
+                }
+                return cost;
+            }
+            default:
+                return 0;
+        }
+    }
+
+    /**
+     * Side steps of this slot (REPORT §0: non-consuming unlock steps need a free slot of their kind
+     * on an allowed day but leave the slot to another action): before the main action {@code code},
+     * every wanted link (goal, or all when 其余社群 is on) whose next unlock step is non-consuming
+     * and legal now does that one step (at most one step per link per slot). The main action's own
+     * link is skipped (its unlock action already covers a foldable chain) and the main action's
+     * fees are reserved, so the main action stays legal. Locked slots have no side steps.
+     */
+    static void side(Model m, SimState st, int code, Effect fx) {
+        Tables t = m.t;
+        int mask = t.sideMask;
+        if (mask == 0 || !t.open(st.slot)) return;
+        int day = st.slot >> 1;
+        boolean eve = (st.slot & 1) == 1;
+        int skip = type(code) == T_UNLOCK ? target(code) : -1;
+        long reserve = -1;
+        for (int l = 0; mask != 0; l++, mask >>>= 1) {
+            if ((mask & 1) == 0 || l == skip || st.rank[l] != 0 || !wantsSide(m, l)) continue;
+            if (reserve < 0) reserve = mainCashNeed(m, st, code);
+            if (!sideLegal(m, st, l, day, eve, st.cash - reserve)) continue;
+            int k = st.unlockStep[l];
+            Rules.Step s = m.rules.links[l].unlock.steps.get(k);
+            st.cash = Math.max(0, st.cash - Math.max(0, s.cost));
+            st.unlockStep[l] = k + 1;
+            st.lastStepDay[l] = day;
+            if (k == t.establishIdx[l]) {
+                st.rank[l] = 1;
+                st.pts[l] = eventPts(m, l, 1, mult(m, st));
+                st.ready[l] = false;
+            }
+            if (fx != null && fx.sideCount < fx.sideLink.length) {
+                fx.sideLink[fx.sideCount] = l;
+                fx.sideStep[fx.sideCount] = k;
+                fx.sideCount++;
+            }
+        }
     }
 
     static boolean activityLegal(Model m, SimState st, int act) {
@@ -321,19 +407,37 @@ final class Kernel {
 
     // ------------------------------------------------------------------ transitions
 
-    /** Apply {@code code} at {@code st.slot} and advance one slot (day rollover included). */
+    /** Apply {@code code} (with this slot's side steps) at {@code st.slot} and advance one slot (day rollover included). */
     static void apply(Model m, SimState st, int code, Effect fx) {
         effect(m, st, code, fx);
         advance(m, st);
     }
 
-    /** Apply the action's own effect without advancing the slot. */
+    /** This slot's side steps, then the action's own effect, without advancing the slot. */
     static void effect(Model m, SimState st, int code, Effect fx) {
-        if (fx != null) {
-            fx.reset();
-            fx.cashBefore = st.cash;
-            for (int s = 0; s < m.t.nStats && s < 3; s++) fx.lvBefore[s] = statLv(m, st, s);
-        }
+        begin(m, st, fx);
+        side(m, st, code, fx);
+        mainEffect(m, st, code, fx);
+        end(m, st, fx);
+    }
+
+    /** Reset {@code fx} and record the pre-slot cash and stat levels. */
+    static void begin(Model m, SimState st, Effect fx) {
+        if (fx == null) return;
+        fx.reset();
+        fx.cashBefore = st.cash;
+        for (int s = 0; s < m.t.nStats && s < 3; s++) fx.lvBefore[s] = statLv(m, st, s);
+    }
+
+    /** Record the post-slot cash and stat levels in {@code fx}. */
+    static void end(Model m, SimState st, Effect fx) {
+        if (fx == null) return;
+        fx.cashAfter = st.cash;
+        for (int s = 0; s < m.t.nStats && s < 3; s++) fx.lvAfter[s] = statLv(m, st, s);
+    }
+
+    /** The action's own effect only (no side steps, no reset of {@code fx}, no slot advance). */
+    static void mainEffect(Model m, SimState st, int code, Effect fx) {
         int day = st.slot >> 1;
         switch (type(code)) {
             case T_MEET:
@@ -350,10 +454,6 @@ final class Kernel {
                 break;
             default:
                 break;
-        }
-        if (fx != null) {
-            fx.cashAfter = st.cash;
-            for (int s = 0; s < m.t.nStats && s < 3; s++) fx.lvAfter[s] = statLv(m, st, s);
         }
     }
 

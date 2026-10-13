@@ -110,6 +110,46 @@ public class PlanRealPackTest {
                 + PlanReport.maxedLinks(rules, plan) + "/" + rules.links.length);
     }
 
+    /** Every multi-step chain (non-consuming side steps, REPORT §0) completes in a new game. */
+    @Test
+    public void multiStepUnlocksComplete() {
+        Profile profile = new Profile();
+        SimState start = newGame(dayOf(4, 21));
+        Plan plan = Engine.plan(rules, profile, start, null, new Engine.Options());
+        assertTrue(Engine.validate(rules, profile, start, plan).isEmpty());
+        int sides = 0;
+        for (Plan.Step s : plan.steps) sides += s.side.size();
+        System.out.println("side steps in the new-game plan: " + sides);
+        for (String id : new String[]{"justice", "hanged_man", "devil", "sun", "tower", "moon"}) {
+            assertTrue(id + " never opened", plan.summary.endRanks[link(id)] >= 1);
+        }
+    }
+
+    /** Devil on the real pack: two payments beside other evening actions, then the paid opening. */
+    @Test
+    public void devilChainOnTheRealPack() {
+        int devil = link("devil");
+        Profile profile = new Profile();
+        SimState s = newGame(dayOf(6, 1));
+        setStat(s, "charm", 4);
+        setRank(s, "hermit", 4);
+        s.cash = 40_000;
+        Rules.Link d = rules.links[devil];
+        int day = d.avail.nextSetBit(dayOf(6, 1));
+        s = Engine.advanceTo(rules, profile, s, Rules.slot(day, true));
+        Action study = Action.activity(rules.activity("study_room").idx);
+        Engine.Applied first = Engine.apply(rules, profile, s, study);
+        assertEquals(java.util.Collections.singletonList("unlock:devil:0"), first.side);
+        assertEquals(20_000, first.state.cash);
+        int day2 = d.avail.nextSetBit(day + 1);
+        Engine.Applied second = Engine.apply(rules, profile, Engine.advanceTo(rules, profile, first.state, Rules.slot(day2, true)), study);
+        assertEquals(java.util.Collections.singletonList("unlock:devil:1"), second.side);
+        int day3 = d.avail.nextSetBit(day2 + 1);
+        SimState last = Engine.advanceTo(rules, profile, second.state, Rules.slot(day3, true));
+        assertTrue(Engine.legalActions(rules, profile, last).contains(Action.unlock(devil, 2)));
+        assertEquals(1, Engine.apply(rules, profile, last, Action.unlock(devil, 2)).state.rank[devil]);
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private Plan run(String title, Profile profile, SimState start) {

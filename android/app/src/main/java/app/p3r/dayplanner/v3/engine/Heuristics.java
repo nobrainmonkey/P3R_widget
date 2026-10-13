@@ -196,7 +196,7 @@ final class Heuristics {
             if (rules.links[l].kind != Rules.LinkKind.MANUAL) continue;
             int fromOne = meetingsBetween(l, 1, Kernel.eventPts(m, l, 1, mult), false, target[l], mult);
             meetsFromOne[l] = fromOne;
-            int needSlots = Math.min(INF, fromOne + groupsLeft(l, 0));
+            int needSlots = Math.min(INF, fromOne + t.slotStepsLeft[l][0]);
             int s = t.lastSlot;
             while (s >= startSlot && t.meetRemain[l][s] < needSlots) s--;
             latestUnlock[l] = s;
@@ -312,17 +312,6 @@ final class Heuristics {
         }
     }
 
-    /** Consuming unlock step groups left for a link from step k. */
-    int groupsLeft(int l, int k) {
-        int n = t.stepCount[l];
-        int groups = 0;
-        while (k < n) {
-            k = t.groupEnd[l][k] + 1;
-            groups++;
-        }
-        return groups;
-    }
-
     /**
      * Meetings needed from (rank, pts, ready) to reach {@code goalRank} under the model, or
      * {@link #INF} when an indefinite hold blocks the way.
@@ -369,7 +358,7 @@ final class Heuristics {
         } else if (step < 0 && !st.ready[l]) {
             need = INF; // the player reported that the next rank-up is on hold
         } else if (r == 0) {
-            need = Math.min(INF, groupsLeft(l, st.unlockStep[l]) + meetsFromOne[l]);
+            need = Math.min(INF, t.slotStepsLeft[l][Math.max(0, Math.min(t.stepCount[l], st.unlockStep[l]))] + meetsFromOne[l]);
         } else {
             need = meetingsBetween(l, r, st.pts[l], st.ready[l], goalRank, mult);
         }

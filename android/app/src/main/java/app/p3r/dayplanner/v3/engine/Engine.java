@@ -38,6 +38,8 @@ public final class Engine {
         public Plan.Predicted predicted;
         public boolean estimate;
         public List<String> assumptions;
+        /** Side steps done in this slot before the action ("unlock:devil:0"), in order; empty if none. */
+        public List<String> side;
     }
 
     /** Legal productive actions for {@code state.slot} (empty if the slot is locked). */
