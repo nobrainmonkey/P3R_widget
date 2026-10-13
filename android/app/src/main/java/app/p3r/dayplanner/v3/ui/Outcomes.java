@@ -235,6 +235,9 @@ public final class Outcomes {
             case NO_RANK_UP:
                 return name + " · 没升级";
             case SKIPPED:
+                if (REASON_OTHER.equals(outcome.reason)) {
+                    return "做了列表以外的事";
+                }
                 String label = SKIP_REASONS.get(outcome.reason);
                 return label == null ? "跳过 · " + name : "跳过 · " + label;
             case NOT_DONE:

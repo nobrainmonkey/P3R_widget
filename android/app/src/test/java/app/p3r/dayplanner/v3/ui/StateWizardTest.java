@@ -13,6 +13,7 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
 
+import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 
@@ -41,7 +42,7 @@ public class StateWizardTest extends UiTestBase {
         Shots.click(a, "下一步");
         assertEquals(StateSteps.Page.PERSONA, a.currentPage());
         Shots.shot(a, "state_onboarding_persona");
-        Shots.click(a, "不一定 / 不带");
+        Shots.click(a, "不带/不一定");
         assertEquals(StateSteps.Page.DATE, a.currentPage());
         Shots.shot(a, "state_onboarding_date");
         Shots.click(a, "下一步");
@@ -66,7 +67,7 @@ public class StateWizardTest extends UiTestBase {
         Shots.click(a, "下一步");
         assertEquals(StateSteps.Page.CONFIRM, a.currentPage());
         Shots.shot(a, "state_onboarding_confirm");
-        Shots.click(a, "保存并开始规划");
+        Shots.click(a, "保存并开始安排");
         FakePlannerApi.Call call = api.last();
         assertEquals("saveCheckpoint", call.method);
         assertNotNull(call.profile);
@@ -83,13 +84,13 @@ public class StateWizardTest extends UiTestBase {
         firstRun();
         StateActivity a = stateController("onboarding").get();
         jumpTo(a, StateSteps.Page.LINKS);
-        Shots.click(a, "魔术师，未建立，点按修改");
+        Shots.click(a, "魔术师，未解锁，点按修改");
         Shots.shot(a, "state_rankpad");
         Shots.clickInDialog("3");
         Shots.clickInDialog("RANK MAX");
         assertEquals(3, a.draft().rank(1));
         assertEquals(10, a.draft().rank(2));
-        Shots.clickInDialog("完成");
+        Shots.clickInDialog("好了");
         assertTrue(Shots.has(a, "RANK 3"));
     }
 
@@ -126,7 +127,7 @@ public class StateWizardTest extends UiTestBase {
         assertEquals(StateSteps.Page.CONFIRM, a.currentPage());
         assertTrue(Shots.allText(a.getWindow().getDecorView()).contains("将更新"));
         Shots.shot(a, "state_sync_confirm");
-        Shots.click(a, "保存并重新规划");
+        Shots.click(a, "保存并重新安排");
         FakePlannerApi.Call call = api.last();
         assertEquals("saveCheckpoint", call.method);
         assertNull(call.profile);
@@ -171,13 +172,58 @@ public class StateWizardTest extends UiTestBase {
     }
 
     @Test
-    public void draftFromOlderRevisionIsDiscarded() {
+    public void draftFromOlderRevisionIsKeptOnTheNewRecord() {
         StateActivity a = stateController("edit").get();
         a.draft().setCash(999);
         a.changed();
         api.snap.stateRevision++;
         StateActivity later = stateController("edit").get();
-        assertEquals(api.snap.observed.cash, later.draft().cash());
+        assertEquals(999, later.draft().cash());
+        assertEquals(api.snap.stateRevision, later.draft().baseRevision);
+        assertEquals("记录有更新，已保留你填过的内容。", later.noticeText());
+    }
+
+    @Test
+    public void personaPageOffersThreeChoices() {
+        firstRun();
+        StateActivity a = stateController("onboarding").get();
+        Shots.click(a, "下一步");
+        assertEquals(StateSteps.Page.PERSONA, a.currentPage());
+        assertTrue(Shots.has(a, "基本都带"));
+        assertTrue(Shots.has(a, "只给目标社群带"));
+        Shots.click(a, "只给目标社群带");
+        assertEquals(Profile.PersonaMode.GOALS, a.draft().profile.personaMode);
+        assertFalse(a.draft().profile.personaBonus);
+        assertEquals(StateSteps.Page.DATE, a.currentPage());
+    }
+
+    @Test
+    public void rescueQuestionsWriteTheRescueBits() {
+        StateActivity a = stateController("edit").get();
+        jumpTo(a, StateSteps.Page.TOWER);
+        // 10/22: 北村文吉's window (9/12–10/3) is over, 舞子's (10/21–11/2) is running.
+        assertTrue(Shots.has(a, "北村文吉救出来了吗？"));
+        assertTrue(Shots.has(a, "舞子救出来了吗？"));
+        Shots.shot(a, "state_edit_tower_rescue");
+        Shots.click(a, "北村文吉：没救出");
+        Shots.click(a, "舞子：救出了");
+        SimState built = a.draft().build();
+        assertEquals(0, built.rescued & 1L);
+        assertEquals(1L, built.rescueFailed & 1L);
+        assertEquals(2L, built.rescued & 2L);
+        Shots.click(a, "北村文吉：不确定");
+        built = a.draft().build();
+        assertEquals(0, (built.rescued | built.rescueFailed) & 1L);
+        jumpTo(a, StateSteps.Page.CONFIRM);
+        assertTrue(Shots.allText(a.getWindow().getDecorView()).contains("救出舞子"));
+    }
+
+    @Test
+    public void floorStepperStopsAtTheBlockOfTheDate() {
+        StateActivity a = stateController("edit").get();
+        a.draft().setSlot(Rules.slot(Fixtures.day(9, 15), false));
+        assertEquals(68, a.draft().towerTop());
+        assertEquals(68, a.draft().floor());
     }
 
     @Test
@@ -186,10 +232,10 @@ public class StateWizardTest extends UiTestBase {
         a.draft().setCash(50_000);
         jumpTo(a, StateSteps.Page.CONFIRM);
         api.nextReceipt = FakePlannerApi.stale();
-        Shots.click(a, "保存并重新规划");
+        Shots.click(a, "保存并重新安排");
         assertFalse(a.isFinishing());
         assertNotNull(a.noticeText());
-        assertTrue(a.noticeText().contains("你的修改都还在"));
+        assertTrue(a.noticeText().contains("你填的内容都还在"));
         assertEquals(50_000, a.draft().cash());
         Shots.shot(a, "state_cas_conflict");
     }

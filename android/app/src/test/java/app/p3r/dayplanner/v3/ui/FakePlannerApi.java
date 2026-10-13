@@ -12,8 +12,9 @@ import app.p3r.dayplanner.v3.service.PlannerApi;
 
 /**
  * In-memory {@link PlannerApi} for UI tests. Records every write as a {@link Call}, enforces the
- * compare-and-set revision like the real store, and (optionally) advances the observed slot on
- * each successful record so multi-step flows (catch-up) behave realistically.
+ * compare-and-set revision like the real store and, like the real store, only accepts a record for
+ * exactly the observed slot (an earlier slot is "already recorded", a later one a gap), refuses
+ * {@code locked:} keys, and after each record moves the observed slot past calendar-locked slots.
  */
 final class FakePlannerApi implements PlannerApi {
     /** One recorded write. */
@@ -57,8 +58,11 @@ final class FakePlannerApi implements PlannerApi {
     List<Plan.Step> alternatives = new ArrayList<>();
     /** When set, returned (once) instead of a success receipt. */
     Receipt nextReceipt;
-    /** Advance observed.slot by one on every successful outcome/tower record. */
+    /** Advance observed.slot to the next open slot on every successful outcome/tower record. */
     boolean advanceOnRecord = true;
+    /** Check slots and action keys like the store (off only for screens the store never reaches). */
+    boolean strictSlots = true;
+    private final java.util.Set<String> importIds = new java.util.HashSet<>();
     String backupJson = "{\"schema\":\"p3r.backup.v3\"}";
     int replanRequests;
     private long seq = 100;
@@ -81,10 +85,13 @@ final class FakePlannerApi implements PlannerApi {
         api.snap.lastRecordMillis = System.currentTimeMillis() - 2 * 60 * 60 * 1000L;
         api.snap.eventsSinceCheckpoint = 9;
         api.alternatives = Fixtures.alternatives(r, obs.slot);
-        api.history.add(item(98, obs.slot - 1, "outcome", "10月21日 晚上 · 在宿舍房间学习 · 学力 +2", false, false));
-        api.history.add(item(97, obs.slot - 3, "tower", "10月20日 晚上 · 探索塔尔塔罗斯 · 96F · 18,500 日元", false, true));
-        api.history.add(item(96, obs.slot - 4, "outcome", "10月20日 放学后 · 皇帝 RANK 6", false, false));
+        api.history.add(item(98, obs.slot - 1, "outcome", "10月21日 晚上 · 在宿舍房间学习 · 学力 +2", false, true));
+        api.history.add(item(97, obs.slot - 3, "tower", "10月20日 晚上 · 探索塔尔塔罗斯 · 到达 96F · 余额 18,500 日元",
+            false, true));
+        api.history.add(item(96, obs.slot - 4, "outcome", "10月20日 放学后 · 皇帝 RANK 6", false, true));
         api.history.add(item(95, obs.slot - 6, "skip", "10月19日 放学后 · 跳过 · 对方不在", true, false));
+        api.history.add(item(94, obs.slot - 8, "checkpoint", "10月18日 · 同步现状", false, false));
+        api.history.add(item(93, obs.slot - 9, "outcome", "10月18日 放学后 · 女教皇 RANK 5", false, false));
         return api;
     }
 
@@ -164,13 +171,19 @@ final class FakePlannerApi implements PlannerApi {
         if (call.expectedRevision != current) {
             return stale();
         }
+        if (advance && strictSlots && snap.observed != null) {
+            Receipt rejected = checkSlot(call);
+            if (rejected != null) {
+                return rejected;
+            }
+        }
         Receipt ok = new Receipt();
         ok.ok = true;
         ok.eventSeq = ++seq;
         if (stateWrite) {
             snap.stateRevision++;
             if (advance && advanceOnRecord && snap.observed != null) {
-                snap.observed.slot++;
+                snap.observed.slot = Slots.firstOpen(rules, snap.observed.slot + 1);
             }
         } else {
             snap.profileRevision++;
@@ -178,6 +191,31 @@ final class FakePlannerApi implements PlannerApi {
         ok.stateRevision = snap.stateRevision;
         ok.profileRevision = snap.profileRevision;
         return ok;
+    }
+
+    /** The store's slot rules: exactly the observed slot, never a lock. */
+    private Receipt checkSlot(Call call) {
+        if (call.slot < snap.observed.slot) {
+            return invalid("这个时段已经记录过了");
+        }
+        if (call.slot > snap.observed.slot) {
+            Receipt gap = invalid("前面还有时段没有记录");
+            gap.errorCode = Receipt.CODE_GAP;
+            gap.missingSlots = Slots.openBetween(rules, snap.observed.slot, call.slot);
+            return gap;
+        }
+        if (call.actionKey != null && call.actionKey.startsWith("locked:")) {
+            return invalid("这个时段由剧情安排，不能记录");
+        }
+        return null;
+    }
+
+    static Receipt invalid(String zh) {
+        Receipt r = new Receipt();
+        r.ok = false;
+        r.errorCode = Receipt.CODE_INVALID;
+        r.errorZh = zh;
+        return r;
     }
 
     static Receipt stale() {
@@ -265,6 +303,15 @@ final class FakePlannerApi implements PlannerApi {
         Receipt r = new Receipt();
         calls.add(new Call("importBackup", commandId, -1, -1, json, null, null, -1, null, null));
         r.ok = true;
+        r.duplicate = !importIds.add(commandId);
+        if (!r.duplicate) {
+            synchronized (this) {
+                snap.stateRevision++;
+                snap.profileRevision++;
+            }
+        }
+        r.stateRevision = snap.stateRevision;
+        r.profileRevision = snap.profileRevision;
         return r;
     }
 

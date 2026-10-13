@@ -106,7 +106,7 @@ public class HomeBehaviorTest extends UiTestBase {
         Intent intent = new Intent(org.robolectric.RuntimeEnvironment.getApplication(), HomeActivity.class);
         intent.putExtra(Intents.EXTRA_TAB, "links");
         HomeActivity a = home(intent);
-        Shots.click(a, "魔术师 目标：不是目标，点按切换");
+        Shots.click(a, "魔术师 目标：未选，点按切换");
         FakePlannerApi.Call save = api.last();
         assertEquals("saveProfile", save.method);
         assertEquals(Fixtures.PROFILE_REV, save.expectedRevision);
@@ -135,7 +135,7 @@ public class HomeBehaviorTest extends UiTestBase {
         api.snap.plan.steps.set(1, Fixtures.social(api.rules, Fixtures.SLOT_NOW + 1, "hermit", 3, 4, true, false));
         api.fireChanged();
         Shots.idle();
-        assertTrue(Shots.has(a, "已重新规划：覆盖至 1月31日 · 调整 1 处"));
+        assertTrue(Shots.has(a, "已重新安排：后面有 1 处变动"));
         Shots.shot(a, "home_today_change_summary");
     }
 
@@ -145,7 +145,7 @@ public class HomeBehaviorTest extends UiTestBase {
         intent.putExtra(Intents.EXTRA_OPEN_SLOT, Fixtures.SLOT_NOW + 1);
         HomeActivity a = home(intent);
         assertTrue(a.sheets().isShowing());
-        assertTrue(Shots.has(a, "这个时段已经记录过了。要更正可以去「我的 → 记录历史」。") || Shots.has(a, "做到这里"));
+        assertTrue(Shots.has(a, "这个时段已经记录过了。要更正可以去「我的 → 记录历史」。") || Shots.has(a, "已经玩到这里"));
     }
 
     @Test
@@ -166,7 +166,7 @@ public class HomeBehaviorTest extends UiTestBase {
         HomeActivity a = home();
         a.selectTab(HomeActivity.TAB_ME);
         Shots.click(a, "记录历史");
-        Shots.click(a, "修改这条记录：10月20日 晚上 · 探索塔尔塔罗斯 · 96F · 18,500 日元");
+        Shots.click(a, "修改这条记录：10月20日 晚上 · 探索塔尔塔罗斯 · 到达 96F · 余额 18,500 日元");
         assertTrue(a.sheets().isShowing());
         assertFalse(Shots.has(a, "没去成"));
         TowerPanel panel = findPanel(a.sheets());
@@ -185,8 +185,79 @@ public class HomeBehaviorTest extends UiTestBase {
         HomeActivity a = home();
         a.selectTab(HomeActivity.TAB_ME);
         Shots.click(a, "规划设置");
-        Shots.click(a, "带同阿尔卡那的人格面具，已关闭");
+        Shots.click(a, "基本都带");
+        assertEquals(Profile.PersonaMode.ALL, api.last().profile.personaMode);
         assertTrue(api.last().profile.personaBonus);
+        Shots.click(a, "不带/不一定");
+        assertEquals(Profile.PersonaMode.NONE, api.last().profile.effectivePersonaMode());
+        assertFalse(api.last().profile.personaBonus);
+        Shots.click(a, "结缘网站的字条，已开启");
+        assertFalse(api.last().profile.datingNotes);
+    }
+
+    @Test
+    public void episodeTrackToggleSavesProfile() {
+        Intent intent = new Intent(org.robolectric.RuntimeEnvironment.getApplication(), HomeActivity.class);
+        intent.putExtra(Intents.EXTRA_TAB, "links");
+        HomeActivity a = home(intent);
+        assertTrue(Shots.has(a, "羁绊剧情"));
+        Shots.click(a, "真田明彦 · 共 3 话，已关闭");
+        Profile saved = api.last().profile;
+        assertTrue(saved.wantsEpisodes("akihiko"));
+        assertTrue(saved.wantsEpisodes("junpei"));
+        Shots.click(a, "伊织顺平 · 共 4 话，已开启");
+        assertFalse(api.last().profile.wantsEpisodes("junpei"));
+    }
+
+    @Test
+    public void historyOffersOnlyWhatTheStoreAccepts() {
+        HomeActivity a = home();
+        a.selectTab(HomeActivity.TAB_ME);
+        Shots.click(a, "记录历史");
+        android.view.View page = a.getWindow().getDecorView();
+        // Tower record: both actions; an outcome: undo only; journal and older rows: none.
+        assertTrue(Shots.has(a, "修改这条记录：10月20日 晚上 · 探索塔尔塔罗斯 · 到达 96F · 余额 18,500 日元"));
+        assertTrue(Shots.has(a, "撤销这条记录：10月20日 放学后 · 皇帝 RANK 6"));
+        assertFalse(Shots.has(a, "修改这条记录：10月20日 放学后 · 皇帝 RANK 6"));
+        assertFalse(Shots.has(a, "撤销这条记录：10月18日 · 同步现状"));
+        assertFalse(Shots.has(a, "撤销这条记录：10月18日 放学后 · 女教皇 RANK 5"));
+        assertTrue(Shots.findAll(page, "同步现状之前的记录").size() == 1);
+    }
+
+    @Test
+    public void messagesShowAboveSubPagesAndSheets() {
+        HomeActivity a = home();
+        a.selectTab(HomeActivity.TAB_ME);
+        Shots.click(a, "备份与恢复");
+        a.showMessage("测试消息");
+        Shots.idle();
+        android.view.ViewGroup root = (android.view.ViewGroup) a.undoBar().getParent();
+        assertEquals(a.undoBar(), root.getChildAt(root.getChildCount() - 1));
+        Shots.click(a, "粘贴文字");
+        assertTrue(a.sheets().isShowing());
+        Shots.click(a, "恢复");
+        assertEquals("先粘贴备份内容。", a.undoBar().messageText().toString());
+        assertEquals(a.undoBar(), root.getChildAt(root.getChildCount() - 1));
+        android.widget.FrameLayout.LayoutParams p = (android.widget.FrameLayout.LayoutParams) a.undoBar().getLayoutParams();
+        assertEquals(android.view.Gravity.TOP, p.gravity & android.view.Gravity.VERTICAL_GRAVITY_MASK);
+        Shots.shot(a, "home_message_over_sheet");
+    }
+
+    @Test
+    public void undoBarNeverCoversTheHeroButtons() {
+        api.snap.observed.slot = Fixtures.SLOT_NOW + 1;
+        HomeActivity a = home();
+        Shots.click(a, "完成 ✓");
+        assertTrue(a.undoBar().isShowing());
+        Shots.capture(a, false);
+        a.placeUndo();
+        Shots.capture(a, false);
+        android.view.View root = (android.view.View) a.undoBar().getParent();
+        android.graphics.Rect bar = HomeActivity.boundsIn(a.undoBar(), root);
+        android.view.View buttons = (android.view.View) Shots.find(a, "完成 ✓").getParent();
+        android.graphics.Rect hero = HomeActivity.boundsIn(buttons, root);
+        assertFalse("undo bar " + bar + " covers hero buttons " + hero, android.graphics.Rect.intersects(bar, hero));
+        Shots.shot(a, "home_undo_bar_clear_of_hero");
     }
 
     @Test

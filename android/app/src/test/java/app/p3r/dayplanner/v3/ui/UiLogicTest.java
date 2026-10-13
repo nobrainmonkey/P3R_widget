@@ -41,11 +41,13 @@ public class UiLogicTest {
         assertEquals("放学后", Zh.period(rules, Fixtures.SLOT_NOW));
         assertEquals("晚上", Zh.period(rules, Fixtures.SLOT_NOW + 1));
         assertEquals("白天", Zh.period(rules, Rules.slot(Fixtures.day(10, 25), false)));
-        assertEquals("未建立", Zh.rank(0));
+        assertEquals("未解锁", Zh.rank(0));
         assertEquals("RANK 7", Zh.rank(7));
         assertEquals("RANK MAX", Zh.rank(10));
         assertEquals("RANK 9 → MAX", Zh.rankStep(9, 10));
         assertEquals("Lv.3", Zh.lv(3));
+        assertEquals("MAX", Zh.lv(6));
+        assertEquals("5月12日–1月29日", Zh.dateRange(Fixtures.day(5, 12), Fixtures.day(1, 29)));
         assertEquals("0", Zh.roman(0));
         assertEquals("XIV", Zh.roman(14));
         assertEquals("10月21日 晚上", Zh.lastRecorded(rules, Fixtures.SLOT_NOW));
@@ -90,7 +92,7 @@ public class UiLogicTest {
         assertEquals(30_000, diff.cashBalance);
 
         Plan.Step meet = plan.at(Fixtures.SLOT_NOW + 2);
-        assertEquals("恋爱 · 完成会面", Outcomes.summary(rules, meet, Outcomes.met(meet, false)));
+        assertEquals("恋爱 · 见面", Outcomes.summary(rules, meet, Outcomes.met(meet, false)));
         assertEquals(4, Outcomes.met(meet, false).rank);
     }
 
@@ -235,17 +237,17 @@ public class UiLogicTest {
         Plan other = Fixtures.planMid(rules, obs, obs.slot, "plan-2");
         other.steps.set(3, Fixtures.social(rules, obs.slot + 3, "moon", 3, 4, true, false));
         assertEquals(1, PlanDiff.changedSlots(plan, other, obs.slot));
-        assertEquals("已重新规划：覆盖至 1月31日 · 调整 1 处", PlanDiff.summary(rules, plan, other, obs.slot));
-        assertEquals("已重新规划：覆盖至 1月31日 · 后面的安排不变", PlanDiff.summary(rules, plan, plan, obs.slot));
+        assertEquals("已重新安排：后面有 1 处变动", PlanDiff.summary(rules, plan, other, obs.slot));
+        assertEquals("已重新安排：后面的安排没变", PlanDiff.summary(rules, plan, plan, obs.slot));
     }
 
     @Test
     public void linkStatusFooters() {
         Profile p = Fixtures.profileMid();
-        assertEquals("预计 11/20 MAX", LinkStatus.of(rules, p, obs, plan, 4).footZh);
+        assertEquals("预计 11/20 升到 MAX", LinkStatus.of(rules, p, obs, plan, 4).footZh);
         assertEquals("皇帝 6→MAX · 预计 11/20", LinkStatus.of(rules, p, obs, plan, 4).chipZh);
         assertEquals("剧情自动推进", LinkStatus.of(rules, p, obs, plan, 13).footZh);
-        assertTrue(LinkStatus.of(rules, p, obs, plan, 2).footZh.startsWith("时间不够：优先级低于 皇帝、恋爱"));
+        assertTrue(LinkStatus.of(rules, p, obs, plan, 2).footZh.startsWith("时间不够，先让给了皇帝、恋爱"));
         obs.rescueFailed = 2L;
         assertTrue(LinkStatus.of(rules, p, obs, plan, 12).lost);
     }
