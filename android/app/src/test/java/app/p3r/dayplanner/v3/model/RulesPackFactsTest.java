@@ -519,6 +519,29 @@ public class RulesPackFactsTest {
     }
 
     @Test
+    public void everyFreeSlotOffersAFreeProductiveActivity() {
+        // A plan never has to idle: some zero-cost stat activity fits every unlocked slot.
+        for (Rules.Day d : r.days) {
+            if (d == null) continue;
+            for (int evening = 0; evening <= 1; evening++) {
+                boolean eve = evening == 1;
+                if ((eve ? d.eveLock : d.dayLock) != null) continue;
+                boolean found = false;
+                for (Rules.Activity a : r.activities) {
+                    boolean slotOk = eve ? a.eve : a.day;
+                    boolean typeOk = a.dayTypes.isEmpty() || a.dayTypes.contains(d.type);
+                    if (a.cost == 0 && a.kind == Rules.ActivityKind.STAT && slotOk && a.allowsWeekday(d.wd)
+                            && d.d >= a.fromDay && d.d <= a.toDay && typeOk) {
+                        found = true;
+                        break;
+                    }
+                }
+                assertTrue(d.md + (eve ? " evening" : " daytime") + " has no free activity", found);
+            }
+        }
+    }
+
+    @Test
     public void keyActivitiesMatchTheEvidence() {
         Rules.Activity study = r.activity("study_room");
         assertTrue(study.eve);

@@ -1392,7 +1392,25 @@ def parse_aqiu_activities(page: AqiuPage) -> dict[str, dict]:
     return table
 
 
-def build_activities(ledger: Ledger, page: AqiuPage, guide_text: str) -> list[dict]:
+def audit_fallbacks(activities: list[dict], days: list[dict]) -> None:
+    """Every free slot must offer a zero-cost activity that raises a stat (no forced idling)."""
+    missing = []
+    for day in days:
+        for slot, lock in (("day", day["dayLock"]), ("eve", day["eveLock"])):
+            if lock is not None:
+                continue
+            ok = any(
+                a["cost"] == 0 and a["kind"] == "stat" and slot in a["slots"] and day["wd"] in a["weekdays"]
+                and a["fromDay"] <= day["d"] <= a["toDay"] and (not a["dayTypes"] or day["type"] in a["dayTypes"])
+                for a in activities
+            )
+            if not ok:
+                missing.append(f"{day['md']} {slot}")
+    if missing:
+        raise BuildError("free slots without a zero-cost activity: " + ", ".join(missing))
+
+
+def build_activities(ledger: Ledger, page: AqiuPage, guide_text: str, days: list[dict]) -> list[dict]:
     aqiu = parse_aqiu_activities(page)
     help_text = load_pay_help()
     jobs = {j["ruleId"]: j for j in read_evidence("jobs_wage_rules_candidate.json")["jobs"]}
@@ -1445,6 +1463,12 @@ def build_activities(ledger: Ledger, page: AqiuPage, guide_text: str) -> list[di
                   "(their unlock needs an observed menu event or Request #11 that the model cannot express), the one-off "
                   "burger challenge (needs Requests #1/#9/#11), shrine donations (single source, unclear Reload value), "
                   "dorm hangouts and Link Episodes (DESIGN §10.10), film-festival hangouts and shrine fortunes.")
+    audit_fallbacks(out, days)
+    ledger.decide("activities", "no idle slots", "Every unlocked slot from 4/21 offers at least one free productive "
+                  "activity (evening desk study; library after school; desk study in the daytime when there is no "
+                  "school), so a plan never has to leave a slot idle; jobs are the only forecast income and beat "
+                  "idling whenever money is useful. The builder fails if a free slot lacks such a fallback. Reload has "
+                  "no fatigue or sickness, so a Tartarus night carries no next-day penalty.")
     ledger.decide("activities", "jobs", "Jobs pay the conservative non-busy tier per completed shift (wage tables from "
                   "megatenwiki/wiki469; base pay confirmed by the game help text: café ¥2,500+ at night, accessory shop "
                   "¥3,500+ by day, cinema ¥5,000+ by day). Chagall from 5/4 (first CN-guide witness; earliest date "
@@ -1502,7 +1526,7 @@ def build_pack() -> tuple[dict, Ledger]:
     days, tartarus = build_calendar(ledger, day_cells, night_cells)
     links = build_links(ledger, page, days, guide_text)
     resolve_fixed_days(links)
-    activities = build_activities(ledger, page, guide_text)
+    activities = build_activities(ledger, page, guide_text, days)
 
     stat_thresholds = load_stat_thresholds()
     expected = {"academics": [0, 0, 20, 55, 100, 155, 230], "charm": [0, 0, 15, 30, 45, 70, 100], "courage": [0, 0, 15, 30, 45, 60, 80]}
