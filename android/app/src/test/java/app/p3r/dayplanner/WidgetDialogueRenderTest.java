@@ -83,9 +83,19 @@ public class WidgetDialogueRenderTest {
    if(choices.getVisibility()==View.VISIBLE) {
     shown++;fullText(choices,tag+" dialogue",issues);
     List<String> ordered=new ArrayList<>();for(int i=0;i<expected.length();i++)ordered.add(expected.getString(i));
-    assertEquals(tag+" choices flow",String.join(" / ",ordered),choices.getText().toString());
-    assertFalse(tag+" forced newline",choices.getText().toString().contains("\n"));
-    for(int i=0;i<expected.length();i++)if(!choices.getText().toString().contains(expected.getString(i)))issues.add(tag+" missing exact choice "+i);
+    // The card keeps every choice whole with invisible word joiners; compare the text a reader sees.
+    String shownChoices=app.p3r.dayplanner.v3.widget.CardText.plain(choices.getText().toString());
+    assertEquals(tag+" choices flow",String.join(" / ",ordered),shownChoices);
+    assertFalse(tag+" forced newline",shownChoices.contains("\n"));
+    for(int i=0;i<expected.length();i++)if(!shownChoices.contains(expected.getString(i)))issues.add(tag+" missing exact choice "+i);
+    // Natural wrapping: a wrapped line never starts with a choice's 「（1）」 or with the slash.
+    for(int line=1;line<choices.getLineCount();line++){
+     String rest=app.p3r.dayplanner.v3.widget.CardText.plain(choices.getText().subSequence(choices.getLayout().getLineStart(line),choices.length()).toString());
+     if(rest.startsWith("（")||rest.startsWith("/"))issues.add(tag+" line "+line+" starts with a detached '"+rest.charAt(0)+"': "+rest);
+     // With room for it (May 2 on a wide card), every line starts with a whole choice.
+     boolean whole=false;for(String choice:ordered)whole|=rest.startsWith(choice);
+     if(id.equals("t016_02")&&size[0]>=250&&!whole)issues.add(tag+" line "+line+" starts mid-choice: "+rest);
+    }
     assertEquals(tag+" dialogue font",12f,choices.getTextSize()/c.getResources().getDisplayMetrics().scaledDensity,0.05f);
    } else {
     boolean alreadyInTitle=true;

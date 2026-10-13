@@ -127,6 +127,54 @@ final class RenderSupport {
         if (b.right > root.getWidth()) issues.add(tag + " status cluster leaves the card");
     }
 
+    /** A line may start with these (a break before them is fine). Mirrors {@link CardText}. */
+    private static final String OPENING = "（(「『【〔《〈“‘";
+    /** A line may end with these. */
+    private static final String CLOSING = "）)」』】〕》〉”’，、。；：！？…";
+
+    /**
+     * Names and dialogue choices must not split mid-word (audit: 「小田桐/秀利」, 「你说得对」/「（1）」):
+     * a wrapped title with 「 · 」 parts may only break after a space or punctuation, or before an
+     * opening bracket; a wrapped dialogue line only after a slash or the 「参考回答：」 prefix. A line
+     * without any break opportunity (one word wider than the card) is the only exception.
+     */
+    static void collectWordSplits(View root, String tag, List<String> issues) {
+        TextView title = root.findViewById(app.p3r.dayplanner.R.id.widget_task);
+        TextView dialogue = root.findViewById(app.p3r.dayplanner.R.id.widget_dialogue_choices);
+        String plainTitle = title == null ? "" : CardText.plain(title.getText().toString());
+        if (plainTitle.contains(" · ")) collectSplits(title, tag + " title", issues);
+        collectSplits(dialogue, tag + " dialogue", issues);
+    }
+
+    private static void collectSplits(TextView text, String tag, List<String> issues) {
+        if (text == null || text.getVisibility() != View.VISIBLE || text.getLayout() == null) return;
+        android.text.Layout layout = text.getLayout();
+        String s = text.getText().toString();
+        for (int line = 0; line < layout.getLineCount() - 1; line++) {
+            if (layout.getEllipsisCount(line) > 0) continue;
+            int start = layout.getLineStart(line);
+            int end = layout.getLineEnd(line);
+            char before = visibleBefore(s, end);
+            char after = visibleAfter(s, end);
+            boolean ok = before == ' ' || CLOSING.indexOf(before) >= 0 || OPENING.indexOf(after) >= 0;
+            boolean forced = s.substring(start, end).trim().indexOf(' ') < 0; // one word wider than the line
+            if (!ok && !forced) {
+                issues.add(tag + " splits a word: '" + CardText.plain(s.substring(start, end)) + "' / '"
+                        + CardText.plain(s.substring(end)) + "'");
+            }
+        }
+    }
+
+    private static char visibleBefore(String s, int at) {
+        for (int i = at - 1; i >= 0; i--) if (s.charAt(i) != CardText.WJ) return s.charAt(i);
+        return ' ';
+    }
+
+    private static char visibleAfter(String s, int at) {
+        for (int i = at; i < s.length(); i++) if (s.charAt(i) != CardText.WJ) return s.charAt(i);
+        return ' ';
+    }
+
     static String name(View v) {
         try {
             return v.getId() == View.NO_ID ? v.getClass().getSimpleName() : v.getResources().getResourceEntryName(v.getId());

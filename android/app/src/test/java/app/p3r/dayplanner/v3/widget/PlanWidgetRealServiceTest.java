@@ -238,8 +238,9 @@ public class PlanWidgetRealServiceTest {
         return flipper.getCurrentView();
     }
 
+    /** The text a reader sees (the invisible line-break marks removed). */
     private String text(int viewId) {
-        return ((TextView) card().findViewById(viewId)).getText().toString();
+        return CardText.plain(((TextView) card().findViewById(viewId)).getText().toString());
     }
 
     private void tap(int viewId) {

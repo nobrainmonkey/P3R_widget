@@ -21,6 +21,7 @@ import java.util.Map;
 
 import app.p3r.dayplanner.v3.widget.CardModel;
 import app.p3r.dayplanner.v3.widget.CardRenderer;
+import app.p3r.dayplanner.v3.widget.CardText;
 import app.p3r.dayplanner.v3.widget.FadeGuard;
 import app.p3r.dayplanner.v3.widget.GameCalendar;
 import app.p3r.dayplanner.v3.widget.PaletteHost;
@@ -160,24 +161,12 @@ public class PlannerWidget extends AppWidgetProvider {
         boolean complete = task != null && PlannerStore.isDone(completed, task);
         boolean canComplete = task != null && task.isCheckable();
         m.title = task == null ? "暂无任务" : task.widgetTitle;
-        m.location = task == null || task.locationLabel.isEmpty() ? null : task.locationLabel;
+        m.location = task == null || task.locationLabel.isEmpty() ? null : locationText(task.locationLabel);
         m.titleMaxLines = size == WidgetSize.COMPACT ? 2 : 3;
         String choices = task == null ? "" : dialogueText(task);
-        boolean showChoices = false;
-        if (!choices.isEmpty()) {
-            // Choices matter more than body padding, and more than the location on a tiny card.
-            if (dialogueFits(c, task, width, height, choices, true, false)) {
-                showChoices = true;
-            } else if (dialogueFits(c, task, width, height, choices, true, true)) {
-                showChoices = true;
-                m.tightBody = true;
-            } else if (dialogueFits(c, task, width, height, choices, false, true)) {
-                showChoices = true;
-                m.tightBody = true;
-                m.location = null;
-            }
-        }
-        m.dialogue = showChoices ? choices : null;
+        String shownChoices = choices.isEmpty() ? null : fitChoices(c, task, width, height, choices, m);
+        boolean showChoices = shownChoices != null;
+        m.dialogue = shownChoices;
         if (showChoices) m.watermarkDay = -1; // full-width choices stay clear of the outlined numeral
         m.cue = task != null && task.hasDetails ? "点开查看完整步骤" : null;
         if (task != null && (!task.dialogueChoices.isEmpty() || !task.dialogueCue.isEmpty())) {
@@ -197,6 +186,14 @@ public class PlannerWidget extends AppWidgetProvider {
         return m;
     }
 
+    /**
+     * The guide's location as the card shows it: alternatives the guide writes with a full-width
+     * 「／」 (「教室／田径社」) read like the dialogue choices, 「教室 / 田径社」, beside the 「 · 」 parts.
+     */
+    static String locationText(String label) {
+        return label.replaceAll("\\s*／\\s*", " / ");
+    }
+
     static String dialogueText(PlannerStore.Task task) {
         if (task.dialogueChoices.isEmpty()) return "";
         int from = 0;
@@ -209,15 +206,38 @@ public class PlannerWidget extends AppWidgetProvider {
         return alreadyInTitle ? "" : android.text.TextUtils.join(" / ", task.dialogueChoices);
     }
 
+    /**
+     * The choices as the card shows them, or null when they do not fit (the cue then points to the
+     * app). Choices matter more than body padding, and more than the location on a tiny card. They
+     * wrap only between whole choices ({@link CardText#choices}) where that fits; otherwise inside a
+     * choice, but never leaving its 「（1）」 or a slash alone at a line start ({@link CardText#choicesLoose}).
+     * Sets {@code m.tightBody} and drops {@code m.location} as needed.
+     */
+    private static String fitChoices(Context c, PlannerStore.Task task, float width, float height, String choices, CardModel m) {
+        String[] shapes = {CardText.choices(choices), CardText.choicesLoose(choices)};
+        for (boolean keepLocation : new boolean[]{true, false}) {
+            for (String shaped : shapes) {
+                for (boolean tight : keepLocation ? new boolean[]{false, true} : new boolean[]{true}) {
+                    if (!dialogueFits(c, task, width, height, shaped, keepLocation, tight)) continue;
+                    m.tightBody = tight;
+                    if (!keepLocation) m.location = null;
+                    return shaped;
+                }
+            }
+        }
+        return null;
+    }
+
     /** Whether the choices fit with the location row kept and the body padding kept. */
     static boolean dialogueFits(Context c, PlannerStore.Task task, float width, float height, String choices) {
         return dialogueFits(c, task, width, height, choices, true, false);
     }
 
     /**
-     * Whether the title (at its smallest autosize step), the full choices and the rows that stay on
-     * the card (location if {@code keepLocation}, dialogue cue) fit the card body; {@code tightBody}
-     * reclaims the body's vertical padding.
+     * Whether the title (at its smallest autosize step), the full choices (measured as given, i.e.
+     * already shaped for line breaks) and the rows that stay on the card (location if
+     * {@code keepLocation}, dialogue cue) fit the card body; {@code tightBody} reclaims the body's
+     * vertical padding.
      */
     static boolean dialogueFits(Context c, PlannerStore.Task task, float width, float height, String choices,
                                 boolean keepLocation, boolean tightBody) {

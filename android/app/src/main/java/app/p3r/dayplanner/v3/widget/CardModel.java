@@ -76,8 +76,29 @@ public final class CardModel {
     public String cue;
     /** Keep the cue even when space is short (it replaces information that did not fit). */
     public boolean cueEssential;
-    /** Legacy guide only: dialogue choices joined with " / "; null hides them. */
+    /**
+     * Lines the cue may wrap to: a status card's cue is its instruction (「游戏资料读取失败，请重新打开应用」)
+     * and gets two; {@link CardRenderer#fit} falls back to one line when the card is too short.
+     */
+    public int cueMaxLines = 1;
+    /**
+     * Dialogue choices joined with " / ": the legacy guide's choices (already shaped for line breaks
+     * by the guide widget), or the plan widget's 「参考回答：A / B」 line from the guide (plain text;
+     * with {@link #keepWordsWhole} {@link CardRenderer} keeps every choice whole, see
+     * {@link CardText#choices}); null hides them.
+     */
     public String dialogue;
+    /**
+     * The dialogue line may be left out: {@link CardRenderer#fit} drops it when it would need more
+     * than {@link CardRenderer#MAX_DIALOGUE_LINES} lines or push the title below a comfortable size
+     * (plan widget). The legacy guide decides about its choices itself.
+     */
+    public boolean dialogueOptional;
+    /**
+     * Keep names in the title whole when it wraps ({@link CardText#title}: 「皇帝 ·」/「小田桐秀利」,
+     * never 「小田桐/秀利」). The legacy guide's free-form titles keep their plain breaks.
+     */
+    public boolean keepWordsWhole;
     public String taskDescription = "";
     /** Drop the body's vertical padding to make room (legacy dialogue choices). */
     public boolean tightBody;
@@ -130,7 +151,10 @@ public final class CardModel {
         m.side = side;
         m.cue = cue;
         m.cueEssential = cueEssential;
+        m.cueMaxLines = cueMaxLines;
         m.dialogue = dialogue;
+        m.dialogueOptional = dialogueOptional;
+        m.keepWordsWhole = keepWordsWhole;
         m.taskDescription = taskDescription;
         m.tightBody = tightBody;
         m.titleMaxLines = titleMaxLines;

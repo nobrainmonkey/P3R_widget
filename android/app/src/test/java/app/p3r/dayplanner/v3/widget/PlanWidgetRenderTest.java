@@ -95,6 +95,17 @@ public class PlanWidgetRenderTest {
                 fake.observeAt("meet:emperor");
                 break;
             }
+            case "dialogue":
+            case "dialogue-hint": {
+                // A rank-up whose scene has guide answers (as the app's 参考回答 line shows them).
+                fake.rules = FakePlannerApi.miniRules();
+                fake.rules.link("emperor").dialogue.put(7, java.util.Arrays.asList("我会帮你的", "这样的规矩没有意义"));
+                Plan.Step emperor = fake.plan.steps.get(2);
+                emperor.entity = "emperor";
+                if (name.equals("dialogue-hint")) emperor.hintZh = "记得带上「皇帝」阿尔卡那的人格面具";
+                fake.observeAt("meet:emperor");
+                break;
+            }
             case "max-up":
                 fake.plan.steps.set(2, FakePlannerApi.rank(FakePlannerApi.step(FakePlannerApi.FIRST_SLOT + 2, "meet:emperor", "social",
                         "皇帝 · 小田桐秀利", "RANK 9 → MAX", "月光馆学园 3楼 学生会室", "「必须」目标，这次见面一定能升到 MAX"), 9, 10));
@@ -165,7 +176,7 @@ public class PlanWidgetRenderTest {
         List<String> issues = new ArrayList<>();
         String[] states = {"social", "stat", "job", "unlock", "unlock-talk", "tower", "locked", "story-run", "future", "receipt",
                 "note", "episode", "hint", "max-up", "max-meet", "job-side", "long", "long-stat", "free", "empty", "planning", "error",
-                "unreadable", "finished"};
+                "unreadable", "finished", "dialogue", "dialogue-hint"};
         for (String name : states) {
             for (boolean night : new boolean[]{false, true}) {
                 for (int[] size : SIZES) {
@@ -177,6 +188,7 @@ public class PlanWidgetRenderTest {
                     RenderSupport.collectOverflow(root, R.id.widget_plate, tag, issues);
                     RenderSupport.collectHeaderOverlap(root, tag, issues);
                     RenderSupport.collectSqueezedLocation(root, tag, issues);
+                    RenderSupport.collectWordSplits(root, tag, issues);
                     TextView title = root.findViewById(R.id.widget_task);
                     assertFalse(tag + " blank title", title.getText().toString().trim().isEmpty());
                     assertTrue(tag + " title collapsed", title.getHeight() > 0);
@@ -192,7 +204,7 @@ public class PlanWidgetRenderTest {
         File dir = RenderSupport.outputDir("plan-font115");
         List<String> issues = new ArrayList<>();
         for (String name : new String[]{"social", "stat", "future", "receipt", "empty", "note", "episode", "hint", "max-meet", "job-side",
-                "long", "long-stat", "unlock-talk"}) {
+                "long", "long-stat", "unlock-talk", "dialogue", "unreadable", "error"}) {
             for (int[] size : SIZES) {
                 state(name);
                 View root = render(false, size[0], size[1]);
@@ -202,9 +214,77 @@ public class PlanWidgetRenderTest {
                 RenderSupport.collectOverflow(root, R.id.widget_plate, tag, issues);
                 RenderSupport.collectHeaderOverlap(root, tag, issues);
                 RenderSupport.collectSqueezedLocation(root, tag, issues);
+                RenderSupport.collectWordSplits(root, tag, issues);
             }
         }
         assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
+    @Test
+    public void meetingsShowTheGuideAnswersWhenThereIsRoom() {
+        state("dialogue");
+        View regular = render(false, 320, 200);
+        TextView line = regular.findViewById(R.id.widget_dialogue_choices);
+        assertEquals(View.VISIBLE, line.getVisibility());
+        assertEquals("参考回答：我会帮你的 / 这样的规矩没有意义", CardText.plain(line.getText().toString()));
+        assertTrue("「规矩」 is kept whole", line.getText().toString().contains("规" + CardText.WJ + "矩"));
+        assertTrue("at most two lines", line.getLineCount() <= CardRenderer.MAX_DIALOGUE_LINES);
+        assertEquals("the outlined day numeral steps aside", View.GONE, regular.findViewById(R.id.widget_watermark).getVisibility());
+        assertEquals("RANK 6→7", text(regular, R.id.widget_tag));
+        assertEquals(View.VISIBLE, regular.findViewById(R.id.widget_meta_row).getVisibility());
+        // Where it does not fit it goes before the reminder, side step or RANK/location row: the title keeps its size.
+        View tiny = render(false, 180, 150);
+        assertEquals(View.GONE, tiny.findViewById(R.id.widget_dialogue_choices).getVisibility());
+        assertEquals(View.VISIBLE, tiny.findViewById(R.id.widget_meta_row).getVisibility());
+        state("dialogue-hint");
+        View hint = render(false, 250, 160);
+        assertEquals(View.VISIBLE, hint.findViewById(R.id.widget_hint).getVisibility());
+        // Steps without guide text (or that are no meetings) never show the line.
+        for (String other : new String[]{"social", "stat", "note", "tower"}) {
+            state(other);
+            assertEquals(other, View.GONE, render(false, 320, 200).findViewById(R.id.widget_dialogue_choices).getVisibility());
+        }
+    }
+
+    /** Audit: at 180x150 the unreadable-state card cut its instruction short with "…". */
+    @Test
+    public void statusInstructionsWrapInsteadOfBeingCutShort() {
+        Map<String, String> cues = new LinkedHashMap<>();
+        cues.put("unreadable", "游戏资料读取失败，请重新打开应用");
+        cues.put("error", "生成安排时出了问题，请稍后再试");
+        cues.put("empty", "填好进度后，每天点「完成」就行");
+        for (Map.Entry<String, String> e : cues.entrySet()) {
+            for (int[] size : SIZES) {
+                state(e.getKey());
+                TextView cue = render(false, size[0], size[1]).findViewById(R.id.widget_detail_cue);
+                String tag = e.getKey() + "-" + size[0] + "x" + size[1];
+                // The setup card's hint may give way to its title on the smallest card; error instructions never.
+                if (e.getKey().equals("empty") && cue.getVisibility() == View.GONE) continue;
+                assertEquals(tag, View.VISIBLE, cue.getVisibility());
+                assertEquals(tag, e.getValue(), CardText.plain(cue.getText().toString()));
+                for (int line = 0; line < cue.getLineCount(); line++) {
+                    assertEquals(tag + " ellipsized", 0, cue.getLayout().getEllipsisCount(line));
+                }
+                if (cue.getLineCount() > 1) {
+                    String first = CardText.plain(cue.getText().subSequence(0, cue.getLayout().getLineEnd(0)).toString());
+                    assertTrue(tag + " wraps after the comma: " + first, first.endsWith("，"));
+                }
+            }
+        }
+    }
+
+    @Test
+    public void wrappedNamesStayWhole() {
+        state("max-up");
+        List<String> issues = new ArrayList<>();
+        for (int[] size : SIZES) RenderSupport.collectWordSplits(render(false, size[0], size[1]), "max-up-" + size[0], issues);
+        assertTrue(String.join("\n", issues), issues.isEmpty());
+        // Narrow enough that 「皇帝 · 小田桐秀利」 may wrap: then after the dot, never inside the name.
+        TextView title = render(false, 180, 150).findViewById(R.id.widget_task);
+        assertEquals("皇帝 · 小田桐秀利", CardText.plain(title.getText().toString()));
+        if (title.getLineCount() > 1) {
+            assertEquals("皇帝 · ", CardText.plain(title.getText().subSequence(0, title.getLayout().getLineEnd(0)).toString()));
+        }
     }
 
     @Test
@@ -257,8 +337,11 @@ public class PlanWidgetRenderTest {
         assertEquals("当晚回宿舍用公用电脑给山岸风花加好感", text(note, R.id.widget_hint));
         state("episode");
         View episode = render(false, 320, 200);
-        // The glossary's title; the spaces beside the number are non-breaking so 「第 2 话」 never splits.
-        assertEquals("羁绊剧情 · 伊织顺平（第\u00A02\u00A0话）", text(episode, R.id.widget_task));
+        // The glossary's title; the spaces beside the number are non-breaking so 「第 2 话」 never splits,
+        // and the name stays whole.
+        assertEquals("羁绊剧情 · 伊织顺平（第 2 话）", text(episode, R.id.widget_task));
+        String shaped = ((TextView) episode.findViewById(R.id.widget_task)).getText().toString();
+        assertTrue(shaped.contains("第\u00A02\u00A0话") && shaped.contains("伊\u2060织\u2060顺\u2060平"));
         assertEquals(View.VISIBLE, episode.findViewById(R.id.widget_title_icon).getVisibility());
         state("hint");
         View hint = render(false, 320, 200);
@@ -289,7 +372,8 @@ public class PlanWidgetRenderTest {
         assertEquals(255, android.graphics.Color.alpha(live.getCurrentTextColor()));
     }
 
+    /** The text a reader sees (the invisible line-break marks removed). */
     private static String text(View root, int id) {
-        return ((TextView) root.findViewById(id)).getText().toString();
+        return CardText.plain(((TextView) root.findViewById(id)).getText().toString());
     }
 }
