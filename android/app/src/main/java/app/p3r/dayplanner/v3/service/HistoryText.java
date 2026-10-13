@@ -36,6 +36,8 @@ final class HistoryText {
 
     /** Fallback when a row cannot be described. */
     static final String ZH_UNKNOWN_ROW = "一条记录";
+    /** The story-hold answer (outcome NOT_DONE, reason "hold"), worded as on the result sheet. */
+    static final String ZH_HOLD = "剧情原因暂时升不了";
 
     private HistoryText() {}
 
@@ -177,6 +179,7 @@ final class HistoryText {
         t.level = rec.level;
         t.rescuedId = rec.rescuedId;
         t.sideDone = rec.sideDone;
+        t.sideKeys = rec.side == null ? null : new ArrayList<>(rec.side);
         return t;
     }
 
@@ -345,7 +348,8 @@ final class HistoryText {
 
     private static String notDone(Action action, String reason) {
         if ("hold".equals(reason)) {
-            return "游戏提示暂时无法升级";
+            // The same words as the answer the player tapped on the result sheet.
+            return ZH_HOLD;
         }
         return missed(action, "没完成");
     }

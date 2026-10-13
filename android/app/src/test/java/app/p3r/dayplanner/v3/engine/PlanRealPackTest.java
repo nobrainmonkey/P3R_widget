@@ -246,7 +246,7 @@ public class PlanRealPackTest {
             notes++;
             assertEquals("note", s.kind);
             assertTrue((s.slot & 1) == 1 && (s.slot >> 1) >= pack.datingNote.fromDay);
-            assertTrue(s.titleZh, s.titleZh.startsWith("在放纵俱乐部买结缘网站的字条，给 "));
+            assertTrue(s.titleZh, s.titleZh.startsWith("在放纵俱乐部买结缘网站的字条，给") && !s.titleZh.contains(" "));
         }
         assertTrue("maxed " + none.metrics.maxed, none.metrics.maxed >= 21);
 

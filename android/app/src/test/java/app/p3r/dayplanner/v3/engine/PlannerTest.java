@@ -422,7 +422,7 @@ public class PlannerTest {
         Plan plan = Engine.plan(rules, profile, start, null, generous());
         assertValid(rules, profile, start, plan);
         assertEquals(4, plan.summary.endRanks[RulesFixtures.S_MAGICIAN]);
-        assertEquals("魔术师：RANK 5 暂时无法升级（游戏里有提示），先安排到 RANK 4", plan.summary.notesZh.get(0));
+        assertEquals("魔术师：RANK 5 暂时无法升级（你记录了剧情原因暂时升不了），先安排到 RANK 4", plan.summary.notesZh.get(0));
         int held = 0;
         int socialSteps = 0;
         for (Plan.Step s : plan.steps) {

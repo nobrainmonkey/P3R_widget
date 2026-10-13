@@ -201,6 +201,73 @@ public class OutcomeTest {
         assertFalse(Engine.legalActions(rules, profile, late).contains(Action.meet(S_HIEROPHANT)));
     }
 
+    /**
+     * F1: the result sheet records 「升到 RANK 5 了」 and 「见面了」 as AS_PREDICTED with the rank the
+     * player confirmed. Replaying such a row under another profile (here: magician becomes a goal,
+     * so the goal buffer raises the points needed from 15 to 25, or stops being one) must keep the
+     * confirmed rank, as OTHER does.
+     */
+    @Test
+    public void asPredictedKeepsTheConfirmedRankWhateverTheProfileSays() {
+        Profile goal = RulesFixtures.must(S_MAGICIAN);
+        assertTrue(goal.goalBuffer);
+        Action meet = Action.meet(S_MAGICIAN);
+
+        // 「升到 RANK 5 了」 recorded without goals (15 points are enough)…
+        SimState enough = magician4();
+        enough.pts[S_MAGICIAN] = 15;
+        Outcome up = Outcome.of(Outcome.Code.AS_PREDICTED);
+        up.rank = 5;
+        SimState recorded = outcome(enough, meet, up);
+        assertEquals(5, recorded.rank[S_MAGICIAN]);
+        // …replayed after magician became a 必须 goal (the forecast alone would say 25 are needed).
+        assertEquals("without the confirmed rank the profile decides", 4,
+                Engine.applyOutcome(rules, goal, enough, meet, Outcome.of(Outcome.Code.AS_PREDICTED)).rank[S_MAGICIAN]);
+        SimState replayed = Engine.applyOutcome(rules, goal, enough, meet, up);
+        assertEquals("the confirmed rank-up stays", 5, replayed.rank[S_MAGICIAN]);
+        assertEquals("rank-5 scene estimate, as for RANK_UP", 15, replayed.pts[S_MAGICIAN]);
+        assertEquals(enough.slot + 1, replayed.slot);
+
+        // 「见面了」 (no rank-up) recorded while magician was a goal…
+        Outcome met = Outcome.of(Outcome.Code.AS_PREDICTED);
+        met.rank = 4;
+        SimState asGoal = Engine.applyOutcome(rules, goal, enough, meet, met);
+        assertEquals(4, asGoal.rank[S_MAGICIAN]);
+        assertEquals(25, asGoal.pts[S_MAGICIAN]);
+        // …replayed after the goal was cleared (the forecast alone would now rank up): no invented rank-up.
+        SimState cleared = outcome(enough, meet, met);
+        assertEquals(4, cleared.rank[S_MAGICIAN]);
+        assertFalse(cleared.ready[S_MAGICIAN]);
+        assertEquals("one more ordinary meeting", 25, cleared.pts[S_MAGICIAN]);
+
+        // Same profile, same prediction: identical to the plain forecast.
+        SimState plain = magician4();
+        Outcome ordinary = Outcome.of(Outcome.Code.AS_PREDICTED);
+        ordinary.rank = 4;
+        assertEquals(Engine.apply(rules, profile, plain, meet).state.pts[S_MAGICIAN],
+                outcome(plain, meet, ordinary).pts[S_MAGICIAN]);
+        // A ready cue recorded with 「见面了」 still counts.
+        Outcome cue = Outcome.of(Outcome.Code.AS_PREDICTED);
+        cue.rank = 4;
+        cue.readyCue = true;
+        assertTrue(outcome(plain, meet, cue).ready[S_MAGICIAN]);
+    }
+
+    @Test
+    public void asPredictedUnlockKeepsItsConfirmedRank() {
+        SimState emp = RulesFixtures.newGame(rules, Rules.slot(30, false));
+        emp.statPts[ACADEMICS] = 20;
+        emp.unlockStep[S_EMPEROR] = 1;
+        emp.lastStepDay[S_EMPEROR] = 26;
+        Outcome o = Outcome.of(Outcome.Code.AS_PREDICTED);
+        o.rank = 1;
+        SimState established = outcome(emp, Action.unlock(S_EMPEROR, 1), o);
+        assertEquals(1, established.rank[S_EMPEROR]);
+        assertEquals(2, established.unlockStep[S_EMPEROR]);
+        SimState forecast = Engine.apply(rules, profile, emp, Action.unlock(S_EMPEROR, 1)).state;
+        assertEquals(forecast.pts[S_EMPEROR], established.pts[S_EMPEROR]);
+    }
+
     @Test
     public void inputStateIsNeverMutated() throws JSONException {
         SimState s = magician4();

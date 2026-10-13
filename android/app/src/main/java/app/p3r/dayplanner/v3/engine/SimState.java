@@ -49,8 +49,8 @@ public final class SimState {
     /** Dating-site notes bought and used so far (Rules.DatingNote; each one is used the evening it is bought). */
     public int notesUsed;
     /**
-     * Player-reported rank holds: {@code heldRank[L] = r} means the game said link L cannot rank up
-     * into rank r for now ("游戏提示暂时无法升级"). Meetings still add points (up to the threshold)
+     * Player-reported rank holds: {@code heldRank[L] = r} means the player recorded that link L
+     * cannot rank up into rank r for now ("剧情原因暂时升不了"). Meetings still add points (up to the threshold)
      * but the forecast never ranks the link up past {@code r-1} until the player reports progress
      * (a rank-up or a ready cue; a checkpoint that changes the rank should clear it). 0 = no hold.
      */

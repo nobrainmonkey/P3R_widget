@@ -7,6 +7,9 @@ import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * The engine operations replay needs to derive the observed state. Production uses
  * {@link #ENGINE}; tests may substitute a deterministic fake. No method may mutate its
@@ -36,7 +39,23 @@ public interface OutcomeApplier {
         return state.copy();
     }
 
-    /** {@link Engine#applyOutcome}, {@link Engine#advanceTo} and {@link Engine#applySideSteps}. */
+    /**
+     * The side steps of {@code state.slot} beside {@code action}, with the keys applied (see
+     * {@link Engine#sideSteps}): exactly {@code keys} when given (legality-checked; the rest are
+     * listed as rejected), otherwise the ones the engine picks for {@code profile}. The result
+     * stays at the same slot. Used when recording (to store what was done) and when replaying a
+     * record that stored them. The default applies {@link #applySideSteps} for {@code null} (and
+     * cannot name the keys) and nothing for a given list.
+     */
+    default Engine.SideSteps sideSteps(Rules rules, Profile profile, SimState state, Action action, List<String> keys) {
+        Engine.SideSteps out = new Engine.SideSteps();
+        out.state = keys == null ? applySideSteps(rules, profile, state, action) : state.copy();
+        out.applied = Collections.emptyList();
+        out.rejected = Collections.emptyList();
+        return out;
+    }
+
+    /** {@link Engine#applyOutcome}, {@link Engine#advanceTo}, {@link Engine#applySideSteps} and {@link Engine#sideSteps}. */
     OutcomeApplier ENGINE = new OutcomeApplier() {
         @Override
         public SimState apply(Rules rules, Profile profile, SimState state, Action action, Outcome outcome) {
@@ -51,6 +70,12 @@ public interface OutcomeApplier {
         @Override
         public SimState applySideSteps(Rules rules, Profile profile, SimState state, Action action) {
             return Engine.applySideSteps(rules, profile, state, action);
+        }
+
+        @Override
+        public Engine.SideSteps sideSteps(Rules rules, Profile profile, SimState state, Action action,
+                                          List<String> keys) {
+            return Engine.sideSteps(rules, profile, state, action, keys);
         }
     };
 }

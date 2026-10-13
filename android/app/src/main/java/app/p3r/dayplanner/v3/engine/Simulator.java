@@ -78,6 +78,55 @@ final class Simulator {
         return st;
     }
 
+    /** See {@link Engine#sideSteps}. */
+    static Engine.SideSteps sideSteps(Rules rules, Profile profile, SimState state, Action action, List<String> keys) {
+        Model m = new Model(rules, profile, null);
+        SimState st = Kernel.normalize(m, state);
+        if (action == null) action = Action.free();
+        checkTarget(m, action);
+        int code = Kernel.encode(action);
+        List<String> applied = new ArrayList<>();
+        List<String> rejected = new ArrayList<>();
+        if (keys == null) {
+            Kernel.Effect fx = new Kernel.Effect();
+            Kernel.side(m, st, code, fx);
+            applied.addAll(sideKeys(m, fx));
+        } else {
+            recordedSide(m, st, code, keys, applied, rejected);
+        }
+        Engine.SideSteps out = new Engine.SideSteps();
+        out.state = st;
+        out.applied = Collections.unmodifiableList(applied);
+        out.rejected = Collections.unmodifiableList(rejected);
+        return out;
+    }
+
+    /**
+     * Applies the recorded side-step {@code keys} in order (see {@link Engine#sideSteps}); each
+     * key goes to {@code applied} or {@code rejected} when those lists are given. At most one step
+     * per link in a slot, like {@code Kernel.side}. A fee larger than the known cash makes the cash
+     * an estimate.
+     */
+    private static void recordedSide(Model m, SimState st, int code, List<String> keys,
+                                     List<String> applied, List<String> rejected) {
+        int day = st.slot >> 1;
+        boolean[] done = new boolean[m.t.nLinks];
+        for (String key : keys) {
+            Action a = Action.parse(m.rules, key);
+            boolean ok = a != null && a.type == Action.Type.UNLOCK_STEP && a.target >= 0 && a.target < m.t.nLinks
+                    && !done[a.target] && Kernel.recordedSideLegal(m, st, code, a.target, a.step);
+            if (!ok) {
+                if (rejected != null) rejected.add(key);
+                continue;
+            }
+            long cost = Math.max(0, m.rules.links[a.target].unlock.steps.get(a.step).cost);
+            if (cost > st.cash) st.cashExact = false;
+            Kernel.doSide(m, st, a.target, a.step, day);
+            done[a.target] = true;
+            if (applied != null) applied.add(a.key(m.rules));
+        }
+    }
+
     /** Advance without acting until {@code slot} (day rollovers applied). */
     static SimState advanceTo(Rules rules, Profile profile, SimState state, int slot) {
         Model m = new Model(rules, profile, null);
@@ -89,7 +138,10 @@ final class Simulator {
     /**
      * Apply a player-confirmed outcome (docs/DESIGN_v3.md §6/§7 and Outcome codes):
      * <ul>
-     *   <li>AS_PREDICTED – the forecast transition; visible values become observed.</li>
+     *   <li>AS_PREDICTED – the forecast transition; visible values become observed. A meeting or
+     *       unlock step that carries the rank the player confirmed ({@code outcome.rank >= 0}) is
+     *       reconciled to it exactly like OTHER, so replaying it under a changed profile (goal
+     *       buffer, Persona mode, answers, Charm bonus) never moves a confirmed rank.</li>
      *   <li>RANK_UP – rank set to {@code outcome.rank} (or +1), points reset to the scene's estimate.</li>
      *   <li>NO_RANK_UP – rank kept; points raised to {@code max(pts + gain, need - ordinaryGain)}.</li>
      *   <li>SKIPPED / NOT_DONE – slot consumed with no effect; NOT_DONE with reason "hold" freezes
@@ -102,9 +154,10 @@ final class Simulator {
      * In every case a ready cue sets {@code ready}, stat Lv values clamp the hidden points into
      * that Lv's range and a cash balance sets cash exactly. The slot always advances by one.
      *
-     * <p>Side steps: unless {@link Outcome#sideDone} is false, the slot's side steps (pending
-     * non-consuming unlock steps the plan wants, see {@code Kernel.side}) are applied first, exactly
-     * as the forecast did for this action, whatever happened to the main action.
+     * <p>Side steps: unless {@link Outcome#sideDone} is false, the slot's side steps are applied
+     * first, whatever happened to the main action: exactly {@link Outcome#sideKeys} when given
+     * (see {@link #sideSteps}), otherwise the pending non-consuming unlock steps the plan wants
+     * ({@code Kernel.side}), as the forecast did for this action.
      */
     static SimState applyOutcome(Rules rules, Profile profile, SimState state, Action action, Outcome outcome) {
         Model m = new Model(rules, profile, null);
@@ -114,7 +167,10 @@ final class Simulator {
         checkTarget(m, action);
         int code = Kernel.encode(action);
         int link = linkOf(action);
-        if (outcome.sideDone) Kernel.side(m, st, code, null);
+        if (outcome.sideDone) {
+            if (outcome.sideKeys != null) recordedSide(m, st, code, outcome.sideKeys, null, null);
+            else Kernel.side(m, st, code, null);
+        }
         switch (outcome.code) {
             case RANK_UP:
                 rankUp(m, st, action, link, outcome.rank);
@@ -136,7 +192,9 @@ final class Simulator {
                 break;
             case AS_PREDICTED:
             default:
-                Kernel.mainEffect(m, st, code, null);
+                boolean ranked = action.type == Action.Type.MEET || action.type == Action.Type.UNLOCK_STEP;
+                if (ranked && link >= 0 && outcome.rank >= 0) other(m, st, action, link, outcome.rank);
+                else Kernel.mainEffect(m, st, code, null);
                 break;
         }
         if (outcome.readyCue && link >= 0 && st.rank[link] >= 1 && st.rank[link] < 10) {

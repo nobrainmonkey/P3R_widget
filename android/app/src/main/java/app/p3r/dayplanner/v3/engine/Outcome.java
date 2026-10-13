@@ -40,6 +40,14 @@ public final class Outcome {
      * main action. JSON key {@code sideDone}, written only when false.
      */
     public boolean sideDone = true;
+    /**
+     * The side steps done in this slot, exactly ({@link Action#key} form, e.g. "unlock:devil:0"),
+     * or null when not given. Given (even empty), {@link Engine#applyOutcome} applies exactly these
+     * (see {@link Engine#sideSteps}) instead of working them out from the profile; ignored when
+     * {@link #sideDone} is false. The result sheet may pass the step's {@link Plan.Step#side} here.
+     * JSON key {@code sideKeys}, written only when not null.
+     */
+    public java.util.List<String> sideKeys;
 
     public static Outcome of(Code c) { Outcome o = new Outcome(); o.code = c; return o; }
 
@@ -54,6 +62,7 @@ public final class Outcome {
         if (cashBalance >= 0) o.put("cashBalance", cashBalance);
         if (reason != null) o.put("reason", reason);
         if (!sideDone) o.put("sideDone", false);
+        if (sideKeys != null) o.put("sideKeys", new org.json.JSONArray(sideKeys));
         return o;
     }
 
@@ -67,6 +76,11 @@ public final class Outcome {
         r.cashBalance = o.optLong("cashBalance", -1);
         r.reason = o.has("reason") ? o.getString("reason") : null;
         r.sideDone = o.optBoolean("sideDone", true);
+        org.json.JSONArray side = o.optJSONArray("sideKeys");
+        if (side != null) {
+            r.sideKeys = new java.util.ArrayList<>(side.length());
+            for (int i = 0; i < side.length(); i++) r.sideKeys.add(side.getString(i));
+        }
         return r;
     }
 }

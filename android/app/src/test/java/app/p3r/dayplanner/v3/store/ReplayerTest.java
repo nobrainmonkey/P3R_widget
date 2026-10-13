@@ -1,6 +1,7 @@
 package app.p3r.dayplanner.v3.store;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import app.p3r.dayplanner.v3.engine.Outcome;
@@ -268,6 +269,143 @@ public class ReplayerTest {
         assertEquals(0, r.state.towerVisits[0]);
         assertEquals(1, r.state.towerVisits[1]);
         assertEquals(0, r.problems);
+    }
+
+    // ------------------------------------------------------------------------------ F2 / F1: what a row recorded
+
+    @Test
+    public void recordedSideStepsAreAppliedExactlyAndNeverWorkedOutAgain() throws Exception {
+        applier.sideFee = 1_000;
+        int eve = TestRules.slot(TestRules.MAY_12, true);
+        SimState start = TestRules.state(rules, eve);
+        OutcomeRecord paid = OutcomeRecord.of(rules, eve, "act:study_room", Outcome.of(Outcome.Code.AS_PREDICTED))
+                .withResolved(rules, List.of("unlock:magician:0"), -1);
+        assertEquals("magician.intro", paid.sideStepIds.get("unlock:magician:0"));
+
+        Replayer.Result r = replayer.replay(start, List.of(row(paid.kind(), paid.toJson())), null);
+        assertEquals(List.of(List.of("unlock:magician:0")), applier.recordedSides);
+        assertEquals("the recorded fee, once", 9_000, r.state.cash);
+        assertFalse("the applier must not work the side steps out again", applier.outcomes.get(0).sideDone);
+        assertEquals(0, applier.sideCalls.get());
+        assertEquals(0, r.problems);
+
+        // Recorded as "none": nothing, whatever the engine would pick today.
+        OutcomeRecord none = OutcomeRecord.of(rules, eve, "act:study_room", Outcome.of(Outcome.Code.AS_PREDICTED))
+                .withResolved(rules, List.of(), -1);
+        assertEquals(10_000, replayer.replay(start, List.of(row(none.kind(), none.toJson())), null).state.cash);
+        assertEquals(List.of(), applier.recordedSides.get(1));
+
+        // Said not done: the stored list is not used.
+        Outcome notDone = Outcome.of(Outcome.Code.AS_PREDICTED);
+        notDone.sideDone = false;
+        OutcomeRecord skipped = OutcomeRecord.of(rules, eve, "act:study_room", notDone)
+                .withResolved(rules, List.of("unlock:magician:0"), -1);
+        assertEquals(10_000, replayer.replay(start, List.of(row(skipped.kind(), skipped.toJson())), null).state.cash);
+        assertEquals(2, applier.recordedSides.size());
+
+        // A step that can no longer be applied as recorded is counted (同步现状 notice).
+        applier.refuse.add("unlock:magician:0");
+        Replayer.Result refused = replayer.replay(start, List.of(row(paid.kind(), paid.toJson())), null);
+        assertEquals(1, refused.problems);
+        assertEquals(10_000, refused.state.cash);
+    }
+
+    @Test
+    public void recordedSideStepsFollowTheirStepIdAcrossAPackUpdate() throws Exception {
+        int eve = TestRules.slot(TestRules.MAY_12, true);
+        SimState start = TestRules.state(rules, eve);
+        OutcomeRecord rec = OutcomeRecord.of(rules, eve, "act:study_room", Outcome.of(Outcome.Code.AS_PREDICTED))
+                .withResolved(rules, List.of("unlock:magician:0"), -1);
+        EventRow row = row(rec.kind(), rec.toJson());
+
+        Rules update = TestRules.create();
+        Rules.Step greet = new Rules.Step();
+        greet.id = "magician.greet";
+        update.links[TestRules.MAGICIAN].unlock.steps.add(0, greet);
+        Replayer.Result moved = new Replayer(update, new Profile(), applier).replay(start, List.of(row), null);
+        assertEquals(0, moved.problems);
+        assertEquals(List.of("unlock:magician:1"), applier.recordedSides.get(0));
+
+        Rules removed = TestRules.create();
+        removed.links[TestRules.MAGICIAN].unlock.steps.clear();
+        removed.links[TestRules.MAGICIAN].unlock.steps.add(greet);
+        Replayer.Result gone = new Replayer(removed, new Profile(), applier).replay(start, List.of(row), null);
+        assertEquals("a side step the pack no longer has is counted", 1, gone.problems);
+        assertEquals(List.of(), applier.recordedSides.get(1));
+    }
+
+    @Test
+    public void towerRowsUseTheirRecordedSideStepsAndCorrectionsKeepThem() throws Exception {
+        applier.sideFee = 1_000;
+        int eve = TestRules.slot(TestRules.MAY_12, true);
+        SimState start = TestRules.state(rules, eve);
+
+        TowerRecord none = towerRecord(eve, 20, false, 3_000);
+        none.resolveSide(rules, List.of());
+        Replayer.Result r = replayer.replay(start, List.of(row(EventKind.TOWER, none.toJson())), null);
+        assertEquals("recorded as none: no fee, and nothing worked out", 13_000, r.state.cash);
+        assertEquals(0, applier.sideCalls.get());
+
+        TowerRecord paid = towerRecord(eve, 20, false, 3_000);
+        paid.resolveSide(rules, List.of("unlock:magician:0"));
+        EventRow visit = row(EventKind.TOWER, paid.toJson());
+        EventRow fix = fix(visit.seq, eve, 25, false, 5_000);
+        Replayer.Result fixed = replayer.replay(start, List.of(visit, fix), null);
+        assertEquals("the visit's side fee once, then the corrected net change", 14_000, fixed.state.cash);
+        assertEquals(25, fixed.state.floor);
+        assertEquals(List.of("unlock:magician:0"), applier.recordedSides.get(applier.recordedSides.size() - 1));
+        assertEquals(0, applier.sideCalls.get());
+    }
+
+    @Test
+    public void aPredictedMeetingKeepsTheRankItRecorded() throws Exception {
+        int day = TestRules.slot(TestRules.MAY_12, false);
+        SimState start = TestRules.state(rules, day);
+        OutcomeRecord widget = OutcomeRecord.of(rules, day, "meet:emperor", Outcome.of(Outcome.Code.AS_PREDICTED))
+                .withResolved(rules, List.of(), 7);
+        replayer.replay(start, List.of(row(widget.kind(), widget.toJson())), null);
+        assertEquals("the RANK resolved when recording", 7, applier.outcomes.get(0).rank);
+
+        Outcome sheet = Outcome.of(Outcome.Code.AS_PREDICTED);
+        sheet.rank = 6;
+        OutcomeRecord confirmed = OutcomeRecord.of(rules, day, "meet:emperor", sheet).withResolved(rules, List.of(), 7);
+        replayer.replay(start, List.of(row(confirmed.kind(), confirmed.toJson())), null);
+        assertEquals("the rank the player confirmed wins", 6, applier.outcomes.get(1).rank);
+
+        OutcomeRecord no = OutcomeRecord.of(rules, day, "meet:emperor", Outcome.of(Outcome.Code.NO_RANK_UP))
+                .withResolved(rules, List.of(), 7);
+        replayer.replay(start, List.of(row(no.kind(), no.toJson())), null);
+        assertEquals(-1, applier.outcomes.get(2).rank);
+    }
+
+    @Test
+    public void resolvedValuesAreNotPartOfTheCommandFingerprint() throws Exception {
+        int day = TestRules.slot(TestRules.MAY_12, false);
+        OutcomeRecord request = OutcomeRecord.of(rules, day, "meet:emperor", Outcome.of(Outcome.Code.AS_PREDICTED));
+        String json = Canonical.of(request.toJson());
+        String stored = Canonical.of(request.withResolved(rules, List.of("unlock:magician:0"), 7).toJson());
+        assertTrue(stored.contains("\"side\":[\"unlock:magician:0\"]"));
+        assertTrue(stored.contains("\"sideStepIds\":{\"unlock:magician:0\":\"magician.intro\"}"));
+        assertTrue(stored.contains("\"rankAfter\":7"));
+        assertEquals(Canonical.sha256(json), EventRow.commandSha256(json));
+        assertEquals(Canonical.sha256(json), EventRow.commandSha256(stored));
+        Outcome other = Outcome.of(Outcome.Code.NO_RANK_UP);
+        String different = Canonical.of(OutcomeRecord.of(rules, day, "meet:emperor", other).toJson());
+        assertFalse(EventRow.commandSha256(different).equals(EventRow.commandSha256(stored)));
+
+        OutcomeRecord back = OutcomeRecord.fromJson(new JSONObject(stored));
+        assertEquals(List.of("unlock:magician:0"), back.side);
+        assertEquals(7, back.rankAfter);
+        assertEquals(null, OutcomeRecord.fromJson(new JSONObject(json)).side);
+        TowerRecord tower = towerRecord(TestRules.slot(TestRules.MAY_12, true), 20, false, 0);
+        tower.sideKeys = List.of("unlock:magician:0");
+        String towerRequest = Canonical.of(tower.toJson());
+        tower.resolveSide(rules, List.of("unlock:magician:0"));
+        TowerRecord towerBack = TowerRecord.fromJson(new JSONObject(Canonical.of(tower.toJson())));
+        assertEquals(List.of("unlock:magician:0"), towerBack.sideKeys);
+        assertEquals(List.of("unlock:magician:0"), towerBack.side);
+        assertEquals("magician.intro", towerBack.sideStepIds.get("unlock:magician:0"));
+        assertEquals(Canonical.sha256(towerRequest), EventRow.commandSha256(Canonical.of(tower.toJson())));
     }
 
     /** {@link FakeApplier} whose time moves through day rollovers: entering day 42 sets Fool to RANK 3. */

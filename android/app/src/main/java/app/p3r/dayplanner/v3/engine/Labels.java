@@ -23,6 +23,8 @@ final class Labels {
     static final String FREE_TITLE = "自由活动";
     static final String NOTE_NAME = "结缘网站的字条";
     static final String EPISODE_NAME = "羁绊剧情";
+    /** The result-sheet answer for a story hold the player reports (outcome NOT_DONE, reason "hold"). */
+    static final String HOLD_ANSWER = "剧情原因暂时升不了";
 
     private final Model m;
     private final Rules rules;
@@ -261,7 +263,7 @@ final class Labels {
 
     private String holdWhy(SimState st, int l) {
         int into = st.rank[l] + 1;
-        if (st.heldRank[l] == into) return "游戏提示暂时无法升级，先攒好感";
+        if (st.heldRank[l] == into) return "你记录了" + HOLD_ANSWER + "，先攒好感";
         for (Rules.Hold hold : rules.links[l].holds) {
             if (hold.rank != into) continue;
             String until = hold.untilDay >= 0 ? date(hold.untilDay) + "前" : "";
@@ -496,17 +498,17 @@ final class Labels {
         int cost = note == null ? 0 : Math.max(0, note.cost);
         step.kind = "note";
         step.entity = link.id;
-        step.titleZh = "在放纵俱乐部买" + NOTE_NAME + "，给 " + who(l) + " 加好感";
+        step.titleZh = "在放纵俱乐部买" + NOTE_NAME + "，给" + who(l) + "加好感";
         step.subtitleZh = arcana(l) + " · 好感 +" + gain + (cost > 0 ? " · " + yen(cost) : "");
         step.locationZh = note != null && !blank(note.locationZh) ? note.locationZh : "桐叶购物中心 · 放纵俱乐部";
         double pressure = h.pressure(st, l);
         if (pressure >= 0.6 && pressure < Heuristics.INF) {
             step.whyZh = who(l) + "剩下的见面机会不多，晚上用字条先攒点好感";
         } else {
-            step.whyZh = "晚上没有更要紧的事，用字条给 " + who(l) + " 攒点好感";
+            step.whyZh = "晚上没有更要紧的事，用字条给" + who(l) + "攒点好感";
         }
         String how = note != null && !blank(note.howZh) ? note.howZh.trim()
-                : "在桐叶购物中心的放纵俱乐部买" + NOTE_NAME + "，当晚回宿舍用公用电脑给 " + who(l) + " 加好感";
+                : "在桐叶购物中心的放纵俱乐部买" + NOTE_NAME + "，当晚回宿舍用公用电脑给" + who(l) + "加好感";
         String remark = note != null && !blank(note.noteZh) ? note.noteZh.trim() : "字条只加好感，不会让社群直接升级";
         step.detailZh = how + "\n" + remark;
     }
@@ -517,8 +519,8 @@ final class Labels {
         int count = h.t.epCount[e];
         step.kind = "episode";
         step.entity = ep.id;
-        step.titleZh = EPISODE_NAME + " · " + episodePerson(ep);
-        step.subtitleZh = "第 " + n + " 话（共 " + count + " 话）";
+        step.titleZh = episodeTitle(ep, n);
+        step.subtitleZh = "共 " + count + " 话";
         step.locationZh = blank(ep.locationZh) ? null : ep.locationZh;
         int slack = h.t.episodeSlack(e, n - 1, st.slot);
         boolean chain = n - 1 < count && h.t.epChain[e][n - 1];
@@ -538,6 +540,14 @@ final class Labels {
         if (!blank(ep.noteZh)) lines.add(ep.noteZh.trim());
         if (!blank(ep.rewardZh)) lines.add(ep.rewardZh.trim());
         step.detailZh = lines.isEmpty() ? null : String.join("\n", lines);
+    }
+
+    /**
+     * "羁绊剧情 · 伊织顺平（第 2 话）": the one-line form of docs/GLOSSARY_zh.md, as in 记录历史 and
+     * the widget.
+     */
+    static String episodeTitle(Rules.Episode ep, int n) {
+        return EPISODE_NAME + " · " + episodePerson(ep) + "（第 " + n + " 话）";
     }
 
     /** "伊织顺平" (the title without its prefix, or the id as a last resort). */
@@ -591,7 +601,7 @@ final class Labels {
             int want = Math.min(p.towerVisitsPerBlock, m.towerCap);
             int open = h.t.towerRemain[b][start.slot] + start.towerVisits[b];
             if (want > 0 && open < want && h.t.towerRemain[b][start.slot] > 0) {
-                out.add(rules.blocks[b].zh + "：能去塔尔塔罗斯的晚上只有 " + open + " 个，少于想去的 " + want + " 次");
+                out.add(rules.blocks[b].zh + "：只剩 " + open + " 个晚上能去塔尔塔罗斯，不够想去的 " + want + " 次");
             }
         }
         int notesPlanned = 0;
@@ -655,7 +665,7 @@ final class Labels {
         int into = end.rank[l] + 1;
         if (into > 10) return null;
         String head = "RANK " + rankName(into) + " 暂时无法升级";
-        if (end.heldRank[l] == into) return head + "（游戏里有提示）";
+        if (end.heldRank[l] == into) return head + "（你记录了" + HOLD_ANSWER + "）";
         if (h.t.holdUntil[l][into] != Tables.HOLD_FOREVER) return null;
         for (Rules.Hold hold : rules.links[l].holds) {
             if (hold.rank == into && !blank(hold.zh)) return head + "（" + hold.zh + "）";

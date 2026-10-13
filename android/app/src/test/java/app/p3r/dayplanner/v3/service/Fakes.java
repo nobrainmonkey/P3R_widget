@@ -28,6 +28,8 @@ final class Fakes {
         final CountDownLatch firstCallEntered = new CountDownLatch(1);
         volatile CountDownLatch blockFirstCall;
         volatile RuntimeException failWith;
+        /** 顺便 keys put on every evening step ("act:study_room"), or null for none. */
+        volatile List<String> eveningSide;
 
         @Override
         public Plan plan(Rules rules, Profile profile, SimState observed, Plan previous, Engine.Options opts) {
@@ -49,6 +51,10 @@ final class Fakes {
                 step.slot = s;
                 step.action = Rules.isEvening(s) ? "act:study_room" : "meet:emperor";
                 step.kind = Rules.isEvening(s) ? "stat" : "social";
+                List<String> side = eveningSide;
+                if (side != null && Rules.isEvening(s)) {
+                    step.side = new ArrayList<>(side);
+                }
                 plan.steps.add(step);
             }
             plan.planId = "fake-" + n;

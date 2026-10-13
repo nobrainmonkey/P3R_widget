@@ -3,6 +3,7 @@ package app.p3r.dayplanner.v3.store;
 import android.util.Log;
 
 import app.p3r.dayplanner.v3.engine.Action;
+import app.p3r.dayplanner.v3.engine.Engine;
 import app.p3r.dayplanner.v3.engine.Outcome;
 import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
@@ -29,6 +30,11 @@ import java.util.Map;
  *       floor, apply cash exactly once (new balance, or net change) and set the rescue bit. The
  *       latest non-voided {@link EventKind#TOWER_FIX} for a tower row replaces its values; a fix
  *       never adds a visit.</li>
+ *   <li>Side steps ("顺便") and ranks follow what the row recorded, never today's profile: a row
+ *       that stored the side steps done ({@code side}) gets exactly those (by step id across a
+ *       pack update; ones that cannot be applied as recorded are counted as problems), and a
+ *       meeting recorded as predicted keeps the RANK it stored ({@code rankAfter}). Only older
+ *       rows without them let the engine work the side steps out.</li>
  *   <li>Time only moves forward through {@link OutcomeApplier#advanceTo}, so every day rollover
  *       (story ranks, rescue deadlines, date-based unlocks) happens exactly as in the engine,
  *       whether the day ends with an outcome, a tower visit, a gap or locked slots.</li>
@@ -185,8 +191,12 @@ public final class Replayer {
             tower = run.fixes.containsKey(row.seq) ? run.fixes.get(row.seq).copy() : own;
             tower.slot = own.slot;
             tower.block = blockOf(own.slot, own.block, run);
+            // What was done beside the visit is the visit's own record; a correction never changes it.
             tower.sideDone = own.sideDone;
-            after = applyTower(before, tower, row.seq, run.gains);
+            tower.sideKeys = own.sideKeys;
+            tower.side = own.side;
+            tower.sideStepIds = own.sideStepIds;
+            after = applyTower(before, tower, row.seq, run);
         } else {
             OutcomeRecord record = OutcomeRecord.fromJson(row.payload());
             Action action = resolve(record, slot, run);
@@ -194,7 +204,18 @@ public final class Replayer {
             if (EventKind.SKIP.equals(row.kind)) {
                 outcome.code = Outcome.Code.SKIPPED;
             }
-            after = applier.apply(rules, profile, before.copy(), action, outcome);
+            SimState start = before;
+            List<String> recorded = record.side != null ? record.side : outcome.sideKeys;
+            if (outcome.sideDone && recorded != null) {
+                start = recordedSide(before, action, recorded, record.sideStepIds, run);
+                // Applied above, exactly as recorded: the applier must not work them out again.
+                outcome.sideDone = false;
+                outcome.sideKeys = null;
+            }
+            if (record.rankAfter >= 0 && outcome.rank < 0 && outcome.code == Outcome.Code.AS_PREDICTED) {
+                outcome.rank = record.rankAfter;
+            }
+            after = applier.apply(rules, profile, start.copy(), action, outcome);
         }
         after = advance(after, slot + 1);
         if (trace != null) {
@@ -262,14 +283,60 @@ public final class Replayer {
     }
 
     /**
-     * One Tartarus visit at {@code before.slot}: side steps (unless not done), +1 visit, floor =
-     * max, cash once, rescue bit. Stays at the visit's slot. Never mutates {@code before}.
+     * The side steps a row recorded, applied exactly at {@code state.slot} beside {@code action}
+     * (see {@link OutcomeApplier#sideSteps}). Keys with a step id follow that id into the current
+     * pack. Keys the current pack no longer knows and steps that cannot be applied as recorded are
+     * counted as problems. Stays at the slot; never mutates {@code state}.
      */
-    private SimState applyTower(SimState before, TowerRecord rec, long seq, List<TowerGain> gains) {
+    private SimState recordedSide(SimState state, Action action, List<String> keys, Map<String, String> stepIds,
+                                  Run run) {
+        List<String> current = new ArrayList<>(keys.size());
+        for (String key : keys) {
+            Action side = Action.parse(rules, key);
+            if (side == null || side.type != Action.Type.UNLOCK_STEP) {
+                Log.w(TAG, "side step " + key + " is unknown to this rule pack");
+                run.problems++;
+                continue;
+            }
+            String id = stepIds.get(key);
+            if (id != null) {
+                int step = stepIndex(rules.links[side.target], id);
+                if (step < 0) {
+                    Log.w(TAG, "side step " + id + " is unknown to this rule pack");
+                    run.problems++;
+                    continue;
+                }
+                side = Action.unlock(side.target, step);
+            }
+            current.add(side.key(rules));
+        }
+        Engine.SideSteps done = applier.sideSteps(rules, profile, state.copy(), action, current);
+        if (!done.rejected.isEmpty()) {
+            Log.w(TAG, "side steps " + done.rejected + " cannot be applied as recorded");
+            run.problems += done.rejected.size();
+        }
+        SimState out = StateShape.fit(done.state, rules);
+        out.slot = state.slot;
+        return out;
+    }
+
+    /**
+     * One Tartarus visit at {@code before.slot}: side steps (unless not done; exactly the recorded
+     * ones when the row has them), +1 visit, floor = max, cash once, rescue bit. Stays at the
+     * visit's slot. Never mutates {@code before}.
+     */
+    private SimState applyTower(SimState before, TowerRecord rec, long seq, Run run) {
+        List<TowerGain> gains = run.gains;
         Action visit = rec.block >= 0 ? Action.tower(rec.block) : Action.free();
-        SimState s = rec.sideDone
-                ? StateShape.fit(applier.applySideSteps(rules, profile, before, visit), rules)
-                : before.copy();
+        List<String> recorded = rec.side != null ? rec.side : rec.sideKeys;
+        SimState s;
+        if (!rec.sideDone) {
+            s = before.copy();
+        } else if (recorded != null) {
+            s = recordedSide(before, visit, recorded, rec.sideStepIds, run);
+        } else {
+            s = StateShape.fit(applier.applySideSteps(rules, profile, before, visit), rules);
+        }
         s.slot = before.slot;
         long cashBefore = s.cash;
         boolean exactBefore = s.cashExact;
