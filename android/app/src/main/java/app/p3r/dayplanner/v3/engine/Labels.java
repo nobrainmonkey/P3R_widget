@@ -114,7 +114,7 @@ final class Labels {
 
     private String meetWhy(SimState st, int l, Kernel.Effect fx) {
         if (fx.invite) return "对方发来了假日邀约，赴约也算一次见面";
-        if (fx.held) return "游戏提示暂时无法升级，先积累好感";
+        if (fx.held) return holdWhy(st, l);
         double pressure = h.pressure(st, l);
         if (pressure >= 0.6 && pressure < Heuristics.INF) {
             String days = weekdaysPhrase(l, st.slot >> 1);
@@ -129,6 +129,18 @@ final class Labels {
             core = "好感还差一点，先多见面";
         }
         return goal == null ? core : goal + "，" + core;
+    }
+
+    private String holdWhy(SimState st, int l) {
+        int into = st.rank[l] + 1;
+        if (st.heldRank[l] == into) return "游戏提示暂时无法升级，先积累好感";
+        for (Rules.Hold hold : rules.links[l].holds) {
+            if (hold.rank != into) continue;
+            String until = hold.untilDay >= 0 ? date(hold.untilDay) + "前" : "";
+            String reason = hold.zh != null && !hold.zh.isEmpty() ? "（" + hold.zh + "）" : "";
+            return until + "暂时无法升级" + reason + "，先积累好感";
+        }
+        return "暂时无法升级，先积累好感";
     }
 
     private String goalLead(int l) {
@@ -260,10 +272,12 @@ final class Labels {
         return sb.toString();
     }
 
+    /** A link whose unlock is held back only by money (all other prerequisites met), or -1. */
     private int moneyGatedLink(SimState st) {
         int day = st.slot >> 1;
         for (int l = 0; l < h.t.nLinks; l++) {
             if (st.rank[l] != 0 || h.unlockValue[l] <= 0 || Kernel.lost(m, st, l, day)) continue;
+            if (!Kernel.prereqsMet(m, st, l)) continue;
             List<Rules.Step> steps = rules.links[l].unlock.steps;
             for (int j = st.unlockStep[l]; j < steps.size(); j++) {
                 if (steps.get(j).cost > 0) return l;
@@ -291,7 +305,7 @@ final class Labels {
             int open = h.t.towerRemain[block][st.slot];
             int left = want - st.towerVisits[block];
             if (left * 2 >= open) step.whyZh = "这个区块能进塔的晚上不多了，本区块计划去 " + want + " 次";
-            else step.whyZh = "本区块计划去 " + want + " 次，这个晚上其他安排不划算";
+            else step.whyZh = "本区块计划去 " + want + " 次，这个晚上去最合适";
         } else {
             step.whyZh = "这个晚上没有更好的安排，去塔里练练级";
         }

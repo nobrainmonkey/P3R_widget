@@ -17,12 +17,22 @@ import java.util.Arrays;
  * policy", its tail is reproduced by simply running the base policy, and no trajectory needs to be
  * stored. When the time budget runs out or the caller cancels, the remaining slots follow the
  * incumbent; the plan always covers every slot up to {@link Rules#lastSlot()}.
+ *
+ * <p>Stability: for the first three days the previous plan's action (when still legal) becomes the
+ * incumbent unless it is worse by more than {@link #STABILITY_MARGIN}, and a challenger must beat
+ * it by that margin; the base policy also gives it a 2% bonus.
  */
 final class Planner {
     private Planner() {}
 
     private static final int POLICY = -1;
     private static final double EPS = 1e-6;
+    /**
+     * Objective difference (about 1/6 of a RANK of a non-goal link) below which a replan keeps the
+     * previous plan's choice for the next three days, so a result that matched the forecast does not
+     * reshuffle the near schedule.
+     */
+    static final double STABILITY_MARGIN = 50;
 
     static Plan plan(Rules rules, Profile profile, SimState observed, Plan previous, Engine.Options options) {
         long t0 = System.nanoTime();
@@ -90,18 +100,31 @@ final class Planner {
                     int n = Kernel.legal(m, st, buf);
                     if (n > 0) {
                         int baseIdx = scoreAll(st, n);
-                        code = buf[baseIdx];
+                        code = Heuristics.vetoed(scores[baseIdx]) ? Kernel.FREE : buf[baseIdx];
+                        double margin = EPS;
+                        int previous = h.previousCode(slot);
+                        if (improve && previous >= 0 && previous != code && isLegal(previous, n)) {
+                            // Stability: keep what the previous plan said for the next days unless clearly worse.
+                            double j = rollout(st, previous, reached);
+                            if (j >= incumbent - STABILITY_MARGIN) {
+                                incumbent = j;
+                                code = previous;
+                            }
+                        }
+                        if (code == previous) margin = STABILITY_MARGIN;
                         if (improve && n >= 2) {
                             for (int c : diverse(n, baseIdx)) {
+                                if (c == code) continue;
                                 if (System.nanoTime() > deadline || cancelled()) {
                                     improve = false;
                                     exhausted = true;
                                     break;
                                 }
                                 double j = rollout(st, c, reached);
-                                if (j > incumbent + EPS) {
+                                if (j > incumbent + margin) {
                                     incumbent = j;
                                     code = c;
+                                    margin = EPS;
                                 }
                             }
                         }
@@ -119,6 +142,11 @@ final class Planner {
                 }
             }
             return chosen;
+        }
+
+        private boolean isLegal(int code, int n) {
+            for (int i = 0; i < n; i++) if (buf[i] == code && !Heuristics.vetoed(scores[i])) return true;
+            return false;
         }
 
         private boolean cancelled() {
@@ -146,6 +174,7 @@ final class Planner {
             int act = -1;
             int tower = -1;
             for (int i = 0; i < n; i++) {
+                if (Heuristics.vetoed(scores[i])) continue;
                 int type = Kernel.type(buf[i]);
                 if (type == Kernel.T_MEET || type == Kernel.T_UNLOCK) {
                     if (social1 < 0 || scores[i] > scores[social1]) {
@@ -170,7 +199,7 @@ final class Planner {
             int[] out = new int[limit];
             int c = 0;
             for (int i = 0; i < limit; i++) {
-                if (present[i] != baseIdx) out[c++] = buf[present[i]];
+                if (present[i] != baseIdx || Heuristics.vetoed(scores[baseIdx])) out[c++] = buf[present[i]];
             }
             return Arrays.copyOf(out, c);
         }

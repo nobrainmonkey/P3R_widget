@@ -9,23 +9,29 @@ import java.util.List;
 /**
  * Base policy H and objective J of the planner (docs/DESIGN_v3.md §5.3–5.4), built once per plan.
  *
- * <p>All values are in objective units: one RANK of a "其余社群" link is worth {@link #W_OTHER}.
- * The base policy is a greedy over H that must be a pure function of (state, slot) so that the
- * fortified rollout's incumbent stays consistent: following the base policy from a state always
- * reproduces the incumbent's tail.
+ * <p>Everything is measured in objective units: one RANK of a "其余社群" link is worth
+ * {@link #W_OTHER}, MAX adds six ranks' worth, a 「必须」 goal weighs 100 000 per rank. The base
+ * policy is a greedy over H and must be a pure function of (state, slot): the fortified rollout
+ * relies on "follow the base policy from here" reproducing the incumbent's tail exactly.
  *
- * <p>Design notes (the owner asked for "efficient" choices, e.g. a café shift beats idling):
+ * <p>How H values each kind of action (the owner's rule of thumb: some things are simply more
+ * efficient than others — a café shift beats idling, a scarce meeting beats a stat snack):
  * <ul>
- *   <li>Meetings: weight × (rank-up ? 1 : 0.55) × (0.4 + scarcity). Scarcity is the share of the
- *       link's remaining calendar opportunities still needed to reach its target; links that can
- *       no longer make it fade out instead of hogging slots.</li>
- *   <li>Stats are valued only through what they unlock: link stat gates (value of the link, with
- *       an urgency term from the training evenings left before the link's last useful unlock day)
- *       and the Charm Lv6 ×1.51 bonus. Points above Lv6 are worthless.</li>
- *   <li>Money has a shadow price: what the best paid training could buy with it, full value while
- *       cash is below the near-term reserve (upcoming unlock costs + a training float), 15% above.</li>
- *   <li>Required Tartarus visits become mandatory as a block's open evenings run out; a rescue
- *       visit inside a missing-person window is mandatory when the link still matters.</li>
+ *   <li><b>Meeting / unlock step</b>: the objective value still to gain on that link divided by
+ *       the meetings it needs (so links close to MAX are worth more per meeting), scaled by
+ *       urgency: the share of the link's remaining calendar opportunities it still needs,
+ *       multiplied by the contention of that slot kind (all links' needs ÷ open slots). Links that
+ *       can no longer reach their milestone keep only their per-rank value.</li>
+ *   <li><b>Stats</b> are worth what they unlock: link stat gates (the link's value, discounted by
+ *       contention, with an urgency term from the training slots left before the link's last
+ *       useful unlock) and the Charm Lv6 ×1.51 bonus, valued by the meetings it saves while the
+ *       calendar is overbooked. Points above Lv6 are worthless.</li>
+ *   <li><b>Money</b> has a shadow price (what paid training or a paid unlock buys) that applies
+ *       only up to the near-term need (unlock costs whose other prerequisites are met + a small
+ *       training float); spare cash is worth almost nothing, so jobs never crowd out meetings
+ *       just to pile up yen.</li>
+ *   <li><b>Tartarus</b>: required visits become mandatory as a block's open evenings run out; a
+ *       visit inside a missing-person window is mandatory while the link still matters.</li>
  *   <li>FREE is never chosen while any productive action is legal.</li>
  * </ul>
  */
@@ -35,6 +41,18 @@ final class Heuristics {
     static final double EARLY_PER_SLOT = 0.002;
     static final double PENALTY = 1e6;
     static final int INF = 10_000;
+    /**
+     * Score of a legal action the planner refuses to take (a Tartarus visit that would use up the
+     * cap needed for a pending rescue in the same block). FREE beats it.
+     */
+    static final double VETO = -1e9;
+    /**
+     * Upper bound of the yen shadow price derived from paid training (a ¥2,500 shift is worth at most
+     * ~3/4 of a scarce meeting). Fees of a wanted unlock are valued without this cap.
+     */
+    static final double MAX_STAT_YEN_VALUE = 0.12;
+    /** Start saving for an unlock fee this many days before the link's earliest day. */
+    static final int MONEY_LOOKAHEAD_DAYS = 21;
 
     final Model m;
     final Tables t;
@@ -50,6 +68,8 @@ final class Heuristics {
     final double[][] val;
     final int[] goalLinks;
 
+    /** [kind][slot] open (unlocked) slots of that kind (0 daytime, 1 evening) in [slot, lastSlot]. */
+    final int[][] openRemain;
     /** [stat][slot] slots ≥ slot in which some allowed activity raises that stat. */
     final int[][] trainRemain;
     final double[] typicalGain;
@@ -58,21 +78,25 @@ final class Heuristics {
     final int[] cheapestPaid;
     /** Last slot at which unlocking the link still leaves enough meetings to reach its target. */
     final int[] latestUnlock;
-    /** Objective value unlocked by establishing the link now (start of plan). */
+    /** Objective value of establishing the link (seen from the start of the plan). */
     final double[] unlockValue;
     /** Meetings from a fresh rank 1 to the target (start multiplier). */
     final int[] meetsFromOne;
-    final double charmGateValue;
 
     /** Required Tartarus visits per block (absolute visit count to reach), achievable from the start. */
     final int[] towerTarget;
     final boolean[] rescueMatters;
+    /** [rescue][block] last enterable evening of that block inside the rescue window, or -1. */
+    private final int[][] rescueLastSlot;
 
     /** Previous plan's action code per slot (stability bonus window only), or -1. */
     private final int[] prevCode;
     private final int stabilityEnd;
 
-    // per-step scratch (the planner is single-threaded)
+    // ---- per-step scratch, filled by prepare() (the planner is single-threaded)
+    private final int[] demand;
+    private final double[] perMeeting;
+    private final double[] load = new double[2];
     private final int[] gateStat;
     private final double[] gateDeficit;
     private final double[] gateValue;
@@ -81,7 +105,6 @@ final class Heuristics {
     private double yenValue;
     private long shortfall;
     private long reserve;
-    private double mult;
 
     Heuristics(Model m, SimState start, Plan previous) {
         this.m = m;
@@ -117,6 +140,11 @@ final class Heuristics {
             }
         }
 
+        openRemain = new int[2][t.lastSlot + 2];
+        for (int s = t.lastSlot; s >= 0; s--) {
+            openRemain[0][s] = openRemain[0][s + 1] + ((s & 1) == 0 && t.open(s) ? 1 : 0);
+            openRemain[1][s] = openRemain[1][s + 1] + ((s & 1) == 1 && t.open(s) ? 1 : 0);
+        }
         int ns = t.nStats;
         trainRemain = new int[ns][t.lastSlot + 2];
         typicalGain = new double[ns];
@@ -124,26 +152,22 @@ final class Heuristics {
         cheapestPaid = new int[ns];
         buildStatTables();
 
-        mult = Kernel.mult(m, start);
+        double mult = Kernel.mult(m, start);
         meetsFromOne = new int[n];
         latestUnlock = new int[n];
         unlockValue = new double[n];
-        double charmValue = 0;
         for (int l = 0; l < n; l++) {
-            Rules.Link link = rules.links[l];
-            if (link.kind != Rules.LinkKind.MANUAL) continue;
+            if (rules.links[l].kind != Rules.LinkKind.MANUAL) continue;
             int fromOne = meetingsBetween(l, 1, Kernel.eventPts(m, l, 1, mult), false, target[l], mult);
             meetsFromOne[l] = fromOne;
-            int needSlots = fromOne + groupsLeft(l, 0);
+            int needSlots = Math.min(INF, fromOne + groupsLeft(l, 0));
             int s = t.lastSlot;
             while (s >= startSlot && t.meetRemain[l][s] < needSlots) s--;
             latestUnlock[l] = s;
             int remain = t.meetRemain[l][Math.max(startSlot, t.firstSlot)];
             double full = val[l][target[l]];
-            unlockValue[l] = remain >= needSlots ? full : full * remain / Math.max(1.0, needSlots) * 0.6;
-            if (start.rank[l] < target[l]) charmValue += val[l][target[l]] - val[l][start.rank[l]];
+            unlockValue[l] = remain >= needSlots ? full : wRank(l, 1) * target[l] * remain / Math.max(1.0, needSlots);
         }
-        charmGateValue = 0.08 * charmValue;
 
         towerTarget = new int[t.nBlocks];
         for (int b = 0; b < t.nBlocks; b++) {
@@ -159,12 +183,22 @@ final class Heuristics {
             boolean linkMatters = l >= 0 && l < n && start.rank[l] < 10 && (m.goal[l] || wOther > 0);
             rescueMatters[i] = open && linkMatters;
         }
+        rescueLastSlot = new int[t.nRescues][t.nBlocks];
+        for (int i = 0; i < t.nRescues; i++) {
+            Arrays.fill(rescueLastSlot[i], -1);
+            int to = Math.min(t.lastSlot, t.rescueTo[i] * 2 + 1);
+            for (int s = Math.max(0, t.rescueFrom[i] * 2); s <= to; s++) {
+                if (t.towerBlock[s] >= 0) rescueLastSlot[i][t.towerBlock[s]] = s;
+            }
+        }
 
         prevCode = new int[t.lastSlot + 2];
         Arrays.fill(prevCode, -1);
         stabilityEnd = Math.min(t.lastSlot + 1, startSlot + 6);
         if (previous != null) loadPrevious(previous);
 
+        demand = new int[n];
+        perMeeting = new double[n];
         gateStat = new int[n * 3 + 1];
         gateDeficit = new double[n * 3 + 1];
         gateValue = new double[n * 3 + 1];
@@ -271,13 +305,36 @@ final class Heuristics {
         return meetings;
     }
 
+    /** Milestone rank the link is currently working towards (target, then MAX if others count). */
+    int milestone(int l, int rank) {
+        if (rank < target[l]) return target[l];
+        return wOther > 0 ? 10 : rank;
+    }
+
+    /** Meetings (and unlock step groups) the link still needs to reach its milestone, or {@link #INF}. */
+    int remainingMeetings(SimState st, int l, double mult) {
+        int r = st.rank[l];
+        int goalRank = milestone(l, r);
+        if (goalRank <= r) return 0;
+        if (r == 0) return Math.min(INF, groupsLeft(l, st.unlockStep[l]) + meetsFromOne[l]);
+        return meetingsBetween(l, r, st.pts[l], st.ready[l], goalRank, mult);
+    }
+
+    /** Share of the link's remaining calendar opportunities it still needs (≥ 0, INF when held). */
+    double pressure(SimState st, int l) {
+        int need = remainingMeetings(st, l, Kernel.mult(m, st));
+        if (need >= INF) return INF;
+        return need / (double) Math.max(1, t.meetRemain[l][st.slot]);
+    }
+
     // ------------------------------------------------------------------ base policy
 
-    /** Prepare per-step values (gates, money) for scoring actions in {@code st.slot}. */
+    /** Prepare per-step values (link demand, contention, stat gates, money) for {@code st.slot}. */
     void prepare(SimState st) {
-        mult = Kernel.mult(m, st);
+        double mult = Kernel.mult(m, st);
         int slot = st.slot;
         int day = slot >> 1;
+        prepareDemand(st, mult, day);
         gates = 0;
         Arrays.fill(pointValue, 0);
         long unlockCosts = 0;
@@ -285,10 +342,16 @@ final class Heuristics {
         for (int l = 0; l < t.nLinks; l++) {
             if (st.rank[l] != 0 || unlockValue[l] <= 0 || rules.links[l].kind != Rules.LinkKind.MANUAL) continue;
             if (Kernel.lost(m, st, l, day)) continue;
-            double v = unlockValue[l];
-            if (v <= 0) continue;
+            double v = unlockValue[l] / Math.max(1.0, load[kind(l)]);
             int[] rs = m.reqStat[l];
             boolean statsMet = true;
+            // The link's value needs its stat trainings and its meetings: credit the gate with its share.
+            double trainings = 0;
+            for (int i = 0; i < rs.length; i++) {
+                int s = rs[i];
+                if (s < t.nStats) trainings += Math.max(0, rules.stats[s].thresholds[m.reqStatLv[l][i]] - st.statPts[s]) / typicalGain[s];
+            }
+            double share = trainings / (trainings + Math.max(1, demand[l]));
             for (int i = 0; i < rs.length; i++) {
                 int s = rs[i];
                 if (s >= t.nStats) continue;
@@ -298,38 +361,104 @@ final class Heuristics {
                 double need = deficit / typicalGain[s];
                 int last = Math.max(slot, latestUnlock[l]);
                 int avail = trainRemain[s][slot] - trainRemain[s][Math.min(t.lastSlot + 1, last + 1)];
-                double urgency = latestUnlock[l] < slot ? 2 : Math.min(2, need / Math.max(1, avail));
-                addGate(s, deficit, v * (1 + urgency));
-                pointValue[s] += v * 0.9 / deficit;
+                double pressure = latestUnlock[l] < slot ? 0.3 : need / Math.max(1, avail);
+                double gate = v * share * urgency(pressure);
+                addGate(s, deficit, gate);
+                pointValue[s] += gate / Math.max(deficit, 4 * typicalGain[s]);
             }
             int k = st.unlockStep[l];
-            if (statsMet && k < t.stepCount[l]) {
+            boolean soon = day >= rules.links[l].unlock.earliestDay - MONEY_LOOKAHEAD_DAYS;
+            if (soon && linksMet(st, l) && k < t.stepCount[l]) {
+                // Fees of an unlock whose link prerequisites are met: save up while the stats catch up.
                 long cost = 0;
                 List<Rules.Step> steps = rules.links[l].unlock.steps;
                 for (int j = k; j < steps.size(); j++) cost += Math.max(0, steps.get(j).cost);
                 if (cost > 0) {
                     unlockCosts += cost;
-                    unlockYen = Math.max(unlockYen, v / cost);
+                    unlockYen = Math.max(unlockYen, v * (statsMet ? 1.0 : 0.6) / cost);
                 }
             }
         }
-        int ci = t.charmIdx;
-        if (ci >= 0 && m.charmMult > 1 && st.statPts[ci] < t.statCap[ci] && charmGateValue > 0) {
-            int deficit = t.statCap[ci] - st.statPts[ci];
-            double remainingShare = (t.lastSlot - slot) / (double) Math.max(1, t.lastSlot - startSlot);
-            double v = charmGateValue * remainingShare;
-            addGate(ci, deficit, v);
-            pointValue[ci] += v * 0.9 / deficit;
-        }
-        double yen = unlockYen;
+        prepareCharmGate(st, mult);
+        double statYen = 0;
         long training = 0;
         for (int s = 0; s < t.nStats && s < 3; s++) {
-            yen = Math.max(yen, (pointValue[s] + 0.2) * ptsPerYen[s]);
+            statYen = Math.max(statYen, pointValue[s] * ptsPerYen[s]);
             if (pointValue[s] > 0 && cheapestPaid[s] != Integer.MAX_VALUE) training = Math.max(training, 3L * cheapestPaid[s]);
         }
-        yenValue = Math.max(0.002, yen);
+        yenValue = Math.max(0.0005, Math.max(unlockYen, Math.min(MAX_STAT_YEN_VALUE, statYen)));
         reserve = unlockCosts + training + m.cashBuffer;
         shortfall = Math.max(0, reserve - st.cash);
+    }
+
+    private int kind(int l) {
+        return rules.links[l].evening ? 1 : 0;
+    }
+
+    private boolean linksMet(SimState st, int l) {
+        int[] rl = m.reqLink[l];
+        for (int i = 0; i < rl.length; i++) {
+            if (rl[i] < SimState.LINKS && st.rank[rl[i]] < m.reqLinkRank[l][i]) return false;
+        }
+        return true;
+    }
+
+    /** Per-link remaining meetings and value per meeting, and the contention of each slot kind. */
+    private void prepareDemand(SimState st, double mult, int day) {
+        int slot = st.slot;
+        double busy0 = 0;
+        double busy1 = 0;
+        for (int l = 0; l < t.nLinks; l++) {
+            demand[l] = 0;
+            perMeeting[l] = 0;
+            if (rules.links[l].kind != Rules.LinkKind.MANUAL || Kernel.lost(m, st, l, day)) continue;
+            int r = st.rank[l];
+            int goalRank = milestone(l, r);
+            if (goalRank <= r) continue;
+            int need = remainingMeetings(st, l, mult);
+            if (need >= INF) continue;
+            int remain = t.meetRemain[l][slot];
+            demand[l] = need;
+            if (need <= remain) {
+                perMeeting[l] = (val[l][goalRank] - val[l][r]) / Math.max(1, need);
+            } else {
+                perMeeting[l] = wRank(l, r + 1) * (goalRank - r) / (double) Math.max(1, need);
+            }
+            if (r == 0 && !Kernel.prereqsMet(m, st, l)) continue;
+            if (rules.links[l].evening) busy1 += Math.min(need, remain);
+            else busy0 += Math.min(need, remain);
+        }
+        load[0] = busy0 / Math.max(1, openRemain[0][slot]);
+        load[1] = busy1 / Math.max(1, openRemain[1][slot]);
+    }
+
+    /**
+     * Charm Lv6 multiplies all affinity gains: worth the meetings it saves, as far as the calendar
+     * is overbooked (otherwise the saved meetings would not be missed).
+     */
+    private void prepareCharmGate(SimState st, double mult) {
+        int ci = t.charmIdx;
+        if (ci < 0 || m.charmMult <= 1 || st.statPts[ci] >= t.statCap[ci]) return;
+        double needed = 0;
+        double valueSum = 0;
+        for (int l = 0; l < t.nLinks; l++) {
+            if (demand[l] <= 0) continue;
+            needed += demand[l];
+            valueSum += perMeeting[l] * demand[l];
+        }
+        if (needed <= 0) return;
+        double saved = needed * (1 - 1 / m.charmMult) * 0.5;
+        double open = openRemain[0][st.slot];
+        double overload = Math.max(0, needed - open);
+        double avgPer = valueSum / needed;
+        double v = (Math.min(saved, overload) + 0.1 * saved) * avgPer;
+        if (v <= 0) return;
+        int deficit = t.statCap[ci] - st.statPts[ci];
+        double trainings = deficit / typicalGain[ci];
+        int avail = Math.max(1, trainRemain[ci][st.slot]);
+        double gate = v * urgency(trainings / avail) * 0.5;
+        addGate(ci, deficit, gate);
+        pointValue[ci] += gate / Math.max(deficit, 4 * typicalGain[ci]);
     }
 
     private void addGate(int stat, int deficit, double value) {
@@ -347,7 +476,7 @@ final class Heuristics {
                 h = meetScore(st, Kernel.target(code));
                 break;
             case Kernel.T_UNLOCK:
-                h = unlockScore(st, Kernel.target(code));
+                h = 1.2 * linkScore(st, Kernel.target(code), false);
                 break;
             case Kernel.T_ACT:
                 h = activityScore(st, Kernel.target(code));
@@ -376,54 +505,44 @@ final class Heuristics {
                 best = codes[i];
             }
         }
-        return best;
+        return vetoed(bestH) ? Kernel.FREE : best;
     }
 
-    /** Milestone rank the link is currently working towards (target, then MAX if others count). */
-    int milestone(int l, int rank) {
-        if (rank < target[l]) return target[l];
-        return wOther > 0 ? 10 : rank;
-    }
-
-    /** Share of the link's remaining opportunities needed to reach its milestone (≥ 0). */
-    double pressure(SimState st, int l) {
-        int r = st.rank[l];
-        int goalRank = milestone(l, r);
-        if (goalRank <= r) return 0;
-        int need;
-        if (r == 0) {
-            need = groupsLeft(l, st.unlockStep[l]) + meetsFromOne[l];
-        } else {
-            need = meetingsBetween(l, r, st.pts[l], st.ready[l], goalRank, Kernel.mult(m, st));
-        }
-        if (need >= INF) return INF;
-        return need / (double) Math.max(1, t.meetRemain[l][st.slot]);
-    }
-
-    private static double scarcity(double ratio) {
-        if (ratio <= 1) return ratio;
-        return Math.max(0.25, 2 - ratio);
+    static boolean vetoed(double h) {
+        return h <= VETO / 2;
     }
 
     private double meetScore(SimState st, int l) {
+        int day = st.slot >> 1;
+        boolean up = Kernel.ranksUp(m, st, l, day);
         int r = st.rank[l];
-        int goalRank = milestone(l, r);
-        double w = wRank(l, r + 1);
-        if (goalRank <= r || w <= 0) return 0.01;
-        double ratio = pressure(st, l);
-        boolean up = Kernel.ranksUp(m, st, l, st.slot >> 1);
-        if (ratio >= INF) return up ? w * 0.5 : 0.02;
-        double h = w * (up ? 1.0 : 0.55) * (0.4 + scarcity(ratio));
-        if (up && r + 1 == goalRank) h *= 1.3;
-        return h;
+        if (!up && Kernel.held(m, st, l, r + 1, day) && st.pts[l] >= Kernel.need(m, l, r)) {
+            // Points are already banked up to the threshold: another meeting during the hold adds nothing.
+            return 0.02;
+        }
+        if (demand[l] <= 0) {
+            // Held indefinitely, or nothing left to gain: harmless filler only.
+            return up ? 0.5 * wRank(l, st.rank[l] + 1) : 0.02;
+        }
+        return linkScore(st, l, up) * (up ? 1.1 : 1.0);
     }
 
-    private double unlockScore(SimState st, int l) {
-        double w = wRank(l, 1);
-        if (w <= 0) return 0.01;
-        double ratio = pressure(st, l);
-        if (ratio >= INF) return 0.05;
-        return w * 1.2 * (0.4 + scarcity(ratio));
+    /** Value per meeting × urgency (link scarcity × slot-kind contention). */
+    private double linkScore(SimState st, int l, boolean rankUp) {
+        if (demand[l] <= 0) return 0.05;
+        int remain = Math.max(1, t.meetRemain[l][st.slot]);
+        double ratio = demand[l] / (double) remain;
+        if (ratio > 1) return perMeeting[l] * 0.5;
+        return perMeeting[l] * urgency(ratio * Math.max(1.0, load[kind(l)]));
+    }
+
+    /**
+     * Urgency transform shared by meetings and stat gates: ~0.3 when there is plenty of time, about
+     * 1 when half the remaining chances are needed, above 2 when every chance counts.
+     */
+    static double urgency(double pressure) {
+        double e = Math.min(1.5, Math.max(0, pressure));
+        return 0.3 + e + e * e * e;
     }
 
     private double activityScore(SimState st, int act) {
@@ -437,7 +556,7 @@ final class Heuristics {
             h += 0.2 * useful;
             for (int g = 0; g < gates; g++) {
                 if (gateStat[g] != s) continue;
-                h += gateValue[g] * 0.9 * Math.min(1.0, gain / gateDeficit[g]);
+                h += gateValue[g] * Math.min(1.0, useful / gateDeficit[g]);
             }
         }
         if (a.cost > 0) h -= costPenalty(st.cash, a.cost);
@@ -456,6 +575,7 @@ final class Heuristics {
                 return 200_000;
             }
         }
+        if (st.towerVisits[block] + 1 > m.towerCap - pendingRescues(st, block)) return VETO;
         double income = m.towerIncome > 0 ? moneyValue(m.towerIncome) : 0;
         int remaining = towerTarget[block] - st.towerVisits[block];
         if (remaining > 0) {
@@ -463,19 +583,30 @@ final class Heuristics {
             if (ratio >= 0.5) return 50_000 * ratio;
             return 120 + 400 * ratio + income;
         }
-        return 3 + income;
+        return 1 + income;
     }
 
+    /** Rescues that still matter and can only happen later in this block: each needs one visit of the cap. */
+    private int pendingRescues(SimState st, int block) {
+        int pending = 0;
+        for (int i = 0; i < t.nRescues; i++) {
+            if (!rescueMatters[i] || ((st.rescued | st.rescueFailed) & (1L << i)) != 0) continue;
+            if (rescueLastSlot[i][block] > st.slot) pending++;
+        }
+        return pending;
+    }
+
+    /** Value of receiving {@code yen}: full shadow price up to the near-term need, 5% beyond it. */
     double moneyValue(long yen) {
         if (yen <= 0) return 0;
         long urgent = Math.min(yen, shortfall);
-        return yenValue * (urgent + 0.15 * (yen - urgent)) + 0.001 * yen;
+        return yenValue * (urgent + 0.05 * (yen - urgent)) + 0.0001 * yen;
     }
 
     private double costPenalty(long cash, long cost) {
         long after = cash - cost;
         long intoReserve = Math.max(0, Math.min(cost, reserve - after));
-        return yenValue * (intoReserve + 0.15 * (cost - intoReserve));
+        return yenValue * (intoReserve + 0.05 * (cost - intoReserve));
     }
 
     // ------------------------------------------------------------------ objective
@@ -515,7 +646,7 @@ final class Heuristics {
 
     // ------------------------------------------------------------------ explanations (used by Labels)
 
-    /** Stat gates that made this activity attractive, strongest first: {stat, linkOrMinusOne} pairs. */
+    /** The most valuable not-yet-unlocked link whose stat gate on {@code stat} is unmet, or -1. */
     int dominantGateLink(SimState st, int stat) {
         int day = st.slot >> 1;
         int best = -1;
@@ -537,5 +668,8 @@ final class Heuristics {
 
     long shortfall() { return shortfall; }
 
-    long reserve() { return reserve; }
+    /** The previous plan's action for {@code slot} inside the stability window (next 3 days), or -1. */
+    int previousCode(int slot) {
+        return slot >= startSlot && slot < stabilityEnd ? prevCode[slot] : -1;
+    }
 }

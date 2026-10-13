@@ -23,6 +23,9 @@ import java.util.Map;
 final class PlanValidator {
     private PlanValidator() {}
 
+    /** Errors after the first ones usually cascade from them; keep the report readable. */
+    private static final int MAX_MESSAGES = 40;
+
     /** Errors and warnings of one validation run. */
     static final class Report {
         final List<String> errors = new ArrayList<>();
@@ -99,7 +102,11 @@ final class PlanValidator {
         }
 
         private void error(int at, String msg) {
-            report.errors.add("slot " + at + ": " + msg);
+            if (report.errors.size() < MAX_MESSAGES) {
+                report.errors.add("slot " + at + ": " + msg);
+            } else if (report.errors.size() == MAX_MESSAGES) {
+                report.errors.add("… further errors omitted");
+            }
         }
 
         void run(Plan plan) {
@@ -283,7 +290,7 @@ final class PlanValidator {
                 if (statLevel(e.getKey()) < e.getValue()) error(slot, a.id + " needs stat " + e.getKey() + " Lv" + e.getValue());
             }
             int buffer = a.cost > 0 ? Math.max(0, profile.cashBuffer) : 0;
-            if (cash < a.cost + buffer) error(slot, a.id + " costs " + a.cost + " (+" + buffer + " buffer) with cash " + cash);
+            if (a.cost > 0 && cash < a.cost + buffer) error(slot, a.id + " costs " + a.cost + " (+" + buffer + " buffer) with cash " + cash);
             cash -= Math.max(0, a.cost);
             if (a.kind == Rules.ActivityKind.JOB) {
                 int pay = 0;
