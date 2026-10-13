@@ -461,7 +461,7 @@ public final class PlannerService implements PlannerApi {
             return rejectNow(Rejection.invalid(ZH_TOWER_MISSING));
         }
         return write(commandId, false, view -> {
-            EventRow target = towerTarget(view, ledger.event(targetSeq));
+            EventRow target = towerTarget(ledger.event(targetSeq));
             long towerSeq = target == null ? targetSeq : target.seq;
             TowerRecord rec = towerRecord(view.rules, corrected);
             if (target != null && EventKind.TOWER.equals(target.kind)) {
@@ -900,10 +900,11 @@ public final class PlannerService implements PlannerApi {
 
     /**
      * The tower row a correction is about: {@code row} itself, or the tower row a correction row
-     * of the current chain targets. Anything else is returned unchanged (and rejected later).
+     * targets. Anything else is returned unchanged; {@link CommandCheck#correction} then rejects
+     * what cannot be corrected (other kinds, older checkpoints, undone rows).
      */
-    private EventRow towerTarget(LedgerView view, EventRow row) {
-        if (row == null || !EventKind.TOWER_FIX.equals(row.kind) || row.checkpointId != view.checkpointId) {
+    private EventRow towerTarget(EventRow row) {
+        if (row == null || !EventKind.TOWER_FIX.equals(row.kind)) {
             return row;
         }
         EventRow tower = ledger.event(row.target());
