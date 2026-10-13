@@ -227,10 +227,13 @@ final class HistoryText {
         }
     }
 
-    /** "皇帝 · 小田桐秀利", "在宿舍房间学习", "与友近健二对话", "探索塔尔塔罗斯", "自由安排". */
+    /**
+     * "皇帝 · 小田桐秀利", "在宿舍房间学习", "与友近健二对话", "探索塔尔塔罗斯", "自由安排"; "其他行动" when
+     * the action key is unknown to the current rule pack.
+     */
     private static String title(Rules rules, Action action) {
         if (action == null) {
-            return "记录的行动";
+            return "其他行动";
         }
         switch (action.type) {
             case MEET:
