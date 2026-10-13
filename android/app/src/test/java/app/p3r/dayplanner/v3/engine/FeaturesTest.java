@@ -101,7 +101,7 @@ public class FeaturesTest {
             assertTrue(s.hintZh, s.hintZh.startsWith("记得带上「") && s.hintZh.endsWith("」阿尔卡那的人格面具"));
         }
         assertTrue("goal meetings carry the Persona hint", hinted > 5);
-        assertTrue(plan.summary.notesZh.toString(), plan.summary.notesZh.contains("按和目标社群见面时带着同阿尔卡那的人格面具估计，好感 ×1.51"));
+        assertTrue(plan.summary.notesZh.toString(), plan.summary.notesZh.contains("按和目标社群见面时带着同阿尔卡那的人格面具估计，点数 ×1.51"));
     }
 
     // ------------------------------------------------------------------ dating-site note

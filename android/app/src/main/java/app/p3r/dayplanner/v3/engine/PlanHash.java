@@ -39,6 +39,9 @@ final class PlanHash {
             str(p.tier[i].name()).num(p.order[i]).num(p.target[i]).str(p.route[i].name());
         }
         bool(p.otherLinks).bool(p.personaBonus).bool(p.charmBonus).bool(p.goalBuffer);
+        str(p.effectivePersonaMode().name()).bool(p.datingNotes);
+        num(p.episodeTracks.length);
+        for (String e : p.episodeTracks) str(e);
         str(p.answers.name()).num(p.towerVisitsPerBlock).num(p.towerCapPerBlock).num(p.cashBuffer);
         for (String e : p.excludedActivities) str(e);
         return this;
@@ -49,6 +52,7 @@ final class PlanHash {
         for (boolean b : s.ready) bool(b);
         arr(s.unlockStep).arr(s.lastStepDay).num(s.rescued).num(s.rescueFailed);
         arr(s.towerVisits).num(s.floor).arr(s.shifts).arr(s.used).arr(s.heldRank);
+        arr(s.episodes).num(s.notesUsed);
         return this;
     }
 

@@ -12,11 +12,12 @@ import java.util.TreeMap;
  */
 final class Model {
     /**
-     * Dating-site notes per playthrough. Reload sources agree the club keeps selling the note
-     * (Siliconera: "unlike his other URLs, you can buy multiples of it"; atwiki: on sale without a
-     * limit; a Steam player bought 30), and each one is bought and used on one evening, so the engine
-     * does not cap them. {@code SimState.notesUsed} still counts them, so a cap from the rule pack
-     * can be honoured here without a state change.
+     * Dating-site notes per playthrough. The note can be bought again and again: Siliconera's
+     * shared-computer guide says that, unlike the vendor's other URLs, you can buy several of it, and
+     * Prima Games' URL list says the same (both checked 2026-10-13); each one is bought and used on
+     * one evening. So the engine sets no cap; {@code
+     * SimState.notesUsed} still counts them, so a cap from the rule pack can be honoured here
+     * without a state change.
      */
     static final int NOTE_MAX_USES = Integer.MAX_VALUE;
 
@@ -113,12 +114,6 @@ final class Model {
     /** Persona multiplier of meetings with {@code link} (1 when the player does not carry one). */
     double personaMult(int link) {
         return persona[link] ? personaFactor : 1.0;
-    }
-
-    /** Some opted-in Link Episode track exists. */
-    boolean anyEpisodes() {
-        for (boolean b : episodeWanted) if (b) return true;
-        return false;
     }
 
     private static int[] keys(Map<Integer, Integer> map) {

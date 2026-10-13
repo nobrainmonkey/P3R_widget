@@ -405,9 +405,9 @@ final class Labels {
         }
         int ci = h.t.charmIdx;
         if (ci >= 0 && ci < a.gain.length && a.gain[ci] > 0 && m.charmMult > 1 && st.statPts[ci] < h.t.statCap[ci]) {
-            return "魅力升到 MAX 后，见面时好感 ×1.51";
+            return "魅力升到 MAX 后，见面时点数 ×1.51";
         }
-        return "这个时段没有更划算的事，顺便提升个人能力值";
+        return "这个时段没有更划算的事，提升一下个人能力值";
     }
 
     private int requiredLv(int l, int stat) {
@@ -596,10 +596,10 @@ final class Labels {
         }
         switch (p.effectivePersonaMode()) {
             case ALL:
-                out.add("按见面时都带着同阿尔卡那的人格面具估计，好感 ×1.51");
+                out.add("按见面时都带着同阿尔卡那的人格面具估计，点数 ×1.51");
                 break;
             case GOALS:
-                if (p.hasAnyGoal()) out.add("按和目标社群见面时带着同阿尔卡那的人格面具估计，好感 ×1.51");
+                if (p.hasAnyGoal()) out.add("按和目标社群见面时带着同阿尔卡那的人格面具估计，点数 ×1.51");
                 break;
             default:
                 break;

@@ -1151,7 +1151,11 @@ final class Heuristics {
 
     // ------------------------------------------------------------------ objective
 
-    /** Objective J of a complete trajectory ending in {@code end}; {@code reached[i]} per goal link. */
+    /**
+     * Objective J of a complete trajectory ending in {@code end}; {@code reached[i]} per goal link:
+     * rank values (with MAX bonuses), earlier goal targets, stat levels, opted-in Link Episodes,
+     * a little cash, minus a penalty per unmet Tartarus visit or missed rescue.
+     */
     double objective(SimState end, int[] reached) {
         double j = 0;
         for (int l = 0; l < t.nLinks; l++) j += val[l][end.rank[l]];

@@ -79,13 +79,13 @@ public final class Plan {
         public int slot;
         /** {@link Action#key} form. */
         public String action = "free";
-        /** Coarse category for icons: social | unlock | stat | job | tower | locked | free. */
+        /** Coarse category for icons: social | unlock | stat | job | tower | note | episode | locked | free. */
         public String kind = "free";
         /** Link/activity id (no index) for display, or null. */
         public String entity;
         /** Short Chinese title, e.g. "皇帝 · 小田桐秀利". */
         public String titleZh = "";
-        /** Second line, e.g. "RANK 6 → 7" / "学力 +2" / "满月作战". */
+        /** Second line, e.g. "RANK 6 → 7" / "学力 +2 · 免费" / "这段时间不能自由行动". */
         public String subtitleZh = "";
         public String locationZh;
         /** One-line reason the planner chose this, e.g. "恶魔只在周二、周六晚上出现". */

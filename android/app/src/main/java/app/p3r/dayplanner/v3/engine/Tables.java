@@ -91,8 +91,6 @@ final class Tables {
      * 0-based; length count, each lastSlot + 2).
      */
     final int[][][] epRemain;
-    /** [track][slot] open slots ≥ slot of the track's kind on days that allow some episode. */
-    final int[][] epAnyRemain;
     /**
      * [track][n] latest slot for episode n+1 that still leaves every later episode a later slot
      * (backward earliest-deadline schedule). When the rest of the track cannot fit at all
@@ -203,7 +201,6 @@ final class Tables {
         epCount = new int[nEps];
         epEve = new boolean[nEps];
         epRemain = new int[nEps][][];
-        epAnyRemain = new int[nEps][];
         epLatest = new int[nEps][];
         epChain = new boolean[nEps][];
         for (int e = 0; e < nEps; e++) buildEpisodes(e, rules.episodes[e]);
@@ -334,14 +331,12 @@ final class Tables {
         epCount[e] = count;
         epEve[e] = ep.evening;
         epRemain[e] = new int[count][size];
-        epAnyRemain[e] = new int[size];
         epLatest[e] = new int[count];
         int kind = ep.evening ? 1 : 0;
         for (int slot = lastSlot; slot >= 0; slot--) {
             boolean usable = (slot & 1) == kind && open(slot);
             int day = slot >> 1;
             int mask = usable && ep.dayMask != null && day < ep.dayMask.length ? ep.dayMask[day] : 0;
-            epAnyRemain[e][slot] = epAnyRemain[e][slot + 1] + (mask != 0 ? 1 : 0);
             for (int n = 0; n < count; n++) {
                 epRemain[e][n][slot] = epRemain[e][n][slot + 1] + ((mask & (1 << n)) != 0 ? 1 : 0);
             }
