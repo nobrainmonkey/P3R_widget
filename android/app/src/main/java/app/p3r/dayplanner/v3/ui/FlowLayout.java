@@ -6,16 +6,25 @@ import android.view.ViewGroup;
 
 /**
  * Minimal wrapping row layout for chips (the framework has no flow layout). Children are placed
- * left to right with fixed horizontal/vertical spacing and wrap to a new line when full.
+ * left to right with fixed horizontal/vertical spacing and wrap to a new line when full; with
+ * {@link #alignEnd} each line sits at the right edge and its children are centred on the line.
  */
 public final class FlowLayout extends ViewGroup {
     private final int hSpacing;
     private final int vSpacing;
+    private boolean alignEnd;
 
     public FlowLayout(Context context, int hSpacingDp, int vSpacingDp) {
         super(context);
         this.hSpacing = Ui.dp(context, hSpacingDp);
         this.vSpacing = Ui.dp(context, vSpacingDp);
+    }
+
+    /** Lines at the right edge, children centred vertically on their line (a value 「A → B」). */
+    public FlowLayout alignEnd() {
+        alignEnd = true;
+        requestLayout();
+        return this;
     }
 
     @Override
@@ -65,25 +74,40 @@ public final class FlowLayout extends ViewGroup {
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         int maxWidth = r - l - getPaddingLeft() - getPaddingRight();
-        int x = 0;
         int y = getPaddingTop();
-        int lineHeight = 0;
-        for (int i = 0; i < getChildCount(); i++) {
-            View child = getChildAt(i);
-            if (child.getVisibility() == GONE) {
-                continue;
+        int i = 0;
+        while (i < getChildCount()) {
+            // One line: the children from i up to (not including) end.
+            int x = 0;
+            int lineHeight = 0;
+            int end = i;
+            for (; end < getChildCount(); end++) {
+                View child = getChildAt(end);
+                if (child.getVisibility() == GONE) {
+                    continue;
+                }
+                int w = child.getMeasuredWidth();
+                if (x > 0 && x + w > maxWidth) {
+                    break;
+                }
+                x += w + hSpacing;
+                lineHeight = Math.max(lineHeight, child.getMeasuredHeight());
             }
-            int w = child.getMeasuredWidth();
-            int h = child.getMeasuredHeight();
-            if (x > 0 && x + w > maxWidth) {
-                y += lineHeight + vSpacing;
-                x = 0;
-                lineHeight = 0;
+            int lineWidth = Math.max(0, x - hSpacing);
+            int left = getPaddingLeft() + (alignEnd ? Math.max(0, maxWidth - lineWidth) : 0);
+            for (int k = i; k < end; k++) {
+                View child = getChildAt(k);
+                if (child.getVisibility() == GONE) {
+                    continue;
+                }
+                int w = child.getMeasuredWidth();
+                int h = child.getMeasuredHeight();
+                int top = alignEnd ? y + (lineHeight - h) / 2 : y;
+                child.layout(left, top, left + w, top + h);
+                left += w + hSpacing;
             }
-            int left = getPaddingLeft() + x;
-            child.layout(left, y, left + w, y + h);
-            x += w + hSpacing;
-            lineHeight = Math.max(lineHeight, h);
+            y += lineHeight + vSpacing;
+            i = end;
         }
     }
 

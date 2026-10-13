@@ -804,18 +804,22 @@ final class StateSteps {
             TextView label = Ui.text(c, change.labelZh, 14, Ui.col(c, R.color.p3r_ink_muted), true);
             label.setMinWidth(Ui.dp(c, 84));
             row.addView(label, Ui.wrap());
-            LinearLayout values = Ui.row(c);
-            values.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+            // 「10月22日 放学后 → 10月25日 白天」: the new value moves to a line of its own, right-aligned,
+            // when both do not fit beside the label (never 「10月25日」/「白天」).
+            FlowLayout values = new FlowLayout(c, 8, 2).alignEnd();
             if (change.beforeZh != null) {
                 values.addView(Ui.mixed(c, change.beforeZh, 14, Ui.col(c, R.color.p3r_ink_faint), false), Ui.wrap());
                 TextView arrow = Ui.text(c, "→", 14, Ui.col(c, R.color.p3r_cyan_400), true);
-                Ui.pad(arrow, 8, 0, 8, 0);
+                Ui.pad(arrow, 8, 0, 0, 0);
                 values.addView(arrow, Ui.wrap());
             }
             TextView after = Ui.mixed(c, change.afterZh, 15, Ui.col(c, R.color.p3r_white), true);
             after.setGravity(Gravity.END);
             values.addView(after, Ui.wrap());
-            row.addView(values, Ui.weight(1));
+            LinearLayout.LayoutParams vp = Ui.weight(1);
+            vp.topMargin = Ui.dp(c, 6);
+            vp.bottomMargin = Ui.dp(c, 6);
+            row.addView(values, vp);
             card.addView(row);
         }
         if (changes.isEmpty()) {

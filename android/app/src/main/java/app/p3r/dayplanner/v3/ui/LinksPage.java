@@ -254,7 +254,7 @@ final class LinksPage {
 
     static final String STORY_TAG = "剧情自动推进";
     /** Under the route choice of every romanceable link. */
-    static final String ROUTE_NOTE = "规划不会要求你走恋爱路线";
+    static final String ROUTE_NOTE = "安排不会要求你走恋爱路线";
 
     private LinearLayout.LayoutParams spacedCard(int topDp) {
         LinearLayout.LayoutParams p = Ui.matchWrap();

@@ -758,7 +758,7 @@ public final class ResultActivity extends Activity {
         int link = linkOf(step);
         String who = link >= 0 ? rules.links[link].personZh : Outcomes.shortName(rules, step);
         body.addView(question("用结缘网站的字条给" + who + "加好感了吗？"), top(14));
-        body.addView(note("字条只加好感，不会直接升级。"), top(4));
+        body.addView(note("结缘网站的字条只加好感，不会直接升级。"), top(4));
         stepExtras(step, true, true);
         TextView used = Ui.primary(this, "用了");
         used.setOnClickListener(v -> submit(step, Outcomes.asPredicted(step, false)));
@@ -1215,7 +1215,7 @@ public final class ResultActivity extends Activity {
                 list.addView(Ui.muted(this, "……还有 " + (count - shown) + " 项"));
                 break;
             }
-            TextView line = Ui.mixed(this, Zh.shortDate(Rules.dayOf(p.slot)) + " " + Zh.period(rules, p.slot) + " · "
+            TextView line = Ui.mixed(this, Zh.slot(rules, p.slot) + " · "
                 + SlotRows.title(rules, p), 14, Ui.col(this, R.color.p3r_ice_100), false);
             Ui.pad(line, 0, 4, 0, 4);
             list.addView(line);

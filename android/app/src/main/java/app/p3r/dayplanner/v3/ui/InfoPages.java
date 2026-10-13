@@ -44,13 +44,15 @@ final class InfoPages {
                 }
             }
             card.addView(line(c, "预计到最后 " + maxed + " 个社群升到 MAX"));
-            if (plan.budgetExhausted) {
-                card.addView(line(c, "这次没来得及算完，后半段先粗略排好了，稍后会自动再算一次。"));
+            String budget = budgetLine(plan);
+            if (budget != null) {
+                card.addView(line(c, budget));
             }
+            List<String> notes = notesBelow(plan);
             column.addView(card, top(c, 4));
-            if (!plan.summary.notesZh.isEmpty()) {
+            if (!notes.isEmpty()) {
                 column.addView(Ui.sectionHeader(c, "需要注意", null), top(c, 20));
-                column.addView(bullets(c, plan.summary.notesZh), top(c, 4));
+                column.addView(bullets(c, notes), top(c, 4));
             }
         }
         column.addView(Ui.sectionHeader(c, "是怎么排的", null), top(c, plan == null ? 0 : 20));
@@ -73,6 +75,78 @@ final class InfoPages {
         sources.addView(pack, pp);
         column.addView(sources, top(c, 4));
         return column;
+    }
+
+    /** How the plan's own note about running out of time starts (engine Labels.BUDGET_NOTE*). */
+    static final String BUDGET_PREFIX = "这次没来得及算完";
+    /** A note saying the one automatic re-run has already happened: only a new record replans. */
+    private static final String RERUN_DONE = "记下一个结果后会重新安排";
+    /** 现在的安排 line while the one automatic re-run is still to come. */
+    static final String BUDGET_PENDING = "这次没来得及算完，稍后会自动再算一次。";
+    /** 现在的安排 line once that re-run happened (or this plan is it). */
+    static final String BUDGET_ROUGH = "这次没来得及算完，后半段是粗略安排；记下一个结果后会重新安排。";
+
+    /** The 现在的安排 line of a plan whose time budget ran out, or null. */
+    static String budgetLine(Plan plan) {
+        if (plan == null || !plan.budgetExhausted) {
+            return null;
+        }
+        return followUpPending(plan.budgetExhausted, isFollowUp(plan), plan.summary.notesZh) ? BUDGET_PENDING : BUDGET_ROUGH;
+    }
+
+    /**
+     * Whether the service will still compute this plan once more by itself: its time ran out, it is
+     * not itself that second computation ({@code followUp}), and none of its notes says the re-run
+     * already happened (「…记下一个结果后会重新安排」). Never promises a run that will not come.
+     */
+    static boolean followUpPending(boolean budgetExhausted, boolean followUp, List<String> notes) {
+        if (!budgetExhausted || followUp) {
+            return false;
+        }
+        for (String note : notes) {
+            if (note != null && note.startsWith(BUDGET_PREFIX) && note.contains(RERUN_DONE)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** The plan's notes for 需要注意, without its time-budget note (the card above already says it). */
+    static List<String> notesBelow(Plan plan) {
+        List<String> out = new java.util.ArrayList<>();
+        for (String note : plan.summary.notesZh) {
+            if (!(plan.budgetExhausted && note != null && note.startsWith(BUDGET_PREFIX))) {
+                out.add(note);
+            }
+        }
+        return out;
+    }
+
+    /** {@code Plan.followUp} where the engine has it (set on the service's second computation). */
+    private static final java.lang.reflect.Field FOLLOW_UP = followUpField();
+
+    private static java.lang.reflect.Field followUpField() {
+        try {
+            java.lang.reflect.Field f = Plan.class.getField("followUp");
+            return f.getType() == boolean.class ? f : null;
+        } catch (ReflectiveOperationException | RuntimeException absent) {
+            return null;
+        }
+    }
+
+    /**
+     * Whether this plan is the service's one follow-up computation. Read reflectively so the UI works
+     * with an engine that does not have {@code Plan.followUp} yet (then only the notes decide).
+     */
+    static boolean isFollowUp(Plan plan) {
+        if (FOLLOW_UP == null || plan == null) {
+            return false;
+        }
+        try {
+            return FOLLOW_UP.getBoolean(plan);
+        } catch (ReflectiveOperationException | RuntimeException unreadable) {
+            return false;
+        }
     }
 
     /** 关于. */

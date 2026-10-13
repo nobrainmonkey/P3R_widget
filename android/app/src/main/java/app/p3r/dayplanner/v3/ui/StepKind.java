@@ -13,7 +13,7 @@ public enum StepKind {
     /** Social link meeting without a predicted rank-up (points only). */
     SOCIAL_MEET("社群", R.drawable.ui_ic_social),
     /** 结缘网站的字条: points for one established link, bought at the club and used on the dorm PC. */
-    NOTE("社群 · 字条", R.drawable.ui_ic_note),
+    NOTE("结缘网站的字条", R.drawable.ui_ic_note),
     /** A preparation step that unlocks a link. */
     UNLOCK("解锁社群", R.drawable.ui_ic_unlock),
     /** Training / meals / anything that raises 个人能力值. */

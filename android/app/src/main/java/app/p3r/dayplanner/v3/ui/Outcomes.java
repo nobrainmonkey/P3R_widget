@@ -251,7 +251,7 @@ public final class Outcomes {
                     return name + " · 剧情原因暂时升不了";
                 }
                 if (kind == StepKind.NOTE) {
-                    return name + " · 没用字条";
+                    return name + " · 没用结缘网站的字条";
                 }
                 if (kind == StepKind.EPISODE) {
                     return name + " · 没看成";
