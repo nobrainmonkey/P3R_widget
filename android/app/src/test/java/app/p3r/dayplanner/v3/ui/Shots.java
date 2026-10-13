@@ -97,7 +97,8 @@ final class Shots {
     /**
      * Visual rules enforced on every render: no italic/slanted face on text that contains CJK
      * (italics only via NumeralSpan on Latin runs), no Latin-only internal ids, no text that is
-     * clipped vertically by its own view, and the line breaks of {@link #checkLines}.
+     * clipped vertically by its own view, RANK/MAX/Lv.N in the numeral face
+     * ({@link #checkNumeralWords}), and the line breaks of {@link #checkLines}.
      */
     static void checkTypography(View view, String where) {
         if (view.getVisibility() != View.VISIBLE) {
@@ -113,6 +114,7 @@ final class Shots {
             String latin = text.replaceAll("RANK|MAX|Lv|P3R|ATLUS|Reload|Barlow|Condensed|SIL", "")
                 .replaceAll("[a-z0-9.-]+\\.[a-z]{2,}", "").replaceAll("\\b[IVX]+\\b", "");
             assertTrue(where + ": English shown to the player: " + text, !latin.matches("(?s).*[A-Za-z]{2,}.*"));
+            checkNumeralWords(t, where);
             if (t.getLayout() != null && t.getLineCount() > 0 && t.getMaxLines() > 1 && t.getHeight() > 0) {
                 int needed = t.getLayout().getLineBottom(t.getLineCount() - 1) + t.getCompoundPaddingTop()
                     + t.getCompoundPaddingBottom();
@@ -128,10 +130,38 @@ final class Shots {
         }
     }
 
+    /** "RANK", "MAX" and "Lv." (word joiners allowed between the letters). */
+    private static final java.util.regex.Pattern NUMERAL_WORD =
+        java.util.regex.Pattern.compile("R⁠?A⁠?N⁠?K|M⁠?A⁠?X|L⁠?v⁠?\\.");
+
+    /**
+     * RANK, MAX and Lv.N are set in the numeral face in every text, as in the mixed ones: a view
+     * of the screens ({@link ZhTextView}) is either in the numeral face as a whole or has a
+     * {@link NumeralSpan} over each of them.
+     */
+    static void checkNumeralWords(TextView t, String where) {
+        if (!(t instanceof ZhTextView) || t.getTypeface() == Ui.numerals(t.getContext())) {
+            return;
+        }
+        CharSequence text = t.getText();
+        java.util.regex.Matcher m = NUMERAL_WORD.matcher(text);
+        while (m.find()) {
+            boolean styled = false;
+            if (text instanceof android.text.Spanned) {
+                android.text.Spanned s = (android.text.Spanned) text;
+                for (NumeralSpan span : s.getSpans(m.start(), m.end(), NumeralSpan.class)) {
+                    styled |= s.getSpanStart(span) <= m.start() && s.getSpanEnd(span) >= m.end();
+                }
+            }
+            assertTrue(where + ": " + Zh.plain(m.group()) + " not in the numeral face: " + Zh.plain(text), styled);
+        }
+    }
+
     /**
      * Line breaks of a drawn text view: none inside a word, name or tag kept together by
      * {@link Zh#keepTogether} (next to a word joiner), no line that visibly ends with a " · "
-     * separator (a dot there must be hidden by {@link ZhTextView}), and no wrapped line holding a
+     * separator (a dot there must be hidden by {@link ZhTextView}) or with a slash ("/", "／": it
+     * goes with the next part), and no wrapped line holding a
      * single character ("吗？", "证）。"). Truncated lines (ellipsis) are not checked.
      */
     static void checkLines(TextView t, String where) {
@@ -159,6 +189,9 @@ final class Shots {
                 ZhTextView.Dot[] spans = text instanceof android.text.Spanned
                     ? ((android.text.Spanned) text).getSpans(dot, dot + 1, ZhTextView.Dot.class) : new ZhTextView.Dot[0];
                 assertTrue(where + ": line ends with a visible separator dot: " + context, spans.length == 1 && spans[0].hidden);
+            }
+            if (line < layout.getLineCount() - 1) {
+                assertTrue(where + ": line ends with a slash: " + context, !shown.endsWith("/") && !shown.endsWith("／"));
             }
             boolean paragraphStart = start == 0 || text.charAt(start - 1) == '\n';
             boolean paragraphEnd = end == text.length() || text.charAt(end - 1) == '\n';

@@ -228,6 +228,11 @@ public final class Zh {
 
     /** U+2060 WORD JOINER: invisible, and no line break on either side of it. */
     public static final char WJ = '⁠';
+    /**
+     * U+200B ZERO WIDTH SPACE: invisible, and a line may break after it. Unicode never breaks
+     * before a "/", so a " / " separator gets one in front ({@link ZhTextView}).
+     */
+    public static final char BREAK = '\u200B';
 
     /** Glossary terms that are never split across lines. */
     private static final String[] TERMS = {
@@ -280,9 +285,9 @@ public final class Zh {
         return ch != WJ && before != WJ && before != '\n' && ch != '\n' && !Character.isHighSurrogate(before);
     }
 
-    /** {@code text} without word joiners (comparisons, measuring). */
+    /** {@code text} without word joiners and break points (comparisons, measuring). */
     public static String plain(CharSequence text) {
-        return text == null ? "" : text.toString().replace(String.valueOf(WJ), "");
+        return text == null ? "" : text.toString().replace(String.valueOf(WJ), "").replace(String.valueOf(BREAK), "");
     }
 
     /**
@@ -407,7 +412,7 @@ public final class Zh {
         int[] at = new int[original.length()];
         for (int i = 0; i < original.length(); i++) {
             char ch = original.charAt(i);
-            if (ch != WJ) {
+            if (ch != WJ && ch != BREAK) {
                 at[flat.length()] = i;
                 flat.append(ch);
             }

@@ -140,6 +140,27 @@ public class GlossarySourceTest {
         assertTrue(String.join("\n", issues), issues.isEmpty());
     }
 
+    /** "69-117F", "5月12日-1月29日": a range is written with the en dash, as the pack and Zh#dateRange do. */
+    private static final Pattern HYPHEN_RANGE = Pattern.compile("[0-9日F]\\s*-\\s*[0-9]");
+
+    @Test
+    public void rangesUseTheEnDash() throws IOException {
+        assertTrue(HYPHEN_RANGE.matcher("提齐亚（69-117F）").find() && HYPHEN_RANGE.matcher("5月12日-1月29日").find());
+        assertFalse(HYPHEN_RANGE.matcher("提齐亚（69–117F）· 5月12日–1月29日").find());
+        List<String> issues = new ArrayList<>();
+        File[] files = new File(sourceRoot(), "v3/ui").listFiles((d, name) -> name.endsWith(".java"));
+        assertTrue(files != null && files.length > 40);
+        for (File f : files) {
+            for (String literal : literals(read(f))) {
+                boolean chinese = literal.codePoints().anyMatch(cp -> cp >= 0x4E00 && cp <= 0x9FFF);
+                if (chinese && !literal.contains("[") && HYPHEN_RANGE.matcher(literal).find()) {
+                    issues.add(f.getName() + ": \"" + literal + "\"");
+                }
+            }
+        }
+        assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
     @Test
     public void onlyTheDatePlatesWriteMonthSlashDay() throws IOException {
         for (File f : sources()) {

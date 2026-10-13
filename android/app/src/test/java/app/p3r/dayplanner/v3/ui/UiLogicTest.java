@@ -252,10 +252,10 @@ public class UiLogicTest {
     public void linkStatusFooters() {
         Profile p = Fixtures.profileMid();
         assertEquals("预计 11月20日 升到 MAX", LinkStatus.of(rules, p, obs, plan, 4).footZh);
-        assertEquals("皇帝 6→MAX · 预计 11月20日", LinkStatus.of(rules, p, obs, plan, 4).chipZh);
+        assertEquals("皇帝 6 → MAX · 预计 11月20日", LinkStatus.of(rules, p, obs, plan, 4).chipZh);
         assertEquals("剧情自动推进", LinkStatus.of(rules, p, obs, plan, 13).footZh);
         assertEquals("这次的安排里没排到 MAX，先保证了皇帝", LinkStatus.of(rules, p, obs, plan, 2).footZh);
-        assertEquals("女教皇 5→9 · 没排到 MAX", LinkStatus.of(rules, p, obs, plan, 2).chipZh);
+        assertEquals("女教皇 5 → 9 · 没排到 MAX", LinkStatus.of(rules, p, obs, plan, 2).chipZh);
         obs.rescueFailed = 2L;
         assertTrue(LinkStatus.of(rules, p, obs, plan, 12).lost);
     }
