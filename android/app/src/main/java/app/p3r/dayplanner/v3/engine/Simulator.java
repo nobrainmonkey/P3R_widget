@@ -68,6 +68,16 @@ final class Simulator {
         return p;
     }
 
+    /** The slot's side steps for {@code action}, applied to a normalized copy that stays at its slot. */
+    static SimState applySideSteps(Rules rules, Profile profile, SimState state, Action action) {
+        Model m = new Model(rules, profile, null);
+        SimState st = Kernel.normalize(m, state);
+        if (action == null) action = Action.free();
+        checkTarget(m, action);
+        Kernel.side(m, st, Kernel.encode(action), null);
+        return st;
+    }
+
     /** Advance without acting until {@code slot} (day rollovers applied). */
     static SimState advanceTo(Rules rules, Profile profile, SimState state, int slot) {
         Model m = new Model(rules, profile, null);

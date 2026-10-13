@@ -79,6 +79,17 @@ public final class Engine {
     }
 
     /**
+     * The side steps of {@code state.slot} (pending non-consuming unlock steps of wanted links, see
+     * {@link Plan.Step#side}) applied to a copy of {@code state} as if {@code action} were taken
+     * there; the copy stays at the same slot and nothing else changes. For records that do not go
+     * through {@link #applyOutcome}, e.g. a Tartarus visit recorded by the store: apply this first,
+     * then the record. {@code applyOutcome} already applies side steps itself.
+     */
+    public static SimState applySideSteps(Rules rules, Profile profile, SimState state, Action action) {
+        return Simulator.applySideSteps(rules, profile, state, action);
+    }
+
+    /**
      * Every legal productive action for {@code state.slot} as a labeled {@link Plan.Step} (Chinese
      * title, subtitle, location, reason and forecast), best first. For "改做别的"; the list is empty
      * when the slot is locked or nothing productive is possible.

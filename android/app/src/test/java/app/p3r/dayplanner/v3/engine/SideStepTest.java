@@ -238,6 +238,21 @@ public class SideStepTest {
     }
 
     @Test
+    public void sideStepsAloneForRecordsOutsideApplyOutcome() {
+        Rules rules = RulesFixtures.sideSteps();
+        Profile p = RulesFixtures.others();
+        SimState s = start(rules, 24, 50_000);
+        s.slot = Rules.slot(24, true);
+        // A Tartarus evening recorded by the store: the Devil payment happens beside the visit.
+        SimState side = Engine.applySideSteps(rules, p, s, Action.tower(0));
+        assertEquals(s.slot, side.slot);
+        assertEquals(1, side.unlockStep[X_DEVIL]);
+        assertEquals(30_000, side.cash);
+        assertEquals(0, side.towerVisits[0]);
+        assertEquals(0, s.unlockStep[X_DEVIL]); // the input is untouched
+    }
+
+    @Test
     public void outcomeOfTheMainUnlockDoesNotDoubleApplyItsLink() {
         Rules rules = RulesFixtures.sideSteps();
         Profile p = RulesFixtures.others();
