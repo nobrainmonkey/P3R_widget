@@ -168,6 +168,68 @@ public class HomeRenderTest extends UiTestBase {
     }
 
     @Test
+    public void linksEpisodeSection() {
+        Intent intent = new Intent(RuntimeEnvironment.getApplication(), HomeActivity.class);
+        intent.putExtra(Intents.EXTRA_TAB, "links");
+        HomeActivity a = home(intent);
+        assertTrue(Shots.has(a, "不加社群点数，但能拿到道具/特性；勾选后会在可看的日子留出时段。"));
+        Shots.capture(a, false);
+        lastScroll(a.getWindow().getDecorView(), null).scrollTo(0, 100_000);
+        Shots.shot(a, "home_links_episodes");
+    }
+
+    @Test
+    public void detailSheetWithHowTo() {
+        HomeActivity a = home();
+        a.openDetail(Rules.slot(Fixtures.day(10, 25), false));
+        assertTrue(Shots.has(a, "怎么做 · 3 步"));
+        assertTrue(Shots.has(a, "找到穿西装的田中社长，和他说话"));
+        Shots.shot(a, "home_detail_howto");
+    }
+
+    @Test
+    public void todayAfterTheLastDay() {
+        api.snap.observed.slot = api.rules.lastSlot() + 1;
+        api.snap.observed.rank[4] = 10;
+        api.snap.plan = Fixtures.planMid(api.rules, api.snap.observed);
+        HomeActivity a = home();
+        assertTrue(Shots.has(a, "日程已经全部结束"));
+        assertFalse(Shots.has(a, "正在根据最新记录重新安排…"));
+        Shots.shot(a, "home_today_finished");
+    }
+
+    @Test
+    public void scheduleWrapsLongTitles() {
+        Intent intent = new Intent(RuntimeEnvironment.getApplication(), HomeActivity.class);
+        intent.putExtra(Intents.EXTRA_TAB, "schedule");
+        HomeActivity a = home(intent);
+        android.widget.ListView list = findList(a.getWindow().getDecorView());
+        Shots.capture(a, false);
+        list.setSelection(6);
+        Shots.shot(a, "home_schedule_long_titles");
+        android.widget.TextView title = (android.widget.TextView) Shots.find(a,
+            "在严户台商店街的定食屋「若津」挑战超大份的海鲜盖饭");
+        assertEquals(2, title.getMaxLines());
+        assertEquals(2, title.getLineCount());
+    }
+
+    private static android.widget.ListView findList(android.view.View v) {
+        if (v instanceof android.widget.ListView && v.isShown()) {
+            return (android.widget.ListView) v;
+        }
+        if (v instanceof android.view.ViewGroup) {
+            android.view.ViewGroup g = (android.view.ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) {
+                android.widget.ListView l = findList(g.getChildAt(i));
+                if (l != null) {
+                    return l;
+                }
+            }
+        }
+        return null;
+    }
+
+    @Test
     public void detailSheetFromIntent() {
         Intent intent = new Intent(RuntimeEnvironment.getApplication(), HomeActivity.class);
         intent.putExtra(Intents.EXTRA_OPEN_SLOT, Fixtures.SLOT_NOW + 2);

@@ -508,6 +508,24 @@ final class Fixtures {
             s.subtitleZh = "这个晚上没有更划算的事";
             return s;
         }
+        if (d == day(10, 27) && !eve) {
+            Plan.Step s = stat(slot, "act:wakatsu", "在严户台商店街的定食屋「若津」挑战超大份的海鲜盖饭",
+                "勇气 +2 · 800 日元", "严户台商店街", new int[]{0, 0, 2}, -800);
+            s.whyZh = "塔社群需要勇气达到 Lv.4。";
+            return s;
+        }
+        if (d == day(10, 27)) {
+            Plan.Step s = new Plan.Step();
+            s.slot = slot;
+            s.action = "unlock:tower:1";
+            s.kind = "unlock";
+            s.entity = "tower";
+            s.titleZh = "塔 · 无达";
+            s.subtitleZh = "到放纵俱乐部 2楼找那位和尚，按顺序点「基尔酒」「血腥玛丽」「卡西斯橙汁」「乌龙茶」";
+            s.locationZh = "桐叶购物中心 放纵俱乐部";
+            s.whyZh = "完成后塔社群就解锁了";
+            return s;
+        }
         if (d == day(10, 26) && !eve) {
             Plan.Step s = new Plan.Step();
             s.slot = slot;

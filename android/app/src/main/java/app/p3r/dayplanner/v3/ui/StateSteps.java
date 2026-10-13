@@ -258,7 +258,7 @@ final class StateSteps {
             top.addView(badge, Ui.wrap());
         }
         card.addView(top);
-        TextView person = Ui.text(c, link.personZh + " · " + link.genderZh, 12, Ui.col(c, R.color.p3r_ink_muted), false);
+        TextView person = Ui.text(c, Zh.person(link), 12, Ui.col(c, R.color.p3r_ink_muted), false);
         person.setMaxLines(2);
         person.setEllipsize(android.text.TextUtils.TruncateAt.END);
         card.addView(person, top(2));
@@ -430,7 +430,11 @@ final class StateSteps {
             SegmentedControl seg = new SegmentedControl(c, labels);
             seg.setSelected(draft.statLv(stat.idx) - 1);
             for (int i = 0; i < 6; i++) {
-                seg.segment(i).setContentDescription(stat.zh + " " + Zh.lv(i + 1));
+                TextView segment = seg.segment(i);
+                segment.setContentDescription(stat.zh + " " + Zh.lv(i + 1));
+                // Six segments share one row: keep "MAX" on one line.
+                segment.setSingleLine(true);
+                Ui.pad(segment, 2, 6, 2, 6);
             }
             seg.setListener(i -> {
                 draft.setStatLv(stat.idx, i + 1);

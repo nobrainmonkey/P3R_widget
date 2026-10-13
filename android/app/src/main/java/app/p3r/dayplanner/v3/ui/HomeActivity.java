@@ -48,6 +48,8 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     static final int TAB_LINKS = 2;
     static final int TAB_ME = 3;
     static final String[] TAB_KEYS = {"today", "schedule", "links", "me"};
+    /** Height of a sub-page's top bar (back button + title). */
+    private static final int PAGE_BAR_DP = 60;
     /** Extra on result-sheet intents launched from inside the app (enables the undo bar). */
     static final String EXTRA_FROM_APP = "p3r.ui.fromApp";
 
@@ -76,6 +78,8 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     private boolean started;
     private int topInset;
     private int bottomInset;
+    /** Deferred re-placements of the message bar left for the current message (bounded). */
+    private int undoRetries;
 
     // ------------------------------------------------------------------ lifecycle
 
@@ -330,9 +334,19 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         int barHeight = undo.getMeasuredHeight();
         boolean atTop;
         int bottomMargin;
+        int topMargin = topInset + (pages.isEmpty() ? m : Ui.dp(this, PAGE_BAR_DP));
         if (sheets.isShowing()) {
-            atTop = true;
-            bottomMargin = 0;
+            // Just above the sheet (over the dimmed area) so it never covers the sheet's buttons;
+            // at the top when the sheet is too tall to leave room.
+            int panelTop = sheets.panelTop();
+            int barBottom = panelTop - m;
+            atTop = panelTop < 0 || barBottom - barHeight < topMargin;
+            bottomMargin = atTop ? 0 : root.getHeight() - barBottom;
+            if (panelTop < 0 && undoRetries < 2) {
+                // The sheet was just shown: place the bar again once it is laid out.
+                undoRetries++;
+                root.post(this::placeUndo);
+            }
         } else if (!pages.isEmpty()) {
             atTop = false;
             bottomMargin = bottomInset + m;
@@ -343,7 +357,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         }
         FrameLayout.LayoutParams p = (FrameLayout.LayoutParams) undo.getLayoutParams();
         p.gravity = atTop ? Gravity.TOP : Gravity.BOTTOM;
-        p.topMargin = atTop ? topInset + m : 0;
+        p.topMargin = atTop ? topMargin : 0;
         p.bottomMargin = atTop ? 0 : bottomMargin;
         p.leftMargin = m;
         p.rightMargin = m;
@@ -358,10 +372,11 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         if (r == null || root.getHeight() <= 0) {
             return false;
         }
+        int gap = Ui.dp(this, 8);
         int barBottom = root.getHeight() - bottomMargin;
-        boolean coversBottom = r.bottom > barBottom - barHeight && r.top < barBottom;
+        boolean coversBottom = r.bottom + gap > barBottom - barHeight && r.top - gap < barBottom;
         int topY = topInset + m;
-        boolean coversTop = r.bottom > topY && r.top < topY + barHeight;
+        boolean coversTop = r.bottom + gap > topY && r.top - gap < topY + barHeight;
         return coversBottom && !coversTop;
     }
 
@@ -472,6 +487,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     /** "已记录：… · 撤销". */
     void showUndo(long eventSeq, String summary) {
         undo.show("已记录：" + summary, eventSeq >= 0 ? "撤销" : null, () -> undoEvent(eventSeq, summary));
+        undoRetries = 0;
         placeUndo();
     }
 
@@ -552,6 +568,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     @Override
     public void showSheet(View content) {
         sheets.show(content, this::placeUndo);
+        undoRetries = 0;
         placeUndo();
     }
 
@@ -615,6 +632,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     @Override
     public void showMessage(String text) {
         undo.show(text, null, null);
+        undoRetries = 0;
         placeUndo();
     }
 

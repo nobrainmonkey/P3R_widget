@@ -90,18 +90,14 @@ final class SettingsPage {
         return sb.toString();
     }
 
-    /** One line per 人格面具 choice, shown under the segmented control. */
-    static String personaExplain(Profile.PersonaMode mode) {
-        switch (mode) {
-            case ALL:
-                return "所有社群的点数都按 ×1.51 算。";
-            case GOALS:
-                return "只有目标社群按 ×1.51 算；每次见目标社群前，安排会提醒你带上哪个阿尔卡那的人格面具。";
-            default:
-                return "都按不带算，最保守。拿不准就选这个。";
-        }
-    }
+    /** Title and one-line explanation of each 人格面具 choice (in {@link #PERSONA_MODES} order). */
+    static final String[][] PERSONA_TEXT = {
+        {"基本都带", "所有社群的点数都按 ×1.51 算。"},
+        {"只给目标社群带", "只有目标社群按 ×1.51 算；每次见目标社群前，安排会提醒你带上哪个阿尔卡那的人格面具。"},
+        {"不带/不一定", "都按不带算，最保守。拿不准就选这个。"},
+    };
 
+    /** The 人格面具 question as three stacked choices (the labels are too long for one row). */
     private static View persona(HomeHost host, Profile p) {
         Context c = host.activity();
         LinearLayout card = Ui.column(c);
@@ -109,21 +105,66 @@ final class SettingsPage {
         Ui.pad(card, 16, 12, 16, 14);
         card.addView(Ui.text(c, "见面时带同阿尔卡那的人格面具", 16, Ui.col(c, R.color.p3r_white), true));
         card.addView(Ui.muted(c, "带着和社群同阿尔卡那的人格面具，见面时点数 ×1.51。"));
-        SegmentedControl seg = new SegmentedControl(c, Arrays.asList("基本都带", "只给目标带", "不带/不一定"));
-        Profile.PersonaMode mode = p.effectivePersonaMode();
-        seg.setSelected(Arrays.asList(PERSONA_MODES).indexOf(mode));
-        TextView explain = Ui.mixed(c, personaExplain(mode), 13, Ui.col(c, R.color.p3r_cyan_200), false);
-        seg.setListener(i -> {
-            Profile.PersonaMode chosen = PERSONA_MODES[i];
-            explain.setText(Ui.latin(c, personaExplain(chosen)));
-            edit(host, q -> {
-                q.personaMode = chosen;
-                q.personaBonus = chosen == Profile.PersonaMode.ALL;
+        List<LinearLayout> rows = new ArrayList<>();
+        int selected = Arrays.asList(PERSONA_MODES).indexOf(p.effectivePersonaMode());
+        for (int i = 0; i < PERSONA_MODES.length; i++) {
+            final int index = i;
+            LinearLayout row = choiceRow(c, PERSONA_TEXT[i][0], PERSONA_TEXT[i][1]);
+            row.setOnClickListener(v -> {
+                for (int k = 0; k < rows.size(); k++) {
+                    markChoice(c, rows.get(k), PERSONA_TEXT[k][0], PERSONA_TEXT[k][1], k == index);
+                }
+                Profile.PersonaMode chosen = PERSONA_MODES[index];
+                edit(host, q -> {
+                    q.personaMode = chosen;
+                    q.personaBonus = chosen == Profile.PersonaMode.ALL;
+                });
             });
-        });
-        card.addView(seg, gapTop(c, 10));
-        card.addView(explain, gapTop(c, 8));
+            markChoice(c, row, PERSONA_TEXT[i][0], PERSONA_TEXT[i][1], i == selected);
+            rows.add(row);
+            card.addView(row, gapTop(c, i == 0 ? 10 : 6));
+        }
         return card;
+    }
+
+    /** A tappable choice: slanted radio mark, bold title and a short explanation. */
+    private static LinearLayout choiceRow(Context c, String title, String description) {
+        LinearLayout row = Ui.row(c);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setMinimumHeight(Ui.dp(c, 52));
+        Ui.pad(row, 12, 8, 12, 8);
+        View mark = new View(c);
+        LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(Ui.dp(c, 18), Ui.dp(c, 18));
+        mp.rightMargin = Ui.dp(c, 12);
+        row.addView(mark, mp);
+        LinearLayout texts = Ui.column(c);
+        texts.addView(Ui.text(c, title, 15, Ui.col(c, R.color.p3r_white), true));
+        texts.addView(Ui.mixed(c, description, 12, Ui.col(c, R.color.p3r_ink_muted), false));
+        row.addView(texts, Ui.weight(1));
+        row.setClickable(true);
+        row.setFocusable(true);
+        return row;
+    }
+
+    private static void markChoice(Context c, LinearLayout row, String title, String description, boolean on) {
+        SlantedPanelDrawable bg = new SlantedPanelDrawable().skew(Ui.dp(c, 6))
+            .pressedFill(Ui.col(c, R.color.ui_cyan_faint));
+        if (on) {
+            bg.fill(Ui.col(c, R.color.ui_card_raised)).stroke(Ui.col(c, R.color.p3r_cyan_400), Ui.dp(c, 1.5f));
+        } else {
+            bg.fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 120)).stroke(Ui.col(c, R.color.p3r_line), Ui.dp(c, 1));
+        }
+        row.setBackground(bg);
+        View mark = row.getChildAt(0);
+        SlantedPanelDrawable dot = new SlantedPanelDrawable().skew(Ui.dp(c, 4));
+        if (on) {
+            dot.fill(Ui.col(c, R.color.p3r_cyan_400));
+        } else {
+            dot.stroke(Ui.col(c, R.color.p3r_cyan_300), Ui.dp(c, 1.5f));
+        }
+        mark.setBackground(dot);
+        row.setSelected(on);
+        row.setContentDescription(title + "，" + description + (on ? "，已选" : ""));
     }
 
     private static LinearLayout.LayoutParams gapTop(Context c, int dp) {

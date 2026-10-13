@@ -129,6 +129,15 @@ public final class Zh {
         return fromDay == toDay ? date(fromDay) : date(fromDay) + "–" + date(toDay);
     }
 
+    /**
+     * "小田桐秀利 · 男"; a long name puts the gender on its own line ("特别课外活动部\n团体·男女")
+     * so it is never cut off.
+     */
+    public static String person(Rules.Link link) {
+        String one = link.personZh + " · " + link.genderZh;
+        return one.length() > 11 ? link.personZh + "\n" + link.genderZh : one;
+    }
+
     /** Roman numeral for an arcana number ("0" for the Fool). */
     public static String roman(int arcanaNo) {
         if (arcanaNo < 0 || arcanaNo >= ROMAN.length) {

@@ -46,12 +46,12 @@ final class StepViews {
             .fill(Ui.alpha(Ui.col(c, R.color.ui_gold), 34))
             .stroke(Ui.col(c, R.color.ui_gold), Ui.dp(c, 1.5f))
             .skew(Ui.dp(c, 6)));
-        Ui.pad(chip, 12, 6, 14, 6);
+        Ui.pad(chip, 10, 6, 10, 6);
         chip.setMinimumHeight(Ui.dp(c, 36));
         chip.addView(Ui.icon(c, R.drawable.ui_ic_mask, Ui.col(c, R.color.ui_gold), 18));
-        TextView text = Ui.mixed(c, hint.trim(), 14, Ui.col(c, R.color.p3r_ice_100), true);
+        TextView text = Ui.mixed(c, hint.trim(), 13, Ui.col(c, R.color.p3r_ice_100), true);
         LinearLayout.LayoutParams tp = Ui.weight(1);
-        tp.leftMargin = Ui.dp(c, 8);
+        tp.leftMargin = Ui.dp(c, 6);
         chip.addView(text, tp);
         chip.setContentDescription(hint.trim());
         return chip;

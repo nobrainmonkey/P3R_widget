@@ -203,7 +203,7 @@ final class LinksPage {
 
         TextView arcana = Ui.text(c, link.arcanaZh, 19, Ui.col(c, R.color.p3r_white), true);
         card.addView(arcana);
-        TextView person = Ui.text(c, link.personZh + " · " + link.genderZh, 12, Ui.col(c, R.color.p3r_ink_muted), false);
+        TextView person = Ui.text(c, Zh.person(link), 12, Ui.col(c, R.color.p3r_ink_muted), false);
         person.setMaxLines(2);
         person.setEllipsize(TextUtils.TruncateAt.END);
         card.addView(person);

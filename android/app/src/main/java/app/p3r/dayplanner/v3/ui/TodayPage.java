@@ -106,7 +106,7 @@ final class TodayPage {
         if (upcoming != null) {
             column.addView(upcoming, spaced(24));
         }
-        View goals = goals(d);
+        View goals = finished ? null : goals(d);
         if (goals != null) {
             column.addView(goals, spaced(20));
         }
@@ -296,7 +296,7 @@ final class TodayPage {
             text = "塔尔塔罗斯 · 现在没有能探索的区块";
         } else {
             int visits = block.idx < obs.towerVisits.length ? obs.towerVisits[block.idx] : 0;
-            text = "塔尔塔罗斯 · " + block.zh + " · 本区块去过 " + visits + " 次，上限 " + profile.towerCapPerBlock + " 次";
+            text = "塔尔塔罗斯 · " + block.zh + "\n本区块去过 " + visits + " 次，上限 " + profile.towerCapPerBlock + " 次";
         }
         TextView label = Ui.mixed(c, text, 13, Ui.col(c, R.color.p3r_ice_100), false);
         label.setMaxLines(2);

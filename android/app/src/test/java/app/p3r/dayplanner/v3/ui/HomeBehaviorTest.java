@@ -238,8 +238,14 @@ public class HomeBehaviorTest extends UiTestBase {
         Shots.click(a, "恢复");
         assertEquals("先粘贴备份内容。", a.undoBar().messageText().toString());
         assertEquals(a.undoBar(), root.getChildAt(root.getChildCount() - 1));
-        android.widget.FrameLayout.LayoutParams p = (android.widget.FrameLayout.LayoutParams) a.undoBar().getLayoutParams();
-        assertEquals(android.view.Gravity.TOP, p.gravity & android.view.Gravity.VERTICAL_GRAVITY_MASK);
+        Shots.capture(a, false);
+        a.placeUndo();
+        Shots.capture(a, false);
+        android.graphics.Rect bar = HomeActivity.boundsIn(a.undoBar(), root);
+        android.graphics.Rect restore = HomeActivity.boundsIn(Shots.clickTarget(Shots.find(a, "恢复")), root);
+        android.graphics.Rect title = HomeActivity.boundsIn(Shots.find(a, "粘贴备份"), root);
+        assertFalse("bar " + bar + " covers 恢复 " + restore, android.graphics.Rect.intersects(bar, restore));
+        assertFalse("bar " + bar + " covers the sheet title " + title, android.graphics.Rect.intersects(bar, title));
         Shots.shot(a, "home_message_over_sheet");
     }
 
@@ -258,6 +264,21 @@ public class HomeBehaviorTest extends UiTestBase {
         android.graphics.Rect hero = HomeActivity.boundsIn(buttons, root);
         assertFalse("undo bar " + bar + " covers hero buttons " + hero, android.graphics.Rect.intersects(bar, hero));
         Shots.shot(a, "home_undo_bar_clear_of_hero");
+    }
+
+    @Test
+    public void undoBarMovesUpWhenTheHeroReachesTheBottom() {
+        // The 10/22 hero is tall (reminder, side step, reason): its buttons sit where the bar would be.
+        HomeActivity a = home();
+        a.showUndo(7, "皇帝 RANK 7");
+        Shots.capture(a, false);
+        a.placeUndo();
+        Shots.capture(a, false);
+        android.view.View root = (android.view.View) a.undoBar().getParent();
+        android.graphics.Rect bar = HomeActivity.boundsIn(a.undoBar(), root);
+        android.graphics.Rect hero = HomeActivity.boundsIn((android.view.View) Shots.find(a, "完成 ✓").getParent(), root);
+        assertFalse("undo bar " + bar + " covers hero buttons " + hero, android.graphics.Rect.intersects(bar, hero));
+        Shots.shot(a, "home_undo_bar_top");
     }
 
     @Test

@@ -632,7 +632,7 @@ public final class ResultActivity extends Activity {
     }
 
     private ToggleRow readyToggle() {
-        return new ToggleRow(this, "游戏提示下次就能升级", "没升级，但游戏提示下次就能升级时打开。", false);
+        return new ToggleRow(this, "游戏提示下次就能升级", "没升级，但看到了这个提示时打开。", false);
     }
 
     private static void toggle(View view) {
@@ -673,7 +673,7 @@ public final class ResultActivity extends Activity {
         int link = linkOf(step);
         String who = link >= 0 ? rules.links[link].personZh : Outcomes.shortName(rules, step);
         body.addView(question("和" + who + "见面了吗？"), top(14));
-        body.addView(note("预计这次不会升级，好感会继续累积（现在 " + Zh.rank(from) + "）。"), top(4));
+        body.addView(note("现在是 " + Zh.rank(from) + "，预计这次不会升级，好感会继续累积。"), top(4));
         String dialogue = Dialogue.line(rules, step);
         if (dialogue != null) {
             body.addView(Ui.body(this, dialogue), top(6));
@@ -855,6 +855,10 @@ public final class ResultActivity extends Activity {
         }
         Profile profile = snap.profile == null ? new Profile() : snap.profile;
         SimState obs = snap.observed;
+        String sub = SlotRows.subtitle(step);
+        if (!sub.isEmpty()) {
+            body.addView(Ui.mixed(this, sub, 15, Ui.col(this, R.color.p3r_cyan_300), true), top(8));
+        }
         if (block >= 0 && block < obs.towerVisits.length) {
             String visits = "本区块第 " + (obs.towerVisits[block] + 1) + " 次 · 上限 " + profile.towerCapPerBlock + " 次";
             body.addView(Ui.mixed(this, visits, 13, Ui.col(this, R.color.p3r_ink_muted), false), top(2));
