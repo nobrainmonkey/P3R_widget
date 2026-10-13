@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -178,31 +179,37 @@ public final class PlannerService implements PlannerApi {
 
     private void loadInitial() {
         try {
-            Rules rules;
-            try {
-                rules = Objects.requireNonNull(wiring.rules.load(), "rules");
-            } catch (RuntimeException e) {
-                Log.e(TAG, "rule pack failed to load", e);
-                model = new Model(null, null, ZH_RULES_MISSING);
-                return;
-            }
-            try {
-                synchronized (lock) {
-                    ledger = new Ledger(context, wiring.databaseName);
-                    LedgerView view = LedgerView.load(ledger, rules, wiring.applier);
-                    model = new Model(view, readStoredPlan(), null);
-                }
-            } catch (SQLException e) {
-                Log.e(TAG, "planner database failed to open", e);
-                model = new Model(null, null, ZH_DB_MISSING);
-            }
+            model = openModel();
         } finally {
             loaded.countDown();
         }
         if (needsPlan(model)) {
             replanner.schedule();
         }
+        // Widgets that rendered while the service was loading show the real state now.
+        refreshWidgets();
         notifyListeners();
+    }
+
+    /** Loads the rule pack and the ledger; a failure yields a model that only carries the error. */
+    private Model openModel() {
+        Rules rules;
+        try {
+            rules = Objects.requireNonNull(wiring.rules.load(), "rules");
+        } catch (RuntimeException e) {
+            Log.e(TAG, "rule pack failed to load", e);
+            return new Model(null, null, ZH_RULES_MISSING);
+        }
+        try {
+            synchronized (lock) {
+                ledger = new Ledger(context, wiring.databaseName);
+                return new Model(LedgerView.load(ledger, rules, wiring.applier), readStoredPlan(), null);
+            }
+        } catch (RuntimeException e) {
+            // SQLException or an unexpected bug: never crash the worker thread.
+            Log.e(TAG, "planner database failed to open", e);
+            return new Model(null, null, ZH_DB_MISSING);
+        }
     }
 
     private Plan readStoredPlan() {
@@ -247,6 +254,11 @@ public final class PlannerService implements PlannerApi {
     }
 
     @Override
+    public Snapshot peekSnapshot() {
+        return loaded.getCount() > 0 ? null : snapshot();
+    }
+
+    @Override
     public Snapshot snapshot() {
         awaitLoaded();
         Model m = model;
@@ -279,9 +291,14 @@ public final class PlannerService implements PlannerApi {
             if (ledger == null || model.view == null) {
                 return Collections.emptyList();
             }
-            view = currentViewLocked();
-            checkpoints = ledger.checkpoints();
-            rows = ledger.allEvents();
+            try {
+                view = currentViewLocked();
+                checkpoints = ledger.checkpoints();
+                rows = ledger.allEvents();
+            } catch (SQLException e) {
+                Log.e(TAG, "history could not be read", e);
+                return Collections.emptyList();
+            }
         }
         Map<Long, HistoryText.Traced> traces =
                 HistoryText.trace(view.rules, view.profile, wiring.applier, checkpoints, rows);
@@ -345,14 +362,15 @@ public final class PlannerService implements PlannerApi {
             if (ledger == null || model.view == null) {
                 return null;
             }
-            Backup.Data data = new Backup.Data();
-            data.profileJson = ledger.profileJson();
-            data.checkpoints.addAll(ledger.checkpoints());
-            data.events.addAll(ledger.allEvents());
             try {
+                Backup.Data data = new Backup.Data();
+                data.profileJson = ledger.profileJson();
+                data.checkpoints.addAll(ledger.checkpoints());
+                data.events.addAll(ledger.allEvents());
                 return Backup.write(data, model.view.rules.version, wiring.clock.getAsLong());
-            } catch (JSONException e) {
-                throw new IllegalStateException("stored rows are not valid JSON", e);
+            } catch (SQLException | JSONException e) {
+                Log.e(TAG, "backup could not be written", e);
+                return null;
             }
         }
     }
@@ -639,6 +657,10 @@ public final class PlannerService implements PlannerApi {
                 if (stale) {
                     return true;
                 }
+                if (error instanceof CancellationException) {
+                    // Cancelled while still current (shutdown): leave everything as it was.
+                    return false;
+                }
                 if (error != null || plan == null || !problems.isEmpty()) {
                     if (!problems.isEmpty()) {
                         Log.e(TAG, "plan rejected by the validator: " + problems);
@@ -755,7 +777,7 @@ public final class PlannerService implements PlannerApi {
             fillRevisions(receipt, model.view);
         }
         if (changed) {
-            replanner.cancelInFlight();
+            replanner.cancelOutdated(receipt.stateRevision, receipt.profileRevision);
             replanner.schedule();
             refreshWidgets();
             notifyListeners();
@@ -940,7 +962,7 @@ public final class PlannerService implements PlannerApi {
      * as the process; this exists for tests that simulate a restart.
      */
     void close() {
-        replanner.cancelInFlight();
+        replanner.cancelAll();
         worker.shutdown();
         try {
             worker.awaitTermination(10, TimeUnit.SECONDS);

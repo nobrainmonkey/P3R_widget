@@ -57,8 +57,13 @@ abstract class ServiceTestBase {
 
     /** A new service instance on {@code databaseName} (same file = simulated process restart). */
     PlannerService open(String databaseName) {
+        return open(databaseName, () -> rules);
+    }
+
+    /** A new service instance with a custom rule source (load-failure and slow-load tests). */
+    PlannerService open(String databaseName, RulesSource rulesSource) {
         Wiring wiring = new Wiring();
-        wiring.rules = () -> rules;
+        wiring.rules = rulesSource;
         wiring.applier = applier;
         wiring.planner = planner;
         wiring.validator = validator;

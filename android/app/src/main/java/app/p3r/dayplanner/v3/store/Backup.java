@@ -181,7 +181,11 @@ public final class Backup {
             if (EventKind.IMPORT.equals(row.kind)) {
                 continue;
             }
-            if (row.checkpointId != 0 && !checkpointIds.contains(row.checkpointId)) {
+            boolean needsCheckpoint = !EventKind.isJournal(row.kind);
+            boolean checkpointOk = row.checkpointId == 0
+                    ? !needsCheckpoint
+                    : checkpointIds.contains(row.checkpointId);
+            if (!checkpointOk) {
                 throw new Invalid(ZH_DAMAGED, "event " + row.seq + " refers to a missing checkpoint");
             }
             checkPayload(row, bySeq);

@@ -23,7 +23,7 @@ final class CommandCheck {
     /** Sanity bound for typed yen amounts. */
     static final long MAX_CASH = 99_999_999L;
 
-    static final String ZH_NO_STATE = "还没有设置当前进度，请先同步现状";
+    static final String ZH_NO_STATE = "还没有填写当前进度，请先完成初始设置";
     static final String ZH_ALREADY_RECORDED = "这个时段已经记录过了";
     static final String ZH_CALENDAR_OVER = "日程已经全部结束了，不能再记录";
     static final String ZH_OUT_OF_CALENDAR = "这个时段不在游戏日程内";

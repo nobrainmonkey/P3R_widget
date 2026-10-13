@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongSupplier;
 
@@ -25,7 +26,8 @@ import java.util.function.LongSupplier;
  *       revisions they were computed for and checked by the validator; the host installs a result
  *       only if both revisions are still current, otherwise the run recomputes.</li>
  *   <li>A write during a computation cancels it early through {@code Engine.Options.cancelled}
- *       (its result would be discarded anyway).</li>
+ *       (its result would be discarded anyway). Only computations for older revisions are
+ *       cancelled, so a late cancel can never hit the computation for the latest state.</li>
  * </ul>
  */
 final class ReplanWorker {
@@ -65,7 +67,8 @@ final class ReplanWorker {
     private final LongSupplier clock;
     private final AtomicBoolean queued = new AtomicBoolean();
     private volatile boolean running;
-    private volatile AtomicBoolean inFlight;
+    /** Job being computed (its {@code options.cancelled} is set), or null. */
+    private volatile Job inFlight;
 
     ReplanWorker(Executor executor, Host host, PlanFunction planner, PlanCheck validator, LongSupplier clock) {
         this.executor = executor;
@@ -80,7 +83,13 @@ final class ReplanWorker {
         if (!queued.compareAndSet(false, true)) {
             return false;
         }
-        executor.execute(this::run);
+        try {
+            executor.execute(this::run);
+        } catch (RejectedExecutionException e) {
+            // The service was closed; nothing will plan any more.
+            queued.set(false);
+            return false;
+        }
         return true;
     }
 
@@ -89,11 +98,22 @@ final class ReplanWorker {
         return queued.get() || running;
     }
 
-    /** Asks the computation in flight (if any) to stop early. */
-    void cancelInFlight() {
-        AtomicBoolean flag = inFlight;
-        if (flag != null) {
-            flag.set(true);
+    /**
+     * Asks the computation in flight to stop early if it was started for revisions older than the
+     * given ones (revisions only grow).
+     */
+    void cancelOutdated(long stateRevision, long profileRevision) {
+        Job job = inFlight;
+        if (job != null && (job.stateRevision < stateRevision || job.profileRevision < profileRevision)) {
+            job.options.cancelled.set(true);
+        }
+    }
+
+    /** Asks any computation in flight to stop (shutdown). */
+    void cancelAll() {
+        Job job = inFlight;
+        if (job != null) {
+            job.options.cancelled.set(true);
         }
     }
 
@@ -103,13 +123,13 @@ final class ReplanWorker {
         try {
             while (true) {
                 Job job = host.nextJob();
-                if (job == null) {
-                    return;
-                }
-                if (!compute(job)) {
+                if (job == null || !compute(job)) {
                     return;
                 }
             }
+        } catch (RuntimeException e) {
+            // Never let a bug escape to the thread's uncaught-exception handler (app crash).
+            Log.e(TAG, "replanning stopped", e);
         } finally {
             running = false;
             host.runEnded();
@@ -120,22 +140,16 @@ final class ReplanWorker {
     private boolean compute(Job job) {
         AtomicBoolean cancel = new AtomicBoolean();
         job.options.cancelled = cancel;
-        inFlight = cancel;
+        inFlight = job;
         Plan plan = null;
         List<String> problems = Collections.emptyList();
         Throwable error = null;
         try {
             plan = planner.plan(job.rules, job.profile, job.observed, job.previous, job.options);
-            if (cancel.get()) {
-                // A write arrived meanwhile: the result is for old revisions, skip validating it.
-                return host.finish(job, null, problems, new CancellationException("superseded"));
-            }
-            if (plan != null) {
+            if (plan != null && !cancel.get()) {
                 stamp(plan, job);
-                problems = validator.validate(job.rules, job.profile, job.observed, plan);
-                if (problems == null) {
-                    problems = Collections.emptyList();
-                }
+                List<String> found = validator.validate(job.rules, job.profile, job.observed, plan);
+                problems = found == null ? Collections.emptyList() : found;
             }
         } catch (RuntimeException | StackOverflowError e) {
             error = e;
@@ -144,6 +158,10 @@ final class ReplanWorker {
             }
         } finally {
             inFlight = null;
+        }
+        if (cancel.get()) {
+            // Superseded by a write (or shutdown): the result is not used and was not validated.
+            return host.finish(job, null, Collections.emptyList(), new CancellationException("superseded"));
         }
         return host.finish(job, plan, problems, error);
     }

@@ -13,13 +13,25 @@ import java.util.List;
  * {@link PlannerService}. All write methods are idempotent per {@code commandId} and guarded by
  * compare-and-set revisions; they run synchronously on the caller's thread (call them off the main
  * thread) and schedule a background replan on success.
+ *
+ * <p>Order of checks for every write: a known {@code commandId} returns its original result
+ * ({@code duplicate}) or {@code conflict}; then the expected revision ({@code stale}); then the
+ * values ({@code invalid} / {@code gap}, with a Chinese {@code errorZh}).
+ *
+ * <p>{@link #snapshot()} and {@link #rules()} never touch the disk once the service has loaded
+ * (they wait for that first load only); {@link #peekSnapshot()} never waits. Snapshots share the
+ * {@link Plan} instance with the service: treat it as read-only.
  */
 public interface PlannerApi {
 
     /** Everything a screen needs to render, read atomically. */
     final class Snapshot {
-        /** Null before onboarding. */
+        /**
+         * Null before onboarding. {@code observed.slot} is the next slot the player can act in:
+         * calendar-locked slots are skipped automatically.
+         */
         public SimState observed;
+        /** Never null; defaults until the first save ({@link #profileRevision} 0). */
         public Profile profile;
         /** Latest installed plan (may lag one revision behind while replanning), or null. */
         public Plan plan;
@@ -27,7 +39,7 @@ public interface PlannerApi {
         public long profileRevision;
         /** True when {@link #plan} matches both revisions. */
         public boolean planCurrent;
-        /** Replanning is running or queued. */
+        /** Replanning for the current revisions is running or queued. */
         public boolean planning;
         /** Last planning error in Chinese, or null. */
         public String planErrorZh;
@@ -100,19 +112,43 @@ public interface PlannerApi {
         void onChanged(Snapshot snapshot);
     }
 
+    /** The rule pack, or null if it failed to load (then {@link Snapshot#planErrorZh} says so). */
     Rules rules();
 
     Snapshot snapshot();
 
-    /** Record the outcome of the action planned (or substituted) at {@code slot}. */
+    /**
+     * Like {@link #snapshot()} but never waits: null while the service is still loading (listeners
+     * are notified once it has loaded). For main-thread callers such as widget updates.
+     */
+    default Snapshot peekSnapshot() {
+        return snapshot();
+    }
+
+    /**
+     * Record the outcome of the action planned (or substituted) at {@code slot}. {@code slot} must
+     * be {@code observed.slot}: an earlier slot is rejected as already recorded, a later one with
+     * {@code gap} (run the catch-up flow). A {@code SKIPPED} outcome is stored as a skip.
+     * Tartarus visits with floor/cash use {@link #recordTower}.
+     */
     Receipt recordOutcome(String commandId, long expectedStateRevision, int slot, String actionKey, Outcome outcome);
 
+    /**
+     * Record one Tartarus visit at {@code observed.slot} (an evening). {@code block} may be -1 to
+     * use the block active that day; the floor may not exceed the block's top.
+     */
     Receipt recordTower(String commandId, long expectedStateRevision, TowerReturn tower);
 
-    /** Replace the values of an earlier tower record; never adds a visit. */
+    /**
+     * Replace the values of an earlier tower record; never adds a visit. The slot and block always
+     * stay those of the original record ({@code corrected.slot/block} are ignored).
+     */
     Receipt correctTower(String commandId, long expectedStateRevision, long targetSeq, TowerReturn corrected);
 
-    /** Undo an earlier event (appends a void marker, then replays). */
+    /**
+     * Undo an earlier record of the current checkpoint (appends a void marker, then replays).
+     * Voiding a correction restores the values it replaced.
+     */
     Receipt voidEvent(String commandId, long expectedStateRevision, long targetSeq);
 
     /** Full observed state from onboarding / 同步现状 / full edit; optionally the profile too. */
@@ -120,16 +156,22 @@ public interface PlannerApi {
 
     Receipt saveProfile(String commandId, long expectedProfileRevision, Profile profile);
 
+    /** Newest first, across all checkpoints; {@code limit <= 0} returns everything. */
     List<HistoryItem> history(int limit);
 
     /** Queue a replan if the installed plan is stale (no-op otherwise). */
     void requestReplan();
 
-    /** Legal alternatives for a slot given the current observed state (for 改做别的). */
+    /**
+     * Legal alternatives for a slot (for 改做别的), labelled like plan steps. For a future slot the
+     * forecast follows the installed plan up to it. Empty for past or locked slots.
+     */
     List<Plan.Step> alternatives(int slot);
 
+    /** Backup JSON (profile, checkpoints, records), or null if the service failed to load. */
     String exportBackup();
 
+    /** Validates a backup, then replaces everything atomically; all revisions move forward. */
     Receipt importBackup(String commandId, String json);
 
     void addListener(Listener listener);

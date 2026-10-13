@@ -48,7 +48,7 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
         PlannerApi.Receipt r = record(MAY12_DAY, "meet:emperor", Outcome.Code.AS_PREDICTED);
         assertFalse(r.ok);
         assertEquals("invalid", r.errorCode);
-        assertEquals("还没有设置当前进度，请先同步现状", r.errorZh);
+        assertEquals("还没有填写当前进度，请先完成初始设置", r.errorZh);
     }
 
     @Test

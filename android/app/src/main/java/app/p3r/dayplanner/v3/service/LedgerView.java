@@ -94,11 +94,6 @@ final class LedgerView {
                 countObserved(chain));
     }
 
-    /** True when {@code plan}-relevant inputs exist (observed state recorded). */
-    boolean hasObserved() {
-        return observed != null;
-    }
-
     /** Block index at the observed slot, -1 if none. */
     int currentBlock() {
         if (observed == null) {
@@ -106,16 +101,6 @@ final class LedgerView {
         }
         Rules.Block block = rules.blockOn(Rules.dayOf(observed.slot));
         return block == null ? -1 : block.idx;
-    }
-
-    /** Row of the current chain with sequence {@code seq}, or null. */
-    EventRow chainRow(long seq) {
-        for (EventRow row : chain) {
-            if (row.seq == seq) {
-                return row;
-            }
-        }
-        return null;
     }
 
     private static Replayer.Result replay(Replayer replayer, CheckpointRow checkpoint, List<EventRow> rows) {
