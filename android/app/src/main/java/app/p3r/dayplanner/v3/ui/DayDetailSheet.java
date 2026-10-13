@@ -68,7 +68,7 @@ final class DayDetailSheet {
             loc.addView(where, wp);
             column.addView(loc, top(c, 10));
         }
-        String dialogue = Dialogue.line(d.rules, step);
+        String dialogue = Dialogue.line(d.rules, d.profile(), step);
         if (dialogue != null) {
             column.addView(Ui.body(c, dialogue), top(c, 8));
         }

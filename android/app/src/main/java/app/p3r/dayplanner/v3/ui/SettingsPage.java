@@ -12,12 +12,13 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import app.p3r.dayplanner.R;
+import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 
 /**
  * 规划设置: the profile options (人格面具 three-way choice / 魅力加成 / 目标余量 / 回答方式 / 其余社群
- * / 结缘网站的字条, Tartarus visits per block and cap, cash floor) and the activities the player
+ * / 结缘网站的字条, the 塔尔塔罗斯 sub-page with visits and caps per block, 平安夜, cash floor) and the activities the player
  * asked never to schedule. Every change is saved at once and triggers a replan.
  */
 final class SettingsPage {
@@ -51,22 +52,12 @@ final class SettingsPage {
         }
 
         column.addView(Ui.sectionHeader(c, "塔尔塔罗斯", null), gapTop(c, 20));
-        Stepper cap = new Stepper(c, Math.max(0, p.towerVisitsPerBlock), 12, p.towerCapPerBlock);
-        Stepper visits = new Stepper(c, 0, 8, p.towerVisitsPerBlock);
-        visits.setFormatter(v -> v + " 次");
-        cap.setFormatter(v -> v + " 次");
-        visits.setListener(v -> {
-            cap.setRange(Math.max(0, v), 12);
-            edit(host, q -> {
-                q.towerVisitsPerBlock = v;
-                q.towerCapPerBlock = Math.max(q.towerCapPerBlock, v);
-            });
-        });
-        cap.setListener(v -> edit(host, q -> q.towerCapPerBlock = Math.max(v, q.towerVisitsPerBlock)));
-        column.addView(stepperCard(c, "每个区块平时去几次", "平时每个区块安排这么多次探索。", visits), gapTop(c, 4));
-        column.addView(stepperCard(c, "每个区块最多去几次",
-            "包括救失踪者在内，每个区块最多去这么多次塔尔塔罗斯。设成 0 就完全不安排探索，也不会去救失踪者。", cap),
-            gapTop(c, 8));
+        column.addView(MePage.entry(c, R.drawable.ui_ic_tower, "每个区块去几次",
+            "按区块设置想去几次、最多几次（包括救失踪者）", true,
+            () -> host.pushPage("塔尔塔罗斯", TowerSettingsPage.build(host))), gapTop(c, 4));
+
+        column.addView(Ui.sectionHeader(c, "平安夜", null), gapTop(c, 20));
+        column.addView(christmas(host, p), gapTop(c, 4));
 
         column.addView(Ui.sectionHeader(c, "现金", null), gapTop(c, 20));
         column.addView(cashBuffer(host, p), gapTop(c, 4));
@@ -74,6 +65,18 @@ final class SettingsPage {
         column.addView(Ui.sectionHeader(c, "不再安排的活动", null), gapTop(c, 20));
         column.addView(excluded(host, p), gapTop(c, 4));
         return column;
+    }
+
+    /** 「平安夜」: 都婉拒了 / 接受了XX的邀约 (romanceable links at RANK 1 or above). */
+    private static View christmas(HomeHost host, Profile p) {
+        Context c = host.activity();
+        Rules rules = host.data().rules;
+        if (rules == null) {
+            return Ui.muted(c, "游戏资料暂时读不出来。");
+        }
+        SimState obs = host.data().observed();
+        return ChristmasChoice.build(c, rules, i -> obs == null || i >= obs.rank.length ? 0 : obs.rank[i],
+            p.christmasLink, id -> edit(host, q -> q.christmasLink = id));
     }
 
     /** "在放纵俱乐部买结缘网站的字条…" with the price and the first day it can be bought. */
@@ -130,7 +133,7 @@ final class SettingsPage {
     }
 
     /** A tappable choice: slanted radio mark, bold title and a short explanation. */
-    private static LinearLayout choiceRow(Context c, String title, String description) {
+    static LinearLayout choiceRow(Context c, String title, String description) {
         LinearLayout row = Ui.row(c);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setMinimumHeight(Ui.dp(c, 52));
@@ -148,7 +151,7 @@ final class SettingsPage {
         return row;
     }
 
-    private static void markChoice(Context c, LinearLayout row, String title, String description, boolean on) {
+    static void markChoice(Context c, LinearLayout row, String title, String description, boolean on) {
         SlantedPanelDrawable bg = new SlantedPanelDrawable().skew(Ui.dp(c, 6))
             .pressedFill(Ui.col(c, R.color.ui_cyan_faint));
         if (on) {
@@ -176,7 +179,7 @@ final class SettingsPage {
     }
 
     /** Applies an edit to the latest profile and saves it. */
-    private static void edit(HomeHost host, Consumer<Profile> change) {
+    static void edit(HomeHost host, Consumer<Profile> change) {
         Profile edited = host.data().profile().copy();
         change.accept(edited);
         host.saveProfile(edited);
@@ -203,16 +206,6 @@ final class SettingsPage {
         seg.setSelected(p.answers == Profile.AnswerPolicy.BEST ? 0 : 1);
         seg.setListener(i -> edit(host, q -> q.answers = i == 0 ? Profile.AnswerPolicy.BEST : Profile.AnswerPolicy.NONE));
         card.addView(seg, gapTop(c, 10));
-        return card;
-    }
-
-    private static View stepperCard(Context c, String title, String description, Stepper stepper) {
-        LinearLayout card = Ui.column(c);
-        card.setBackground(Ui.card(c));
-        Ui.pad(card, 16, 12, 16, 12);
-        card.addView(Ui.text(c, title, 16, Ui.col(c, R.color.p3r_white), true));
-        card.addView(Ui.muted(c, description));
-        card.addView(stepper, gapTop(c, 8));
         return card;
     }
 

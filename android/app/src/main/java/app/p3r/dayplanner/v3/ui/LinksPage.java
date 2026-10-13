@@ -192,20 +192,25 @@ final class LinksPage {
         LinearLayout top = Ui.row(c);
         TextView roman = Ui.numeral(c, Zh.roman(link.arcanaNo), 22, Ui.col(c, R.color.p3r_cyan_400));
         top.addView(roman, Ui.weight(1));
-        TextView chip = tierBadge(tier);
+        boolean story = link.kind == Rules.LinkKind.STORY;
         LinearLayout tap = Ui.row(c);
         tap.setGravity(Gravity.CENTER);
         tap.setMinimumHeight(Ui.dp(c, Ui.TOUCH));
-        tap.setMinimumWidth(Ui.dp(c, 64));
-        tap.addView(chip);
-        tap.setClickable(true);
-        tap.setFocusable(true);
-        tap.setContentDescription(link.arcanaZh + " 目标：" + Goals.label(tier) + "，点按切换");
-        tap.setOnClickListener(v -> {
-            Profile edited = profile.copy();
-            Goals.cycle(edited, link.idx);
-            host.saveProfile(edited);
-        });
+        if (story) {
+            // Story links advance with the story: no goal tier to pick.
+            tap.addView(storyBadge());
+        } else {
+            tap.setMinimumWidth(Ui.dp(c, 64));
+            tap.addView(tierBadge(tier));
+            tap.setClickable(true);
+            tap.setFocusable(true);
+            tap.setContentDescription(link.arcanaZh + " 目标：" + Goals.label(tier) + "，点按切换");
+            tap.setOnClickListener(v -> {
+                Profile edited = profile.copy();
+                Goals.cycle(edited, link.idx);
+                host.saveProfile(edited);
+            });
+        }
         top.addView(tap, Ui.wrap());
         card.addView(top);
 
@@ -216,12 +221,10 @@ final class LinksPage {
         person.setEllipsize(TextUtils.TruncateAt.END);
         card.addView(person);
 
+        // "RANK 6 → MAX", "未解锁 → RANK 2", "RANK 3", "MAX" or "未解锁".
         String rankText = status.projected > status.observed
             ? Zh.rankStep(status.observed, status.projected)
-            : "RANK " + Zh.rankValue(status.observed);
-        if (status.observed == 0 && status.projected == 0) {
-            rankText = "未解锁";
-        }
+            : Zh.rank(status.observed);
         TextView rank = Ui.mixed(c, rankText, 15, Ui.col(c, R.color.p3r_white), true);
         LinearLayout.LayoutParams rp = Ui.matchWrap();
         rp.topMargin = Ui.dp(c, 8);
@@ -232,14 +235,77 @@ final class LinksPage {
         pp.topMargin = Ui.dp(c, 6);
         pp.rightMargin = Ui.dp(c, 8);
         card.addView(pips, pp);
-        TextView foot = Ui.mixed(c, status.footZh, 12,
-            status.lost ? Ui.col(c, R.color.p3r_danger) : Ui.col(c, R.color.p3r_cyan_200), false);
-        LinearLayout.LayoutParams fp = Ui.matchWrap();
-        fp.topMargin = Ui.dp(c, 6);
-        card.addView(foot, fp);
+        // A story link's "剧情自动推进" already stands where the tier chip would be.
+        boolean repeat = story && STORY_TAG.equals(status.footZh);
+        if (!repeat) {
+            TextView foot = Ui.mixed(c, status.footZh, 12,
+                status.lost ? Ui.col(c, R.color.p3r_danger) : Ui.col(c, R.color.p3r_cyan_200), false);
+            LinearLayout.LayoutParams fp = Ui.matchWrap();
+            fp.topMargin = Ui.dp(c, 6);
+            card.addView(foot, fp);
+        }
+        if (link.romanceable && !story) {
+            card.addView(routeChoice(profile, link), spacedCard(10));
+        }
         card.setContentDescription(link.labelZh + "，" + (status.observed == 0 ? "未解锁" : Zh.rank(status.observed))
-            + "，" + status.footZh);
+            + "，" + (story ? STORY_TAG + (repeat ? "" : "，" + status.footZh) : status.footZh));
         return card;
+    }
+
+    static final String STORY_TAG = "剧情自动推进";
+    /** Under the route choice of every romanceable link. */
+    static final String ROUTE_NOTE = "规划不会要求你走恋爱路线";
+
+    private LinearLayout.LayoutParams spacedCard(int topDp) {
+        LinearLayout.LayoutParams p = Ui.matchWrap();
+        p.topMargin = Ui.dp(c, topDp);
+        p.rightMargin = Ui.dp(c, 8);
+        return p;
+    }
+
+    /** "剧情自动推进" in place of the tier chip of a story link (not tappable). */
+    private TextView storyBadge() {
+        TextView badge = Ui.text(c, STORY_TAG, 12, Ui.col(c, R.color.p3r_ink_muted), true);
+        badge.setGravity(Gravity.CENTER);
+        badge.setBackground(new SlantedPanelDrawable().skew(Ui.dp(c, 5))
+            .fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 120)));
+        Ui.pad(badge, 8, 3, 8, 3);
+        return badge;
+    }
+
+    /**
+     * 「路线：朋友 / 恋人」 for a link that can be romanced (Profile.route; the default counts as
+     * 朋友), with the note that the plan never asks for the romance route. Only the 参考回答 line
+     * depends on it.
+     */
+    private View routeChoice(Profile profile, Rules.Link link) {
+        LinearLayout box = Ui.column(c);
+        LinearLayout row = Ui.row(c);
+        row.addView(Ui.text(c, "路线", 12, Ui.col(c, R.color.p3r_ink_muted), true), Ui.wrap());
+        SegmentedControl seg = new SegmentedControl(c, Arrays.asList("朋友", "恋人"));
+        boolean romance = Dialogue.romanceRoute(profile, link.idx);
+        seg.setSelected(romance ? 1 : 0);
+        for (int i = 0; i < 2; i++) {
+            TextView segment = seg.segment(i);
+            segment.setTextSize(13);
+            segment.setSingleLine(true);
+            Ui.pad(segment, 4, 4, 4, 4);
+            segment.setContentDescription(link.arcanaZh + " 路线：" + (i == 0 ? "朋友" : "恋人") + "。" + ROUTE_NOTE);
+        }
+        seg.setListener(i -> {
+            Profile edited = host.data().profile().copy();
+            edited.route[link.idx] = i == 1 ? Profile.Route.ROMANCE : Profile.Route.FRIEND;
+            host.saveProfile(edited);
+        });
+        LinearLayout.LayoutParams sp = Ui.weight(1);
+        sp.leftMargin = Ui.dp(c, 6);
+        row.addView(seg, sp);
+        box.addView(row);
+        TextView note = Ui.text(c, ROUTE_NOTE, 11, Ui.col(c, R.color.p3r_ink_faint), false);
+        LinearLayout.LayoutParams np = Ui.matchWrap();
+        np.topMargin = Ui.dp(c, 4);
+        box.addView(note, np);
+        return box;
     }
 
     /**
@@ -295,9 +361,12 @@ final class LinksPage {
         });
     }
 
-    /** The recorded state with {@code n} episodes of {@code track} watched, fit for a checkpoint. */
+    /**
+     * The recorded state with {@code n} episodes of {@code track} watched, fit for a checkpoint;
+     * everything else, a recorded 没救出 included, stays as recorded.
+     */
     static SimState withWatched(Rules rules, SimState observed, Rules.Episode track, int n) {
-        SimState state = StateDraft.withoutUnconfirmedFailures(observed);
+        SimState state = observed.copy();
         if (state.episodes.length < rules.episodes.length) {
             state.episodes = Arrays.copyOf(state.episodes, rules.episodes.length);
         }

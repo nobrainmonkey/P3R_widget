@@ -70,6 +70,11 @@ public final class Assumptions {
 
     /** The global assumptions for the 规划说明 page, reflecting the player's settings. */
     public static List<String> global(Profile profile) {
+        return global(profile, null);
+    }
+
+    /** {@link #global(Profile)} with names from the rule pack (平安夜 invitation). */
+    public static List<String> global(Profile profile, app.p3r.dayplanner.v3.model.Rules rules) {
         List<String> out = new ArrayList<>();
         Profile p = profile == null ? new Profile() : profile;
         out.add("从你最后记录的时段开始，一直排到1月31日白天，每个白天和晚上都有安排。");
@@ -103,7 +108,14 @@ public final class Assumptions {
         }
         out.add("收入只计算打工（按最低档工资）；塔尔塔罗斯的收入默认不计。");
         out.add("课堂答题、考试等剧情里的额外收获不计入预测，回来时用「同步现状」更新就行。");
-        out.add("12月24日默认不接受邀约；1月21日放学后先空出来（送过顺平「白色切花」的话会有剧情）。");
+        out.add("塔尔塔罗斯按「规划设置 → 塔尔塔罗斯」里每个区块想去几次、最多几次安排，救失踪者也算一次。");
+        if (p.christmasLink == null) {
+            out.add("12月24日按都婉拒了邀约安排，可在「规划设置 → 平安夜」里改。");
+        } else {
+            out.add("12月24日" + ChristmasChoice.answerText(rules, p.christmasLink)
+                + "：这天白天和晚上都留给约会，不安排别的事。");
+        }
+        out.add("1月21日放学后先空出来（送过顺平「白色切花」的话会有剧情）。");
         out.add("这不一定是最好的排法，但每一步在游戏里都做得到，前后也接得上。");
         return out;
     }

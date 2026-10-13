@@ -59,7 +59,7 @@ public class ReviewFixesTest extends UiTestBase {
 
     @Test
     public void f3_optingInMidGameSavesWatchedEpisodesWithTheProfile() {
-        // A replay-derived 没救出 must not become the player's answer through this checkpoint.
+        // The checkpoint only changes the episodes: a recorded 没救出 stays as recorded.
         api.snap.observed.rescueFailed = 2L;
         HomeActivity a = homeOn("links");
         Shots.click(a, "真田明彦 · 共 3 话，已关闭");
@@ -76,7 +76,7 @@ public class ReviewFixesTest extends UiTestBase {
         assertEquals(2, call.state.episodes[1]);
         assertEquals("other tracks keep their count", 1, call.state.episodes[0]);
         assertEquals(api.snap.observed.slot, call.state.slot);
-        assertEquals(0L, call.state.rescueFailed);
+        assertEquals(2L, call.state.rescueFailed);
         assertNotNull(call.profile);
         assertTrue(call.profile.wantsEpisodes("akihiko"));
         assertTrue(call.profile.wantsEpisodes("junpei"));
@@ -473,7 +473,7 @@ public class ReviewFixesTest extends UiTestBase {
         assertFalse(Shots.has(a, "已补记前面的安排。"));
     }
 
-    // ------------------------------------------------------------------ UI-7: replay-derived 没救出
+    // ------------------------------------------------------------------ UI-7 / audit I3(2): recorded 没救出
 
     private void maikoLostByReplay() {
         api.snap.observed.slot = Rules.slot(Fixtures.day(11, 6), false);
@@ -483,48 +483,73 @@ public class ReviewFixesTest extends UiTestBase {
     }
 
     @Test
-    public void ui7_draftNeverSavesAnUnconfirmedFailure() {
+    public void ui7_recordedFailureIsPreselectedAndKeptUntilChanged() {
         maikoLostByReplay();
         SimState obs = api.snap.observed;
         StateDraft d = new StateDraft(StateDraft.Mode.EDIT, api.rules, obs, Fixtures.profileMid(), api.snap.plan, 12);
-        assertEquals(StateDraft.RESCUE_UNSURE, d.rescueAnswer(1));
+        assertEquals(StateDraft.RESCUE_FAILED, d.rescueAnswer(1));
         assertTrue(d.recordSaysFailed(1));
-        assertEquals(0L, d.build().rescueFailed);
-        // Only fixing 倒悬者's RANK does not keep the link lost.
+        assertEquals(2L, d.build().rescueFailed & 2L);
+        // An unrelated edit (倒悬者's RANK) keeps the recorded result: the link stays lost.
         d.setRank(12, 3);
+        assertEquals(2L, d.build().rescueFailed & 2L);
+        assertEquals(0L, d.build().rescued & 2L);
+        for (StateDraft.Change c : d.changes()) {
+            assertFalse("an unchanged rescue is not listed", c.labelZh.equals("救出舞子"));
+        }
+        // Only the player's own change replaces it.
+        d.setRescue(1, StateDraft.RESCUE_DONE);
+        assertFalse(d.recordSaysFailed(1));
         assertEquals(0L, d.build().rescueFailed & 2L);
+        assertEquals(2L, d.build().rescued & 2L);
         boolean listed = false;
         for (StateDraft.Change c : d.changes()) {
             if (c.labelZh.equals("救出舞子")) {
                 listed = true;
                 assertEquals("没救出", c.beforeZh);
-                assertEquals("不确定", c.afterZh);
+                assertEquals("救出了", c.afterZh);
             }
         }
         assertTrue("the confirm page shows the rescue change", listed);
-        d.setRescue(1, StateDraft.RESCUE_FAILED);
-        assertFalse(d.recordSaysFailed(1));
-        assertEquals(2L, d.build().rescueFailed & 2L);
     }
 
     @Test
-    public void ui7_wizardExplainsAndSavesOnlyTheAnswerGivenNow() {
+    public void ui7_recordedFailureWhileTheWindowIsOpenIsNotKept() {
+        // Moving the date back into the window: a failure cannot have happened yet.
+        maikoLostByReplay();
+        StateDraft d = new StateDraft(StateDraft.Mode.EDIT, api.rules, api.snap.observed, Fixtures.profileMid(),
+            api.snap.plan, 12);
+        d.setSlot(Rules.slot(Fixtures.day(10, 30), false));
+        assertTrue(d.rescueOpen(1));
+        assertFalse(d.recordSaysFailed(1));
+        assertEquals(0L, d.build().rescueFailed & 2L);
+    }
+
+    @Test
+    public void ui7_wizardPreselectsTheRecordedFailureWithANote() {
         maikoLostByReplay();
         StateActivity a = stateController("edit").get();
         jumpTo(a, StateSteps.Page.TOWER);
-        assertTrue(Shots.has(a, "记录里是「没救出」，可能只是当时没记下救出。确实没救出的话请选「没救出」。"));
-        Shots.shot(a, "state_edit_rescue_unconfirmed");
+        assertTrue(Shots.has(a, StateDraft.RECORDED_FAILURE_NOTE));
+        assertTrue("没救出 is preselected", Shots.find(a, "舞子：没救出").isSelected());
+        assertFalse(Shots.find(a, "舞子：救出了").isSelected());
+        Shots.shot(a, "state_edit_rescue_recorded_failure");
+        // Another edit saves the record with the failure still in it.
+        a.draft().setCash(30_000);
         jumpTo(a, StateSteps.Page.CONFIRM);
         Shots.click(a, "保存并重新安排");
-        assertEquals(0L, api.last().state.rescueFailed);
+        assertEquals("saveCheckpoint", api.last().method);
+        assertEquals(30_000, api.last().state.cash);
+        assertEquals(2L, api.last().state.rescueFailed & 2L);
 
         api.calls.clear();
         StateActivity b = stateController("edit").get();
         jumpTo(b, StateSteps.Page.TOWER);
-        Shots.click(b, "舞子：没救出");
+        Shots.click(b, "舞子：救出了");
         jumpTo(b, StateSteps.Page.CONFIRM);
         Shots.click(b, "保存并重新安排");
-        assertEquals(2L, api.last().state.rescueFailed & 2L);
+        assertEquals(0L, api.last().state.rescueFailed & 2L);
+        assertEquals(2L, api.last().state.rescued & 2L);
     }
 
     // ------------------------------------------------------------------ COPY-3: MAX
@@ -609,13 +634,15 @@ public class ReviewFixesTest extends UiTestBase {
         Shots.shot(a, "home_me_terms");
         String settings = Shots.allText(SettingsPage.build(a));
         assertFalse(settings, settings.contains("进塔"));
-        assertTrue(settings.contains("每个区块最多去这么多次塔尔塔罗斯"));
+        assertTrue(settings.contains("按区块设置想去几次、最多几次（包括救失踪者）"));
+        assertTrue(settings.contains("12月24日的邀约"));
         assertTrue(settings.contains("在桐叶购物中心的放纵俱乐部买结缘网站的字条"));
         assertTrue(settings.contains("每次和目标社群的人见面前，会提醒你带哪个阿尔卡那的人格面具。"));
 
         assertEquals("安排好了，一直排到1月31日", PlanDiff.summary(api.rules, null, api.snap.plan, NOW));
         List<String> global = Assumptions.global(Fixtures.profileMid());
-        assertTrue(global.contains("12月24日默认不接受邀约；1月21日放学后先空出来（送过顺平「白色切花」的话会有剧情）。"));
+        assertTrue(global.contains("12月24日按都婉拒了邀约安排，可在「规划设置 → 平安夜」里改。"));
+        assertTrue(global.contains("1月21日放学后先空出来（送过顺平「白色切花」的话会有剧情）。"));
         assertEquals("假定这次探索能顺利救出失踪者。", Assumptions.describe("rescue"));
         for (String line : global) {
             assertFalse(line, line.contains("进塔") || line.contains("1月21日白天"));

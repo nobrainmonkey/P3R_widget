@@ -74,7 +74,7 @@ public final class UndoBar extends LinearLayout {
 
     /** Current message text (tests). */
     public CharSequence messageText() {
-        return message.getText();
+        return Zh.plain(message.getText());
     }
 
     /** Triggers the action as if tapped (tests). */

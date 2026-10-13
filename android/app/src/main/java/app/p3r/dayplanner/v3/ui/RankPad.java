@@ -147,7 +147,7 @@ public final class RankPad {
         Rules.Link l = rules.links[link];
         numeral.setText(Zh.roman(l.arcanaNo));
         name.setText(l.arcanaZh);
-        person.setText(l.personZh + " · " + l.genderZh);
+        person.setText(Zh.keepTogether(l.personZh + " · " + Zh.dots(l.genderZh)));
         progress.setText((position + 1) + "/" + order.size());
         int current = listener.currentRank(link);
         for (TextView key : keys) {

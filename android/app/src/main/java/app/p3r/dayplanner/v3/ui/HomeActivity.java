@@ -229,6 +229,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     }
 
     private void apply(Rules rules, PlannerApi.Snapshot snap) {
+        Zh.useNames(rules);
         if (rules == null || (snap.observed == null && snap.planErrorZh != null)) {
             // The records or the game data could not be read: a retry state on every tab instead
             // of pages that need both (and instead of the "开始设置" welcome).

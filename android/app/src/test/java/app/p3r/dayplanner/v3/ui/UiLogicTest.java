@@ -251,10 +251,11 @@ public class UiLogicTest {
     @Test
     public void linkStatusFooters() {
         Profile p = Fixtures.profileMid();
-        assertEquals("预计 11/20 升到 MAX", LinkStatus.of(rules, p, obs, plan, 4).footZh);
-        assertEquals("皇帝 6→MAX · 预计 11/20", LinkStatus.of(rules, p, obs, plan, 4).chipZh);
+        assertEquals("预计 11月20日 升到 MAX", LinkStatus.of(rules, p, obs, plan, 4).footZh);
+        assertEquals("皇帝 6→MAX · 预计 11月20日", LinkStatus.of(rules, p, obs, plan, 4).chipZh);
         assertEquals("剧情自动推进", LinkStatus.of(rules, p, obs, plan, 13).footZh);
-        assertTrue(LinkStatus.of(rules, p, obs, plan, 2).footZh.startsWith("时间不够，先让给了皇帝、恋爱"));
+        assertEquals("这次的安排里没排到 MAX（先保证了皇帝、恋爱）", LinkStatus.of(rules, p, obs, plan, 2).footZh);
+        assertEquals("女教皇 5→9 · 没排到 MAX", LinkStatus.of(rules, p, obs, plan, 2).chipZh);
         obs.rescueFailed = 2L;
         assertTrue(LinkStatus.of(rules, p, obs, plan, 12).lost);
     }
@@ -337,7 +338,7 @@ public class UiLogicTest {
             + "每张 3,000 日元。11月11日起能买到。", SettingsPage.datingNoteText(rules.datingNote));
         assertEquals(java.util.Arrays.asList("游戏数据 · 1 项", "资料站 · 1 项"), InfoPages.sourceLines(rules.sources));
         assertEquals("小田桐秀利 · 男", Zh.person(rules.links[4]));
-        assertEquals("特别课外活动部\n团体·男女", Zh.person(rules.links[0]));
+        assertEquals("特别课外活动部\n团体 · 男女", Zh.person(rules.links[0]));
         Plan.Step planned = plan.at(Fixtures.SLOT_NOW);
         assertEquals("做了列表以外的事",
             Outcomes.summary(rules, planned, Outcomes.withSide(Outcomes.skipped(Outcomes.REASON_OTHER, -1), true)));

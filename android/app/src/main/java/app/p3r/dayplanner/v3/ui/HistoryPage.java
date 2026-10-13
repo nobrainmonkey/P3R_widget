@@ -138,7 +138,7 @@ final class HistoryPage {
             // Prefilled from the record's own values (item.tower: the latest correction, else the
             // original), never from today's floor or cash.
             TowerPanel panel = new TowerPanel(c, d.rules, d.observed(), item.slot, blockIdx, item.tower, true, level,
-                new TowerPanel.Listener() {
+                false, new TowerPanel.Listener() {
                     @Override
                     public void onSave(PlannerApi.TowerReturn tower, String summaryZh) {
                         saveCorrection(item, tower);

@@ -45,7 +45,7 @@ final class InfoPages {
             }
             card.addView(line(c, "预计到最后 " + maxed + " 个社群升到 MAX"));
             if (plan.budgetExhausted) {
-                card.addView(line(c, "这次没来得及算完，后半段先粗略排好，稍后会自动重排。"));
+                card.addView(line(c, "这次没来得及算完，后半段先粗略排好了；之后每记录一次结果都会重新安排。"));
             }
             column.addView(card, top(c, 4));
             if (!plan.summary.notesZh.isEmpty()) {
@@ -54,7 +54,7 @@ final class InfoPages {
             }
         }
         column.addView(Ui.sectionHeader(c, "是怎么排的", null), top(c, plan == null ? 0 : 20));
-        column.addView(bullets(c, Assumptions.global(d.profile())), top(c, 4));
+        column.addView(bullets(c, Assumptions.global(d.profile(), d.rules)), top(c, 4));
 
         column.addView(Ui.sectionHeader(c, "资料来源", null), top(c, 20));
         LinearLayout sources = Ui.column(c);

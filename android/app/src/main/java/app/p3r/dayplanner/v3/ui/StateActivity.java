@@ -65,8 +65,9 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         if (busy) {
             return;
         }
-        if (draft != null && index > 0) {
-            go(index - 1);
+        int previous = draft == null ? -1 : neighbour(-1);
+        if (previous >= 0) {
+            go(previous, -1);
             return;
         }
         super.onBackPressed();
@@ -233,9 +234,10 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         snap = l.snapshot;
         draft = l.draft;
         mode = draft.mode;
+        Zh.useNames(draft.rules);
         title.setText(titleFor(mode));
         steps = new StateSteps(this, draft, this);
-        pages = StateSteps.pagesFor(draft);
+        pages = StateSteps.skeletonFor(draft);
         int start = 0;
         if (draft.currentStep() != null) {
             for (int i = 0; i < pages.size(); i++) {
@@ -250,19 +252,50 @@ public final class StateActivity extends Activity implements StateSteps.Callback
             showNotice("已恢复上次没填完的内容。");
         }
         next.setEnabled(true);
-        go(start);
+        go(start, +1);
     }
 
     // ------------------------------------------------------------------ navigation
 
-    private void go(int target) {
-        pages = StateSteps.pagesFor(draft);
-        index = Math.max(0, Math.min(pages.size() - 1, target));
+    /**
+     * Shows page {@code target} of the fixed page list ({@link StateSteps#skeletonFor}); a page that
+     * does not apply now is skipped in {@code direction}, so the counter keeps its total.
+     */
+    private void go(int target, int direction) {
+        ensureUnlockPage();
+        int i = Math.max(0, Math.min(pages.size() - 1, target));
+        while (i > 0 && i < pages.size() - 1 && !StateSteps.applies(pages.get(i), draft)) {
+            i += direction < 0 ? -1 : 1;
+        }
+        index = i;
         StateSteps.Page page = pages.get(index);
         draft.setStep(page.name());
         drafts.save(draft);
         render();
         scroll.scrollTo(0, 0);
+    }
+
+    /** First applicable page after (+1) or before (−1) the current one, or -1. */
+    private int neighbour(int direction) {
+        for (int i = index + direction; i >= 0 && i < pages.size(); i += direction) {
+            if (StateSteps.applies(pages.get(i), draft)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * 解锁进度 is fixed in the list when the wizard opens; only when an edit makes it needed
+     * although it was not expected (a multi-step link set back to 未解锁) is it inserted.
+     */
+    private void ensureUnlockPage() {
+        if (!pages.contains(StateSteps.Page.UNLOCK) && StateSteps.applies(StateSteps.Page.UNLOCK, draft)) {
+            pages.add(pages.indexOf(StateSteps.Page.LINKS) + 1, StateSteps.Page.UNLOCK);
+            if (index > pages.indexOf(StateSteps.Page.LINKS)) {
+                index++;
+            }
+        }
     }
 
     private void render() {
@@ -294,7 +327,7 @@ public final class StateActivity extends Activity implements StateSteps.Callback
             draft.setSync(StateDraft.SyncAnswer.NO);
         }
         if (pages.get(index) != StateSteps.Page.CONFIRM) {
-            go(index + 1);
+            go(index + 1, +1);
             return;
         }
         if (draft.observed != null && draft.changes().isEmpty() && !draft.profileChanged()) {
@@ -316,16 +349,15 @@ public final class StateActivity extends Activity implements StateSteps.Callback
 
     @Override
     public void next() {
-        if (index + 1 < StateSteps.pagesFor(draft).size()) {
-            go(index + 1);
+        if (index + 1 < pages.size()) {
+            go(index + 1, +1);
         }
     }
 
     @Override
     public void refresh() {
         int y = scroll.getScrollY();
-        pages = StateSteps.pagesFor(draft);
-        index = Math.min(index, pages.size() - 1);
+        ensureUnlockPage();
         render();
         scroll.post(() -> scroll.scrollTo(0, y));
     }
@@ -382,6 +414,11 @@ public final class StateActivity extends Activity implements StateSteps.Callback
 
     StateSteps.Page currentPage() {
         return pages == null ? null : pages.get(index);
+    }
+
+    /** The step counter ("5/10") (tests). */
+    String progressText() {
+        return progress.getText().toString();
     }
 
     String noticeText() {

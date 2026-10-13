@@ -300,6 +300,14 @@ final class Fixtures {
         if ("emperor".equals(l.id)) {
             l.dialogue.put(7, Arrays.asList("我会帮你的", "这样的规矩没有意义"));
         }
+        // As in the pack: the links with a romance route.
+        l.romanceable = Arrays.asList("priestess", "empress", "lovers", "justice", "strength", "aeon").contains(l.id);
+        if ("priestess".equals(l.id)) {
+            // Verbatim pack fragments: rank 9 marks the romance answer, rank 10 has no marking.
+            l.dialogue.put(6, Arrays.asList("再做给我吃吧（3）"));
+            l.dialogue.put(9, Arrays.asList("对话选择：任意/任意/我喜欢风花（1），恋人线/任意"));
+            l.dialogue.put(10, Arrays.asList("任意", "我会一直在你身边（2）", "我很喜欢（1）"));
+        }
         if ("hanged_man".equals(l.id)) {
             l.missing = new Rules.Missing();
             l.missing.fromDay = day(10, 21);
@@ -427,7 +435,7 @@ final class Fixtures {
         plan.summary.endCash = 64_000;
         plan.summary.endStatLv = new int[]{6, 6, 6};
         plan.summary.notesZh.add("舞子要在11月2日前救出，已安排10月24日晚上探索塔尔塔罗斯。");
-        plan.summary.notesZh.add("女教皇最后差一级：时间不够，先让给了皇帝和恋爱。");
+        plan.summary.notesZh.add("女教皇：这次的安排里没排到 MAX（先保证了皇帝、恋爱）。");
         return plan;
     }
 
@@ -490,7 +498,7 @@ final class Fixtures {
             s.subtitleZh = "提齐亚（69–117F）· 救出舞子";
             s.locationZh = "月光馆学园（影时间）";
             s.whyZh = "舞子失踪了，要在11月2日前救出，才能继续倒悬者社群。";
-            s.assumptions.add("rescue");
+            s.assumptions.add("rescue_on_visit");
             return s;
         }
         if (d == day(10, 25) && !eve) {
