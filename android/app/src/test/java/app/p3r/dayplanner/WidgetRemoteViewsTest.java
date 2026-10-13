@@ -73,7 +73,9 @@ public class WidgetRemoteViewsTest {
                 assertEquals(count, model.ticks.size());
                 assertEquals(CardModel.Tick.CURRENT, model.ticks.get(ordinal - 1));
                 assertFalse("fresh progress has nothing done", model.ticks.contains(CardModel.Tick.DONE));
-                if (size[0] >= 220) assertEquals(count, visibleTicks(root));
+                int shown = visibleTicks(root);
+                assertTrue("ticks are all shown or (no room beside the plate) none: " + shown, shown == count || shown == 0);
+                if (count <= 4 && size[0] >= 280) assertEquals(count, shown);
                 assertEquals(task.period, text(root, R.id.widget_period_word));
                 assertEquals("当前", text(root, R.id.button_spec_current_text));
                 assertEquals("完成", text(root, R.id.button_spec_done_text));

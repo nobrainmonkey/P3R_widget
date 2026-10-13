@@ -53,12 +53,12 @@ public class CardRendererTest {
         for (boolean night : new boolean[]{false, true}) {
             for (int[] size : sizes) {
                 CardModel m = sample(night);
-                WidgetSize bucket = WidgetSize.of(size[0], size[1]);
-                View root = RenderSupport.layout(c, CardRenderer.render(c, m, bucket), size[0], size[1]);
+                View root = RenderSupport.layout(c, CardRenderer.render(c, m, size[0], size[1]), size[0], size[1]);
                 String tag = (night ? "night" : "day") + "-" + size[0] + "x" + size[1];
                 RenderSupport.save(root, dir, tag);
                 RenderSupport.collectTextIssues(root, tag, issues);
                 RenderSupport.collectOverflow(root, R.id.widget_plate, tag, issues);
+                RenderSupport.collectHeaderOverlap(root, tag, issues);
                 assertEquals("皇帝 · 小田桐秀利", ((TextView) root.findViewById(R.id.widget_task)).getText().toString());
                 assertEquals(View.VISIBLE, root.findViewById(R.id.widget_tag).getVisibility());
             }

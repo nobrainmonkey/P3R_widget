@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive launcher icon background: P3R royal-to-navy gradient with light shafts. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="18" android:startY="0" android:endX="90" android:endY="108"
+                android:startColor="#FF1450D2" android:centerColor="#FF0A2F8E" android:endColor="#FF06123A" />
+        </aapt:attr>
+    </path>
+    <path android:fillColor="#FFFFFFFF" android:fillAlpha="0.08" android:pathData="M66,0L86,0L44,108L24,108Z" />
+    <path android:fillColor="#FFFFFFFF" android:fillAlpha="0.05" android:pathData="M92,0L97,0L55,108L50,108Z" />
+</vector>

@@ -106,6 +106,17 @@ final class RenderSupport {
         }
     }
 
+    /** The status cluster (progress label/ticks, wordmark) must never overlap the calendar plate. */
+    static void collectHeaderOverlap(View root, String tag, List<String> issues) {
+        View plate = root.findViewById(app.p3r.dayplanner.R.id.widget_plate);
+        View status = root.findViewById(app.p3r.dayplanner.R.id.widget_status);
+        if (plate == null || status == null || status.getVisibility() != View.VISIBLE || status.getWidth() == 0) return;
+        Rect a = boundsIn(root, plate);
+        Rect b = boundsIn(root, status);
+        if (Rect.intersects(a, b)) issues.add(tag + " status cluster overlaps the plate " + a + " / " + b);
+        if (b.right > root.getWidth()) issues.add(tag + " status cluster leaves the card");
+    }
+
     static String name(View v) {
         try {
             return v.getId() == View.NO_ID ? v.getClass().getSimpleName() : v.getResources().getResourceEntryName(v.getId());

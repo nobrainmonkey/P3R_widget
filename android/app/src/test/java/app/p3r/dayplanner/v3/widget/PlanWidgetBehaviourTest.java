@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import app.p3r.dayplanner.R;
+import app.p3r.dayplanner.WidgetPaletteFadeTest;
 import app.p3r.dayplanner.v3.Intents;
 import app.p3r.dayplanner.v3.engine.Outcome;
 
@@ -37,9 +38,12 @@ import static org.robolectric.Shadows.shadowOf;
 /**
  * End-to-end widget behaviour through real RemoteViews clicks: Robolectric sends each click's
  * PendingIntent, delivers broadcasts to the manifest receiver and records started activities.
+ *
+ * <p>Uses the legacy fade test's real-ViewAnimator shadow: Robolectric sandboxes are shared per SDK,
+ * so every test that inflates the palette host must agree on the ViewAnimator shadow.
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = {26, 31})
+@Config(sdk = {26, 31}, shadows = {WidgetPaletteFadeTest.RealViewAnimator.class})
 public class PlanWidgetBehaviourTest {
     private static final int S = FakePlannerApi.FIRST_SLOT;
     private Application app;

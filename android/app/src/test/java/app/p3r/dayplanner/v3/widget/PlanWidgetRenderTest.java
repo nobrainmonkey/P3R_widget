@@ -117,6 +117,7 @@ public class PlanWidgetRenderTest {
                     RenderSupport.save(root, dir, tag);
                     RenderSupport.collectTextIssues(root, tag, issues);
                     RenderSupport.collectOverflow(root, R.id.widget_plate, tag, issues);
+                RenderSupport.collectHeaderOverlap(root, tag, issues);
                     TextView title = root.findViewById(R.id.widget_task);
                     assertFalse(tag + " blank title", title.getText().toString().trim().isEmpty());
                     assertTrue(tag + " title collapsed", title.getHeight() > 0);
@@ -139,6 +140,7 @@ public class PlanWidgetRenderTest {
                 RenderSupport.save(root, dir, tag);
                 RenderSupport.collectTextIssues(root, tag, issues);
                 RenderSupport.collectOverflow(root, R.id.widget_plate, tag, issues);
+                RenderSupport.collectHeaderOverlap(root, tag, issues);
             }
         }
         assertTrue(String.join("\n", issues), issues.isEmpty());

@@ -129,6 +129,10 @@ public class WidgetNativeRenderTest {
                 }
                 Rect plateBox = bounds(root, plate);
                 if (plateBox.right > root.getWidth()) issues.add(tag + " plate leaves the card");
+                View status = root.findViewById(R.id.widget_status);
+                if (status.getVisibility() == View.VISIBLE && status.getWidth() > 0 && Rect.intersects(plateBox, bounds(root, status))) {
+                    issues.add(tag + " status cluster overlaps the plate");
+                }
             }
         }
         Files.write(new File(output, "layout-metrics.txt").toPath(), metrics);
@@ -175,9 +179,13 @@ public class WidgetNativeRenderTest {
         List<String> issues = new ArrayList<>();
         for (int width : new int[]{180, 200, 250, 320}) {
             View root = render("t005_04", width, 200, "action-fit-" + width);
-            int current = gap(root, R.id.button_spec_current_text, R.id.button_spec_return_icon, true);
+            boolean returnGlyph = root.findViewById(R.id.button_spec_return_icon).getVisibility() == View.VISIBLE;
+            assertEquals("the narrow card drops the 当前 glyph", width >= 220, returnGlyph);
+            if (returnGlyph) {
+                int current = gap(root, R.id.button_spec_current_text, R.id.button_spec_return_icon, true);
+                if (current < 2) issues.add("width=" + width + " 当前 touches its icon: " + current);
+            }
             int done = gap(root, R.id.button_spec_done_text, R.id.button_spec_check, false);
-            if (current < 2) issues.add("width=" + width + " 当前 touches its icon: " + current);
             if (done < 4) issues.add("width=" + width + " 完成 touches its icon: " + done);
             for (int id : new int[]{R.id.button_spec_current_text, R.id.button_spec_done_text}) {
                 TextView label = root.findViewById(id);
