@@ -10,7 +10,7 @@ import android.widget.TextView;
 import app.p3r.dayplanner.R;
 
 /**
- * 我的 tab: entry points to 同步现状, 逐项修改进度, 记录历史, 规划设置, 规划说明, 备份与恢复,
+ * 我的 tab: entry points to 同步现状, 修改进度, 记录历史, 规划设置, 规划说明, 备份与恢复,
  * 逐日攻略, 添加桌面小组件 and 关于.
  */
 final class MePage {
@@ -77,14 +77,15 @@ final class MePage {
         boolean has = d.hasState();
         column.addView(entry(R.drawable.ui_ic_sync, "同步现状", "离开一段时间后，对照游戏核对进度",
             has, () -> host.openState("sync")), spaced(4));
-        column.addView(entry(R.drawable.ui_ic_edit, has ? "逐项修改进度" : "开始设置",
-            has ? "逐项修改日期、现金、个人能力值和社群" : "选目标并填写现在的游戏进度",
+        column.addView(entry(R.drawable.ui_ic_edit, has ? "修改进度" : "开始设置",
+            has ? "逐项核对日期、现金、个人能力值和社群" : "选目标并填写现在的游戏进度",
             true, () -> host.openState(has ? "edit" : "onboarding")), spaced(8));
         column.addView(entry(R.drawable.ui_ic_history, "记录历史", "撤销或修改之前的记录",
             has, actions::openHistory), spaced(8));
 
-        column.addView(Ui.sectionHeader(c, "规划", null), spaced(16));
-        column.addView(entry(R.drawable.ui_ic_settings, "规划设置", "人格面具、字条、进塔次数、留底现金",
+        // "规划" is only the app name and the two menu names below (docs/GLOSSARY_zh.md).
+        column.addView(Ui.sectionHeader(c, "安排", null), spaced(16));
+        column.addView(entry(R.drawable.ui_ic_settings, "规划设置", "人格面具、字条、探索次数、留底现金",
             true, actions::openSettings), spaced(4));
         column.addView(entry(R.drawable.ui_ic_info, "规划说明", "怎么排的、数据从哪来",
             true, actions::openExplain), spaced(8));

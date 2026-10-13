@@ -73,10 +73,20 @@ public enum StepKind {
 
     /**
      * True when "完成" can be recorded with one tap and an undo bar (no question to ask):
-     * training, jobs, story locks and free slots.
+     * training, jobs, story locks and free slots. A step with "顺便" side steps still needs the
+     * question whether they were done too: use {@link #oneTap(Plan.Step)} for a concrete step.
      */
     public boolean directCommit() {
         return this == STAT || this == JOB || this == LOCKED || this == FREE;
+    }
+
+    /**
+     * True when "完成" on this step records at once. Steps with "顺便" side steps (a payment, a
+     * talk) open the result sheet instead, so the player can say they skipped them — the same
+     * rule the widget follows.
+     */
+    public static boolean oneTap(Plan.Step step) {
+        return of(step).directCommit() && !StepViews.hasSide(step);
     }
 
     /** True for kinds where 做不了 / 改做别的 make sense. */

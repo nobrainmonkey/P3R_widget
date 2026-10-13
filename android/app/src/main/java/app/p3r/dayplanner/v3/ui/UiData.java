@@ -16,7 +16,7 @@ public final class UiData {
 
     public final Rules rules;
     public final PlannerApi.Snapshot snap;
-    /** "已重新规划：…" line after a replan, or null. */
+    /** "已重新安排：…" line after a replan, or null. */
     public final String changeSummary;
     /** Show "上次记录：… · 游戏进度变了吗？". */
     public final boolean returnBanner;

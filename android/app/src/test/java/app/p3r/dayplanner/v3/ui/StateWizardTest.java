@@ -122,6 +122,9 @@ public class StateWizardTest extends UiTestBase {
             Shots.shot(a, "state_sync_unlock");
             Shots.click(a, "下一步");
         }
+        assertEquals(StateSteps.Page.EPISODES, a.currentPage());
+        Shots.shot(a, "state_sync_episodes");
+        Shots.click(a, "下一步");
         Shots.shot(a, "state_sync_tower");
         Shots.click(a, "下一步");
         assertEquals(StateSteps.Page.CONFIRM, a.currentPage());

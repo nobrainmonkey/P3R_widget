@@ -321,7 +321,7 @@ final class TodayPage {
         card.setBackground(Ui.heroCard(c));
         Ui.pad(card, 22, 16, 18, 18);
         if (step == null) {
-            TextView text = Ui.headline(c, d.plan() == null ? "正在安排整个日程…" : "正在根据最新记录重新安排…");
+            TextView text = Ui.headline(c, d.plan() == null ? "正在排到1月31日的安排…" :"正在根据最新记录重新安排…");
             card.addView(text);
             TextView sub = Ui.muted(c, "一般几秒钟就好，可以先去游戏里看看。");
             card.addView(sub, spaced(6));
@@ -342,7 +342,7 @@ final class TodayPage {
         card.addView(title, spaced(10));
         String subtitle = SlotRows.subtitle(step);
         if (kind == StepKind.LOCKED) {
-            card.addView(Ui.muted(c, "这段时间不能自由行动，游戏里过完后点「继续」。"), spaced(4));
+            card.addView(Ui.mixed(c, lockedNote(step), 14, Ui.col(c, R.color.p3r_ink_muted), false), spaced(4));
         } else if (!subtitle.isEmpty()) {
             LinearLayout subRow = Ui.row(c);
             TextView sub = Ui.mixed(c, subtitle, 20, Ui.col(c, R.color.p3r_cyan_400), true);
@@ -392,6 +392,18 @@ final class TodayPage {
         card.setClickable(true);
         card.setOnClickListener(v -> host.openDetail(step.slot));
         return card;
+    }
+
+    /**
+     * The hero line under a story slot: the step's own note when it has one (a reserved slot such
+     * as 1月21日 explains why it is kept free), else the plain "不能自由行动".
+     */
+    static String lockedNote(Plan.Step step) {
+        String note = Zh.clause(step.subtitleZh);
+        if (note.isEmpty()) {
+            note = "这段时间不能自由行动";
+        }
+        return note + "。游戏里过完后点「继续」。";
     }
 
     /** Shown instead of the hero once every slot up to Jan 31 is recorded. */
@@ -447,7 +459,7 @@ final class TodayPage {
         TextView done = Ui.primary(c, "完成 ✓");
         done.setContentDescription("完成，记录结果");
         done.setOnClickListener(v -> {
-            if (kind.directCommit()) {
+            if (StepKind.oneTap(step)) {
                 host.commitDirect(step);
             } else {
                 host.openResult(step.slot, step.action, Intents.MODE_RESULT);

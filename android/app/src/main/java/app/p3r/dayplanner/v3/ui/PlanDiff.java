@@ -42,7 +42,7 @@ public final class PlanDiff {
             return null;
         }
         if (before == null) {
-            return "日程排好了，一直到" + Zh.date(Rules.dayOf(after.toSlot));
+            return "安排好了，一直排到" + Zh.date(Rules.dayOf(after.toSlot));
         }
         int nearEnd = Rules.slot(Rules.dayOf(fromSlot) + NEAR_DAYS, true);
         int near = changedSlots(before, after, fromSlot, nearEnd);

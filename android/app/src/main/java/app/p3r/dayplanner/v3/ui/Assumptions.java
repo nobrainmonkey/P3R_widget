@@ -25,7 +25,7 @@ public final class Assumptions {
         TEXT.put("goal_buffer", "目标社群每次升级都多留一次见面的余量。");
         put("打工收入按最低档工资估计，实际可能更多。", "job_pay_minimum", "job_min_pay");
         put("塔尔塔罗斯的收入按你最近几次的记录估计。", "tower_income_estimate", "tower_income");
-        put("假定这次进塔能顺利救出失踪者。", "rescue_on_visit", "rescue");
+        put("假定这次探索能顺利救出失踪者。", "rescue_on_visit", "rescue");
         TEXT.put("dating_note_gain", "结缘网站的字条按每次 +10 点估计，不计人格面具和魅力加成。");
         TEXT.put("invite", "这是假日邀约，接受后会占用白天。");
         TEXT.put("stat_lower_bound", "个人能力值按当前等级的最低点数估计。");
@@ -103,7 +103,7 @@ public final class Assumptions {
         }
         out.add("收入只计算打工（按最低档工资）；塔尔塔罗斯的收入默认不计。");
         out.add("课堂答题、考试等剧情里的额外收获不计入预测，回来时用「同步现状」更新就行。");
-        out.add("12月24日默认不接受邀约；1月21日白天按剧情占用处理。");
+        out.add("12月24日默认不接受邀约；1月21日放学后先空出来（送过顺平「白色切花」的话会有剧情）。");
         out.add("这不一定是最好的排法，但每一步在游戏里都做得到，前后也接得上。");
         return out;
     }

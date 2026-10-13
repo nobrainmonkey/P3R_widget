@@ -21,7 +21,7 @@ import app.p3r.dayplanner.v3.model.Rules;
  */
 final class StateSteps {
     /** Wizard pages. */
-    enum Page { GOALS, PERSONA, SYNC_INTRO, DATE, CASH, STATS, LINKS, UNLOCK, TOWER, CONFIRM }
+    enum Page { GOALS, PERSONA, SYNC_INTRO, DATE, CASH, STATS, LINKS, UNLOCK, EPISODES, TOWER, CONFIRM }
 
     /** What a page needs from the wizard. */
     interface Callbacks {
@@ -45,7 +45,10 @@ final class StateSteps {
         this.callbacks = callbacks;
     }
 
-    /** Pages for the draft's mode; 解锁进度 only when some link needs it. */
+    /**
+     * Pages for the draft's mode; 解锁进度 only when some link needs it, 羁绊剧情 only when a
+     * track is opted in.
+     */
     static List<Page> pagesFor(StateDraft draft) {
         List<Page> pages = new ArrayList<>();
         switch (draft.mode) {
@@ -65,6 +68,9 @@ final class StateSteps {
         pages.add(Page.LINKS);
         if (!draft.unlockLinks().isEmpty()) {
             pages.add(Page.UNLOCK);
+        }
+        if (!draft.episodeTracks().isEmpty()) {
+            pages.add(Page.EPISODES);
         }
         pages.add(Page.TOWER);
         pages.add(Page.CONFIRM);
@@ -90,6 +96,8 @@ final class StateSteps {
                 return "社群 RANK";
             case UNLOCK:
                 return "解锁进度";
+            case EPISODES:
+                return "羁绊剧情";
             case TOWER:
                 return "塔尔塔罗斯";
             default:
@@ -115,6 +123,8 @@ final class StateSteps {
                 return links();
             case UNLOCK:
                 return unlock();
+            case EPISODES:
+                return episodes();
             case TOWER:
                 return tower();
             default:
@@ -180,7 +190,7 @@ final class StateSteps {
         LinearLayout column = page("想把哪些社群升到 MAX？",
             "点一下是「想要」，再点是「必须」，第三下取消。不选也行，会尽量提升所有社群。");
         LinearLayout presets = Ui.row(c);
-        TextView all = Ui.chip(c, "尽量全部 MAX", false);
+        TextView all = Ui.chip(c, "尽量全部升到 MAX", false);
         all.setOnClickListener(v -> {
             for (Rules.Link link : draft.rules.links) {
                 boolean manual = link.kind == Rules.LinkKind.MANUAL;
@@ -282,11 +292,11 @@ final class StateSteps {
         LinearLayout column = page("见面时通常带着同阿尔卡那的人格面具吗？",
             "见面时带着和社群同阿尔卡那的人格面具，点数 ×1.51，升级更快。拿不准就选「不带/不一定」，安排会更保守。");
         Profile.PersonaMode mode = draft.profile.effectivePersonaMode();
-        column.addView(option("基本都带", "所有社群的点数都按 ×1.51 算", mode == Profile.PersonaMode.ALL,
+        column.addView(option("基本都带", SettingsPage.PERSONA_TEXT[0][1], mode == Profile.PersonaMode.ALL,
             () -> persona(Profile.PersonaMode.ALL)), top(20));
-        column.addView(option("只给目标社群带", "只有目标社群按 ×1.51 算。每次见目标前，安排会提醒你带上哪个阿尔卡那的人格面具",
+        column.addView(option("只给目标社群带", SettingsPage.PERSONA_TEXT[1][1],
             mode == Profile.PersonaMode.GOALS, () -> persona(Profile.PersonaMode.GOALS)), top(10));
-        column.addView(option("不带/不一定", "都按不带算，最保守（默认）", mode == Profile.PersonaMode.NONE,
+        column.addView(option("不带/不一定", "都按不带算，最保守（默认）。", mode == Profile.PersonaMode.NONE,
             () -> persona(Profile.PersonaMode.NONE)), top(10));
         column.addView(Ui.muted(c, "之后可以在「我的 → 规划设置」里随时修改。"), top(16));
         return column;
@@ -594,6 +604,33 @@ final class StateSteps {
         return column;
     }
 
+    // ------------------------------------------------------------------ 羁绊剧情
+
+    /** Watched episodes of every opted-in track, so episodes already seen are not planned again. */
+    private View episodes() {
+        LinearLayout column = page("羁绊剧情已经看了几话？", "只列出在「社群」里勾选的角色。看过的不会再排进安排里。");
+        for (int track : draft.episodeTracks()) {
+            Rules.Episode e = draft.rules.episodes[track];
+            LinearLayout card = Ui.column(c);
+            card.setBackground(Ui.card(c));
+            Ui.pad(card, 16, 12, 16, 14);
+            LinearLayout head = Ui.row(c);
+            head.addView(Ui.mixed(c, e.personZh + " · 共 " + e.count + " 话", 16, Ui.col(c, R.color.p3r_white), true),
+                Ui.weight(1));
+            if (draft.isForecastEpisodes(track)) {
+                head.addView(forecastTag(), Ui.wrap());
+            }
+            card.addView(head);
+            card.addView(LinksPage.watchedChips(c, e, draft.episodesWatched(track), n -> {
+                draft.setEpisodesWatched(track, n);
+                callbacks.changed();
+                callbacks.refresh();
+            }), top(10));
+            column.addView(card, top(14));
+        }
+        return column;
+    }
+
     // ------------------------------------------------------------------ 塔尔塔罗斯
 
     private View tower() {
@@ -655,6 +692,11 @@ final class StateSteps {
             ? "关系到" + draft.rules.links[rescue.link].arcanaZh + "社群能不能继续。" : "";
         String when = open ? Zh.date(rescue.toDay) + "前要救出。" : "期限是" + Zh.date(rescue.toDay) + "。";
         card.addView(Ui.mixed(c, about + when, 13, Ui.col(c, R.color.p3r_ink_muted), false));
+        if (!open && draft.recordSaysFailed(index)) {
+            // Only the player's own answer saves 没救出 (the record may have it from a missed deadline).
+            card.addView(Ui.mixed(c, "记录里是「没救出」，可能只是当时没记下救出。确实没救出的话请选「没救出」。", 13,
+                Ui.col(c, R.color.ui_gold), false), top(4));
+        }
         List<String> labels = open ? Arrays.asList("救出了", "还没") : Arrays.asList("救出了", "没救出", "不确定");
         int[] values = open ? new int[]{StateDraft.RESCUE_DONE, StateDraft.RESCUE_UNSURE}
             : new int[]{StateDraft.RESCUE_DONE, StateDraft.RESCUE_FAILED, StateDraft.RESCUE_UNSURE};
@@ -691,7 +733,7 @@ final class StateSteps {
         } else {
             question = "将更新 " + changes.size() + " 项";
         }
-        LinearLayout column = page(question, first ? "保存后会立刻开始安排到1月31日的日程。"
+        LinearLayout column = page(question, first ? "保存后会马上排好到1月31日的安排。"
             : "带「预计」的数值请对照游戏核对，保存就算确认。");
         LinearLayout card = Ui.column(c);
         card.setBackground(Ui.card(c));

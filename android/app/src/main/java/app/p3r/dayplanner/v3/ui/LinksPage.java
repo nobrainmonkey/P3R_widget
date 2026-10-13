@@ -10,9 +10,12 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.IntConsumer;
 
 import app.p3r.dayplanner.R;
+import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 
@@ -54,6 +57,11 @@ final class LinksPage {
         TextView title = Ui.text(c, "社群", 28, Ui.col(c, R.color.p3r_white), true);
         Ui.pad(title, 0, 8, 0, 0);
         column.addView(title);
+        if (d.rules == null) {
+            // Never reached through HomeActivity (it shows its retry state instead); no crash anyway.
+            column.addView(Ui.body(c, "游戏资料暂时读不出来，请稍后再试。"), spaced(8));
+            return;
+        }
         TextView hint = Ui.muted(c, "点卡片右上角的标签切换：未选 → 想要 → 必须 → 未选。目标按下面的顺序优先安排。");
         column.addView(hint, spaced(4));
 
@@ -234,22 +242,87 @@ final class LinksPage {
         return card;
     }
 
-    /** One 羁绊剧情 track: person, episode count, window summary and an opt-in switch. */
+    /**
+     * One 羁绊剧情 track: person, episode count, window summary and an opt-in switch. Opting in
+     * once the game is under way first asks how many episodes were already watched.
+     */
     private View episodeRow(UiData d, Profile profile, Rules.Episode track) {
-        int watched = d.observed() != null && track.idx < d.observed().episodes.length
-            ? d.observed().episodes[track.idx] : 0;
+        int watched = StateDraft.watched(d.rules, d.observed(), track.idx);
         String title = track.personZh + " · 共 " + track.count + " 话";
         ToggleRow row = new ToggleRow(c, title, episodeSummary(track, watched), profile.wantsEpisodes(track.id));
         row.setListener(on -> {
             Profile edited = profile.copy();
             edited.episodeTracks = on ? SettingsPage.with(edited.episodeTracks, track.id)
                 : SettingsPage.without(edited.episodeTracks, track.id);
-            host.saveProfile(edited);
+            if (on && d.observed() != null) {
+                askWatched(d, track, edited, row);
+            } else {
+                host.saveProfile(edited);
+            }
         });
         return row;
     }
 
-    /** "放学后 · 5月12日–1月29日能看 · 已看 1 话 · 看完能拿到…". */
+    /**
+     * "伊织顺平的羁绊剧情已经看了几话？" with chips 0..count. The answer goes into the progress
+     * record (a checkpoint saved together with the opted-in profile), so episodes already seen are
+     * not planned again and later episodes still are; an unchanged count only saves the profile.
+     * Closing the sheet without an answer leaves the track off.
+     */
+    private void askWatched(UiData d, Rules.Episode track, Profile edited, ToggleRow row) {
+        SimState observed = d.observed();
+        int current = StateDraft.watched(d.rules, observed, track.idx);
+        boolean[] answered = {false};
+        LinearLayout sheet = Ui.column(c);
+        Ui.pad(sheet, 20, 12, 20, 20);
+        sheet.addView(Ui.title(c, Outcomes.episodeName(track)));
+        sheet.addView(Ui.mixed(c, "已经看了几话？", 20, Ui.col(c, R.color.p3r_cyan_400), true), spaced(6));
+        sheet.addView(Ui.muted(c, "共 " + track.count + " 话。看过的不会再排进安排里，之后也能在「修改进度」里改。"), spaced(4));
+        sheet.addView(watchedChips(c, track, current, n -> {
+            answered[0] = true;
+            host.dismissSheet();
+            if (n == current) {
+                host.saveProfile(edited);
+                return;
+            }
+            host.saveCheckpoint(withWatched(d.rules, observed, track, n), edited,
+                "已记录：" + Outcomes.episodeName(track) + " · " + StateDraft.episodesText(track, n));
+        }), spaced(14));
+        host.showSheet(sheet, () -> {
+            if (!answered[0]) {
+                row.setChecked(false);
+            }
+        });
+    }
+
+    /** The recorded state with {@code n} episodes of {@code track} watched, fit for a checkpoint. */
+    static SimState withWatched(Rules rules, SimState observed, Rules.Episode track, int n) {
+        SimState state = StateDraft.withoutUnconfirmedFailures(observed);
+        if (state.episodes.length < rules.episodes.length) {
+            state.episodes = Arrays.copyOf(state.episodes, rules.episodes.length);
+        }
+        state.episodes[track.idx] = Math.max(0, Math.min(track.count, n));
+        return state;
+    }
+
+    /** Chips "还没看 / 1 话 / … / 全部 5 话" for the episodes of a track already watched. */
+    static FlowLayout watchedChips(Context c, Rules.Episode track, int selected, IntConsumer onPick) {
+        FlowLayout chips = new FlowLayout(c, 8, 8);
+        for (int n = 0; n <= track.count; n++) {
+            final int value = n;
+            String label = n == 0 ? "还没看" : n == track.count ? "全部 " + n + " 话" : n + " 话";
+            TextView chip = Ui.chip(c, label, n == selected);
+            chip.setContentDescription(track.personZh + "：" + StateDraft.episodesText(track, n));
+            chip.setOnClickListener(v -> onPick.accept(value));
+            chips.addView(chip);
+        }
+        return chips;
+    }
+
+    /**
+     * "白天 · 5月12日–1月29日能看 · 已看 1 话", then the pack's reward sentence on its own line
+     * ("每一话都有小奖励…，看完第 5 话可以合体人格面具「苏尔特尔」。").
+     */
     static String episodeSummary(Rules.Episode track, int watched) {
         int first = -1;
         int last = -1;
@@ -270,8 +343,9 @@ final class LinksPage {
         } else if (watched > 0) {
             sb.append(" · 已看 ").append(watched).append(" 话");
         }
-        if (track.rewardZh != null && !track.rewardZh.isEmpty()) {
-            sb.append(" · 看完能拿到").append(track.rewardZh);
+        String reward = Zh.sentence(track.rewardZh);
+        if (!reward.isEmpty()) {
+            sb.append('\n').append(reward);
         }
         return sb.toString();
     }

@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.view.View;
 
 import app.p3r.dayplanner.v3.engine.Plan;
+import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
 
 /** Services {@link HomeActivity} offers to its tab pages, sub-pages and sheets. */
@@ -34,10 +35,21 @@ interface HomeHost {
     /** Shows content in the bottom sheet. */
     void showSheet(View content);
 
+    /** Shows content in the bottom sheet; {@code onDismiss} runs once it closes (any way). */
+    void showSheet(View content, Runnable onDismiss);
+
     void dismissSheet();
 
     /** Saves the profile (CAS on the profile revision) and replans. */
     void saveProfile(Profile profile);
+
+    /**
+     * Saves {@code state} as the new progress record (a checkpoint, CAS on the state revision)
+     * together with {@code profile} (null keeps the profile), then shows {@code doneZh}. Used for
+     * small edits outside the wizard, e.g. the episodes already watched when opting into a
+     * 羁绊剧情 track.
+     */
+    void saveCheckpoint(SimState state, Profile profile, String doneZh);
 
     /** Short confirmation or error message in the undo bar (no action). */
     void showMessage(String text);

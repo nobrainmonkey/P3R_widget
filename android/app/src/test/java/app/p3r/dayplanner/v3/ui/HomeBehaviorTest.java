@@ -170,6 +170,7 @@ public class HomeBehaviorTest extends UiTestBase {
         assertTrue(a.sheets().isShowing());
         assertFalse(Shots.has(a, "没去成"));
         TowerPanel panel = findPanel(a.sheets());
+        assertEquals(96, panel.floorStepper().getValue());
         panel.setAmountForTest(19_000);
         Shots.shot(a, "home_history_correct_tower");
         Shots.click(a, "保存修改");
@@ -177,6 +178,7 @@ public class HomeBehaviorTest extends UiTestBase {
         assertEquals("correctTower", call.method);
         assertEquals(97, call.targetSeq);
         assertEquals(19_000, call.tower.amount);
+        assertEquals(96, call.tower.floor);
         assertTrue(api.callsOf("recordTower").isEmpty());
     }
 
@@ -202,10 +204,16 @@ public class HomeBehaviorTest extends UiTestBase {
         HomeActivity a = home(intent);
         assertTrue(Shots.has(a, "羁绊剧情"));
         Shots.click(a, "真田明彦 · 共 3 话，已关闭");
+        // Opting in mid-game first asks how many episodes were already watched.
+        assertTrue(a.sheets().isShowing());
+        assertTrue(api.calls.isEmpty());
+        Shots.click(a, "真田明彦：还没看");
         Profile saved = api.last().profile;
+        assertEquals("saveProfile", api.last().method);
         assertTrue(saved.wantsEpisodes("akihiko"));
         assertTrue(saved.wantsEpisodes("junpei"));
         Shots.click(a, "伊织顺平 · 共 4 话，已开启");
+        assertEquals("saveProfile", api.last().method);
         assertFalse(api.last().profile.wantsEpisodes("junpei"));
     }
 

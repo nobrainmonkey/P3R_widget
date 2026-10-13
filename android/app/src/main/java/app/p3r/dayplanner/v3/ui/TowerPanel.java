@@ -84,7 +84,7 @@ final class TowerPanel extends LinearLayout {
         addView(label(c, "现金"), spaced(c, 18));
         cashMode = new SegmentedControl(c, Arrays.asList("出塔后余额", "这次多了多少"));
         cashMode.segment(0).setContentDescription("填写出塔后手上的钱");
-        cashMode.segment(1).setContentDescription("填写这次进塔多了多少钱");
+        cashMode.segment(1).setContentDescription("填写这次探索多了多少钱");
         addView(cashMode, spaced(c, 6));
         amountView = Ui.text(c, "", 26, Ui.col(c, R.color.p3r_white), true);
         amountView.setGravity(Gravity.CENTER_VERTICAL | Gravity.END);
@@ -223,7 +223,7 @@ final class TowerPanel extends LinearLayout {
         options.title = balanceMode() ? "出塔后手上有多少钱？" : "这次多了多少钱？";
         options.hint = correction ? (balanceMode() ? null : "少了就填负数")
             : observed.cashExact ? "进塔前 " + Zh.yen(observed.cash) + (balanceMode() ? "" : "，少了就填负数")
-            : "进塔前的钱没有记录，请直接填出塔后的余额";
+            : "探索前的现金没有记录，请直接填出塔后的余额";
         options.initial = amount;
         options.allowUnknown = false;
         options.allowNegative = !balanceMode();
@@ -265,7 +265,7 @@ final class TowerPanel extends LinearLayout {
         }
         if (!observed.cashExact) {
             if (amount == null) {
-                return "进塔前的钱没有记录，请直接填出塔后的余额。";
+                return "探索前的现金没有记录，请直接填出塔后的余额。";
             }
             return "出塔后 " + Zh.yen(amount);
         }

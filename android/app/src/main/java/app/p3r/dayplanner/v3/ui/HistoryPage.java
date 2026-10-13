@@ -79,8 +79,11 @@ final class HistoryPage {
         bottom.setMinimumHeight(Ui.dp(c, Ui.TOUCH));
         String meta = (item.voided ? "已撤销 · " : "") + Zh.age(System.currentTimeMillis(), item.createdMillis) + "记录";
         bottom.addView(Ui.caption(c, meta), Ui.weight(1));
-        if (!item.voided && item.correctable) {
-            if (TOWER.equals(item.kind)) {
+        // PlannerApi.HistoryItem: 撤销 for every record that still shapes the progress (undoable),
+        // 修改 only where the store accepts a correction (correctable: tower records) and the
+        // record's own values are known to prefill the form.
+        if (!item.voided && item.undoable) {
+            if (item.correctable && TOWER.equals(item.kind) && item.tower != null) {
                 TextView fix = Ui.quiet(c, "修改");
                 fix.setContentDescription("修改这条记录：" + item.summaryZh);
                 fix.setOnClickListener(v -> openCorrection(item));
@@ -114,17 +117,27 @@ final class HistoryPage {
         });
     }
 
+    /** Block of a tower record: the record's own, else the block active on its day (-1 if none). */
+    static int blockOf(Rules rules, PlannerApi.HistoryItem item) {
+        if (item.tower != null && item.tower.block >= 0 && item.tower.block < rules.blocks.length) {
+            return item.tower.block;
+        }
+        Rules.Block block = rules.blockOn(Rules.dayOf(item.slot));
+        return block == null ? -1 : block.idx;
+    }
+
     private void openCorrection(PlannerApi.HistoryItem item) {
         UiData d = host.data();
-        Rules.Block block = d.rules.blockOn(Rules.dayOf(item.slot));
-        int blockIdx = block == null ? -1 : block.idx;
+        int blockIdx = blockOf(d.rules, item);
         Async.run(host.activity(), () -> UiPrefs.towerLevel(c), level -> {
             LinearLayout sheet = Ui.column(c);
             Ui.pad(sheet, 20, 12, 20, 20);
             sheet.addView(Ui.title(c, "修改这次探索"));
             sheet.addView(Ui.mixed(c, item.summaryZh, 13, Ui.col(c, R.color.p3r_ink_muted), false));
             sheet.addView(Ui.muted(c, "只改数值，不会多算一次探索。"));
-            TowerPanel panel = new TowerPanel(c, d.rules, d.observed(), item.slot, blockIdx, null, true, level,
+            // Prefilled from the record's own values (item.tower: the latest correction, else the
+            // original), never from today's floor or cash.
+            TowerPanel panel = new TowerPanel(c, d.rules, d.observed(), item.slot, blockIdx, item.tower, true, level,
                 new TowerPanel.Listener() {
                     @Override
                     public void onSave(PlannerApi.TowerReturn tower, String summaryZh) {

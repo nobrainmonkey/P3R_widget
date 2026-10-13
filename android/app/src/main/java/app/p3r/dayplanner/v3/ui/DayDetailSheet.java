@@ -134,7 +134,7 @@ final class DayDetailSheet {
         record.setContentDescription("完成，记录结果");
         record.setOnClickListener(v -> {
             host.dismissSheet();
-            if (kind.directCommit()) {
+            if (StepKind.oneTap(step)) {
                 host.commitDirect(step);
             } else {
                 host.openResult(step.slot, step.action, Intents.MODE_RESULT);
