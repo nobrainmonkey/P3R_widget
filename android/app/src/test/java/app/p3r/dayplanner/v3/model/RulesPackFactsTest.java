@@ -4,6 +4,7 @@ import static app.p3r.dayplanner.v3.model.PackFixture.day;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -63,6 +64,63 @@ public class RulesPackFactsTest {
         for (String right : new String[] {"贝培", "舞子", "伊莉莎白", "Ｙ子", "倒悬者", "月亮"}) {
             assertTrue("pack should contain " + right, json.contains(right));
         }
+    }
+
+    /** Official zh-Hans wording: the store page says 主角, the achievement text 休息日的出游邀请短信. */
+    @Test
+    public void packUsesTheOfficialTermsForProtagonistAndInvitations() {
+        String json = PackFixture.json();
+        for (String wrong : new String[] {"主人公", "假日邀约", "节日邀约"}) {
+            assertFalse("pack must not contain " + wrong, json.contains(wrong));
+        }
+        assertTrue(json.contains("休息日邀约"));
+        assertTrue(episode("akihiko").rewardZh.contains("主角的能力"));
+        assertTrue(episode("ken").rewardZh.contains("主角的能力"));
+    }
+
+    // ------------------------------------------------------------------ sources
+
+    @Test
+    public void sourceUrlsPointAtTheSnapshottedPages() {
+        Map<String, String> url = new java.util.HashMap<>();
+        for (Rules.Source s : r.sources) url.put(s.id, s.url);
+        assertEquals("https://steamcommunity.com/app/2161700/discussions/0/4206993639701168068/", url.get("steam_thread_hierophant"));
+        assertEquals("https://steamcommunity.com/app/2161700/discussions/0/4206994023684392768/", url.get("steam_thread_rankup"));
+        assertEquals("https://store.steampowered.com/app/2161700/", url.get("steam_sc_store"));
+        assertEquals("https://steamcommunity.com/stats/2161700/achievements/?l=schinese", url.get("steam_sc_achievements"));
+        assertEquals("https://www.3dmgame.com/gl/3928716_42.html", url.get("cn_3dm"));
+        assertEquals("https://megatenwiki.com/index.php?title=Chagall_Cafe&oldid=423201", url.get("megatenwiki_chagall_cafe"));
+        assertEquals("https://megatenwiki.com/index.php?title=Be_Blue_V&oldid=393238", url.get("megatenwiki_be_blue_v"));
+        assertEquals("https://megatenwiki.com/index.php?title=Port_Island_Station&oldid=410086",
+                url.get("megatenwiki_port_island_station"));
+        assertFalse(url.containsKey("megatenwiki_jobs"));
+        assertTrue(r.activity("job_chagall").src.contains("megatenwiki_chagall_cafe"));
+        assertTrue(r.activity("job_accessory").src.contains("megatenwiki_be_blue_v"));
+        assertTrue(r.activity("job_cinema").src.contains("megatenwiki_port_island_station"));
+    }
+
+    @Test
+    public void sourceEditionsFollowTheReloadOnlyPolicy() throws org.json.JSONException {
+        org.json.JSONArray sources = PackFixture.tree().getJSONArray("sources");
+        Map<String, String> edition = new java.util.HashMap<>();
+        for (int i = 0; i < sources.length(); i++) {
+            org.json.JSONObject s = sources.getJSONObject(i);
+            edition.put(s.getString("id"), s.getString("edition"));
+        }
+        assertEquals(r.sources.size(), edition.size());
+        assertEquals("game_data_reload", edition.get("gd_community_event"));
+        assertEquals("cn_guide_reload", edition.get("cn_guide"));
+        assertEquals("cn_guide_reload", edition.get("cn_3dm"));
+        assertEquals("reload", edition.get("steam_sc_store"));
+        assertEquals("mixed", edition.get("lpbeach"));
+        assertEquals("mixed", edition.get("megatenwiki_be_blue_v"));
+        for (Rules.Activity a : r.activities) assertTrue(a.id, citesReload(a.src, edition));
+        for (Rules.Link l : r.links) {
+            assertTrue(l.id, citesReload(l.src, edition));
+            assertTrue(l.id + ".unlock", citesReload(l.unlock.src, edition));
+        }
+        for (Rules.Episode e : r.episodes) assertTrue(e.id, citesReload(e.src, edition));
+        assertTrue(citesReload(r.datingNote.src, edition));
     }
 
     @Test
@@ -293,6 +351,18 @@ public class RulesPackFactsTest {
         assertNull(eve.dayLock);
         assertNull(eve.eveLock);
         assertNotNull(eve.noteZh);
+        assertTrue(eve.noteZh, eve.noteZh.contains("平安夜约会"));
+    }
+
+    /** Shared contract: an accepted 12/24 invitation (Profile.christmasLink) locks both slots as 平安夜约会. */
+    @Test
+    public void christmasDateLockReasonIsDeclaredButUnusedByTheCalendar() {
+        assertEquals("平安夜约会", r.lockReasonsZh.get("christmas_date"));
+        for (Rules.Day d : r.days) {
+            if (d == null) continue;
+            assertNotEquals(d.md, "christmas_date", d.dayLock);
+            assertNotEquals(d.md, "christmas_date", d.eveLock);
+        }
     }
 
     @Test
@@ -656,9 +726,11 @@ public class RulesPackFactsTest {
     @Test
     public void playerTextFollowsTheGlossary() {
         String[] avoid = {"开启", "建立", "练满", "满级", "计划", "羁绊剧场", "估算", "规则包", "社交链接", "交友网站",
-                "不占用时段", "锁定", "约会", "会面", "加深关系", "Lv.6"};
+                "不占用时段", "锁定", "约会", "会面", "加深关系", "Lv.6", "主人公", "假日邀约", "节日邀约"};
         for (String text : playerTexts()) {
-            for (String word : avoid) assertFalse("'" + word + "' in player text: " + text, text.contains(word));
+            // 约会 is only for romance (docs/GLOSSARY_zh.md): the Christmas Eve date is one.
+            String romance = text.replace("平安夜约会", "");
+            for (String word : avoid) assertFalse("'" + word + "' in player text: " + text, romance.contains(word));
             String plain = text.replace("规划设置", "").replace("规划说明", "");
             assertFalse("'规划' is only for menu names: " + text, plain.contains("规划"));
         }
@@ -797,6 +869,11 @@ public class RulesPackFactsTest {
         for (Rules.Episode e : r.episodes) if (e.id.equals(id)) return e;
         fail("no episode track " + id);
         return null;
+    }
+
+    private static boolean citesReload(List<String> src, Map<String, String> edition) {
+        for (String id : src) if (RulesLoader.RELOAD_EDITIONS.contains(edition.get(id))) return true;
+        return false;
     }
 
     private static boolean contains(int[] values, int v) {
