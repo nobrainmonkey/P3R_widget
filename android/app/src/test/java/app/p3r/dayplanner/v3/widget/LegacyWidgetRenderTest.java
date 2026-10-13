@@ -59,6 +59,7 @@ public class LegacyWidgetRenderTest {
                 assertEquals(PlannerStore.taskById(c, id).widgetTitle, ((TextView) root.findViewById(R.id.widget_task)).getText().toString());
                 assertEquals("当前", ((TextView) root.findViewById(R.id.button_spec_current_text)).getText().toString());
                 assertEquals("完成", ((TextView) root.findViewById(R.id.button_spec_done_text)).getText().toString());
+                assertTrue(tag + " header/background tap opens the guide", root.findViewById(R.id.widget_root).hasOnClickListeners());
             }
         }
         assertTrue(String.join("\n", issues), issues.isEmpty());

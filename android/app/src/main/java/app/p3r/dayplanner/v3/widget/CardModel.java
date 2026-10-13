@@ -55,6 +55,11 @@ public final class CardModel {
     // ---- body
     public String title = "";
     public TitleIcon titleIcon = TitleIcon.NONE;
+    /**
+     * Hang the title from the top of its box instead of sitting it on the tag row, so the kind mark
+     * stays on its first line when it wraps. Set by {@link CardRenderer#fit}.
+     */
+    public boolean titleTop;
     /** Compact subtitle chip such as "RANK 6→7" or "学力 +2"; null hides it. */
     public String tag;
     /**
@@ -117,6 +122,7 @@ public final class CardModel {
         m.progressDescription = progressDescription;
         m.title = title;
         m.titleIcon = titleIcon;
+        m.titleTop = titleTop;
         m.tag = tag;
         m.tagMaxWidthDp = tagMaxWidthDp;
         m.location = location;

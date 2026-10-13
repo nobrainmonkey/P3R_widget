@@ -13,18 +13,23 @@ import app.p3r.dayplanner.v3.model.Rules;
  * The widget's wording of one plan step (docs/GLOSSARY_zh.md): the engine's copy cut down to what
  * fits a card. The tag chip keeps only the short fact (RANK 6→7, 学力 +2, +2,500 日元, 本区块第 1 次);
  * long unlock instructions move to the cue line; the dating-site note and Link Episodes get their own
- * titles. Pure Java so it can be tested without Android; {@code rules} may be null.
+ * titles. Reads both the current and the earlier engine wording. Pure Java so it can be tested
+ * without Android; {@code rules} may be null.
  */
 final class StepCopy {
     static final String NOTE_TITLE = "结缘网站的字条";
     static final String EPISODE_TITLE = "羁绊剧情";
     static final String FREE_TITLE = "自由活动";
+    static final String TOWER_TITLE = "探索塔尔塔罗斯";
+    /** How the note is used, for the cue line (the title and chip already say who and what for). */
+    static final String NOTE_HOW = "在放纵俱乐部买字条，当晚回宿舍用公用电脑";
 
     private static final Pattern RANK_STEP = Pattern.compile("RANK\\s*(\\d+|MAX)\\s*→\\s*(\\d+|MAX)");
     private static final Pattern EPISODE_NO = Pattern.compile("第\\s*(\\d+)\\s*话");
     private static final Pattern VISIT = Pattern.compile("^第\\s*(\\d+)\\s*次$");
     private static final Pattern LEVEL_UP = Pattern.compile("\\s*[（(]\\s*升到\\s*(Lv\\.?\\s*\\d|MAX)\\s*[）)]");
     private static final String SEP = "\\s*·\\s*";
+    private static final Pattern LV6 = Pattern.compile("Lv\\.?\\s*6(?!\\d)");
 
     /** Card title (never blank). */
     String title = "";
@@ -49,8 +54,8 @@ final class StepCopy {
         StepCopy c = new StepCopy();
         String kind = kindOf(step);
         c.location = blankToNull(step.locationZh);
-        c.hint = blankToNull(step.hintZh);
-        c.side = sideLine(step.sideZh);
+        c.hint = glossary(blankToNull(step.hintZh));
+        c.side = glossary(sideLine(step.sideZh));
         switch (kind) {
             case "note":
                 noteCopy(c, step, rules);
@@ -69,8 +74,7 @@ final class StepCopy {
                 unlockCopy(c, step.subtitleZh);
                 break;
             case "tower":
-                c.title = titleOf(step.titleZh, kind);
-                towerCopy(c, step.subtitleZh);
+                towerCopy(c, step);
                 break;
             default:
                 c.title = titleOf(step.titleZh, kind);
@@ -115,6 +119,8 @@ final class StepCopy {
             c.tag = sub == null || c.title.contains(sub) ? "加好感" : sub;
         }
         if (c.location == null && rules != null && rules.datingNote != null) c.location = blankToNull(rules.datingNote.locationZh);
+        boolean hintSaysHow = c.hint != null && c.hint.contains("电脑");
+        if (!hintSaysHow) c.instruction = NOTE_HOW;
     }
 
     private static void episodeCopy(StepCopy c, Plan.Step step, Rules rules, SimState observed, Plan plan) {
@@ -179,28 +185,37 @@ final class StepCopy {
         String what = parts[0].trim();
         // A bare "开启社群"/"解锁社群" says nothing the chip does not; a cost or an instruction does.
         boolean plain = what.isEmpty() || what.endsWith("社群") && what.length() <= 4;
-        if (!plain) c.instruction = s;
-        else if (parts.length > 1 && !parts[1].trim().isEmpty()) c.instruction = parts[1].trim();
+        if (!plain) c.instruction = glossary(s);
+        else if (parts.length > 1 && !parts[1].trim().isEmpty()) c.instruction = glossary(parts[1].trim());
     }
 
-    private static void towerCopy(StepCopy c, String subtitle) {
-        String s = compact(subtitle);
-        if (s == null) return;
+    /**
+     * Title 「探索塔尔塔罗斯」, chip 「本区块第 1 次」 or 「救出舞子」, and the block on the location line
+     * (the title already says Tartarus). Earlier engine wording put the block in the title and
+     * 「探索塔尔塔罗斯 · 第 1 次」 in the subtitle; the current one puts both in the subtitle.
+     */
+    private static void towerCopy(StepCopy c, Plan.Step step) {
+        c.title = TOWER_TITLE;
+        List<String> where = new ArrayList<>();
+        String title = blankToNull(step.titleZh);
+        if (title != null && !title.contains("塔尔塔罗斯")) where.add(title.trim());
         List<String> parts = new ArrayList<>();
-        for (String part : s.split(SEP)) {
-            String p = part.trim();
-            if (!p.isEmpty() && !p.equals("探索塔尔塔罗斯")) parts.add(p);
+        String s = compact(step.subtitleZh);
+        if (s != null) {
+            for (String part : s.split(SEP)) {
+                String p = part.trim();
+                if (!p.isEmpty() && !p.equals(TOWER_TITLE)) parts.add(p);
+            }
         }
-        if (parts.isEmpty()) return;
-        String last = parts.remove(parts.size() - 1);
-        Matcher visit = VISIT.matcher(last);
-        c.tag = visit.matches() ? "本区块第 " + visit.group(1) + " 次" : last;
-        // "探索塔尔塔罗斯" as the title already says where: show the block on the location line instead.
         if (!parts.isEmpty()) {
-            String block = String.join(" · ", parts);
-            boolean placeRepeatsTitle = c.location == null || c.title.contains(c.location);
-            if (!c.title.contains(block) && placeRepeatsTitle) c.location = block;
+            String last = parts.remove(parts.size() - 1);
+            Matcher visit = VISIT.matcher(last);
+            c.tag = visit.matches() ? "本区块第 " + visit.group(1) + " 次" : last;
         }
+        for (String p : parts) {
+            if (!where.contains(p)) where.add(p);
+        }
+        if (!where.isEmpty()) c.location = String.join(" · ", where);
     }
 
     // ------------------------------------------------------------------ chip text
@@ -288,6 +303,16 @@ final class StepCopy {
             }
         }
         return sb.length() == 0 ? null : sb.toString();
+    }
+
+    /**
+     * Engine sentences in the words of docs/GLOSSARY_zh.md, for plans saved before the engine used
+     * them: the sixth stat level is MAX, a link reaches MAX (not 练满) and is 解锁 (not 开启 / 正式开始).
+     */
+    static String glossary(String text) {
+        if (text == null) return null;
+        String t = LV6.matcher(text).replaceAll("MAX");
+        return t.replace("练满", "升到 MAX").replace("就正式开始了", "就解锁了").replace("开启", "解锁");
     }
 
     /** Never shows an empty title: falls back to a plain description of the step kind. */

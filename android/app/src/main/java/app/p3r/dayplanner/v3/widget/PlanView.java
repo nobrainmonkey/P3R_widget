@@ -250,7 +250,7 @@ final class PlanView {
             case CATCHUP:
                 m.doneLabel = "已玩到这里";
                 m.doneIcon = CardModel.DoneIcon.NONE;
-                m.doneDescription = "已玩到这里：补记这一项前面没记录的安排";
+                m.doneDescription = "已玩到这里：补记这一项前面还没记录的安排";
                 break;
             default:
                 m.doneEnabled = false;
@@ -315,8 +315,8 @@ final class PlanView {
         if (!snapshot.planCurrent && snapshot.planning) return "正在根据最新记录重新安排…";
         if (!snapshot.planCurrent && snapshot.planErrorZh != null) return "安排还没更新，点开看看";
         if (copy.instruction != null) return copy.instruction;
-        if ("free".equals(StepCopy.kindOf(step))) return "没有要做的安排，想做什么都行";
-        return blankToNull(step.whyZh);
+        if ("free".equals(StepCopy.kindOf(step))) return "这个时段想做什么都行";
+        return StepCopy.glossary(blankToNull(step.whyZh));
     }
 
     /** "这段时间不能自由行动" (or the engine's specific note), "到11月5日都不能自由行动" for a run. */
@@ -328,7 +328,7 @@ final class PlanView {
         String sub = blankToNull(step.subtitleZh);
         boolean generic = sub == null || sub.contains("不能自由行动") || sub.contains("剧情安排") || sub.contains("剧情推进")
                 || sub.trim().equals(blankToNull(step.titleZh) == null ? "" : step.titleZh.trim());
-        return generic ? "这段时间不能自由行动" : sub.trim();
+        return generic ? "这段时间不能自由行动" : StepCopy.glossary(sub.trim());
     }
 
     // ------------------------------------------------------------------ text helpers
