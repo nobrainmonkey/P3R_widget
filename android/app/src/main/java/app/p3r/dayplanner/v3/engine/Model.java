@@ -32,6 +32,10 @@ final class Model {
     /** Event gains per link, romance route aware. */
     final int[][] eventGain;
     final boolean[] excluded;
+    /** Most points one allowed activity gives each stat (an unlock gate this close is "about to open"). */
+    final int[] maxGain;
+    /** Per activity: bit s set when it raises stat s. */
+    final int[] gainMask;
     /** Hard cap of Tartarus visits per block index ({@link Profile#capFor}). */
     final int[] towerCap;
     /** Visits the plan should make per block index: {@code min(Profile#visitsFor, cap)}. */
@@ -102,6 +106,15 @@ final class Model {
         }
         excluded = new boolean[t.nActs];
         for (Rules.Activity a : rules.activities) excluded[a.idx] = profile.excluded(a.id);
+        gainMask = new int[t.nActs];
+        for (Rules.Activity a : rules.activities) {
+            for (int s = 0; s < Math.min(Math.min(a.gain.length, t.nStats), 31); s++) if (a.gain[s] > 0) gainMask[a.idx] |= 1 << s;
+        }
+        maxGain = new int[t.nStats];
+        for (Rules.Activity a : rules.activities) {
+            if (excluded[a.idx]) continue;
+            for (int s = 0; s < Math.min(a.gain.length, t.nStats); s++) maxGain[s] = Math.max(maxGain[s], a.gain[s]);
+        }
         episodeWanted = new boolean[t.nEps];
         for (int e = 0; e < t.nEps; e++) {
             Rules.Episode ep = rules.episodes[e];

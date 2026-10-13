@@ -148,17 +148,29 @@ public class SideStepTest {
     public void hangedManGiftIsPaidBesideAMeetingAndTheOpeningWaitsADay() {
         Rules rules = RulesFixtures.sideSteps();
         Profile p = RulesFixtures.others();
-        SimState s = start(rules, 26, 1_000); // Monday: Hanged Man and patron days
+        SimState s = start(rules, 26, 3_010); // Monday: Hanged Man and patron days
         s.rank[X_PATRON] = 1;
         Engine.Applied a = act(rules, p, s, Action.meet(X_PATRON));
         assertTrue(a.side.contains("unlock:hanged_man:0"));
-        assertEquals(490, a.state.cash);
+        assertEquals("the gift keeps the 2,500 reserve", 2_500, a.state.cash);
         assertEquals(2, a.state.rank[X_PATRON]);
         SimState eve = a.state;
         Engine.Applied night = act(rules, p, eve, Action.activity(X_STUDY));
         SimState next = Engine.advanceTo(rules, p, night.state, Rules.slot(28, false)); // Wednesday
         assertTrue(Engine.legalActions(rules, p, next).contains(Action.unlock(X_HANGED, 1)));
         assertFalse("the gift does not fold into the opening (gap 1)", Engine.legalActions(rules, p, s).contains(Action.unlock(X_HANGED, 1)));
+    }
+
+    @Test
+    public void aFeeThatCanWaitKeepsTheReserve() {
+        Rules rules = RulesFixtures.sideSteps();
+        Profile p = RulesFixtures.others();
+        SimState s = start(rules, 26, 1_000); // the 510 gift would leave less than 2,500
+        s.rank[X_PATRON] = 1;
+        Engine.Applied a = act(rules, p, s, Action.meet(X_PATRON));
+        assertFalse("the Hanged Man has weeks left: the gift waits for the reserve", a.side.contains("unlock:hanged_man:0"));
+        assertEquals(1_000, a.state.cash);
+        assertEquals(Kernel.FEE_RESERVE, 2_500);
     }
 
     @Test

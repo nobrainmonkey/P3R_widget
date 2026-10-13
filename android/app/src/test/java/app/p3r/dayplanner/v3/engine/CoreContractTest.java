@@ -320,7 +320,8 @@ public class CoreContractTest {
         assertEquals(0, Heuristics.feeReserve(0));
         assertEquals(Heuristics.FEE_RESERVE, Heuristics.feeReserve(510));
         Plan plan = Engine.plan(rules, profile, s, null, generous());
-        assertTrue(plan.summary.notesZh.contains("需要付钱解锁的社群，安排会在付钱前尽量多留 2,500 日元"));
+        assertTrue(plan.summary.notesZh.toString(), plan.summary.notesZh.contains(Labels.FEE_NOTE));
+        assertTrue(Labels.FEE_NOTE.startsWith("需要付钱解锁的社群：交完钱至少还留 2,500 日元"));
     }
 
     @Test

@@ -36,6 +36,15 @@ final class Labels {
      * 「休息日的出游邀请短信」; never 假日邀约 / 节日邀约).
      */
     static final String INVITE = "休息日邀约";
+    /**
+     * Summary note of a plan that pays an unlock fee: exactly the reserve rules of the kernel
+     * (Kernel.feeAffordable, Kernel.optionalHold). A fee leaves {@link Kernel#FEE_RESERVE} unless
+     * paying later would cost the link its target; once a fee is due within 14 days and affordable,
+     * paid training and 结缘网站的字条 leave the fee plus the reserve; on a fee day they leave the reserve.
+     */
+    static final String FEE_NOTE = "需要付钱解锁的社群：交完钱至少还留 " + yen(Kernel.FEE_RESERVE)
+            + "，只有晚交会赶不上升级目标时才会少于这个数；14 天内要交、钱也够交时，花钱提升能力和买结缘网站的字条"
+            + "不会动用要交的钱和这 " + yen(Kernel.FEE_RESERVE) + "，交钱当天也不会让手上少于 " + yen(Kernel.FEE_RESERVE);
     /** The result-sheet answer for a story hold the player reports (outcome NOT_DONE, reason "hold"). */
     static final String HOLD_ANSWER = "剧情原因暂时升不了";
 
@@ -635,9 +644,7 @@ final class Labels {
                 out.add(rules.blocks[b].zh + "：只剩 " + open + " 个晚上能去塔尔塔罗斯，不够想去的 " + want + " 次");
             }
         }
-        if (paysUnlockFees(plan)) {
-            out.add("需要付钱解锁的社群，安排会在付钱前尽量多留 " + yen(Heuristics.FEE_RESERVE));
-        }
+        if (paysUnlockFees(plan)) out.add(FEE_NOTE);
         int notesPlanned = 0;
         for (Plan.Step s : plan.steps) if (s.action != null && s.action.startsWith("note:")) notesPlanned++;
         if (notesPlanned > 0 && m.note != null) {

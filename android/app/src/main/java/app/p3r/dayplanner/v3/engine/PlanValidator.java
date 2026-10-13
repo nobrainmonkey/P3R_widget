@@ -75,6 +75,8 @@ final class PlanValidator {
         /** Link Episodes watched per track. */
         final int[] episodes;
         int notesUsed;
+        /** Day of the last unlock fee paid in the plan (-1 none): optional purchases keep the reserve that day. */
+        int feeDay = -1;
 
         Replay(Rules rules, Profile profile, SimState o, Report report) {
             this.rules = rules;
@@ -298,6 +300,7 @@ final class PlanValidator {
                 if (j == k && lastStep[l] >= 0 && gap < st.minGapDays) error(slot, "unlock step " + j + " of " + link.id + " too soon");
                 if (j > k && st.minGapDays > 0) error(slot, "folded unlock step " + j + " needs its own day");
                 cash -= Math.max(0, st.cost);
+                if (st.cost > 0) feeDay = d;
                 if (j == establish && rank[l] == 0) {
                     rank[l] = 1;
                     pts[l] = answerPoints(l, 1, multiplier(l));
@@ -357,6 +360,7 @@ final class PlanValidator {
                 if (cash < fee) error(slot, "side step " + k + " of " + link.id + " costs " + fee + " with cash " + cash);
                 cash -= fee;
                 spent += fee;
+                if (fee > 0) feeDay = d;
                 step[l] = k + 1;
                 lastStep[l] = d;
                 if (st.establishes && rank[l] == 0) {
@@ -390,6 +394,7 @@ final class PlanValidator {
             int buffer = a.cost > 0 ? Math.max(0, profile.cashBuffer) : 0;
             if (a.cost > 0 && cash < a.cost + buffer) error(slot, a.id + " costs " + a.cost + " (+" + buffer + " buffer) with cash " + cash);
             cash -= Math.max(0, a.cost);
+            if (a.cost > 0) checkFeeDayReserve(a.id);
             if (a.kind == Rules.ActivityKind.JOB) {
                 int pay = 0;
                 int shift = shifts[idx] + 1;
@@ -399,6 +404,35 @@ final class PlanValidator {
             }
             for (int s = 0; s < Math.min(3, a.gain.length); s++) stat[s] += a.gain[s];
             used[idx]++;
+        }
+
+        /**
+         * A paid optional purchase made on a day an unlock fee was paid leaves at least the fee
+         * reserve (Kernel.FEE_RESERVE): the plan never spends a fee day's last yen on training or a note.
+         */
+        private void checkFeeDayReserve(String what) {
+            if (feeDay == day() && cash < Kernel.FEE_RESERVE) {
+                report.warnings.add("slot " + slot + ": " + what + " leaves " + cash + " on a day an unlock fee was paid");
+            }
+        }
+
+        /**
+         * Cash a note must leave for the FREE check, conservatively: the cash buffer, the fee
+         * reserve on a fee day, and the next fee plus the reserve of every wanted link whose unlock
+         * still has a paid step (the planner holds that much while the fee is due).
+         */
+        private long noteHold() {
+            long hold = Math.max(0, profile.cashBuffer);
+            if (feeDay == day()) hold = Math.max(hold, Kernel.FEE_RESERVE);
+            long fees = 0;
+            for (Rules.Link link : rules.links) {
+                int l = link.idx;
+                if (rank[l] != 0 || link.kind != Rules.LinkKind.MANUAL || (!isGoal(l) && !profile.otherLinks)) continue;
+                List<Rules.Step> steps = link.unlock.steps;
+                if (step[l] < 0 || step[l] >= steps.size()) continue;
+                fees += Math.max(0, steps.get(step[l]).cost);
+            }
+            return fees > 0 ? Math.max(hold, fees + Kernel.FEE_RESERVE) : hold;
         }
 
         private boolean activityOnCalendar(Rules.Activity a) {
@@ -455,6 +489,7 @@ final class PlanValidator {
             int buffer = cost > 0 ? Math.max(0, profile.cashBuffer) : 0;
             if (cash < cost + buffer) error(slot, "dating-site note costs " + cost + " (+" + buffer + " buffer) with cash " + cash);
             cash -= cost;
+            if (cost > 0) checkFeeDayReserve("dating-site note");
             notesUsed++;
             if (r >= 1 && r < 10) {
                 int thr = link.threshold[r + 1];
@@ -527,7 +562,7 @@ final class PlanValidator {
             Rules.DatingNote note = rules.datingNote;
             if (note == null || note.gain <= 0 || !evening() || !profile.datingNotes || d < note.fromDay) return false;
             int cost = Math.max(0, note.cost);
-            if (notesUsed >= Math.max(1, note.maxUses) || cash < cost + (cost > 0 ? Math.max(0, profile.cashBuffer) : 0)) return false;
+            if (notesUsed >= Math.max(1, note.maxUses) || (cost > 0 && cash - cost < noteHold())) return false;
             for (Map.Entry<Integer, Integer> e : note.requiresLv.entrySet()) {
                 if (statLevel(e.getKey()) < e.getValue()) return false;
             }

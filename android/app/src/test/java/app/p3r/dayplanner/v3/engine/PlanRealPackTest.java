@@ -279,21 +279,28 @@ public class PlanRealPackTest {
         SimState s = newGame(dayOf(6, 1));
         setStat(s, "charm", 4);
         setRank(s, "hermit", 4);
-        s.cash = 40_000;
+        // ¥40,000 of fees plus the ¥2,500 the last payment keeps (June: the Devil can wait for it).
+        s.cash = 40_000 + Kernel.FEE_RESERVE;
         Rules.Link d = rules.links[devil];
         int day = d.avail.nextSetBit(dayOf(6, 1));
         s = Engine.advanceTo(rules, profile, s, Rules.slot(day, true));
         Action study = Action.activity(rules.activity("study_room").idx);
         Engine.Applied first = Engine.apply(rules, profile, s, study);
         assertEquals(java.util.Collections.singletonList("unlock:devil:0"), first.side);
-        assertEquals(20_000, first.state.cash);
+        assertEquals(20_000 + Kernel.FEE_RESERVE, first.state.cash);
         int day2 = d.avail.nextSetBit(day + 1);
         Engine.Applied second = Engine.apply(rules, profile, Engine.advanceTo(rules, profile, first.state, Rules.slot(day2, true)), study);
         assertEquals(java.util.Collections.singletonList("unlock:devil:1"), second.side);
         int day3 = d.avail.nextSetBit(day2 + 1);
         SimState last = Engine.advanceTo(rules, profile, second.state, Rules.slot(day3, true));
         assertTrue(Engine.legalActions(rules, profile, last).contains(Action.unlock(devil, 2)));
-        assertEquals(1, Engine.apply(rules, profile, last, Action.unlock(devil, 2)).state.rank[devil]);
+        Engine.Applied open = Engine.apply(rules, profile, last, Action.unlock(devil, 2));
+        assertEquals(1, open.state.rank[devil]);
+        assertEquals(Kernel.FEE_RESERVE, open.state.cash);
+        SimState short1 = last.copy();
+        short1.cash = 10_000;
+        assertFalse("in June the opening can wait until it leaves ¥2,500",
+                Engine.legalActions(rules, profile, short1).contains(Action.unlock(devil, 2)));
     }
 
     /**
