@@ -444,6 +444,10 @@ def build_sources() -> list[dict]:
             "Playthrough post whose Reload subsection reports the +10 ordinary hangout (FES/Portable subsections ignored)"),
         web("siliconera_urls", "https://www.siliconera.com/how-to-get-shared-computer-urls-in-persona-3-reload/", reload,
             "Shared-computer URLs: Dating Site note from November, 3,000 yen, can be purchased multiple times"),
+        web("game8_social_links", "https://game8.co/games/Persona-3-Reload/archives/435602", reload,
+            "Game8 Reload Social Link list: unlock dates, requirements and meeting days (Aeon Mon/Wed/Fri/Sat)"),
+        web("pcinvasion_aeon", "https://www.pcinvasion.com/persona-3-reload-aigis-answers-and-aeon-social-link-guide/", reload,
+            "PC Invasion Reload Aeon guide: Aigis in classroom 2F on Mondays, Wednesdays, Fridays and Saturdays"),
         evidence("ev_dating_note", "affinity_actions_candidate.json", reload, "Dating-site note: evening, +10 points, 3,000 yen, never a rank-up"),
         evidence("ev_hangout_rules", "ordinary_hangout_rules_candidate.json", reload, "Dating-site note sources (aqiu, game8, atwiki 455, Steam guide)"),
     ]
@@ -1307,6 +1311,8 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
                     reason = "Empress Mon/Fri unconfirmed"
                 elif link == "emperor" and day_of_md("11-03") <= d <= day_of_md("11-29"):
                     reason = "Emperor away 11/3-11/29"
+                elif link == "aeon" and by_day[d]["wd"] in (2, 4):
+                    reason = "Aeon Tue/Thu unconfirmed"
                 if reason:
                     dropped.append(f"{md_of(d)} {reason}")
                 else:
@@ -1342,6 +1348,8 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
             src += ["ev_rank_points", "ev_manual_models", "cn_guide"]
         if link in dialogue:
             src.append("ev_dialogue")
+        if link == "aeon":
+            src += ["game8_social_links", "pcinvasion_aeon"]
         record = {
             "arcanaZh": arcana_zh,
             "avail": avail,
@@ -1381,7 +1389,8 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
                   "official 特别课外活动部.")
     ledger.decide("links", "avail", "avail = aqiu O cells minus locked slots, minus Empress Monday/Friday cells outside "
                   "the pre-exam week 12/7-12/12 (DESIGN conflict policy), minus Emperor cells 11/3-11/29 (aqiu note; one "
-                  "contrary cell on 11/16 dropped as the stricter claim). Cells inside rescue windows are kept: the "
+                  "contrary cell on 11/16 dropped as the stricter claim), minus Aeon Tuesday/Thursday cells (four Reload guides "
+                  "list Mon/Wed/Fri/Sat only). Cells inside rescue windows are kept: the "
                   "missing window, not the calendar, decides whether the person is there.")
     ledger.conflict("avail.emperor.11-16", "Emperor on 11/16", "unavailable (aqiu availability note)", ["available (aqiu cell + route witness)"],
                     ["aqiu_social_events", "ev_calendar_constraints"])
@@ -1389,6 +1398,8 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
                     ["meeting (the CN guide meets Tanaka on the evening of 10/3)"], ["aqiu_social_events", "cn_guide"])
     ledger.conflict("avail.empress.monfri", "Empress on Mondays/Fridays", "only during 12/7-12/12", ["every school day in Nov-Dec (aqiu cells, game8 EN)"],
                     ["aqiu_social_events", "ev_calendar_constraints"])
+    ledger.conflict("avail.aeon.tuethu", "Aeon on Tuesdays/Thursdays", "no meeting (Mon/Wed/Fri/Sat only)",
+                    ["Mon-Sat after school (aqiu cells)"], ["aqiu_social_events", "game8_social_links", "pcinvasion_aeon"])
     ledger.conflict("unlock.devil.hermit", "Devil needs Hermit rank", "4", ["3 (aqiu)"], ["ev_multistep_unlock", "ev_social_links"])
     ledger.conflict("unlock.tower.courage", "Tower needs Courage Lv", "4", ["3 (wiki453, game8.jp)", "2 (kamigame)"],
                     ["ev_multistep_unlock", "ev_social_links"])

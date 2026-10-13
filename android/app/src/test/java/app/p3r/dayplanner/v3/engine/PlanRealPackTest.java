@@ -583,7 +583,8 @@ public class PlanRealPackTest {
         String[] ids = new String[pack.episodes.length];
         for (int e = 0; e < ids.length; e++) ids[e] = pack.episodes[e].id;
         profile.episodeTracks = ids;
-        Result r = run(pack, "新游戏 · 不带人格面具 · 全部羁绊剧情" + (injected ? "（按日历补上）" : ""), profile, start, 0);
+        // One daytime may go to a job that pays an unlock fee early (5/3 with Aeon on Mon/Wed/Fri/Sat only).
+        Result r = run(pack, "新游戏 · 不带人格面具 · 全部羁绊剧情" + (injected ? "（按日历补上）" : ""), profile, start, 1);
         Tables t = Tables.of(pack);
         int[] watched = new int[pack.episodes.length];
         for (Plan.Step s : r.plan.steps) {
