@@ -114,7 +114,7 @@ public class PlanWidgetRenderTest {
             case "max-meet":
                 // An invitation from a link that is already MAX (older plans wrote "RANK MAX").
                 fake.plan.steps.set(0, FakePlannerApi.rank(FakePlannerApi.step(FakePlannerApi.FIRST_SLOT, "meet:hanged", "social",
-                        "倒悬者 · 舞子", "假日邀约 · RANK MAX · 见面（预计不升级）", "应邀外出", "对方发来了假日邀约，赴约也算一次见面"), 10, 10));
+                        "倒悬者 · 舞子", "休息日邀约 · RANK MAX · 见面（预计不升级）", "应邀外出", "对方发来了休息日邀约，赴约也算一次见面"), 10, 10));
                 fake.observeAt("meet:hanged");
                 break;
             case "job-side":
@@ -126,7 +126,7 @@ public class PlanWidgetRenderTest {
             case "long": {
                 // The engine's longest real wording on one card: an invite, a level-up, a long place.
                 Plan.Step invite = FakePlannerApi.rank(FakePlannerApi.step(FakePlannerApi.FIRST_SLOT, "meet:hanged", "social",
-                        "倒悬者 · 舞子", "假日邀约 · 加深关系（未升级）", "月光馆学园 · 1 楼教职员室前走廊", "对方发来了假日邀约，赴约也算一次见面"), 4, 4);
+                        "倒悬者 · 舞子", "休息日邀约 · 加深关系（未升级）", "月光馆学园 · 1 楼教职员室前走廊", "对方发来了休息日邀约，赴约也算一次见面"), 4, 4);
                 fake.plan.steps.set(0, invite);
                 fake.plan.steps.set(1, FakePlannerApi.step(FakePlannerApi.FIRST_SLOT + 1, "act:study_room", "stat",
                         "在宿舍房间学习", "魅力 +4（升到 Lv.2）、学力 +2（升到 Lv.6） · 1,500 日元", "严户台商店街 · 旧书店「书虫」", null));

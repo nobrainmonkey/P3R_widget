@@ -29,7 +29,7 @@ import app.p3r.dayplanner.v3.model.Rules;
  * {@value #ROMANCE_FROM_RANK} and up are replaced by the generic hint {@link #FRIEND_FALLBACK},
  * since the romance choice comes in those scenes.
  */
-final class Dialogue {
+public final class Dialogue {
     static final String FALLBACK = "选能让对方高兴的回答（♪ 越多越好）";
     static final String PREFIX = "参考回答：";
     /** Every choice of this rank-up is free. */
@@ -57,7 +57,7 @@ final class Dialogue {
     private Dialogue() {}
 
     /** {@link #line(Rules, Profile, Plan.Step)} with the default profile (朋友 route everywhere). */
-    static String line(Rules rules, Plan.Step step) {
+    public static String line(Rules rules, Plan.Step step) {
         return line(rules, null, step);
     }
 
@@ -65,7 +65,7 @@ final class Dialogue {
      * "参考回答：A / B" for a social step, the fallback for other social steps, null otherwise. The
      * route of {@code profile} (null = default) decides whether romance answers are shown.
      */
-    static String line(Rules rules, Profile profile, Plan.Step step) {
+    public static String line(Rules rules, Profile profile, Plan.Step step) {
         if (step == null || !"social".equals(step.kind) || !StepKind.of(step).social()) {
             return null;
         }

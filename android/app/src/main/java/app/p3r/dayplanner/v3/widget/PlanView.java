@@ -246,7 +246,9 @@ final class PlanView {
         m.side = copy.side;
         m.cue = cueFor(step, copy, rules);
         // The guide's answers for this meeting, as the app shows them; the card keeps it if it fits.
-        m.dialogue = GuideDialogue.line(rules, step);
+        // Only real guide answers; the app's generic hint would be noise on every meeting card.
+        String answers = app.p3r.dayplanner.v3.ui.Dialogue.line(rules, snapshot.profile, step);
+        m.dialogue = answers != null && answers.startsWith("参考回答：") ? answers : null;
         m.dialogueOptional = true;
         m.taskDescription = describe(m) + "。点击查看详情";
         switch (done) {

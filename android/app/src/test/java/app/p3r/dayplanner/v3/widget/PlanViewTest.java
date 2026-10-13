@@ -276,7 +276,7 @@ public class PlanViewTest {
         assertEquals("魅力 +2", StepCopy.of(stat, null, null, null).tag);
         Plan.Step job = FakePlannerApi.step(S + 3, "act:job_chagall", "job", "在夏卡尔咖啡店打工", "预计 +2,500 日元 · 魅力 +1、勇气 +1", null, null);
         assertEquals("+2,500 日元", StepCopy.of(job, null, null, null).tag);
-        Plan.Step invite = FakePlannerApi.step(S, "meet:hanged", "social", "倒悬者 · 舞子", "假日邀约 · 加深关系（未升级）", "应邀外出", null);
+        Plan.Step invite = FakePlannerApi.step(S, "meet:hanged", "social", "倒悬者 · 舞子", "休息日邀约 · 加深关系（未升级）", "应邀外出", null);
         assertEquals("见面", StepCopy.of(invite, null, null, null).tag);
         FakePlannerApi.rank(invite, 4, 4);
         assertEquals("RANK 4 · 见面", StepCopy.of(invite, null, null, null).tag);
@@ -366,7 +366,7 @@ public class PlanViewTest {
     @Test
     public void maxIsNeverWrittenRankMax() {
         Plan.Step meet = FakePlannerApi.rank(FakePlannerApi.step(S, "meet:hanged", "social", "倒悬者 · 舞子",
-                "假日邀约 · RANK MAX · 见面（预计不升级）", "应邀外出", "对方发来了假日邀约，赴约也算一次见面"), 10, 10);
+                "休息日邀约 · RANK MAX · 见面（预计不升级）", "应邀外出", "对方发来了休息日邀约，赴约也算一次见面"), 10, 10);
         assertEquals("MAX · 见面", StepCopy.of(meet, null, null, null).tag);
         meet.predicted = new Plan.Predicted();
         assertEquals("MAX · 见面", StepCopy.of(meet, null, null, null).tag);

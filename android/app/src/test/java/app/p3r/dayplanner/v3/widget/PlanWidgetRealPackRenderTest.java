@@ -1,5 +1,7 @@
 package app.p3r.dayplanner.v3.widget;
 
+import app.p3r.dayplanner.v3.ui.Dialogue;
+
 import android.content.Context;
 import android.view.View;
 import android.widget.TextView;
@@ -112,8 +114,8 @@ public class PlanWidgetRealPackRenderTest {
             if ((!s.side.isEmpty() || s.hintZh != null) && extras++ < 6) chosen.put(s.action + "@" + s.slot, s);
         }
         List<Plan.Step> answered = new ArrayList<>();
-        for (Plan.Step s : plan.steps) if (GuideDialogue.line(rules, s) != null) answered.add(s);
-        answered.stream().max(Comparator.comparingInt(s -> len(GuideDialogue.line(rules, s))))
+        for (Plan.Step s : plan.steps) if (Dialogue.line(rules, s) != null) answered.add(s);
+        answered.stream().max(Comparator.comparingInt(s -> len(Dialogue.line(rules, s))))
                 .ifPresent(s -> chosen.put(s.action + "@" + s.slot, s));
         for (int i = 0; i < Math.min(3, answered.size()); i++) chosen.put(answered.get(i).action + "@" + answered.get(i).slot, answered.get(i));
         return new ArrayList<>(chosen.values());

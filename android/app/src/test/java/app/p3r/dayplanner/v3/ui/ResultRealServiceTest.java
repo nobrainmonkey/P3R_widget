@@ -186,7 +186,8 @@ public class ResultRealServiceTest extends UiTestBase {
 
         SimState after = real.snapshot().observed;
         assertEquals(before.cash, after.cash);
-        assertEquals(before.cashExact, after.cashExact);
+        // 「不记得钱了」: the amount is kept but no longer counts as exact (the next tower sheet asks for the balance).
+        assertFalse(after.cashExact);
         assertEquals(before.towerVisits[block] + 1, after.towerVisits[block]);
         assertEquals("tower", real.history(1).get(0).kind);
     }

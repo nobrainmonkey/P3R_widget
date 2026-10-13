@@ -137,6 +137,7 @@ final class TowerPanel extends LinearLayout {
         if (initial != null) {
             cashMode.setSelected(initial.balanceMode || !exactBefore ? 0 : 1);
             amount = initial.amount;
+            forgot = initial.cashUnknown;
         } else {
             // Nothing is assumed: the amount starts empty and 保存 waits for it (or 「不记得钱了」).
             cashMode.setSelected(0);
@@ -339,6 +340,7 @@ final class TowerPanel extends LinearLayout {
         t.floor = floor.getValue();
         t.balanceMode = !forgot && balanceMode();
         t.amount = forgot ? 0L : amount;
+        t.cashUnknown = forgot;
         t.level = levelOn ? level.getValue() : null;
         t.rescuedId = rescue != null && rescueAnswer.getSelected() == 0 ? rescue.id : null;
         return t;
