@@ -236,6 +236,8 @@ public final class Zh {
         "休息日邀约", "平安夜约会", "同步现状", "修改进度", "本区块", "区块", "安排", "解锁", "时段",
         // App words ICU's dictionary splits wrongly ("小组|件", "不安|排解|锁", "填上|次").
         "小组件", "小工具", "权利人", "上次",
+        // The Links footer 「…没排到 MAX，先保证了女皇」 must not leave 「先」 at a line end.
+        "先保证了",
     };
 
     /**
