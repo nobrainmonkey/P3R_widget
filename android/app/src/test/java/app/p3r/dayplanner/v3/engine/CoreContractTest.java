@@ -3,6 +3,7 @@ package app.p3r.dayplanner.v3.engine;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import app.p3r.dayplanner.v3.model.Profile;
@@ -297,17 +298,46 @@ public class CoreContractTest {
         assertTrue(plan.budgetExhausted);
         assertValid(rules, profile, start, plan);
         assertEquals("这次没来得及算完，稍后会自动再算一次", plan.summary.notesZh.get(0));
+        assertFalse(plan.followUp);
+        assertTrue(plan.followUpPending());
+        assertEquals(plan.summary.notesZh.get(0), plan.budgetNoteZh());
 
         Engine.Options again = new Engine.Options();
         again.cancelled = new AtomicBoolean(true);
         again.followUp = true;
         Plan second = Engine.plan(rules, profile, start, null, again);
-        assertEquals("这次没来得及算完，记下一个结果后会重新安排", second.summary.notesZh.get(0));
+        assertEquals("这次没来得及算完，后半段是粗略安排；记下一个结果后会重新安排", second.summary.notesZh.get(0));
+        assertTrue(second.followUp);
+        assertFalse("no further automatic run", second.followUpPending());
+        assertEquals(second.summary.notesZh.get(0), second.budgetNoteZh());
         assertEquals("the follow-up flag does not change the plan", plan.planId, second.planId);
 
         Plan full = Engine.plan(rules, profile, start, null, generous());
         assertFalse(full.budgetExhausted);
+        assertNull(full.budgetNoteZh());
+        assertFalse(full.followUpPending());
         for (String n : full.summary.notesZh) assertFalse(n, n.contains("没来得及算完"));
+    }
+
+    @Test
+    public void followUpFlagRoundTripsAndRewordsTheBudgetNote() throws Exception {
+        Plan plan = new Plan();
+        plan.budgetExhausted = true;
+        plan.summary.notesZh.add(Plan.BUDGET_NOTE_PENDING);
+        plan.summary.notesZh.add("皇帝：预计 6月29日 升到 MAX");
+        Plan copy = Plan.fromJson(plan.toJson());
+        assertFalse(copy.followUp);
+        assertTrue(copy.followUpPending());
+        assertFalse(plan.toJson().getBoolean("followUp"));
+        copy.markFollowUpDone();
+        assertTrue(copy.followUp);
+        assertEquals(Plan.BUDGET_NOTE_DONE, copy.summary.notesZh.get(0));
+        assertEquals("皇帝：预计 6月29日 升到 MAX", copy.summary.notesZh.get(1));
+        Plan again = Plan.fromJson(copy.toJson());
+        assertTrue(again.toJson().getBoolean("followUp"));
+        assertTrue(again.followUp);
+        assertEquals(Plan.BUDGET_NOTE_DONE, again.budgetNoteZh());
+        assertFalse(again.followUpPending());
     }
 
     // ------------------------------------------------------------------ robustness

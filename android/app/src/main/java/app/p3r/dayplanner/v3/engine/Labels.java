@@ -28,9 +28,12 @@ final class Labels {
      * First summary note of a plan whose time budget ran out ({@link Plan#budgetExhausted}): the
      * service computes it once more with a larger budget (DESIGN §10.6).
      */
-    static final String BUDGET_NOTE = "这次没来得及算完，稍后会自动再算一次";
-    /** The same for that second computation ({@link Engine.Options#followUp}): no further automatic run. */
-    static final String BUDGET_NOTE_FOLLOW_UP = "这次没来得及算完，记下一个结果后会重新安排";
+    static final String BUDGET_NOTE = Plan.BUDGET_NOTE_PENDING;
+    /**
+     * The same for that second computation ({@link Engine.Options#followUp}), and for a plan the
+     * second computation did not replace ({@link Plan#markFollowUpDone}): no further automatic run.
+     */
+    static final String BUDGET_NOTE_FOLLOW_UP = Plan.BUDGET_NOTE_DONE;
     /**
      * A Sunday or holiday outing invitation (docs/GLOSSARY_zh.md: the official achievement text
      * 「休息日的出游邀请短信」; never 假日邀约 / 节日邀约).
@@ -225,7 +228,15 @@ final class Labels {
             String line = !blank(s.howZh) ? s.howZh.trim() : sideWhat(l, k);
             how.add("顺便：" + line);
         }
-        if (!how.isEmpty()) step.detailZh = joinLines(step.detailZh, String.join("\n", how));
+        if (how.isEmpty()) return;
+        // The side steps are part of the how-to: before a meeting's closing 「注意：…」 line.
+        String detail = step.detailZh;
+        int note = detail == null ? -1 : detail.lastIndexOf("\n" + NOTE_PREFIX);
+        if (note >= 0) {
+            step.detailZh = detail.substring(0, note) + "\n" + String.join("\n", how) + detail.substring(note);
+        } else {
+            step.detailZh = joinLines(detail, String.join("\n", how));
+        }
     }
 
     /** "顺便：把 20,000 日元交给穿西装的男人" for a non-consuming unlock step. */
@@ -275,8 +286,49 @@ final class Labels {
             step.subtitleZh = invite + "RANK " + rankName(fx.rankFrom) + " · 见面（预计不升级）";
         }
         step.whyZh = meetWhy(st, l, fx);
-        step.detailZh = blank(link.noteZh) ? null : link.noteZh.trim();
+        step.detailZh = meetHow(st.slot, l, fx);
         if (fx.persona) step.hintZh = personaHint(l);
+    }
+
+    /** Prefix of the line of a meeting's 「怎么做」 that carries the link's own note. */
+    static final String NOTE_PREFIX = "注意：";
+
+    /**
+     * 「怎么做」 of a meeting, one line each: when, where and whom
+     * ("放学后到月光馆学园 · 学生会活动室找小田桐秀利", {@link #meetWhere}), the scene's dialogue hint
+     * when the guide has one ({@link DialogueHint}; the generic fallback is left out), and the
+     * link's own note as 「注意：…」.
+     */
+    String meetHow(int slot, int l, Kernel.Effect fx) {
+        Rules.Link link = rules.links[l];
+        List<String> lines = new ArrayList<>();
+        lines.add(meetWhere(slot, l, fx.invite));
+        String hint = DialogueHint.line(rules, m.profile, l, fx.rankUp ? fx.rankTo : fx.rankFrom);
+        if (!DialogueHint.FALLBACK.equals(hint)) lines.add(hint);
+        if (!blank(link.noteZh)) lines.add(NOTE_PREFIX + link.noteZh.trim());
+        return String.join("\n", lines);
+    }
+
+    /**
+     * "放学后到月光馆学园 · 学生会活动室找小田桐秀利", "晚上到桐叶购物中心 · 喷泉广场找田中社长",
+     * "白天在宿舍 · 自己房间的电脑上找Ｙ子"; for an outing invitation "白天赴岳羽由加莉的休息日邀约，一起外出".
+     */
+    String meetWhere(int slot, int l, boolean invite) {
+        Rules.Link link = rules.links[l];
+        String name = blank(link.personZh) ? arcana(l) + "社群" : link.personZh.trim();
+        if (invite) return "白天赴" + name + "的" + INVITE + "，一起外出";
+        String when = period(slot);
+        String place = blank(link.locationZh) ? null : link.locationZh.trim();
+        if (place == null) return when + "找" + name;
+        if (place.contains("电脑")) return when + "在" + place + "上找" + name;
+        return when + "到" + place + "找" + name;
+    }
+
+    /** "放学后" on a school day, "白天" on other days, "晚上" in the evening. */
+    String period(int slot) {
+        if ((slot & 1) == 1) return "晚上";
+        Rules.Day d = rules.day(slot >> 1);
+        return d != null && d.type == Rules.DayType.SCHOOL ? "放学后" : "白天";
     }
 
     private String meetWhy(SimState st, int l, Kernel.Effect fx) {
@@ -550,13 +602,13 @@ final class Labels {
         step.locationZh = note != null && !blank(note.locationZh) ? note.locationZh : "桐叶购物中心 · 放纵俱乐部";
         double pressure = h.pressure(st, l);
         if (pressure >= 0.6 && pressure < Heuristics.INF) {
-            step.whyZh = who(l) + "剩下的见面机会不多，晚上用字条先攒点好感";
+            step.whyZh = who(l) + "剩下的见面机会不多，晚上用" + NOTE_NAME + "先攒点好感";
         } else {
-            step.whyZh = "晚上没有更要紧的事，用字条给" + who(l) + "攒点好感";
+            step.whyZh = "晚上没有更要紧的事，用" + NOTE_NAME + "给" + who(l) + "攒点好感";
         }
         String how = note != null && !blank(note.howZh) ? note.howZh.trim()
                 : "在桐叶购物中心的放纵俱乐部买" + NOTE_NAME + "，当晚回宿舍用公用电脑给" + who(l) + "加好感";
-        String remark = note != null && !blank(note.noteZh) ? note.noteZh.trim() : "字条只加好感，不会让社群直接升级";
+        String remark = note != null && !blank(note.noteZh) ? note.noteZh.trim() : NOTE_NAME + "只加好感，不会让社群直接升级";
         step.detailZh = how + "\n" + remark;
     }
 

@@ -137,7 +137,8 @@ final class Planner {
         Candidate chosen = pool.choose();
         Plan plan = assemble(m, pool.labelHeuristics(chosen), start, chosen.codes, pool.tradedFor(chosen));
         plan.budgetExhausted = exhausted;
-        if (exhausted) plan.summary.notesZh.add(0, options.followUp ? Labels.BUDGET_NOTE_FOLLOW_UP : Labels.BUDGET_NOTE);
+        plan.followUp = options.followUp;
+        if (exhausted) plan.summary.notesZh.add(0, plan.budgetNoteZh());
         plan.elapsedMillis = (System.nanoTime() - t0) / 1_000_000L;
         plan.createdMillis = System.currentTimeMillis();
         plan.planId = PlanHash.of(rules, profile, start, options, plan);

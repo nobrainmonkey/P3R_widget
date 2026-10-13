@@ -386,6 +386,57 @@ public class PlanRealPackTest {
         return d.month() + "月" + d.dayOfMonth() + "日";
     }
 
+    /**
+     * docs/GLOSSARY_zh.md: a card or title says 「结缘网站的字条」 in full the first time; the short
+     * 字条 only follows it within the same sentence.
+     */
+    private static void assertFullNoteNameFirst(String text) {
+        if (text == null) return;
+        for (String sentence : text.split("[。；\n]")) {
+            int at = sentence.indexOf("字条");
+            if (at < 0) continue;
+            int full = sentence.indexOf("结缘网站的字条");
+            assertTrue(text, full >= 0 && full + "结缘网站的".length() == at);
+        }
+    }
+
+    /**
+     * 「怎么做」 of a meeting is a how-to: when, where and whom, the guide's answers for the scene
+     * when there are some, and the link's own note as a separate 「注意：」 line (the audit found a
+     * 5/25 皇帝 RANK 3 → 4 step whose how-to was only 「11月3日～11月29日小田桐秀利不在学生会，见不到面。」).
+     */
+    @Test
+    public void meetingHowToSaysWhenWhereAndWhomWithTheNoteApart() {
+        int emperor = link("emperor");
+        Plan plan = Engine.plan(rules, must(emperor), newGame(dayOf(4, 21)), null, new Engine.Options());
+        int checked = 0;
+        boolean answers = false;
+        for (Plan.Step s : plan.steps) {
+            if (!"meet:emperor".equals(s.action)) continue;
+            String[] lines = s.detailZh.split("\n");
+            Rules.Day day = rules.day(s.slot >> 1);
+            String when = day.type == Rules.DayType.SCHOOL ? "放学后" : "白天";
+            assertEquals(s.detailZh, when + "到月光馆学园 · 学生会活动室找小田桐秀利", lines[0]);
+            assertEquals(s.detailZh, "注意：11月3日～11月29日小田桐秀利不在学生会，见不到面。", lines[lines.length - 1]);
+            if (s.predicted.rankUp && s.predicted.rankTo == 2) {
+                assertEquals(s.detailZh, "参考回答：无聊透顶（2）", lines[1]);
+                answers = true;
+            }
+            for (String line : lines) assertFalse(s.detailZh, line.startsWith("选能让对方高兴的回答"));
+            checked++;
+        }
+        assertTrue("皇帝 meetings " + checked, checked >= 10);
+        assertTrue("the RANK 2 scene carries the guide's answer", answers);
+
+        Model m = new Model(rules, new Profile(), null);
+        SimState start = newGame(dayOf(4, 21));
+        Labels labels = new Labels(m, new Heuristics(m, start, null));
+        int sunday = dayOf(5, 3);
+        assertEquals("晚上到桐叶购物中心 · 喷泉广场找田中社长", labels.meetWhere(Rules.slot(sunday, true), link("devil"), false));
+        assertEquals("白天在宿舍 · 自己房间的电脑上找Ｙ子", labels.meetWhere(Rules.slot(sunday, false), link("hermit"), false));
+        assertEquals("白天赴岳羽由加莉的休息日邀约，一起外出", labels.meetWhere(Rules.slot(sunday, false), link("lovers"), true));
+    }
+
     /** Every multi-step chain (non-consuming side steps, REPORT §0) completes in a new game. */
     @Test
     public void multiStepUnlocksComplete() {
@@ -490,7 +541,9 @@ public class PlanRealPackTest {
             assertEquals("note", s.kind);
             assertTrue((s.slot & 1) == 1 && (s.slot >> 1) >= pack.datingNote.fromDay);
             assertTrue(s.titleZh, s.titleZh.startsWith("在放纵俱乐部买结缘网站的字条，给") && !s.titleZh.contains(" "));
+            for (String text : new String[]{s.titleZh, s.subtitleZh, s.whyZh, s.detailZh}) assertFullNoteNameFirst(text);
         }
+        for (String n : none.plan.summary.notesZh) assertFullNoteNameFirst(n);
         assertTrue("maxed " + none.metrics.maxed, none.metrics.maxed >= 21);
 
         Profile all = new Profile();

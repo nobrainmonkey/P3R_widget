@@ -53,6 +53,8 @@ public class PlannerServiceFollowUpTest extends ServiceTestBase {
         PlannerApi.Snapshot s = service.snapshot();
         assertEquals("the complete follow-up replaces it", "fake-2", s.plan.planId);
         assertFalse(s.plan.budgetExhausted);
+        assertTrue("the service marks the follow-up plan", s.plan.followUp);
+        assertNull(s.plan.budgetNoteZh());
         assertTrue(s.planCurrent);
         assertFalse(s.planning);
         assertEquals(rev, s.plan.stateRevision);
@@ -86,6 +88,49 @@ public class PlannerServiceFollowUpTest extends ServiceTestBase {
         assertEquals(4, planner.calls.get());
         assertEquals(100, planner.options.get(3).timeBudgetMillis);
         assertEquals("better (one more MAX) although it ran out again", "fake-4", service.snapshot().plan.planId);
+        Plan installed = service.snapshot().plan;
+        assertTrue(installed.followUp);
+        assertFalse("no further run is queued, and the plan says so", installed.followUpPending());
+        assertEquals(Plan.BUDGET_NOTE_DONE, installed.budgetNoteZh());
+    }
+
+    /**
+     * Audit F11: a follow-up that is not better leaves the first plan installed; that plan must no
+     * longer promise 「稍后会自动再算一次」, in memory and after a restart, and no other run follows.
+     */
+    @Test
+    public void aFollowUpThatDoesNotReplaceThePlanEndsItsPromiseOfAnotherRun() {
+        planner.shape = (plan, n) -> {
+            plan.budgetExhausted = true; // both runs run out; the second is no better
+            plan.summary.notesZh.add(0, n == 1 ? Plan.BUDGET_NOTE_PENDING : Plan.BUDGET_NOTE_DONE);
+        };
+        onboard(MAY12_DAY);
+        settle();
+        assertEquals(2, planner.calls.get());
+        Plan installed = service.snapshot().plan;
+        assertEquals("fake-1", installed.planId);
+        assertTrue(installed.followUp);
+        assertFalse(installed.followUpPending());
+        assertEquals(Plan.BUDGET_NOTE_DONE, installed.budgetNoteZh());
+        assertEquals(Plan.BUDGET_NOTE_DONE, installed.summary.notesZh.get(0));
+        assertFalse(installed.summary.notesZh.contains(Plan.BUDGET_NOTE_PENDING));
+
+        restart();
+        settle();
+        assertEquals("the flag is stored: no second follow-up after a restart", 2, planner.calls.get());
+        Plan reloaded = service.snapshot().plan;
+        assertEquals("fake-1", reloaded.planId);
+        assertTrue(reloaded.followUp);
+        assertEquals(Plan.BUDGET_NOTE_DONE, reloaded.summary.notesZh.get(0));
+    }
+
+    /** A plan that ran out of time and has not had its follow-up yet still promises it. */
+    @Test
+    public void aPlanWaitingForItsFollowUpSaysSo() {
+        Plan plan = new Plan();
+        plan.budgetExhausted = true;
+        assertTrue(plan.followUpPending());
+        assertEquals(Plan.BUDGET_NOTE_PENDING, plan.budgetNoteZh());
     }
 
     @Test
@@ -111,6 +156,8 @@ public class PlannerServiceFollowUpTest extends ServiceTestBase {
         assertEquals("fake-1", s.plan.planId);
         assertNull(s.planErrorZh);
         assertTrue(s.planCurrent);
+        assertTrue("the failed follow-up still counts as the one follow-up", s.plan.followUp);
+        assertFalse(s.plan.followUpPending());
     }
 
     @Test

@@ -775,8 +775,30 @@ public final class PlannerService implements PlannerApi {
      * follow-up yet ({@link ReplanWorker.Job#followUp}). Caller holds {@link #lock}.
      */
     private boolean needsFollowUpLocked(Model m) {
-        return isCurrent(m) && m.view.observed != null && m.plan.budgetExhausted && wiring.planBudgetMillis > 0
+        return isCurrent(m) && m.view.observed != null && m.plan.followUpPending() && wiring.planBudgetMillis > 0
                 && !planKey(m.view).equals(followUpKey);
+    }
+
+    /**
+     * The follow-up for the installed plan's revisions has run without replacing it (not better,
+     * or failed): the plan is marked {@link Plan#followUp} and its budget note no longer promises
+     * another run ({@link Plan#markFollowUpDone}), in memory and in the store. Caller holds
+     * {@link #lock}.
+     */
+    private void followUpDoneLocked(Model m) {
+        if (!isCurrent(m) || m.plan.followUp) {
+            return;
+        }
+        Plan marked;
+        try {
+            marked = Plan.fromJson(m.plan.toJson());
+        } catch (JSONException e) {
+            Log.w(TAG, "plan could not be copied; marking it in place", e);
+            marked = m.plan;
+        }
+        marked.markFollowUpDone();
+        persistPlanLocked(marked);
+        model = m.withPlan(marked);
     }
 
     /** Budget of the follow-up computation: twice the normal one. */
@@ -895,14 +917,19 @@ public final class PlannerService implements PlannerApi {
                 }
                 if (job.followUp) {
                     // The installed plan stays unless the follow-up is complete or better; a
-                    // failed follow-up is only logged (the installed plan is still valid).
+                    // failed follow-up is only logged (the installed plan is still valid). Either
+                    // way the follow-up has run: no plan of these revisions promises another one.
                     if (error != null || plan == null || !problems.isEmpty()) {
                         Log.w(TAG, "budget follow-up not used: " + (error != null ? error : problems));
+                        followUpDoneLocked(m);
                         return false;
                     }
                     if (isCurrent(m) && improves(job.profile, plan, m.plan)) {
+                        plan.markFollowUpDone();
                         persistPlanLocked(plan);
                         model = m.withPlan(plan);
+                    } else {
+                        followUpDoneLocked(m);
                     }
                     return false;
                 }
