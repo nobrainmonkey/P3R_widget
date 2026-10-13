@@ -10,7 +10,7 @@
 
 **关于旧版本（2.0.0 “P3R”）**：新版的包名是 `app.p3r.planner`，会作为一个**新应用**安装，不会覆盖、也不会删除旧版的数据（旧版用的签名证书不在这里，无法原地升级）。
 
-- 旧版「固定攻略」的打勾进度：在旧版里打开固定攻略 → 导出进度，然后在新版「我的 → 固定攻略」里导入。
+- 旧版「固定攻略」的打勾进度：在旧版里打开固定攻略 → 导出进度，然后在新版「我的 → 逐日攻略」里导入。
 - 规划进度：新版第一次打开时，用设置向导把当前存档状态录一遍（日期、现金、三项能力、各社群 RANK），大约一两分钟。
 
 ## 怎么用
@@ -54,7 +54,7 @@ scripts/build_release.sh
 
 | 路径 | 内容 |
 |---|---|
-| `android/` | Android 工程（`v3/` 为新规划器；`MainActivity`/`PlannerWidget` 为保留的固定攻略） |
+| `android/` | Android 工程（`v3/` 为新规划器；`MainActivity`/`PlannerWidget` 为保留的逐日攻略） |
 | `rules/build/` | 规则包编译脚本，生成 `android/app/src/main/assets/p3r/p3r_rules.json` |
 | `rules/p3r/`, `rules/sources/` | 规则证据与来源快照（不打包进 APK） |
 | `docs/DESIGN_v3.md` | v3 设计文档 |

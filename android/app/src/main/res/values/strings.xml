@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">P3R 规划</string>
-    <string name="widget_description">固定攻略：按日期一步步看，点「完成」打勾，可随时撤销。</string>
+    <string name="widget_description">逐日攻略：按日期一步步看，点「完成」打勾，可随时撤销。</string>
     <string name="plan_widget_label">P3R 每日安排</string>
-    <string name="guide_widget_label">P3R 固定攻略</string>
+    <string name="guide_widget_label">P3R 逐日攻略</string>
     <string name="plan_widget_description">按你的目标排好的每日安排：显示下一步要做什么，点「完成」即可记录。</string>
 </resources>

@@ -323,8 +323,7 @@ GitHub release asset.
 
 ## 10. Settled decisions (after the critic pass)
 
-1. **Persona bonus** (superseded by Profile.personaMode NONE/GOALS/ALL — players do not carry every matching Persona): one global declaration in onboarding ("约会时通常带着同阿尔卡那的人格面具吗？"),
-   default 否. When on, ×1.51 applies to ordinary meetings and rank-up answers. **Charm bonus**
+1. **Persona bonus** (superseded by Profile.personaMode NONE/GOALS/ALL — players do not carry every matching Persona): a three-way question in onboarding and 规划设置 ("见面时通常带着同阿尔卡那的人格面具吗？" → 基本都带 / 只给目标社群带 / 不带·不一定), default 不带. When on, ×1.51 applies to ordinary meetings and rank-up answers. **Charm bonus**
    (×1.51 at 魅力 Lv6, game data) applies when the forecast reaches Lv6; toggle default on, listed
    in 规划说明. The legacy guide maxes all 22 links only with matching Personas (146 items) — use it
    as the benchmark: with personaBonus=true from a new game the planner should MAX ≥ 18 links.
