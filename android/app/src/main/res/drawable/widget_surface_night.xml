@@ -1,1 +1,6 @@
-<shape xmlns:android="http://schemas.android.com/apk/res/android"><solid android:color="#034572"/><corners android:radius="12dp"/></shape>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget night surface: flat P3R deep blue with sharp 6dp corners (Android 12+ uses drawable-v31). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/p3r_widget_night" />
+    <corners android:radius="6dp" />
+</shape>

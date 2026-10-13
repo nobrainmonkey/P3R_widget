@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Return arrow on the Current button. Generated from widget design constants; keep edits consistent across siblings. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="20dp" android:height="20dp"
+    android:viewportWidth="20" android:viewportHeight="20">
+    <path android:fillColor="#00000000" android:strokeColor="#FF0A2A5C" android:strokeWidth="1.9" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:pathData="M7,4.5L2.5,9L7,13.5M2.5,9H12.5A4.5,4.5 0,0 1,17 13.5V16" />
+</vector>

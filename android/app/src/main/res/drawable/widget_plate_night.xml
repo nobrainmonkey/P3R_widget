@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Slanted P3R calendar plate (night): flush left, '/' cut and a parallel accent stripe on the right. Generated from widget design constants; keep edits consistent across siblings. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:right="17dp">
+        <shape android:shape="rectangle"><solid android:color="#FF3CE4FF" /></shape>
+    </item>
+    <item android:right="8dp" android:width="12dp" android:gravity="right|fill_vertical">
+        <vector android:width="12dp" android:height="40dp" android:viewportWidth="12" android:viewportHeight="40">
+            <path android:fillColor="#FF3CE4FF" android:pathData="M0,0L12,0L2,40L0,40Z" />
+        </vector>
+    </item>
+    <item android:width="15dp" android:gravity="right|fill_vertical">
+        <vector android:width="15dp" android:height="40dp" android:viewportWidth="15" android:viewportHeight="40">
+            <path android:fillColor="#FFFFFFFF" android:pathData="M10,0L15,0L5,40L0,40Z" />
+        </vector>
+    </item>
+</layer-list>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Current button disabled. Generated from widget design constants; keep edits consistent across siblings. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:left="0dp" android:top="3dp" android:width="10.1dp" android:height="34dp" android:gravity="left|top">
+        <vector android:width="10.1dp" android:height="34dp" android:viewportWidth="10.1" android:viewportHeight="34">
+            <path android:fillColor="#00000000" android:strokeColor="#590A2A5C" android:strokeWidth="1.5" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:pathData="M10.1,0.75L8.1,0.75L0.75,33.25L10.1,33.25" />
+        </vector>
+    </item>
+    <item android:left="9.6dp" android:right="9.6dp" android:top="3dp" android:height="1.5dp" android:gravity="top|fill_horizontal">
+        <shape android:shape="rectangle"><solid android:color="#590A2A5C" /></shape>
+    </item>
+    <item android:left="9.6dp" android:right="9.6dp" android:bottom="3dp" android:height="1.5dp" android:gravity="bottom|fill_horizontal">
+        <shape android:shape="rectangle"><solid android:color="#590A2A5C" /></shape>
+    </item>
+    <item android:right="0dp" android:top="3dp" android:width="10.1dp" android:height="34dp" android:gravity="right|top">
+        <vector android:width="10.1dp" android:height="34dp" android:viewportWidth="10.1" android:viewportHeight="34">
+            <path android:fillColor="#00000000" android:strokeColor="#590A2A5C" android:strokeWidth="1.5" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:pathData="M0,0.75L9.35,0.75L2,33.25L0,33.25" />
+        </vector>
+    </item>
+</layer-list>

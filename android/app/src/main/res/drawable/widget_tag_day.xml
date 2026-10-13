@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Subtitle tag chip on the day surface. Generated from widget design constants; keep edits consistent across siblings. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:width="6.52dp" android:gravity="left|fill_vertical">
+        <vector android:width="6.52dp" android:height="4dp" android:viewportWidth="6.52" android:viewportHeight="20">
+            <path android:fillColor="#FF0642B7" android:pathData="M4.52,0L6.52,0L6.52,20L0,20Z" />
+        </vector>
+    </item>
+    <item android:left="5.52dp" android:right="5.52dp">
+        <shape android:shape="rectangle"><solid android:color="#FF0642B7" /></shape>
+    </item>
+    <item android:width="6.52dp" android:gravity="right|fill_vertical">
+        <vector android:width="6.52dp" android:height="4dp" android:viewportWidth="6.52" android:viewportHeight="20">
+            <path android:fillColor="#FF0642B7" android:pathData="M0,0L6.52,0L2,20L0,20Z" />
+        </vector>
+    </item>
+</layer-list>
