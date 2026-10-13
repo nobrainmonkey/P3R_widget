@@ -15,8 +15,11 @@ public final class Engine {
     private Engine() {}
 
     public static final class Options {
-        /** Soft wall-clock budget for the rollout phase; the plan is always complete. */
-        public long timeBudgetMillis = 4000;
+        /**
+         * Soft wall-clock budget for the rollout phase; the plan is always complete. Default 2.5 s
+         * (DESIGN §10.6). 0 disables the rollout (pure base policy).
+         */
+        public long timeBudgetMillis = 2500;
         /** Rollout candidates per slot. */
         public int candidates = 4;
         /** Optional progress callback (0..1), may be null. Called from the planning thread. */
@@ -48,6 +51,23 @@ public final class Engine {
     }
 
     /**
+     * Forecast transition using engine options (currently {@link Options#towerIncomePerVisit}, which
+     * adds the estimated income of a Tartarus visit).
+     */
+    public static Applied apply(Rules rules, Profile profile, SimState state, Action action, Options options) {
+        return Simulator.apply(rules, profile, state, action, options);
+    }
+
+    /**
+     * Advance a copy of {@code state} to {@code slot} without acting (slots are skipped, day rollovers
+     * apply story ranks, rescue deadlines and date-based unlocks). Returns a copy even when no slot is
+     * skipped.
+     */
+    public static SimState advanceTo(Rules rules, Profile profile, SimState state, int slot) {
+        return Simulator.advanceTo(rules, profile, state, slot);
+    }
+
+    /**
      * Apply a player-confirmed outcome for {@code action} taken at {@code state.slot} and advance
      * one slot. Used by the store to derive the observed state; visible values in the outcome
      * override model values, hidden values are updated as estimates.
@@ -64,5 +84,13 @@ public final class Engine {
     /** Independent replay check; empty list = valid. Messages are developer-facing (English). */
     public static List<String> validate(Rules rules, Profile profile, SimState observed, Plan plan) {
         return PlanValidator.validate(rules, profile, observed, plan);
+    }
+
+    /**
+     * Warning-level findings of the independent replay (e.g. a FREE slot while a productive action
+     * was legal). They do not make the plan invalid; errors are reported by {@link #validate}.
+     */
+    public static List<String> validationWarnings(Rules rules, Profile profile, SimState observed, Plan plan) {
+        return PlanValidator.check(rules, profile, observed, plan).warnings;
     }
 }
