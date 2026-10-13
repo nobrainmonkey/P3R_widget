@@ -41,8 +41,6 @@ public final class CardRenderer {
             R.drawable.widget_shafts_3};
     /** Image alpha of an arrow that cannot move further. */
     static final int DISABLED_ARROW_ALPHA = 80;
-    /** Image alpha of the 完成 glyph while the button does nothing (matches its 60% label ink). */
-    static final int DISABLED_LABEL_ALPHA = 153;
 
     /** Ticks available in the layout; days with more entries show only the text progress. */
     public static final int MAX_TICKS = 8;
@@ -614,9 +612,10 @@ public final class CardRenderer {
         } else {
             views.setImageViewResource(R.id.button_spec_check,
                     model.doneIcon == CardModel.DoneIcon.UNDO ? R.drawable.widget_icon_undo : R.drawable.widget_icon_check);
-            // A translucent tint would blend back to the glyph's own navy: dim with image alpha instead.
-            views.setInt(R.id.button_spec_check, "setColorFilter", palette.buttonInk(c, true));
-            views.setInt(R.id.button_spec_check, "setImageAlpha", model.doneEnabled ? 255 : DISABLED_LABEL_ALPHA);
+            // The glyph matches the label: a translucent tint would blend with the glyph's own navy,
+            // so tint with the opaque ink and carry its alpha as image alpha.
+            views.setInt(R.id.button_spec_check, "setColorFilter", doneInk | 0xFF000000);
+            views.setInt(R.id.button_spec_check, "setImageAlpha", doneInk >>> 24);
         }
     }
 
