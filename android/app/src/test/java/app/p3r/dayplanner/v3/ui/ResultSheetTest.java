@@ -52,6 +52,13 @@ public class ResultSheetTest extends UiTestBase {
     }
 
     @Test
+    @Config(fontScale = 1.3f)
+    public void rankUpAtLargeFontScale() {
+        ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
+        Shots.shot(a, "result_social_rankup_font130");
+    }
+
+    @Test
     public void noRankUpWithReadyCue() {
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
         Shots.click(a, "游戏提示下次可升级");
@@ -373,6 +380,39 @@ public class ResultSheetTest extends UiTestBase {
         Shots.idle();
         assertTrue(Shots.has(a, "这个时段做了什么？"));
         assertFalse(finishing(a));
+    }
+
+    @Test
+    public void newIntentStartsOverForTheNewItem() {
+        org.robolectric.android.controller.ActivityController<ResultActivity> c =
+            resultController(NOW, "meet:emperor", Intents.MODE_CANNOT, false);
+        Intent intent = new Intent(RuntimeEnvironment.getApplication(), ResultActivity.class);
+        intent.putExtra(Intents.EXTRA_SLOT, NOW);
+        intent.putExtra(Intents.EXTRA_ACTION, "meet:emperor");
+        intent.putExtra(Intents.EXTRA_MODE, Intents.MODE_RESULT);
+        intent.putExtra(Intents.EXTRA_PLAN_ID, Fixtures.PLAN_ID);
+        intent.putExtra(Intents.EXTRA_STATE_REV, Fixtures.STATE_REV);
+        c.newIntent(intent);
+        Shots.idle();
+        assertTrue(Shots.has(c.get(), "已升到 RANK 7"));
+        assertFalse(Shots.has(c.get(), "对方不在"));
+    }
+
+    @Test
+    public void towerInputSurvivesRotation() {
+        int slot = Rules.slot(Fixtures.day(10, 24), true);
+        advanceTo(slot);
+        org.robolectric.android.controller.ActivityController<ResultActivity> c =
+            resultController(slot, "tower:3", Intents.MODE_RESULT, true);
+        TowerPanel panel = c.get().towerPanel();
+        panel.floorStepper().step(+3);
+        panel.setAmountForTest(30_000);
+        c.recreate();
+        Shots.idle();
+        TowerPanel restored = c.get().towerPanel();
+        assertNotNull(restored);
+        assertEquals(99, restored.floorStepper().getValue());
+        assertEquals("进塔前 18,500 → 出塔后 30,000 日元（+11,500）", restored.previewText());
     }
 
     private void advanceTo(int slot) {

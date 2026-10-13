@@ -296,7 +296,9 @@ final class TodayPage {
         row.addView(label, p);
         if (obs.floor > 0) {
             TextView floor = Ui.numeral(c, obs.floor + "F", 16, Ui.col(c, R.color.p3r_cyan_300));
-            row.addView(floor, Ui.wrap());
+            LinearLayout.LayoutParams fp = Ui.wrap();
+            fp.leftMargin = Ui.dp(c, 8);
+            row.addView(floor, fp);
         }
         return row;
     }
@@ -381,7 +383,7 @@ final class TodayPage {
         }
         TextView cannot = Ui.secondary(c, "做不了/改做别的");
         cannot.setTextSize(15);
-        cannot.setSingleLine(true);
+        cannot.setMaxLines(2);
         Ui.pad(cannot, 10, 8, 10, 8);
         cannot.setOnClickListener(v -> host.openResult(step.slot, step.action, Intents.MODE_CANNOT));
         row.addView(cannot, Ui.weight(1.3f));

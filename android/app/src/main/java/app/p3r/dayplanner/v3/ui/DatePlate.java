@@ -25,15 +25,15 @@ public final class DatePlate extends LinearLayout {
     private final View moonView;
     private final TextView moonLabel;
     private final TextView period;
-    private final float numeralSp;
 
     /** @param large true for the 今天 header, false for sheet headers. */
     public DatePlate(Context context, boolean large) {
         super(context);
         setOrientation(HORIZONTAL);
         setGravity(Gravity.CENTER_VERTICAL);
-        numeralSp = large ? 68 : 36;
-        numerals = Ui.numeral(context, "", numeralSp, Ui.col(context, R.color.p3r_white));
+        numerals = Ui.numeral(context, "", 12, Ui.col(context, R.color.p3r_white));
+        // Display numerals are sized in dp: they are decorative and must not overflow at large font scales.
+        numerals.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, large ? 68 : 36);
         float shadow = Ui.dp(context, large ? 3 : 2);
         numerals.setShadowLayer(0.01f, shadow, shadow, Ui.alpha(Ui.col(context, R.color.p3r_royal_500), 230));
         numerals.setPadding(0, 0, (int) shadow + Ui.dp(context, 4), (int) shadow);

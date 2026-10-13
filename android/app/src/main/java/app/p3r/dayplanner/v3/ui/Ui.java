@@ -14,6 +14,7 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -287,6 +288,16 @@ public final class Ui {
         return button;
     }
 
+    /** Announces text-view buttons and chips as buttons (and their selected state) to TalkBack. */
+    private static final View.AccessibilityDelegate BUTTON_ROLE = new View.AccessibilityDelegate() {
+        @Override
+        public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(host, info);
+            info.setClassName("android.widget.Button");
+            info.setSelected(host.isSelected());
+        }
+    };
+
     private static TextView baseButton(Context context, CharSequence label) {
         TextView button = text(context, latin(context, label), 16, col(context, R.color.p3r_white), true);
         button.setGravity(Gravity.CENTER);
@@ -297,6 +308,7 @@ public final class Ui {
         pad(button, 18, 8, 18, 8);
         button.setClickable(true);
         button.setFocusable(true);
+        button.setAccessibilityDelegate(BUTTON_ROLE);
         return button;
     }
 
@@ -309,6 +321,7 @@ public final class Ui {
         pad(chip, 14, 6, 14, 6);
         chip.setClickable(true);
         chip.setFocusable(true);
+        chip.setAccessibilityDelegate(BUTTON_ROLE);
         setChipSelected(chip, selected);
         return chip;
     }

@@ -77,16 +77,7 @@ public final class ResultActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(getWindow());
-        Intent intent = getIntent();
-        slot = intent.getIntExtra(Intents.EXTRA_SLOT, -1);
-        actionKey = intent.getStringExtra(Intents.EXTRA_ACTION);
-        mode = intent.getStringExtra(Intents.EXTRA_MODE);
-        if (mode == null) {
-            mode = Intents.MODE_RESULT;
-        }
-        planIdExtra = intent.getStringExtra(Intents.EXTRA_PLAN_ID);
-        stateRevExtra = intent.getLongExtra(Intents.EXTRA_STATE_REV, -1);
-        fromApp = intent.getBooleanExtra(HomeActivity.EXTRA_FROM_APP, false);
+        readRequest(getIntent());
         if (savedInstanceState != null) {
             slot = savedInstanceState.getInt(STATE_SLOT, slot);
             actionKey = savedInstanceState.getString(STATE_ACTION, actionKey);
@@ -99,6 +90,41 @@ public final class ResultActivity extends Activity {
         buildFrame();
         showLoading();
         load();
+    }
+
+    /**
+     * singleTask: a second "完成" from the widget arrives here. Unless a save is in flight, the
+     * sheet starts over for the new request (with a fresh stale check).
+     */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (busy) {
+            return;
+        }
+        setIntent(intent);
+        readRequest(intent);
+        staleChecked = false;
+        queueTarget = -1;
+        banner = null;
+        substitute = null;
+        alternatives = null;
+        pendingTowerState = null;
+        showLoading();
+        load();
+    }
+
+    /** Reads the request extras (docs: {@link Intents}). */
+    private void readRequest(Intent intent) {
+        slot = intent.getIntExtra(Intents.EXTRA_SLOT, -1);
+        actionKey = intent.getStringExtra(Intents.EXTRA_ACTION);
+        mode = intent.getStringExtra(Intents.EXTRA_MODE);
+        if (mode == null) {
+            mode = Intents.MODE_RESULT;
+        }
+        planIdExtra = intent.getStringExtra(Intents.EXTRA_PLAN_ID);
+        stateRevExtra = intent.getLongExtra(Intents.EXTRA_STATE_REV, -1);
+        fromApp = intent.getBooleanExtra(HomeActivity.EXTRA_FROM_APP, false);
     }
 
     @Override
@@ -231,7 +257,10 @@ public final class ResultActivity extends Activity {
             staleChecked = true;
             boolean planMoved = planIdExtra != null && (plan == null || !planIdExtra.equals(plan.planId));
             boolean revMoved = stateRevExtra >= 0 && stateRevExtra != snap.stateRevision;
-            if (planMoved || revMoved) {
+            Plan.Step requested = plan == null || slot < 0 ? null : plan.at(slot);
+            boolean actionMoved = actionKey != null && requested != null && !Intents.MODE_OTHER.equals(mode)
+                && !actionKey.equals(requested.action);
+            if (planMoved || revMoved || actionMoved) {
                 banner = "安排已更新，这是现在的下一项。";
                 slot = obs.slot;
                 mode = Intents.MODE_RESULT;

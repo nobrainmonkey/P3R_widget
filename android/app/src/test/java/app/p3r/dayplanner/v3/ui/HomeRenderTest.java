@@ -31,6 +31,13 @@ public class HomeRenderTest extends UiTestBase {
     }
 
     @Test
+    @Config(fontScale = 1.3f)
+    public void todayAtLargeFontScale() {
+        HomeActivity a = home();
+        Shots.shot(a, "home_today_font130");
+    }
+
+    @Test
     public void todayScrolled() {
         HomeActivity a = home();
         android.widget.ScrollView scroll = findScroll(a.getWindow().getDecorView());
