@@ -3,7 +3,7 @@ package app.p3r.dayplanner.v3.ui;
 import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.model.Rules;
 
-/** One-line summary of what a replan changed ("已重新规划：覆盖至 1月31日 · 调整 3 处"). */
+/** One-line summary of what a replan changed ("已重新安排：后面有 3 处变动"). */
 public final class PlanDiff {
     private PlanDiff() {}
 
@@ -28,19 +28,23 @@ public final class PlanDiff {
         return changed;
     }
 
-    /** Summary for the 今天 page, or null when there is nothing to compare. */
+    /** True when the plan has nothing left to schedule (the calendar is over). */
+    public static boolean finished(Plan plan) {
+        return plan != null && (plan.fromSlot > plan.toSlot || plan.steps.isEmpty());
+    }
+
+    /** Summary for the 今天 page, or null when there is nothing to compare or nothing left. */
     public static String summary(Rules rules, Plan before, Plan after, int fromSlot) {
-        if (after == null) {
+        if (after == null || finished(after)) {
             return null;
         }
-        String coverage = "覆盖至 " + Zh.date(Rules.dayOf(after.toSlot));
         if (before == null) {
-            return "已排好日程：" + coverage;
+            return "日程排好了，一直到" + Zh.date(Rules.dayOf(after.toSlot));
         }
         int changed = changedSlots(before, after, fromSlot);
         if (changed == 0) {
-            return "已重新规划：" + coverage + " · 后面的安排不变";
+            return "已重新安排：后面的安排没变";
         }
-        return "已重新规划：" + coverage + " · 调整 " + changed + " 处";
+        return "已重新安排：后面有 " + changed + " 处变动";
     }
 }

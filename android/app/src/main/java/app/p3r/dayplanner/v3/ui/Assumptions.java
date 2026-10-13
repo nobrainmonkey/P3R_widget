@@ -16,19 +16,21 @@ public final class Assumptions {
 
     static {
         // Ids emitted by the engine (Kernel.ASSUMPTION_IDS) and by the UI itself.
-        put("普通会面按每次约 +10 点估计（游戏里大约显示 ♪♪），这个数值没有官方数据。",
+        put("普通见面按每次约 +10 点估计（游戏里大约显示 ♪♪），这是估计值，没有官方数据。",
                 "ordinary_gain_estimate", "ordinary_gain");
         put("按升级时都选让对方高兴的回答来估计。", "best_answers", "answers_best");
         TEXT.put("answers_none", "不计升级时回答带来的点数，估计更保守。");
-        TEXT.put("persona_bonus", "按你约会时带着同阿尔卡那的人格面具计算，点数 ×1.51。");
-        TEXT.put("charm_bonus", "魅力达到 Lv.6 后，社群点数按 ×1.51 计算。");
-        TEXT.put("goal_buffer", "目标社群每次升级都多留一次会面的余量。");
+        put("按见面时带着同阿尔卡那的人格面具计算，点数 ×1.51。", "persona_bonus", "persona");
+        TEXT.put("charm_bonus", "魅力达到 MAX 后，社群点数按 ×1.51 计算。");
+        TEXT.put("goal_buffer", "目标社群每次升级都多留一次见面的余量。");
         put("打工收入按最低档工资估计，实际可能更多。", "job_pay_minimum", "job_min_pay");
         put("塔尔塔罗斯的收入按你最近几次的记录估计。", "tower_income_estimate", "tower_income");
         put("假定这次进塔能顺利救出失踪者。", "rescue_on_visit", "rescue");
         TEXT.put("invite", "这是假日邀约，接受后会占用白天。");
         TEXT.put("stat_lower_bound", "个人能力值按当前等级的最低点数估计。");
-        put("剧情推进前这个社群暂时无法升级，这次只加点数。", "rank_hold", "hold");
+        put("剧情推进前这个社群暂时升不了，这次只加点数。", "rank_hold", "hold");
+        put("结缘网站的字条加的点数是估计值，而且不会直接升级。", "dating_note", "dating_note_gain", "note_gain");
+        put("羁绊剧情不加社群点数，只是按你的选择留出时段。", "episode", "link_episode");
     }
 
     private static void put(String text, String... ids) {
@@ -65,29 +67,55 @@ public final class Assumptions {
         return out;
     }
 
+    /** Settings-page wording for each 人格面具 choice (also used on the confirm page). */
+    static String personaSummary(Profile.PersonaMode mode) {
+        switch (mode) {
+            case ALL:
+                return "基本都带，见面点数都按 ×1.51 算";
+            case GOALS:
+                return "只给目标社群带，目标社群按 ×1.51 算";
+            default:
+                return "不带或不一定，都按不带算";
+        }
+    }
+
     /** The global assumptions for the 规划说明 page, reflecting the player's settings. */
     public static List<String> global(Profile profile) {
         List<String> out = new ArrayList<>();
-        out.add("计划从你记录的当前时段开始，排到 1月31日 白天，每个白天和晚上都有安排。");
-        out.add("社群好感点数在游戏里看不到，这里一律按保守的下限估计，带「≈」的升级是估计。");
-        out.add("普通会面按每次 +10 点估计；升级场景按选最好回答时的点数计算。");
-        if (profile != null && profile.personaBonus) {
-            out.add("你选择了约会时带着同阿尔卡那的人格面具：点数 ×1.51。");
-        } else {
-            out.add("默认不计同阿尔卡那人格面具的加成（×1.51），可在「规划设置」里打开。");
+        Profile p = profile == null ? new Profile() : profile;
+        out.add("从你最后记录的时段开始，一直排到1月31日白天，每个白天和晚上都有安排。");
+        out.add("社群点数在游戏里看不到，这里一律按保守的估计值计算，带「≈」的升级是估计。");
+        out.add("普通见面按每次 +10 点估计；升级那次按选最好回答时的点数计算。");
+        switch (p.effectivePersonaMode()) {
+            case ALL:
+                out.add("你选了见面时基本都带同阿尔卡那的人格面具：所有社群的点数都按 ×1.51 计算。");
+                break;
+            case GOALS:
+                out.add("你选了只给目标社群带同阿尔卡那的人格面具：目标社群的点数按 ×1.51 计算，其余社群按不带算。"
+                    + "安排里会提醒你带哪个阿尔卡那。");
+                break;
+            default:
+                out.add("默认按不带同阿尔卡那的人格面具计算（带着时点数 ×1.51），可在「规划设置」里改。");
+                break;
         }
-        if (profile == null || profile.charmBonus) {
-            out.add("预计魅力达到 Lv.6 后，社群点数按 ×1.51 计算。");
+        if (p.charmBonus) {
+            out.add("预计魅力达到 MAX 后，社群点数按 ×1.51 计算。");
         }
-        if (profile == null || profile.goalBuffer) {
-            out.add("目标社群每次升级多留一次会面的余量，以防估计偏高。");
+        if (p.goalBuffer) {
+            out.add("目标社群每次升级多留一次见面的余量，以防估计偏高。");
         }
-        out.add("每个时段都挑最划算的事：能推进目标的会面优先，其次是打工、学习等有收获的安排；"
+        out.add("每个时段都挑最划算的事：能推进目标的见面优先，其次是打工、学习等有收获的事；"
             + "只有确实没有可做的事时才会留作自由活动。");
+        if (p.datingNotes) {
+            out.add("结缘网站的字条能给一个已解锁、还没 MAX 的社群加好感，但不会直接升级；买得到之后才会安排。");
+        }
+        if (p.episodeTracks.length > 0) {
+            out.add("你勾选的羁绊剧情会在能看的日子留出时段；它们不加社群点数。");
+        }
         out.add("收入只计算打工（按最低档工资）；塔尔塔罗斯的收入默认不计。");
-        out.add("课堂答题、考试等剧情里的额外收获不计入预测，回来时用「同步现状」更新即可。");
-        out.add("12月24日 默认不接受邀约；1月21日 白天按剧情占用处理。");
-        out.add("计划不保证是最优，只保证每一步都合规、能接上后面的安排。");
+        out.add("课堂答题、考试等剧情里的额外收获不计入预测，回来时用「同步现状」更新就行。");
+        out.add("12月24日默认不接受邀约；1月21日白天按剧情占用处理。");
+        out.add("这不一定是最好的排法，但每一步在游戏里都做得到，前后也接得上。");
         return out;
     }
 }

@@ -8,7 +8,7 @@ import app.p3r.dayplanner.v3.model.Profile;
 final class Goals {
     private Goals() {}
 
-    /** Next tier in the cycle 「—」→「想要」→「必须」→「—」. */
+    /** Next tier in the cycle 「未选」→「想要」→「必须」→「未选」. */
     static Profile.Tier next(Profile.Tier tier) {
         switch (tier) {
             case NONE:
@@ -71,7 +71,7 @@ final class Goals {
             case WANT:
                 return "想要";
             default:
-                return "—";
+                return "未选";
         }
     }
 }

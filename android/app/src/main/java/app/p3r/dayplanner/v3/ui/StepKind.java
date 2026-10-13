@@ -12,14 +12,18 @@ public enum StepKind {
     SOCIAL_RANK_UP("社群", R.drawable.ui_ic_social),
     /** Social link meeting without a predicted rank-up (points only). */
     SOCIAL_MEET("社群", R.drawable.ui_ic_social),
-    /** A preparation step that opens a link. */
+    /** 结缘网站的字条: points for one established link, bought at the club and used on the dorm PC. */
+    NOTE("社群 · 字条", R.drawable.ui_ic_note),
+    /** A preparation step that unlocks a link. */
     UNLOCK("解锁社群", R.drawable.ui_ic_unlock),
     /** Training / meals / anything that raises 个人能力值. */
     STAT("个人能力值", R.drawable.ui_ic_stat),
     /** 打工. */
     JOB("打工", R.drawable.ui_ic_job),
-    /** Exploring 塔尔塔罗斯. */
+    /** 探索塔尔塔罗斯. */
     TOWER("塔尔塔罗斯", R.drawable.ui_ic_tower),
+    /** The next 羁绊剧情 of an opted-in track (items and characteristics, no link points). */
+    EPISODE("羁绊剧情", R.drawable.ui_ic_episode),
     /** Story or calendar lock; nothing to choose. */
     LOCKED("剧情", R.drawable.ui_ic_locked),
     /** Nothing productive is possible. */
@@ -33,14 +37,25 @@ public enum StepKind {
         this.iconRes = iconRes;
     }
 
-    /** Classifies a step by its coarse {@code kind} and prediction. */
+    /** Classifies a step by its action key (note/episode) or coarse {@code kind} and prediction. */
     public static StepKind of(Plan.Step step) {
         if (step == null) {
             return FREE;
         }
+        String action = step.action == null ? "" : step.action;
+        if (action.startsWith("note:")) {
+            return NOTE;
+        }
+        if (action.startsWith("episode:")) {
+            return EPISODE;
+        }
         switch (step.kind == null ? "" : step.kind) {
             case "social":
                 return step.predicted != null && step.predicted.rankUp ? SOCIAL_RANK_UP : SOCIAL_MEET;
+            case "note":
+                return NOTE;
+            case "episode":
+                return EPISODE;
             case "unlock":
                 return UNLOCK;
             case "stat":
@@ -67,5 +82,10 @@ public enum StepKind {
     /** True for kinds where 做不了 / 改做别的 make sense. */
     public boolean deviatable() {
         return this != LOCKED;
+    }
+
+    /** True for the social kinds whose result depends on a rank (meetings). */
+    public boolean social() {
+        return this == SOCIAL_RANK_UP || this == SOCIAL_MEET;
     }
 }

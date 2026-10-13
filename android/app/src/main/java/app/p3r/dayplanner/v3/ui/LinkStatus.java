@@ -24,7 +24,7 @@ public final class LinkStatus {
     public final int targetSlot;
     public final boolean story;
     public final boolean lost;
-    /** Short footer for the card, e.g. "预计 11/20 MAX" or "时间不够：优先级低于 恋爱". */
+    /** Short footer for the card, e.g. "预计 11/20 升到 MAX" or "时间不够，先让给了恋爱". */
     public final String footZh;
     /** Compact chip text, e.g. "皇帝 6→MAX · 预计 11/20". */
     public final String chipZh;
@@ -54,50 +54,78 @@ public final class LinkStatus {
             targetSlot = plan.summary.maxSlot[linkIdx];
         }
         boolean story = link.kind == Rules.LinkKind.STORY;
-        boolean lost = isLost(rules, observed, linkIdx);
+        Rules.Rescue missed = missedRescue(rules, observed, linkIdx);
+        boolean lost = missed != null;
         boolean goal = profile != null && profile.isGoal(linkIdx);
         String name = link.arcanaZh;
         String foot;
         String chip;
         if (obs >= target) {
-            foot = target >= 10 ? "已 MAX" : "已达到 " + Zh.rank(target);
+            foot = target >= 10 ? "已经 MAX" : "已达到 " + Zh.rank(target);
             chip = name + " " + Zh.rankValue(obs) + " ✓";
         } else if (lost) {
-            foot = "失踪者没能获救，这个社群无法继续";
+            foot = failed(rules, observed, missed) ? "没能救出失踪者，这个社群无法继续"
+                : "还没记录救出" + missed.zh + "，可以在「修改进度」里补上";
             chip = name + " 无法继续";
         } else if (targetSlot >= 0) {
             String when = Zh.shortDate(Rules.dayOf(targetSlot));
-            foot = "预计 " + when + (target >= 10 ? " MAX" : " 到 " + Zh.rank(target));
+            foot = "预计 " + when + " 升到 " + (target >= 10 ? "MAX" : Zh.rank(target));
             chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(target) + " · 预计 " + when;
         } else if (story) {
             foot = "剧情自动推进";
-            chip = name + " " + Zh.rankValue(obs) + " · 剧情推进";
+            chip = name + " " + Zh.rankValue(obs) + " · 剧情自动推进";
         } else if (plan == null) {
             foot = "等待安排";
             chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(target);
         } else if (projected >= target) {
-            foot = target >= 10 ? "预计 1月31日前 MAX" : "预计达到 " + Zh.rank(target);
+            foot = target >= 10 ? "预计1月31日前升到 MAX" : "预计升到 " + Zh.rank(target);
             chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(target);
         } else if (!goal && projected <= obs) {
-            foot = obs == 0 ? "这次计划里暂不建立" : "这次计划里暂不提升";
+            foot = obs == 0 ? "暂时不安排解锁" : "暂时不安排提升";
             chip = name + " " + Zh.rankValue(obs);
         } else {
-            String end = "到 " + Zh.date(Rules.dayOf(plan.toSlot)) + " 预计 " + Zh.rank(projected);
+            String end = "到" + Zh.date(Rules.dayOf(plan.toSlot)) + "预计只能到 " + Zh.rank(projected);
             String blocker = goal ? higherPriorityBlocker(rules, profile, plan, linkIdx) : null;
-            foot = blocker == null ? end : "时间不够：优先级低于 " + blocker;
+            foot = blocker == null ? end : "时间不够，先让给了" + blocker;
             chip = name + " " + Zh.rankValue(obs) + "→" + Zh.rankValue(projected) + " · 时间不够";
         }
         return new LinkStatus(linkIdx, obs, projected, target, targetSlot, story, lost, foot, chip);
     }
 
-    /** True when the link's rescue failed (the link cannot continue). */
+    /** True when the link cannot continue: its rescue failed, or its window passed without one. */
     static boolean isLost(Rules rules, SimState observed, int linkIdx) {
+        return missedRescue(rules, observed, linkIdx) != null;
+    }
+
+    /**
+     * The rescue this link depends on when it is lost: marked failed, or its deadline has passed
+     * and no rescue was recorded (the planner then never schedules the link). Null otherwise.
+     */
+    static Rules.Rescue missedRescue(Rules rules, SimState observed, int linkIdx) {
         if (observed == null) {
-            return false;
+            return null;
         }
+        int day = Rules.dayOf(observed.slot);
         for (int i = 0; i < rules.rescues.length; i++) {
-            if (rules.rescues[i].link == linkIdx && (observed.rescueFailed & (1L << i)) != 0) {
-                return true;
+            Rules.Rescue r = rules.rescues[i];
+            if (r.link != linkIdx) {
+                continue;
+            }
+            long bit = 1L << i;
+            if ((observed.rescueFailed & bit) != 0) {
+                return r;
+            }
+            if ((observed.rescued & bit) == 0 && day > r.toDay) {
+                return r;
+            }
+        }
+        return null;
+    }
+
+    private static boolean failed(Rules rules, SimState observed, Rules.Rescue rescue) {
+        for (int i = 0; i < rules.rescues.length; i++) {
+            if (rules.rescues[i] == rescue) {
+                return (observed.rescueFailed & (1L << i)) != 0;
             }
         }
         return false;
