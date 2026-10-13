@@ -777,7 +777,9 @@ public final class PlannerService implements PlannerApi {
             fillRevisions(receipt, model.view);
         }
         if (changed) {
-            replanner.cancelOutdated(receipt.stateRevision, receipt.profileRevision);
+            if (wiring.cancelSupersededPlans) {
+                replanner.cancelOutdated(receipt.stateRevision, receipt.profileRevision);
+            }
             replanner.schedule();
             refreshWidgets();
             notifyListeners();

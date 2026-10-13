@@ -26,6 +26,12 @@ public final class Wiring {
     public LongSupplier clock = System::currentTimeMillis;
     /** Soft time budget per plan (DESIGN §10.6: 2.5 s on device). */
     public long planBudgetMillis = 2500;
+    /**
+     * Stop a computation early when a write makes it outdated. Its result would be discarded by
+     * the revision check on install anyway; turning this off only costs time (tests use it to
+     * exercise that check on its own).
+     */
+    public boolean cancelSupersededPlans = true;
     /** Database file name. */
     public String databaseName = PlanDb.FILE_NAME;
 }

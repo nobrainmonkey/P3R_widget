@@ -34,6 +34,8 @@ abstract class ServiceTestBase {
     Fakes.Forecaster forecaster;
     final AtomicInteger widgetRefreshes = new AtomicInteger();
     volatile long now = START_MILLIS;
+    /** Copied into the wiring of services opened afterwards. */
+    boolean cancelSupersededPlans = true;
     PlannerService service;
     private final List<PlannerService> opened = new ArrayList<>();
 
@@ -71,6 +73,7 @@ abstract class ServiceTestBase {
         wiring.widgetRefresh = widgetRefreshes::incrementAndGet;
         wiring.clock = () -> now;
         wiring.planBudgetMillis = 50;
+        wiring.cancelSupersededPlans = cancelSupersededPlans;
         wiring.databaseName = databaseName;
         PlannerService s = PlannerService.create(context, wiring);
         opened.add(s);

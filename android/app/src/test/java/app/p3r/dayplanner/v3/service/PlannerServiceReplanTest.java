@@ -86,6 +86,27 @@ public class PlannerServiceReplanTest extends ServiceTestBase {
     }
 
     @Test
+    public void theRevisionCheckAloneKeepsAStaleResultOut() throws Exception {
+        cancelSupersededPlans = false;
+        restart();
+        CountDownLatch gate = new CountDownLatch(1);
+        planner.blockFirstCall = gate;
+        onboard(MAY12_DAY);
+        assertTrue(planner.firstCallEntered.await(10, TimeUnit.SECONDS));
+        assertTrue(record(MAY12_DAY, "meet:emperor", Outcome.Code.AS_PREDICTED).ok);
+        assertFalse(planner.options.get(0).cancelled.get());
+        gate.countDown();
+        settle();
+
+        assertEquals(2, planner.calls.get());
+        assertEquals("the result for revision 1 was validated but never installed",
+                List.of(1L, 2L), validator.validatedRevisions);
+        assertEquals("so it was not offered as the previous plan either", "", planner.previousIds.get(1));
+        assertEquals(2, service.snapshot().plan.stateRevision);
+        assertTrue(service.snapshot().planCurrent);
+    }
+
+    @Test
     public void aBurstOfWritesIsCoalescedIntoOneRecomputation() throws Exception {
         CountDownLatch gate = new CountDownLatch(1);
         planner.blockFirstCall = gate;
