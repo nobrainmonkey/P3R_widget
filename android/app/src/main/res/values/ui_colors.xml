@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- UI-module colour tokens layered on the shared p3r_* palette (docs/DESIGN_v3.md §7.3). -->
+<resources>
+    <!-- Card surfaces: translucent navy over the ocean background. -->
+    <color name="ui_card">#E60B1E57</color>
+    <color name="ui_card_raised">#F0102A6E</color>
+    <color name="ui_card_sunken">#B3040D2E</color>
+    <!-- Hero card gradient. -->
+    <color name="ui_hero_start">#FF1650D0</color>
+    <color name="ui_hero_end">#FF0A1C52</color>
+    <!-- Overlays. -->
+    <color name="ui_scrim">#B3020616</color>
+    <color name="ui_sheet">#FF0A1A4C</color>
+    <!-- Ink for unavailable / story-locked items (contrast about 5.9:1 on navy 900). -->
+    <color name="ui_locked">#7F93C0</color>
+    <!-- Cyan at low alpha for selection fills and light shafts. -->
+    <color name="ui_cyan_soft">#333CE4FF</color>
+    <color name="ui_cyan_faint">#1A3CE4FF</color>
+    <!-- Gold accent for attention: the return banner, notices and values marked "?". -->
+    <color name="ui_gold">#FFD166</color>
+</resources>
