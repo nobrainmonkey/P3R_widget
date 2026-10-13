@@ -66,6 +66,51 @@ public class CardRendererTest {
         assertTrue(String.join("\n", issues), issues.isEmpty());
     }
 
+    /**
+     * With {@link CardModel#keepWordsWhole} (the plan widget) names and venues stay whole at every
+     * size and font scale, while the drawn text reads the same.
+     */
+    @Test
+    public void namesAndVenuesStayWholeWhenTheTitleWraps() {
+        Context c = RuntimeEnvironment.getApplication();
+        List<String> issues = new ArrayList<>();
+        String[][] cards = {
+                {"皇帝 · 小田桐秀利", "月光馆学园 3楼 走廊"},
+                {"结缘网站的字条 · 山岸风花", "桐叶购物中心 · 放纵俱乐部"},
+                {"羁绊剧情 · 伊织顺平（第 2 话）", "月光馆学园 2楼 教室"},
+                {"在夏卡尔咖啡店喝费洛蒙咖啡", "桐叶购物中心 · 夏卡尔咖啡店"},
+                {"在电玩大巡游游玩「你就是答案」", "桐叶购物中心 · 电玩大巡游"}};
+        for (float scale : new float[]{1f, 1.3f}) {
+            RuntimeEnvironment.setFontScale(scale);
+            for (String[] card : cards) {
+                for (int[] size : new int[][]{{180, 130}, {180, 150}, {250, 160}, {320, 200}}) {
+                    CardModel m = sample(false);
+                    m.keepWordsWhole = true;
+                    m.title = card[0];
+                    m.location = card[1];
+                    View root = RenderSupport.layout(c, CardRenderer.render(c, m, size[0], size[1]), size[0], size[1]);
+                    String tag = card[0] + "@" + size[0] + "x" + size[1] + "x" + scale;
+                    RenderSupport.collectWordSplits(root, tag, issues);
+                    TextView title = root.findViewById(R.id.widget_task);
+                    assertEquals(tag, card[0], CardText.plain(title.getText().toString()));
+                    String drawn = title.getText().toString();
+                    for (String word : new String[]{"小田桐秀利", "山岸风花", "伊织顺平", "夏卡尔咖啡店", "费洛蒙咖啡", "你就是答案"}) {
+                        if (!card[0].contains(word)) continue;
+                        for (int line = 0; line < title.getLineCount() - 1; line++) {
+                            int end = title.getLayout().getLineEnd(line);
+                            String before = CardText.plain(drawn.substring(0, end));
+                            String after = CardText.plain(drawn.substring(end));
+                            boolean split = !before.contains(word) && !after.contains(word);
+                            if (split && before.length() < card[0].length()) issues.add(tag + " splits " + word + ": " + before + " / " + after);
+                        }
+                    }
+                }
+            }
+        }
+        RuntimeEnvironment.setFontScale(1f);
+        assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
     /** A wrapped title breaks before 「（第 2 话）」, never inside it. */
     @Test
     public void aNumberStaysWithItsWordsWhenTheTitleWraps() {

@@ -13,7 +13,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.RemoteViews;
 
-import java.util.regex.Pattern;
+import java.util.Objects;
 
 import app.p3r.dayplanner.R;
 
@@ -63,6 +63,12 @@ public final class CardRenderer {
     private static final float TAG_MARGIN_DP = 8f;
     /** Gap between the kind mark and the title (dp). Mirrors the layout XML. */
     private static final float TITLE_ICON_GAP_DP = 4f;
+    /** Text size (sp), line spacing (dp) and top gap (dp) of the dialogue line. Mirrors the layout XML. */
+    static final float DIALOGUE_SP = 12f;
+    private static final float DIALOGUE_SPACING_DP = 1f;
+    private static final float DIALOGUE_GAP_DP = 3f;
+    /** Most lines an optional dialogue line ({@link CardModel#dialogueOptional}) may take. */
+    public static final int MAX_DIALOGUE_LINES = 2;
 
     private CardRenderer() {}
 
@@ -234,7 +240,8 @@ public final class CardRenderer {
 
     /** As {@link #cueRowHeightDp(Context, CardModel, WidgetSize)} for a body {@code widthDp} wide. */
     static float cueRowHeightDp(Context c, CardModel model, WidgetSize size, float widthDp) {
-        return isBlank(model.cue) ? 0 : textHeightDp(c, model.cue, cueTextSp(size), false, widthDp, 1) + ROW_GAP_DP;
+        if (isBlank(model.cue)) return 0;
+        return textHeightDp(c, model.cue, cueTextSp(size), false, widthDp, Math.max(1, model.cueMaxLines)) + ROW_GAP_DP;
     }
 
     /** Height in dp of the reminder line (with its 12dp mark) including its top gap (0 if hidden). */
@@ -272,15 +279,30 @@ public final class CardRenderer {
      */
     public static RemoteViews render(Context context, CardModel model, float widthDp, float heightDp) {
         WidgetSize size = WidgetSize.of(widthDp, heightDp);
-        CardModel shown = model;
-        String title = keepNumbersTogether(model.title);
-        if (title != null && !title.equals(model.title)) {
-            // Measure the title exactly as it will wrap.
-            shown = model.copy();
-            shown.title = title;
-        }
-        CardModel fitted = fitHeader(context, fit(context, shown, size, widthDp, heightDp), size, widthDp);
+        CardModel fitted = fitHeader(context, fit(context, shaped(model), size, widthDp, heightDp), size, widthDp);
         return render(context, fitted, size);
+    }
+
+    /**
+     * {@code model} with its wrapping text shaped for line breaks ({@link CardText}), so it is measured
+     * exactly as it will wrap: the title keeps numbers with their words and, with
+     * {@link CardModel#keepWordsWhole}, names whole and every dialogue choice whole (the legacy guide
+     * shapes its choices itself). Returns {@code model} itself when nothing changes.
+     */
+    static CardModel shaped(CardModel model) {
+        String title = model.keepWordsWhole
+                ? CardText.title(model.title, CardText.locationWords(model.location))
+                : keepNumbersTogether(model.title);
+        String dialogue = model.keepWordsWhole ? CardText.choices(model.dialogue) : model.dialogue;
+        String cue = model.keepWordsWhole && model.cueMaxLines > 1 ? CardText.sentence(model.cue) : model.cue;
+        boolean same = Objects.equals(title, model.title) && Objects.equals(dialogue, model.dialogue)
+                && Objects.equals(cue, model.cue);
+        if (same) return model;
+        CardModel shown = model.copy();
+        shown.title = title;
+        shown.dialogue = dialogue;
+        shown.cue = cue;
+        return shown;
     }
 
     /**
@@ -288,10 +310,8 @@ public final class CardRenderer {
      * wraps before 「（」 and never as 「第 2」 / 「话）」.
      */
     static String keepNumbersTogether(String text) {
-        return text == null ? null : NUMBER_SPACE.matcher(text).replaceAll("\u00A0");
+        return CardText.keepNumbersTogether(text);
     }
-
-    private static final Pattern NUMBER_SPACE = Pattern.compile("(?<=\\d) (?=\\S)|(?<=\\S) (?=\\d)");
 
     /** Plate numeral size in dp per bucket. Mirrors the layout XML. */
     static float dateTextDp(WidgetSize size) {
@@ -365,10 +385,12 @@ public final class CardRenderer {
 
     /**
      * Gives the title room before optional rows. The cue line goes first (unless
-     * {@link CardModel#cueEssential}) when the title would otherwise drop below a comfortable size.
-     * When the title would not fit even at its smallest size, the reminder line goes, then the
-     * side-step line, then the tag/location row, then the cue. Also caps the tag chip so a location
-     * beside it keeps some room. Returns {@code model} itself when nothing changes.
+     * {@link CardModel#cueEssential}) when the title would otherwise drop below a comfortable size,
+     * then an optional dialogue line ({@link CardModel#dialogueOptional}; it also goes when it
+     * needs more than {@link #MAX_DIALOGUE_LINES} lines). When the title would not fit even at its
+     * smallest size, the reminder line goes, then the side-step line, then the tag/location row,
+     * then the cue. Also caps the tag chip so a location beside it keeps some room, and hides the
+     * day numeral behind a shown dialogue line. Returns {@code model} itself when nothing changes.
      */
     static CardModel fit(Context c, CardModel model, WidgetSize size, float widthDp, float heightDp) {
         float body = heightDp - chromeHeightDp(size) + (model.tightBody ? bodyVerticalPaddingDp(size) : 0);
@@ -377,21 +399,38 @@ public final class CardRenderer {
         int lines = Math.max(1, model.titleMaxLines);
         float comfortable = textHeightDp(c, model.title, comfortableTitleSp(size), true, titleWidth, lines);
         float smallest = textHeightDp(c, model.title, MIN_TITLE_SP, true, titleWidth, lines);
-        float dialogue = isBlank(model.dialogue) ? 0 : 3 + textHeightDp(c, model.dialogue, 12, false, innerWidth, 20, 1);
+        float dialogue = dialogueRowHeightDp(c, model, innerWidth);
         CardModel fitted = model;
+        if (dialogue > 0 && model.dialogueOptional && dialogueLines(c, model.dialogue, innerWidth) > MAX_DIALOGUE_LINES) {
+            fitted = model.copy();
+            fitted.dialogue = null;
+            dialogue = 0;
+        }
         float tagMax = tagMaxWidthDp(c, model, size, innerWidth);
         if (tagMax != model.tagMaxWidthDp) {
-            fitted = model.copy();
+            if (fitted == model) fitted = model.copy();
             fitted.tagMaxWidthDp = tagMax;
         }
         float meta = metaRowHeightDp(c, fitted, size, innerWidth);
         float hint = hintRowHeightDp(c, fitted, size, innerWidth);
         float side = sideRowHeightDp(c, fitted, size, innerWidth);
         float cue = cueRowHeightDp(c, fitted, size, innerWidth);
+        if (cue > 0 && fitted.cueMaxLines > 1 && smallest + dialogue + meta + hint + side + cue > body) {
+            // A wrapping cue that does not fit goes back to one line (ending in "…") before anything goes.
+            if (fitted == model) fitted = fitted.copy();
+            fitted.cueMaxLines = 1;
+            cue = cueRowHeightDp(c, fitted, size, innerWidth);
+        }
         if (cue > 0 && !model.cueEssential && comfortable + dialogue + meta + hint + side + cue > body) {
             if (fitted == model) fitted = fitted.copy();
             fitted.cue = null;
             cue = 0;
+        }
+        // An optional dialogue line is the next extra to go: it never squeezes the title either.
+        if (dialogue > 0 && model.dialogueOptional && comfortable + dialogue + meta + hint + side + cue > body) {
+            if (fitted == model) fitted = fitted.copy();
+            fitted.dialogue = null;
+            dialogue = 0;
         }
         if (hint > 0 && smallest + dialogue + meta + hint + side + cue > body) {
             if (fitted == model) fitted = fitted.copy();
@@ -429,7 +468,24 @@ public final class CardRenderer {
             if (fitted == model) fitted = fitted.copy();
             fitted.titleTop = top;
         }
+        // Full-width dialogue lines stay clear of the outlined day numeral (as the legacy guide does).
+        if (dialogue > 0 && fitted.watermarkDay >= 0) {
+            if (fitted == model) fitted = fitted.copy();
+            fitted.watermarkDay = -1;
+        }
         return fitted;
+    }
+
+    /** Height in dp of the dialogue line including its top gap (0 if hidden). */
+    static float dialogueRowHeightDp(Context c, CardModel model, float widthDp) {
+        if (isBlank(model.dialogue)) return 0;
+        return DIALOGUE_GAP_DP + textHeightDp(c, model.dialogue, DIALOGUE_SP, false, widthDp, 20, DIALOGUE_SPACING_DP);
+    }
+
+    /** Lines the dialogue text wraps to at {@code widthDp}. */
+    static int dialogueLines(Context c, String text, float widthDp) {
+        if (isBlank(text)) return 0;
+        return layout(c, text, DIALOGUE_SP, Typeface.DEFAULT, widthDp, Integer.MAX_VALUE, DIALOGUE_SPACING_DP).getLineCount();
     }
 
     /** Renders {@code model} into the layout of {@code size}. */
@@ -585,6 +641,7 @@ public final class CardRenderer {
 
         setTextOrHide(views, R.id.widget_detail_cue, model.cue);
         views.setTextColor(R.id.widget_detail_cue, soft);
+        views.setInt(R.id.widget_detail_cue, "setMaxLines", Math.max(1, model.cueMaxLines));
     }
 
     /** Kind mark drawable (tinted with the ink at runtime), or 0 for none. */

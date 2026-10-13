@@ -171,11 +171,13 @@ final class PlanView {
     CardModel toCard(Rules rules) {
         CardModel m = new CardModel();
         m.night = night();
+        m.keepWordsWhole = true;
         switch (mode) {
             case EMPTY:
                 brandPlate(m);
                 m.title = "设置目标，从当前存档开始";
                 m.cue = "填好进度后，每天点「完成」就行";
+                m.cueMaxLines = 2;
                 m.taskDescription = "还没有安排。点击开始设置";
                 m.currentVisible = false;
                 m.doneLabel = "开始设置";
@@ -216,10 +218,12 @@ final class PlanView {
             boolean unreadable = snapshot == null || snapshot.observed == null;
             m.title = unreadable ? "暂时读不到安排" : "暂时没有安排";
             m.cue = error == null ? "点开应用看看" : error;
+            m.cueEssential = true; // what went wrong and what to do: the only instruction on the card
         } else {
             m.title = "后面没有要做的安排了";
             m.cue = "可以在应用里查看完整日程";
         }
+        m.cueMaxLines = 2; // the cue is the card's instruction: let it wrap rather than end in "…"
         m.taskDescription = m.title + "。点击打开应用";
         m.currentEnabled = false;
         m.currentDescription = "当前：现在没有可以回到的安排";
@@ -241,6 +245,9 @@ final class PlanView {
         m.hint = copy.hint;
         m.side = copy.side;
         m.cue = cueFor(step, copy, rules);
+        // The guide's answers for this meeting, as the app shows them; the card keeps it if it fits.
+        m.dialogue = GuideDialogue.line(rules, step);
+        m.dialogueOptional = true;
         m.taskDescription = describe(m) + "。点击查看详情";
         switch (done) {
             case COMMIT:
@@ -369,6 +376,7 @@ final class PlanView {
         if (m.location != null) sb.append("，地点：").append(m.location);
         if (m.hint != null) sb.append("。").append(m.hint);
         if (m.side != null) sb.append("。").append(m.side);
+        if (m.dialogue != null) sb.append("。").append(m.dialogue);
         return sb.toString();
     }
 

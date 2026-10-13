@@ -99,8 +99,9 @@ public class PlanWidgetBehaviourTest {
         return flipper.getCurrentView();
     }
 
+    /** The text a reader sees (the invisible line-break marks removed). */
     private String text(int viewId) {
-        return ((TextView) card().findViewById(viewId)).getText().toString();
+        return CardText.plain(((TextView) card().findViewById(viewId)).getText().toString());
     }
 
     private void tap(int viewId) {
@@ -344,7 +345,7 @@ public class PlanWidgetBehaviourTest {
         fake.plan.steps.set(2, FakePlannerApi.episodeStep(S + 2));
         fake.plan.steps.set(3, FakePlannerApi.noteStep(S + 3));
         String[][] cases = {
-                {"episode:junpei", "羁绊剧情 · 伊织顺平（第\u00A02\u00A0话）"}, // non-breaking around the number
+                {"episode:junpei", "羁绊剧情 · 伊织顺平（第 2 话）"}, // as read; the render tests check where it wraps
                 {"note:priestess", "结缘网站的字条 · 山岸风花"},
                 {"free", "自由活动"}};
         for (String[] c : cases) {
