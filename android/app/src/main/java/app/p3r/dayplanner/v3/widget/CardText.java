@@ -122,6 +122,7 @@ public final class CardText {
             joinDictionaryWords(s, join);
             joinNumbersAndSymbols(s, join);
             joinCounts(s, join);
+            joinBeforeClosing(s, join);
         } else {
             joinBrackets(s, join, '「', '」');
         }
@@ -342,6 +343,20 @@ public final class CardText {
                 } else if (number && s.startsWith(TWO_CHAR_UNITS, end)) {
                     joinRange(s, join, end - 1, end + TWO_CHAR_UNITS.length());
                 }
+            }
+        }
+    }
+
+    /**
+     * The last two characters before a closing bracket stay together, so a line never holds one
+     * character and the bracket alone (「探索并救人（2个，不算 / 猫）」 → 「不算猫）」 on the next line).
+     */
+    private static void joinBeforeClosing(String s, boolean[] join) {
+        for (int i = 2; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if ((ch == '）' || ch == ')' || ch == '」' || ch == '』' || ch == '】')
+                    && isHan(s.charAt(i - 1)) && isHan(s.charAt(i - 2))) {
+                join[i - 1] = true;
             }
         }
     }

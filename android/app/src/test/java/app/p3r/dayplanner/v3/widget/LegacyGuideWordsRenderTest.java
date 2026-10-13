@@ -167,7 +167,10 @@ public class LegacyGuideWordsRenderTest {
         return out;
     }
 
-    /** A count 「（2）」「（1个）」 never starts a line: it stays with what it counts. */
+    /**
+     * A count 「（2）」「（1个）」 never starts a line (it stays with what it counts), and no line holds a
+     * single character with only punctuation after it (「猫）」).
+     */
     private static void countsStayAttached(TextView title, String tag, List<String> issues) {
         android.text.Layout layout = title.getLayout();
         if (layout == null) return;
@@ -175,6 +178,7 @@ public class LegacyGuideWordsRenderTest {
         for (int line = 1; line < layout.getLineCount(); line++) {
             String start = CardText.plain(text.substring(layout.getLineStart(line), layout.getLineEnd(line))).trim();
             if (start.matches("^（\\d{1,2}\\p{IsHan}?）.*")) issues.add(tag + " starts a line with a count: '" + start + "'");
+            if (start.matches("^\\p{IsHan}[）)」』】，。、；：！？]*$")) issues.add(tag + " leaves one character alone on a line: '" + start + "'");
         }
     }
 
