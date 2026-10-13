@@ -221,6 +221,11 @@ public final class Outcomes {
         return dot > 0 && "social".equals(step.kind) ? title.substring(0, dot) : title;
     }
 
+    /** "皇帝 RANK 7" / "皇帝 升到 MAX" (the glossary never writes "RANK MAX"). */
+    static String rankResult(String name, int rank) {
+        return rank >= 10 ? name + " 升到 MAX" : name + " " + Zh.rank(rank);
+    }
+
     /** Undo-bar text after recording, e.g. "皇帝 RANK 7", "恋爱 · 见面", "跳过 · 对方不在". */
     public static String summary(Rules rules, Plan.Step step, Outcome outcome) {
         String text = mainSummary(rules, step, outcome);
@@ -232,7 +237,7 @@ public final class Outcomes {
         StepKind kind = StepKind.of(step);
         switch (outcome.code) {
             case RANK_UP:
-                return name + " " + Zh.rank(outcome.rank);
+                return rankResult(name, outcome.rank);
             case NO_RANK_UP:
                 return name + " · 没升级";
             case SKIPPED:
@@ -254,7 +259,7 @@ public final class Outcomes {
                 return name + " · 没完成";
             case OTHER:
                 if (outcome.rank >= 0) {
-                    return name + " " + Zh.rank(outcome.rank);
+                    return rankResult(name, outcome.rank);
                 }
                 if (outcome.cashBalance >= 0) {
                     return name + " · 现金 " + Zh.yen(outcome.cashBalance);
@@ -263,7 +268,7 @@ public final class Outcomes {
             case AS_PREDICTED:
             default:
                 if (kind == StepKind.SOCIAL_RANK_UP && outcome.rank > 0) {
-                    return name + " " + Zh.rank(outcome.rank);
+                    return rankResult(name, outcome.rank);
                 }
                 if (kind == StepKind.SOCIAL_MEET) {
                     return name + " · 见面";

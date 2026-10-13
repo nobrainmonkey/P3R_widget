@@ -87,7 +87,7 @@ final class SchedulePage {
             if (!d.hasState()) {
                 text = "先在「今天」里完成设置，这里会显示到1月31日的完整日程。";
             } else if (plan == null) {
-                text = "正在安排整个日程…";
+                text = "正在排到1月31日的安排…";
             } else {
                 text = "日程已经全部结束。";
             }

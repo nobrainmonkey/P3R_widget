@@ -65,7 +65,7 @@ final class SettingsPage {
         cap.setListener(v -> edit(host, q -> q.towerCapPerBlock = Math.max(v, q.towerVisitsPerBlock)));
         column.addView(stepperCard(c, "每个区块平时去几次", "平时每个区块安排这么多次探索。", visits), gapTop(c, 4));
         column.addView(stepperCard(c, "每个区块最多去几次",
-            "包括救失踪者在内，每个区块进塔不超过这个次数。设成 0 就完全不安排探索，也不会去救失踪者。", cap),
+            "包括救失踪者在内，每个区块最多去这么多次塔尔塔罗斯。设成 0 就完全不安排探索，也不会去救失踪者。", cap),
             gapTop(c, 8));
 
         column.addView(Ui.sectionHeader(c, "现金", null), gapTop(c, 20));
@@ -79,7 +79,9 @@ final class SettingsPage {
     /** "在放纵俱乐部买结缘网站的字条…" with the price and the first day it can be bought. */
     static String datingNoteText(Rules.DatingNote note) {
         StringBuilder sb = new StringBuilder();
-        String where = note.locationZh == null || note.locationZh.isEmpty() ? "放纵俱乐部" : note.locationZh;
+        // "桐叶购物中心 · 放纵俱乐部" is a label; inside a sentence it reads "桐叶购物中心的放纵俱乐部".
+        String where = note.locationZh == null || note.locationZh.trim().isEmpty() ? "放纵俱乐部"
+            : note.locationZh.trim().replaceAll("\\s*·\\s*", "的");
         sb.append("在").append(where).append("买结缘网站的字条，当晚回宿舍用公用电脑给一个已解锁的社群加好感，不会直接升级。");
         if (note.cost > 0) {
             sb.append("每张 ").append(Zh.yen(note.cost)).append("。");
@@ -93,7 +95,7 @@ final class SettingsPage {
     /** Title and one-line explanation of each 人格面具 choice (in {@link #PERSONA_MODES} order). */
     static final String[][] PERSONA_TEXT = {
         {"基本都带", "所有社群的点数都按 ×1.51 算。"},
-        {"只给目标社群带", "只有目标社群按 ×1.51 算；每次见目标社群前，安排会提醒你带上哪个阿尔卡那的人格面具。"},
+        {"只给目标社群带", "只有目标社群按 ×1.51 算；每次和目标社群的人见面前，会提醒你带哪个阿尔卡那的人格面具。"},
         {"不带/不一定", "都按不带算，最保守。拿不准就选这个。"},
     };
 

@@ -105,12 +105,14 @@ final class Fixtures {
             rescue("maiko", "舞子", day(10, 21), day(11, 2), 12),
         };
         r.episodes = new Rules.Episode[]{
-            episode(r, 0, "junpei", "伊织顺平", false, 4, day(5, 12), day(1, 29), "道具「顺平的棒球帽」"),
+            // Like the pack, rewardZh is a whole sentence ending in "。".
+            episode(r, 0, "junpei", "伊织顺平", false, 4, day(5, 12), day(1, 29),
+                "每一话都有小奖励（能力值或顺平的能力），看完第 4 话可以拿到道具「顺平的棒球帽」。"),
             episode(r, 1, "akihiko", "真田明彦", true, 3, day(6, 2), day(1, 28), null),
         };
         r.datingNote = new Rules.DatingNote();
         r.datingNote.zh = "结缘网站的字条";
-        r.datingNote.locationZh = "桐叶购物中心 放纵俱乐部";
+        r.datingNote.locationZh = "桐叶购物中心 · 放纵俱乐部";
         r.datingNote.fromDay = day(11, 11);
         r.datingNote.cost = 3000;
         r.datingNote.gain = 10;

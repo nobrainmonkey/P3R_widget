@@ -87,6 +87,8 @@ public final class StateDraft {
     Integer towerVisits;
     /** Rescue answers per index into {@code rules.rescues} ({@link #RESCUE_DONE} …), null = untouched. */
     final Integer[] rescue;
+    /** 羁绊剧情 watched per track (index into {@code rules.episodes}), null = untouched. */
+    final Integer[] episodes;
     String step;
 
     private int cachedPrefillSlot = Integer.MIN_VALUE;
@@ -103,6 +105,19 @@ public final class StateDraft {
         this.profile = this.originalProfile.copy();
         this.base = observed != null ? observed.copy() : newGame(rules);
         this.rescue = new Integer[rules.rescues.length];
+        this.episodes = new Integer[rules.episodes.length];
+    }
+
+    /**
+     * A copy of {@code state} fit to be saved as a new checkpoint without asking about rescues:
+     * {@code rescueFailed} bits are dropped. Such a bit in an observed state may come from a
+     * deadline the replay passed without a recorded rescue, and a checkpoint stores it as the
+     * player's own "没救出" (PlannerApi#saveCheckpoint); only an answer given now may set it.
+     */
+    public static SimState withoutUnconfirmedFailures(SimState state) {
+        SimState s = state.copy();
+        s.rescueFailed = 0;
+        return s;
     }
 
     /** A new-game state at the first free slot: everything at the bottom, cash unknown. */
@@ -249,20 +264,68 @@ public final class StateDraft {
         return Rules.dayOf(slot()) <= rules.rescues[index].toDay;
     }
 
-    /** Displayed answer: the edit, else what the record (or the forecast) says. */
+    /**
+     * Displayed answer: the edit, else "救出了" when the record (or the forecast) says so, else
+     * "不确定". A "没救出" in the prefill is never preselected: it may only come from a deadline the
+     * replay passed without a recorded rescue, and saving it would make it the player's answer.
+     */
     public int rescueAnswer(int index) {
         if (rescue[index] != null) {
             return rescue[index];
         }
         long bit = 1L << index;
-        SimState p = prefill();
-        if ((p.rescued & bit) != 0) {
-            return RESCUE_DONE;
+        return (prefill().rescued & bit) != 0 ? RESCUE_DONE : RESCUE_UNSURE;
+    }
+
+    /** True when the record says 没救出 for this rescue and the player has not answered here yet. */
+    public boolean recordSaysFailed(int index) {
+        return rescue[index] == null && (prefill().rescueFailed & (1L << index)) != 0
+            && (prefill().rescued & (1L << index)) == 0;
+    }
+
+    // ------------------------------------------------------------------ 羁绊剧情
+
+    /** Opted-in 羁绊剧情 tracks (indices into {@code rules.episodes}), asked on their own page. */
+    public List<Integer> episodeTracks() {
+        List<Integer> out = new ArrayList<>();
+        for (Rules.Episode track : rules.episodes) {
+            if (profile.wantsEpisodes(track.id)) {
+                out.add(track.idx);
+            }
         }
-        if ((p.rescueFailed & bit) != 0) {
-            return RESCUE_FAILED;
+        return out;
+    }
+
+    /** Episodes of a track already watched (0..count): the edit, else the record / forecast. */
+    public int episodesWatched(int track) {
+        if (episodes[track] != null) {
+            return episodes[track];
         }
-        return RESCUE_UNSURE;
+        return watched(rules, prefill(), track);
+    }
+
+    public void setEpisodesWatched(int track, int value) {
+        episodes[track] = Math.max(0, Math.min(rules.episodes[track].count, value));
+    }
+
+    /** True when the displayed count comes from the plan forecast and differs from the record. */
+    public boolean isForecastEpisodes(int track) {
+        return episodes[track] == null && watched(rules, prefill(), track) != watched(rules, base, track);
+    }
+
+    static int watched(Rules rules, SimState s, int track) {
+        if (s == null || track < 0 || track >= s.episodes.length || track >= rules.episodes.length) {
+            return 0;
+        }
+        return Math.max(0, Math.min(rules.episodes[track].count, s.episodes[track]));
+    }
+
+    /** "还没看" / "已看 2 话" / "全部看完". */
+    static String episodesText(Rules.Episode track, int watched) {
+        if (watched <= 0) {
+            return "还没看";
+        }
+        return watched >= track.count ? "全部看完" : "已看 " + watched + " 话";
     }
 
     public void setRescue(int index, int answer) {
@@ -410,17 +473,34 @@ public final class StateDraft {
             s.towerVisits[b.idx] = towerVisits();
         }
         s.floor = floor();
+        // "没救出" is saved only when the player chose it on this run of the wizard: a failure in
+        // the prefill may come from a deadline the replay passed without a recorded rescue
+        // (PlannerApi#saveCheckpoint), so unanswered rescues go as "不确定" and the service infers.
+        s.rescueFailed = 0;
         for (int i = 0; i < rescue.length && i < 63; i++) {
             if (rescue[i] == null) {
                 continue;
             }
             long bit = 1L << i;
             s.rescued &= ~bit;
-            s.rescueFailed &= ~bit;
             if (rescue[i] == RESCUE_DONE) {
                 s.rescued |= bit;
             } else if (rescue[i] == RESCUE_FAILED) {
                 s.rescueFailed |= bit;
+            }
+        }
+        boolean episodeEdits = false;
+        for (Integer e : episodes) {
+            episodeEdits |= e != null;
+        }
+        if (episodeEdits) {
+            if (s.episodes.length < rules.episodes.length) {
+                s.episodes = java.util.Arrays.copyOf(s.episodes, rules.episodes.length);
+            }
+            for (int i = 0; i < episodes.length; i++) {
+                if (episodes[i] != null) {
+                    s.episodes[i] = episodes[i];
+                }
             }
         }
         return s;
@@ -472,6 +552,13 @@ public final class StateDraft {
                 out.add(new Change("救出" + rules.rescues[i].zh, a, c));
             }
         }
+        for (Rules.Episode track : rules.episodes) {
+            int a = watched(rules, before, track.idx);
+            int e = watched(rules, after, track.idx);
+            if (a != e) {
+                out.add(new Change(Outcomes.episodeName(track), episodesText(track, a), episodesText(track, e)));
+            }
+        }
         Rules.Block b = block();
         if (b != null && b.idx < before.towerVisits.length && before.towerVisits[b.idx] != after.towerVisits[b.idx]) {
             out.add(new Change(b.zh + " 已去", before.towerVisits[b.idx] + " 次", after.towerVisits[b.idx] + " 次"));
@@ -512,6 +599,10 @@ public final class StateDraft {
         for (int i : rescuesToAsk()) {
             String answer = rescueText(after, i);
             out.add(new Change("救出" + rules.rescues[i].zh, null, answer));
+        }
+        for (int track : episodeTracks()) {
+            Rules.Episode e = rules.episodes[track];
+            out.add(new Change(Outcomes.episodeName(e), null, episodesText(e, watched(rules, after, track))));
         }
         return out;
     }
@@ -578,6 +669,7 @@ public final class StateDraft {
         floor = other.floor;
         towerVisits = other.towerVisits;
         System.arraycopy(other.rescue, 0, rescue, 0, Math.min(rescue.length, other.rescue.length));
+        System.arraycopy(other.episodes, 0, episodes, 0, Math.min(episodes.length, other.episodes.length));
         step = other.step;
         if (mode == Mode.ONBOARDING) {
             System.arraycopy(other.profile.tier, 0, profile.tier, 0, Profile.LINKS);

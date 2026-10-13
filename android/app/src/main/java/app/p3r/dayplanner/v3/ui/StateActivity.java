@@ -166,6 +166,8 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         PlannerApi.Snapshot snapshot;
         StateDraft draft;
         DraftStore.Restored restored = DraftStore.Restored.NONE;
+        /** Set (possibly "") when the records or the game data could not be read. */
+        String failedZh;
     }
 
     /** Loads the snapshot and the saved draft; {@code previous} edits are carried over when given. */
@@ -177,6 +179,11 @@ public final class StateActivity extends Activity implements StateSteps.Callback
             l.api = Api.get(app);
             Rules rules = l.api.rules();
             l.snapshot = l.api.snapshot();
+            if (rules == null || (l.snapshot.observed == null && l.snapshot.planErrorZh != null)) {
+                // Records or game data unreadable: never start onboarding over them.
+                l.failedZh = l.snapshot.planErrorZh == null ? "" : l.snapshot.planErrorZh;
+                return l;
+            }
             StateDraft.Mode effective = m == StateDraft.Mode.ONBOARDING || l.snapshot.observed != null
                 ? m : StateDraft.Mode.ONBOARDING;
             l.draft = new StateDraft(effective, rules, l.snapshot.observed, l.snapshot.profile, l.snapshot.plan,
@@ -187,10 +194,41 @@ public final class StateActivity extends Activity implements StateSteps.Callback
                 l.restored = drafts.restore(l.draft);
             }
             return l;
-        }, this::onLoaded, error -> showNotice("读取记录失败，请稍后再试。"));
+        }, this::onLoaded, error -> showLoadFailed(null));
+    }
+
+    /** "暂时读不到记录", the service's message and [重试] instead of a wizard page. */
+    private void showLoadFailed(String errorZh) {
+        content.removeAllViews();
+        LinearLayout box = Ui.column(this);
+        box.addView(Ui.title(this, "暂时读不到记录"));
+        String text = errorZh == null || errorZh.trim().isEmpty() ? "读取记录失败，请稍后再试。" : errorZh.trim();
+        TextView body = Ui.body(this, Zh.sentence(text));
+        LinearLayout.LayoutParams bp = Ui.matchWrap();
+        bp.topMargin = Ui.dp(this, 8);
+        box.addView(body, bp);
+        TextView retry = Ui.primary(this, "重试");
+        retry.setOnClickListener(v -> {
+            content.removeAllViews();
+            content.addView(Ui.muted(this, "正在读取…"));
+            load(null);
+        });
+        LinearLayout.LayoutParams rp = Ui.matchWrap();
+        rp.topMargin = Ui.dp(this, 24);
+        box.addView(retry, rp);
+        content.addView(box, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT));
+        next.setEnabled(false);
+        next.setVisibility(View.INVISIBLE);
+        back.setText("关闭");
     }
 
     private void onLoaded(Loaded l) {
+        if (l.draft == null) {
+            showLoadFailed(l.failedZh);
+            return;
+        }
+        next.setVisibility(View.VISIBLE);
         api = l.api;
         snap = l.snapshot;
         draft = l.draft;

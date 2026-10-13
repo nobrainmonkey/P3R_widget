@@ -8,7 +8,8 @@ import app.p3r.dayplanner.v3.model.Rules;
 /**
  * Simplified Chinese wording and number formatting used across the v3 screens.
  *
- * <p>Conventions (docs/DESIGN_v3.md §4, §7): link ranks are "RANK N" with "MAX" at 10, stats are
+ * <p>Conventions (docs/DESIGN_v3.md §4, §7, docs/GLOSSARY_zh.md): link ranks are "RANK N", and
+ * "MAX" alone at 10 ("升到 MAX", never "RANK MAX"), stats are
  * "Lv.N" (the top level is "MAX"), money is "8,200 日元", dates are "10月22日", the free daytime block is "放学后" on school
  * days and "白天" otherwise, and the evening is "晚上".
  */
@@ -93,12 +94,15 @@ public final class Zh {
         return date(Rules.dayOf(slot)) + " " + period(rules, slot);
     }
 
-    /** "RANK 7" / "RANK MAX" / "未解锁". */
+    /** "RANK 7" / "MAX" / "未解锁" — the glossary writes 「升到 MAX」「已经 MAX」, never "RANK MAX". */
     public static String rank(int rank) {
         if (rank <= 0) {
             return "未解锁";
         }
-        return "RANK " + rankValue(rank);
+        if (rank >= 10) {
+            return "MAX";
+        }
+        return "RANK " + rank;
     }
 
     /** "7" / "MAX" (no prefix) for compact displays. */
@@ -122,6 +126,32 @@ public final class Zh {
     /** "1" … "5", "MAX" — compact stat level labels for segmented pickers. */
     public static String lvValue(int level) {
         return level >= 6 ? "MAX" : String.valueOf(Math.max(1, level));
+    }
+
+    /**
+     * A pack text as one sentence: trimmed, ending with exactly one sentence mark ("。" added only
+     * when missing), or "" when there is no text. Pack fields such as {@code rewardZh} are already
+     * full sentences, so they are shown as they are instead of being glued into another sentence.
+     */
+    public static String sentence(String text) {
+        if (text == null) {
+            return "";
+        }
+        String t = text.trim();
+        while (t.endsWith("。。")) {
+            t = t.substring(0, t.length() - 1);
+        }
+        if (t.isEmpty()) {
+            return "";
+        }
+        boolean closed = t.endsWith("。") || t.endsWith("！") || t.endsWith("？") || t.endsWith("。」");
+        return closed ? t : t + "。";
+    }
+
+    /** {@link #sentence} without its final "。" (for "·"-separated lines). */
+    public static String clause(String text) {
+        String t = sentence(text);
+        return t.endsWith("。") ? t.substring(0, t.length() - 1) : t;
     }
 
     /** "5月12日–1月29日" for a day range ("5月12日" when both ends are the same day). */

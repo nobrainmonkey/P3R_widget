@@ -43,7 +43,7 @@ public class UiLogicTest {
         assertEquals("白天", Zh.period(rules, Rules.slot(Fixtures.day(10, 25), false)));
         assertEquals("未解锁", Zh.rank(0));
         assertEquals("RANK 7", Zh.rank(7));
-        assertEquals("RANK MAX", Zh.rank(10));
+        assertEquals("MAX", Zh.rank(10));
         assertEquals("RANK 9 → MAX", Zh.rankStep(9, 10));
         assertEquals("Lv.3", Zh.lv(3));
         assertEquals("MAX", Zh.lv(6));
@@ -329,10 +329,11 @@ public class UiLogicTest {
     @Test
     public void summariesForTheNewPanels() {
         Rules.Episode junpei = rules.episodes[0];
-        assertEquals("白天 · 5月12日–1月29日能看 · 已看 1 话 · 看完能拿到道具「顺平的棒球帽」",
+        assertEquals("白天 · 5月12日–1月29日能看 · 已看 1 话\n"
+                + "每一话都有小奖励（能力值或顺平的能力），看完第 4 话可以拿到道具「顺平的棒球帽」。",
             LinksPage.episodeSummary(junpei, 1));
         assertTrue(LinksPage.episodeSummary(junpei, 4).contains("已经看完"));
-        assertEquals("在桐叶购物中心 放纵俱乐部买结缘网站的字条，当晚回宿舍用公用电脑给一个已解锁的社群加好感，不会直接升级。"
+        assertEquals("在桐叶购物中心的放纵俱乐部买结缘网站的字条，当晚回宿舍用公用电脑给一个已解锁的社群加好感，不会直接升级。"
             + "每张 3,000 日元。11月11日起能买到。", SettingsPage.datingNoteText(rules.datingNote));
         assertEquals(java.util.Arrays.asList("游戏数据 · 1 项", "资料站 · 1 项"), InfoPages.sourceLines(rules.sources));
         assertEquals("小田桐秀利 · 男", Zh.person(rules.links[4]));

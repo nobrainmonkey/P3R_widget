@@ -398,7 +398,11 @@ public class ResultSheetTest extends UiTestBase {
         int slot = Rules.slot(Fixtures.day(10, 26), false);
         advanceTo(slot);
         ResultActivity a = result(slot, "episode:junpei", Intents.MODE_RESULT);
-        assertTrue(Shots.has(a, "看完羁绊剧情 · 伊织顺平 第 2 话了吗？"));
+        // The title says whose episode it is; the question only names the episode.
+        assertTrue(Shots.has(a, "羁绊剧情 · 伊织顺平"));
+        assertTrue(Shots.has(a, "看完第 2 话了吗？"));
+        assertTrue(Shots.has(a, "羁绊剧情不加社群点数。每一话都有小奖励（能力值或顺平的能力），看完第 4 话可以拿到道具「顺平的棒球帽」。"));
+        assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("。。"));
         Shots.shot(a, "result_episode");
         Shots.click(a, "没看成");
         assertEquals(Outcome.Code.NOT_DONE, api.last().outcome.code);

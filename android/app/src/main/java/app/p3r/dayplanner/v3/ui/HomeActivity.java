@@ -26,6 +26,7 @@ import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.Intents;
 import app.p3r.dayplanner.v3.engine.Outcome;
 import app.p3r.dayplanner.v3.engine.Plan;
+import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
@@ -69,6 +70,10 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     private SlantTabBar tabBar;
     private View[] tabViews;
     private TextView loading;
+    /** Shown on every tab when the records or the game data cannot be read. */
+    private LinearLayout errorView;
+    private TextView errorText;
+    private boolean failed;
     private TodayPage today;
     private SchedulePage schedule;
     private LinksPage links;
@@ -224,6 +229,17 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     }
 
     private void apply(Rules rules, PlannerApi.Snapshot snap) {
+        if (rules == null || (snap.observed == null && snap.planErrorZh != null)) {
+            // The records or the game data could not be read: a retry state on every tab instead
+            // of pages that need both (and instead of the "开始设置" welcome).
+            showLoadFailed(snap.planErrorZh);
+            return;
+        }
+        if (failed) {
+            failed = false;
+            errorView.setVisibility(View.GONE);
+            selectTab(tab);
+        }
         stateRevision.set(snap.stateRevision);
         profileRevision.set(snap.profileRevision);
         Plan plan = snap.plan;
@@ -256,12 +272,35 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     }
 
     private void showLoadError() {
+        showLoadFailed(null);
+    }
+
+    /**
+     * Replaces every tab with "暂时读不到记录", the service's Chinese message and [重试] (the
+     * database or the rule pack failed to open, or loading threw).
+     */
+    private void showLoadFailed(String errorZh) {
+        failed = true;
+        data = null;
+        loading.setVisibility(View.GONE);
+        for (View v : tabViews) {
+            v.setVisibility(View.GONE);
+        }
+        String text = errorZh == null || errorZh.trim().isEmpty() ? "读取记录失败，请稍后再试。" : errorZh.trim();
+        errorText.setText(Zh.sentence(text));
+        errorView.setVisibility(View.VISIBLE);
+    }
+
+    private void retryLoad() {
+        errorView.setVisibility(View.GONE);
         loading.setVisibility(View.VISIBLE);
-        loading.setText("读取记录失败。点这里重试。");
-        loading.setOnClickListener(v -> {
-            loading.setText("正在读取记录…");
-            load();
-        });
+        loading.setText("正在读取记录…");
+        load();
+    }
+
+    /** True while the retry state is shown (tests). */
+    boolean showingLoadError() {
+        return failed && errorView.getVisibility() == View.VISIBLE;
     }
 
     // ------------------------------------------------------------------ chrome
@@ -284,6 +323,23 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         loading = Ui.muted(this, "正在读取记录…");
         loading.setGravity(Gravity.CENTER);
         contentFrame.addView(loading, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT));
+        errorView = Ui.column(this);
+        errorView.setGravity(Gravity.CENTER_VERTICAL);
+        Ui.pad(errorView, Ui.GUTTER + 8, 0, Ui.GUTTER + 8, 0);
+        errorView.addView(Ui.title(this, "暂时读不到记录"));
+        errorText = Ui.body(this, "");
+        errorText.setLineSpacing(0f, 1.3f);
+        LinearLayout.LayoutParams textParams = Ui.matchWrap();
+        textParams.topMargin = Ui.dp(this, 8);
+        errorView.addView(errorText, textParams);
+        TextView retry = Ui.primary(this, "重试");
+        retry.setOnClickListener(v -> retryLoad());
+        LinearLayout.LayoutParams retryParams = Ui.matchWrap();
+        retryParams.topMargin = Ui.dp(this, 24);
+        errorView.addView(retry, retryParams);
+        errorView.setVisibility(View.GONE);
+        contentFrame.addView(errorView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
         column.addView(contentFrame, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
         tabBar = new SlantTabBar(this, new String[]{"今天", "日程", "社群", "我的"}, new int[]{
@@ -405,7 +461,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     public void selectTab(int index) {
         tab = Math.max(0, Math.min(TAB_KEYS.length - 1, index));
         for (int i = 0; i < tabViews.length; i++) {
-            tabViews[i].setVisibility(i == tab ? View.VISIBLE : View.GONE);
+            tabViews[i].setVisibility(i == tab && !failed ? View.VISIBLE : View.GONE);
         }
         tabBar.setSelectedTab(tab);
         placeUndo();
@@ -568,7 +624,17 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
 
     @Override
     public void showSheet(View content) {
-        sheets.show(content, this::placeUndo);
+        showSheet(content, null);
+    }
+
+    @Override
+    public void showSheet(View content, Runnable onDismiss) {
+        sheets.show(content, () -> {
+            placeUndo();
+            if (onDismiss != null) {
+                onDismiss.run();
+            }
+        });
         undoRetries = 0;
         placeUndo();
     }
@@ -615,6 +681,38 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         });
     }
 
+    @Override
+    public void saveCheckpoint(SimState state, Profile profile, String doneZh) {
+        if (data == null || api == null) {
+            return;
+        }
+        PlannerApi.Snapshot optimistic = copyOf(data.snap);
+        optimistic.observed = state;
+        if (profile != null) {
+            optimistic.profile = profile;
+        }
+        data = new UiData(data.rules, optimistic, data.changeSummary, data.returnBanner, data.nowMillis);
+        bindPages();
+        PlannerApi target = api;
+        Async.run(this, () -> {
+            long rev = stateRevision.get();
+            String profileJson = profile == null ? "" : profile.toJson().toString();
+            String id = CommandIds.of("checkpoint", rev, state.toJson().toString(), profileJson);
+            PlannerApi.Receipt receipt = target.saveCheckpoint(id, rev, state, profile);
+            if (receipt.ok) {
+                stateRevision.set(receipt.stateRevision);
+                profileRevision.set(receipt.profileRevision);
+            }
+            return receipt;
+        }, receipt -> {
+            showMessage(receipt.ok ? doneZh : Messages.receiptError(receipt));
+            reload();
+        }, error -> {
+            showMessage(Messages.GENERIC_ERROR);
+            reload();
+        });
+    }
+
     private static PlannerApi.Snapshot copyOf(PlannerApi.Snapshot s) {
         PlannerApi.Snapshot c = new PlannerApi.Snapshot();
         c.observed = s.observed;
@@ -625,6 +723,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         c.planCurrent = s.planCurrent;
         c.planning = s.planning;
         c.planErrorZh = s.planErrorZh;
+        c.noticeZh = s.noticeZh;
         c.lastRecordMillis = s.lastRecordMillis;
         c.eventsSinceCheckpoint = s.eventsSinceCheckpoint;
         return c;

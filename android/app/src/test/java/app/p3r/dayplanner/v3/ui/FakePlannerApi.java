@@ -50,7 +50,8 @@ final class FakePlannerApi implements PlannerApi {
         }
     }
 
-    final Rules rules;
+    /** The rule pack; null simulates a pack or database that failed to open. */
+    Rules rules;
     final Snapshot snap = new Snapshot();
     final List<Call> calls = new ArrayList<>();
     final List<HistoryItem> history = new ArrayList<>();
@@ -85,14 +86,29 @@ final class FakePlannerApi implements PlannerApi {
         api.snap.lastRecordMillis = System.currentTimeMillis() - 2 * 60 * 60 * 1000L;
         api.snap.eventsSinceCheckpoint = 9;
         api.alternatives = Fixtures.alternatives(r, obs.slot);
+        // Flags as the real service sets them (HistoryText): undoable = a record after the latest
+        // checkpoint (seq 94) that is not voided; correctable = undoable and a tower record.
         api.history.add(item(98, obs.slot - 1, "outcome", "10月21日 晚上 · 在宿舍房间学习 · 学力 +2", false, true));
-        api.history.add(item(97, obs.slot - 3, "tower", "10月20日 晚上 · 探索塔尔塔罗斯 · 到达 96F · 余额 18,500 日元",
-            false, true));
+        HistoryItem tower = item(97, obs.slot - 3, "tower", "10月20日 晚上 · 探索塔尔塔罗斯 · 到达 96F · 余额 18,500 日元",
+            false, true);
+        tower.tower = towerValues(obs.slot - 3, 3, 96, true, 18_500, null);
+        api.history.add(tower);
         api.history.add(item(96, obs.slot - 4, "outcome", "10月20日 放学后 · 皇帝 RANK 6", false, true));
-        api.history.add(item(95, obs.slot - 6, "skip", "10月19日 放学后 · 跳过 · 对方不在", true, false));
+        api.history.add(item(95, obs.slot - 6, "skip", "10月19日 放学后 · 跳过 · 对方不在", true, true));
         api.history.add(item(94, obs.slot - 8, "checkpoint", "10月18日 · 同步现状", false, false));
         api.history.add(item(93, obs.slot - 9, "outcome", "10月18日 放学后 · 女教皇 RANK 5", false, false));
         return api;
+    }
+
+    static TowerReturn towerValues(int slot, int block, int floor, boolean balanceMode, long amount, Integer level) {
+        TowerReturn t = new TowerReturn();
+        t.slot = slot;
+        t.block = block;
+        t.floor = floor;
+        t.balanceMode = balanceMode;
+        t.amount = amount;
+        t.level = level;
+        return t;
     }
 
     /** First run: no observed state yet. */
@@ -105,14 +121,21 @@ final class FakePlannerApi implements PlannerApi {
         return api;
     }
 
-    private static HistoryItem item(long seq, int slot, String kind, String text, boolean voided, boolean correctable) {
+    /**
+     * A history row; {@code afterCheckpoint} = recorded after the latest 同步现状. The flags follow
+     * the real service: undoable for non-voided records after the checkpoint, correctable only for
+     * undoable tower records.
+     */
+    static HistoryItem item(long seq, int slot, String kind, String text, boolean voided, boolean afterCheckpoint) {
         HistoryItem h = new HistoryItem();
         h.seq = seq;
         h.slot = slot;
         h.kind = kind;
         h.summaryZh = text;
         h.voided = voided;
-        h.correctable = correctable;
+        boolean record = "outcome".equals(kind) || "skip".equals(kind) || "tower".equals(kind) || "tower_fix".equals(kind);
+        h.undoable = record && afterCheckpoint && !voided;
+        h.correctable = h.undoable && "tower".equals(kind);
         h.createdMillis = System.currentTimeMillis() - (100 - seq) * 3_600_000L;
         return h;
     }

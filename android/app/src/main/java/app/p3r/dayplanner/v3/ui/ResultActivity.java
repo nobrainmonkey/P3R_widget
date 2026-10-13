@@ -47,6 +47,7 @@ public final class ResultActivity extends Activity {
     private static final String STATE_CHECKED = "checked";
     private static final String STATE_BANNER = "banner";
     private static final String STATE_TOWER = "tower";
+    private static final String STATE_CAUGHT_UP = "caughtUp";
 
     private LinearLayout panel;
     private LinearLayout body;
@@ -70,6 +71,8 @@ public final class ResultActivity extends Activity {
     /** Open slots the 逐项核对 queue started with (before the target). */
     private int queueTotal;
     private String banner;
+    /** A catch-up toward {@link #slot} just finished (all earlier open slots are recorded). */
+    private boolean caughtUp;
     private boolean busy;
     /** Alternative chosen on 改做别的 (its own panel), else null. */
     private Plan.Step substitute;
@@ -93,6 +96,7 @@ public final class ResultActivity extends Activity {
             queueTotal = savedInstanceState.getInt(STATE_QUEUE_TOTAL, 0);
             staleChecked = savedInstanceState.getBoolean(STATE_CHECKED, false);
             banner = savedInstanceState.getString(STATE_BANNER);
+            caughtUp = savedInstanceState.getBoolean(STATE_CAUGHT_UP, false);
             pendingTowerState = savedInstanceState.getBundle(STATE_TOWER);
         }
         buildFrame();
@@ -115,6 +119,7 @@ public final class ResultActivity extends Activity {
         staleChecked = false;
         queueTarget = -1;
         banner = null;
+        caughtUp = false;
         substitute = null;
         alternatives = null;
         pendingTowerState = null;
@@ -145,6 +150,7 @@ public final class ResultActivity extends Activity {
         out.putInt(STATE_QUEUE_TOTAL, queueTotal);
         out.putBoolean(STATE_CHECKED, staleChecked);
         out.putString(STATE_BANNER, banner);
+        out.putBoolean(STATE_CAUGHT_UP, caughtUp);
         if (towerPanel != null) {
             out.putBundle(STATE_TOWER, towerPanel.saveState());
         }
@@ -251,13 +257,18 @@ public final class ResultActivity extends Activity {
             snap = l.snapshot;
             rememberedLevel = l.level;
             route();
-        }, error -> showError("读取记录失败，请稍后再试。"));
+        }, error -> showLoadFailed(null));
     }
 
     /** Decides what to show for the current snapshot (stale check, catch-up, mode). */
     private void route() {
         SimState obs = snap.observed;
         Plan plan = snap.plan;
+        if (rules == null || (obs == null && snap.planErrorZh != null)) {
+            // The records or the game data could not be read: say so, never "还没有设置".
+            showLoadFailed(snap.planErrorZh);
+            return;
+        }
         if (obs == null) {
             showNotSetUp();
             return;
@@ -284,6 +295,7 @@ public final class ResultActivity extends Activity {
         if (queueTarget >= 0 && obs.slot >= queueTarget) {
             slot = queueTarget;
             queueTarget = -1;
+            caughtUp = true;
             Plan.Step target = plan == null ? null : plan.at(slot);
             actionKey = target == null ? actionKey : target.action;
         } else if (queueTarget >= 0) {
@@ -340,7 +352,11 @@ public final class ResultActivity extends Activity {
         SimState obs = snap.observed;
         Plan.Step step = step();
         if (slot < obs.slot) {
-            showAlreadyRecorded();
+            if (caughtUp) {
+                showCaughtUp();
+            } else {
+                showAlreadyRecorded();
+            }
             return;
         }
         header(step);
@@ -480,10 +496,35 @@ public final class ResultActivity extends Activity {
         body.addView(closeButton("好的"), top(20));
     }
 
-    private void showError(String text) {
+    /** The records or the game data could not be read: the service's own message and a retry. */
+    private void showLoadFailed(String errorZh) {
         body.removeAllViews();
-        body.addView(Ui.body(this, text));
-        body.addView(closeButton("关闭"), top(20));
+        body.addView(Ui.title(this, "暂时读不到记录"));
+        String text = errorZh == null || errorZh.trim().isEmpty() ? "读取记录失败，请稍后再试。" : errorZh.trim();
+        body.addView(Ui.body(this, Zh.sentence(text)), top(8));
+        TextView close = Ui.secondary(this, "关闭");
+        close.setOnClickListener(v -> finish());
+        TextView retry = Ui.primary(this, "重试");
+        retry.setOnClickListener(v -> {
+            showLoading();
+            load();
+        });
+        body.addView(pair(close, retry), top(20));
+    }
+
+    /**
+     * After "都照安排做完了" / 逐项核对 / "前面的都没做" toward a slot the store has already moved
+     * past (a story slot such as 满月作战, skipped on its own): the catch-up is done, nothing is
+     * left to record here.
+     */
+    private void showCaughtUp() {
+        Plan.Step step = step();
+        header(step);
+        body.addView(bannerView(banner != null ? banner : "已补记前面的安排。"), top(10));
+        boolean locked = rules.lockOf(slot) != null || (step != null && StepKind.of(step) == StepKind.LOCKED);
+        body.addView(Ui.body(this, locked ? "这段时间由剧情安排，不用记录。游戏里过完后，接着照「今天」的下一项玩就行。"
+            : "这一项也已经记好了。"), top(12));
+        body.addView(closeButton("好的"), top(20));
     }
 
     // ------------------------------------------------------------------ shared panel parts
@@ -728,23 +769,39 @@ public final class ResultActivity extends Activity {
     /** The next 羁绊剧情 of an opted-in track. */
     private void episodePanel(Plan.Step step) {
         Rules.Episode track = Outcomes.episodeOf(rules, step);
-        String what;
-        if (track != null) {
-            int watched = track.idx < snap.observed.episodes.length ? snap.observed.episodes[track.idx] : 0;
-            what = "羁绊剧情 · " + track.personZh + " 第 " + Math.min(track.count, watched + 1) + " 话";
-        } else {
-            what = SlotRows.title(rules, step);
-        }
-        body.addView(question("看完" + what + "了吗？"), top(14));
-        String reward = track != null && track.rewardZh != null && !track.rewardZh.isEmpty()
-            ? "看完全部能拿到" + track.rewardZh + "。" : "";
-        body.addView(note("羁绊剧情不加社群点数。" + reward), top(4));
+        body.addView(question(episodeQuestion(track, snap.observed)), top(14));
+        body.addView(note(episodeNote(track)), top(4));
         stepExtras(step, true, true);
         TextView watched = Ui.primary(this, "看完了");
         watched.setOnClickListener(v -> submit(step, Outcomes.asPredicted(step, false)));
         TextView missed = Ui.secondary(this, "没看成");
         missed.setOnClickListener(v -> submit(step, Outcomes.notDone()));
         body.addView(pair(missed, watched), top(16));
+    }
+
+    /** Number of the next episode of {@code track} for the recorded state (1..count). */
+    static int nextEpisode(Rules.Episode track, SimState observed) {
+        int watched = observed != null && track.idx < observed.episodes.length ? observed.episodes[track.idx] : 0;
+        return Math.max(1, Math.min(track.count, watched + 1));
+    }
+
+    /**
+     * "看完第 2 话了吗？" — the sheet's title already says "羁绊剧情 · 伊织顺平", so the question
+     * only names the episode.
+     */
+    static String episodeQuestion(Rules.Episode track, SimState observed) {
+        if (track == null) {
+            return "这一话看完了吗？";
+        }
+        return "看完第 " + nextEpisode(track, observed) + " 话了吗？";
+    }
+
+    /**
+     * "羁绊剧情不加社群点数。" followed by the pack's reward text as its own sentence (it already is
+     * one: "每一话都有小奖励…，看完第 5 话可以合体人格面具「苏尔特尔」。").
+     */
+    static String episodeNote(Rules.Episode track) {
+        return "羁绊剧情不加社群点数。" + (track == null ? "" : Zh.sentence(track.rewardZh));
     }
 
     private void statJobPanel(Plan.Step step) {
@@ -912,6 +969,8 @@ public final class ResultActivity extends Activity {
 
     private void freePanel(Plan.Step step) {
         body.addView(Ui.body(this, "这个时段是自由活动，没有能推进进度的事。想做点什么，可以点「改做别的…」。"), top(10));
+        // A free slot can still carry "顺便" side steps: ask about them like on every other panel.
+        stepExtras(step, false, true);
         TextView go = Ui.primary(this, "继续");
         go.setOnClickListener(v -> submit(step, Outcomes.asPredicted(step)));
         body.addView(go, top(18));
@@ -1007,7 +1066,19 @@ public final class ResultActivity extends Activity {
         Async.run(this, () -> {
             PlannerApi.Snapshot latest = target.snapshot();
             return target.saveProfile(id, latest.profileRevision, edited);
-        }, receipt -> finishAfterSave(), error -> finishAfterSave());
+        }, receipt -> continueOrFinish(), error -> continueOrFinish());
+    }
+
+    /** After a save: the next item of a running 逐项核对 queue, else close the sheet. */
+    private void continueOrFinish() {
+        if (queueTarget >= 0) {
+            substitute = null;
+            banner = null;
+            mode = Intents.MODE_RESULT;
+            reloadAndRoute();
+            return;
+        }
+        finishAfterSave();
     }
 
     private void otherPanel(Plan.Step planned) {
@@ -1194,6 +1265,7 @@ public final class ResultActivity extends Activity {
                 banner = Messages.receiptError(receipt);
             } else {
                 banner = asPlanned ? "已补记前面的安排。" : "前面的时段记为没做。";
+                caughtUp = true;
             }
             slot = target;
             reloadAndRoute();
@@ -1254,17 +1326,14 @@ public final class ResultActivity extends Activity {
                 after.run();
                 return;
             }
-            if (queueTarget >= 0) {
-                substitute = null;
-                banner = null;
-                reloadAndRoute();
-                return;
-            }
-            finishAfterSave();
+            // In a 逐项核对 queue the next item (and the target) open on their own result panel,
+            // even when this one was answered with 做不了 / 没去成 / 改做别的.
+            continueOrFinish();
             return;
         }
         if (Messages.isStale(receipt)) {
             banner = Messages.STALE;
+            caughtUp = false;
             substitute = null;
             mode = Intents.MODE_RESULT;
             slot = -1;
@@ -1297,7 +1366,7 @@ public final class ResultActivity extends Activity {
                 mode = Intents.MODE_RESULT;
             }
             route();
-        }, error -> showError("读取记录失败，请稍后再试。"));
+        }, error -> showLoadFailed(null));
     }
 
     /** While saving, a touch-blocking overlay prevents double submissions. */

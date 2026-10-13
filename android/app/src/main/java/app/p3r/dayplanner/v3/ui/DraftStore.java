@@ -76,6 +76,9 @@ public final class DraftStore {
         for (int i = 0; i < rules.rescues.length; i++) {
             draft.rescue[i] = getInt(p + "rescue." + rules.rescues[i].id);
         }
+        for (Rules.Episode track : rules.episodes) {
+            draft.episodes[track.idx] = getInt(p + "episode." + track.id);
+        }
         String persona = prefs.getString(p + "persona.mode", null);
         if (persona != null) {
             try {
@@ -129,6 +132,9 @@ public final class DraftStore {
         putInt(e, p + "tower.visits", draft.towerVisits);
         for (int i = 0; i < rules.rescues.length; i++) {
             putInt(e, p + "rescue." + rules.rescues[i].id, draft.rescue[i]);
+        }
+        for (Rules.Episode track : rules.episodes) {
+            putInt(e, p + "episode." + track.id, draft.episodes[track.idx]);
         }
         if (draft.mode == StateDraft.Mode.ONBOARDING) {
             e.putString(p + "persona.mode", draft.profile.effectivePersonaMode().name());
