@@ -89,7 +89,7 @@ public final class DatePlate extends LinearLayout {
         moonView.setContentDescription(full ? "满月" : null);
         moonLabel.setVisibility(full ? VISIBLE : GONE);
         period.setText(Zh.period(rules, slot));
-        setContentDescription(Zh.date(day) + " " + weekday.getText() + " " + period.getText());
+        setContentDescription(Zh.date(day) + " " + Zh.plain(weekday.getText()) + " " + Zh.plain(period.getText()));
     }
 
     private static void appendScaled(SpannableStringBuilder builder, String part, float scale, int color) {

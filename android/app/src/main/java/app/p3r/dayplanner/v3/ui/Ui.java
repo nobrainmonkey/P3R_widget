@@ -101,12 +101,13 @@ public final class Ui {
     }
 
     /**
-     * Plain text view (CJK-safe: never italic). Names, venues and short tags are kept on one line
-     * ({@link Zh#keepTogether}) and a multiplier ("×1.51") is always set in the numeral face.
+     * Plain text view (CJK-safe: never italic). Names, venues, words and short tags are kept on one
+     * line ({@link Zh#keepTogether}), a multiplier ("×1.51") is always set in the numeral face, and
+     * no line ends with a " · " separator ({@link ZhTextView}), also for text set later.
      */
     public static TextView text(Context context, CharSequence value, float sp, int color, boolean bold) {
-        TextView view = new TextView(context);
-        view.setText(prepare(context, value));
+        TextView view = new ZhTextView(context);
+        view.setText(value);
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp);
         view.setTextColor(color);
         view.setTypeface(bold ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);

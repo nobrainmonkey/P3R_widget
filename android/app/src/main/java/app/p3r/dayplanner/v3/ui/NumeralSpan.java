@@ -57,7 +57,8 @@ public final class NumeralSpan extends MetricAffectingSpan {
             int start = i;
             int end = i;
             while (i < n && isLatinPart(text.charAt(i))) {
-                if (!Character.isWhitespace(text.charAt(i))) {
+                // A space before the next Chinese word stays in the text face ("2 个时段").
+                if (!Character.isWhitespace(text.charAt(i)) && text.charAt(i) != Zh.WJ) {
                     end = i + 1;
                 }
                 i++;

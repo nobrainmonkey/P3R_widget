@@ -368,7 +368,8 @@ public class ReviewFixesTest extends UiTestBase {
         breakTheStore();
         HomeActivity a = home();
         assertTrue(a.showingLoadError());
-        assertTrue(Shots.has(a, "读取记录失败了，请重新打开应用。"));
+        // The copy matches the button under it (the service's own 「请重新打开应用」 is for the widget).
+        assertTrue(Shots.has(a, "读取记录失败了。点「重试」再试一次，还不行就重新打开应用。"));
         assertFalse(Shots.has(a, "开始设置"));
         Shots.shot(a, "home_load_failed");
         for (int tab = 0; tab < HomeActivity.TAB_KEYS.length; tab++) {
@@ -405,7 +406,8 @@ public class ReviewFixesTest extends UiTestBase {
         breakTheStore();
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
         assertTrue(Shots.has(a, "暂时读不到记录"));
-        assertTrue(Shots.has(a, "读取记录失败了，请重新打开应用。"));
+        assertTrue(Shots.has(a, "读取记录失败了。点「重试」再试一次，还不行就重新打开应用。"));
+        assertTrue(Shots.has(a, "重试"));
         assertFalse(Shots.has(a, "还没有设置游戏进度"));
         assertFalse(Shots.has(a, "去设置"));
         Shots.shot(a, "result_load_failed");

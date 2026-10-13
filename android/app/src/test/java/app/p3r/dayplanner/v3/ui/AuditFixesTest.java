@@ -7,7 +7,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Intent;
-import android.text.Layout;
 import android.text.Spanned;
 import android.view.View;
 import android.view.ViewGroup;
@@ -242,7 +241,7 @@ public class AuditFixesTest extends UiTestBase {
         assertFalse(all, all.contains("11/20"));
         assertFalse(all, all.contains("时间不够"));
         assertFalse(all, all.contains("团体·男女"));
-        assertTrue(all, all.contains("这次的安排里没排到 MAX（先保证了皇帝）"));
+        assertTrue(all, all.contains("这次的安排里没排到 MAX，先保证了皇帝"));
         assertTrue(all, all.contains("团体 · 男女"));
         assertEquals("未解锁 → RANK 2", Zh.rankStep(0, 2));
         assertEquals("未解锁 → MAX", Zh.rankStep(0, 10));
@@ -507,8 +506,9 @@ public class AuditFixesTest extends UiTestBase {
         assertTrue(kept, kept.contains("齐" + Zh.WJ + "亚"));
         assertEquals("idempotent", kept, Zh.keepTogether(kept).toString());
         assertEquals(Zh.glue("本区块第 2 次"), Zh.keepTogether("本区块第 2 次").toString());
-        String foot = Zh.keepTogether("这次的安排里没排到 MAX（先保证了皇帝、恋爱）").toString();
+        String foot = Zh.keepTogether("这次的安排里没排到 MAX，先保证了皇帝、恋爱").toString();
         assertTrue(foot, foot.contains("皇" + Zh.WJ + "帝"));
+        assertTrue(foot, foot.contains(Zh.glue("没排到")));
         String side = Zh.keepTogether("顺便：听西胁结子说起奇怪的和尚").toString();
         assertTrue(side, side.contains("西" + Zh.WJ + "胁" + Zh.WJ + "结" + Zh.WJ + "子"));
         String persona = Zh.keepTogether("记得带上「皇帝」阿尔卡那的人格面具").toString();
@@ -572,25 +572,14 @@ public class AuditFixesTest extends UiTestBase {
 
     /**
      * Every visible text view: no line ends right before or after a word joiner, i.e. no name,
-     * venue or short tag kept together by {@link Zh#keepTogether} is split across lines.
+     * venue, word or short tag kept together by {@link Zh#keepTogether} is split across lines; no
+     * line visibly ends with a " · " separator and no wrapped line is a lone character
+     * ({@link Shots#checkLines}).
      */
     static void assertNoBreakInsideKeptText(android.app.Activity activity, String where) {
         Shots.capture(activity, false);
         for (TextView t : textViews(activity.getWindow().getDecorView())) {
-            Layout layout = t.getLayout();
-            CharSequence text = t.getText();
-            if (layout == null || layout.getLineCount() < 2) {
-                continue;
-            }
-            for (int line = 0; line < layout.getLineCount() - 1; line++) {
-                int end = layout.getLineEnd(line);
-                if (end <= 0 || end >= text.length()) {
-                    continue;
-                }
-                boolean split = text.charAt(end - 1) == Zh.WJ || text.charAt(end) == Zh.WJ;
-                assertFalse(where + ": line break inside a kept name/tag: «"
-                    + Zh.plain(text.subSequence(0, end)) + "|" + Zh.plain(text.subSequence(end, text.length())) + "»", split);
-            }
+            Shots.checkLines(t, where);
         }
     }
 

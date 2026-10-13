@@ -197,8 +197,11 @@ final class LinksPage {
         tap.setGravity(Gravity.CENTER);
         tap.setMinimumHeight(Ui.dp(c, Ui.TOUCH));
         if (story) {
-            // Story links advance with the story: no goal tier to pick.
-            tap.addView(storyBadge());
+            // Story links advance with the story: no goal tier to pick. The tag keeps the tier
+            // chip's inset from the card edge (a 48 dp chip centred in 64 dp).
+            LinearLayout.LayoutParams sp = Ui.wrap();
+            sp.rightMargin = Ui.dp(c, 8);
+            tap.addView(storyBadge(), sp);
         } else {
             tap.setMinimumWidth(Ui.dp(c, 64));
             tap.addView(tierBadge(tier));
@@ -263,10 +266,15 @@ final class LinksPage {
         return p;
     }
 
-    /** "剧情自动推进" in place of the tier chip of a story link (not tappable). */
+    /**
+     * "剧情自动推进" in place of the tier chip of a story link (not tappable); at a large font it
+     * wraps to two lines ("剧情自动" / "推进") instead of pushing the arcana numeral aside.
+     */
     private TextView storyBadge() {
         TextView badge = Ui.text(c, STORY_TAG, 12, Ui.col(c, R.color.p3r_ink_muted), true);
         badge.setGravity(Gravity.CENTER);
+        badge.setMaxWidth(Ui.dp(c, 96));
+        badge.setMaxLines(2);
         badge.setBackground(new SlantedPanelDrawable().skew(Ui.dp(c, 5))
             .fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 120)));
         Ui.pad(badge, 8, 3, 8, 3);

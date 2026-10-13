@@ -28,6 +28,8 @@ import app.p3r.dayplanner.v3.service.PlannerApi;
 final class TowerPanel extends LinearLayout {
     /** Label of the "I don't remember the cash" action. */
     static final String FORGOT = "不记得钱了";
+    /** Hint in the empty amount field. */
+    static final String PLACEHOLDER = "点这里输入";
     /** Panel callbacks. */
     interface Listener {
         void onSave(PlannerApi.TowerReturn tower, String summaryZh);
@@ -274,13 +276,17 @@ final class TowerPanel extends LinearLayout {
         if (forgot) {
             amountView.setText(FORGOT);
             amountView.setTextSize(16);
+            amountView.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
             amountView.setTextColor(Ui.col(c, R.color.p3r_ice_100));
         } else if (amount == null) {
-            amountView.setText("点这里输入");
+            // A hint, not a value: regular weight in the muted ink.
+            amountView.setText(PLACEHOLDER);
             amountView.setTextSize(16);
-            amountView.setTextColor(Ui.col(c, R.color.p3r_cyan_300));
+            amountView.setTypeface(android.graphics.Typeface.DEFAULT);
+            amountView.setTextColor(Ui.col(c, R.color.p3r_ink_muted));
         } else {
             amountView.setTextSize(26);
+            amountView.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
             amountView.setTextColor(Ui.col(c, R.color.p3r_white));
             String number = Zh.number(Math.abs(amount));
             String sign = balanceMode() ? "" : (amount < 0 ? "−" : "+");
