@@ -323,7 +323,7 @@ GitHub release asset.
 
 ## 10. Settled decisions (after the critic pass)
 
-1. **Persona bonus**: one global declaration in onboarding ("约会时通常带着同阿尔卡那的人格面具吗？"),
+1. **Persona bonus** (superseded by Profile.personaMode NONE/GOALS/ALL — players do not carry every matching Persona): one global declaration in onboarding ("约会时通常带着同阿尔卡那的人格面具吗？"),
    default 否. When on, ×1.51 applies to ordinary meetings and rank-up answers. **Charm bonus**
    (×1.51 at 魅力 Lv6, game data) applies when the forecast reaches Lv6; toggle default on, listed
    in 规划说明. The legacy guide maxes all 22 links only with matching Personas (146 items) — use it
@@ -349,7 +349,16 @@ GitHub release asset.
    "选能让对方高兴的回答（♪越多越好）". Never show foreign option ordinals.
 8. **Holiday invitations** (D cells) consume the daytime slot and count as a meeting.
 9. **Free story gains** (class answers, exams, summer school) are not forecast; the player syncs stats.
-10. **Link Episodes / dorm activities** are never planned; they appear only under 改做别的 → 其他.
+10. **Link Episodes** (羁绊剧情) are opt-in tracks in the pack's `episodes` section (Profile.episodeTracks); the dating-site note (结缘网站的字条) is `datingNote` (evening, ¥3,000, +10 estimate, from 11/11, repeatable). Dorm activities are never planned. `days[].tartarus` is also false on nights the aqiu calendar marks 'Everyone' (no party member available) and on the GameFAQs closure dates.
 11. Date pickers offer months 4–12 and 1 only; the horizon ends Jan 31 (daytime).
 12. **Engine option** `towerIncomePerVisit` and `previous plan` stability bonus are part of
     `Engine.Options`/`Engine.plan` (engine module adds the field).
+
+## 11. Persistence schema 2 (round 2)
+
+1. `checkpoints` and `events` gain a nullable `rules_version` column, added by migrations that can safely run twice.
+2. Checkpoint JSON carries a `layout` object (ids of links, blocks, activities, rescues, episodes and unlock steps per link) and is remapped by id on load, so a rule-pack update never reinterprets stored arrays by position; records that no longer fit are counted and surfaced as `Snapshot.noticeZh` (suggesting 同步现状).
+3. Outcome payloads may carry `stepId`; tower payloads may carry `sideDone:false`.
+4. Backup checkpoints and events may carry `rulesVersion`.
+5. Replay applies each row at its own slot, skips locked slots only after the last row, and moves time only through `Engine.advanceTo` (same day rollover as the forecast).
+6. Rescue inference at checkpoint time: if a rescue window ended before the checkpoint date, the player did not answer, and the linked Social Link's rank ≥ 1, it counts as rescued; only an explicit 没救出 sets `rescueFailed`.

@@ -33,6 +33,8 @@ abstract class ServiceTestBase {
     Fakes.Validator validator;
     Fakes.Forecaster forecaster;
     final AtomicInteger widgetRefreshes = new AtomicInteger();
+    /** Runs on every widget refresh (on the refreshing thread), after the count; null for none. */
+    volatile Runnable onWidgetRefresh;
     volatile long now = START_MILLIS;
     /** Copied into the wiring of services opened afterwards. */
     boolean cancelSupersededPlans = true;
@@ -70,7 +72,13 @@ abstract class ServiceTestBase {
         wiring.planner = planner;
         wiring.validator = validator;
         wiring.forecaster = forecaster;
-        wiring.widgetRefresh = widgetRefreshes::incrementAndGet;
+        wiring.widgetRefresh = () -> {
+            widgetRefreshes.incrementAndGet();
+            Runnable hook = onWidgetRefresh;
+            if (hook != null) {
+                hook.run();
+            }
+        };
         wiring.clock = () -> now;
         wiring.planBudgetMillis = 50;
         wiring.cancelSupersededPlans = cancelSupersededPlans;

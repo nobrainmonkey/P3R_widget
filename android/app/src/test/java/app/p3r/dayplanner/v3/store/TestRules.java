@@ -9,7 +9,7 @@ import java.util.Locale;
 /**
  * Small synthetic rule pack for store/service tests: the real calendar axis (Apr 7 – Jan 31,
  * day 0 = 2009-04-01), a few locks, two Tartarus blocks, 22 links (three with real names),
- * one training activity, one job and one rescue.
+ * one training activity, one job, one rescue, one Link Episode track and the dating-site note.
  */
 public final class TestRules {
     public static final int MAGICIAN = 1;
@@ -23,6 +23,8 @@ public final class TestRules {
     public static final int MAY_12 = 41;
     /** Apr 22 (block 0 "台伯勒", top 22F). */
     public static final int APR_22 = 21;
+    /** Index of the only Link Episode track ("junpei"). */
+    public static final int JUNPEI = 0;
 
     private static final String[] IDS = {
         "fool", "magician", "priestess", "empress", "emperor", "hierophant", "lovers", "chariot",
@@ -106,6 +108,26 @@ public final class TestRules {
         bunkichi.toDay = 185;
         bunkichi.link = HIEROPHANT;
         r.rescues = new Rules.Rescue[]{bunkichi};
+
+        Rules.Episode junpei = new Rules.Episode();
+        junpei.idx = JUNPEI;
+        junpei.id = "junpei";
+        junpei.personZh = "伊织顺平";
+        junpei.titleZh = "羁绊剧情 · 伊织顺平";
+        junpei.count = 4;
+        junpei.dayMask = new int[r.lastDay + 1];
+        java.util.Arrays.fill(junpei.dayMask, 0b1111);
+        junpei.locationZh = "月光馆学园";
+        r.episodes = new Rules.Episode[]{junpei};
+
+        Rules.DatingNote note = new Rules.DatingNote();
+        note.zh = "结缘网站的字条";
+        note.howZh = "在放纵俱乐部买结缘网站的字条，回宿舍用公用电脑给对方加好感";
+        note.locationZh = "桐叶购物中心 · 放纵俱乐部";
+        note.fromDay = 224;
+        note.cost = 3_000;
+        note.gain = 10;
+        r.datingNote = note;
         return r;
     }
 

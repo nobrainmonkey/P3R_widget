@@ -11,15 +11,30 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Deterministic stand-in for {@code Engine.applyOutcome} (the engine is a stub in this module's
  * worktree). Conventions: AS_PREDICTED on a meeting means the predicted rank-up happened;
- * NO_RANK_UP adds 10 points; activities add their nominal gain; jobs pay their tier; an explicit
- * cash balance overrides the cash.
+ * NO_RANK_UP adds 10 points; activities add their nominal gain; jobs pay their tier; a watched
+ * Link Episode counts one; an explicit cash balance overrides the cash. Side steps (for tower
+ * records) cost {@link #sideFee} and are counted; time moves without rollovers.
  */
 public final class FakeApplier implements OutcomeApplier {
     public final AtomicInteger calls = new AtomicInteger();
+    public final AtomicInteger sideCalls = new AtomicInteger();
+    /** Cash a tower record's side steps cost (0: none). */
+    public volatile long sideFee;
+    /** Every action applied, in order. */
+    public final java.util.List<Action> actions = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    @Override
+    public SimState applySideSteps(Rules rules, Profile profile, SimState state, Action action) {
+        sideCalls.incrementAndGet();
+        SimState s = state.copy();
+        s.cash = Math.max(0, s.cash - sideFee);
+        return s;
+    }
 
     @Override
     public SimState apply(Rules rules, Profile profile, SimState state, Action action, Outcome o) {
         calls.incrementAndGet();
+        actions.add(action);
         SimState s = state.copy();
         boolean done = o.code == Outcome.Code.AS_PREDICTED || o.code == Outcome.Code.OTHER;
         switch (action.type) {
@@ -42,6 +57,11 @@ public final class FakeApplier implements OutcomeApplier {
                         s.shifts[action.target]++;
                         s.cash += a.payFor(s.shifts[action.target]);
                     }
+                }
+                break;
+            case EPISODE:
+                if (done && action.target < s.episodes.length) {
+                    s.episodes[action.target]++;
                 }
                 break;
             default:

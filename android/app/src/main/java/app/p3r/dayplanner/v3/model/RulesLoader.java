@@ -29,7 +29,8 @@ import java.util.Set;
  * so a broken pack is caught by tests instead of producing a silently wrong plan.
  *
  * <p>The loader only checks structure and internal consistency (contiguous days, 22 links in
- * arcana order, array lengths, indices and ids in range, meeting days on unlocked slots). Game
+ * arcana order, array lengths, indices and ids in range, meeting and Link Episode days on unlocked
+ * slots, the optional {@code episodes} and {@code datingNote} sections). Game
  * facts are verified by the builder ({@code rules/build/build_p3r_rules.py}) and by the unit tests.
  */
 public final class RulesLoader {
@@ -154,6 +155,8 @@ public final class RulesLoader {
             parseRescues(tartarus);
             parseLinks();
             parseActivities();
+            parseEpisodes();
+            parseDatingNote();
             parsePolicy();
             parseNotes();
             return rules;
@@ -611,6 +614,103 @@ public final class RulesLoader {
                 a.src = sources(o, where);
                 rules.activities[i] = a;
             }
+        }
+
+        /** Optional Link Episode tracks ({@code episodes}); absent = none. */
+        private void parseEpisodes() throws JSONException {
+            if (root.isNull("episodes")) return;
+            JSONArray arr = reqArray(root, "episodes", "root");
+            rules.episodes = new Rules.Episode[arr.length()];
+            Set<String> ids = new HashSet<>();
+            for (int i = 0; i < arr.length(); i++) {
+                String where = "episodes[" + i + "]";
+                JSONObject o = reqObject(arr, i, where);
+                Rules.Episode e = new Rules.Episode();
+                e.idx = i;
+                e.id = reqString(o, "id", where);
+                if (!e.id.matches("[a-z_]+")) throw fail(where + ".id '" + e.id + "' must be lower-case letters or _");
+                if (!ids.add(e.id)) throw fail(where + ".id '" + e.id + "' is duplicated");
+                e.personZh = reqString(o, "personZh", where);
+                e.titleZh = reqString(o, "titleZh", where);
+                e.locationZh = reqString(o, "locationZh", where);
+                e.howZh = optString(o, "howZh", where);
+                e.rewardZh = optString(o, "rewardZh", where);
+                e.noteZh = optString(o, "noteZh", where);
+                e.evening = reqBool(o, "evening", where);
+                e.count = intInRange(o, "count", where, 1, 31);
+                JSONArray parts = reqArray(o, "parts", where);
+                if (parts.length() != e.count) {
+                    throw fail(where + ".parts must have count = " + e.count + " entries, found " + parts.length());
+                }
+                e.dayMask = new int[rules.lastDay + 1];
+                e.gain = new int[e.count][3];
+                e.partRewardZh = new String[e.count];
+                for (int n = 1; n <= e.count; n++) {
+                    String w = where + ".parts[" + (n - 1) + "]";
+                    JSONObject part = reqObject(parts, n - 1, w);
+                    int no = reqInt(part, "no", w);
+                    if (no != n) throw fail(w + ".no is " + no + ", expected " + n + " (episodes must be in order)");
+                    int[] days = sortedDays(part, "days", w);
+                    if (days.length == 0) throw fail(w + ".days must not be empty");
+                    for (int d : days) {
+                        String lock = e.evening ? rules.days[d].eveLock : rules.days[d].dayLock;
+                        if (lock != null) {
+                            throw fail(w + ".days contains day " + d + " (" + rules.days[d].md + ") whose "
+                                    + (e.evening ? "evening" : "daytime") + " is locked (" + lock + ")");
+                        }
+                        e.dayMask[d] |= 1 << (n - 1);
+                    }
+                    JSONObject gain = reqObject(part, "gain", w);
+                    Iterator<String> keys = gain.keys();
+                    while (keys.hasNext()) {
+                        String id = keys.next();
+                        Integer idx = statIndex.get(id);
+                        if (idx == null) throw fail(w + ".gain references unknown stat '" + id + "'");
+                        e.gain[n - 1][idx] = nonNegative(gain, id, w + ".gain");
+                    }
+                    e.partRewardZh[n - 1] = optString(part, "rewardZh", w);
+                }
+                e.conf = checkConf(o, where);
+                e.src = sources(o, where);
+                rules.episodes[i] = e;
+            }
+        }
+
+        /** Optional dating-site note ({@code datingNote}); absent or null = not modelled. */
+        private void parseDatingNote() throws JSONException {
+            if (root.isNull("datingNote")) return;
+            String where = "datingNote";
+            JSONObject o = reqObject(root, "datingNote", "root");
+            Rules.DatingNote n = new Rules.DatingNote();
+            n.zh = reqString(o, "zh", where);
+            n.howZh = reqString(o, "howZh", where);
+            n.locationZh = reqString(o, "locationZh", where);
+            n.noteZh = optString(o, "noteZh", where);
+            if (!isEvening(reqString(o, "slot", where), where + ".slot")) throw fail(where + ".slot must be eve");
+            n.fromDay = dayInRange(o, "fromDay", where);
+            if (n.fromDay < rules.firstDay) throw fail(where + ".fromDay " + n.fromDay + " is before the calendar");
+            n.cost = nonNegative(o, "cost", where);
+            n.gain = nonNegative(o, "gain", where);
+            if (n.gain == 0) throw fail(where + ".gain must be positive");
+            // Missing key = the conservative single use; explicit null = no limit (sources say it can be re-bought).
+            if (!o.has("maxUses")) {
+                n.maxUses = 1;
+            } else {
+                n.maxUses = o.isNull("maxUses") ? Rules.DatingNote.UNLIMITED : intInRange(o, "maxUses", where, 1, 1000);
+            }
+            if (!o.isNull("requires")) {
+                JSONObject requires = reqObject(o, "requires", where);
+                Iterator<String> keys = requires.keys();
+                while (keys.hasNext()) {
+                    String id = keys.next();
+                    Integer idx = statIndex.get(id);
+                    if (idx == null) throw fail(where + ".requires references unknown stat '" + id + "'");
+                    n.requiresLv.put(idx, intInRange(requires, id, where + ".requires", 1, 6));
+                }
+            }
+            n.conf = checkConf(o, where);
+            n.src = sources(o, where);
+            rules.datingNote = n;
         }
 
         private void parsePolicy() throws JSONException {

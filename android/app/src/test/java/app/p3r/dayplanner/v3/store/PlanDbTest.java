@@ -120,6 +120,60 @@ public class PlanDbTest {
     }
 
     @Test
+    public void aVersion1FileIsUpgradedInPlaceWithItsRows() {
+        ledger.close();
+        String name = "v1-" + System.nanoTime() + ".db";
+        SQLiteDatabase v1 = SQLiteDatabase.openOrCreateDatabase(context.getDatabasePath(name), null);
+        v1.execSQL("CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)");
+        v1.execSQL("CREATE TABLE profile (id INTEGER PRIMARY KEY CHECK (id = 1), json TEXT NOT NULL)");
+        v1.execSQL("CREATE TABLE checkpoints (id INTEGER PRIMARY KEY AUTOINCREMENT, created INTEGER NOT NULL, "
+                + "json TEXT NOT NULL)");
+        v1.execSQL("CREATE TABLE events (seq INTEGER PRIMARY KEY AUTOINCREMENT, command_id TEXT NOT NULL UNIQUE, "
+                + "checkpoint_id INTEGER NOT NULL DEFAULT 0, kind TEXT NOT NULL, json TEXT NOT NULL, "
+                + "voided INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL)");
+        v1.execSQL("CREATE TABLE plan (id INTEGER PRIMARY KEY CHECK (id = 1), state_rev INTEGER NOT NULL, "
+                + "profile_rev INTEGER NOT NULL, rules_version TEXT NOT NULL, json TEXT NOT NULL)");
+        v1.execSQL("INSERT INTO meta (key, value) VALUES ('state_revision', '7')");
+        v1.execSQL("INSERT INTO checkpoints (created, json) VALUES (5, '{\"slot\":40}')");
+        v1.execSQL("INSERT INTO events (command_id, checkpoint_id, kind, json, created) "
+                + "VALUES ('old', 1, 'outcome', '{\"slot\":40}', 6)");
+        v1.setVersion(1);
+        v1.close();
+
+        ledger = new Ledger(context, name);
+        assertEquals(7, ledger.stateRevision());
+        assertNull("rows from before schema 2 have no stamp", ledger.latestCheckpoint().rulesVersion);
+        assertNull(ledger.eventByCommand("old").rulesVersion);
+        long seq = ledger.inTransaction(() -> ledger.insertEvent("new", 1, EventKind.SKIP, "{}", 7L, "pack|2"));
+        assertEquals("pack|2", ledger.event(seq).rulesVersion);
+    }
+
+    @Test
+    public void migrationStepsRunAgainAfterADowngradeWithoutFailing() {
+        ledger.inTransaction(() -> {
+            long cp = ledger.insertCheckpoint(5L, "{\"slot\":40}", "pack|1");
+            ledger.insertEvent("stamped", cp, EventKind.CHECKPOINT, "{}", 5L, "pack|1");
+            return null;
+        });
+        ledger.close();
+        // An older app (adb install -d) leaves the columns but lowers the file's version.
+        SQLiteDatabase raw = SQLiteDatabase.openDatabase(context.getDatabasePath(PlanDb.FILE_NAME).getPath(), null,
+                SQLiteDatabase.OPEN_READWRITE);
+        raw.setVersion(1);
+        raw.close();
+
+        ledger = new Ledger(context, PlanDb.FILE_NAME);
+        assertEquals("pack|1", ledger.latestCheckpoint().rulesVersion);
+        assertEquals("pack|1", ledger.eventByCommand("stamped").rulesVersion);
+        PlanDb helper = new PlanDb(context, PlanDb.FILE_NAME);
+        SQLiteDatabase db = helper.getWritableDatabase();
+        assertEquals(PlanDb.VERSION, db.getVersion());
+        PlanDb.migrateTo(db, 2);
+        assertTrue(PlanDb.hasColumn(db, "events", "rules_version"));
+        helper.close();
+    }
+
+    @Test
     public void voidFlagAndImportClearing() {
         long seq = ledger.inTransaction(() -> ledger.insertEvent("a", 1, EventKind.OUTCOME, "{\"slot\":1}", 1L));
         ledger.inTransaction(() -> {

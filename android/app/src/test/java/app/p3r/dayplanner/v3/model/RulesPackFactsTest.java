@@ -75,14 +75,7 @@ public class RulesPackFactsTest {
             for (Rules.Step s : l.unlock.steps) add(texts, s.zh, s.howZh, s.locationZh);
             for (Rules.Hold h : l.holds) add(texts, h.zh);
         }
-        for (Rules.Activity a : r.activities) add(texts, a.zh, a.locationZh, a.noteZh);
-        for (Rules.Day d : r.days) if (d != null) add(texts, d.noteZh);
-        for (Rules.Block b : r.blocks) add(texts, b.zh, b.floorsZh);
-        for (Rules.Rescue x : r.rescues) add(texts, x.zh);
-        for (Rules.Stat s : r.stats) add(texts, s.zh);
-        texts.addAll(r.lockReasonsZh.values());
-        texts.addAll(r.notes);
-        for (String text : texts) {
+        for (String text : playerTexts()) {
             Matcher m = latin.matcher(text);
             while (m.find()) {
                 assertTrue("Latin word '" + m.group() + "' in player text: " + text, allowed.contains(m.group()));
@@ -357,7 +350,8 @@ public class RulesPackFactsTest {
             assertNull(d.md, d.eveLock);
             assertNotNull(r.blockOn(d.d));
         }
-        assertTrue(open > 200);
+        // 196 open evenings once the aqiu "Everyone" nights are closed too (REPORT §4.3).
+        assertTrue("open evenings " + open, open > 180 && open < 210);
     }
 
     @Test
@@ -413,7 +407,8 @@ public class RulesPackFactsTest {
         for (int i = 0; i < 3; i++) {
             Rules.Step s = steps.get(i);
             assertTrue(s.evening);
-            assertEquals(Rules.StepDays.LINK_AVAIL, s.dayRule);
+            assertEquals(Rules.StepDays.FIXED, s.dayRule);
+            for (int d : s.fixedDays) assertTrue(r.day(d).md, link("devil").avail.get(d));
             assertEquals(costs[i], s.cost);
             assertEquals("only the last payment takes the evening", i == 2, s.consumesSlot);
             assertEquals(i == 2, s.establishes);
@@ -576,7 +571,238 @@ public class RulesPackFactsTest {
         assertEquals(5000, cinema.payFor(1));
     }
 
+    // ------------------------------------------------------------------ round 2: review fixes
+
+    @Test
+    public void tartarusIsClosedOnNightsWithoutAParty() {
+        // aqiu's nighttime "Tartarus" column says "Everyone" (nobody can go) on these nights.
+        int[][] everyone = {{4, 29}, {5, 5}, {5, 25}, {5, 30}, {6, 1}, {6, 9}, {6, 10}, {6, 11}, {6, 12}, {6, 21},
+                {6, 28}, {7, 8}, {7, 9}, {7, 10}, {7, 13}, {9, 6}, {9, 7}, {9, 8}, {9, 9}, {10, 5}, {10, 6}, {10, 12},
+                {11, 5}};
+        for (int[] md : everyone) assertFalse(md[0] + "/" + md[1], r.day(day(md[0], md[1])).tartarus);
+        // A named member only means a partial party: the tower stays open.
+        assertTrue("6/23: only Akihiko is away", r.day(day(6, 23)).tartarus);
+        assertTrue("12/10: Aigis is away", r.day(day(12, 10)).tartarus);
+        assertTrue(r.day(day(4, 21)).tartarus);
+    }
+
+    @Test
+    public void unlockStepsUseMeetingDaysAndNeverInvitationDays() {
+        for (Rules.Link l : r.links) {
+            for (Rules.Step s : l.unlock.steps) {
+                assertTrue(s.id + " must not use LINK_AVAIL (it includes invitations)", s.dayRule != Rules.StepDays.LINK_AVAIL);
+                if (s.dayRule != Rules.StepDays.FIXED) continue;
+                for (int d : s.fixedDays) {
+                    assertTrue(s.id + " on " + r.day(d).md, d >= s.fromDay);
+                    assertNull(s.id + " on a locked slot " + r.day(d).md, s.evening ? r.day(d).eveLock : r.day(d).dayLock);
+                }
+            }
+        }
+        // Temperance's only vacation cells are invitations: its opening must not land there.
+        for (int d : link("temperance").unlock.steps.get(0).fixedDays) {
+            assertTrue(r.day(d).md, link("temperance").avail.get(d));
+            assertFalse(r.day(d).md, r.day(d).type == Rules.DayType.VACATION);
+        }
+    }
+
+    @Test
+    public void hierophantOpensOnlyOnSchoolDays() {
+        Rules.Step open = link("hierophant").unlock.steps.get(0);
+        assertEquals(Rules.StepDays.FIXED, open.dayRule);
+        assertTrue(open.fixedDays.length > 50);
+        for (int d : open.fixedDays) assertEquals(r.day(d).md, Rules.DayType.SCHOOL, r.day(d).type);
+        assertTrue("4/25 after school (CN guide)", contains(open.fixedDays, day(4, 25)));
+        assertFalse("8/30 is a summer-vacation Sunday", contains(open.fixedDays, day(8, 30)));
+        // Ordinary bookstore meetings still happen on Sundays.
+        assertTrue(link("hierophant").avail.get(day(4, 26)));
+        assertTrue(open.howZh.contains("上学日"));
+    }
+
+    @Test
+    public void starIsAtTheStripMall() {
+        assertEquals("严户台商店街 · 1 楼", link("star").locationZh);
+        Rules.Step open = link("star").unlock.steps.get(0);
+        assertEquals("严户台商店街 · 1 楼", open.locationZh);
+        assertTrue(open.howZh.contains("严户台商店街"));
+        assertFalse(PackFixture.json().contains("严户台站 · 站前"));
+    }
+
+    @Test
+    public void empressExamRequirementIsToldToThePlayer() {
+        Rules.Unlock u = link("empress").unlock;
+        assertEquals(Map.of(ACADEMICS, 6), u.statLv);
+        assertTrue(u.noteZh.contains("第一名") && u.noteZh.contains("未选"));
+        assertTrue(u.steps.get(0).howZh.contains("第一名"));
+        boolean noted = false;
+        for (String n : r.notes) noted |= n.startsWith("【女皇】") && n.contains("第一名") && n.contains("未选");
+        assertTrue("the 【女皇】 pack note must explain the exam requirement", noted);
+    }
+
+    @Test
+    public void everyLinkHasALocationAndEveryStepAHowTo() {
+        for (Rules.Link l : r.links) {
+            assertNotNull(l.id, l.locationZh);
+            assertFalse(l.id, l.locationZh.isEmpty());
+            if (l.kind == Rules.LinkKind.MANUAL && l.unlock.steps.isEmpty()) assertNotNull(l.id + " automatic opening note", l.unlock.noteZh);
+            for (Rules.Step s : l.unlock.steps) {
+                assertNotNull(s.id, s.howZh);
+                assertTrue(s.id + " how-to too short: " + s.howZh, s.howZh.length() >= 15);
+                assertNotNull(s.id, s.locationZh);
+                if (!s.consumesSlot) assertTrue(s.id, s.howZh.contains("不会消耗时间"));
+            }
+        }
+    }
+
+    @Test
+    public void playerTextFollowsTheGlossary() {
+        String[] avoid = {"开启", "建立", "练满", "满级", "计划", "羁绊剧场", "估算", "规则包", "社交链接", "交友网站",
+                "不占用时段", "锁定", "约会", "会面", "加深关系", "Lv.6"};
+        for (String text : playerTexts()) {
+            for (String word : avoid) assertFalse("'" + word + "' in player text: " + text, text.contains(word));
+            String plain = text.replace("规划设置", "").replace("规划说明", "");
+            assertFalse("'规划' is only for menu names: " + text, plain.contains("规划"));
+        }
+        assertEquals("剧情事件", r.lockReasonsZh.get("forced_event"));
+        assertEquals("可能有剧情（先空出）", r.lockReasonsZh.get("reserved"));
+        assertEquals("看提升学力的电影", r.activity("movie_academics").zh);
+        assertEquals("到卡拉OK唱歌", r.activity("karaoke").zh);
+        assertEquals("去喷泉广场找末光望美", link("moon").unlock.steps.get(1).zh);
+        assertEquals("加入田径社", link("chariot").unlock.steps.get(0).zh);
+        assertTrue(link("devil").unlock.steps.get(2).howZh.endsWith("恶魔社群就解锁了。"));
+    }
+
+    // ------------------------------------------------------------------ round 2: new features
+
+    @Test
+    public void linkEpisodeTracksUseOfficialNames() {
+        String[] ids = {"junpei", "akihiko", "koromaru", "ken", "shinjiro"};
+        String[] people = {"伊织顺平", "真田明彦", "虎狼丸", "天田乾", "荒垣真次郎"};
+        boolean[] evening = {false, true, false, true, false};
+        int[] counts = {5, 5, 5, 5, 4};
+        assertEquals(ids.length, r.episodes.length);
+        for (int i = 0; i < ids.length; i++) {
+            Rules.Episode e = r.episodes[i];
+            assertEquals(i, e.idx);
+            assertEquals(ids[i], e.id);
+            assertEquals(people[i], e.personZh);
+            assertEquals("羁绊剧情 · " + people[i], e.titleZh);
+            assertEquals(e.id, evening[i], e.evening);
+            assertEquals(e.id, counts[i], e.count);
+            assertNotNull(e.id, e.locationZh);
+            assertNotNull(e.id, e.howZh);
+            assertNotNull(e.id, e.rewardZh);
+            assertEquals(r.lastDay + 1, e.dayMask.length);
+            for (int n = 1; n <= e.count; n++) {
+                assertTrue(e.id + " #" + n + " has no day", e.firstDay(n) >= 0);
+                assertEquals(3, e.gainOf(n).length);
+            }
+        }
+        for (Rules.Episode e : r.episodes) {
+            assertFalse("Ryoji's episodes are story-driven, not a track", e.id.equals("ryoji"));
+            assertFalse(e.titleZh.contains("羁绊剧场"));
+        }
+    }
+
+    @Test
+    public void linkEpisodeDayMasksFollowTheCalendarCells() {
+        Rules.Episode junpei = episode("junpei");
+        assertTrue(junpei.allows(day(5, 12), 1));
+        assertFalse(junpei.allows(day(5, 12), 2));
+        assertTrue(junpei.allows(day(8, 9), 2));      // a Sunday: "available during daytime"
+        assertTrue(junpei.allows(day(11, 7), 3));
+        assertFalse("11/13 is outside episode 3's window", junpei.allows(day(11, 13), 3));
+        assertTrue(junpei.allows(day(1, 15), 5));
+        assertEquals("苏尔特尔", junpei.rewardOf(5).replaceAll(".*「(.*)」.*", "$1"));
+        assertTrue(junpei.noteZh.contains("1月21日"));
+
+        Rules.Episode koromaru = episode("koromaru");
+        for (int n = 1; n <= 4; n++) assertTrue(koromaru.allows(day(9, 22), n));   // cell "1-4"
+        assertFalse(koromaru.allows(day(9, 22), 5));
+        assertTrue(koromaru.allows(day(1, 5), 5));                                  // cell "1-5"
+        assertFalse("1/21 daytime is kept free", koromaru.allows(day(1, 21), 1));
+        assertEquals(day(8, 22), koromaru.firstDay(1));
+
+        Rules.Episode ken = episode("ken");
+        assertTrue(ken.allows(day(9, 9), 1));
+        assertFalse("episode 2 starts on 9/15", ken.allows(day(9, 9), 2));
+        assertTrue(ken.allows(day(9, 16), 2));
+        assertEquals(2, ken.gainOf(1)[ACADEMICS]);
+        assertEquals(2, ken.gainOf(2)[COURAGE]);
+
+        Rules.Episode akihiko = episode("akihiko");
+        assertTrue(akihiko.allows(day(5, 29), 1));
+        assertTrue(akihiko.allows(day(1, 8), 5));
+        assertEquals(2, akihiko.gainOf(2)[CHARM]);
+
+        Rules.Episode shinjiro = episode("shinjiro");
+        assertTrue(shinjiro.allows(day(9, 11), 1));
+        assertFalse("episode 1 needs the school (Mitsuru)", shinjiro.allows(day(9, 13), 1));
+        assertTrue(shinjiro.allows(day(9, 13), 2));
+        assertFalse("episode 2 starts on 9/11", shinjiro.allows(day(9, 4), 2));
+        assertTrue(shinjiro.allows(day(9, 24), 4));
+        assertEquals(-1, shinjiro.lastDay(5));
+        assertTrue(shinjiro.lastDay(4) <= day(10, 2));
+
+        for (Rules.Episode e : r.episodes) {
+            for (int d = 0; d < e.dayMask.length; d++) {
+                if (e.dayMask[d] == 0) continue;
+                assertNull(e.id + " on a locked slot " + r.day(d).md, e.evening ? r.day(d).eveLock : r.day(d).dayLock);
+                assertEquals(e.id + " mask beyond count", 0, e.dayMask[d] >>> e.count);
+            }
+        }
+    }
+
+    @Test
+    public void datingNoteIsAnEveningPointBoost() {
+        Rules.DatingNote note = r.datingNote;
+        assertNotNull(note);
+        assertEquals("结缘网站的字条", note.zh);
+        assertEquals(day(11, 11), note.fromDay);
+        assertNull("the first evening is free", r.day(note.fromDay).eveLock);
+        assertEquals(3000, note.cost);
+        assertEquals(10, note.gain);
+        assertTrue("sources say it can be bought again", note.unlimited());
+        assertEquals(Map.of(COURAGE, 2), note.requiresLv);
+        assertEquals("estimate", note.conf);
+        assertTrue(note.howZh.contains("放纵俱乐部") && note.howZh.contains("公用电脑"));
+        assertEquals("桐叶购物中心 · 放纵俱乐部", note.locationZh);
+        assertTrue(note.noteZh.contains("不会直接升级"));
+    }
+
     // ------------------------------------------------------------------ helpers
+
+    private List<String> playerTexts() {
+        List<String> texts = new ArrayList<>();
+        for (Rules.Link l : r.links) {
+            add(texts, l.arcanaZh, l.personZh, l.genderZh, l.labelZh, l.locationZh, l.noteZh, l.unlock.noteZh);
+            for (Rules.Step s : l.unlock.steps) add(texts, s.zh, s.howZh, s.locationZh);
+            for (Rules.Hold h : l.holds) add(texts, h.zh);
+        }
+        for (Rules.Activity a : r.activities) add(texts, a.zh, a.locationZh, a.noteZh);
+        for (Rules.Day d : r.days) if (d != null) add(texts, d.noteZh);
+        for (Rules.Block b : r.blocks) add(texts, b.zh, b.floorsZh);
+        for (Rules.Rescue x : r.rescues) add(texts, x.zh);
+        for (Rules.Stat s : r.stats) add(texts, s.zh);
+        for (Rules.Episode e : r.episodes) {
+            add(texts, e.personZh, e.titleZh, e.locationZh, e.howZh, e.rewardZh, e.noteZh);
+            add(texts, e.partRewardZh);
+        }
+        if (r.datingNote != null) add(texts, r.datingNote.zh, r.datingNote.howZh, r.datingNote.locationZh, r.datingNote.noteZh);
+        texts.addAll(r.lockReasonsZh.values());
+        texts.addAll(r.notes);
+        return texts;
+    }
+
+    private Rules.Episode episode(String id) {
+        for (Rules.Episode e : r.episodes) if (e.id.equals(id)) return e;
+        fail("no episode track " + id);
+        return null;
+    }
+
+    private static boolean contains(int[] values, int v) {
+        for (int x : values) if (x == v) return true;
+        return false;
+    }
 
     private Rules.Link link(String id) {
         Rules.Link l = r.link(id);

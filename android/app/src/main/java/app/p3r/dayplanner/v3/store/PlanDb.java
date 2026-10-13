@@ -1,6 +1,7 @@
 package app.p3r.dayplanner.v3.store;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
@@ -10,27 +11,34 @@ import android.database.sqlite.SQLiteOpenHelper;
  * <pre>
  *   meta(key PRIMARY KEY, value)                      schema_version, state_revision, profile_revision
  *   profile(id = 1, json)                             goals and planning options ({@code Profile} JSON)
- *   checkpoints(id, created, json)                    full observed states ({@code SimState} JSON)
+ *   checkpoints(id, created, json, rules_version)     full observed states ({@code SimState} JSON plus
+ *                                                     the pack layout, see {@link PackLayout})
  *   events(seq, command_id UNIQUE, checkpoint_id,     everything recorded after a checkpoint, plus one
- *          kind, json, voided, created)               journal row per checkpoint/profile/import command
+ *          kind, json, voided, created,               journal row per checkpoint/profile/import command
+ *          rules_version)
  *   plan(id = 1, state_rev, profile_rev,              latest installed plan ({@code Plan} JSON)
  *        rules_version, json)
  * </pre>
+ *
+ * <p>{@code rules_version} on checkpoints and events (schema 2) stamps each row with the
+ * {@code Rules.version} of the pack it was written under; it is null for rows written before
+ * schema 2 (or by an older app after a downgrade).
  *
  * <p>Thread rules: this helper is only used through {@link Ledger}, which the planner service calls
  * from its own worker thread or from callers' background threads, always under the service lock.
  * Nothing here may run on the main thread. Write-ahead logging is enabled so reads never block on a
  * writer.
  *
- * <p>Upgrade policy: user data is never dropped. Future versions add tables or columns in
- * {@link #migrateTo}; a downgrade (older app over a newer database) keeps the data untouched,
- * because every schema change is additive.
+ * <p>Upgrade policy: user data is never dropped. Every schema change is additive and every
+ * migration step is idempotent ({@link #migrateTo} checks before it adds). A downgrade (older app
+ * over a newer database, e.g. {@code adb install -d}) keeps the data but lowers the file's version,
+ * so the same steps run again on the next upgrade and must not fail on a file that has them.
  */
 public final class PlanDb extends SQLiteOpenHelper {
     /** Database file name inside the app's private database directory. */
     public static final String FILE_NAME = "p3r_v3.db";
-    /** Current schema version. */
-    public static final int VERSION = 1;
+    /** Current schema version (2 adds the {@code rules_version} columns). */
+    public static final int VERSION = 2;
 
     public static final String META_SCHEMA_VERSION = "schema_version";
     public static final String META_STATE_REVISION = "state_revision";
@@ -72,6 +80,10 @@ public final class PlanDb extends SQLiteOpenHelper {
                 + "profile_rev INTEGER NOT NULL, "
                 + "rules_version TEXT NOT NULL, "
                 + "json TEXT NOT NULL)");
+        // The version-1 tables above, then exactly the steps an upgraded file gets.
+        for (int version = 2; version <= VERSION; version++) {
+            migrateTo(db, version);
+        }
         putMeta(db, META_SCHEMA_VERSION, String.valueOf(VERSION));
         putMeta(db, META_STATE_REVISION, "0");
         putMeta(db, META_PROFILE_REVISION, "0");
@@ -79,7 +91,7 @@ public final class PlanDb extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        for (int version = oldVersion + 1; version <= newVersion; version++) {
+        for (int version = Math.max(1, oldVersion + 1); version <= newVersion; version++) {
             migrateTo(db, version);
         }
         putMeta(db, META_SCHEMA_VERSION, String.valueOf(newVersion));
@@ -89,22 +101,49 @@ public final class PlanDb extends SQLiteOpenHelper {
     public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // Schema changes are additive only, so an older app can keep using a newer file as is.
         // The default implementation would throw and make the planner unusable; keep the data.
+        // SQLiteOpenHelper then lowers the file's version, so the next upgrade repeats the
+        // (idempotent) migration steps.
     }
 
     /**
-     * Applies the additive migration that brings the schema to {@code version}. Each step must
-     * keep every existing row: use {@code CREATE TABLE IF NOT EXISTS} or
-     * {@code ALTER TABLE … ADD COLUMN}, never {@code DROP} or a destructive rebuild.
+     * Applies the additive migration that brings the schema to {@code version}. Each step keeps
+     * every existing row and is idempotent: it may run again on a file that already has it (after
+     * a downgrade and a re-upgrade). Use {@code CREATE … IF NOT EXISTS} and
+     * {@link #addColumnIfMissing}; never {@code DROP} or a destructive rebuild.
      */
     static void migrateTo(SQLiteDatabase db, int version) {
         switch (version) {
             case 1:
                 // Version 1 is the initial schema created in onCreate.
                 break;
+            case 2:
+                addColumnIfMissing(db, "checkpoints", "rules_version", "TEXT");
+                addColumnIfMissing(db, "events", "rules_version", "TEXT");
+                break;
             default:
                 // Unknown future step: nothing to do; the data stays untouched.
                 break;
         }
+    }
+
+    /** {@code ALTER TABLE table ADD COLUMN column type}, unless the column already exists. */
+    static void addColumnIfMissing(SQLiteDatabase db, String table, String column, String type) {
+        if (!hasColumn(db, table, column)) {
+            db.execSQL("ALTER TABLE " + table + " ADD COLUMN " + column + " " + type);
+        }
+    }
+
+    /** True when {@code table} has a column named {@code column}. */
+    static boolean hasColumn(SQLiteDatabase db, String table, String column) {
+        try (Cursor c = db.rawQuery("PRAGMA table_info(" + table + ")", null)) {
+            int name = c.getColumnIndexOrThrow("name");
+            while (c.moveToNext()) {
+                if (column.equalsIgnoreCase(c.getString(name))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static void putMeta(SQLiteDatabase db, String key, String value) {

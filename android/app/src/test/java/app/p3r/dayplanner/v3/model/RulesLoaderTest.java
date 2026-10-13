@@ -56,6 +56,51 @@ public class RulesLoaderTest {
             assertEquals(i, r.activityIndex(r.activities[i].id));
         }
         assertEquals(-1, r.linkIndex("world"));
+        assertEquals(5, r.episodes.length);
+        for (int i = 0; i < r.episodes.length; i++) assertEquals(i, r.episodes[i].idx);
+        assertNotNull(r.datingNote);
+    }
+
+    @Test
+    public void episodesAndDatingNoteAreOptional() throws JSONException {
+        JSONObject root = PackFixture.tree();
+        root.remove("episodes");
+        root.put("datingNote", JSONObject.NULL);
+        Rules r = RulesLoader.parse(root.toString());
+        assertEquals(0, r.episodes.length);
+        assertNull(r.datingNote);
+    }
+
+    @Test
+    public void parsesEpisodePartsIntoDayMasks() throws JSONException {
+        JSONObject root = PackFixture.tree();
+        JSONObject track = root.getJSONArray("episodes").getJSONObject(0);
+        int count = track.getInt("count");
+        JSONArray parts = track.getJSONArray("parts");
+        Rules r = RulesLoader.parse(root.toString());
+        Rules.Episode e = r.episodes[0];
+        assertEquals(track.getString("id"), e.id);
+        for (int n = 1; n <= count; n++) {
+            JSONArray days = parts.getJSONObject(n - 1).getJSONArray("days");
+            int allowed = 0;
+            for (int d = 0; d < e.dayMask.length; d++) if (e.allows(d, n)) allowed++;
+            assertEquals("episode " + n, days.length(), allowed);
+            for (int i = 0; i < days.length(); i++) assertTrue(e.allows(days.getInt(i), n));
+        }
+        assertTrue(!e.allows(-1, 1) && !e.allows(r.lastDay + 1, 1) && !e.allows(e.firstDay(1), 0));
+    }
+
+    @Test
+    public void datingNoteWithoutLimitIsUnlimited() throws JSONException {
+        JSONObject root = PackFixture.tree();
+        root.getJSONObject("datingNote").put("maxUses", JSONObject.NULL);
+        assertEquals(Rules.DatingNote.UNLIMITED, RulesLoader.parse(root.toString()).datingNote.maxUses);
+        root.getJSONObject("datingNote").put("maxUses", 1);
+        Rules.DatingNote once = RulesLoader.parse(root.toString()).datingNote;
+        assertEquals(1, once.maxUses);
+        assertTrue(!once.unlimited());
+        root.getJSONObject("datingNote").remove("maxUses");
+        assertEquals("missing key = the conservative single use", 1, RulesLoader.parse(root.toString()).datingNote.maxUses);
     }
 
     @Test
@@ -237,6 +282,61 @@ public class RulesLoaderTest {
         JSONObject manual = PackFixture.tree();
         manual.getJSONArray("links").getJSONObject(4).put("storyRanks", new JSONArray());
         assertRejected(manual, "links[4].storyRanks must be null for manual links");
+    }
+
+    @Test
+    public void rejectsBrokenEpisodeTracks() throws JSONException {
+        JSONObject locked = PackFixture.tree();
+        JSONArray days =locked.getJSONArray("episodes").getJSONObject(0).getJSONArray("parts").getJSONObject(0).getJSONArray("days");
+        days.put(0, PackFixture.day(4, 22)); // forced Magician introduction, daytime locked
+        assertRejected(locked, "episodes[0].parts[0].days contains day 21 (04-22) whose daytime is locked (forced_event)");
+
+        JSONObject count = PackFixture.tree();
+        count.getJSONArray("episodes").getJSONObject(1).put("count", 6);
+        assertRejected(count, "episodes[1].parts must have count = 6 entries, found 5");
+
+        JSONObject order = PackFixture.tree();
+        order.getJSONArray("episodes").getJSONObject(2).getJSONArray("parts").getJSONObject(1).put("no", 3);
+        assertRejected(order, "episodes[2].parts[1].no is 3, expected 2 (episodes must be in order)");
+
+        JSONObject stat = PackFixture.tree();
+        stat.getJSONArray("episodes").getJSONObject(3).getJSONArray("parts").getJSONObject(0).getJSONObject("gain").put("luck", 1);
+        assertRejected(stat, "episodes[3].parts[0].gain references unknown stat 'luck'");
+
+        JSONObject dup = PackFixture.tree();
+        dup.getJSONArray("episodes").getJSONObject(1).put("id", "junpei");
+        assertRejected(dup, "episodes[1].id 'junpei' is duplicated");
+
+        JSONObject empty = PackFixture.tree();
+        empty.getJSONArray("episodes").getJSONObject(4).getJSONArray("parts").getJSONObject(0).put("days", new JSONArray());
+        assertRejected(empty, "episodes[4].parts[0].days must not be empty");
+
+        JSONObject title = PackFixture.tree();
+        title.getJSONArray("episodes").getJSONObject(0).remove("titleZh");
+        assertRejected(title, "episodes[0].titleZh is required");
+    }
+
+    @Test
+    public void rejectsBrokenDatingNote() throws JSONException {
+        JSONObject slot = PackFixture.tree();
+        slot.getJSONObject("datingNote").put("slot", "day");
+        assertRejected(slot, "datingNote.slot must be eve");
+
+        JSONObject uses = PackFixture.tree();
+        uses.getJSONObject("datingNote").put("maxUses", 0);
+        assertRejected(uses, "datingNote.maxUses = 0 is outside 1..1000");
+
+        JSONObject gain = PackFixture.tree();
+        gain.getJSONObject("datingNote").put("gain", 0);
+        assertRejected(gain, "datingNote.gain must be positive");
+
+        JSONObject stat = PackFixture.tree();
+        stat.getJSONObject("datingNote").getJSONObject("requires").put("courage", 7);
+        assertRejected(stat, "datingNote.requires.courage = 7 is outside 1..6");
+
+        JSONObject src = PackFixture.tree();
+        src.getJSONObject("datingNote").getJSONArray("src").put("nowhere");
+        assertRejected(src, "'nowhere' is not declared in root.sources");
     }
 
     // ------------------------------------------------------------------ helpers

@@ -318,22 +318,53 @@ public final class Rules {
         public String id;
         /** Character name, e.g. "伊织顺平". */
         public String personZh;
-        /** Display title, e.g. "羁绊剧场 · 伊织顺平". */
+        /** Display title, e.g. "羁绊剧情 · 伊织顺平" (the UI appends "（第 2 话）"). */
         public String titleZh;
         public boolean evening;
-        /** Number of episodes in the track. */
+        /** Number of episodes in the track (1..31). */
         public int count;
         /** dayMask[day] bit (n-1) set → episode n can be watched that day (0 = none). Sized lastDay+1. */
         public int[] dayMask = new int[0];
         public String locationZh;
-        /** What finishing the track gives, in plain Chinese (optional). */
+        /** How to start an episode (where to go / accept the phone invitation), in plain Chinese. */
+        public String howZh;
+        /** What the track gives overall, in plain Chinese (optional). */
         public String rewardZh;
         public String noteZh;
+        /**
+         * Stat points (academics, charm, courage — index = {@link Stat#idx}) of episode n at
+         * {@code gain[n - 1]}; [count][3], zeros when the episode gives none. Never Social Link points.
+         */
+        public int[][] gain = new int[0][];
+        /** Short reward line of episode n at {@code partRewardZh[n - 1]} (e.g. "魅力 +2"), or null. */
+        public String[] partRewardZh = new String[0];
         public String conf;
         public List<String> src = new ArrayList<>();
 
         public boolean allows(int day, int episodeNumber) {
             return day >= 0 && day < dayMask.length && episodeNumber >= 1 && (dayMask[day] & (1 << (episodeNumber - 1))) != 0;
+        }
+
+        /** Stat points of episode n (length 3), or zeros when n is out of range. */
+        public int[] gainOf(int episodeNumber) {
+            return episodeNumber >= 1 && episodeNumber <= gain.length ? gain[episodeNumber - 1] : new int[3];
+        }
+
+        /** Reward line of episode n, or null. */
+        public String rewardOf(int episodeNumber) {
+            return episodeNumber >= 1 && episodeNumber <= partRewardZh.length ? partRewardZh[episodeNumber - 1] : null;
+        }
+
+        /** First day on which episode n can be watched, or -1. */
+        public int firstDay(int episodeNumber) {
+            for (int d = 0; d < dayMask.length; d++) if (allows(d, episodeNumber)) return d;
+            return -1;
+        }
+
+        /** Last day on which episode n can be watched, or -1. */
+        public int lastDay(int episodeNumber) {
+            for (int d = dayMask.length - 1; d >= 0; d--) if (allows(d, episodeNumber)) return d;
+            return -1;
         }
     }
 
@@ -342,15 +373,29 @@ public final class Rules {
      * one established, non-MAX link without meeting them. Never ranks the link up by itself.
      */
     public static final class DatingNote {
+        /** Sentinel for {@link #maxUses}: the note can be bought and used any number of times. */
+        public static final int UNLIMITED = Integer.MAX_VALUE;
+
         public String zh;
         public String howZh;
         public String locationZh;
+        /** Player-facing remark (Chinese): who can be chosen, that it never ranks up by itself; may be null. */
+        public String noteZh;
         public int fromDay;
         public int cost;
         /** Points added (estimate; multipliers are NOT applied). */
         public int gain;
+        /**
+         * How many times the note can be used in one playthrough; {@link #UNLIMITED} when the sources say it
+         * can be bought again (each use still takes an evening). Always >= 1.
+         */
+        public int maxUses = 1;
+        /** Stat index → minimum Lv needed to get into the club at night (Courage Lv2). */
+        public Map<Integer, Integer> requiresLv = new HashMap<>();
         public String conf;
         public List<String> src = new ArrayList<>();
+
+        public boolean unlimited() { return maxUses == UNLIMITED; }
     }
 
     public static final class Policy {

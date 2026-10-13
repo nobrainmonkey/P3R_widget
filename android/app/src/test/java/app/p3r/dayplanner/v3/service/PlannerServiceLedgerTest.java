@@ -88,7 +88,7 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
         PlannerApi.Receipt other = service.recordOutcome(command, 2, MAY12_EVE, "act:study_room", Outcome.of(Outcome.Code.AS_PREDICTED));
         assertFalse(other.ok);
         assertEquals("conflict", other.errorCode);
-        assertEquals("这个操作之前已经用不同的内容保存过，这次没有保存", other.errorZh);
+        assertEquals("刚才已经保存过另一份结果，这次没有保存", other.errorZh);
         PlannerApi.Receipt otherKind = service.voidEvent(command, 2, first.eventSeq);
         assertEquals("conflict", otherKind.errorCode);
         assertEquals(1, service.snapshot().eventsSinceCheckpoint);
@@ -144,11 +144,11 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
         assertMessage(service.recordTower(id(), rev(), rescue), "没有找到这位失踪者");
 
         Outcome rankUp = Outcome.of(Outcome.Code.RANK_UP);
-        assertMessage(service.recordOutcome(id(), rev(), MAY12_EVE, "act:study_room", rankUp), "只有社群会面才能记录升级");
+        assertMessage(service.recordOutcome(id(), rev(), MAY12_EVE, "act:study_room", rankUp), "只有和社群对象见面才能记录升级");
         Outcome lv = Outcome.of(Outcome.Code.OTHER);
         lv.statLv = new int[]{7, -1, -1};
-        assertMessage(service.recordOutcome(id(), rev(), MAY12_EVE, "act:study_room", lv), "个人能力值只能是 Lv.1 到 Lv.6");
-        assertMessage(record(MAY12_EVE, "meet:nobody", Outcome.Code.AS_PREDICTED), "这个行动无法识别，请重新选择");
+        assertMessage(service.recordOutcome(id(), rev(), MAY12_EVE, "act:study_room", lv), "学力、魅力、勇气只能是 Lv.1 到 MAX");
+        assertMessage(record(MAY12_EVE, "meet:nobody", Outcome.Code.AS_PREDICTED), "没认出这一项，请重新选一下");
         Outcome lower = Outcome.of(Outcome.Code.RANK_UP);
         lower.rank = 6;
         assertMessage(service.recordOutcome(id(), rev(), MAY12_EVE, "meet:emperor", lower), "升级后的 RANK 应该比现在高");
@@ -214,7 +214,12 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
 
         PlannerApi.TowerReturn tooHigh = towerReturn(0, 50, true, 20_000);
         assertMessage(service.correctTower(id(), rev(), visit.eventSeq, tooHigh), "楼层不能超过本区块的最高层 43F");
-        assertMessage(service.correctTower(id(), rev(), fix.eventSeq, fixed), "找不到要修改的塔尔塔罗斯记录");
+        PlannerApi.TowerReturn again = towerReturn(0, 30, true, 21_000);
+        PlannerApi.Receipt viaFix = service.correctTower(id(), rev(), fix.eventSeq, again);
+        assertTrue("correcting a correction corrects its tower record: " + viaFix.errorZh, viaFix.ok);
+        s = observed();
+        assertEquals(1, s.towerVisits[1]);
+        assertEquals(21_000, s.cash);
         assertTrue(service.voidEvent(id(), rev(), visit.eventSeq).ok);
         assertMessage(service.correctTower(id(), rev(), visit.eventSeq, fixed), "这条记录已经撤销了，不能再修改");
     }
@@ -267,7 +272,7 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
 
         List<PlannerApi.HistoryItem> history = service.history(10);
         assertEquals("checkpoint", history.get(0).kind);
-        assertEquals("5月31日 白天 · 同步了游戏现状", history.get(0).summaryZh);
+        assertEquals("5月31日 白天 · 同步了现状", history.get(0).summaryZh);
         assertEquals(4, history.size());
         assertFalse("older records no longer shape the state", history.get(2).correctable);
         assertEquals("5月12日 放学后 · 设置了初始进度", history.get(3).summaryZh);
@@ -299,12 +304,12 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
             lines.add(item.summaryZh);
         }
         assertEquals(List.of(
-                "5月12日 晚上 · 修改了塔尔塔罗斯记录 · 到达 27F · 支出 1,200 日元",
+                "5月12日 晚上 · 修改了这次探索 · 到达 27F · 少了 1,200 日元",
                 "5月14日 晚上 · 在宿舍房间学习 · 跳过了",
-                "5月14日 放学后 · 皇帝 · 小田桐秀利 · 见了面，没升级，游戏提示下次可升级",
+                "5月14日 放学后 · 皇帝 · 小田桐秀利 · 见面了 · 没升级 · 游戏提示下次能升级",
                 "5月13日 晚上 · 咖啡店「夏卡尔」打工 · 魅力 +1 · 勇气 +1 · 收入 2,500 日元",
                 "5月13日 放学后 · 皇帝 · 小田桐秀利 · 没见到（对方不在）",
-                "5月12日 晚上 · 探索塔尔塔罗斯 · 到达 27F · 余额 14,750 日元",
+                "5月12日 晚上 · 探索塔尔塔罗斯 · 到达 27F · 出塔后余额 14,750 日元",
                 "5月12日 放学后 · 皇帝 · 小田桐秀利 · RANK 6 → 7",
                 "5月12日 放学后 · 设置了初始进度"), lines);
         Pattern internal = Pattern.compile("[a-z]+:|[a-z]{4,}");
