@@ -72,7 +72,9 @@ public final class Engine {
     /**
      * Apply a player-confirmed outcome for {@code action} taken at {@code state.slot} and advance
      * one slot. Used by the store to derive the observed state; visible values in the outcome
-     * override model values, hidden values are updated as estimates.
+     * override model values (a recorded {@link Outcome#rank} is kept whatever the profile says,
+     * also for {@link Outcome.Code#AS_PREDICTED}), hidden values are updated as estimates. Side
+     * steps follow {@link Outcome#sideKeys} when given (see {@link #sideSteps}).
      */
     public static SimState applyOutcome(Rules rules, Profile profile, SimState state, Action action, Outcome outcome) {
         return Simulator.applyOutcome(rules, profile, state, action, outcome);
@@ -87,6 +89,37 @@ public final class Engine {
      */
     public static SimState applySideSteps(Rules rules, Profile profile, SimState state, Action action) {
         return Simulator.applySideSteps(rules, profile, state, action);
+    }
+
+    /** Result of {@link #sideSteps}. */
+    public static final class SideSteps {
+        /** State after the side steps, still at the same slot. */
+        public SimState state;
+        /** Keys of the side steps applied, in order ("unlock:devil:0"); empty if none. */
+        public List<String> applied;
+        /** Keys asked for that could not be applied as recorded (see {@link #sideSteps}); empty if none. */
+        public List<String> rejected;
+    }
+
+    /**
+     * The side steps of {@code state.slot} beside {@code action}, applied to a copy that stays at
+     * the same slot, with the keys that were applied.
+     *
+     * <ul>
+     *   <li>{@code keys == null}: the steps the engine picks for this profile, exactly as
+     *       {@link #applySideSteps} and the forecast do (wanted links only, cash reserved for the
+     *       main action).</li>
+     *   <li>{@code keys != null}: exactly those steps ({@link Action#key} form), in order, as the
+     *       player recorded them. The profile does not choose (adding or clearing a goal later
+     *       never changes what was done) and the cash is not checked (the fee is paid, cash stays
+     *       at least 0). A key is rejected when it is not an unlock step of this pack, is not its
+     *       link's pending non-consuming step, its link already took a step in this slot, is the
+     *       main unlock action's own link, or the slot's day, kind, prerequisites or minimum gap do
+     *       not allow it.</li>
+     * </ul>
+     */
+    public static SideSteps sideSteps(Rules rules, Profile profile, SimState state, Action action, List<String> keys) {
+        return Simulator.sideSteps(rules, profile, state, action, keys);
     }
 
     /**

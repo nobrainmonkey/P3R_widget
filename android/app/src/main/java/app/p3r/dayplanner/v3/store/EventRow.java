@@ -61,6 +61,28 @@ public final class EventRow {
         }
     }
 
+    /**
+     * Payload keys of observed rows that hold values the service resolved when it wrote the row
+     * (the side steps done, the RANK after a meeting). They are not part of the command, so
+     * {@link #commandSha256} leaves them out.
+     */
+    private static final String[] RESOLVED_KEYS = {"side", "sideStepIds", "rankAfter"};
+
+    /**
+     * SHA-256 of the command an observed-row payload came from: the canonical payload without the
+     * values resolved when the row was written ({@code side}, {@code sideStepIds},
+     * {@code rankAfter}; see {@link OutcomeRecord}). A payload without them hashes as it is, so
+     * rows written before they existed keep their fingerprint.
+     */
+    public static String commandSha256(String json) throws JSONException {
+        JSONObject o = new JSONObject(json);
+        boolean resolved = false;
+        for (String key : RESOLVED_KEYS) {
+            resolved |= o.remove(key) != null;
+        }
+        return Canonical.sha256(resolved ? Canonical.of(o) : json);
+    }
+
     /** Slot recorded in an observed row's payload, or -1 when the row has none. */
     public int slot() {
         if (!EventKind.isObserved(kind)) {

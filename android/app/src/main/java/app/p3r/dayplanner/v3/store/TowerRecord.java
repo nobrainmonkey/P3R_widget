@@ -1,7 +1,15 @@
 package app.p3r.dayplanner.v3.store;
 
+import app.p3r.dayplanner.v3.model.Rules;
+
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Payload of a {@link EventKind#TOWER} row: one Tartarus visit as the player reported it.
@@ -12,6 +20,12 @@ import org.json.JSONObject;
  * {@code "sideDone":false} is written only when the slot's side steps (the plan's "顺便：…" lines)
  * were not done; older rows never have it. {@link #block} is the index under the pack the row was
  * written with; replay re-derives the block from the day (see {@code Replayer}).
+ *
+ * <p>Side steps: {@code sideKeys} is the list the sheet passed, if any (part of the command);
+ * {@code side} / {@code sideStepIds} are the side steps done as resolved when the row was written
+ * (see {@link OutcomeRecord}; not part of the command's fingerprint). Replay applies exactly
+ * {@code side}; rows without it (older rows) let the engine work the side steps out. Corrections
+ * never carry them: the visit's own row decides.
  */
 public final class TowerRecord {
     public static final String MODE_BALANCE = "balance";
@@ -31,6 +45,12 @@ public final class TowerRecord {
     public String rescuedId;
     /** False when the player said the slot's side steps were not done (default true). */
     public boolean sideDone = true;
+    /** Side-step keys the sheet passed with the command, or null. */
+    public List<String> sideKeys;
+    /** Side steps done as resolved when recording (keys, in order), or null when not stored. */
+    public List<String> side;
+    /** Unlock step id per key of {@link #side}; never null. */
+    public Map<String, String> sideStepIds = new LinkedHashMap<>();
 
     public TowerRecord copy() {
         TowerRecord r = new TowerRecord();
@@ -42,7 +62,16 @@ public final class TowerRecord {
         r.level = level;
         r.rescuedId = rescuedId;
         r.sideDone = sideDone;
+        r.sideKeys = sideKeys == null ? null : new ArrayList<>(sideKeys);
+        r.side = side == null ? null : new ArrayList<>(side);
+        r.sideStepIds = new LinkedHashMap<>(sideStepIds);
         return r;
+    }
+
+    /** Stores the side steps done ({@code done}, null for none stored), with their step ids under {@code rules}. */
+    public void resolveSide(Rules rules, List<String> done) {
+        this.side = done == null ? null : new ArrayList<>(done);
+        this.sideStepIds = OutcomeRecord.stepIdsOf(rules, done);
     }
 
     public JSONObject toJson() throws JSONException {
@@ -61,6 +90,10 @@ public final class TowerRecord {
         if (!sideDone) {
             o.put("sideDone", false);
         }
+        if (sideKeys != null) {
+            o.put("sideKeys", new JSONArray(sideKeys));
+        }
+        OutcomeRecord.putSide(o, side, sideStepIds);
         return o;
     }
 
@@ -82,6 +115,15 @@ public final class TowerRecord {
         r.level = o.has("level") ? o.getInt("level") : null;
         r.rescuedId = o.has("rescued") ? o.getString("rescued") : null;
         r.sideDone = o.optBoolean("sideDone", true);
+        JSONArray keys = o.optJSONArray("sideKeys");
+        if (keys != null) {
+            r.sideKeys = new ArrayList<>(keys.length());
+            for (int i = 0; i < keys.length(); i++) {
+                r.sideKeys.add(keys.getString(i));
+            }
+        }
+        r.side = OutcomeRecord.sideOf(o);
+        r.sideStepIds = OutcomeRecord.sideStepIdsOf(o);
         return r;
     }
 }

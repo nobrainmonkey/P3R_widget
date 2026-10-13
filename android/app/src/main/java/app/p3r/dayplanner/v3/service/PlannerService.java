@@ -433,8 +433,84 @@ public final class PlannerService implements PlannerApi {
             if (r != null) {
                 return r.toReceipt();
             }
-            return append(view, commandId, view.checkpointId, kind, json);
+            String stored = Canonical.of(resolved(view, record).toJson());
+            return append(view, commandId, view.checkpointId, kind, stored);
         });
+    }
+
+    /**
+     * {@code record} (at {@code view.observed.slot}, already checked) with what it did resolved now,
+     * under the profile in effect, so replaying it later under another profile cannot change it:
+     * <ul>
+     *   <li>the side steps done (unless the outcome says they were not): the outcome's own
+     *       {@code sideKeys}, else the installed plan's 顺便 lines when the plan has a step with
+     *       this action at this slot (what the sheet showed), else the ones the engine picks for
+     *       this action — each kept only if it can be applied now;</li>
+     *   <li>for a meeting recorded as predicted without a rank (widget, or a plan that lagged
+     *       behind), the RANK it leads to now.</li>
+     * </ul>
+     */
+    private OutcomeRecord resolved(LedgerView view, OutcomeRecord record) {
+        try {
+            Rules rules = view.rules;
+            Action action = Action.parse(rules, record.actionKey);
+            Outcome outcome = record.outcome;
+            SimState start = view.observed;
+            List<String> side = null;
+            if (outcome.sideDone) {
+                List<String> asked = outcome.sideKeys != null ? outcome.sideKeys : plannedSide(view, record.slot, action);
+                Engine.SideSteps done = wiring.applier.sideSteps(rules, view.profile, start, action, asked);
+                side = done.applied;
+                start = done.state;
+            }
+            int rankAfter = -1;
+            boolean meeting = action != null && action.type == Action.Type.MEET;
+            if (meeting && outcome.code == Outcome.Code.AS_PREDICTED && outcome.rank < 0) {
+                Outcome main = Outcome.fromJson(outcome.toJson());
+                main.sideDone = false;
+                main.sideKeys = null;
+                SimState after = wiring.applier.apply(rules, view.profile, start.copy(), action, main);
+                if (after != null && after.rank != null && action.target < after.rank.length) {
+                    rankAfter = after.rank[action.target];
+                }
+            }
+            return record.withResolved(rules, side, rankAfter);
+        } catch (JSONException | RuntimeException e) {
+            // Never lose a record over this: stored as given, replay then works it out as before.
+            Log.w(TAG, "could not resolve what the record at slot " + record.slot + " did", e);
+            return record;
+        }
+    }
+
+    /**
+     * The side steps done beside a tower visit, resolved like {@link #resolved}, or null (stored
+     * as given) if that fails.
+     */
+    private List<String> towerSide(LedgerView view, TowerRecord rec) {
+        try {
+            Action visit = Action.tower(rec.block);
+            List<String> asked = rec.sideKeys != null ? rec.sideKeys : plannedSide(view, rec.slot, visit);
+            return wiring.applier.sideSteps(view.rules, view.profile, view.observed, visit, asked).applied;
+        } catch (RuntimeException e) {
+            Log.w(TAG, "could not resolve the side steps of the visit at slot " + rec.slot, e);
+            return null;
+        }
+    }
+
+    /**
+     * The 顺便 lines of the installed plan's step at {@code slot} when that step is {@code action}
+     * (the lines the sheet showed with it), else null.
+     */
+    private List<String> plannedSide(LedgerView view, int slot, Action action) {
+        Plan plan = model.plan;
+        if (plan == null || action == null || !Objects.equals(plan.rulesVersion, view.rules.version)) {
+            return null;
+        }
+        Plan.Step step = plan.at(slot);
+        if (step == null || !action.equals(Action.parse(view.rules, step.action))) {
+            return null;
+        }
+        return step.side == null ? new ArrayList<>() : new ArrayList<>(step.side);
     }
 
     @Override
@@ -456,7 +532,10 @@ public final class PlannerService implements PlannerApi {
             if (r != null) {
                 return r.toReceipt();
             }
-            return append(view, commandId, view.checkpointId, EventKind.TOWER, json);
+            if (rec.sideDone) {
+                rec.resolveSide(view.rules, towerSide(view, rec));
+            }
+            return append(view, commandId, view.checkpointId, EventKind.TOWER, Canonical.of(rec.toJson()));
         });
     }
 
@@ -485,6 +564,8 @@ public final class PlannerService implements PlannerApi {
                 }
                 rec.sideDone = effective.sideDone;
             }
+            // The side steps done beside the visit stay those of the visit's own row.
+            rec.sideKeys = null;
             JSONObject payload = new JSONObject();
             payload.put("target", towerSeq);
             payload.put("tower", rec.toJson());
@@ -882,15 +963,28 @@ public final class PlannerService implements PlannerApi {
         return r;
     }
 
+    /**
+     * Fingerprint of the command that wrote {@code row}: journal rows store it; observed rows hash
+     * their payload without the values resolved when they were written ({@link EventRow#commandSha256}),
+     * so a retry of the same command matches even though the state has moved on since.
+     */
     private static String fingerprintOf(EventRow row) {
-        if (!EventKind.isJournal(row.kind)) {
-            return Canonical.sha256(row.json);
+        if (EventKind.isJournal(row.kind)) {
+            try {
+                return row.payload().optString("payloadSha256", "");
+            } catch (JSONException e) {
+                return "";
+            }
         }
-        try {
-            return row.payload().optString("payloadSha256", "");
-        } catch (JSONException e) {
-            return "";
+        if (EventKind.isObserved(row.kind)) {
+            try {
+                return EventRow.commandSha256(row.json);
+            } catch (JSONException e) {
+                // Unreadable payloads can only match themselves.
+                return Canonical.sha256(row.json);
+            }
         }
+        return Canonical.sha256(row.json);
     }
 
     /**
@@ -957,6 +1051,7 @@ public final class PlannerService implements PlannerApi {
         rec.level = tower.level;
         rec.rescuedId = tower.rescuedId;
         rec.sideDone = tower.sideDone;
+        rec.sideKeys = tower.sideDone && tower.sideKeys != null ? new ArrayList<>(tower.sideKeys) : null;
         return rec;
     }
 

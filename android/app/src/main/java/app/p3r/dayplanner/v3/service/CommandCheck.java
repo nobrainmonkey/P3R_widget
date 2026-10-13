@@ -9,6 +9,7 @@ import app.p3r.dayplanner.v3.store.EventRow;
 import app.p3r.dayplanner.v3.store.StateShape;
 import app.p3r.dayplanner.v3.store.TowerRecord;
 
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -22,12 +23,15 @@ import java.util.regex.Pattern;
 final class CommandCheck {
     /** Sanity bound for typed yen amounts. */
     static final long MAX_CASH = 99_999_999L;
+    /** Side steps one slot can carry (one per link at most). */
+    static final int MAX_SIDE_KEYS = 32;
 
     static final String ZH_NO_STATE = "还没有填写当前进度，请先完成初始设置";
     static final String ZH_ALREADY_RECORDED = "这个时段已经记录过了";
     static final String ZH_CALENDAR_OVER = "日程已经全部结束了，不能再记录";
     static final String ZH_OUT_OF_CALENDAR = "这个时段不在游戏日程内";
     static final String ZH_UNKNOWN_ACTION = "没认出这一项，请重新选一下";
+    static final String ZH_SIDE_UNKNOWN = "没认出顺便要做的事，请重新选一下";
     static final String ZH_RANK_RANGE = "社群 RANK 不对，请重新选一下";
     static final String ZH_RANK_NOT_HIGHER = "升级后的 RANK 应该比现在高";
     static final String ZH_RANK_UP_NOT_MEETING = "只有和社群对象见面才能记录升级";
@@ -109,6 +113,10 @@ final class CommandCheck {
         if (outcome.reason != null && !REASON_ID.matcher(outcome.reason).matches()) {
             return Rejection.invalid(ZH_REASON);
         }
+        r = sideKeys(view.rules, outcome.sideKeys);
+        if (r != null) {
+            return r;
+        }
         if (outcome.code == Outcome.Code.RANK_UP) {
             if (action.type != Action.Type.MEET) {
                 return Rejection.invalid(ZH_RANK_UP_NOT_MEETING);
@@ -136,7 +144,31 @@ final class CommandCheck {
         if (rec.block != block.idx) {
             return Rejection.invalid(ZH_TOWER_BLOCK);
         }
+        r = sideKeys(view.rules, rec.sideKeys);
+        if (r != null) {
+            return r;
+        }
         return towerValues(view.rules, block, rec, view.observed);
+    }
+
+    /**
+     * Side-step keys passed with a record (null: none passed) must name unlock steps of this pack.
+     * Whether they can be applied is decided when the record is stored, never refused.
+     */
+    static Rejection sideKeys(Rules rules, List<String> keys) {
+        if (keys == null) {
+            return null;
+        }
+        if (keys.size() > MAX_SIDE_KEYS) {
+            return Rejection.invalid(ZH_SIDE_UNKNOWN);
+        }
+        for (String key : keys) {
+            Action side = Action.parse(rules, key);
+            if (side == null || side.type != Action.Type.UNLOCK_STEP || !knownAction(rules, side)) {
+                return Rejection.invalid(ZH_SIDE_UNKNOWN);
+            }
+        }
+        return null;
     }
 
     /** A correction of {@code target}; {@code before} is the replayed state just before it. */

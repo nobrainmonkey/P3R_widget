@@ -142,6 +142,13 @@ public interface PlannerApi {
          * {@code correctTower}.
          */
         public boolean sideDone = true;
+        /**
+         * Optional: the side steps done beside the visit as the sheet listed them (the step's
+         * {@code Plan.Step#side} keys), when {@link #sideDone}. Null lets the service take the
+         * installed plan's lines for this evening. In history items: the side steps the record
+         * stored, or null for older records. Ignored by {@code correctTower}.
+         */
+        public java.util.List<String> sideKeys;
     }
 
     interface Listener {
@@ -167,6 +174,12 @@ public interface PlannerApi {
      * be {@code observed.slot}: an earlier slot is rejected as already recorded, a later one with
      * {@code gap} (run the catch-up flow). A {@code SKIPPED} outcome is stored as a skip.
      * Tartarus visits with floor/cash use {@link #recordTower}.
+     *
+     * <p>What the record did is fixed when it is stored, so later profile changes (goals, Persona
+     * mode, 其余社群…) never rewrite it: the side steps done ({@link Outcome#sideKeys} when given,
+     * else the installed plan's 顺便 lines for this step, else the engine's pick for the action;
+     * none when {@link Outcome#sideDone} is false), and, for a meeting recorded as predicted
+     * without a rank, the RANK it leads to. Pass {@code Outcome.rank} for confirmed rank results.
      */
     Receipt recordOutcome(String commandId, long expectedStateRevision, int slot, String actionKey, Outcome outcome);
 

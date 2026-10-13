@@ -225,13 +225,13 @@ public class FeaturesTest {
         assertNotNull(alts.toString(), note);
         assertEquals("note", note.kind);
         assertEquals("magician", note.entity);
-        assertEquals("在放纵俱乐部买结缘网站的字条，给 友近健二 加好感", note.titleZh);
+        assertEquals("在放纵俱乐部买结缘网站的字条，给友近健二加好感", note.titleZh);
         assertEquals("魔术师 · 好感 +10 · 3,000 日元", note.subtitleZh);
         assertEquals("桐叶购物中心 · 放纵俱乐部", note.locationZh);
         assertTrue(note.detailZh, note.detailZh.startsWith(rules.datingNote.howZh));
         assertTrue(note.detailZh, note.detailZh.contains("不会让社群直接升级"));
         assertEquals(-3_000, note.predicted.cashDelta);
-        assertEquals("在放纵俱乐部买结缘网站的字条，给 教皇社群 加好感", alternative(alts, "note:hierophant").titleZh);
+        assertEquals("在放纵俱乐部买结缘网站的字条，给教皇社群加好感", alternative(alts, "note:hierophant").titleZh);
     }
 
     @Test
@@ -305,8 +305,8 @@ public class FeaturesTest {
         Plan.Step ep = alternative(alts, "episode:junpei");
         assertEquals("episode", ep.kind);
         assertEquals("junpei", ep.entity);
-        assertEquals("羁绊剧情 · 伊织顺平", ep.titleZh);
-        assertEquals("第 1 话（共 5 话）", ep.subtitleZh);
+        assertEquals("羁绊剧情 · 伊织顺平（第 1 话）", ep.titleZh);
+        assertEquals("共 5 话", ep.subtitleZh);
         assertTrue(ep.detailZh, ep.detailZh.startsWith("白天打开手机，答应伊织顺平的邀约"));
         assertTrue(ep.detailZh, ep.detailZh.contains("看完第 5 话可以得到特性「伊织顺平的心意」"));
         assertFalse(ep.detailZh, ep.detailZh.contains("这一话的奖励"));
@@ -318,7 +318,8 @@ public class FeaturesTest {
         assertEquals(2, two.state.statPts[RulesFixtures.CHARM]);
         assertEquals(2, two.predicted.statDelta[RulesFixtures.CHARM]);
         Plan.Step ep2 = alternative(Engine.alternatives(rules, p, second), "episode:junpei");
-        assertEquals("第 2 话（共 5 话）", ep2.subtitleZh);
+        assertEquals("羁绊剧情 · 伊织顺平（第 2 话）", ep2.titleZh);
+        assertEquals("共 5 话", ep2.subtitleZh);
         assertTrue(ep2.detailZh, ep2.detailZh.contains("这一话的奖励：魅力 +2"));
 
         assertEquals(1, Engine.applyOutcome(rules, p, tue, Action.episode(0), Outcome.of(Outcome.Code.AS_PREDICTED)).episodes[0]);
@@ -338,7 +339,8 @@ public class FeaturesTest {
         for (Plan.Step s : plan.steps) {
             if (s.action.equals("episode:junpei")) {
                 junpei++;
-                assertEquals("第 " + junpei + " 话（共 5 话）", s.subtitleZh);
+                assertEquals("羁绊剧情 · 伊织顺平（第 " + junpei + " 话）", s.titleZh);
+                assertEquals("共 5 话", s.subtitleZh);
                 assertTrue(rules.episodes[0].allows(s.slot >> 1, junpei));
             }
             if (s.action.equals("episode:akihiko")) akihiko++;

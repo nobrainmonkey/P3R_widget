@@ -440,21 +440,49 @@ final class Kernel {
             if (reserve < 0) reserve = mainCashNeed(m, st, code);
             if (!sideLegal(m, st, l, day, eve, st.cash - reserve)) continue;
             int k = st.unlockStep[l];
-            Rules.Step s = m.rules.links[l].unlock.steps.get(k);
-            st.cash = Math.max(0, st.cash - Math.max(0, s.cost));
-            st.unlockStep[l] = k + 1;
-            st.lastStepDay[l] = day;
-            if (k == t.establishIdx[l]) {
-                st.rank[l] = 1;
-                st.pts[l] = eventPts(m, l, 1, mult(m, st, l));
-                st.ready[l] = false;
-            }
+            doSide(m, st, l, k, day);
             if (fx != null && fx.sideCount < fx.sideLink.length) {
                 fx.sideLink[fx.sideCount] = l;
                 fx.sideStep[fx.sideCount] = k;
                 fx.sideCount++;
             }
         }
+    }
+
+    /** Do side step {@code k} of {@code link} on {@code day}: pay its fee, move the chain on, establish the link at its step. */
+    static void doSide(Model m, SimState st, int link, int k, int day) {
+        Rules.Step s = m.rules.links[link].unlock.steps.get(k);
+        st.cash = Math.max(0, st.cash - Math.max(0, s.cost));
+        st.unlockStep[link] = k + 1;
+        st.lastStepDay[link] = day;
+        if (k == m.t.establishIdx[link]) {
+            st.rank[link] = 1;
+            st.pts[link] = eventPts(m, link, 1, mult(m, st, link));
+            st.ready[link] = false;
+        }
+    }
+
+    /**
+     * A side step the player reported for this slot (see {@link #side}) can be applied as it was
+     * recorded: step {@code k} is the link's pending non-consuming unlock step, of the slot's kind,
+     * on an allowed day, past the earliest day, with the link not missing, its prerequisites met
+     * and the minimum gap since the previous step kept, and not the link of the main unlock action
+     * {@code code}. Wanting the link and the cash are not checked: the player says it was done, and
+     * the profile in effect today must not decide what happened in the past.
+     */
+    static boolean recordedSideLegal(Model m, SimState st, int code, int link, int k) {
+        Tables t = m.t;
+        if (link < 0 || link >= t.nLinks || k < 0 || k >= t.stepCount[link]) return false;
+        if (type(code) == T_UNLOCK && target(code) == link) return false;
+        if (st.rank[link] != 0 || st.unlockStep[link] != k || !t.sideStep[link][k]) return false;
+        Rules.Link l = m.rules.links[link];
+        if (l.kind != Rules.LinkKind.MANUAL) return false;
+        int day = st.slot >> 1;
+        if (day < 0 || day > t.lastDay) return false;
+        Rules.Step s = l.unlock.steps.get(k);
+        if (s.evening != ((st.slot & 1) == 1) || !t.stepDayOk[link][k][day]) return false;
+        if (day < l.unlock.earliestDay || blocked(m, st, link, day) || !prereqsMet(m, st, link)) return false;
+        return st.lastStepDay[link] < 0 || day - st.lastStepDay[link] >= s.minGapDays;
     }
 
     static boolean activityLegal(Model m, SimState st, int act) {

@@ -252,6 +252,94 @@ public class SideStepTest {
         assertEquals(0, s.unlockStep[X_DEVIL]); // the input is untouched
     }
 
+    /**
+     * F2: what was done beside an action is a fact of the past. Recorded side steps apply exactly,
+     * whatever the profile in effect wants now; an explicit empty list means none.
+     */
+    @Test
+    public void recordedSideStepsApplyExactlyWhateverTheProfileWantsNow() throws Exception {
+        Rules rules = RulesFixtures.sideSteps();
+        Profile wanted = RulesFixtures.others();
+        Profile nobody = RulesFixtures.others();
+        nobody.otherLinks = false;
+        SimState s = start(rules, 24, 50_000);
+        s.slot = Rules.slot(24, true);
+        Action study = Action.activity(X_STUDY);
+
+        // keys == null: the engine's own pick, the same as the forecast.
+        assertEquals(act(rules, wanted, s, study).side, Engine.sideSteps(rules, wanted, s, study, null).applied);
+        assertTrue(Engine.sideSteps(rules, nobody, s, study, null).applied.isEmpty());
+
+        // Recorded while the Devil was wanted, replayed after it no longer is: still paid.
+        Engine.SideSteps paid = Engine.sideSteps(rules, nobody, s, study, List.of("unlock:devil:0"));
+        assertEquals(List.of("unlock:devil:0"), paid.applied);
+        assertTrue(paid.rejected.isEmpty());
+        assertEquals(1, paid.state.unlockStep[X_DEVIL]);
+        assertEquals(30_000, paid.state.cash);
+        assertEquals(s.slot, paid.state.slot);
+        assertEquals(0, s.unlockStep[X_DEVIL]); // the input is untouched
+        Outcome one = Outcome.of(Outcome.Code.AS_PREDICTED);
+        one.sideKeys = List.of("unlock:devil:0");
+        SimState did = Engine.applyOutcome(rules, nobody, s, study, one);
+        assertEquals(1, did.unlockStep[X_DEVIL]);
+        assertEquals(30_000, did.cash);
+        assertEquals(2, did.statPts[0]);
+
+        // Recorded as none, replayed after the Devil became wanted: no payment invented.
+        Outcome none = Outcome.of(Outcome.Code.AS_PREDICTED);
+        none.sideKeys = List.of();
+        SimState nothing = Engine.applyOutcome(rules, wanted, s, study, none);
+        assertEquals(0, nothing.unlockStep[X_DEVIL]);
+        assertEquals(50_000, nothing.cash);
+        assertEquals(2, nothing.statPts[0]);
+        // sideDone false still wins over a list.
+        one.sideDone = false;
+        assertEquals(0, Engine.applyOutcome(rules, wanted, s, study, one).unlockStep[X_DEVIL]);
+
+        // JSON: "sideKeys" only when given, empty lists included.
+        assertFalse(Outcome.of(Outcome.Code.AS_PREDICTED).toJson().has("sideKeys"));
+        assertEquals(List.of(), Outcome.fromJson(none.toJson()).sideKeys);
+        assertEquals(List.of("unlock:devil:0"), Outcome.fromJson(one.toJson()).sideKeys);
+        assertEquals(null, Outcome.fromJson(new JSONObject("{\"code\":\"AS_PREDICTED\"}")).sideKeys);
+    }
+
+    @Test
+    public void recordedSideStepsAreLegalityChecked() {
+        Rules rules = RulesFixtures.sideSteps();
+        Profile p = RulesFixtures.others();
+        SimState s = start(rules, 24, 50_000);
+        s.slot = Rules.slot(24, true);
+        Action study = Action.activity(X_STUDY);
+
+        // Not the pending step, a second step of one link in a slot, not an unlock step, unknown link.
+        Engine.SideSteps mixed = Engine.sideSteps(rules, p, s, study,
+                List.of("unlock:devil:1", "unlock:devil:0", "unlock:devil:1", "meet:devil", "unlock:nobody:0"));
+        assertEquals(List.of("unlock:devil:0"), mixed.applied);
+        assertEquals(List.of("unlock:devil:1", "unlock:devil:1", "meet:devil", "unlock:nobody:0"), mixed.rejected);
+        assertEquals(1, mixed.state.unlockStep[X_DEVIL]);
+        // The slot-consuming last step is never a side step.
+        SimState late = s.copy();
+        late.unlockStep[X_DEVIL] = 2;
+        late.lastStepDay[X_DEVIL] = 20;
+        assertEquals(List.of("unlock:devil:2"), Engine.sideSteps(rules, p, late, study, List.of("unlock:devil:2")).rejected);
+        // Wrong slot kind (the payment is an evening step).
+        SimState day = start(rules, 24, 50_000);
+        assertEquals(List.of("unlock:devil:0"), Engine.sideSteps(rules, p, day, Action.free(), List.of("unlock:devil:0")).rejected);
+        // The main unlock action's own link.
+        assertEquals(List.of("unlock:devil:0"),
+                Engine.sideSteps(rules, p, s, Action.unlock(X_DEVIL, 2), List.of("unlock:devil:0")).rejected);
+        // Too soon after the previous step (minGapDays 1).
+        SimState again = Engine.sideSteps(rules, p, s, study, List.of("unlock:devil:0")).state;
+        assertEquals(List.of("unlock:devil:1"), Engine.sideSteps(rules, p, again, study, List.of("unlock:devil:1")).rejected);
+        // Cash is not checked (the player paid): it floors at 0 and stops being exact.
+        SimState poor = s.copy();
+        poor.cash = 5_000;
+        Engine.SideSteps short_ = Engine.sideSteps(rules, p, poor, study, List.of("unlock:devil:0"));
+        assertEquals(List.of("unlock:devil:0"), short_.applied);
+        assertEquals(0, short_.state.cash);
+        assertFalse(short_.state.cashExact);
+    }
+
     @Test
     public void outcomeOfTheMainUnlockDoesNotDoubleApplyItsLink() {
         Rules rules = RulesFixtures.sideSteps();
