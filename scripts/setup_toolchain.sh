@@ -35,13 +35,18 @@ export JAVA_HOME="$JAVA_HOME"
 export ANDROID_HOME="$TC/android-sdk"
 export ANDROID_SDK_ROOT="\$ANDROID_HOME"
 export ANDROID_USER_HOME="$TC/android-user-home"
+export ANDROID_EMULATOR_HOME="$TC/android-user-home"
+export ANDROID_AVD_HOME="$TC/avd"
+export JAVA_TOOL_OPTIONS="-Duser.home=$TC/home"
 export GRADLE_USER_HOME="$TC/gradle-home"
-export PATH="\$JAVA_HOME/bin:\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_HOME/build-tools/35.0.0:\$PATH"
+export PATH="\$JAVA_HOME/bin:\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_HOME/build-tools/35.0.0:\$ANDROID_HOME/platform-tools:\$ANDROID_HOME/emulator:\$PATH"
 export P3R_TOOLCHAIN="$TC"
 export P3R_ROOT="$ROOT"
 ENV
 # shellcheck disable=SC1091
 source "$TC/env.sh"
-yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses >/dev/null 2>&1 || true
-sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-35" "build-tools;35.0.0" >/dev/null
+mkdir -p "$ANDROID_USER_HOME" "$TC/home"
+# sdkmanager keeps its settings under ANDROID_PREFS_ROOT (only for these calls; AGP rejects it next to ANDROID_USER_HOME).
+yes | ANDROID_PREFS_ROOT="$ANDROID_USER_HOME" sdkmanager --sdk_root="$ANDROID_HOME" --licenses >/dev/null 2>&1 || true
+ANDROID_PREFS_ROOT="$ANDROID_USER_HOME" sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-35" "build-tools;35.0.0" >/dev/null
 echo "Toolchain ready. Run: source .toolchain/env.sh"

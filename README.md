@@ -67,7 +67,14 @@ scripts/setup_toolchain.sh
 scripts/build_release.sh
 ```
 
-产物在 `dist/`。发布签名密钥放在 `.signing/`（已被 git 忽略，不会上传）；没有密钥时会退回调试签名。
+产物在 `dist/`。
+
+验证构建不依赖项目目录以外的任何东西（空环境、空 HOME、Gradle 离线模式，并检查 ~/.gradle、~/.m2、~/.android 没有新文件）：
+
+```bash
+scripts/verify_selfcontained.sh
+```
+发布签名密钥放在 `.signing/`（已被 git 忽略，不会上传）；没有密钥时会退回调试签名。
 
 ## 目录
 
