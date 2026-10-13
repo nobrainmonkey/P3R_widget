@@ -30,7 +30,8 @@ import java.util.Set;
  *
  * <p>The loader only checks structure and internal consistency (contiguous days, 22 links in
  * arcana order, array lengths, indices and ids in range, meeting and Link Episode days on unlocked
- * slots, the optional {@code episodes} and {@code datingNote} sections). Game
+ * slots, the optional {@code episodes} and {@code datingNote} sections) and the Reload-only source policy
+ * (every source declares an {@link #EDITIONS edition}; every {@code src} list names a Reload source). Game
  * facts are verified by the builder ({@code rules/build/build_p3r_rules.py}) and by the unit tests.
  */
 public final class RulesLoader {
@@ -49,6 +50,17 @@ public final class RulesLoader {
     /** Allowed confidence labels for rule records. */
     public static final List<String> CONF_VALUES = Collections.unmodifiableList(Arrays.asList(
             "game_data", "verified", "single", "estimate", "conflict"));
+
+    /**
+     * Allowed {@code sources[].edition} values (rules/build/REPORT.md §1.1). Only {@link #RELOAD_EDITIONS}
+     * describe Persona 3 Reload alone; the other two are multi-edition sources that may only corroborate.
+     */
+    public static final List<String> EDITIONS = Collections.unmodifiableList(Arrays.asList(
+            "reload", "game_data_reload", "cn_guide_reload", "reload+portable", "mixed"));
+
+    /** Editions that count as Reload sources: every record's {@code src} must name at least one of them. */
+    public static final List<String> RELOAD_EDITIONS = Collections.unmodifiableList(Arrays.asList(
+            "reload", "game_data_reload", "cn_guide_reload"));
 
     /** Number of hex digits of the SHA-256 that identify a pack in {@link Rules#version}. */
     static final int VERSION_HASH_DIGITS = 12;
@@ -121,6 +133,8 @@ public final class RulesLoader {
         private final JSONObject root;
         private final Rules rules = new Rules();
         private final Set<String> sourceIds = new HashSet<>();
+        /** Ids of the declared sources whose edition is a Reload edition. */
+        private final Set<String> reloadSourceIds = new HashSet<>();
         private final Map<String, Integer> statIndex = new HashMap<>();
         private final Map<String, Integer> linkIndex = new HashMap<>();
         private final Map<String, Integer> rescueIndex = new HashMap<>();
@@ -176,6 +190,11 @@ public final class RulesLoader {
                 s.kind = optString(o, "kind", where);
                 s.sha256 = optString(o, "sha256", where);
                 s.note = optString(o, "note", where);
+                String edition = reqString(o, "edition", where);
+                if (!EDITIONS.contains(edition)) {
+                    throw fail(where + ".edition '" + edition + "' must be one of " + EDITIONS);
+                }
+                if (RELOAD_EDITIONS.contains(edition)) reloadSourceIds.add(s.id);
                 rules.sources.add(s);
             }
             if (rules.sources.isEmpty()) throw fail("root.sources must not be empty");
@@ -754,11 +773,15 @@ public final class RulesLoader {
             JSONArray arr = reqArray(o, "src", where);
             if (arr.length() == 0) throw fail(where + ".src must not be empty");
             List<String> out = new ArrayList<>();
+            boolean reload = false;
             for (int i = 0; i < arr.length(); i++) {
                 String id = arr.getString(i);
                 if (!sourceIds.contains(id)) throw fail(where + ".src[" + i + "] '" + id + "' is not declared in root.sources");
+                reload |= reloadSourceIds.contains(id);
                 out.add(id);
             }
+            // Reload-only source policy: a value may not rest on multi-edition sources alone.
+            if (!reload) throw fail(where + ".src " + out + " names no Reload source (edition " + RELOAD_EDITIONS + ")");
             return out;
         }
 

@@ -339,7 +339,63 @@ public class RulesLoaderTest {
         assertRejected(src, "'nowhere' is not declared in root.sources");
     }
 
+    // ------------------------------------------------------------------ Reload-only source policy
+
+    @Test
+    public void everySourceNeedsAKnownEdition() throws JSONException {
+        JSONObject missing = PackFixture.tree();
+        missing.getJSONArray("sources").getJSONObject(0).remove("edition");
+        assertRejected(missing, "sources[0].edition is required");
+
+        JSONObject unknown = PackFixture.tree();
+        unknown.getJSONArray("sources").getJSONObject(3).put("edition", "fes");
+        assertRejected(unknown, "sources[3].edition 'fes' must be one of "
+                + "[reload, game_data_reload, cn_guide_reload, reload+portable, mixed]");
+    }
+
+    @Test
+    public void recordsThatCiteOnlyMultiEditionSourcesAreRejected() throws JSONException {
+        JSONObject job = PackFixture.tree();
+        JSONArray activities = job.getJSONArray("activities");
+        int accessory = indexOf(activities, "job_accessory");
+        activities.getJSONObject(accessory).put("src", new JSONArray().put("megatenwiki_be_blue_v").put("wiki469"));
+        assertRejected(job, "activities[" + accessory + "].src [megatenwiki_be_blue_v, wiki469] names no Reload source");
+
+        JSONObject policy = PackFixture.tree();
+        policy.getJSONObject("policy").put("src", new JSONArray().put("lpbeach").put("ev_affinity"));
+        assertRejected(policy, "policy.src [lpbeach, ev_affinity] names no Reload source");
+
+        // Demoting the only Reload sources of the stat thresholds to "mixed" invalidates those records.
+        JSONObject demoted = PackFixture.tree();
+        JSONArray sources = demoted.getJSONArray("sources");
+        sources.getJSONObject(indexOf(sources, "gd_hero_parameter")).put("edition", "mixed");
+        sources.getJSONObject(indexOf(sources, "ev_stats_actions")).put("edition", "reload+portable");
+        assertRejected(demoted, "stats[0].src [gd_hero_parameter, ev_stats_actions] names no Reload source");
+    }
+
+    @Test
+    public void shippedPackCitesAReloadSourceEverywhere() throws JSONException {
+        JSONObject root = PackFixture.tree();
+        JSONArray sources = root.getJSONArray("sources");
+        int reload = 0;
+        for (int i = 0; i < sources.length(); i++) {
+            String edition = sources.getJSONObject(i).getString("edition");
+            assertTrue(edition, RulesLoader.EDITIONS.contains(edition));
+            if (RulesLoader.RELOAD_EDITIONS.contains(edition)) reload++;
+        }
+        assertTrue(reload > sources.length() / 2);
+        assertNotNull(RulesLoader.parse(root.toString()));
+    }
+
     // ------------------------------------------------------------------ helpers
+
+    private static int indexOf(JSONArray records, String id) throws JSONException {
+        for (int i = 0; i < records.length(); i++) {
+            if (id.equals(records.getJSONObject(i).getString("id"))) return i;
+        }
+        fail("no record " + id);
+        return -1;
+    }
 
     private static void assertRejected(JSONObject root, String expectedFragment) {
         assertRejected(root.toString(), expectedFragment);

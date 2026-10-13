@@ -83,7 +83,34 @@ NAME_FIXES = (
     ("大桥舞子", "舞子"),
     ("Y子", "Ｙ子"),
 )
-FORBIDDEN_STRINGS = ("伊丽莎白", "贝贝", "大桥舞子", "女帝", "倒吊人")
+# Outdated names (above) and terms that differ from the official zh-Hans text: the Steam store page says
+# 主角 (never 主人公) and the achievement text says 休息日的出游邀请短信, so invitations are 休息日邀约.
+FORBIDDEN_STRINGS = ("伊丽莎白", "贝贝", "大桥舞子", "女帝", "倒吊人", "主人公", "假日邀约", "节日邀约")
+# Official zh-Hans wording the pack relies on: (snapshot, text that must occur in it, why).
+OFFICIAL_TERMS = (
+    ("steam_schinese/p3r_sc.txt", "作为主角的少年", "主角 (store description)"),
+    ("steam_schinese/ach_schinese.txt", "休息日的出游邀请短信", "休息日邀约 (achievement 争相邀约)"),
+    ("steam_schinese/ach_schinese.txt", "社群", "社群 (achievements)"),
+)
+
+# Source editions (pack sources[].edition and rules/sources/SOURCES.json). Only the first three are
+# Reload sources: every pack record must cite at least one of them (Reload-only source policy, REPORT §1).
+EDITIONS = {
+    "reload": "about Persona 3 Reload only (official Steam text, Reload forum threads, Reload-only guides and "
+              "community pages, evidence files written for Reload)",
+    "game_data_reload": "tables extracted from the Persona 3 Reload (Xrd777) game files",
+    "cn_guide_reload": "Simplified Chinese walkthrough of Persona 3 Reload, or evidence derived from it",
+    "reload+portable": "states the fact for Reload and Portable alike; corroboration only",
+    "mixed": "multi-edition page or post (P3/FES/Portable/Reload) of which only the Reload section is used; "
+             "corroboration only",
+}
+RELOAD_EDITIONS = ("reload", "game_data_reload", "cn_guide_reload")
+
+STEAM_STORE_URL = "https://store.steampowered.com/app/2161700/"
+STEAM_THREAD_URL = "https://steamcommunity.com/app/2161700/discussions/0/{}/"
+STEAM_ACHIEVEMENTS_URL = "https://steamcommunity.com/stats/2161700/achievements/?l={}"
+STEAM_PAGE_LANG = {"english": "en", "japanese": "ja", "schinese": "zh-cn"}
+CN_3DM_URL = "https://www.3dmgame.com/gl/3928716_{}.html"
 
 
 class BuildError(Exception):
@@ -282,30 +309,80 @@ def check_day_calendar_json(page_cells: dict[int, dict[str, str]]) -> None:
 # Source registry
 
 
-def build_sources() -> list[dict]:
-    """Every source referenced by a record's src list, with url and pinned sha256."""
-    manifest = json.loads((SOURCES_DIR / "SOURCES.json").read_text(encoding="utf-8"))
-    pinned = {}
+def load_manifest() -> dict:
+    return json.loads((SOURCES_DIR / "SOURCES.json").read_text(encoding="utf-8"))
+
+
+def check_manifest(manifest: dict) -> dict[str, dict]:
+    """Validate rules/sources/SOURCES.json: pinned hashes, editions and the URLs of the Steam and 3DM pages.
+
+    Returns path -> entry. The URL checks read the snapshot itself (thread title, page language, canonical
+    link, active pager entry) so a copy-pasted URL cannot slip in again."""
+    if manifest.get("editions", {}).keys() != EDITIONS.keys():
+        raise BuildError(f"SOURCES.json editions vocabulary must be exactly {sorted(EDITIONS)}")
+    pinned: dict[str, dict] = {}
     for entry in manifest["files"]:
-        path = SOURCES_DIR / entry["path"]
-        actual = sha256_file(path)
-        if actual != entry["sha256"]:
-            raise BuildError(f"{entry['path']} does not match its pinned sha256 in SOURCES.json")
-        pinned[entry["path"]] = entry
+        rel = entry["path"]
+        if rel in pinned:
+            raise BuildError(f"SOURCES.json lists {rel} twice")
+        if entry.get("edition") not in EDITIONS:
+            raise BuildError(f"SOURCES.json {rel}: edition {entry.get('edition')!r} must be one of {sorted(EDITIONS)}")
+        if not (entry.get("url") or entry.get("derivedFrom")):
+            raise BuildError(f"SOURCES.json {rel}: url or derivedFrom is required")
+        path = SOURCES_DIR / rel
+        if sha256_file(path) != entry["sha256"]:
+            raise BuildError(f"{rel} does not match its pinned sha256 in SOURCES.json")
+        url = entry.get("url")
+        name = rel.rsplit("/", 1)[-1]
+        stem = name.rsplit(".", 1)[0]
+        html_path = path.with_suffix(".html")
+        page = html_path.read_text(encoding="utf-8", errors="replace") if html_path.exists() else ""
+        if rel.startswith("steam_schinese/d_"):
+            expected = STEAM_THREAD_URL.format(stem[2:])
+            if url != expected:
+                raise BuildError(f"SOURCES.json {rel}: a Steam discussion thread must point to {expected}, not {url}")
+            if ":: Persona 3 Reload General Discussions</title>" not in page or stem[2:] not in page:
+                raise BuildError(f"{rel} is not the Reload General Discussions thread {stem[2:]}")
+        elif rel.startswith("steam_schinese/p3r_sc."):
+            if url != STEAM_STORE_URL or f'rel="canonical" href="{STEAM_STORE_URL}' not in page:
+                raise BuildError(f"SOURCES.json {rel}: the Steam store snapshot must point to {STEAM_STORE_URL}")
+        elif rel.startswith("steam_schinese/ach_"):
+            lang = stem.split("_", 1)[1]
+            if lang not in STEAM_PAGE_LANG or url != STEAM_ACHIEVEMENTS_URL.format(lang) \
+                    or f'lang="{STEAM_PAGE_LANG[lang]}"' not in page:
+                raise BuildError(f"SOURCES.json {rel}: expected {STEAM_ACHIEVEMENTS_URL.format(lang)} (page language "
+                                 f"{STEAM_PAGE_LANG.get(lang)})")
+        elif rel.startswith("cn_guides/3dm_p"):
+            number = stem.rsplit("_p", 1)[1]
+            active = f'<li class="active"><a href="{CN_3DM_URL.format(number)}"'
+            if url != CN_3DM_URL.format(number) or active not in page:
+                raise BuildError(f"SOURCES.json {rel}: expected the 3DM page {CN_3DM_URL.format(number)}")
+        elif rel.startswith("aqiu_gamedata/") and rel.endswith(".tsv") and entry["edition"] != "game_data_reload":
+            raise BuildError(f"SOURCES.json {rel}: game-data tables are edition game_data_reload")
+        if rel.endswith(".txt") and entry.get("derivedFrom", "").split(" ")[0] != rel[:-4] + ".html":
+            raise BuildError(f"SOURCES.json {rel}: a text extraction must name its HTML page in derivedFrom")
+        pinned[rel] = entry
+    return pinned
+
+
+def build_sources() -> list[dict]:
+    """Every source referenced by a record's src list, with url, pinned sha256 and edition."""
+    pinned = check_manifest(load_manifest())
 
     def snap(ident: str, rel: str, kind: str, note: str) -> dict:
         entry = pinned[rel]
-        return {"id": ident, "kind": kind, "note": note, "path": "rules/sources/" + rel,
+        return {"edition": entry["edition"], "id": ident, "kind": kind, "note": note, "path": "rules/sources/" + rel,
                 "sha256": entry["sha256"], "url": entry.get("url") or entry.get("derivedFrom")}
 
-    def evidence(ident: str, name: str, note: str) -> dict:
-        return {"id": ident, "kind": "evidence", "note": note, "path": "rules/p3r/" + name,
+    def evidence(ident: str, name: str, edition: str, note: str) -> dict:
+        return {"edition": edition, "id": ident, "kind": "evidence", "note": note, "path": "rules/p3r/" + name,
                 "sha256": sha256_file(EVIDENCE_DIR / name), "url": None}
 
-    def web(ident: str, url: str, note: str) -> dict:
-        return {"id": ident, "kind": "web", "note": note, "path": None, "sha256": None, "url": url}
+    def web(ident: str, url: str, edition: str, note: str) -> dict:
+        return {"edition": edition, "id": ident, "kind": "web", "note": note, "path": None, "sha256": None, "url": url}
 
     gd = "aqiu_gamedata/"
+    reload = "reload"
     sources = [
         snap("gd_activity", gd + "ActivityDataAsset.tsv", "game_data", "Tartarus block opening dates and floor ranges"),
         snap("gd_arbeit_help", gd + "BMD_ArbeitHelp.tsv", "game_data", "Part-time job help text: slot and minimum pay"),
@@ -321,44 +398,61 @@ def build_sources() -> list[dict]:
         snap("aqiu_day_calendar", "aqiu_pages/social_events_day_calendar.json", "community_db", "Parsed daytime calendar (cross-checked against the HTML)"),
         snap("aqiu_overworld", gd + "overworld.md", "community_db", "aqiu overworld notes: missing people windows"),
         snap("aqiu_tartarus", gd + "tartarus.md", "community_db", "aqiu Tartarus block list"),
-        snap("steam_sc_achievements", "steam_schinese/ach_schinese.txt", "official_text", "ATLUS zh-Hans achievement strings (社群, 个人能力值, 打工, 失踪者…)"),
+        snap("steam_sc_achievements", "steam_schinese/ach_schinese.txt", "official_text", "ATLUS zh-Hans achievement strings (社群, 个人能力值, 打工, 失踪者, 休息日的出游邀请短信…)"),
+        snap("steam_sc_store", "steam_schinese/p3r_sc.txt", "official_text", "ATLUS zh-Hans Steam store description (主角, 月光馆学园, 塔尔塔罗斯…): terminology check"),
         snap("steam_thread_hierophant", "steam_schinese/d_4206993639701168068.html", "forum", "Player report of a Hierophant rank hold"),
         snap("steam_thread_rankup", "steam_schinese/d_4206994023684392768.html", "forum", "Player reports on rank-up cues and matching Personas"),
-        snap("cn_3dm", "cn_guides/3dm_p42.html", "cn_guide", "3DM SC guide: Tartarus block names"),
-        {"id": "cn_guide", "kind": "cn_guide", "note": "Original Simplified Chinese walkthrough shipped with the legacy guide (wording, places, timing witnesses)",
+        snap("cn_3dm", "cn_guides/3dm_p42.html", "cn_guide", "3DM SC guide, page 42: Tartarus block names (single source)"),
+        {"edition": "cn_guide_reload", "id": "cn_guide", "kind": "cn_guide",
+         "note": "Original Simplified Chinese Reload walkthrough shipped with the legacy guide (wording, places, dialogue, timing witnesses)",
          "path": "android/app/src/main/assets/data.json", "sha256": sha256_file(GUIDE_PATH), "url": None},
-        evidence("ev_calendar_constraints", "calendar_global_constraints_candidate.json", "Locks, exams, full moons, school-closure candidates"),
-        evidence("ev_slot_locks", "global_slot_locks_expansion_candidate.json", "Whole-slot lock claims, Tartarus closures, witnesses"),
-        evidence("ev_tartarus_supplement", "tartarus_entry_availability_supplement.json", "Tartarus entry witnesses and closures"),
-        evidence("ev_stats_actions", "stats_actions.json", "Stat thresholds and evening stat actions"),
-        evidence("ev_stat_expansion", "stat_activity_expansion_candidate.json", "Restaurants, karaoke, movies, daytime coffee"),
-        evidence("ev_jobs", "jobs_wage_rules_candidate.json", "Part-time job wage tiers and conflicts"),
-        evidence("ev_manual_models", "manual_link_models.json", "Normalised per-rank thresholds and answer gains"),
-        evidence("ev_rank_points", "reported_rank_points.json", "aqiu per-rank best scene gains"),
-        evidence("ev_simple_unlock", "simple_unlock_rules_candidate.json", "Single-slot link introductions"),
-        evidence("ev_multistep_unlock", "multistep_unlock_rules_candidate.json", "Multi-step link openings (Justice, Devil, Hanged Man, Tower, Moon, Sun, Strength)"),
-        evidence("ev_story_links", "story_link_transitions_candidate.json", "Fool/Death/Judgement transitions"),
-        evidence("ev_dialogue", "guide_dialogue_reference_map.json", "CN guide dialogue fragments bound to target ranks"),
-        evidence("ev_social_links", "social_links.json", "Link catalogue: weekdays, unlock claims, conflicts"),
-        evidence("ev_identity_labels", "social_goal_identity_labels.json", "Selector labels and gender"),
-        evidence("ev_affinity", "affinity_model_evidence.json", "Multiplier and carry-over evidence"),
-        evidence("ev_ordinary_gain", "ordinary_affinity_numeric_followup.json", "Ordinary hangout +10 single-source claim"),
-        evidence("ev_romance", "romance_rank_rules_candidate.json", "Romanceable links and romance flags"),
-        evidence("ev_reversal", "reversal_repair_research_candidate.json", "Reversal/repair research"),
-        web("wiki420", "https://w.atwiki.jp/wiki10_persona3/pages/420.html", "atwiki Reload all-MAX route chart (cited through evidence files)"),
-        web("wiki453", "https://w.atwiki.jp/wiki10_persona3/pages/453.html", "atwiki Reload Social Link page (cited through evidence files)"),
-        web("wiki455", "https://w.atwiki.jp/wiki10_persona3/pages/455.html", "atwiki Reload Social Link schedule notes"),
-        web("wiki469", "https://w.atwiki.jp/wiki10_persona3/pages/469.html", "atwiki Reload parameters page"),
-        web("gf81375", "https://gamefaqs.gamespot.com/pc/409941-persona-3-reload/faqs/81375/calendar", "GameFAQs Reload calendar (Tartarus closures)"),
-        web("gf81159", "https://gamefaqs.gamespot.com/ps5/410283-persona-3-reload/faqs/81159", "GameFAQs social stats guide"),
-        web("megatenwiki_jobs", "https://megatenwiki.com/index.php?title=Chagall_Cafe&oldid=423201", "MegaTen Wiki job wage tables"),
-        web("siliconera_jobs", "https://www.siliconera.com/how-to-get-a-job-in-persona-3-reload/", "Siliconera job article (wages cross-check only)"),
-        web("lpbeach", "https://lpbeach.co.uk/viewtopic.php?t=1712#p15208", "Single Reload playthrough source for the +10 ordinary hangout"),
-        web("siliconera_urls", "https://www.siliconera.com/how-to-get-shared-computer-urls-in-persona-3-reload/",
+        evidence("ev_calendar_constraints", "calendar_global_constraints_candidate.json", reload, "Locks, exams, full moons, school-closure candidates"),
+        evidence("ev_slot_locks", "global_slot_locks_expansion_candidate.json", reload, "Whole-slot lock claims, Tartarus closures, witnesses"),
+        evidence("ev_tartarus_supplement", "tartarus_entry_availability_supplement.json", reload, "Tartarus entry witnesses and closures"),
+        evidence("ev_stats_actions", "stats_actions.json", reload, "Stat thresholds and evening stat actions"),
+        evidence("ev_stat_expansion", "stat_activity_expansion_candidate.json", reload, "Restaurants, karaoke, movies, daytime coffee"),
+        evidence("ev_jobs", "jobs_wage_rules_candidate.json", reload, "Part-time job wage tiers and conflicts (Reload sections only)"),
+        evidence("ev_manual_models", "manual_link_models.json", reload, "Normalised per-rank thresholds and answer gains"),
+        evidence("ev_rank_points", "reported_rank_points.json", reload, "aqiu per-rank best scene gains"),
+        evidence("ev_simple_unlock", "simple_unlock_rules_candidate.json", reload, "Single-slot link introductions"),
+        evidence("ev_multistep_unlock", "multistep_unlock_rules_candidate.json", reload,
+                 "Multi-step link openings (Justice, Devil, Hanged Man, Tower, Moon, Sun, Strength); a mixed MegaTen Wiki page appears only as a conflict alternative"),
+        evidence("ev_story_links", "story_link_transitions_candidate.json", reload, "Fool/Death/Judgement transitions"),
+        evidence("ev_dialogue", "guide_dialogue_reference_map.json", "cn_guide_reload", "CN guide dialogue fragments bound to target ranks"),
+        evidence("ev_social_links", "social_links.json", reload, "Link catalogue: weekdays, unlock claims, conflicts"),
+        evidence("ev_identity_labels", "social_goal_identity_labels.json", reload, "Selector labels and gender (Reload translation and identity tables)"),
+        evidence("ev_affinity", "affinity_model_evidence.json", "mixed",
+                 "Multiplier and carry-over evidence; cites MegaTen Wiki pages that mix Reload and Portable guide figures"),
+        evidence("ev_ordinary_gain", "ordinary_affinity_numeric_followup.json", reload,
+                 "Ordinary hangout +10 single-source claim, pinned to the Reload subsection of the lpbeach post"),
+        evidence("ev_romance", "romance_rank_rules_candidate.json", reload, "Romanceable links and romance flags"),
+        evidence("ev_reversal", "reversal_repair_research_candidate.json", reload, "Reversal/repair research (old-edition pages rejected)"),
+        web("wiki420", "https://w.atwiki.jp/wiki10_persona3/pages/420.html", reload, "atwiki Reload all-MAX route chart (リロード page of the multi-edition wiki)"),
+        web("wiki453", "https://w.atwiki.jp/wiki10_persona3/pages/453.html", reload, "atwiki Reload Social Link page (cited through evidence files)"),
+        web("wiki455", "https://w.atwiki.jp/wiki10_persona3/pages/455.html", reload, "atwiki Reload Social Link schedule notes"),
+        web("wiki469", "https://w.atwiki.jp/wiki10_persona3/pages/469.html", "mixed", "atwiki parameters page; only its Reload section (アルバイト) is used"),
+        web("gf81375", "https://gamefaqs.gamespot.com/pc/409941-persona-3-reload/faqs/81375/calendar", reload, "GameFAQs Reload calendar (Tartarus closures)"),
+        web("gf81159", "https://gamefaqs.gamespot.com/ps5/410283-persona-3-reload/faqs/81159", reload, "GameFAQs social stats guide"),
+        web("megatenwiki_chagall_cafe", "https://megatenwiki.com/index.php?title=Chagall_Cafe&oldid=423201", "mixed",
+            "MegaTen Wiki Chagall Cafe: Persona 3 Reload section, café job wage table"),
+        web("megatenwiki_be_blue_v", "https://megatenwiki.com/index.php?title=Be_Blue_V&oldid=393238", "mixed",
+            "MegaTen Wiki Be Blue V: Persona 3 Reload section, accessory-shop job wage table"),
+        web("megatenwiki_port_island_station", "https://megatenwiki.com/index.php?title=Port_Island_Station&oldid=410086", "mixed",
+            "MegaTen Wiki Port Island Station: Screen Shot Reload part-time wage table (cinema job)"),
+        web("siliconera_jobs", "https://www.siliconera.com/how-to-get-a-job-in-persona-3-reload/", reload, "Siliconera job article (wages cross-check only)"),
+        web("lpbeach", "https://lpbeach.co.uk/viewtopic.php?t=1712#p15208", "mixed",
+            "Playthrough post whose Reload subsection reports the +10 ordinary hangout (FES/Portable subsections ignored)"),
+        web("siliconera_urls", "https://www.siliconera.com/how-to-get-shared-computer-urls-in-persona-3-reload/", reload,
             "Shared-computer URLs: Dating Site note from November, 3,000 yen, can be purchased multiple times"),
-        evidence("ev_dating_note", "affinity_actions_candidate.json", "Dating-site note: evening, +10 points, 3,000 yen, never a rank-up"),
-        evidence("ev_hangout_rules", "ordinary_hangout_rules_candidate.json", "Dating-site note sources (aqiu, game8, atwiki 455, Steam guide)"),
+        evidence("ev_dating_note", "affinity_actions_candidate.json", reload, "Dating-site note: evening, +10 points, 3,000 yen, never a rank-up"),
+        evidence("ev_hangout_rules", "ordinary_hangout_rules_candidate.json", reload, "Dating-site note sources (aqiu, game8, atwiki 455, Steam guide)"),
     ]
+    snapped = {s["path"][len("rules/sources/"):] for s in sources if s["path"] and s["path"].startswith("rules/sources/")}
+    if not snapped <= pinned.keys():
+        raise BuildError(f"pack sources not pinned in SOURCES.json: {sorted(snapped - pinned.keys())}")
+    for s in sources:
+        if s["edition"] not in EDITIONS:
+            raise BuildError(f"source {s['id']}: edition {s['edition']!r} must be one of {sorted(EDITIONS)}")
     return sorted(sources, key=lambda s: s["id"])
 
 
@@ -431,6 +525,9 @@ def load_pay_help() -> dict[str, str]:
 
 
 LOCK_REASONS = {
+    # Not used by any day record: the engine applies it to 12/24 daytime and evening when the player has
+    # accepted a Christmas Eve invitation (Profile.christmasLink). 约会 is the glossary word for romance.
+    "christmas_date": "平安夜约会",
     "exam": "考试期间",
     "festival": "夏日祭",
     "finale": "最终决战",
@@ -584,7 +681,10 @@ def collect_locks(ledger: Ledger) -> list[Lock]:
                   "Hierophant. Days after a full moon are free when aqiu has cells for them (5/10, 6/9, 7/8, 8/7, 9/6); "
                   "10/5 daytime and 11/4 stay locked.")
     ledger.decide("calendar", "12-24 free", "Christmas Eve stays free by default (all invitations declined, DESIGN §10.5); "
-                  "aqiu has ordinary cells that day and wiki420 says both slots are free when every invitation is refused.")
+                  "aqiu has ordinary cells that day and wiki420 says both slots are free when every invitation is refused. "
+                  "A player who accepted an invitation records the link in Profile.christmasLink; the engine then treats "
+                  "12/24 daytime and evening as taken with the lock reason `christmas_date` (平安夜约会). No day record "
+                  "carries that lock because it depends on the player's choice, not on the calendar.")
     return locks
 
 
@@ -695,7 +795,7 @@ def build_calendar(ledger: Ledger, day_cells: dict, night_cells: dict, tartarus_
         if md in EXAM_RESULTS:
             notes.append(EXAM_RESULTS[md])
         if md == "12-24":
-            notes.append("平安夜：默认按婉拒所有邀约来安排")
+            notes.append("平安夜：默认按婉拒所有邀约来安排；选了赴约的对象，白天和晚上就都留给平安夜约会")
         if md == "01-21":
             notes.append("如果之前把「白色切花」送给了顺平，这天放学后会有剧情，所以先空出来")
         for b in blocks:
@@ -1450,17 +1550,17 @@ ACTIVITIES = (
              aqiu="Chagall: Pheremone Coffee", evidence=("stat_activity_expansion_candidate.json", "coffee_chagall_day")),
     activity("job_chagall", "在夏卡尔咖啡店打工", "job", ["eve"], [1, 2, 3], "桐叶购物中心 · 夏卡尔咖啡店",
              gain={"charm": 1, "courage": 1}, pay=[[1, 2500], [5, 3000], [15, 3500], [30, 5000]], from_md="05-04",
-             src=["gd_arbeit_help", "aqiu_social_events", "ev_jobs", "megatenwiki_jobs", "cn_guide"],
+             src=["gd_arbeit_help", "aqiu_social_events", "ev_jobs", "megatenwiki_chagall_cafe", "wiki469", "cn_guide"],
              note="星期二客人多、工钱更高，这里按最低工钱估计。", alt=["+2 each stat (siliconera)"], aqiu="Chagall: Part-time Job"),
     activity("job_accessory", "在饰品店打工", "job", ["day"], [1, 2, 3, 4, 5], "桐叶购物中心 · 饰品店",
              gain={"academics": 1}, pay=[[1, 3500], [3, 4500], [6, 5500], [10, 7000]], from_md="07-24", conf="conflict",
-             src=["gd_arbeit_help", "aqiu_social_events", "ev_jobs", "megatenwiki_jobs"],
+             src=["gd_arbeit_help", "aqiu_social_events", "ev_jobs", "megatenwiki_be_blue_v", "wiki469"],
              note="7月24日起招人。资料对另一项能力值说法不一（魅力或勇气），这里只计学力 +1。",
              alt=["+1 courage (aqiu)", "+1 charm (wiki469/megatenwiki)", "Saturdays too (aqiu)", "unlock 7/22-7/23 (siliconera, wiki469)"],
              aqiu="Be Blue V: Part-time Job*"),
     activity("job_cinema", "在电影院打工", "job", ["day"], [7], "港湾人工岛站 · 电影院",
              gain={"academics": 1}, pay=[[1, 5000], [3, 6000], [6, 7000], [10, 9000]], conf="conflict",
-             src=["gd_arbeit_help", "aqiu_social_events", "ev_jobs", "megatenwiki_jobs"],
+             src=["gd_arbeit_help", "aqiu_social_events", "ev_jobs", "megatenwiki_port_island_station", "wiki469"],
              note="星期日白天才招人。资料对另一项能力值说法不一（魅力或勇气），这里只计学力 +1。",
              alt=["+1 charm (aqiu)", "+1 courage (wiki469/megatenwiki; game help text mentions courage)", "Saturdays without school (aqiu)"],
              aqiu="Screenshot: Part-time Job*"),
@@ -1572,8 +1672,9 @@ def build_activities(ledger: Ledger, page: AqiuPage, guide_text: str, days: list
                   "idling whenever money is useful. The builder fails if a free slot lacks such a fallback. Reload has "
                   "no fatigue or sickness, so a Tartarus night carries no next-day penalty.")
     ledger.decide("activities", "jobs", "Jobs pay the conservative non-busy tier per completed shift (wage tables from "
-                  "megatenwiki/wiki469; base pay confirmed by the game help text: café ¥2,500+ at night, accessory shop "
-                  "¥3,500+ by day, cinema ¥5,000+ by day). Chagall from 5/4 (first CN-guide witness; earliest date "
+                  "the Persona 3 Reload sections of the MegaTen Wiki pages Chagall_Cafe (café), Be_Blue_V (accessory "
+                  "shop) and Port_Island_Station (Screen Shot cinema), and wiki469; base pay confirmed by the game help "
+                  "text: café ¥2,500+ at night, accessory shop ¥3,500+ by day, cinema ¥5,000+ by day). Chagall from 5/4 (first CN-guide witness; earliest date "
                   "otherwise unknown), accessory shop Mon–Fri from 7/24, cinema on Sundays. Where sources disagree on "
                   "the second stat only Academics +1 is credited.")
     return out
@@ -1605,7 +1706,7 @@ EPISODE_TRACKS = (
         "location": "严户台站",
         "how": "晚上打开手机，答应真田明彦的邀约就行。",
         "note": None,
-        "reward": "每一话都有小奖励（主人公的能力、魅力或道具），看完第 5 话可以合体人格面具「荷鲁斯」。",
+        "reward": "每一话都有小奖励（主角的能力、魅力或道具），看完第 5 话可以合体人格面具「荷鲁斯」。",
         "fusion": ("Horus", "荷鲁斯"),
         # CN guide: invitations 5/29, 7/24, 10/9, 12/12 and 1/8 (荷鲁斯).
         "witness": {1: "05-29", 2: "07-24", 3: "10-09", 4: "12-12", 5: "01-08"},
@@ -1625,7 +1726,7 @@ EPISODE_TRACKS = (
         "location": "宿舍",
         "how": "晚上在宿舍找天田乾：前两话在 2 楼他的房间，之后他会发消息约你，打开手机答应就行。",
         "note": None,
-        "reward": "每一话都有小奖励（能力值或主人公的能力），看完第 5 话可以合体人格面具「米迦勒」。",
+        "reward": "每一话都有小奖励（能力值或主角的能力），看完第 5 话可以合体人格面具「米迦勒」。",
         "fusion": ("Michael", "米迦勒"),
         # CN guide: 9/9 and 9/16 in his room, invitations 11/10, 12/22 and 1/19 (米迦勒).
         "witness": {1: "09-09", 2: "09-16", 3: "11-10", 4: "12-22", 5: "01-19"},
@@ -1843,7 +1944,8 @@ NOTES_ZH = (
     "「只给目标社群带」或「基本都带」。",
     "【日历】资料里没提到有剧情的白天和晚上，都按可以自由活动来安排。还没确认有没有剧情的日子"
     "（屋久岛 7月20日～23日、11月4日、1月1日白天、1月21日放学后）先空出来，不排别的事。",
-    "【平安夜】12月24日默认按婉拒所有邀约来安排，白天和晚上都可以自由活动。",
+    "【平安夜】12月24日默认按婉拒所有邀约来安排，白天和晚上都可以自由活动；选了平安夜赴约的对象后，这一天的白天和晚上"
+    "都会留给平安夜约会。",
     "【塔尔塔罗斯】队友都去不了的晚上（考试前后、剧情前后等）不会安排探索塔尔塔罗斯。",
     "【失踪者】北村文吉（9月12日～10月3日）和舞子（10月21日～11月2日）失踪期间见不到人，期限前没有在塔尔塔罗斯救出，"
     "对应的社群就没法继续了。",
@@ -1873,7 +1975,8 @@ def build_pack() -> tuple[dict, Ledger]:
                   "not used; FES/Portable material that the evidence files already rejected stays out (gorillawiki "
                   "entry 103, the FES July calendar, atwiki page 36, P3P rank tables, samurai-gamers reversal "
                   "mechanics, the Persona 4 '+10' paragraph, megatenwiki's Reload calendar with wrong full moons). "
-                  "Reload has no female-protagonist route, so no such links exist.")
+                  "Reload has no female-protagonist route, so no such links exist. Every source carries an edition and "
+                  "no record or listed value rests on non-Reload sources alone (§1.1).")
     ledger.decide("scope", "precedence", "Evidence order: game-data tables > aqiu calendar cells cross-checked "
                   "with the atwiki tables and the CN guide > single reports. When sources conflict the strictest "
                   "Reload claim is used (fewer meeting days, higher requirements, lower gains) and the conflict is "
@@ -1912,7 +2015,7 @@ def build_pack() -> tuple[dict, Ledger]:
         "ordinaryGainConf": "estimate",
         "personaMult": mult["CMM_POINTBONUS_ARCANA"],
         "rounding": "floor_per_meeting",
-        "src": ["gd_general_coefficient", "ev_ordinary_gain", "lpbeach", "ev_affinity"],
+        "src": ["gd_general_coefficient", "ev_ordinary_gain", "lpbeach", "wiki455", "ev_affinity"],
     }
     ledger.decide("policy", "ordinaryGain", "Ordinary (non-rank-up) meeting = +10 points: a single Reload playthrough "
                   "report, consistent with the two notes shown for a normal hangout at 5 points per note (atwiki 455). "
@@ -2013,10 +2116,20 @@ def validate_pack(pack: dict) -> None:
         raise BuildError("datingNote: evening use, positive cost/gain and a free first evening are required")
     if note["maxUses"] is not None and note["maxUses"] < 1:
         raise BuildError("datingNote.maxUses must be null (no limit) or positive")
+    check_reload_sources(pack)
     text = json.dumps(pack, ensure_ascii=False)
     for word in FORBIDDEN_STRINGS:
         if word in text:
-            raise BuildError(f"pack contains the outdated term {word!r}")
+            raise BuildError(f"pack contains the outdated or unofficial term {word!r}")
+    for rel, phrase, why in OFFICIAL_TERMS:
+        if phrase not in (SOURCES_DIR / rel).read_text(encoding="utf-8"):
+            raise BuildError(f"official wording for {why} not found in {rel}: {phrase!r}")
+    if "休息日邀约" not in text or "主角" not in text:
+        raise BuildError("pack must use the official terms 休息日邀约 and 主角")
+    page_3dm = (SOURCES_DIR / "cn_guides" / "3dm_p42.html").read_text(encoding="utf-8")
+    for block in pack["tartarus"]["blocks"]:
+        if any(part not in page_3dm for part in block["zh"].split(" ")):
+            raise BuildError(f"block {block['id']}: name {block['zh']!r} is not in the 3DM page")
     for where, value in player_texts(pack):
         latin = [w for w in re.findall(r"[A-Za-z]+", value) if w not in ALLOWED_LATIN]
         if latin:
@@ -2035,7 +2148,84 @@ GLOSSARY_AVOID = (
     "开启", "建立", "练满", "满级", "计划", "规划", "羁绊剧场", "估算", "规则包", "社交链接", "交友网站", "牵绊",
     "不占用时段", "锁定", "约会", "会面", "加深关系", "Lv.6",
 )
-GLOSSARY_ALLOWED = ("规划设置", "规划说明")
+# 约会 is reserved for romance (docs/GLOSSARY_zh.md); the Christmas Eve date lock is one.
+GLOSSARY_ALLOWED = ("规划设置", "规划说明", "平安夜约会")
+
+
+def _records(pack: dict, kind: str, ident: str) -> list[dict]:
+    return [x for x in pack[kind] if x["id"] == ident]
+
+
+# Values whose own evidence is narrower than the src list of the record that holds them (Reload-only
+# source policy, value level): (value, records holding it, source ids the value rests on). Every listed id
+# must be in each record's src, and at least one of them must be a Reload source.
+VALUE_SOURCES = (
+    ("policy.ordinaryGain (+10 per ordinary meeting)", lambda p: [p["policy"]], ("ev_ordinary_gain", "lpbeach", "wiki455")),
+    ("policy multipliers (Persona, Charm, exam)", lambda p: [p["policy"]], ("gd_general_coefficient",)),
+    ("stats[].thresholds", lambda p: p["stats"], ("gd_hero_parameter",)),
+    ("links[].threshold", lambda p: p["links"], ("gd_community_event",)),
+    ("links[].arcanaZh", lambda p: p["links"], ("gd_race",)),
+    ("links[].avail (manual links)", lambda p: [x for x in p["links"] if x["kind"] == "manual"], ("aqiu_social_events",)),
+    ("links[].eventGain (manual links)", lambda p: [x for x in p["links"] if x["kind"] == "manual"],
+     ("ev_rank_points", "ev_manual_models")),
+    ("links[].invite", lambda p: [x for x in p["links"] if x["invite"]], ("gd_holiday_schedule",)),
+    ("links[].dialogue", lambda p: [x for x in p["links"] if x["dialogue"]], ("ev_dialogue", "cn_guide")),
+    ("tartarus.blocks[] dates and floors", lambda p: p["tartarus"]["blocks"], ("gd_activity",)),
+    ("tartarus.blocks[].zh", lambda p: p["tartarus"]["blocks"], ("cn_3dm",)),
+    ("tartarus.rescues[] windows", lambda p: p["tartarus"]["rescues"], ("aqiu_overworld", "gd_disappear_help")),
+    ("activities job_chagall pay", lambda p: _records(p, "activities", "job_chagall"),
+     ("gd_arbeit_help", "ev_jobs", "megatenwiki_chagall_cafe", "wiki469")),
+    ("activities job_accessory pay", lambda p: _records(p, "activities", "job_accessory"),
+     ("gd_arbeit_help", "ev_jobs", "megatenwiki_be_blue_v", "wiki469")),
+    ("activities job_cinema pay", lambda p: _records(p, "activities", "job_cinema"),
+     ("gd_arbeit_help", "ev_jobs", "megatenwiki_port_island_station", "wiki469")),
+    ("datingNote cost, gain, sale date", lambda p: [p["datingNote"]],
+     ("aqiu_overworld", "ev_dating_note", "siliconera_urls", "wiki455")),
+)
+
+
+def src_records(node, path: str = "", where: str = "") -> list[tuple[str, str, dict]]:
+    """(area, where, record) for every pack record that carries a src list. area drops list positions
+    ("links.unlock"); where names them by id, md or rank ("links[emperor].unlock")."""
+    found = []
+    if isinstance(node, dict):
+        if isinstance(node.get("src"), list):
+            found.append((path, where, node))
+        for key, value in node.items():
+            if key != "sources":
+                found.extend(src_records(value, f"{path}.{key}" if path else key, f"{where}.{key}" if where else key))
+    elif isinstance(node, list):
+        for i, value in enumerate(node):
+            label = i
+            if isinstance(value, dict):
+                label = value.get("id") or value.get("md") or value.get("rank") or i
+            found.extend(src_records(value, path, f"{where}[{label}]"))
+    return found
+
+
+def check_reload_sources(pack: dict) -> None:
+    """Reload-only source policy: no record and no listed value may rest on non-Reload sources alone."""
+    edition = {s["id"]: s.get("edition") for s in pack["sources"]}
+    bad = [ident for ident, ed in edition.items() if ed not in EDITIONS]
+    if bad:
+        raise BuildError(f"sources without a valid edition: {bad}")
+    for _area, where, record in src_records(pack):
+        if not any(edition.get(s) in RELOAD_EDITIONS for s in record["src"]):
+            raise BuildError(f"{where}: src {record['src']} relies only on non-Reload sources "
+                             f"(editions {[edition.get(s) for s in record['src']]})")
+    for label, select, ids in VALUE_SOURCES:
+        unknown = [s for s in ids if s not in edition]
+        if unknown:
+            raise BuildError(f"{label}: unknown sources {unknown}")
+        if not any(edition[s] in RELOAD_EDITIONS for s in ids):
+            raise BuildError(f"{label}: relies only on non-Reload sources {list(ids)}")
+        records = select(pack)
+        if not records:
+            raise BuildError(f"{label}: no record holds this value")
+        for record in records:
+            missing = [s for s in ids if s not in record["src"]]
+            if missing:
+                raise BuildError(f"{label}: {record.get('id', '')} does not cite {missing}")
 
 # Latin tokens allowed in player-facing Chinese text: stat levels, ranks, floors, karaoke, and the
 # item name 莫乐蜜G as written in the CN guide.
@@ -2095,7 +2285,8 @@ def dump_pack(pack: dict) -> str:
 
 
 KNOWN_GAPS = (
-    "Ordinary (non-rank-up) hangout gain +10 rests on one Reload playthrough report (conf=estimate). The rank-up cue "
+    "Ordinary (non-rank-up) hangout gain +10 rests on one playthrough report (the Reload subsection of a multi-edition "
+    "post, edition mixed) and its Reload-scoped evidence file (conf=estimate). The rank-up cue "
     "the game shows on the map is the reliable signal; the engine/UI should prefer it over the estimate.",
     "Multiplier rounding order (per answer vs per meeting) and the exam-bonus expiry are unknown; the pack says "
     "floor_per_meeting.",
@@ -2121,7 +2312,9 @@ KNOWN_GAPS = (
     "because the CN guide does another action in the same slot; Sun's pen retrieval timing is not proven.",
     "Unresolved story days are locked conservatively (Yakushima 7/20-7/23, 11/4, 1/1 daytime, 1/21 daytime, track "
     "training daytimes 7/27-8/2). Owner verification in the game can free them.",
-    "Christmas Eve invitations and the summer-festival partner choice are not modelled (12/24 free, 8/16 locked).",
+    "Christmas Eve: 12/24 is free by default. The pack does not list who can invite the player that day; an accepted "
+    "invitation is the player's input (Profile.christmasLink), and the engine then locks both slots with "
+    "`christmas_date`. The summer-festival partner choice is not modelled (8/16 locked).",
     "6/13 evening is locked as a mandatory story Tartarus night and does not count as a block visit.",
     "Missing-person floors are not in the data; the pack only knows the rescue windows.",
     "The analysis report mentioned 34 invitation dates; HolidayScheduleDataAsset has 35 dates (77 link-invitations).",
@@ -2139,6 +2332,10 @@ FIELD_SEMANTICS = (
     "`day` = days since 2009-04-01 (4/7 = 6, 1/31 = 305); `wd` is the ISO weekday. Slot `day` is the after-school "
     "slot on school days and the daytime otherwise; `eve` is the evening.",
     "`dayLock`/`eveLock`: reason id (see `lockReasons`) or null. A null slot is free; nothing else is implied.",
+    "`lockReasons.christmas_date` (平安夜约会) is used by no day record: when the player has accepted a Christmas "
+    "Eve invitation (Profile.christmasLink) the engine treats 12/24 daytime and evening as taken with this reason.",
+    "`sources[].edition`: `reload`, `game_data_reload` or `cn_guide_reload` (Reload sources) or `reload+portable` / "
+    "`mixed` (corroboration only); every record's `src` names at least one Reload source (§1.1).",
     "`moon` is the decorative phase (0 new … 4 full … 7); `fullMoon` marks the operation full moons "
     "(4/9 … 11/3) and the finale on 1/31; the estimated full moons 12/2 and 1/1 only show phase 4.",
     "`tartarus` (per day): an optional Tartarus visit is possible that evening (block open, not a closed night, "
@@ -2200,14 +2397,7 @@ def render_report(pack: dict, ledger: Ledger, pack_text: str) -> str:
         out.append(f"- {line}")
     out.append("")
 
-    out.append("## 1. Sources")
-    out.append("")
-    out.append("| id | kind | file / url | sha256 |")
-    out.append("|---|---|---|---|")
-    for s in pack["sources"]:
-        where = s["path"] or s["url"]
-        out.append(f"| `{s['id']}` | {s['kind']} | {where} | {(s['sha256'] or '—')[:16]} |")
-    out.append("")
+    out.extend(render_sources(pack))
 
     out.append("## 2. Decisions")
     out.append("")
@@ -2385,7 +2575,135 @@ def render_report(pack: dict, ledger: Ledger, pack_text: str) -> str:
     for gap in KNOWN_GAPS:
         out.append(f"- {gap}")
     out.append("")
+    out.extend(render_unverified(pack))
     return "\n".join(out)
+
+
+def render_sources(pack: dict) -> list[str]:
+    """REPORT §1: the Reload-only source policy, every pack source with its edition and use, and the snapshots."""
+    out = ["## 1. Sources and the Reload-only source policy", "", "### 1.1 Reload-only source policy", ""]
+    out.append("The pack describes Persona 3 Reload (Xrd777 main game) only. Every source names the edition it "
+               "describes (`sources[].edition` in the pack, `edition` in `rules/sources/SOURCES.json`):")
+    out.append("")
+    for ident, text in EDITIONS.items():
+        tag = " — Reload source" if ident in RELOAD_EDITIONS else " — not a Reload source"
+        out.append(f"- `{ident}`{tag}: {text}.")
+    out.append("")
+    out.append("Rules, enforced by the builder (the build fails otherwise):")
+    out.append("")
+    out.append("1. Every record that carries `src` (days, links, unlock paths, story ranks, missing windows, "
+               "activities, episodes, blocks, rescues, stats, policy, dating-site note) cites at least one Reload "
+               "source. `RulesLoader` checks the same rule again when the app loads the pack.")
+    out.append("2. The values below rest on the sources listed, all of which the holding record cites; at least one "
+               "of them is a Reload source. A `mixed` or `reload+portable` source only corroborates.")
+    out.append("3. Material that the evidence files tied to FES or Portable is never cited (§2 scope); multi-edition "
+               "pages are used only for their Reload section and are marked `mixed`.")
+    out.append("4. Snapshot URLs are checked against the snapshot itself: Steam threads point to "
+               f"`{STEAM_THREAD_URL.format('<id>')}` and must be Reload General Discussions threads, the store page "
+               f"to `{STEAM_STORE_URL}`, achievement pages to their language, the 3DM page to its pager entry.")
+    out.append("")
+    edition = {s["id"]: s["edition"] for s in pack["sources"]}
+    out.append("| value | rests on | Reload sources among them |")
+    out.append("|---|---|---|")
+    for label, _select, ids in VALUE_SOURCES:
+        reload = [s for s in ids if edition[s] in RELOAD_EDITIONS]
+        out.append(f"| {label} | {', '.join(f'`{s}` ({edition[s]})' for s in ids)} | {', '.join(reload)} |")
+    out.append("")
+
+    cited: dict[str, dict[str, int]] = {}
+    for area, _where, record in src_records(pack):
+        for s in record["src"]:
+            per = cited.setdefault(s, {})
+            per[area] = per.get(area, 0) + 1
+    out.append("### 1.2 Sources")
+    out.append("")
+    out.append("`cited by` counts the pack records whose `src` names the source; `—` means the source is used only "
+               "through evidence files, the conflict table (§3) or a terminology check.")
+    out.append("")
+    out.append("| id | edition | kind | used for | cited by | file / url | sha256 |")
+    out.append("|---|---|---|---|---|---|---|")
+    for s in pack["sources"]:
+        where = s["path"] or s["url"]
+        uses = ", ".join(f"{area} {n}" for area, n in sorted(cited.get(s["id"], {}).items())) or "—"
+        out.append(f"| `{s['id']}` | {s['edition']} | {s['kind']} | {s['note']} | {uses} | {where} | "
+                   f"{(s['sha256'] or '—')[:16]} |")
+    out.append("")
+
+    manifest = load_manifest()
+    by_path = {s["path"]: s["id"] for s in pack["sources"] if s["path"]}
+    out.append("### 1.3 Pinned snapshots (`rules/sources/SOURCES.json`)")
+    out.append("")
+    out.append("| file | edition | url | pack source |")
+    out.append("|---|---|---|---|")
+    for entry in manifest["files"]:
+        url = entry.get("url") or "—"
+        if entry.get("derivedFrom"):
+            url += f" (text of {entry['derivedFrom'].split(' ')[0]})" if entry.get("url") else entry["derivedFrom"]
+        ident = by_path.get("rules/sources/" + entry["path"])
+        out.append(f"| {entry['path']} | {entry['edition']} | {url} | {f'`{ident}`' if ident else 'not cited (kept for cross-checks)'} |")
+    out.append("")
+    return out
+
+
+# Player-facing labels of the app itself (not game text) that appear in 「」 in pack notes.
+APP_LABELS = ("只给目标社群带", "基本都带", "同步现状", "未选", "学力 MAX 就能解锁", "伙伴们")
+
+
+def official_zh_text() -> str:
+    """Every official zh-Hans text the repository holds: Steam achievements and store page, name tables."""
+    parts = [(SOURCES_DIR / "steam_schinese" / name).read_text(encoding="utf-8") for name in ("ach_schinese.txt", "p3r_sc.txt")]
+    for table in ("DatPlayerNameDataAsset", "DatPlayerFirstNameDataAsset", "DatPlayerLastNameDataAsset",
+                  "DatRaceDataAsset", "DatSocialLinkDataAsset"):
+        rows = read_tsv(table)
+        col = rows[0].index("zh-Hans")
+        parts.extend(row[col] for row in rows[1:] if len(row) > col)
+    return "\n".join(parts)
+
+
+def render_unverified(pack: dict) -> list[str]:
+    """REPORT §7: player-facing Chinese that nobody has compared with Simplified Chinese game screens."""
+    official = official_zh_text()
+    guide_text = fix_names(json.dumps(json.loads(GUIDE_PATH.read_text(encoding="utf-8")), ensure_ascii=False))
+    block_names = {b["zh"] for b in pack["tartarus"]["blocks"]}
+    places: set[str] = set()
+    quoted: set[str] = set()
+    for where, value in player_texts(pack):
+        if where.endswith("locationZh"):
+            places.update(part for part in value.split(" · ") if part and not re.fullmatch(r"\d+ 楼", part))
+        quoted.update(re.findall(r"「([^」]+)」", value))
+    quoted -= set(APP_LABELS) | block_names
+    fragments = [(link["id"], rank, frag) for link in pack["links"] for rank, frags in link["dialogue"].items() for frag in frags]
+    rewritten = [x for x in fragments if x[2] not in guide_text]
+    dialogue_links = sorted({x[0] for x in fragments}, key=LINK_IDS.index)
+
+    out = ["## 7. Not verified against SC game screens", ""]
+    out.append("Checked against official zh-Hans text: arcana and person names and the SEES label (game tables "
+               "DatRaceDataAsset, DatPlayerNameDataAsset, DatSocialLinkDataAsset) and the terms 社群, 主角 and "
+               "休息日邀约 (Steam achievement and store text). Nobody has compared the Chinese below with Simplified "
+               "Chinese game screens: it is walkthrough wording (CN guide `assets/data.json`, 3DM) or a plain "
+               "description, and it stays guide wording until someone checks it in the game.")
+    out.append("")
+    out.append(f"- **Dialogue options** — {len(fragments)} fragments for {len(dialogue_links)} links (`links[].dialogue`), "
+               "quoted from the CN guide through `guide_dialogue_reference_map.json`, which itself records "
+               "sourceOptionOrderVerifiedAgainstChineseGame = false; its own provenance files are scratch paths that "
+               f"are not in this repository. {len(fragments) - len(rewritten)} of {len(fragments)} occur verbatim in "
+               f"`assets/data.json`; {len(rewritten)} are editorial rewrites: "
+               + "; ".join(f"{link} R{rank} 「{frag}」" for link, rank, frag in rewritten) + ". The answers quoted "
+               "in unlock how-to texts come from the same guide.")
+    found = sorted(p for p in places if p in official)
+    out.append("- **Venue and place names** (`locationZh`) — found in official text: " + ("、".join(found) or "none")
+               + ". Not verified: " + "、".join(sorted(places - set(found))) + ".")
+    found_q = sorted(q for q in quoted if q in official)
+    out.append("- **Item, menu, game, Persona and answer names in 「」** (how-to texts, notes, rewards) — found in "
+               "official text: " + ("、".join(found_q) or "none") + ". Not verified: "
+               + "、".join(f"「{q}」" for q in sorted(quoted - set(found_q))) + ".")
+    out.append("- **Tartarus block names** — from the 3DM guide only (`cn_3dm`, single source): "
+               + "、".join(sorted(block_names, key=lambda z: [b["zh"] for b in pack["tartarus"]["blocks"]].index(z)))
+               + ". The blocks' conf=game_data covers their dates and floors, not these names.")
+    out.append("- **Plain descriptions instead of official names** — 饰品店 (Be Blue V), 电影院 (Screen Shot), "
+               "图书室, 卡拉OK; stat levels are shown as Lv.N.")
+    out.append("")
+    return out
 
 
 def main(argv: list[str] | None = None) -> int:
