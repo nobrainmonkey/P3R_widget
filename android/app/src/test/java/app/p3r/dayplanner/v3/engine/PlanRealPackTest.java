@@ -94,8 +94,12 @@ public class PlanRealPackTest {
 
     // ------------------------------------------------------------------ scenarios
 
-    /** Plan-quality budget per scenario (default options, desktop JVM; DESIGN §8). */
-    private static final long MAX_MILLIS = 1500;
+    /**
+     * Plan-quality budget per scenario (default options, desktop JVM; DESIGN §8). Shared CI runners
+     * (env CI) are several times slower and noisy: there the planner's own time budget bounds the run
+     * (each scenario still asserts the rollout finished inside it, {@code budgetExhausted} false).
+     */
+    private static final long MAX_MILLIS = System.getenv("CI") != null ? 5_000 : 1_500;
     /** "Modest" cash: what the plan holds before the December filler jobs start. */
     private static final long MODEST_CASH = 60_000;
 
