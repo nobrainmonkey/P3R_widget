@@ -444,6 +444,7 @@ public class PlanWidgetBehaviourTest {
     @Test
     public void arrowsBrowseItemsAndCurrentReturnsToThePendingOne() {
         assertFalse("nothing before the pending item", card().findViewById(R.id.widget_prev).isEnabled());
+        assertFalse("already on the pending item: 当前 is dimmed like ‹", card().findViewById(R.id.button_spec_current).isEnabled());
         String[] titles = {"在宿舍房间学习", "皇帝 · 小田桐秀利", "咖啡店打工", "节制 · 贝培", "满月作战", "剧情事件", "探索塔尔塔罗斯"};
         for (String expected : titles) {
             tap(R.id.widget_next);
@@ -452,8 +453,10 @@ public class PlanWidgetBehaviourTest {
         assertFalse("nothing after the last item", card().findViewById(R.id.widget_next).isEnabled());
         tap(R.id.widget_prev);
         assertEquals("剧情事件", text(R.id.widget_task));
+        assertTrue(card().findViewById(R.id.button_spec_current).isEnabled());
         tap(R.id.button_spec_current);
         assertEquals("倒悬者 · 舞子", text(R.id.widget_task));
+        assertFalse(card().findViewById(R.id.button_spec_current).isEnabled());
         assertTrue("browsing never records", fake.recordCalls.isEmpty());
     }
 
@@ -514,8 +517,26 @@ public class PlanWidgetBehaviourTest {
         fake.snapshotFailure = new IllegalStateException("db locked");
         refresh();
         assertEquals("暂时读不到安排", text(R.id.widget_task));
-        assertFalse(card().findViewById(R.id.button_spec_done).isEnabled());
-        assertFalse(card().findViewById(R.id.button_spec_current).isEnabled());
+        // One live button instead of a dead 当前/完成 row: it opens the app.
+        assertEquals(View.GONE, card().findViewById(R.id.button_spec_current).getVisibility());
+        assertTrue(card().findViewById(R.id.button_spec_done).isEnabled());
+        assertEquals("打开应用", text(R.id.button_spec_done_text));
+        tap(R.id.button_spec_done);
+        assertEquals(WidgetIntents.HOME_ACTIVITY, shadowOf(app).getNextStartedActivity().getComponent().getClassName());
+    }
+
+    @Test
+    public void aFinishedPlanOffersTheSchedule() {
+        fake.observed.slot = S + 20;
+        refresh();
+        assertEquals("后面没有要做的安排了", text(R.id.widget_task));
+        assertEquals(View.GONE, card().findViewById(R.id.button_spec_current).getVisibility());
+        assertEquals("查看日程", text(R.id.button_spec_done_text));
+        tap(R.id.button_spec_done);
+        Intent opened = shadowOf(app).getNextStartedActivity();
+        assertEquals(WidgetIntents.HOME_ACTIVITY, opened.getComponent().getClassName());
+        assertEquals(WidgetIntents.TAB_SCHEDULE, opened.getStringExtra(Intents.EXTRA_TAB));
+        assertTrue(fake.recordCalls.isEmpty());
     }
 
     @Test
@@ -525,7 +546,12 @@ public class PlanWidgetBehaviourTest {
         refresh();
         assertEquals("暂时读不到安排", text(R.id.widget_task));
         assertEquals("游戏资料读取失败，请重新打开应用", text(R.id.widget_detail_cue));
-        assertFalse(card().findViewById(R.id.button_spec_done).isEnabled());
+        // 「请重新打开应用」: the card's button does just that.
+        assertEquals("打开应用", text(R.id.button_spec_done_text));
+        tap(R.id.button_spec_done);
+        Intent opened = shadowOf(app).getNextStartedActivity();
+        assertEquals(WidgetIntents.HOME_ACTIVITY, opened.getComponent().getClassName());
+        assertEquals(WidgetIntents.TAB_TODAY, opened.getStringExtra(Intents.EXTRA_TAB));
         tap(R.id.widget_task_area);
         assertEquals(WidgetIntents.HOME_ACTIVITY, shadowOf(app).getNextStartedActivity().getComponent().getClassName());
     }

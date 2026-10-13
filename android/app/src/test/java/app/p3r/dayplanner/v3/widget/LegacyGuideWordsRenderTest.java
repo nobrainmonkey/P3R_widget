@@ -122,6 +122,7 @@ public class LegacyGuideWordsRenderTest {
                 List<String> words = new ArrayList<>(GuideWords.WORDS);
                 words.addAll(CardText.locationWords(task.locationLabel));
                 words.addAll(namedThings(task.widgetTitle));
+                for (String arcana : GuideWords.ARCANA) words.add(arcana + "面具");
                 for (int[] size : SIZES) {
                     String tag = task.id + "-" + size[0] + "x" + size[1];
                     View root = render(task.id, size);
@@ -131,6 +132,8 @@ public class LegacyGuideWordsRenderTest {
                     RenderSupport.collectTextIssues(root, tag, issues);
                     splitWords(title, words, tag, issues);
                     countsStayAttached(title, tag, issues);
+                    float largest = CardRenderer.maxTitleSp(WidgetSize.of(size[0], size[1])) * c.getResources().getDisplayMetrics().scaledDensity;
+                    clausesBreakWhereAReaderWould(title, largest, tag, issues);
                     if (title.getLineCount() > 1) report.add(tag + "\t" + RenderSupport.lines(title));
                 }
             }
@@ -138,6 +141,69 @@ public class LegacyGuideWordsRenderTest {
         assertEquals(691, records);
         Files.write(new File(dir, "lines.txt").toPath(), report, StandardCharsets.UTF_8);
         assertTrue(issues.size() + " issues:\n" + String.join("\n", issues), issues.isEmpty());
+    }
+
+    /**
+     * Review of the 320x200 card (lines.txt): 「解锁战车；邀 / 结子同行」, 「外出；未 / 解锁可延后」,
+     * 「教室对面 / 的学生会活动室」, 「“历史学 / 投稿站的字条”」, 「再带星 / 面具找早濑护」 and
+     * 「可以SL / 不同的人物」. Lines now break after the clause punctuation and between whole words.
+     */
+    @Test
+    public void theReviewedTitlesBreakWhereAReaderWould() throws Exception {
+        File dir = RenderSupport.outputDir("legacy_words");
+        String[][] cases = {
+                {"t007_02", "1", "操场加入田径社，解锁战车； / 邀结子同行"},
+                {"t039_02", "1", "接77号委托，带伊莉莎白外出； / 未解锁可延后"},
+                {"t149_04", "1", "种卡加土豆，再使用 / “历史学投稿站的字条”"},
+                {"t108_01", "1", "提前存档，第二天夏日祭 / 可以SL不同的人物"},
+        };
+        for (String[] k : cases) {
+            View root = render(k[0], SIZES[Integer.parseInt(k[1])]);
+            RenderSupport.save(root, dir, k[0] + "-reviewed");
+            assertEquals(k[0], k[2], RenderSupport.lines(root.findViewById(R.id.widget_task)));
+        }
+        List<String> issues = new ArrayList<>();
+        TextView opposite = render("t011_03", SIZES[1]).findViewById(R.id.widget_task);
+        splitWords(opposite, Arrays.asList("教室对面的", "学生会活动室"), "t011_03", issues);
+        TextView star = render("t160_02", SIZES[0]).findViewById(R.id.widget_task);
+        splitWords(star, Arrays.asList("星面具", "早濑护"), "t160_02", issues);
+        TextView invite = render("t008_01", SIZES[1]).findViewById(R.id.widget_task);
+        splitWords(invite, Arrays.asList("邀经理"), "t008_01", issues);
+        assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
+    /** Quoted names, as long as the guide writes them (「“某学校匿名网站的字条”」 is 10 characters). */
+    private static final java.util.regex.Pattern ANY_QUOTED = java.util.regex.Pattern.compile("[「“][^「」“”]{2,12}[」”]");
+
+    /**
+     * Lines break where a reader would: never before 「的」, never right after a clause's lone first
+     * character (「；邀」/「结子同行」), and never inside a quoted name that fits one line at the card's
+     * largest title size ({@code largestPx}).
+     */
+    private static void clausesBreakWhereAReaderWould(TextView title, float largestPx, String tag, List<String> issues) {
+        android.text.Layout layout = title.getLayout();
+        if (layout == null) return;
+        String shaped = title.getText().toString();
+        String plain = CardText.plain(shaped);
+        for (int line = 0; line < layout.getLineCount() - 1; line++) {
+            if (layout.getEllipsisCount(line) > 0 || RenderSupport.forcedBreak(title, layout.getLineEnd(line))) continue;
+            String before = CardText.plain(shaped.substring(layout.getLineStart(line), layout.getLineEnd(line))).trim();
+            String after = CardText.plain(shaped.substring(layout.getLineEnd(line))).trim();
+            if (after.startsWith("的")) issues.add(tag + " starts a line with 的: '" + before + "' / '" + after + "'");
+            if (before.matches(".*[；，、：。]\\p{IsHan}$")) {
+                issues.add(tag + " leaves a clause's first character alone: '" + before + "' / '" + after + "'");
+            }
+            int at = CardText.plain(shaped.substring(0, layout.getLineEnd(line))).length();
+            android.text.TextPaint largest = new android.text.TextPaint(title.getPaint());
+            largest.setTextSize(largestPx);
+            java.util.regex.Matcher q = ANY_QUOTED.matcher(plain);
+            while (q.find()) {
+                boolean fits = largest.measureText(q.group()) <= layout.getWidth();
+                if (fits && q.start() < at && at < q.end()) {
+                    issues.add(tag + " splits the quoted name " + q.group() + " that fits a line: '" + before + "' / '" + after + "'");
+                }
+            }
+        }
     }
 
     /** Short Han names in a quote. */

@@ -90,6 +90,18 @@ public class WidgetRemoteViewsTest {
         }
     }
 
+    /** Like the plan widget's: on the task 当前 would jump to, it is dimmed rather than a dead button. */
+    @Test
+    public void currentIsDimmedOnTheEarliestUnfinishedTask() {
+        PlannerStore.Task first = PlannerStore.firstPendingGlobally(c);
+        View onIt = render(first.id, 320, 200);
+        assertFalse(onIt.findViewById(R.id.button_spec_current).isEnabled());
+        assertEquals("当前：已经在最早未完成的任务", onIt.findViewById(R.id.button_spec_current).getContentDescription().toString());
+        View later = render("t005_04", 320, 200);
+        assertTrue(later.findViewById(R.id.button_spec_current).isEnabled());
+        assertEquals("当前：回到最早未完成的任务", later.findViewById(R.id.button_spec_current).getContentDescription().toString());
+    }
+
     @Test
     public void completedTasksAllowUndoWhileInformationalTasksDisableDone() {
         PlannerStore.Task action = PlannerStore.taskById(c, "t005_04");

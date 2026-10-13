@@ -40,7 +40,11 @@ final class PlanView {
         /** Void the widget's last direct record. */
         UNDO,
         /** Open onboarding. */
-        ONBOARD
+        ONBOARD,
+        /** Open the app on 今天, where a failed or pending plan can be retried or followed (status cards). */
+        OPEN_APP,
+        /** Open the app on 日程 (the plan has nothing left to show). */
+        OPEN_SCHEDULE
     }
 
     /** How long the "✓ 已记录 · 再点撤销" card stays before the widget moves on to the next item. */
@@ -82,27 +86,27 @@ final class PlanView {
         if (snap == null) return new PlanView(Mode.EMPTY, null, none, -1, null, Done.ONBOARD);
         if (snap.observed == null) {
             // No records: a fresh install invites setup, but a failed load must not pose as one.
-            if (snap.planErrorZh != null) return new PlanView(Mode.ERROR, snap, none, -1, null, Done.NONE);
+            if (snap.planErrorZh != null) return new PlanView(Mode.ERROR, snap, none, -1, null, Done.OPEN_APP);
             return new PlanView(Mode.EMPTY, snap, none, -1, null, Done.ONBOARD);
         }
         if (snap.plan == null || (!snap.planCurrent && snap.plan.fromSlot > snap.observed.slot)) {
             // A lagging plan that starts after the observed slot (e.g. right after an undo or a sync
             // to an earlier date) cannot describe the pending slot: wait for the replan.
             Mode mode = snap.planErrorZh != null && !snap.planning ? Mode.ERROR : Mode.PLANNING;
-            return new PlanView(mode, snap, none, -1, null, Done.NONE);
+            return new PlanView(mode, snap, none, -1, null, Done.OPEN_APP);
         }
         List<PlanItems.Item> items = PlanItems.of(snap.plan, snap.observed.slot);
         if (receiptValid(receipt, snap, nowMillis)) {
             return new PlanView(Mode.RECEIPT, snap, items, -1, receipt, Done.UNDO);
         }
-        if (items.isEmpty()) return new PlanView(Mode.FINISHED, snap, items, -1, null, Done.NONE);
+        if (items.isEmpty()) return new PlanView(Mode.FINISHED, snap, items, -1, null, Done.OPEN_SCHEDULE);
         int index = cursorSlot < 0 ? 0 : Math.max(0, PlanItems.indexOf(items, cursorSlot));
         return new PlanView(Mode.ITEM, snap, items, index, null, doneFor(snap, items.get(index)));
     }
 
     /** The planner could not be reached (service missing or failing). */
     static PlanView unavailable() {
-        return new PlanView(Mode.ERROR, null, Collections.emptyList(), -1, null, Done.NONE);
+        return new PlanView(Mode.ERROR, null, Collections.emptyList(), -1, null, Done.OPEN_APP);
     }
 
     static boolean receiptValid(WidgetPrefs.Receipt receipt, PlannerApi.Snapshot snap, long nowMillis) {
@@ -225,10 +229,16 @@ final class PlanView {
         }
         m.cueMaxLines = 2; // the cue is the card's instruction: let it wrap rather than end in "…"
         m.taskDescription = m.title + "。点击打开应用";
-        m.currentEnabled = false;
-        m.currentDescription = "当前：现在没有可以回到的安排";
-        m.doneEnabled = false;
-        m.doneDescription = "现在没有可以记录的安排";
+        // Nothing to browse or record: one button that does what the card says, never a dead 当前/完成 row.
+        m.currentVisible = false;
+        m.doneIcon = CardModel.DoneIcon.NONE;
+        if (done == Done.OPEN_SCHEDULE) {
+            m.doneLabel = "查看日程";
+            m.doneDescription = "查看日程：在应用里看完整的日程";
+        } else {
+            m.doneLabel = "打开应用";
+            m.doneDescription = mode == Mode.PLANNING ? "打开应用：查看安排的进度" : "打开应用：在应用里重试";
+        }
     }
 
     private void itemCard(CardModel m, Rules rules) {
@@ -236,9 +246,13 @@ final class PlanView {
         plate(m, item.slot, rules);
         m.prevEnabled = index > 0;
         m.nextEnabled = index < items.size() - 1;
+        // Already on the pending item (where ‹ is dimmed too): 当前 has nowhere to go.
+        m.currentEnabled = index > 0;
+        if (!m.currentEnabled) m.currentDescription = "当前：已经在显示下一项要做的安排";
         progress(m, item.slot, item.lastSlot, rules);
         StepCopy copy = StepCopy.of(step, rules, snapshot.observed, snapshot.plan);
         m.title = copy.title;
+        m.titleShort = copy.shortTitle;
         m.titleIcon = copy.icon;
         m.tag = copy.tag;
         m.location = copy.location;
@@ -276,6 +290,7 @@ final class PlanView {
         m.nextEnabled = !items.isEmpty();
         progress(m, receipt.slot, receipt.slot, rules);
         m.title = StepCopy.titleOf(receipt.title, receipt.kind);
+        m.titleShort = StepCopy.shortTitle(m.title);
         m.tag = StepCopy.tag(receipt.kind, receipt.subtitle, null);
         m.location = blankToNull(receipt.location);
         m.cue = "✓ 已记录 · 再点撤销";

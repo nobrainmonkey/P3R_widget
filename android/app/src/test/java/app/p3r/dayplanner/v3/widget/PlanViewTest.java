@@ -83,12 +83,15 @@ public class PlanViewTest {
         fake.planErrorZh = "游戏资料读取失败，请重新打开应用";
         PlanView view = PlanView.resolve(snapshot(fake), -1, null, NOW);
         assertEquals(PlanView.Mode.ERROR, view.mode);
-        assertEquals(PlanView.Done.NONE, view.done);
+        assertEquals(PlanView.Done.OPEN_APP, view.done);
         CardModel card = view.toCard(null);
         assertEquals("暂时读不到安排", card.title);
         assertEquals("游戏资料读取失败，请重新打开应用", card.cue);
-        assertFalse(card.doneEnabled);
-        assertFalse("a dead 当前 is drawn disabled", card.currentEnabled);
+        // Review: a row of dead 当前/完成 buttons. The card offers the one thing it asks for instead.
+        assertFalse("no dead 当前", card.currentVisible);
+        assertTrue(card.doneEnabled);
+        assertEquals("打开应用", card.doneLabel);
+        assertEquals(CardModel.DoneIcon.NONE, card.doneIcon);
     }
 
     @Test
@@ -102,7 +105,7 @@ public class PlanViewTest {
         fake.planning = true;
         PlanView view = PlanView.resolve(snapshot(fake), -1, null, NOW);
         assertEquals("never offer 已经玩到这里 on the next slot", PlanView.Mode.PLANNING, view.mode);
-        assertEquals(PlanView.Done.NONE, view.done);
+        assertEquals("only 打开应用", PlanView.Done.OPEN_APP, view.done);
         assertEquals("正在生成安排…", view.toCard(null).title);
         fake.planning = false;
         fake.planErrorZh = "生成安排时出了问题，请稍后再试";
@@ -145,6 +148,77 @@ public class PlanViewTest {
         PlanView locked = PlanView.resolve(snapshot(fake), -1, null, NOW);
         assertEquals(PlanView.Done.NONE, locked.done);
         assertFalse(locked.toCard(null).doneEnabled);
+    }
+
+    /** Review: 当前 was drawn fully enabled on the pending item, where ‹ is already dimmed. */
+    @Test
+    public void currentIsDimmedWhereItHasNowhereToGo() {
+        FakePlannerApi fake = new FakePlannerApi();
+        CardModel pending = PlanView.resolve(snapshot(fake), -1, null, NOW).toCard(null);
+        assertFalse(pending.prevEnabled);
+        assertFalse("on the pending item 当前 does nothing", pending.currentEnabled);
+        assertTrue(pending.currentVisible);
+        assertEquals("当前：已经在显示下一项要做的安排", pending.currentDescription);
+        assertFalse("browsed back to the pending item", PlanView.resolve(snapshot(fake), S, null, NOW).toCard(null).currentEnabled);
+        CardModel browsed = PlanView.resolve(snapshot(fake), S + 2, null, NOW).toCard(null);
+        assertTrue(browsed.prevEnabled);
+        assertTrue("a browsed item can go back", browsed.currentEnabled);
+        WidgetPrefs.Receipt r = new WidgetPrefs.Receipt();
+        fake.observeAt("meet:emperor");
+        r.stateRevision = fake.stateRevision;
+        r.slot = S + 1;
+        r.action = "act:study_room";
+        r.title = "在宿舍房间学习";
+        r.kind = "stat";
+        r.createdMillis = NOW;
+        assertTrue("the receipt leaves for the pending item", PlanView.resolve(snapshot(fake), -1, r, NOW).toCard(null).currentEnabled);
+    }
+
+    /** Review: finished and error cards showed a dead 当前/完成 row; each now has one live button. */
+    @Test
+    public void statusCardsHaveOneButtonThatOpensTheApp() {
+        FakePlannerApi fake = new FakePlannerApi();
+        fake.observed.slot = S + 20;
+        PlanView finished = PlanView.resolve(snapshot(fake), -1, null, NOW);
+        assertEquals(PlanView.Mode.FINISHED, finished.mode);
+        assertEquals(PlanView.Done.OPEN_SCHEDULE, finished.done);
+        CardModel card = finished.toCard(null);
+        assertEquals("可以在应用里查看完整日程", card.cue);
+        assertEquals("查看日程", card.doneLabel);
+        assertTrue(card.doneEnabled);
+        assertFalse(card.currentVisible);
+
+        fake = new FakePlannerApi();
+        fake.plan = null;
+        fake.planning = true;
+        CardModel planning = PlanView.resolve(snapshot(fake), -1, null, NOW).toCard(null);
+        assertEquals("打开应用", planning.doneLabel);
+        assertFalse(planning.currentVisible);
+        CardModel unreachable = PlanView.unavailable().toCard(null);
+        assertEquals(PlanView.Done.OPEN_APP, PlanView.unavailable().done);
+        assertEquals("打开应用", unreachable.doneLabel);
+        assertTrue(unreachable.doneEnabled);
+    }
+
+    /**
+     * Review: 「结缘网站的字条 · 岳羽由…」 on the smallest card; the short form keeps the name whole (the
+     * note mark says what it is: the glossary never shortens the note's name to 「字条」).
+     */
+    @Test
+    public void titlesWithPartsHaveAShortFormThatKeepsTheName() {
+        assertEquals("岳羽由加莉", StepCopy.shortTitle("结缘网站的字条 · 岳羽由加莉"));
+        assertEquals("舞子", StepCopy.shortTitle("倒悬者 · 舞子"));
+        assertEquals("伊织顺平（第 2 话）", StepCopy.shortTitle("羁绊剧情 · 伊织顺平（第 2 话）"));
+        assertNull(StepCopy.shortTitle("在宿舍房间学习"));
+        assertNull(StepCopy.shortTitle(null));
+        FakePlannerApi fake = new FakePlannerApi();
+        fake.rules = FakePlannerApi.miniRules();
+        fake.plan.steps.set(3, FakePlannerApi.noteStep(S + 3));
+        fake.observeAt("note:priestess");
+        CardModel note = PlanView.resolve(snapshot(fake), -1, null, NOW).toCard(fake.rules);
+        assertEquals("结缘网站的字条 · 山岸风花", note.title);
+        assertEquals("山岸风花", note.titleShort);
+        assertEquals(CardModel.TitleIcon.NOTE, note.titleIcon);
     }
 
     @Test

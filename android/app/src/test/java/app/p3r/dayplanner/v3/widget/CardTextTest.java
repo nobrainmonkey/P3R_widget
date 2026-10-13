@@ -150,6 +150,72 @@ public class CardTextTest {
         assertEquals(shaped, CardText.choicesLoose(shaped));
     }
 
+    /**
+     * Review of the 320x200 guide card: 「解锁战车；邀 / 结子同行」, 「外出；未 / 解锁可延后」,
+     * 「教室对面 / 的学生会活动室」, 「再带星 / 面具找早濑护」, 「可以SL / 不同的人物」.
+     */
+    @Test
+    public void guideTextPrefersToBreakAfterClausePunctuation() {
+        String invite = CardText.guide("操场加入田径社，解锁战车；邀结子同行", null);
+        assertTrue("a lone 「邀」 goes with what follows", invite.contains("；邀" + WJ + "结"));
+        assertFalse("the line may still break after 「；」", invite.contains("；" + WJ));
+        assertTrue(CardText.guide("接77号委托，带伊莉莎白外出；未解锁可延后", null).contains("；未" + WJ + "解"));
+        assertTrue("「的」 never starts a line", CardText.guide("然后去教室对面的学生会活动室", null).contains("面" + WJ + "的"));
+        assertTrue("…nor after a closing quote", CardText.guide("使用“严户台留言板”的字条", null).contains("”" + WJ + "的"));
+        String mask = CardText.guide("进教职员室，再带星面具找早濑护", null);
+        assertTrue("「星面具」 is one word", mask.contains("星" + WJ + "面" + WJ + "具"));
+        assertTrue(CardText.guide("带倒悬者面具，找舞子", null).contains("者" + WJ + "面"));
+        assertTrue("a Latin word keeps the word after it",
+                CardText.guide("提前存档，第二天夏日祭可以SL不同的人物", null).contains("S" + WJ + "L" + WJ + "不"));
+        assertTrue(CardText.guide("满月BOSS战", null).contains("S" + WJ + "战"));
+        assertTrue("…but a single letter belongs to the name before it", CardText.guide("带莫乐蜜G到长鸣神社", null).contains("G到"));
+        assertTrue("a place word stays with the word before it", CardText.guide("去教室对面的活动室", null).contains("室" + WJ + "对"));
+        assertTrue(CardText.guide("找教室外的贝培", null).contains("室" + WJ + "外" + WJ + "的"));
+        assertTrue("a one-character verb keeps its object", CardText.guide("再到大厅邀经理同行", null).contains("邀" + WJ + "经"));
+        assertFalse("the guide's typo is gone from its word list", GuideWords.WORDS.contains("铜条美鹤"));
+        assertTrue("a rank keeps its own rule", CardText.guide("魔术师→RANK2，再看书", null).contains("2，"));
+        // Two characters already a word after the punctuation need nothing more.
+        assertTrue(CardText.guide("交给伊莉莎白，接取委托11", null).contains("，接"));
+    }
+
+    @Test
+    public void aLongQuotedNameStaysWholeWhereTheCardSaysItFits() {
+        String text = "种卡加土豆，再使用“历史学投稿站的字条”";
+        assertTrue("9 characters: wraps between its words by default", CardText.guide(text, null).contains("学投"));
+        String wide = CardText.guide(text, null, 13);
+        assertTrue(wide.contains("“" + WJ + "历") && wide.contains("学" + WJ + "投") && wide.contains("条" + WJ + "”"));
+        assertEquals(text, CardText.plain(wide));
+        assertEquals(wide, CardText.guide(wide, null, 13));
+    }
+
+    /** Review: 「魅力 +4 → Lv.…」 — a chip keeps every value whole and wraps only after a 「、」. */
+    @Test
+    public void chipsWrapOnlyBetweenWholeValues() {
+        String chip = CardText.chip("魅力 +4 → Lv.2、学力 +2 → MAX");
+        assertEquals("魅力 +4 → Lv.2、学力 +2 → MAX", CardText.plain(chip));
+        assertFalse("no plain space left to break at", chip.contains(" "));
+        assertTrue("the break is after 「、」", chip.contains("2、学"));
+        assertTrue(chip.contains("力" + NBSP + "+" + WJ + "4"));
+        assertEquals("RANK 4→5", CardText.plain(CardText.chip("RANK 4→5")));
+        assertEquals(chip, CardText.chip(chip));
+        assertNull(CardText.chip(null));
+    }
+
+    /** Review: 「奢豪之…」 and 「奢豪之庭 茨尔阿（145–…」: shorter whole forms, the least important part first. */
+    @Test
+    public void locationsHaveShorterWholeForms() {
+        assertEquals(Arrays.asList("奢豪之庭 茨尔阿（145–172F）", "奢豪之庭 茨尔阿", "茨尔阿"),
+                CardText.locationForms("奢豪之庭 茨尔阿（145–172F）"));
+        assertEquals(Arrays.asList("桐叶购物中心 · 夏卡尔咖啡店", "夏卡尔咖啡店"), CardText.locationForms("桐叶购物中心 · 夏卡尔咖啡店"));
+        assertEquals("a space next to a number belongs to the place",
+                Arrays.asList("桐叶购物中心 · 放纵俱乐部 2 楼", "放纵俱乐部 2 楼"), CardText.locationForms("桐叶购物中心 · 放纵俱乐部 2 楼"));
+        assertEquals(Arrays.asList("月光馆学园 3楼 学生会室", "学生会室"), CardText.locationForms("月光馆学园 3楼 学生会室"));
+        assertEquals("each leg of a route", Arrays.asList("学园 · 1楼教职员室前 → 港湾人工岛 · 站前广场", "1楼教职员室前 → 站前广场"),
+                CardText.locationForms("学园 · 1楼教职员室前 → 港湾人工岛 · 站前广场"));
+        assertEquals(Arrays.asList("长鸣神社"), CardText.locationForms("长鸣神社"));
+        assertTrue(CardText.locationForms(null).isEmpty());
+    }
+
     @Test
     public void guideShapingTwiceChangesNothing() {
         for (String text : Arrays.asList("收集12种饮料交给伊莉莎白，接取委托11", "和教室的友近对话 · 魔术师→RANK2",

@@ -13,9 +13,17 @@ import java.util.List;
 final class GuideWords {
     private GuideWords() {}
 
+    /**
+     * The arcana as the guide names them, single-character ones included: 「带星面具」 means the Star's
+     * Persona, so {@link CardText#guide} keeps 「星面具」 whole like a word.
+     */
+    static final List<String> ARCANA = Collections.unmodifiableList(Arrays.asList(
+            "愚者", "魔术师", "女教皇", "女皇", "皇帝", "教皇", "恋爱", "恋人", "战车", "正义", "隐者", "命运", "力量",
+            "倒悬者", "死神", "节制", "恶魔", "塔", "星", "月亮", "太阳", "审判", "永劫"));
+
     static final List<String> WORDS = Collections.unmodifiableList(Arrays.asList(
             // People, as the guide names them.
-            "伊莉莎白", "特别课外活动部", "友近健二", "友近", "山岸风花", "山岸", "风花", "桐条美鹤", "铜条美鹤", "桐条",
+            "伊莉莎白", "特别课外活动部", "友近健二", "友近", "山岸风花", "山岸", "风花", "桐条美鹤", "桐条",
             "美鹤", "小田桐秀利", "小田桐", "秀利", "北村文吉", "光子", "岳羽由加莉", "岳羽", "由加莉", "宫本一志", "宫本",
             "伏见千寻", "伏见", "千寻", "平贺庆介", "平贺", "庆介", "西胁结子", "西胁", "结子", "舞子", "法洛斯", "贝培",
             "田中社长", "无达", "早濑护", "早濑", "末光望美", "末光", "望美", "神木秋成", "神木", "秋成", "埃癸斯",
