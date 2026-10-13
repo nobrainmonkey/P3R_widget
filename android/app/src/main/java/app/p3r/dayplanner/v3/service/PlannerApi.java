@@ -38,26 +38,46 @@ public interface PlannerApi {
     }
 
     final class Receipt {
+        /** The expected revision is out of date; reload and show the latest plan. */
+        public static final String CODE_STALE = "stale";
+        /** The command id was already used with a different payload. */
+        public static final String CODE_CONFLICT = "conflict";
+        /** A value was rejected; {@link #errorZh} says which. */
+        public static final String CODE_INVALID = "invalid";
+        /** Earlier open slots have no record yet; run the catch-up flow (see {@link #missingSlots}). */
+        public static final String CODE_GAP = "gap";
+        /** Storage failed; retrying with the same command id is safe. */
+        public static final String CODE_IO = "io";
+
         public boolean ok;
         /** True when the command id had already been applied (idempotent replay). */
         public boolean duplicate;
+        /** Current revisions after the command (also for duplicates and rejections). */
         public long stateRevision;
         public long profileRevision;
+        /** Row written by the command (for duplicates: the original row), -1 if none. */
         public long eventSeq = -1;
         /** Chinese, user-facing message for rejections (stale revision, invalid value…). */
         public String errorZh;
-        /** Machine-readable rejection code: stale | conflict | invalid | io. */
+        /** Machine-readable rejection code: stale | conflict | invalid | gap | io. */
         public String errorCode;
+        /** For {@link #CODE_GAP}: open slots before the requested one that have no record yet. */
+        public int missingSlots;
     }
 
     final class HistoryItem {
         public long seq;
         public long createdMillis;
         public int slot;
+        /** outcome | skip | tower | tower_fix | void | checkpoint | import. */
         public String kind;
-        /** e.g. "5月12日 晚上 · 探索塔尔塔罗斯 · 27F · 14,750 日元". */
+        /** e.g. "5月12日 晚上 · 探索塔尔塔罗斯 · 到达 27F · 余额 14,750 日元". */
         public String summaryZh;
         public boolean voided;
+        /**
+         * The record still shapes the current state (recorded after the latest checkpoint and not
+         * voided), so it can be undone with {@code voidEvent}; tower records can also be corrected.
+         */
         public boolean correctable;
     }
 
