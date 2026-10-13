@@ -3,6 +3,7 @@ package app.p3r.dayplanner.v3.engine;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import app.p3r.dayplanner.v3.model.Profile;
@@ -219,6 +220,53 @@ public class CoreContractTest {
         assertTrue(h.wGoal[8] > h.val[6][10] - h.val[6][9]);
     }
 
+    // ------------------------------------------------------------------ strict goal priority
+
+    private static Planner.Candidate outcome(boolean[] reached, int[] endRank, double score) {
+        return new Planner.Candidate(null, null, null, new int[0], score, score, score, 0, reached, endRank, new int[22]);
+    }
+
+    @Test
+    public void goalsAreComparedInStrictPriorityOrderBeforeTheObjective() {
+        // ① missed at 9, ② reached — against ① reached, ② never opened: the first goal decides.
+        Planner.Candidate secondOnly = outcome(new boolean[]{false, true, false}, new int[]{9, 10, 3}, 5_000_000);
+        Planner.Candidate firstOnly = outcome(new boolean[]{true, false, false}, new int[]{10, 0, 1}, 1_000);
+        assertTrue(Planner.Pool.compareGoals(firstOnly, secondOnly) > 0);
+        assertTrue(Planner.Pool.compareGoals(secondOnly, firstOnly) < 0);
+        assertEquals(0, Planner.Pool.decidingGoal(firstOnly, secondOnly));
+        // Both reach ①: ② decides, whatever ③ does.
+        Planner.Candidate both = outcome(new boolean[]{true, true, false}, new int[]{10, 10, 0}, 900);
+        assertTrue(Planner.Pool.compareGoals(both, firstOnly) > 0);
+        assertEquals(1, Planner.Pool.decidingGoal(both, firstOnly));
+        // Two misses of the same goal: the higher end rank wins.
+        Planner.Candidate nine = outcome(new boolean[]{false, false, true}, new int[]{9, 2, 10}, 0);
+        Planner.Candidate eight = outcome(new boolean[]{false, true, true}, new int[]{8, 10, 10}, 0);
+        assertTrue(Planner.Pool.compareGoals(nine, eight) > 0);
+        // Equal goals: the objective decides (compareGoals ties).
+        Planner.Candidate same = outcome(new boolean[]{true, true, false}, new int[]{10, 10, 0}, 1_000);
+        assertEquals(0, Planner.Pool.compareGoals(both, same));
+        assertEquals(-1, Planner.Pool.decidingGoal(both, same));
+    }
+
+    @Test
+    public void aMissedGoalNamesOnlyAHigherGoalAComparedPlanGaveUpForIt() {
+        Rules rules = RulesFixtures.fullYear();
+        int priestess = 2;
+        int empress = 3;
+        int lovers = 6;
+        Profile profile = RulesFixtures.must(priestess, empress, lovers);
+        SimState start = RulesFixtures.newGame(rules, RulesFixtures.slot(10, 22, false));
+        Model m = new Model(rules, profile, null);
+        Planner.Pool pool = new Planner.Pool(m, start, null, new Engine.Options(), Long.MAX_VALUE, Planner.PORTFOLIO);
+        Planner.Candidate chosen = outcome(new boolean[]{true, false, false}, new int[]{10, 9, 3}, 0);
+        pool.add(chosen);
+        pool.add(outcome(new boolean[]{false, true, false}, new int[]{9, 10, 2}, 0));
+        int[] traded = pool.tradedFor(chosen);
+        assertEquals("女皇 gave way to 女教皇", priestess, traded[empress]);
+        assertEquals("no compared plan reached 恋爱: nothing was traded for it", -1, traded[lovers]);
+        assertEquals(-1, traded[priestess]);
+    }
+
     // ------------------------------------------------------------------ wording and budget
 
     @Test
@@ -250,17 +298,46 @@ public class CoreContractTest {
         assertTrue(plan.budgetExhausted);
         assertValid(rules, profile, start, plan);
         assertEquals("这次没来得及算完，稍后会自动再算一次", plan.summary.notesZh.get(0));
+        assertFalse(plan.followUp);
+        assertTrue(plan.followUpPending());
+        assertEquals(plan.summary.notesZh.get(0), plan.budgetNoteZh());
 
         Engine.Options again = new Engine.Options();
         again.cancelled = new AtomicBoolean(true);
         again.followUp = true;
         Plan second = Engine.plan(rules, profile, start, null, again);
-        assertEquals("这次没来得及算完，记下一个结果后会重新安排", second.summary.notesZh.get(0));
+        assertEquals("这次没来得及算完，后半段是粗略安排；记下一个结果后会重新安排", second.summary.notesZh.get(0));
+        assertTrue(second.followUp);
+        assertFalse("no further automatic run", second.followUpPending());
+        assertEquals(second.summary.notesZh.get(0), second.budgetNoteZh());
         assertEquals("the follow-up flag does not change the plan", plan.planId, second.planId);
 
         Plan full = Engine.plan(rules, profile, start, null, generous());
         assertFalse(full.budgetExhausted);
+        assertNull(full.budgetNoteZh());
+        assertFalse(full.followUpPending());
         for (String n : full.summary.notesZh) assertFalse(n, n.contains("没来得及算完"));
+    }
+
+    @Test
+    public void followUpFlagRoundTripsAndRewordsTheBudgetNote() throws Exception {
+        Plan plan = new Plan();
+        plan.budgetExhausted = true;
+        plan.summary.notesZh.add(Plan.BUDGET_NOTE_PENDING);
+        plan.summary.notesZh.add("皇帝：预计 6月29日 升到 MAX");
+        Plan copy = Plan.fromJson(plan.toJson());
+        assertFalse(copy.followUp);
+        assertTrue(copy.followUpPending());
+        assertFalse(plan.toJson().getBoolean("followUp"));
+        copy.markFollowUpDone();
+        assertTrue(copy.followUp);
+        assertEquals(Plan.BUDGET_NOTE_DONE, copy.summary.notesZh.get(0));
+        assertEquals("皇帝：预计 6月29日 升到 MAX", copy.summary.notesZh.get(1));
+        Plan again = Plan.fromJson(copy.toJson());
+        assertTrue(again.toJson().getBoolean("followUp"));
+        assertTrue(again.followUp);
+        assertEquals(Plan.BUDGET_NOTE_DONE, again.budgetNoteZh());
+        assertFalse(again.followUpPending());
     }
 
     // ------------------------------------------------------------------ robustness
@@ -320,7 +397,8 @@ public class CoreContractTest {
         assertEquals(0, Heuristics.feeReserve(0));
         assertEquals(Heuristics.FEE_RESERVE, Heuristics.feeReserve(510));
         Plan plan = Engine.plan(rules, profile, s, null, generous());
-        assertTrue(plan.summary.notesZh.contains("需要付钱解锁的社群，安排会在付钱前尽量多留 2,500 日元"));
+        assertTrue(plan.summary.notesZh.toString(), plan.summary.notesZh.contains(Labels.FEE_NOTE));
+        assertTrue(Labels.FEE_NOTE.startsWith("需要付钱解锁的社群：交完钱至少还留 2,500 日元"));
     }
 
     @Test

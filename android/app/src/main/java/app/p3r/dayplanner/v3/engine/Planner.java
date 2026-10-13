@@ -114,10 +114,15 @@ final class Planner {
 
     /**
      * Screens every tuning of {@code portfolio} with its base policy, then fortifies the best
-     * {@link #FORTIFY} (in screened order, while the budget allows) and keeps the plan with the best
-     * objective (less the waste margin per wasted daytime slot, see {@link Candidate}), preferring
-     * within {@link #SWITCH_MARGIN} one that keeps the previous plan's next three days. With a zero
-     * time budget only the first tuning's base policy runs.
+     * {@link #FORTIFY} (in screened order, while the budget allows). With two or more goals the
+     * goals are then honoured in strict priority order ({@link Pool#prioritise}): when the best plan
+     * misses a goal while a later one exists, the planner also plans with only the goals up to the
+     * missed one as goals (the rest count as 「其余社群」). The plan kept is the best by
+     * {@link Pool#compareGoals} (goals in priority order: reached beats missed, a missed goal's
+     * higher end rank beats a lower one), then by objective (less the waste margin per wasted
+     * daytime slot, see {@link Candidate}), preferring within {@link #SWITCH_MARGIN} one that keeps
+     * the previous plan's next three days. With a zero time budget only the first tuning's base
+     * policy runs.
      */
     static Plan plan(Rules rules, Profile profile, SimState observed, Plan previous, Engine.Options options,
                      Heuristics.Tuning[] portfolio) {
@@ -125,53 +130,15 @@ final class Planner {
         Model m = new Model(rules, profile, options);
         SimState start = Kernel.normalize(m, observed);
         long deadline = t0 + Math.max(0, options.timeBudgetMillis) * 1_000_000L;
-        Candidate best = null;
-        Candidate bestStable = null;
-        boolean exhausted = false;
         boolean search = options.timeBudgetMillis > 0;
-        int variants = search ? portfolio.length : 1;
-        Candidate[] screened = new Candidate[variants];
-        for (int v = 0; v < variants; v++) {
-            if (v > 0 && (cancelled(options) || System.nanoTime() > deadline)) {
-                exhausted = true;
-                break;
-            }
-            Heuristics h = new Heuristics(m, start, previous, portfolio[v]);
-            Search base = new Search(m, h, options, deadline, 0f, 0f);
-            int[] codes = base.runBase(start);
-            screened[v] = new Candidate(h, codes, base.objectiveOf(start, codes), v, wasteMargin(h) * daytimeWaste(m, start, codes));
-            if (options.progress != null) options.progress.onProgress(SCREEN_SHARE * (v + 1) / variants);
-        }
-        Candidate[] order = Arrays.stream(screened).filter(c -> c != null)
-                .sorted((a, b) -> a.j != b.j ? Double.compare(b.j, a.j) : Integer.compare(a.variant, b.variant))
-                .toArray(Candidate[]::new);
-        for (Candidate c : order) {
-            if (best == null || c.score > best.score + EPS) best = c;
-            if (keepsPreviousWindow(c.h, start.slot, c.codes) && (bestStable == null || c.score > bestStable.score + EPS)) bestStable = c;
-        }
-        Candidate[] fortifyOrder = search ? fortifyOrder(order, portfolio, profile) : new Candidate[0];
-        int fortify = fortifyOrder.length;
-        long fortifyStart = System.nanoTime();
-        for (int k = 0; k < fortify; k++) {
-            long now = System.nanoTime();
-            if (k > 0 && (cancelled(options) || now + (now - fortifyStart) / k > deadline)) {
-                exhausted = true; // not enough time left for another full rollout
-                break;
-            }
-            Candidate base = fortifyOrder[k];
-            Heuristics h = new Heuristics(m, start, previous, portfolio[base.variant]);
-            float from = SCREEN_SHARE + (1 - SCREEN_SHARE) * k / fortify;
-            Search fortified = new Search(m, h, options, deadline, from, (1 - SCREEN_SHARE) / fortify);
-            int[] codes = fortified.run(start);
-            exhausted |= fortified.exhausted;
-            Candidate c = new Candidate(h, codes, fortified.objectiveOf(start, codes), base.variant, wasteMargin(h) * daytimeWaste(m, start, codes));
-            if (c.score > best.score + EPS) best = c;
-            if (keepsPreviousWindow(h, start.slot, codes) && (bestStable == null || c.score > bestStable.score + EPS)) bestStable = c;
-        }
-        Candidate chosen = bestStable != null && best.score <= bestStable.score + SWITCH_MARGIN ? bestStable : best;
-        Plan plan = assemble(m, chosen.h, start, chosen.codes);
+        Pool pool = new Pool(m, start, previous, options, deadline, portfolio);
+        boolean exhausted = pool.run(null, search, true);
+        if (search) exhausted |= pool.prioritise();
+        Candidate chosen = pool.choose();
+        Plan plan = assemble(m, pool.labelHeuristics(chosen), start, chosen.codes, pool.tradedFor(chosen));
         plan.budgetExhausted = exhausted;
-        if (exhausted) plan.summary.notesZh.add(0, options.followUp ? Labels.BUDGET_NOTE_FOLLOW_UP : Labels.BUDGET_NOTE);
+        plan.followUp = options.followUp;
+        if (exhausted) plan.summary.notesZh.add(0, plan.budgetNoteZh());
         plan.elapsedMillis = (System.nanoTime() - t0) / 1_000_000L;
         plan.createdMillis = System.currentTimeMillis();
         plan.planId = PlanHash.of(rules, profile, start, options, plan);
@@ -186,11 +153,9 @@ final class Planner {
      * goal, while its fortified plan beats it; one goal-first tuning for a single goal, all of them
      * when goals can compete for the same days).
      */
-    static Candidate[] fortifyOrder(Candidate[] order, Heuristics.Tuning[] portfolio, Profile profile) {
+    static Candidate[] fortifyOrder(Candidate[] order, Heuristics.Tuning[] portfolio, int goals) {
         List<Candidate> out = new ArrayList<>();
         for (int i = 0; i < Math.min(FORTIFY, order.length); i++) out.add(order[i]);
-        int goals = 0;
-        for (int l = 0; l < profile.tier.length; l++) if (profile.isGoal(l)) goals++;
         int extra = goals == 0 ? 0 : goals == 1 ? 1 : Integer.MAX_VALUE;
         int at = Math.min(1, out.size());
         for (Candidate c : order) {
@@ -203,29 +168,321 @@ final class Planner {
         return out.toArray(new Candidate[0]);
     }
 
+    /**
+     * The screened tunings fortified in a strict-priority run ({@link Pool#prioritise}): the best
+     * by that goal order's objective and the best {@link Heuristics.Tuning#goalFirst} one (two
+     * fortified searches, so the extra runs stay within the time budget).
+     */
+    static Candidate[] priorityFortifyOrder(Candidate[] order, Heuristics.Tuning[] portfolio) {
+        List<Candidate> out = new ArrayList<>();
+        if (order.length > 0) out.add(order[0]);
+        for (Candidate c : order) {
+            if (!portfolio[c.variant].goalFirst) continue;
+            if (!out.contains(c)) out.add(c);
+            break;
+        }
+        return out.toArray(new Candidate[0]);
+    }
+
     /** Share of the progress bar used by the screening phase. */
     private static final float SCREEN_SHARE = 0.1f;
 
     /**
-     * One tuning's complete result. Plans are compared by {@link #score}: the objective minus the
-     * waste margin for every daytime slot that skips a wanted link which could be met there, so a
-     * plan that gives such a slot to training or a job wins only by a clear gain (the same rule the
-     * rollout applies slot by slot, see {@link #WASTE_MARGIN}).
+     * One complete plan of the portfolio. Plans are compared by their goals first
+     * ({@link Pool#compareGoals}), then by {@link #score}: the objective J of the whole profile minus
+     * the waste margin for every daytime slot that skips a wanted link which could be met there, so
+     * a plan that gives such a slot to training or a job wins only by a clear gain (the same rule
+     * the rollout applies slot by slot, see {@link #WASTE_MARGIN}).
      */
-    private static final class Candidate {
+    static final class Candidate {
         final Heuristics h;
+        final Heuristics.Tuning tuning;
+        /** Goal order the plan was made with (null: the profile's own). */
+        final int[] goals;
         final int[] codes;
+        /** Objective of the whole profile, and of the heuristics that made the plan (the same for the profile's own goal order). */
         final double j;
+        final double ownJ;
         final double score;
-        /** Index of the tuning in the portfolio. */
+        /** Index of the tuning in the portfolio (-1 for a screened "goal first" probe). */
         final int variant;
+        /** Per goal, in the profile's priority order: reached its target, and its end rank. */
+        final boolean[] reached;
+        final int[] endRank;
+        /** End rank of every link. */
+        final int[] linkRanks;
+        boolean exhausted;
 
-        Candidate(Heuristics h, int[] codes, double j, int variant, double wastePenalty) {
+        Candidate(Heuristics h, Heuristics.Tuning tuning, int[] goals, int[] codes, double j, double ownJ, double score, int variant,
+                  boolean[] reached, int[] endRank, int[] linkRanks) {
             this.h = h;
+            this.tuning = tuning;
+            this.goals = goals;
             this.codes = codes;
             this.j = j;
-            this.score = j - wastePenalty;
+            this.ownJ = ownJ;
+            this.score = score;
             this.variant = variant;
+            this.reached = reached;
+            this.endRank = endRank;
+            this.linkRanks = linkRanks;
+        }
+    }
+
+    /**
+     * Every complete plan of one planning run, all measured with the objective of the whole profile,
+     * and the strict goal priority over them.
+     */
+    static final class Pool {
+        final Model m;
+        final SimState start;
+        final Plan previous;
+        final Engine.Options options;
+        final long deadline;
+        /** Base-policy tunings screened for every goal order. */
+        final Heuristics.Tuning[] portfolio;
+        /** The whole profile's goals in priority order. */
+        final int[] goals;
+        /** Objective of the whole profile (the same for every tuning). */
+        final Heuristics ref;
+        private final double margin;
+        final List<Candidate> all = new ArrayList<>();
+        private long fortifyNanos;
+        private int fortified;
+
+        Pool(Model m, SimState start, Plan previous, Engine.Options options, long deadline, Heuristics.Tuning[] portfolio) {
+            this.m = m;
+            this.start = start;
+            this.previous = previous;
+            this.options = options;
+            this.deadline = deadline;
+            this.portfolio = portfolio;
+            this.goals = Heuristics.goalOrder(m);
+            this.ref = new Heuristics(m, start, previous, portfolio[0]);
+            this.margin = wasteMargin(ref);
+        }
+
+        /** Measures {@code codes}: objective of the whole profile, daytime waste, goal outcomes. */
+        Candidate candidate(Heuristics h, Heuristics.Tuning tuning, int[] goalOrder, int[] codes, int variant) {
+            SimState st = start.copy();
+            int[] reachedAt = ref.initialReached(start);
+            int waste = 0;
+            for (int code : codes) {
+                int slot = st.slot;
+                boolean open = m.t.open(slot);
+                int type = Kernel.type(code);
+                if (open && (slot & 1) == 0 && type != Kernel.T_MEET && type != Kernel.T_UNLOCK && type != Kernel.T_EPISODE
+                        && meetableWanted(m, st, slot)) {
+                    waste++;
+                }
+                Kernel.apply(m, st, open ? code : Kernel.FREE, null);
+                ref.track(st, slot, reachedAt);
+            }
+            double j = ref.objective(st, reachedAt) - Heuristics.FRAGILE_MAX_PENALTY * ref.fragileMaxes(st, reachedAt);
+            boolean[] reached = new boolean[goals.length];
+            int[] endRank = new int[goals.length];
+            for (int i = 0; i < goals.length; i++) {
+                endRank[i] = st.rank[goals[i]];
+                reached[i] = endRank[i] >= m.target(goals[i]);
+            }
+            int[] linkRanks = Arrays.copyOf(st.rank, m.t.nLinks);
+            if (options.trace != null) options.trace.add(linkRanks.clone());
+            double own = goalOrder == null ? j : new Search(m, h, options, deadline, 0f, 0f).objectiveOf(start, codes);
+            return new Candidate(h, tuning, goalOrder, codes, j, own, j - margin * waste, variant, reached, endRank, linkRanks);
+        }
+
+        /**
+         * One portfolio run for {@code goalOrder} (null: the profile's own): every tuning's base
+         * policy is screened (only the first one without {@code search}), the best are fortified
+         * ({@link #fortifyOrder}, by the objective of that goal order) while the budget allows, and
+         * every plan joins the pool. {@code main} reports progress. Returns true when the time
+         * budget ran out before the run was complete.
+         */
+        boolean run(int[] goalOrder, boolean search, boolean main) {
+            boolean exhausted = false;
+            int variants = search ? portfolio.length : 1;
+            Candidate[] screened = new Candidate[variants];
+            for (int v = 0; v < variants; v++) {
+                if (v > 0 && (cancelled(options) || System.nanoTime() > deadline)) {
+                    exhausted = true;
+                    break;
+                }
+                Heuristics h = new Heuristics(m, start, previous, portfolio[v], goalOrder);
+                Search base = new Search(m, h, options, deadline, 0f, 0f);
+                screened[v] = candidate(h, portfolio[v], goalOrder, base.runBase(start), v);
+                if (main && options.progress != null) options.progress.onProgress(SCREEN_SHARE * (v + 1) / variants);
+            }
+            Candidate[] order = Arrays.stream(screened).filter(c -> c != null)
+                    .sorted((a, b) -> a.ownJ != b.ownJ ? Double.compare(b.ownJ, a.ownJ) : Integer.compare(a.variant, b.variant))
+                    .toArray(Candidate[]::new);
+            for (Candidate c : order) add(c);
+            if (!search) return exhausted;
+            int goalCount = goalOrder == null ? goals.length : goalOrder.length;
+            Candidate[] fortifyOrder = main ? fortifyOrder(order, portfolio, goalCount) : priorityFortifyOrder(order, portfolio);
+            int fortify = fortifyOrder.length;
+            for (int k = 0; k < fortify; k++) {
+                if ((k > 0 || !main) && !timeForAnotherFortify()) {
+                    exhausted = true; // not enough time left for another full rollout
+                    break;
+                }
+                Candidate base = fortifyOrder[k];
+                float from = main ? SCREEN_SHARE + (1 - SCREEN_SHARE) * k / fortify : 0.99f;
+                float span = main ? (1 - SCREEN_SHARE) / fortify : 0f;
+                Candidate c = fortify(portfolio[base.variant], goalOrder, base.variant, from, span);
+                exhausted |= c.exhausted;
+                add(c);
+            }
+            return exhausted;
+        }
+
+        void add(Candidate c) {
+            all.add(c);
+        }
+
+        /** Fortified search of {@code tuning} with goal order {@code goalOrder} (null: the profile's). */
+        Candidate fortify(Heuristics.Tuning tuning, int[] goalOrder, int variant, float progressFrom, float progressSpan) {
+            long t0 = System.nanoTime();
+            Heuristics h = new Heuristics(m, start, previous, tuning, goalOrder);
+            Search search = new Search(m, h, options, deadline, progressFrom, progressSpan);
+            int[] codes = search.run(start);
+            Candidate c = candidate(h, tuning, goalOrder, codes, variant);
+            c.exhausted = search.exhausted;
+            fortifyNanos += System.nanoTime() - t0;
+            fortified++;
+            return c;
+        }
+
+        /** Another fortified search is expected to finish before the deadline (the average one so far). */
+        boolean timeForAnotherFortify() {
+            if (cancelled(options)) return false;
+            long now = System.nanoTime();
+            long average = fortified == 0 ? 0 : fortifyNanos / fortified;
+            return now + average <= deadline;
+        }
+
+        /**
+         * Strict goal priority. While the best plan misses a goal (its first missed goal, in
+         * priority order) and a later goal exists, plan once more with only the goals up to the
+         * missed one as goals ("top-k"; the later goals count as 「其余社群」), a whole portfolio run
+         * ({@link #run}). Each k runs at most once.
+         * Then, for every goal the best plan still misses, a base-policy plan with that goal first
+         * is screened, so the notes can say which goal it gave way to. Returns true when the time
+         * budget ran out before a needed run.
+         */
+        boolean prioritise() {
+            int n = goals.length;
+            if (n < 2) return false;
+            boolean[] tried = new boolean[n + 1];
+            while (true) {
+                Candidate best = best();
+                int f = firstMissed(best);
+                if (f < 0 || f >= n - 1 || tried[f + 1]) break;
+                tried[f + 1] = true;
+                if (!timeForAnotherFortify()) return true;
+                if (run(Arrays.copyOf(goals, f + 1), true, false)) return true;
+            }
+            Candidate best = best();
+            for (int i = 1; i < n; i++) {
+                if (best.reached[i] || anyReaches(i)) continue;
+                if (cancelled(options) || System.nanoTime() > deadline) return true;
+                int[] promoted = new int[n];
+                promoted[0] = goals[i];
+                for (int a = 0, b = 1; a < n; a++) if (a != i) promoted[b++] = goals[a];
+                Heuristics.Tuning tuning = Heuristics.Tuning.DEFAULT.goalFirst();
+                Heuristics h = new Heuristics(m, start, previous, tuning, promoted);
+                add(candidate(h, tuning, promoted, new Search(m, h, options, deadline, 0f, 0f).runBase(start), -1));
+            }
+            return false;
+        }
+
+        private boolean anyReaches(int goal) {
+            for (Candidate c : all) if (c.reached[goal]) return true;
+            return false;
+        }
+
+        /** First goal (place in the priority order) the plan misses, or -1. */
+        static int firstMissed(Candidate c) {
+            for (int i = 0; i < c.reached.length; i++) if (!c.reached[i]) return i;
+            return -1;
+        }
+
+        /**
+         * Strict goal priority between two plans: the first goal (in priority order) on which they
+         * differ decides; reaching the target beats missing it, and between two misses the higher
+         * end rank wins. Positive when {@code a} is better, 0 when the goals tie.
+         */
+        static int compareGoals(Candidate a, Candidate b) {
+            int d = decidingGoal(a, b);
+            if (d < 0) return 0;
+            if (a.reached[d] != b.reached[d]) return a.reached[d] ? 1 : -1;
+            return Integer.compare(a.endRank[d], b.endRank[d]);
+        }
+
+        /** Place of the first goal on which {@code a} and {@code b} differ ({@link #compareGoals}), or -1. */
+        static int decidingGoal(Candidate a, Candidate b) {
+            for (int i = 0; i < a.reached.length; i++) {
+                if (a.reached[i] != b.reached[i]) return i;
+                if (!a.reached[i] && a.endRank[i] != b.endRank[i]) return i;
+            }
+            return -1;
+        }
+
+        private static boolean better(Candidate a, Candidate b) {
+            int k = compareGoals(a, b);
+            if (k != 0) return k > 0;
+            return a.score > b.score + EPS;
+        }
+
+        /** The best plan so far by goals, then score (the first one on ties). */
+        Candidate best() {
+            Candidate best = null;
+            for (Candidate c : all) if (best == null || better(c, best)) best = c;
+            return best;
+        }
+
+        /**
+         * The plan to keep: the best ({@link #best}), or, among the plans whose goals tie with it,
+         * the best one that keeps the previous plan's next three days when it scores within
+         * {@link #SWITCH_MARGIN}.
+         */
+        Candidate choose() {
+            Candidate best = best();
+            Candidate stable = null;
+            for (Candidate c : all) {
+                if (compareGoals(c, best) != 0 || !keepsPreviousWindow(ref, start.slot, c.codes)) continue;
+                if (stable == null || c.score > stable.score + EPS) stable = c;
+            }
+            return stable != null && best.score <= stable.score + SWITCH_MARGIN ? stable : best;
+        }
+
+        /**
+         * Heuristics that label the plan: the plan's own, with the whole profile's goals (a top-k
+         * plan is labelled like any other plan of this profile).
+         */
+        Heuristics labelHeuristics(Candidate c) {
+            return c.goals == null ? c.h : new Heuristics(m, start, previous, c.tuning);
+        }
+
+        /**
+         * For every goal {@code chosen} misses, the goal it gave way to: among the plans of the pool
+         * that reach that goal, the goal on which {@code chosen} beats them ({@link #decidingGoal}),
+         * provided {@code chosen} reaches it; the latest such goal (the closest trade). -1 when no
+         * plan of the pool reached the goal (nothing was traded for it) and for every other link.
+         */
+        int[] tradedFor(Candidate chosen) {
+            int[] out = new int[m.t.nLinks];
+            Arrays.fill(out, -1);
+            for (int i = 0; i < goals.length; i++) {
+                if (chosen.reached[i]) continue;
+                int traded = -1;
+                for (Candidate c : all) {
+                    if (!c.reached[i]) continue;
+                    int d = decidingGoal(chosen, c);
+                    if (d >= 0 && d < i && chosen.reached[d]) traded = Math.max(traded, d);
+                }
+                out[goals[i]] = traded < 0 ? -1 : goals[traded];
+            }
+            return out;
         }
     }
 
@@ -610,10 +867,19 @@ final class Planner {
     }
 
     static Plan assemble(Model m, Heuristics h, SimState start, int[] codes) {
+        return assemble(m, h, start, codes, null);
+    }
+
+    /**
+     * The labelled plan for {@code codes}; {@code tradedFor} names, per goal the plan misses, the
+     * goal it gave way to (see Pool#tradedFor; null when unknown).
+     */
+    static Plan assemble(Model m, Heuristics h, SimState start, int[] codes, int[] tradedFor) {
         Rules rules = m.rules;
         Tables t = m.t;
         Labels labels = new Labels(m, h);
         labels.setPlannedOpen(openSlots(m, start, codes));
+        labels.setTradedFor(tradedFor);
         Plan plan = new Plan();
         plan.rulesVersion = rules.version;
         plan.fromSlot = start.slot;
@@ -656,6 +922,9 @@ final class Planner {
         for (int l = 0; l < t.nLinks && l < sum.endRanks.length; l++) sum.endRanks[l] = st.rank[l];
         sum.endCash = st.cash;
         for (int s = 0; s < Math.min(3, t.nStats); s++) sum.endStatLv[s] = Kernel.statLv(m, st, s);
+        if (tradedFor != null) {
+            for (int l = 0; l < t.nLinks && l < sum.tradedFor.length; l++) sum.tradedFor[l] = tradedFor[l];
+        }
         labels.notes(plan, start, st);
         return plan;
     }

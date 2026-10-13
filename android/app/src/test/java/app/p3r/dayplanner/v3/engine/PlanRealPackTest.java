@@ -40,13 +40,18 @@ import java.util.regex.Pattern;
  *   <tr><td>new game, Persona for every link (ALL)</td><td>22/22 (22/22)</td><td>0</td></tr>
  *   <tr><td>new game, no Persona</td><td>≥ 21/22 (22/22 with 15 notes; 21/22 without notes)</td><td>0</td></tr>
  *   <tr><td>new game, 皇帝 MUST (MAX by 6/29, every Emperor day used)</td><td>≥ 20/22 (21/22)</td><td>0</td></tr>
- *   <tr><td>mid game 10/22 (¥1,000, Charm Lv3)</td><td>≥ 12/22 (12/22)</td><td>≤ 3</td></tr>
- *   <tr><td>new game, Persona for goals only (GOALS), 皇帝 MUST + 恋爱/女皇 WANT</td><td>≥ 20/22 (21/22)</td><td>≤ 2</td></tr>
+ *   <tr><td>mid game 10/22 (¥1,000, Charm Lv3)</td><td>≥ 12/22 (13/22)</td><td>≤ 3</td></tr>
+ *   <tr><td>new game, Persona for goals only (GOALS), 皇帝 MUST + 恋爱/女皇 WANT</td><td>≥ 20/22 (20/22 with the hard fee reserve)</td><td>≤ 2</td></tr>
  *   <tr><td>new game, every Link Episode track</td><td>every completable track complete; ≥ 19/22 (21/22)</td><td>0</td></tr>
  *   <tr><td>mid game 10/22, 皇帝 必须 + 女教皇 想要</td><td>both MAX; ≥ 10/22 (10/22)</td><td>≤ 30 (jobs that pay the goals' notes)</td></tr>
  *   <tr><td>mid game 10/22, 必须 ① 力量 ② 正义 (either order)</td><td>both MAX (the audit found 力量 9)</td><td>≤ 30</td></tr>
  *   <tr><td>1/8, 力量 6 + 正义 6, both 必须</td><td>the first goal reaches MAX, the second does not; swapping swaps them</td><td>—</td></tr>
+ *   <tr><td>mid game 10/22, 必须 ①女教皇 ②女皇 ③恋爱 / ①恶魔 ②女皇 ③月亮</td><td>① MAX (the audit found ① RANK 9 with ② MAX)</td><td>—</td></tr>
+ *   <tr><td>mid game 10/22, 12 random 必须 triples</td><td>strict goal priority over every compared plan</td><td>—</td></tr>
  * </table>
+ *
+ * <p>Every scenario also checks the hard fee reserve: on a day the plan pays an unlock fee, no paid
+ * training or dating-site note leaves less than 2,500 日元.</p>
  */
 public class PlanRealPackTest {
     private static Rules rules;
@@ -250,10 +255,186 @@ public class PlanRealPackTest {
                 js.plan.summary.notesZh.get(1));
     }
 
+    /**
+     * Audit cases (strict goal priority): 必须 ①女教皇 ②女皇 ③恋爱 used to end 女教皇 RANK 9 with 女皇
+     * MAX, and ①恶魔 ②女皇 ③月亮 恶魔 RANK 9 with 女皇 and 月亮 MAX, although planning ① and ② alone
+     * reaches ①. The first goal is kept whenever a plan reaches it; a note names a goal as kept
+     * instead of another only when that goal comes first and this plan reaches it.
+     */
+    @Test
+    public void strictGoalPriorityKeepsTheFirstGoalInTheAuditCases() {
+        String[][] cases = {{"priestess", "empress", "lovers"}, {"devil", "empress", "moon"}};
+        for (String[] ids : cases) {
+            int[] goals = {link(ids[0]), link(ids[1]), link(ids[2])};
+            Plan two = Engine.plan(rules, must(goals[0], goals[1]), midGameState(), null, new Engine.Options());
+            assertEquals(ids[0] + " with two goals", 10, two.summary.endRanks[goals[0]]);
+            String title = "中期 · 10月22日 · 必须：①" + rules.links[goals[0]].arcanaZh + " ②" + rules.links[goals[1]].arcanaZh
+                    + " ③" + rules.links[goals[2]].arcanaZh + " + 其余社群";
+            Result r = run(title, must(goals), midGameState(), 99);
+            assertEquals(ids[0] + " first", 10, r.plan.summary.endRanks[goals[0]]);
+            assertTrue(r.plan.summary.notesZh.get(0), r.plan.summary.notesZh.get(0).startsWith(rules.links[goals[0]].arcanaZh + "：预计 "));
+            assertStrictPriority(r.plan, goals, null);
+            assertNotesNameOnlyKeptHigherGoals(r.plan, goals);
+        }
+    }
+
+    /**
+     * Strict goal priority on random mid-game triples (fixed seed, drawn from the links that are
+     * hard to finish from 10/22, so that goals compete): no plan ends a higher goal below MAX while
+     * a lower one reaches MAX if any plan the planner compared reached the higher one, and no
+     * compared plan beats the chosen one on the goals in priority order. Each plan stays within the
+     * time budget, complete and valid; a missed goal's note names only a higher goal this plan kept.
+     */
+    @Test
+    public void strictGoalPriorityOnRandomMidGameTriples() {
+        List<Integer> manual = new ArrayList<>();
+        for (String id : new String[]{"priestess", "empress", "lovers", "devil", "moon", "temperance", "aeon", "star",
+                "justice", "strength", "tower", "magician", "chariot", "hermit", "fortune"}) {
+            manual.add(link(id));
+        }
+        java.util.Random random = new java.util.Random(20261013L);
+        int missed = 0;
+        SimState start = midGameState();
+        Engine.plan(rules, new Profile(), start, null, null); // JIT warm-up
+        for (int i = 0; i < 12; i++) {
+            List<Integer> pool = new ArrayList<>(manual);
+            java.util.Collections.shuffle(pool, random);
+            int[] goals = {pool.get(0), pool.get(1), pool.get(2)};
+            Profile profile = must(goals);
+            Engine.Options options = new Engine.Options();
+            options.trace = new ArrayList<>();
+            long t0 = System.nanoTime();
+            Plan plan = Engine.plan(rules, profile, start, null, options);
+            long ms = (System.nanoTime() - t0) / 1_000_000;
+            StringBuilder line = new StringBuilder("random triple " + i + ":");
+            for (int g : goals) line.append(' ').append(rules.links[g].id).append('=').append(plan.summary.endRanks[g]);
+            System.out.println(line + " · " + ms + " ms · " + options.trace.size() + " plans compared");
+            assertEquals(rules.lastSlot() - start.slot + 1, plan.steps.size());
+            List<String> errors = Engine.validate(rules, profile, start, plan);
+            assertTrue(errors.toString(), errors.isEmpty());
+            assertFalse("budget exhausted " + line, plan.budgetExhausted);
+            assertTrue(line + " took " + ms + " ms", ms <= MAX_MILLIS);
+            assertStrictPriority(plan, goals, options.trace);
+            assertNotesNameOnlyKeptHigherGoals(plan, goals);
+            for (int g : goals) if (plan.summary.endRanks[g] < 10) missed++;
+        }
+        assertTrue("some triples compete for the same days", missed > 0);
+    }
+
+    /**
+     * No higher goal (in {@code goals}' order) ends below MAX while a lower one reaches MAX if a
+     * compared plan ({@code trace}; null: a run of its own) reached the higher one, and no compared
+     * plan is better on the goals in priority order (reached beats missed, then the higher rank).
+     */
+    private static void assertStrictPriority(Plan plan, int[] goals, List<int[]> trace) {
+        if (trace == null) {
+            Engine.Options options = new Engine.Options();
+            options.trace = new ArrayList<>();
+            Profile profile = must(goals);
+            Engine.plan(rules, profile, midGameState(), null, options);
+            trace = options.trace;
+        }
+        int[] end = plan.summary.endRanks;
+        for (int a = 0; a < goals.length; a++) {
+            for (int b = a + 1; b < goals.length; b++) {
+                if (end[goals[a]] >= 10 || end[goals[b]] < 10) continue;
+                for (int[] other : trace) {
+                    assertTrue(rules.links[goals[a]].id + " missed for " + rules.links[goals[b]].id + " although a compared plan reached it",
+                            other[goals[a]] < 10);
+                }
+            }
+        }
+        for (int[] other : trace) {
+            for (int g : goals) {
+                boolean mine = end[g] >= 10;
+                boolean theirs = other[g] >= 10;
+                if (mine != theirs) {
+                    assertTrue(rules.links[g].id + ": a compared plan reaches it and keeps every higher goal", mine);
+                    break;
+                }
+                if (!mine && end[g] != other[g]) {
+                    assertTrue(rules.links[g].id + ": a compared plan gets it higher and keeps every higher goal", end[g] > other[g]);
+                    break;
+                }
+            }
+        }
+    }
+
+    /** A note "…（先保证了X）" names a goal placed before the missed one that this plan brings to MAX. */
+    private static void assertNotesNameOnlyKeptHigherGoals(Plan plan, int[] goals) {
+        for (int i = 0; i < goals.length; i++) {
+            String head = rules.links[goals[i]].arcanaZh + "：";
+            for (String note : plan.summary.notesZh) {
+                if (!note.startsWith(head)) continue;
+                int kept = plan.summary.tradedFor[goals[i]];
+                if (!note.contains("先保证了")) {
+                    assertEquals(note, -1, kept);
+                    continue;
+                }
+                assertTrue(note, kept >= 0 && note.contains("先保证了" + rules.links[kept].arcanaZh + "）"));
+                int place = -1;
+                for (int k = 0; k < goals.length; k++) if (goals[k] == kept) place = k;
+                assertTrue(note + " names a later goal", place >= 0 && place < i);
+                assertEquals(note, 10, plan.summary.endRanks[kept]);
+            }
+        }
+    }
+
     /** "12月21日" as the summary notes write a date. */
     private static String noteDate(int slot) {
         Rules.Day d = rules.day(slot >> 1);
         return d.month() + "月" + d.dayOfMonth() + "日";
+    }
+
+    /**
+     * docs/GLOSSARY_zh.md: a card or title says 「结缘网站的字条」 in full the first time; the short
+     * 字条 only follows it within the same sentence.
+     */
+    private static void assertFullNoteNameFirst(String text) {
+        if (text == null) return;
+        for (String sentence : text.split("[。；\n]")) {
+            int at = sentence.indexOf("字条");
+            if (at < 0) continue;
+            int full = sentence.indexOf("结缘网站的字条");
+            assertTrue(text, full >= 0 && full + "结缘网站的".length() == at);
+        }
+    }
+
+    /**
+     * 「怎么做」 of a meeting is a how-to: when, where and whom, the guide's answers for the scene
+     * when there are some, and the link's own note as a separate 「注意：」 line (the audit found a
+     * 5/25 皇帝 RANK 3 → 4 step whose how-to was only 「11月3日～11月29日小田桐秀利不在学生会，见不到面。」).
+     */
+    @Test
+    public void meetingHowToSaysWhenWhereAndWhomWithTheNoteApart() {
+        int emperor = link("emperor");
+        Plan plan = Engine.plan(rules, must(emperor), newGame(dayOf(4, 21)), null, new Engine.Options());
+        int checked = 0;
+        boolean answers = false;
+        for (Plan.Step s : plan.steps) {
+            if (!"meet:emperor".equals(s.action)) continue;
+            String[] lines = s.detailZh.split("\n");
+            Rules.Day day = rules.day(s.slot >> 1);
+            String when = day.type == Rules.DayType.SCHOOL ? "放学后" : "白天";
+            assertEquals(s.detailZh, when + "到月光馆学园 · 学生会活动室找小田桐秀利", lines[0]);
+            assertEquals(s.detailZh, "注意：11月3日～11月29日小田桐秀利不在学生会，见不到面。", lines[lines.length - 1]);
+            if (s.predicted.rankUp && s.predicted.rankTo == 2) {
+                assertEquals(s.detailZh, "参考回答：无聊透顶（2）", lines[1]);
+                answers = true;
+            }
+            for (String line : lines) assertFalse(s.detailZh, line.startsWith("选能让对方高兴的回答"));
+            checked++;
+        }
+        assertTrue("皇帝 meetings " + checked, checked >= 10);
+        assertTrue("the RANK 2 scene carries the guide's answer", answers);
+
+        Model m = new Model(rules, new Profile(), null);
+        SimState start = newGame(dayOf(4, 21));
+        Labels labels = new Labels(m, new Heuristics(m, start, null));
+        int sunday = dayOf(5, 3);
+        assertEquals("晚上到桐叶购物中心 · 喷泉广场找田中社长", labels.meetWhere(Rules.slot(sunday, true), link("devil"), false));
+        assertEquals("白天在宿舍 · 自己房间的电脑上找Ｙ子", labels.meetWhere(Rules.slot(sunday, false), link("hermit"), false));
+        assertEquals("白天赴岳羽由加莉的休息日邀约，一起外出", labels.meetWhere(Rules.slot(sunday, false), link("lovers"), true));
     }
 
     /** Every multi-step chain (non-consuming side steps, REPORT §0) completes in a new game. */
@@ -279,21 +460,28 @@ public class PlanRealPackTest {
         SimState s = newGame(dayOf(6, 1));
         setStat(s, "charm", 4);
         setRank(s, "hermit", 4);
-        s.cash = 40_000;
+        // ¥40,000 of fees plus the ¥2,500 the last payment keeps (June: the Devil can wait for it).
+        s.cash = 40_000 + Kernel.FEE_RESERVE;
         Rules.Link d = rules.links[devil];
         int day = d.avail.nextSetBit(dayOf(6, 1));
         s = Engine.advanceTo(rules, profile, s, Rules.slot(day, true));
         Action study = Action.activity(rules.activity("study_room").idx);
         Engine.Applied first = Engine.apply(rules, profile, s, study);
         assertEquals(java.util.Collections.singletonList("unlock:devil:0"), first.side);
-        assertEquals(20_000, first.state.cash);
+        assertEquals(20_000 + Kernel.FEE_RESERVE, first.state.cash);
         int day2 = d.avail.nextSetBit(day + 1);
         Engine.Applied second = Engine.apply(rules, profile, Engine.advanceTo(rules, profile, first.state, Rules.slot(day2, true)), study);
         assertEquals(java.util.Collections.singletonList("unlock:devil:1"), second.side);
         int day3 = d.avail.nextSetBit(day2 + 1);
         SimState last = Engine.advanceTo(rules, profile, second.state, Rules.slot(day3, true));
         assertTrue(Engine.legalActions(rules, profile, last).contains(Action.unlock(devil, 2)));
-        assertEquals(1, Engine.apply(rules, profile, last, Action.unlock(devil, 2)).state.rank[devil]);
+        Engine.Applied open = Engine.apply(rules, profile, last, Action.unlock(devil, 2));
+        assertEquals(1, open.state.rank[devil]);
+        assertEquals(Kernel.FEE_RESERVE, open.state.cash);
+        SimState short1 = last.copy();
+        short1.cash = 10_000;
+        assertFalse("in June the opening can wait until it leaves ¥2,500",
+                Engine.legalActions(rules, profile, short1).contains(Action.unlock(devil, 2)));
     }
 
     /**
@@ -353,7 +541,9 @@ public class PlanRealPackTest {
             assertEquals("note", s.kind);
             assertTrue((s.slot & 1) == 1 && (s.slot >> 1) >= pack.datingNote.fromDay);
             assertTrue(s.titleZh, s.titleZh.startsWith("在放纵俱乐部买结缘网站的字条，给") && !s.titleZh.contains(" "));
+            for (String text : new String[]{s.titleZh, s.subtitleZh, s.whyZh, s.detailZh}) assertFullNoteNameFirst(text);
         }
+        for (String n : none.plan.summary.notesZh) assertFullNoteNameFirst(n);
         assertTrue("maxed " + none.metrics.maxed, none.metrics.maxed >= 21);
 
         Profile all = new Profile();
@@ -481,8 +671,81 @@ public class PlanRealPackTest {
         assertTrue("took " + ms + " ms", ms <= MAX_MILLIS);
         assertFalse("budget exhausted", plan.budgetExhausted);
         assertTrue(plan.planId.equals(Engine.plan(rules, profile, start, null, new Engine.Options()).planId));
+        assertFeeDaysKeepTheReserve(rules, start, plan);
         record(rules, title, profile, start, plan, pm, ms);
         return new Result(plan, pm);
+    }
+
+    /**
+     * Hard fee reserve: on a day the plan pays an unlock fee (as the slot's action or on the side),
+     * no optional purchase (paid training, a dating-site note) at or after the payment leaves less
+     * than 2,500 日元. Returns the number of fee payments.
+     */
+    private static int assertFeeDaysKeepTheReserve(Rules rules, SimState start, Plan plan) {
+        int feeDay = -1;
+        int payments = 0;
+        for (Plan.Step s : plan.steps) {
+            int day = s.slot >> 1;
+            long fee = feeOf(rules, s.action);
+            for (String side : s.side) fee += feeOf(rules, side);
+            if (fee > 0) {
+                feeDay = day;
+                payments++;
+            }
+            if (feeDay == day && optionalPurchase(rules, s.action)) {
+                assertTrue(PlanReport.date(rules, s.slot) + " " + s.action + " leaves " + s.predicted.cashAfter + " on a fee day",
+                        s.predicted.cashAfter >= Kernel.FEE_RESERVE);
+            }
+        }
+        return payments;
+    }
+
+    /** Fee of an unlock step key ("unlock:devil:0"), else 0. */
+    private static long feeOf(Rules rules, String key) {
+        Action a = key == null ? null : Action.parse(rules, key);
+        if (a == null || a.type != Action.Type.UNLOCK_STEP) return 0;
+        List<Rules.Step> steps = rules.links[a.target].unlock.steps;
+        return a.step >= 0 && a.step < steps.size() ? Math.max(0, steps.get(a.step).cost) : 0;
+    }
+
+    /** Paid training or a dating-site note. */
+    private static boolean optionalPurchase(Rules rules, String key) {
+        Action a = key == null ? null : Action.parse(rules, key);
+        if (a == null) return false;
+        if (a.type == Action.Type.NOTE) return rules.datingNote != null && rules.datingNote.cost > 0;
+        return a.type == Action.Type.ACTIVITY && rules.activities[a.target].cost > 0;
+    }
+
+    /**
+     * Audit case (hard fee reserve): the default new game used to pay the ¥10,000 Devil fee on 8/29
+     * with ¥830 to spare and buy a ¥680 meal the same evening (¥150 left). Plans that pay fees, from
+     * the new game and the mid game, keep 2,500 日元 after every optional purchase on a fee day, and
+     * their note says exactly what is kept.
+     */
+    @Test
+    public void unlockFeeDaysKeepTheReserveOnTheRealPack() {
+        int emperor = link("emperor");
+        int priestess = link("priestess");
+        Profile emperorMust = must(emperor);
+        Object[][] cases = {
+                {new Profile(), newGame(dayOf(4, 21))},
+                {emperorMust, newGame(dayOf(4, 21))},
+                {new Profile(), midGameState()},
+                {must(priestess), midGameState()},
+                {must(link("justice"), link("strength")), midGameState()}};
+        int payments = 0;
+        for (Object[] c : cases) {
+            Profile profile = (Profile) c[0];
+            SimState start = (SimState) c[1];
+            Plan plan = Engine.plan(rules, profile, start, null, new Engine.Options());
+            assertTrue(Engine.validate(rules, profile, start, plan).isEmpty());
+            assertTrue(Engine.validationWarnings(rules, profile, start, plan).toString(),
+                    Engine.validationWarnings(rules, profile, start, plan).isEmpty());
+            int paid = assertFeeDaysKeepTheReserve(rules, start, plan);
+            payments += paid;
+            assertEquals(paid > 0, plan.summary.notesZh.contains(Labels.FEE_NOTE));
+        }
+        assertTrue("the scenarios pay unlock fees", payments >= 5);
     }
 
     // ------------------------------------------------------------------ metrics table (plan_metrics.md)

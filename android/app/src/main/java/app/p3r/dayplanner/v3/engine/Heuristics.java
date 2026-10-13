@@ -110,11 +110,12 @@ final class Heuristics {
     /**
      * Cash kept ahead of a mandatory unlock fee (Devil payments, the Hanged Man gift): the money
      * need of an upcoming fee is the fee plus this reserve (the pay of one café shift), so evening
-     * jobs earn a little more than the fee and paid training and notes do not eat into it. A
-     * planning preference only: the fee itself is legal as soon as the cash covers it
-     * (Kernel.unlockGroup / sideLegal), and Profile.cashBuffer still guards optional spends.
+     * jobs earn the fee and a little more. The reserve itself is a hard rule of the kernel
+     * ({@link Kernel#FEE_RESERVE}): a fee keeps it unless waiting would cost the link its milestone,
+     * optional spends never touch a fee that is due and affordable plus the reserve, and on a fee
+     * day they keep the reserve.
      */
-    static final long FEE_RESERVE = 2_500;
+    static final long FEE_RESERVE = Kernel.FEE_RESERVE;
     private static final int MAX_GATES = 64;
     /**
      * Weight per RANK of the first 「必须」 goal is {@code MUST_BASE + MUST_STEP·(n−1)} for n
@@ -204,7 +205,16 @@ final class Heuristics {
 
     /** Weight per rank up to the goal target (0 for non-goals). */
     final double[] wGoal;
+    /** Weight per rank of a 「其余社群」 link (0 when the player turned 其余社群 off). */
     final double wOther;
+    /**
+     * Links counted as goals here: the profile's goals, or the ones of a goal order given to the
+     * constructor (the planner's "top-k" and "goal first" variants); the profile's other goals
+     * then count as 「其余社群」 links.
+     */
+    final boolean[] goal;
+    /** Per link: weight per rank as a non-goal link ({@link #wOther}, or W_OTHER for a goal left out of the order). */
+    private final double[] otherW;
     final int[] target;
     /** [link][rank] cumulative objective value of having that rank. */
     final double[][] val;
@@ -300,6 +310,19 @@ final class Heuristics {
     }
 
     Heuristics(Model m, SimState start, Plan previous, Tuning tuning) {
+        this(m, start, previous, tuning, null);
+    }
+
+    /**
+     * Base policy and objective that count as goals only {@code goals}: goal links of the profile in
+     * the priority order to plan by (null: every goal of the profile in its own order,
+     * {@link #goalOrder}). The goal at place p weighs what the profile's p-th goal weighs (so a
+     * leading prefix keeps its weights, and a goal moved to the front takes the first goal's
+     * weight); goals of the profile left out count as 「其余社群」 links (MAX), even when 其余社群
+     * is off. The planner runs these variants so that the first goals get plans of their own
+     * (Planner.plan); legality and transitions still follow the whole profile ({@code m}).
+     */
+    Heuristics(Model m, SimState start, Plan previous, Tuning tuning, int[] goals) {
         this.m = m;
         this.t = m.t;
         this.rules = m.rules;
@@ -312,37 +335,41 @@ final class Heuristics {
         wGoal = new double[n];
         target = new int[n];
         wanted = new boolean[n];
-        wOther = p.otherLinks ? W_OTHER : 0;
-        int[] mustOrder = tierOrder(p, Profile.Tier.MUST);
-        int[] wantOrder = tierOrder(p, Profile.Tier.WANT);
-        int nMust = 0;
-        int nWant = 0;
-        for (int l = 0; l < n; l++) {
-            if (!m.goal[l]) continue;
-            if (p.tier[l] == Profile.Tier.MUST) nMust++;
-            else nWant++;
-        }
-        int goals = 0;
+        goal = new boolean[n];
+        otherW = new double[n];
         goalRank = new int[n];
         Arrays.fill(goalRank, -1);
-        for (int l = 0; l < n; l++) {
-            target[l] = m.target(l);
-            wanted[l] = m.goal[l] || p.otherLinks;
-            if (!m.goal[l]) continue;
-            goals++;
-            boolean must = p.tier[l] == Profile.Tier.MUST;
-            wGoal[l] = must ? MUST_BASE + MUST_STEP * (nMust - 1 - mustOrder[l]) : WANT_BASE + WANT_STEP * (nWant - 1 - wantOrder[l]);
-            goalRank[l] = must ? mustOrder[l] : nMust + wantOrder[l];
+        wOther = p.otherLinks ? W_OTHER : 0;
+        int[] profileOrder = goalOrder(m);
+        int[] goalsInOrder = goals == null ? profileOrder : goals;
+        int count = Math.min(goalsInOrder.length, profileOrder.length);
+        int nMust = 0;
+        for (int i = 0; i < count; i++) if (p.tier[profileOrder[i]] == Profile.Tier.MUST) nMust++;
+        int nWant = count - nMust;
+        for (int i = 0; i < count; i++) {
+            int l = goalsInOrder[i];
+            if (l < 0 || l >= n || !m.goal[l] || goal[l]) continue;
+            goal[l] = true;
+            goalRank[l] = i;
+            boolean must = p.tier[profileOrder[i]] == Profile.Tier.MUST;
+            wGoal[l] = must ? MUST_BASE + MUST_STEP * (nMust - 1 - i) : WANT_BASE + WANT_STEP * (nWant - 1 - (i - nMust));
         }
-        goalLinks = new int[goals];
-        for (int l = 0, i = 0; l < n; l++) if (m.goal[l]) goalLinks[i++] = l;
+        int goalsCounted = 0;
+        for (int l = 0; l < n; l++) {
+            target[l] = goal[l] ? m.target(l) : 10;
+            otherW[l] = m.goal[l] && !goal[l] ? W_OTHER : wOther;
+            wanted[l] = goal[l] || otherW[l] > 0;
+            if (goal[l]) goalsCounted++;
+        }
+        goalLinks = new int[goalsCounted];
+        for (int l = 0, i = 0; l < n; l++) if (goal[l]) goalLinks[i++] = l;
         val = new double[n][11];
         for (int l = 0; l < n; l++) {
             double v = 0;
             for (int r = 1; r <= 10; r++) {
                 v += wRank(l, r);
-                if (m.goal[l] && r == target[l]) v += MAX_BONUS_RANKS * wGoal[l];
-                if (r == 10 && (!m.goal[l] || target[l] < 10)) v += MAX_BONUS_RANKS * wOther;
+                if (goal[l] && r == target[l]) v += MAX_BONUS_RANKS * wGoal[l];
+                if (r == 10 && (!goal[l] || target[l] < 10)) v += MAX_BONUS_RANKS * otherW[l];
                 val[l][r] = v;
             }
         }
@@ -396,7 +423,7 @@ final class Heuristics {
             long bit = 1L << i;
             int l = t.rescueLink[i];
             boolean open = ((start.rescued | start.rescueFailed) & bit) == 0 && rescueEvenings(i) > 0;
-            boolean linkMatters = l >= 0 && l < n && start.rank[l] < 10 && (m.goal[l] || wOther > 0);
+            boolean linkMatters = l >= 0 && l < n && start.rank[l] < 10 && wanted[l];
             rescueMatters[i] = open && linkMatters;
         }
         rescueLastSlot = new int[t.nRescues][t.nBlocks];
@@ -428,21 +455,29 @@ final class Heuristics {
         linkMult = new double[n];
     }
 
-    private static int[] tierOrder(Profile p, Profile.Tier tier) {
-        int n = p.tier.length;
+    /** The profile's goal links in priority order: 「必须」 then 「想要」, each by {@link Profile#order}, ties by index. */
+    static int[] goalOrder(Model m) {
+        Profile p = m.profile;
+        int n = m.t.nLinks;
         Integer[] idx = new Integer[n];
-        for (int i = 0; i < n; i++) idx[i] = i;
-        Arrays.sort(idx, (a, b) -> p.order[a] != p.order[b] ? Integer.compare(p.order[a], p.order[b]) : Integer.compare(a, b));
-        int[] pos = new int[n];
-        int k = 0;
-        for (int i : idx) if (p.tier[i] == tier) pos[i] = k++;
-        return pos;
+        int count = 0;
+        for (int l = 0; l < n; l++) if (m.goal[l]) idx[count++] = l;
+        Arrays.sort(idx, 0, count, (a, b) -> {
+            int ta = p.tier[a] == Profile.Tier.MUST ? 0 : 1;
+            int tb = p.tier[b] == Profile.Tier.MUST ? 0 : 1;
+            if (ta != tb) return Integer.compare(ta, tb);
+            if (p.order[a] != p.order[b]) return Integer.compare(p.order[a], p.order[b]);
+            return Integer.compare(a, b);
+        });
+        int[] out = new int[count];
+        for (int i = 0; i < count; i++) out[i] = idx[i];
+        return out;
     }
 
     /** Objective weight of reaching {@code rank} on link l. */
     double wRank(int l, int rank) {
-        if (m.goal[l] && rank <= target[l]) return wGoal[l];
-        return wOther;
+        if (goal[l] && rank <= target[l]) return wGoal[l];
+        return otherW[l];
     }
 
     private void buildStatTables() {
@@ -530,30 +565,13 @@ final class Heuristics {
      * {@link #INF} when an indefinite hold blocks the way.
      */
     int meetingsBetween(int l, int rank, int pts, boolean ready, int goalRank, double mult) {
-        int g = Kernel.ordinaryPts(m, mult);
-        int meetings = 0;
-        int r = rank;
-        int p = pts;
-        boolean rdy = ready;
-        while (r < goalRank) {
-            if (!rdy && t.holdUntil[l][r + 1] == Tables.HOLD_FOREVER) return INF;
-            int need = Kernel.need(m, l, r);
-            if (rdy || p >= need) {
-                meetings += 1;
-            } else {
-                meetings += (need - p + g - 1) / g + 1;
-            }
-            r++;
-            p = Kernel.eventPts(m, l, r, mult);
-            rdy = false;
-        }
-        return meetings;
+        return Kernel.meetingsBetween(m, l, rank, pts, ready, goalRank, mult);
     }
 
     /** Milestone rank the link is currently working towards (target, then MAX if others count). */
     int milestone(int l, int rank) {
         if (rank < target[l]) return target[l];
-        return wOther > 0 ? 10 : rank;
+        return otherW[l] > 0 ? 10 : rank;
     }
 
     /** Slot-consuming unlock actions still needed from the link's current unlock progress. */
@@ -738,7 +756,7 @@ final class Heuristics {
         int mask = t.meetMask[slot];
         for (int l = 0; mask != 0; l++, mask >>>= 1) {
             if ((mask & 1) == 0 || demand[l] <= 0) continue;
-            if (tuning.goalFirst && !(m.goal[l] && st.rank[l] < target[l])) continue;
+            if (tuning.goalFirst && !(goal[l] && st.rank[l] < target[l])) continue;
             if (Kernel.meetLegal(m, st, l, day)) return true;
         }
         return false;
@@ -1043,7 +1061,7 @@ final class Heuristics {
         int type = Kernel.type(code);
         if (type != Kernel.T_MEET && type != Kernel.T_UNLOCK && type != Kernel.T_NOTE) return h;
         int l = Kernel.target(code);
-        if (!m.goal[l] || st.rank[l] >= target[l] || demand[l] <= 0 || h <= 0) return h;
+        if (!goal[l] || st.rank[l] >= target[l] || demand[l] <= 0 || h <= 0) return h;
         double base;
         if (type == Kernel.T_NOTE) {
             if (Kernel.need(m, l, st.rank[l]) - st.pts[l] <= 0) return h;
@@ -1189,7 +1207,7 @@ final class Heuristics {
         } else {
             double overbooked = Math.min(1.0, Math.max(0, load[kind(l)] - tuning.admitShare));
             int remain = Math.max(1, t.meetRemain[l][st.slot]);
-            double early = m.goal[l] ? wGoal[l] * EARLY_PER_SLOT * (lastSlot - st.slot) / (double) remain : 0;
+            double early = goal[l] ? wGoal[l] * EARLY_PER_SLOT * (lastSlot - st.slot) / (double) remain : 0;
             worth = perMeeting[l] * overbooked + early;
         }
         double h = worth * share * NOTE_SHARE;
@@ -1315,12 +1333,11 @@ final class Heuristics {
      * (none left after the MAX meeting); see {@link #FRAGILE_MAX_PENALTY}.
      */
     int fragileMaxes(SimState end, int[] reached) {
-        if (wOther <= 0) return 0;
         int g = goalLinks.length;
         int n = 0;
         for (int l = 0; l < t.nLinks; l++) {
             int at = reached[g + l];
-            if (at >= 0 && !m.goal[l] && end.rank[l] >= 10 && t.meetRemain[l][Math.min(lastSlot + 1, at + 1)] <= 0) n++;
+            if (at >= 0 && !goal[l] && otherW[l] > 0 && end.rank[l] >= 10 && t.meetRemain[l][Math.min(lastSlot + 1, at + 1)] <= 0) n++;
         }
         return n;
     }

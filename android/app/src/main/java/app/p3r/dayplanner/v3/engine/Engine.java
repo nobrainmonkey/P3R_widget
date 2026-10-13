@@ -30,10 +30,15 @@ public final class Engine {
         public int towerIncomePerVisit = 0;
         /**
          * This run is the one follow-up the service queues after a plan that ran out of time
-         * ({@link Plan#budgetExhausted}); if it runs out too, its summary note promises no further
-         * automatic run. Does not change the plan itself.
+         * ({@link Plan#budgetExhausted}): the plan is marked {@link Plan#followUp}, and if it runs out
+         * too, its summary note promises no further automatic run. Does not change the plan itself.
          */
         public boolean followUp;
+        /**
+         * Test hook (package-private): when set, receives the end rank of every link for each
+         * complete plan the planner compared (screened, fortified and strict-priority runs).
+         */
+        java.util.List<int[]> trace;
     }
 
     public interface Progress { void onProgress(float fraction); }

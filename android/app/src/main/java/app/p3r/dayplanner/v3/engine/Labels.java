@@ -28,14 +28,26 @@ final class Labels {
      * First summary note of a plan whose time budget ran out ({@link Plan#budgetExhausted}): the
      * service computes it once more with a larger budget (DESIGN §10.6).
      */
-    static final String BUDGET_NOTE = "这次没来得及算完，稍后会自动再算一次";
-    /** The same for that second computation ({@link Engine.Options#followUp}): no further automatic run. */
-    static final String BUDGET_NOTE_FOLLOW_UP = "这次没来得及算完，记下一个结果后会重新安排";
+    static final String BUDGET_NOTE = Plan.BUDGET_NOTE_PENDING;
+    /**
+     * The same for that second computation ({@link Engine.Options#followUp}), and for a plan the
+     * second computation did not replace ({@link Plan#markFollowUpDone}): no further automatic run.
+     */
+    static final String BUDGET_NOTE_FOLLOW_UP = Plan.BUDGET_NOTE_DONE;
     /**
      * A Sunday or holiday outing invitation (docs/GLOSSARY_zh.md: the official achievement text
      * 「休息日的出游邀请短信」; never 假日邀约 / 节日邀约).
      */
     static final String INVITE = "休息日邀约";
+    /**
+     * Summary note of a plan that pays an unlock fee: exactly the reserve rules of the kernel
+     * (Kernel.feeAffordable, Kernel.optionalHold). A fee leaves {@link Kernel#FEE_RESERVE} unless
+     * paying later would cost the link its target; once a fee is due within 14 days and affordable,
+     * paid training and 结缘网站的字条 leave the fee plus the reserve; on a fee day they leave the reserve.
+     */
+    static final String FEE_NOTE = "需要付钱解锁的社群：交完钱至少还留 " + yen(Kernel.FEE_RESERVE)
+            + "，只有晚交会赶不上升级目标时才会少于这个数；14 天内要交、钱也够交时，花钱提升能力和买结缘网站的字条"
+            + "不会动用要交的钱和这 " + yen(Kernel.FEE_RESERVE) + "，交钱当天也不会让手上少于 " + yen(Kernel.FEE_RESERVE);
     /** The result-sheet answer for a story hold the player reports (outcome NOT_DONE, reason "hold"). */
     static final String HOLD_ANSWER = "剧情原因暂时升不了";
 
@@ -47,6 +59,11 @@ final class Labels {
      * plan is known (alternatives): money reasons only name links the plan really unlocks later.
      */
     private int[] plannedOpen;
+    /**
+     * Per goal the plan misses, the goal the planner kept instead (see Planner.Pool#tradedFor), -1
+     * when no plan reached the goal; null when unknown (then no goal is named).
+     */
+    private int[] tradedFor;
 
     Labels(Model m, Heuristics h) {
         this.m = m;
@@ -57,6 +74,11 @@ final class Labels {
     /** The plan's unlock slot per link (see {@link #plannedOpen}). */
     void setPlannedOpen(int[] slots) {
         this.plannedOpen = slots;
+    }
+
+    /** The goal each missed goal gave way to (see {@link #tradedFor}). */
+    void setTradedFor(int[] traded) {
+        this.tradedFor = traded;
     }
 
     // ------------------------------------------------------------------ formatting helpers
@@ -206,7 +228,15 @@ final class Labels {
             String line = !blank(s.howZh) ? s.howZh.trim() : sideWhat(l, k);
             how.add("顺便：" + line);
         }
-        if (!how.isEmpty()) step.detailZh = joinLines(step.detailZh, String.join("\n", how));
+        if (how.isEmpty()) return;
+        // The side steps are part of the how-to: before a meeting's closing 「注意：…」 line.
+        String detail = step.detailZh;
+        int note = detail == null ? -1 : detail.lastIndexOf("\n" + NOTE_PREFIX);
+        if (note >= 0) {
+            step.detailZh = detail.substring(0, note) + "\n" + String.join("\n", how) + detail.substring(note);
+        } else {
+            step.detailZh = joinLines(detail, String.join("\n", how));
+        }
     }
 
     /** "顺便：把 20,000 日元交给穿西装的男人" for a non-consuming unlock step. */
@@ -256,8 +286,49 @@ final class Labels {
             step.subtitleZh = invite + "RANK " + rankName(fx.rankFrom) + " · 见面（预计不升级）";
         }
         step.whyZh = meetWhy(st, l, fx);
-        step.detailZh = blank(link.noteZh) ? null : link.noteZh.trim();
+        step.detailZh = meetHow(st.slot, l, fx);
         if (fx.persona) step.hintZh = personaHint(l);
+    }
+
+    /** Prefix of the line of a meeting's 「怎么做」 that carries the link's own note. */
+    static final String NOTE_PREFIX = "注意：";
+
+    /**
+     * 「怎么做」 of a meeting, one line each: when, where and whom
+     * ("放学后到月光馆学园 · 学生会活动室找小田桐秀利", {@link #meetWhere}), the scene's dialogue hint
+     * when the guide has one ({@link DialogueHint}; the generic fallback is left out), and the
+     * link's own note as 「注意：…」.
+     */
+    String meetHow(int slot, int l, Kernel.Effect fx) {
+        Rules.Link link = rules.links[l];
+        List<String> lines = new ArrayList<>();
+        lines.add(meetWhere(slot, l, fx.invite));
+        String hint = DialogueHint.line(rules, m.profile, l, fx.rankUp ? fx.rankTo : fx.rankFrom);
+        if (!DialogueHint.FALLBACK.equals(hint)) lines.add(hint);
+        if (!blank(link.noteZh)) lines.add(NOTE_PREFIX + link.noteZh.trim());
+        return String.join("\n", lines);
+    }
+
+    /**
+     * "放学后到月光馆学园 · 学生会活动室找小田桐秀利", "晚上到桐叶购物中心 · 喷泉广场找田中社长",
+     * "白天在宿舍 · 自己房间的电脑上找Ｙ子"; for an outing invitation "白天赴岳羽由加莉的休息日邀约，一起外出".
+     */
+    String meetWhere(int slot, int l, boolean invite) {
+        Rules.Link link = rules.links[l];
+        String name = blank(link.personZh) ? arcana(l) + "社群" : link.personZh.trim();
+        if (invite) return "白天赴" + name + "的" + INVITE + "，一起外出";
+        String when = period(slot);
+        String place = blank(link.locationZh) ? null : link.locationZh.trim();
+        if (place == null) return when + "找" + name;
+        if (place.contains("电脑")) return when + "在" + place + "上找" + name;
+        return when + "到" + place + "找" + name;
+    }
+
+    /** "放学后" on a school day, "白天" on other days, "晚上" in the evening. */
+    String period(int slot) {
+        if ((slot & 1) == 1) return "晚上";
+        Rules.Day d = rules.day(slot >> 1);
+        return d != null && d.type == Rules.DayType.SCHOOL ? "放学后" : "白天";
     }
 
     private String meetWhy(SimState st, int l, Kernel.Effect fx) {
@@ -531,13 +602,13 @@ final class Labels {
         step.locationZh = note != null && !blank(note.locationZh) ? note.locationZh : "桐叶购物中心 · 放纵俱乐部";
         double pressure = h.pressure(st, l);
         if (pressure >= 0.6 && pressure < Heuristics.INF) {
-            step.whyZh = who(l) + "剩下的见面机会不多，晚上用字条先攒点好感";
+            step.whyZh = who(l) + "剩下的见面机会不多，晚上用" + NOTE_NAME + "先攒点好感";
         } else {
-            step.whyZh = "晚上没有更要紧的事，用字条给" + who(l) + "攒点好感";
+            step.whyZh = "晚上没有更要紧的事，用" + NOTE_NAME + "给" + who(l) + "攒点好感";
         }
         String how = note != null && !blank(note.howZh) ? note.howZh.trim()
                 : "在桐叶购物中心的放纵俱乐部买" + NOTE_NAME + "，当晚回宿舍用公用电脑给" + who(l) + "加好感";
-        String remark = note != null && !blank(note.noteZh) ? note.noteZh.trim() : "字条只加好感，不会让社群直接升级";
+        String remark = note != null && !blank(note.noteZh) ? note.noteZh.trim() : NOTE_NAME + "只加好感，不会让社群直接升级";
         step.detailZh = how + "\n" + remark;
     }
 
@@ -606,20 +677,24 @@ final class Labels {
                 continue;
             }
             int endDay = Math.min(rules.lastDay, end.slot >> 1);
+            // The goal the planner kept instead: a plan that reached this one missed it (never a guess).
+            int kept = tradedFor == null || l >= tradedFor.length ? -1 : tradedFor[l];
+            String traded = kept >= 0 ? "这次的安排里没排到 " + what + "（先保证了" + arcana(kept) + "），" : null;
             if (Kernel.lost(m, end, l, endDay)) {
                 out.add(arcana(l) + "：没能及时救出" + rescuedPerson(l) + "，社群无法继续");
             } else if (end.rank[l] == 0) {
                 // A heuristic plan never proves a goal impossible: say what this plan does, not why it must be so.
                 String gate = unmetGate(end, l);
-                out.add(arcana(l) + "：" + (gate != null ? "这次的安排里还没满足解锁条件（需要" + gate + "）" : "这次的安排里还没排上解锁"));
+                if (traded != null) {
+                    out.add(arcana(l) + "：" + traded + (gate != null ? "还没满足解锁条件（需要" + gate + "）" : "还没排上解锁"));
+                } else {
+                    out.add(arcana(l) + "：" + (gate != null ? "这次的安排里还没满足解锁条件（需要" + gate + "）" : "这次的安排里还没排上解锁"));
+                }
             } else if (openEndedHold(end, l) != null) {
                 out.add(arcana(l) + "：" + openEndedHold(end, l) + "，先安排到 RANK " + rankName(end.rank[l]));
             } else {
-                String higher = higherGoal(goals, gi, l, end);
                 String stop = "RANK " + rankName(end.rank[l]);
-                out.add(arcana(l) + "：" + (higher != null
-                        ? "这次的安排里没排到 " + what + "（先保证了" + higher + "），预计停在 " + stop
-                        : "按这次的安排预计停在 " + stop));
+                out.add(arcana(l) + "：" + (traded != null ? traded + "预计停在 " + stop : "按这次的安排预计停在 " + stop));
             }
         }
         if (p.otherLinks) {
@@ -635,9 +710,7 @@ final class Labels {
                 out.add(rules.blocks[b].zh + "：只剩 " + open + " 个晚上能去塔尔塔罗斯，不够想去的 " + want + " 次");
             }
         }
-        if (paysUnlockFees(plan)) {
-            out.add("需要付钱解锁的社群，安排会在付钱前尽量多留 " + yen(Heuristics.FEE_RESERVE));
-        }
+        if (paysUnlockFees(plan)) out.add(FEE_NOTE);
         int notesPlanned = 0;
         for (Plan.Step s : plan.steps) if (s.action != null && s.action.startsWith("note:")) notesPlanned++;
         if (notesPlanned > 0 && m.note != null) {
@@ -750,22 +823,6 @@ final class Labels {
             return Integer.compare(a, b);
         });
         return out;
-    }
-
-    /**
-     * The goal placed before {@code goals[index]} that shares its slot kind (daytime or evening),
-     * preferring one that reaches its target in this plan, or null.
-     */
-    private String higherGoal(Integer[] goals, int index, int l, SimState end) {
-        boolean eve = rules.links[l].evening;
-        String fallback = null;
-        for (int i = index - 1; i >= 0; i--) {
-            int g = goals[i];
-            if (rules.links[g].evening != eve) continue;
-            if (end.rank[g] >= h.target[g]) return arcana(g);
-            if (fallback == null) fallback = arcana(g);
-        }
-        return fallback;
     }
 
     /** "学力 Lv.3" / "魅力 MAX" / "皇帝 RANK 1" for the first unmet unlock condition, or null. */

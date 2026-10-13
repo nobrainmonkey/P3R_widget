@@ -218,6 +218,35 @@ final class Kernel {
         return until == Tables.HOLD_FOREVER || day < until;
     }
 
+    /** Meetings value for an indefinite hold in {@link #meetingsBetween}. */
+    static final int INF = 10_000;
+
+    /**
+     * Meetings needed from (rank, pts, ready) to reach {@code goalRank} under the model, or
+     * {@link #INF} when an indefinite hold blocks the way.
+     */
+    static int meetingsBetween(Model m, int l, int rank, int pts, boolean ready, int goalRank, double mult) {
+        Tables t = m.t;
+        int g = ordinaryPts(m, mult);
+        int meetings = 0;
+        int r = rank;
+        int p = pts;
+        boolean rdy = ready;
+        while (r < goalRank) {
+            if (!rdy && t.holdUntil[l][r + 1] == Tables.HOLD_FOREVER) return INF;
+            int need = need(m, l, r);
+            if (rdy || p >= need) {
+                meetings += 1;
+            } else {
+                meetings += (need - p + g - 1) / g + 1;
+            }
+            r++;
+            p = eventPts(m, l, r, mult);
+            rdy = false;
+        }
+        return meetings;
+    }
+
     /** Whether the next meeting with {@code link} ranks up under the model. */
     static boolean ranksUp(Model m, SimState st, int link, int day) {
         int r = st.rank[link];
@@ -275,12 +304,20 @@ final class Kernel {
             int c = unlockGroup(m, st, l, day, eve);
             if (c >= 0) out[n++] = code(T_UNLOCK, l, c);
         }
+        // The reserve optional purchases keep (one pass over the fee links; see optionalHold).
+        long hold = -1;
+        int gateStats = 0;
+        if (t.feeMask != 0) {
+            hold = optionalHold(m, st, 0);
+            gateStats = pendingGateStats(m, st, day);
+        }
         for (int a : t.actsAt[slot]) {
-            if (activityLegal(m, st, a)) out[n++] = code(T_ACT, a, 0);
+            long h = hold < 0 || (m.gainMask[a] & gateStats) == 0 ? hold : optionalHold(m, st, m.gainMask[a]);
+            if (activityLegal(m, st, a, h)) out[n++] = code(T_ACT, a, 0);
         }
         int b = t.towerBlock[slot];
         if (b >= 0 && st.towerVisits[b] < m.towerCap[b]) out[n++] = code(T_TOWER, b, 0);
-        if (eve && noteOpen(m, st, day)) {
+        if (eve && noteOpen(m, st, day, hold)) {
             for (int l = 0; l < t.nLinks; l++) {
                 if (noteUseful(m, st, l, day)) out[n++] = code(T_NOTE, l, 0);
             }
@@ -299,17 +336,23 @@ final class Kernel {
     /**
      * A dating-site note can be bought and used this evening: the player allows notes, the club
      * sells them from {@code fromDay}, the player's stats get them into the club at night
-     * ({@code requiresLv}, Courage Lv2), the cash covers the price plus the buffer (an optional
-     * spend) and the use limit is not reached. The slot itself must be an open evening.
+     * ({@code requiresLv}, Courage Lv2), the price leaves the {@link #optionalHold} untouched (an
+     * optional spend) and the use limit is not reached. The slot itself must be an open evening.
      */
     static boolean noteOpen(Model m, SimState st, int day) {
+        return noteOpen(m, st, day, -1);
+    }
+
+    /** {@link #noteOpen} with the {@link #optionalHold} of {@code st} for a note ({@code hold}), or -1 to work it out. */
+    static boolean noteOpen(Model m, SimState st, int day, long hold) {
         Rules.DatingNote note = m.note;
         if (note == null || day < note.fromDay || st.notesUsed >= m.noteMaxUses) return false;
         for (java.util.Map.Entry<Integer, Integer> e : note.requiresLv.entrySet()) {
             if (e.getKey() < m.t.nStats && statLv(m, st, e.getKey()) < e.getValue()) return false;
         }
         int cost = Math.max(0, note.cost);
-        return st.cash >= cost + (cost > 0 ? m.cashBuffer : 0);
+        if (cost <= 0) return true;
+        return st.cash - cost >= (hold >= 0 ? hold : optionalHold(m, st, 0));
     }
 
     /**
@@ -348,7 +391,8 @@ final class Kernel {
      * folded in, see {@link Tables#groupEnd}), or -1. Non-consuming steps that cannot fold are never
      * a slot's action; they happen as side steps ({@link #side}). Unlock steps are offered only
      * while the link is not established (rank 0). Every step needs the unlock prerequisites
-     * (earliest day, stat Lv, link ranks); costs are mandatory (no cash buffer).
+     * (earliest day, stat Lv, link ranks); fees are mandatory (no cash buffer) but keep
+     * {@link #FEE_RESERVE} unless waiting would cost the link its milestone ({@link #feeAffordable}).
      */
     static int unlockGroup(Model m, SimState st, int link, int day, boolean eve) {
         Tables t = m.t;
@@ -368,7 +412,7 @@ final class Kernel {
             if (j == k && st.lastStepDay[link] >= 0 && day - st.lastStepDay[link] < s.minGapDays) return -1;
             cost += Math.max(0, s.cost);
         }
-        return st.cash >= cost ? c : -1;
+        return feeAffordable(m, st, link, k, day, cost, st.cash) ? c : -1;
     }
 
     /** The link wants its unlock steps done on the side (a goal, or every link when 其余社群 is on). */
@@ -379,7 +423,7 @@ final class Kernel {
     /**
      * The pending non-consuming step of {@code link} can happen on the side in this slot with
      * {@code cash} yen available: right slot kind, day rule and fromDay, earliest day, not missing,
-     * prerequisites, minGapDays since the previous step, and the fee.
+     * prerequisites, minGapDays since the previous step, and the fee ({@link #feeAffordable}).
      */
     static boolean sideLegal(Model m, SimState st, int link, int day, boolean eve, long cash) {
         Tables t = m.t;
@@ -391,7 +435,187 @@ final class Kernel {
         if (s.evening != eve || !t.stepDayOk[link][k][day]) return false;
         if (day < l.unlock.earliestDay || blocked(m, st, link, day) || !prereqsMet(m, st, link)) return false;
         if (st.lastStepDay[link] >= 0 && day - st.lastStepDay[link] < s.minGapDays) return false;
-        return cash >= Math.max(0, s.cost);
+        return feeAffordable(m, st, link, k, day, Math.max(0, s.cost), cash);
+    }
+
+    // ------------------------------------------------------------------ unlock fees: the hard reserve
+
+    /**
+     * Cash kept on top of an unlock fee (the pay of one café shift). Hard rules: while a fee is
+     * pending ({@link #pendingFee}) an optional paid action leaves that fee plus this much untouched,
+     * on a day a fee was paid it leaves this much ({@link #optionalHold}), and the fee itself is
+     * paid with this much left over unless waiting would cost the link its milestone
+     * ({@link #feeAffordable}).
+     */
+    static final long FEE_RESERVE = 2_500;
+    /** An unlock fee is pending when its step can happen within this many days. */
+    static final int FEE_LOOKAHEAD_DAYS = 14;
+
+    /**
+     * Cash an optional paid action (paid training, a dating-site note) must leave untouched: the
+     * player's cash buffer and, while unlock fees are pending, at least those fees plus
+     * {@link #FEE_RESERVE}; on a day an unlock fee was paid, at least {@link #FEE_RESERVE}.
+     * {@code gains} has bit s set when the purchase raises stat s: training that closes a stat
+     * requirement of the link whose fee is pending is how that link gets unlocked, so that fee is
+     * not held against it.
+     */
+    static long optionalHold(Model m, SimState st, int gains) {
+        long hold = m.cashBuffer;
+        if (m.t.feeMask == 0) return hold;
+        int day = st.slot >> 1;
+        long fees = 0;
+        for (int l = 0, mask = m.t.feeMask; mask != 0; l++, mask >>>= 1) {
+            if ((mask & 1) == 0) continue;
+            long fee = pendingFee(m, st, l, day);
+            if (fee > 0 && (gains & unmetStats(m, st, l)) == 0) fees += fee;
+        }
+        if (fees > 0) return Math.max(hold, fees + FEE_RESERVE);
+        return feePaidToday(m, st) ? Math.max(hold, FEE_RESERVE) : hold;
+    }
+
+    /** Stats still missing for the unlock requirements of links whose fee is pending ({@link #unmetStats}). */
+    static int pendingGateStats(Model m, SimState st, int day) {
+        int bits = 0;
+        for (int l = 0, mask = m.t.feeMask; mask != 0; l++, mask >>>= 1) {
+            if ((mask & 1) == 0) continue;
+            int unmet = unmetStats(m, st, l);
+            if (unmet != 0 && pendingFee(m, st, l, day) > 0) bits |= unmet;
+        }
+        return bits;
+    }
+
+    /** Sum of the unlock fees pending in {@code st} ({@link #pendingFee}). */
+    static long pendingFees(Model m, SimState st) {
+        int day = st.slot >> 1;
+        long sum = 0;
+        for (int l = 0, mask = m.t.feeMask; mask != 0; l++, mask >>>= 1) {
+            if ((mask & 1) != 0) sum += pendingFee(m, st, l, day);
+        }
+        return sum;
+    }
+
+    /**
+     * The fee of link {@code l}'s next unlock step when it is pending on {@code day}, else 0: the
+     * step would be legal within {@link #FEE_LOOKAHEAD_DAYS}, or will be once its gate opens. The
+     * plan wants the link (a goal, or every link with 其余社群), it is not established and not
+     * missing, the step costs money, its first possible day is within the lookahead (day rule,
+     * earliest day, minimum gap), the link's requirements are met or about to be
+     * ({@link #gateAboutToOpen}), done on that day it still leaves the link its milestone
+     * ({@link #onTime}), and today's cash pays it there ({@link #feeAffordable}).
+     */
+    static long pendingFee(Model m, SimState st, int l, int day) {
+        Tables t = m.t;
+        int k = st.unlockStep[l];
+        if (st.rank[l] != 0 || k < 0 || k >= t.stepCount[l] || !wantsSide(m, l)) return 0;
+        Rules.Link link = m.rules.links[l];
+        long fee = Math.max(0, link.unlock.steps.get(k).cost);
+        if (fee <= 0 || link.kind != Rules.LinkKind.MANUAL || lost(m, st, l, day)) return 0;
+        int first = firstStepDay(m, st, l, k, day);
+        if (first > Math.min(t.lastDay, day + FEE_LOOKAHEAD_DAYS)) return 0;
+        if (!prereqsMet(m, st, l) && !gateAboutToOpen(m, st, l)) return 0;
+        if (!onTime(m, st, l, k, first)) return 0;
+        return feeAffordable(m, st, l, k, first, fee, st.cash) ? fee : 0;
+    }
+
+    /**
+     * The link's unlock requirements are about to be met: every link requirement is, and every
+     * unmet stat requirement can be closed by one activity the player allows.
+     */
+    static boolean gateAboutToOpen(Model m, SimState st, int l) {
+        int[] rl = m.reqLink[l];
+        for (int i = 0; i < rl.length; i++) {
+            if (rl[i] < SimState.LINKS && st.rank[rl[i]] < m.reqLinkRank[l][i]) return false;
+        }
+        int[] rs = m.reqStat[l];
+        for (int i = 0; i < rs.length; i++) {
+            int s = rs[i];
+            if (s >= m.t.nStats) continue;
+            int deficit = m.rules.stats[s].thresholds[m.reqStatLv[l][i]] - st.statPts[s];
+            if (deficit > 0 && deficit > m.maxGain[s]) return false;
+        }
+        return true;
+    }
+
+    /** Bit s set for every stat requirement of link {@code l} that {@code st} does not meet yet. */
+    static int unmetStats(Model m, SimState st, int l) {
+        int[] rs = m.reqStat[l];
+        int bits = 0;
+        for (int i = 0; i < rs.length; i++) {
+            int s = rs[i];
+            if (s < m.t.nStats && s < 31 && statLv(m, st, s) < m.reqStatLv[l][i]) bits |= 1 << s;
+        }
+        return bits;
+    }
+
+    /** An unlock fee was paid today (a link's last unlock step was today and cost money). */
+    static boolean feePaidToday(Model m, SimState st) {
+        int day = st.slot >> 1;
+        for (int l = 0, mask = m.t.feeMask; mask != 0; l++, mask >>>= 1) {
+            if ((mask & 1) == 0 || st.lastStepDay[l] != day) continue;
+            int done = st.unlockStep[l] - 1;
+            if (done >= 0 && done < m.t.stepCount[l] && m.rules.links[l].unlock.steps.get(done).cost > 0) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Unlock fee {@code cost} of the group starting at step {@code k} can be paid out of {@code cash}
+     * today: with {@link #FEE_RESERVE} left over, or down to zero when the fee is urgent
+     * ({@link #feeUrgent}).
+     */
+    static boolean feeAffordable(Model m, SimState st, int l, int k, int day, long cost, long cash) {
+        if (cost <= 0) return cash >= 0;
+        if (cash >= cost + FEE_RESERVE) return true;
+        return cash >= cost && feeUrgent(m, st, l, k, day);
+    }
+
+    /**
+     * Paying step {@code k} today is needed to unlock the link on time: done today the link still
+     * reaches its milestone ({@link #onTime}), done on the step's next possible day it would not.
+     */
+    static boolean feeUrgent(Model m, SimState st, int l, int k, int day) {
+        if (m.t.nextStepDay[l] == null) return true;
+        if (!onTime(m, st, l, k, day)) return false;
+        return !onTime(m, st, l, k, firstStepDay(m, st, l, k, day + 1));
+    }
+
+    /**
+     * First day ≥ {@code from} on which step {@code k} of fee link {@code l} can happen: its day
+     * rule and an open slot of its kind, the earliest day, the minimum gap after the previous step,
+     * the link not missing. {@code lastDay + 1} when none.
+     */
+    static int firstStepDay(Model m, SimState st, int l, int k, int from) {
+        Tables t = m.t;
+        Rules.Link link = m.rules.links[l];
+        int d = Math.max(Math.max(0, from), link.unlock.earliestDay);
+        if (st.lastStepDay[l] >= 0) d = Math.max(d, st.lastStepDay[l] + Math.max(0, link.unlock.steps.get(k).minGapDays));
+        int[] next = t.nextStepDay[l][k];
+        while (d <= t.lastDay) {
+            d = next[d];
+            if (d > t.lastDay || !blocked(m, st, l, d)) break;
+            d++;
+        }
+        return Math.min(d, t.lastDay + 1);
+    }
+
+    /**
+     * Step {@code k} of fee link {@code l} done on {@code day} and the rest of the chain on the
+     * first days it allows still leave the link the meetings it needs from RANK 1 to its milestone
+     * (target for a goal, MAX otherwise) under the model.
+     */
+    static boolean onTime(Model m, SimState st, int l, int k, int day) {
+        Tables t = m.t;
+        if (day > t.lastDay) return false;
+        List<Rules.Step> steps = m.rules.links[l].unlock.steps;
+        int d = day;
+        for (int j = k + 1; j <= t.establishIdx[l] && d <= t.lastDay; j++) {
+            int from = d + Math.max(0, steps.get(j).minGapDays);
+            d = from > t.lastDay ? t.lastDay + 1 : t.nextStepDay[l][j][from];
+        }
+        if (d > t.lastDay) return false;
+        int room = t.meetRemain[l][Math.min(t.lastSlot + 1, d * 2 + 2)];
+        double mult = mult(m, st, l);
+        return room >= meetingsBetween(m, l, 1, eventPts(m, l, 1, mult), false, m.target(l), mult);
     }
 
     /** Cash the main action needs at the start of the slot (fees, plus the buffer for optional spends). */
@@ -486,6 +710,14 @@ final class Kernel {
     }
 
     static boolean activityLegal(Model m, SimState st, int act) {
+        return activityLegal(m, st, act, -1);
+    }
+
+    /**
+     * The activity is allowed, available at the player's stats and useful, and a paid one leaves the
+     * {@link #optionalHold} untouched ({@code hold} when already known for this activity, else -1).
+     */
+    static boolean activityLegal(Model m, SimState st, int act, long hold) {
         if (m.excluded[act]) return false;
         Rules.Activity a = m.rules.activities[act];
         if (a.once && st.used[act] > 0) return false;
@@ -493,7 +725,7 @@ final class Kernel {
             if (e.getKey() < m.t.nStats && statLv(m, st, e.getKey()) < e.getValue()) return false;
         }
         int cost = Math.max(0, a.cost);
-        if (st.cash < cost + (cost > 0 ? m.cashBuffer : 0)) return false;
+        if (cost > 0 && st.cash - cost < (hold >= 0 ? hold : optionalHold(m, st, m.gainMask[act]))) return false;
         return a.kind == Rules.ActivityKind.JOB || usefulGain(m, st, a) > 0;
     }
 

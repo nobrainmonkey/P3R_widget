@@ -24,6 +24,43 @@ public final class Plan {
     public long elapsedMillis;
     /** Whether the time budget ran out before the rollout finished (plan is still complete). */
     public boolean budgetExhausted;
+    /**
+     * The one follow-up computation the service runs after a plan that ran out of time has
+     * happened for this plan's revisions: this plan is its result, or the plan it did not replace.
+     * Set by the service; no further automatic run is pending. JSON "followUp".
+     */
+    public boolean followUp;
+
+    /**
+     * First summary note of a plan that ran out of time while its follow-up computation is still
+     * to come ({@link #followUpPending}).
+     */
+    public static final String BUDGET_NOTE_PENDING = "这次没来得及算完，稍后会自动再算一次";
+    /** The same once the follow-up has run: nothing more runs until the next result is recorded. */
+    public static final String BUDGET_NOTE_DONE = "这次没来得及算完，后半段是粗略安排；记下一个结果后会重新安排";
+
+    /** The plan ran out of time and its follow-up computation has not run yet. */
+    public boolean followUpPending() {
+        return budgetExhausted && !followUp;
+    }
+
+    /** What to say about the time budget, matching {@link #followUpPending}; null when the plan is complete. */
+    public String budgetNoteZh() {
+        if (!budgetExhausted) return null;
+        return followUp ? BUDGET_NOTE_DONE : BUDGET_NOTE_PENDING;
+    }
+
+    /**
+     * Marks the follow-up computation as done ({@link #followUp}) and rewords the budget note in
+     * the summary to match ({@link #budgetNoteZh}).
+     */
+    public void markFollowUpDone() {
+        followUp = true;
+        List<String> notes = summary.notesZh;
+        for (int i = 0; i < notes.size(); i++) {
+            if (BUDGET_NOTE_PENDING.equals(notes.get(i))) notes.set(i, BUDGET_NOTE_DONE);
+        }
+    }
     public List<Step> steps = new ArrayList<>();
     public Summary summary = new Summary();
 
@@ -174,6 +211,12 @@ public final class Plan {
         public int lockedSlots;
         public long endCash;
         public int[] endStatLv = new int[3];
+        /**
+         * Per link: for a goal this plan does not bring to its target, the goal the planner kept
+         * instead (a plan that reached this goal missed that higher-priority one); -1 when no plan
+         * reached the goal, and for every other link. JSON "tradedFor".
+         */
+        public int[] tradedFor = minusOnes(22);
         /** Chinese notes for the 规划说明 sheet (e.g. why a goal cannot reach MAX). */
         public List<String> notesZh = new ArrayList<>();
 
@@ -187,6 +230,7 @@ public final class Plan {
             o.put("lockedSlots", lockedSlots);
             o.put("endCash", endCash);
             o.put("endStatLv", new JSONArray(endStatLv));
+            o.put("tradedFor", new JSONArray(tradedFor));
             JSONArray n = new JSONArray();
             for (String s : notesZh) n.put(s);
             o.put("notes", n);
@@ -206,10 +250,18 @@ public final class Plan {
             s.endCash = o.optLong("endCash");
             JSONArray lv = o.optJSONArray("endStatLv");
             for (int i = 0; lv != null && i < 3; i++) s.endStatLv[i] = lv.getInt(i);
+            JSONArray tf = o.optJSONArray("tradedFor");
+            for (int i = 0; tf != null && i < Math.min(22, tf.length()); i++) s.tradedFor[i] = tf.getInt(i);
             JSONArray n = o.optJSONArray("notes");
             for (int i = 0; n != null && i < n.length(); i++) s.notesZh.add(n.getString(i));
             return s;
         }
+    }
+
+    private static int[] minusOnes(int n) {
+        int[] a = new int[n];
+        java.util.Arrays.fill(a, -1);
+        return a;
     }
 
     public JSONObject toJson() throws JSONException {
@@ -224,6 +276,7 @@ public final class Plan {
         o.put("createdMillis", createdMillis);
         o.put("elapsedMillis", elapsedMillis);
         o.put("budgetExhausted", budgetExhausted);
+        o.put("followUp", followUp);
         JSONArray a = new JSONArray();
         for (Step s : steps) a.put(s.toJson());
         o.put("steps", a);
@@ -242,6 +295,7 @@ public final class Plan {
         p.createdMillis = o.optLong("createdMillis");
         p.elapsedMillis = o.optLong("elapsedMillis");
         p.budgetExhausted = o.optBoolean("budgetExhausted");
+        p.followUp = o.optBoolean("followUp");
         JSONArray a = o.optJSONArray("steps");
         for (int i = 0; a != null && i < a.length(); i++) p.steps.add(Step.fromJson(a.getJSONObject(i)));
         JSONObject s = o.optJSONObject("summary");

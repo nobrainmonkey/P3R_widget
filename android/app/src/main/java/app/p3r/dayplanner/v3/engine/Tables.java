@@ -86,6 +86,14 @@ final class Tables {
     final int[][] gapDaysLeft;
     /** [link][k][day] the step's own day rule and fromDay allow that day. */
     final boolean[][][] stepDayOk;
+    /** Bit L set: some unlock step of link L costs money (an unlock fee). */
+    final int feeMask;
+    /**
+     * Links with an unlock fee only ({@link #feeMask}, null for the others): [link][k][day] the first
+     * day ≥ day on which step k's day rule allows it and the slot of its kind is open, or
+     * {@code lastDay + 1} when none is left.
+     */
+    final int[][][] nextStepDay;
     /** Episodes per track (0 for a track without a calendar). */
     final int[] epCount;
     /** Track episodes are watched in the evening. */
@@ -218,6 +226,27 @@ final class Tables {
             for (boolean b : sideStep[link.idx]) if (b) side |= 1 << link.idx;
         }
         sideMask = side;
+        int fees = 0;
+        nextStepDay = new int[nLinks][][];
+        for (Rules.Link link : rules.links) {
+            List<Rules.Step> steps = link.unlock.steps;
+            boolean paid = false;
+            for (Rules.Step s : steps) paid |= s.cost > 0;
+            if (!paid) continue;
+            fees |= 1 << link.idx;
+            int l = link.idx;
+            nextStepDay[l] = new int[steps.size()][lastDay + 2];
+            for (int k = 0; k < steps.size(); k++) {
+                int[] next = nextStepDay[l][k];
+                int kind = steps.get(k).evening ? 1 : 0;
+                next[lastDay + 1] = lastDay + 1;
+                for (int day = lastDay; day >= 0; day--) {
+                    boolean ok = day < stepDayOk[l][k].length && stepDayOk[l][k][day] && open(day * 2 + kind);
+                    next[day] = ok ? day : next[day + 1];
+                }
+            }
+        }
+        feeMask = fees;
 
         epCount = new int[nEps];
         epEve = new boolean[nEps];
