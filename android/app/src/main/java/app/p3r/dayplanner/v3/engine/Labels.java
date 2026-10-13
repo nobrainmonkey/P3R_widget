@@ -333,6 +333,8 @@ final class Labels {
             } else if (end.rank[l] == 0) {
                 String gate = unmetGate(end, l);
                 out.add(arcana(l) + "：开启条件来不及满足" + (gate == null ? "" : "（需要" + gate + "）"));
+            } else if (openEndedHold(end, l) != null) {
+                out.add(arcana(l) + "：" + openEndedHold(end, l) + "，先规划到 RANK " + rankName(end.rank[l]));
             } else {
                 String higher = higherGoal(goals, gi, l);
                 out.add(arcana(l) + "：时间不够，预计停在 RANK " + rankName(end.rank[l])
@@ -357,6 +359,22 @@ final class Labels {
         } else {
             out.add("升级时间是按普通见面约 " + m.ordinaryGain + " 点好感估算的");
         }
+    }
+
+    /**
+     * "RANK 5 暂时无法升级（需要先听到学校里的传闻）" when a hold without an end date (rule or
+     * player-reported) blocks the next rank, else null.
+     */
+    private String openEndedHold(SimState end, int l) {
+        int into = end.rank[l] + 1;
+        if (into > 10) return null;
+        String head = "RANK " + rankName(into) + " 暂时无法升级";
+        if (end.heldRank[l] == into) return head + "（游戏里有提示）";
+        if (h.t.holdUntil[l][into] != Tables.HOLD_FOREVER) return null;
+        for (Rules.Hold hold : rules.links[l].holds) {
+            if (hold.rank == into && hold.zh != null && !hold.zh.isEmpty()) return head + "（" + hold.zh + "）";
+        }
+        return head + "（要等剧情推进）";
     }
 
     private Integer[] goalOrder() {

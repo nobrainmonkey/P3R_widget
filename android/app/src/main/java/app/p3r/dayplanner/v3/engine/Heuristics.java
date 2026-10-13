@@ -115,6 +115,15 @@ final class Heuristics {
     private final int[] prevCode;
     private final int stabilityEnd;
 
+    // ---- memo of remainingMeetings per link, keyed by the inputs that can change during a plan
+    //      (memoStep also encodes a player-reported hold on the next rank as a negative value)
+    private final int[] memoRank;
+    private final int[] memoPts;
+    private final int[] memoStep;
+    private final boolean[] memoReady;
+    private final double[] memoMult;
+    private final int[] memoNeed;
+
     // ---- per-step scratch, filled by prepare() (the planner is single-threaded)
     private final int[] demand;
     private final double[] perMeeting;
@@ -224,6 +233,13 @@ final class Heuristics {
         stabilityEnd = Math.min(t.lastSlot + 1, startSlot + 6);
         if (previous != null) loadPrevious(previous);
 
+        memoRank = new int[n];
+        Arrays.fill(memoRank, -1);
+        memoPts = new int[n];
+        memoStep = new int[n];
+        memoReady = new boolean[n];
+        memoMult = new double[n];
+        memoNeed = new int[n];
         demand = new int[n];
         perMeeting = new double[n];
         gateStat = new int[n * 3 + 1];
@@ -341,10 +357,29 @@ final class Heuristics {
     /** Meetings (and unlock step groups) the link still needs to reach its milestone, or {@link #INF}. */
     int remainingMeetings(SimState st, int l, double mult) {
         int r = st.rank[l];
+        int step = st.heldRank[l] == r + 1 ? -1 - st.unlockStep[l] : st.unlockStep[l];
+        if (memoRank[l] == r && memoPts[l] == st.pts[l] && memoReady[l] == st.ready[l]
+                && memoStep[l] == step && memoMult[l] == mult) {
+            return memoNeed[l];
+        }
         int goalRank = milestone(l, r);
-        if (goalRank <= r) return 0;
-        if (r == 0) return Math.min(INF, groupsLeft(l, st.unlockStep[l]) + meetsFromOne[l]);
-        return meetingsBetween(l, r, st.pts[l], st.ready[l], goalRank, mult);
+        int need;
+        if (goalRank <= r) {
+            need = 0;
+        } else if (step < 0 && !st.ready[l]) {
+            need = INF; // the player reported that the next rank-up is on hold
+        } else if (r == 0) {
+            need = Math.min(INF, groupsLeft(l, st.unlockStep[l]) + meetsFromOne[l]);
+        } else {
+            need = meetingsBetween(l, r, st.pts[l], st.ready[l], goalRank, mult);
+        }
+        memoRank[l] = r;
+        memoPts[l] = st.pts[l];
+        memoReady[l] = st.ready[l];
+        memoStep[l] = step;
+        memoMult[l] = mult;
+        memoNeed[l] = need;
+        return need;
     }
 
     /** Share of the link's remaining calendar opportunities it still needs (≥ 0, INF when held). */

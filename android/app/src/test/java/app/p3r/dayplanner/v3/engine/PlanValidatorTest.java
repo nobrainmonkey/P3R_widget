@@ -76,9 +76,9 @@ public class PlanValidatorTest {
     @Test
     public void overspendingIsRejected() throws JSONException {
         Plan bad = copy();
-        Plan.Step thursday = bad.at(Rules.slot(20, true)); // the very first evening: no cash yet
-        thursday.action = "act:arcade_charm";
-        thursday.kind = "stat";
+        Plan.Step firstEvening = bad.at(Rules.slot(20, true)); // no cash yet
+        firstEvening.action = "act:arcade_charm";
+        firstEvening.kind = "stat";
         assertRejected(bad, "arcade_charm costs 1500");
         assertRejected(bad, "cash below zero");
     }
@@ -136,13 +136,10 @@ public class PlanValidatorTest {
     @Test
     public void freeSlotWithALegalActionIsAWarning() throws JSONException {
         Plan bad = copy();
-        Plan.Step s = bad.at(Rules.slot(26, true)); // study is always possible in the evening
-        Plan.Step studyLike = s;
-        studyLike.action = "free";
-        studyLike.kind = "free";
-        studyLike.predicted = new Plan.Predicted();
-        // Cash after a FREE step is not checked, but later steps now disagree with the recount when
-        // this slot earned money; the warning must be reported either way.
+        Plan.Step monday = bad.at(Rules.slot(26, true)); // studying is always possible in the evening
+        monday.action = "free";
+        monday.kind = "free";
+        monday.predicted = new Plan.Predicted();
         List<String> warnings = Engine.validationWarnings(rules, profile, start, bad);
         assertFalse(warnings.isEmpty());
     }

@@ -393,6 +393,43 @@ public class PlannerTest {
         return s;
     }
 
+    @Test
+    public void openEndedHoldIsExplainedInTheNotes() {
+        Rules rules = RulesFixtures.small();
+        Rules.Hold hold = new Rules.Hold();
+        hold.rank = 5;
+        hold.untilDay = -1;
+        hold.zh = "需要先听到学校里的传闻";
+        rules.links[RulesFixtures.S_MAGICIAN].holds.add(hold);
+        Profile profile = RulesFixtures.must(RulesFixtures.S_MAGICIAN);
+        SimState start = RulesFixtures.newGame(rules, Rules.slot(20, false));
+        Plan plan = Engine.plan(rules, profile, start, null, generous());
+        assertValid(rules, profile, start, plan);
+        assertEquals(4, plan.summary.endRanks[RulesFixtures.S_MAGICIAN]);
+        assertEquals("魔术师：RANK 5 暂时无法升级（需要先听到学校里的传闻），先规划到 RANK 4", plan.summary.notesZh.get(0));
+    }
+
+    @Test
+    public void playerReportedHoldStopsForecastRankUps() {
+        Rules rules = RulesFixtures.small();
+        Profile profile = RulesFixtures.must(RulesFixtures.S_MAGICIAN);
+        SimState start = RulesFixtures.newGame(rules, Rules.slot(22, false));
+        start.rank[RulesFixtures.S_MAGICIAN] = 4;
+        start.pts[RulesFixtures.S_MAGICIAN] = 25;
+        start.heldRank[RulesFixtures.S_MAGICIAN] = 5;
+        Plan plan = Engine.plan(rules, profile, start, null, generous());
+        assertValid(rules, profile, start, plan);
+        assertEquals(4, plan.summary.endRanks[RulesFixtures.S_MAGICIAN]);
+        assertEquals("魔术师：RANK 5 暂时无法升级（游戏里有提示），先规划到 RANK 4", plan.summary.notesZh.get(0));
+        int held = 0;
+        int socialSteps = 0;
+        for (Plan.Step s : plan.steps) {
+            if (s.action.equals("meet:magician")) held++;
+            if ("social".equals(s.kind) || "unlock".equals(s.kind)) socialSteps++;
+        }
+        assertTrue("held meetings only fill otherwise empty daytimes: " + held + " of " + socialSteps, held * 2 <= socialSteps);
+    }
+
     // ------------------------------------------------------------------ alternatives (改做别的)
 
     @Test
