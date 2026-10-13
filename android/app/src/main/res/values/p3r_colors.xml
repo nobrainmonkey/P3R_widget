@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shared P3R palette (app + widgets). Owned by the integrator; modules may add their own ui_/widget_ files. -->
+<resources>
+    <color name="p3r_navy_950">#030A24</color>
+    <color name="p3r_navy_900">#06123A</color>
+    <color name="p3r_navy_800">#0A1C52</color>
+    <color name="p3r_navy_700">#0F2A70</color>
+    <color name="p3r_royal_600">#1446B8</color>
+    <color name="p3r_royal_500">#1E5CE6</color>
+    <color name="p3r_cyan_400">#3CE4FF</color>
+    <color name="p3r_cyan_300">#7BEEFF</color>
+    <color name="p3r_cyan_200">#B4F5FF</color>
+    <color name="p3r_ice_100">#E8FBFF</color>
+    <color name="p3r_white">#FFFFFF</color>
+    <color name="p3r_ink_muted">#A2BDEB</color>
+    <color name="p3r_ink_faint">#6F8CC4</color>
+    <color name="p3r_line">#2C5AAE</color>
+    <color name="p3r_line_soft">#1D3F86</color>
+    <color name="p3r_attention">#FFD166</color>
+    <color name="p3r_good">#5EF2B8</color>
+    <color name="p3r_danger">#FF8A8A</color>
+    <!-- Widget surfaces (kept from the shipped design). -->
+    <color name="p3r_widget_day">#0FB1F5</color>
+    <color name="p3r_widget_night">#034572</color>
+    <color name="p3r_widget_ink_day">#0A2A5C</color>
+</resources>
