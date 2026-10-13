@@ -697,6 +697,7 @@ final class RulesFixtures {
         n.fromDay = fromDay;
         n.cost = 3_000;
         n.gain = 10;
+        n.maxUses = Rules.DatingNote.UNLIMITED;
         n.conf = "estimate";
         return n;
     }

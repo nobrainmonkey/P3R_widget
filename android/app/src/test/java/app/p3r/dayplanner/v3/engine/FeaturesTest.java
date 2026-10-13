@@ -147,6 +147,19 @@ public class FeaturesTest {
         SimState max = eve.copy();
         max.rank[MAGICIAN] = 10;
         assertFalse(Engine.legalActions(rules, p, max).contains(Action.note(MAGICIAN)));
+        // The club needs Courage Lv2 at night (the pack's requiresLv), and a one-use note stops after one.
+        rules.datingNote.requiresLv.put(RulesFixtures.COURAGE, 2);
+        assertFalse(Engine.legalActions(rules, p, eve).contains(Action.note(MAGICIAN)));
+        SimState brave = eve.copy();
+        brave.statPts[RulesFixtures.COURAGE] = rules.stats[RulesFixtures.COURAGE].thresholds[2];
+        assertTrue(Engine.legalActions(rules, p, brave).contains(Action.note(MAGICIAN)));
+        rules.datingNote.requiresLv.clear();
+        rules.datingNote.maxUses = 1;
+        SimState used = eve.copy();
+        used.notesUsed = 1;
+        assertFalse(Engine.legalActions(rules, p, used).contains(Action.note(MAGICIAN)));
+        rules.datingNote.maxUses = Rules.DatingNote.UNLIMITED;
+        assertTrue(Engine.legalActions(rules, p, used).contains(Action.note(MAGICIAN)));
         Profile onlyEmperor = RulesFixtures.must(EMPEROR);
         onlyEmperor.otherLinks = false;
         List<Action> goalOnly = Engine.legalActions(rules, onlyEmperor, eve);
