@@ -5,6 +5,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Player goals and planning options (persisted as JSON in the {@code profile} table).
@@ -49,6 +52,15 @@ public final class Profile {
     public int towerVisitsPerBlock = 2;
     /** Hard cap of Tartarus visits per block (≥ towerVisitsPerBlock). */
     public int towerCapPerBlock = 4;
+    /** Hard cap per Tartarus block id; a missing block uses {@link #towerCapPerBlock}. */
+    public Map<String, Integer> towerCapByBlock = new TreeMap<>();
+    /** Wanted Tartarus visits per block id; a missing block uses {@link #towerVisitsPerBlock}. */
+    public Map<String, Integer> towerVisitsByBlock = new TreeMap<>();
+    /**
+     * Link id whose 12/24 invitation the player accepted (平安夜约会: daytime and evening of 12/24
+     * are taken), or null when every invitation was declined (default).
+     */
+    public String christmasLink;
     /** Keep at least this much cash when choosing optional purchases. */
     public int cashBuffer = 0;
     /** Activity ids the player does not want scheduled. */
@@ -81,6 +93,18 @@ public final class Profile {
     public boolean hasAnyGoal() {
         for (Tier t : tier) if (t != Tier.NONE) return true;
         return false;
+    }
+
+    /** Tartarus visit cap of one block (its own value, else {@link #towerCapPerBlock}). */
+    public int capFor(String blockId) {
+        Integer v = blockId == null ? null : towerCapByBlock.get(blockId);
+        return v != null ? Math.max(0, v) : towerCapPerBlock;
+    }
+
+    /** Wanted Tartarus visits in one block (its own value, else {@link #towerVisitsPerBlock}). */
+    public int visitsFor(String blockId) {
+        Integer v = blockId == null ? null : towerVisitsByBlock.get(blockId);
+        return v != null ? Math.max(0, v) : towerVisitsPerBlock;
     }
 
     public boolean excluded(String activityId) {
@@ -117,6 +141,9 @@ public final class Profile {
         o.put("answers", answers.name());
         o.put("towerVisitsPerBlock", towerVisitsPerBlock);
         o.put("towerCapPerBlock", towerCapPerBlock);
+        if (!towerCapByBlock.isEmpty()) o.put("towerCapByBlock", intMap(towerCapByBlock));
+        if (!towerVisitsByBlock.isEmpty()) o.put("towerVisitsByBlock", intMap(towerVisitsByBlock));
+        if (christmasLink != null) o.put("christmasLink", christmasLink);
         o.put("cashBuffer", cashBuffer);
         JSONArray ex = new JSONArray();
         for (String s : excludedActivities) ex.put(s);
@@ -151,6 +178,10 @@ public final class Profile {
         p.answers = AnswerPolicy.valueOf(o.optString("answers", "BEST"));
         p.towerVisitsPerBlock = Math.max(0, o.optInt("towerVisitsPerBlock", 2));
         p.towerCapPerBlock = Math.max(p.towerVisitsPerBlock, o.optInt("towerCapPerBlock", 4));
+        readIntMap(o.optJSONObject("towerCapByBlock"), p.towerCapByBlock);
+        readIntMap(o.optJSONObject("towerVisitsByBlock"), p.towerVisitsByBlock);
+        String christmas = o.optString("christmasLink", "");
+        p.christmasLink = christmas.isEmpty() ? null : christmas;
         p.cashBuffer = Math.max(0, o.optInt("cashBuffer", 0));
         JSONArray ex = o.optJSONArray("excludedActivities");
         if (ex != null) {
@@ -158,5 +189,21 @@ public final class Profile {
             for (int i = 0; i < ex.length(); i++) p.excludedActivities[i] = ex.getString(i);
         }
         return p;
+    }
+
+    private static JSONObject intMap(Map<String, Integer> map) throws JSONException {
+        JSONObject o = new JSONObject();
+        for (Map.Entry<String, Integer> e : new TreeMap<>(map).entrySet()) {
+            if (e.getKey() != null && e.getValue() != null) o.put(e.getKey(), Math.max(0, e.getValue()));
+        }
+        return o;
+    }
+
+    private static void readIntMap(JSONObject o, Map<String, Integer> into) {
+        if (o == null) return;
+        for (Iterator<String> it = o.keys(); it.hasNext(); ) {
+            String key = it.next();
+            into.put(key, Math.max(0, o.optInt(key, 0)));
+        }
     }
 }
