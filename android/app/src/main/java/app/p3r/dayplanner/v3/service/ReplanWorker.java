@@ -10,6 +10,7 @@ import app.p3r.dayplanner.v3.model.Rules;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongSupplier;
@@ -49,6 +50,7 @@ final class ReplanWorker {
         /**
          * Installs {@code plan} or records the failure. Returns true when the job's revisions are
          * no longer current, so the result was discarded and the worker should compute again.
+         * A cancelled computation arrives as a {@link CancellationException} error.
          */
         boolean finish(Job job, Plan plan, List<String> problems, Throwable error);
 
@@ -124,6 +126,10 @@ final class ReplanWorker {
         Throwable error = null;
         try {
             plan = planner.plan(job.rules, job.profile, job.observed, job.previous, job.options);
+            if (cancel.get()) {
+                // A write arrived meanwhile: the result is for old revisions, skip validating it.
+                return host.finish(job, null, problems, new CancellationException("superseded"));
+            }
             if (plan != null) {
                 stamp(plan, job);
                 problems = validator.validate(job.rules, job.profile, job.observed, plan);

@@ -188,9 +188,11 @@ final class CommandCheck {
         if (s.slot < rules.firstSlot() || s.slot > rules.lastSlot()) {
             return Rejection.invalid(ZH_STATE_DATE);
         }
-        Rejection r = cashBalance(s.cash);
-        if (r != null) {
-            return r;
+        if (s.cash < 0) {
+            return Rejection.invalid(ZH_CASH_NEGATIVE);
+        }
+        if (s.cash > MAX_CASH) {
+            return Rejection.invalid(ZH_CASH_TOO_LARGE);
         }
         for (int rank : s.rank) {
             if (rank < 0 || rank > 10) {
