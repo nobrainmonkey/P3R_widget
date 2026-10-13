@@ -189,6 +189,7 @@ public class PlanWidgetRenderTest {
                     RenderSupport.collectHeaderOverlap(root, tag, issues);
                     RenderSupport.collectSqueezedLocation(root, tag, issues);
                     RenderSupport.collectWordSplits(root, tag, issues);
+                    RenderSupport.collectCutText(root, tag, issues);
                     TextView title = root.findViewById(R.id.widget_task);
                     assertFalse(tag + " blank title", title.getText().toString().trim().isEmpty());
                     assertTrue(tag + " title collapsed", title.getHeight() > 0);
@@ -215,6 +216,7 @@ public class PlanWidgetRenderTest {
                 RenderSupport.collectHeaderOverlap(root, tag, issues);
                 RenderSupport.collectSqueezedLocation(root, tag, issues);
                 RenderSupport.collectWordSplits(root, tag, issues);
+                RenderSupport.collectCutText(root, tag, issues);
             }
         }
         assertTrue(String.join("\n", issues), issues.isEmpty());
@@ -360,16 +362,176 @@ public class PlanWidgetRenderTest {
         assertEquals(View.GONE, plain.findViewById(R.id.widget_side).getVisibility());
     }
 
+    /** Review: error, finished and unreadable cards showed a whole row of dead, washed-out buttons. */
     @Test
-    public void statusCardsDimTheDeadCurrentButton() {
-        state("planning");
-        View planning = render(true, 250, 160);
-        TextView current = planning.findViewById(R.id.button_spec_current_text);
-        assertFalse(planning.findViewById(R.id.button_spec_current).isEnabled());
-        assertTrue("disabled 当前 label is dimmed", android.graphics.Color.alpha(current.getCurrentTextColor()) < 255);
+    public void statusCardsShowOneLiveButton() {
+        Map<String, String> labels = new LinkedHashMap<>();
+        labels.put("planning", "打开应用");
+        labels.put("error", "打开应用");
+        labels.put("unreadable", "打开应用");
+        labels.put("finished", "查看日程");
+        for (Map.Entry<String, String> e : labels.entrySet()) {
+            for (int[] size : SIZES) {
+                for (boolean night : new boolean[]{false, true}) {
+                    state(e.getKey());
+                    View root = render(night, size[0], size[1]);
+                    String tag = e.getKey() + "-" + size[0] + "x" + size[1] + (night ? "-night" : "");
+                    assertEquals(tag, View.GONE, root.findViewById(R.id.button_spec_current).getVisibility());
+                    View done = root.findViewById(R.id.button_spec_done);
+                    assertTrue(tag, done.isEnabled());
+                    assertTrue(tag + " the button spans the row", done.getWidth() > root.getWidth() * 0.8f);
+                    TextView label = root.findViewById(R.id.button_spec_done_text);
+                    assertEquals(tag, e.getValue(), text(root, R.id.button_spec_done_text));
+                    assertEquals(tag + " drawn live, not washed out", 255, android.graphics.Color.alpha(label.getCurrentTextColor()));
+                }
+            }
+        }
+    }
+
+    /** Review: 当前 looked fully enabled on the pending item although ‹ was dimmed (docs/screenshots/widget_home.png). */
+    @Test
+    public void currentIsDimmedOnThePendingItemLikeTheBackArrow() {
         state("social");
-        TextView live = render(true, 250, 160).findViewById(R.id.button_spec_current_text);
+        View pending = render(true, 320, 200);
+        assertFalse(pending.findViewById(R.id.widget_prev).isEnabled());
+        assertFalse(pending.findViewById(R.id.button_spec_current).isEnabled());
+        TextView dim = pending.findViewById(R.id.button_spec_current_text);
+        assertTrue("its label is dimmed", android.graphics.Color.alpha(dim.getCurrentTextColor()) < 255);
+        assertEquals(CardRenderer.DISABLED_ARROW_ALPHA,
+                ((android.widget.ImageView) pending.findViewById(R.id.button_spec_return_icon)).getImageAlpha());
+        state("future");
+        View browsed = render(true, 320, 200);
+        assertTrue(browsed.findViewById(R.id.button_spec_current).isEnabled());
+        TextView live = browsed.findViewById(R.id.button_spec_current_text);
         assertEquals(255, android.graphics.Color.alpha(live.getCurrentTextColor()));
+        state("receipt");
+        assertTrue("the receipt card goes on to the pending item", render(false, 320, 200).findViewById(R.id.button_spec_current).isEnabled());
+    }
+
+    /**
+     * Review: at small sizes and 115% font the card cut key information short with "…": the chip
+     * 「魅力 +4 → Lv.…」 and 「本区块第 2 …」, the place 「奢豪之…」, the error 「请稍…」. The chip never ends
+     * in "…" (it wraps if it must), the location shows a shorter whole form or goes, and the
+     * instruction of a status card keeps its lines.
+     */
+    @Test
+    public void chipsPlacesAndInstructionsAreNeverCutShort() {
+        List<String> issues = new ArrayList<>();
+        for (float scale : new float[]{1f, 1.15f}) {
+            RuntimeEnvironment.setFontScale(scale);
+            for (String name : new String[]{"long-stat", "long", "future", "note", "unlock-talk", "job", "error", "unreadable"}) {
+                for (int[] size : SIZES) {
+                    state(name);
+                    View root = render(false, size[0], size[1]);
+                    String tag = name + "-" + size[0] + "x" + size[1] + "@" + scale;
+                    RenderSupport.collectCutText(root, tag, issues);
+                    TextView cue = root.findViewById(R.id.widget_detail_cue);
+                    if (name.equals("error") || name.equals("unreadable")) {
+                        if (cue.getVisibility() != View.VISIBLE) issues.add(tag + " lost its instruction");
+                        else if (RenderSupport.ellipsized(cue)) issues.add(tag + " cuts its instruction: " + cue.getText());
+                    }
+                }
+            }
+        }
+        assertTrue(String.join("\n", issues), issues.isEmpty());
+
+        RuntimeEnvironment.setFontScale(1f);
+        state("long-stat");
+        View narrow = render(false, 180, 150);
+        assertEquals("魅力 +4 → Lv.2、学力 +2 → MAX", text(narrow, R.id.widget_tag));
+        state("future");
+        assertEquals("the floor range goes first", "奢豪之庭 茨尔阿", text(render(true, 250, 160), R.id.widget_location));
+        assertEquals("奢豪之庭 茨尔阿（145–172F）", text(render(true, 320, 200), R.id.widget_location));
+        RuntimeEnvironment.setFontScale(1.15f);
+        state("future");
+        View big = render(false, 180, 150);
+        assertEquals("本区块第 2 次", text(big, R.id.widget_tag));
+        assertEquals("then the area: the block's name stays", "茨尔阿", text(big, R.id.widget_location));
+        state("error");
+        TextView cue = render(false, 180, 150).findViewById(R.id.widget_detail_cue);
+        assertEquals(2, cue.getLineCount());
+        assertEquals("生成安排时出了问题，请稍后再试", CardText.plain(cue.getText().toString()));
+    }
+
+    /**
+     * Review: on 320x200/240 a 25–35% empty band sat between the plate and the title, and the buttons
+     * hugged the bottom edge. The text now sits centred between the plate and the buttons at the
+     * title's largest size, and the buttons keep more room below.
+     */
+    @Test
+    public void tallCardsCentreTheirTextAndLiftTheButtons() {
+        float density = app.getResources().getDisplayMetrics().density;
+        for (String name : new String[]{"social", "stat", "hint", "note", "finished"}) {
+            for (int[] size : new int[][]{{320, 200}, {320, 240}, {360, 240}}) {
+                state(name);
+                View root = render(false, size[0], size[1]);
+                String tag = name + "-" + size[0] + "x" + size[1];
+                TextView title = root.findViewById(R.id.widget_task);
+                assertEquals(tag + " title keeps its largest size", CardRenderer.maxTitleSp(WidgetSize.REGULAR),
+                        title.getTextSize() / app.getResources().getDisplayMetrics().scaledDensity, 0.01f);
+                android.graphics.Rect plate = RenderSupport.boundsIn(root, root.findViewById(R.id.widget_plate));
+                android.graphics.Rect titleBox = RenderSupport.boundsIn(root, title);
+                float textTop = titleBox.bottom - title.getPaddingBottom() - title.getLayout().getHeight();
+                float textBottom = RenderSupport.lastTextBottom(root);
+                android.graphics.Rect buttons = RenderSupport.boundsIn(root, root.findViewById(R.id.button_spec_row));
+                float above = (textTop - plate.bottom) / density;
+                float below = (buttons.top - textBottom) / density;
+                assertTrue(tag + " text centred: " + above + "dp above, " + below + "dp below", Math.abs(above - below) <= 3);
+                // Cards with room to spare give some to the buttons; full ones (the reminder or note card
+                // at 200dp) keep the plain padding.
+                float under = (root.getHeight() - buttons.bottom) / density;
+                boolean full = (name.equals("hint") || name.equals("note")) && size[1] < 240;
+                float least = full ? CardRenderer.contentPaddingDp(WidgetSize.REGULAR) : 13;
+                assertTrue(tag + " buttons sit " + under + "dp from the bottom", under >= least);
+            }
+        }
+    }
+
+    /** Review: the outlined 「22」 ran behind the end of the location and reminder lines. */
+    @Test
+    public void theDayNumeralFadesBehindText() {
+        state("hint");
+        View busy = render(false, 320, 200);
+        int full = WidgetPalette.DAY.watermarkImageAlpha;
+        android.widget.ImageView tens = busy.findViewById(R.id.widget_watermark_tens);
+        assertEquals(View.VISIBLE, busy.findViewById(R.id.widget_watermark).getVisibility());
+        assertEquals("text runs into the numeral", Math.round(full * CardRenderer.FAINT_WATERMARK), tens.getImageAlpha());
+        state("social");
+        android.widget.ImageView clear = render(false, 320, 200).findViewById(R.id.widget_watermark_tens);
+        assertEquals("short text leaves it alone", full, clear.getImageAlpha());
+        state("hint");
+        android.widget.ImageView night = render(true, 320, 200).findViewById(R.id.widget_watermark_tens);
+        assertEquals(Math.round(WidgetPalette.NIGHT.watermarkImageAlpha * CardRenderer.FAINT_WATERMARK), night.getImageAlpha());
+    }
+
+    /**
+     * Review: before Android 12 the card had square corners (nothing clips the flush-left plate), and
+     * 「RANK 4→5」 borrowed a smaller, lower arrow there. The corner is transparent on every version,
+     * and the chip's arrow is the bundled numeral face's own.
+     */
+    @Test
+    public void cornersAreRoundAndTheChipArrowIsTheSameEverywhere() throws Exception {
+        float density = app.getResources().getDisplayMetrics().density;
+        for (int[] size : SIZES) {
+            state("social");
+            View root = render(false, size[0], size[1]);
+            android.graphics.Bitmap bitmap = RenderSupport.draw(root);
+            String tag = size[0] + "x" + size[1];
+            assertEquals(tag + " top-left corner", 0, android.graphics.Color.alpha(bitmap.getPixel(1, 1)));
+            // Beside the plate's top-left corner (6–8dp down), outside the card's rounded corner.
+            assertEquals(tag + " plate corner", 0, android.graphics.Color.alpha(bitmap.getPixel(1, Math.round(8 * density))));
+            assertEquals(tag + " bottom-right corner", 0,
+                    android.graphics.Color.alpha(bitmap.getPixel(bitmap.getWidth() - 2, bitmap.getHeight() - 2)));
+            assertTrue(tag + " the card itself is opaque", android.graphics.Color.alpha(bitmap.getPixel(bitmap.getWidth() / 2, 2)) == 255);
+        }
+        android.graphics.Paint paint = new android.graphics.Paint();
+        paint.setTypeface(CardRenderer.numerals(app, android.graphics.Typeface.BOLD));
+        paint.setTextSize(1000);
+        assertTrue("the numeral face has its own 「→」", paint.hasGlyph("→"));
+        // scripts/add_font_arrow.py: 617 units in the semibold file, 623 in the bold one (a fallback
+        // glyph from a system font has some other width).
+        float arrow = paint.measureText("→");
+        assertTrue("the arrow is the bundled one: " + arrow, Math.abs(arrow - 617) <= 1 || Math.abs(arrow - 623) <= 1);
     }
 
     /** The text a reader sees (the invisible line-break marks removed). */

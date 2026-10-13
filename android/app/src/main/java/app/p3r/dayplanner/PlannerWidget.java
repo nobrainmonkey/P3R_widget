@@ -183,7 +183,10 @@ public class PlannerWidget extends AppWidgetProvider {
         m.doneLabel = complete && canComplete ? "撤销" : "完成";
         m.doneIcon = complete && canComplete ? CardModel.DoneIcon.UNDO : CardModel.DoneIcon.CHECK;
         m.doneDescription = canComplete ? (complete ? "撤销：把这一项改回没完成" : "完成：勾掉这一项，再看下一项") : "这一项不用打卡";
-        m.currentDescription = "当前：回到最早未完成的任务";
+        // Already on the earliest unfinished task (or nothing is left): 当前 has nowhere to go.
+        PlannerStore.Task pending = PlannerStore.firstPendingGlobally(c);
+        m.currentEnabled = pending != null && (task == null || !pending.id.equals(task.id));
+        m.currentDescription = m.currentEnabled ? "当前：回到最早未完成的任务" : "当前：已经在最早未完成的任务";
         return m;
     }
 
@@ -255,7 +258,7 @@ public class PlannerWidget extends AppWidgetProvider {
         rows.location = keepLocation && !task.locationLabel.isEmpty() ? locationText(task.locationLabel) : null;
         rows.cue = task.dialogueCue.isEmpty() ? null : task.dialogueCue;
         // The title as the card wraps it (words whole), so it is measured with the same line breaks.
-        String title = CardRenderer.guideTitle(task.widgetTitle, rows.location);
+        String title = CardRenderer.guideTitle(c, task.widgetTitle, rows.location, size, innerWidth);
         float needed = CardRenderer.textHeightDp(c, title, CardRenderer.MIN_TITLE_SP, true, innerWidth, 3)
                 + 3 + CardRenderer.textHeightDp(c, choices, 12, false, innerWidth, 20, 1)
                 + CardRenderer.metaRowHeightDp(c, rows, size)

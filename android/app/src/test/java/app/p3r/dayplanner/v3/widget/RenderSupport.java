@@ -106,6 +106,45 @@ final class RenderSupport {
         }
     }
 
+    /** Whether any line of {@code text} ends in "…". */
+    static boolean ellipsized(TextView text) {
+        if (text.getLayout() == null) return false;
+        for (int i = 0; i < text.getLineCount(); i++) {
+            if (text.getLayout().getEllipsisCount(i) > 0) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Key information is never cut short with "…" (review: 「魅力 +4 → Lv.…」, 「奢豪之…」,
+     * 「结缘网站的字条 · 岳羽由…」): the tag chip, the location and a title with a name in it
+     * (「 · 」 parts) are either whole or not shown.
+     */
+    static void collectCutText(View root, String tag, List<String> issues) {
+        for (int id : new int[]{app.p3r.dayplanner.R.id.widget_tag, app.p3r.dayplanner.R.id.widget_location}) {
+            TextView text = root.findViewById(id);
+            if (text.getVisibility() == View.VISIBLE && ellipsized(text)) {
+                issues.add(tag + " cuts " + name(text) + ": '" + CardText.plain(text.getText().toString()) + "'");
+            }
+        }
+        TextView title = root.findViewById(app.p3r.dayplanner.R.id.widget_task);
+        if (CardText.plain(title.getText().toString()).contains(" · ") && ellipsized(title)) {
+            issues.add(tag + " cuts the name in its title: '" + CardText.plain(title.getText().toString()) + "'");
+        }
+    }
+
+    /** Bottom (root coordinates) of the lowest shown line of text in the card body. */
+    static int lastTextBottom(View root) {
+        ViewGroup body = root.findViewById(app.p3r.dayplanner.R.id.widget_task_area);
+        int bottom = 0;
+        for (int i = 0; i < body.getChildCount(); i++) {
+            View child = body.getChildAt(i);
+            if (child.getVisibility() != View.VISIBLE) continue;
+            bottom = Math.max(bottom, boundsIn(root, child).bottom);
+        }
+        return bottom;
+    }
+
     /** A shown location must keep enough width to read (a long tag chip must not starve it). */
     static void collectSqueezedLocation(View root, String tag, List<String> issues) {
         View location = root.findViewById(app.p3r.dayplanner.R.id.widget_location);

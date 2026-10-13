@@ -29,7 +29,8 @@ import app.p3r.dayplanner.v3.service.PlannerApi;
 /**
  * Home-screen plan widget (docs/DESIGN_v3.md §7.2): shows the plan item by item, ‹ › browse, 当前
  * returns to the pending item, 完成 records training/jobs directly (with a one-tap undo) and opens
- * the quick result sheet for everything else.
+ * the quick result sheet for everything else. Status cards (planning, error, finished) carry one
+ * button instead that opens the app.
  *
  * <p>Threading: every broadcast is handed to {@link WidgetWorker} under {@code goAsync()}, so no
  * SQLite read, outcome write or RemoteViews build ever runs on the main thread.
@@ -331,12 +332,17 @@ public class PlanWidget extends AppWidgetProvider {
         }
         int slot = view.shownSlot();
         PendingIntent today = WidgetIntents.home(app, id, WidgetIntents.TAB_TODAY, -1);
+        PendingIntent schedule = WidgetIntents.home(app, id, WidgetIntents.TAB_SCHEDULE, -1);
         views.setOnClickPendingIntent(R.id.widget_root, today);
-        views.setOnClickPendingIntent(R.id.widget_date, WidgetIntents.home(app, id, WidgetIntents.TAB_SCHEDULE, -1));
+        views.setOnClickPendingIntent(R.id.widget_date, schedule);
         boolean showsStep = view.mode == PlanView.Mode.ITEM || view.mode == PlanView.Mode.RECEIPT;
         views.setOnClickPendingIntent(R.id.widget_task_area,
                 showsStep ? WidgetIntents.home(app, id, WidgetIntents.TAB_TODAY, slot) : today);
-        if (!showsStep) return views;
+        if (!showsStep) {
+            // Status cards: the one button opens the app where the card points (打开应用 / 查看日程).
+            views.setOnClickPendingIntent(R.id.button_spec_done, view.done == PlanView.Done.OPEN_SCHEDULE ? schedule : today);
+            return views;
+        }
         views.setOnClickPendingIntent(R.id.widget_prev, WidgetIntents.navigate(app, id, WidgetIntents.ACTION_PREV));
         views.setOnClickPendingIntent(R.id.widget_next, WidgetIntents.navigate(app, id, WidgetIntents.ACTION_NEXT));
         views.setOnClickPendingIntent(R.id.button_spec_current, WidgetIntents.navigate(app, id, WidgetIntents.ACTION_CURRENT));

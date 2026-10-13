@@ -296,7 +296,9 @@ Change: Chinese labels **当前 / 完成**, slanted P3R calendar plate (numerals
 location line, progress "今天 1/2". Done: deterministic items (training, job, story ack) commit
 directly with a "✓ 已记录 · 再点撤销" state; link meetings / Tartarus open the quick result sheet.
 Stale PendingIntents (plan id/revision mismatch) never commit. Rendering reads a cached widget
-projection (no rule loading on the main thread).
+projection (no rule loading on the main thread). Current is dimmed on the pending item (like ‹);
+status cards (planning, error, finished) show one button that opens the app (打开应用 / 查看日程)
+instead of a dead row. Chips and names are never cut with "…": the location shortens or goes first.
 
 ### 7.3 Visual language
 Dark royal/navy app theme (P3R menu blues), cyan accent `#3CE4FF`, white ink; sharp parallelograms

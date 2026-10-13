@@ -86,17 +86,34 @@ public final class CardText {
     /**
      * Free-form guide text: the legacy guide's titles and places (「收集12种饮料交给伊莉莎白，接取委托11」,
      * 「派出所旁小巷进入天鹅绒房间，确认人格面具合成功能」). Everything {@link #title} keeps whole, and
-     * also the guide's names, places and game words ({@link GuideWords}), dictionary words, a short
-     * “…” name, a number or Latin word together with the character before it and its unit
-     * (「委托11」「12种」「1万日元」「魔术师→RANK2」「魅力+♪」), and a choice count 「（2）」 with the
-     * character before it. The text may wrap between
-     * words, never inside one. Applying it twice changes nothing.
+     * also the guide's names, places and game words ({@link GuideWords}), an arcana's mask
+     * (「星面具」), dictionary words, a short “…” name, a number or Latin word together with the
+     * character before it and its unit (「委托11」「12种」「1万日元」「魔术师→RANK2」「魅力+♪」), a Latin
+     * word together with the character after it (「SL不同」「BOSS战」), and a choice count 「（2）」 with
+     * the character before it. Lines prefer to break after clause punctuation: a lone character after
+     * 「；」「，」「、」 goes with the word after it (「；」/「邀结子同行」, never 「；邀」/「结子同行」);
+     * 「的」 and a place word such as 「对面」 never start a line, and a one-character verb such as 「邀」
+     * never ends one apart from its object. The text may wrap between words, never inside one.
+     * Applying it twice changes nothing.
      */
     public static String guide(String text, Collection<String> words) {
-        return shapeTitle(text, words, true);
+        return guide(text, words, MAX_QUOTED);
+    }
+
+    /**
+     * As {@link #guide(String, Collection)}, keeping a quoted name of up to {@code maxQuoted}
+     * characters whole (at least {@link #MAX_QUOTED}): the card passes how many fit one title line, so
+     * 「“历史学投稿站的字条”」 stays whole where it fits and wraps between its words where it does not.
+     */
+    public static String guide(String text, Collection<String> words, int maxQuoted) {
+        return shapeTitle(text, words, true, Math.max(MAX_QUOTED, maxQuoted));
     }
 
     private static String shapeTitle(String text, Collection<String> words, boolean free) {
+        return shapeTitle(text, words, free, MAX_QUOTED);
+    }
+
+    private static String shapeTitle(String text, Collection<String> words, boolean free, int maxQuoted) {
         if (text == null) return null;
         String s = keepNumbersTogether(strip(text));
         boolean named = s.contains(SEPARATOR) || s.contains(NBSP + "· ");
@@ -112,17 +129,23 @@ public final class CardText {
             }
         }
         List<String> all = new ArrayList<>(WORDS);
-        if (free) all.addAll(GuideWords.WORDS);
+        if (free) {
+            all.addAll(GuideWords.WORDS);
+            for (String arcana : GuideWords.ARCANA) all.add(arcana + MASK);
+        }
         if (words != null) all.addAll(words);
         joinWords(s, join, all);
         if (free) {
             // A long 「…」 (「成瘾症状（Addiction）」) would not fit a line whole; its words still do.
-            joinShortBrackets(s, join, '「', '」');
-            joinShortBrackets(s, join, '“', '”');
+            joinShortBrackets(s, join, '「', '」', maxQuoted);
+            joinShortBrackets(s, join, '“', '”', maxQuoted);
             joinDictionaryWords(s, join);
             joinNumbersAndSymbols(s, join);
             joinCounts(s, join);
             joinBeforeClosing(s, join);
+            joinSmallWords(s, join);
+            // Last: it looks at what the rules above already keep together.
+            joinAfterClauses(s, join);
         } else {
             joinBrackets(s, join, '「', '」');
         }
@@ -216,6 +239,81 @@ public final class CardText {
         return out.toString();
     }
 
+    /**
+     * A tag chip (「RANK 4→5」, 「魅力 +4 → Lv.2、学力 +2 → MAX」): every gain stays whole, its spaces
+     * included, so a chip too wide for its row wraps only after a 「、」 and never cuts a value.
+     */
+    public static String chip(String text) {
+        if (text == null) return null;
+        String[] parts = strip(text).replace(NBSP, ' ').split(GAIN_SEPARATOR, -1);
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) out.append(GAIN_SEPARATOR);
+            out.append(keep(parts[i].replace(' ', NBSP)));
+        }
+        return out.toString();
+    }
+
+    /**
+     * Shorter forms of a location line for a card too narrow for all of it, longest first, the full
+     * line included: the parts that matter least go first. A trailing bracket (the floor range
+     * 「（145–172F）」), then the area before 「 · 」 (the mall or school: 「桐叶购物中心 · 夏卡尔咖啡店」 →
+     * 「夏卡尔咖啡店」), then the words before the last space (「奢豪之庭 茨尔阿」 → 「茨尔阿」; a space next
+     * to a number is part of the place: 「2 楼」). Each leg of a route 「A → B」 is shortened alike.
+     */
+    public static List<String> locationForms(String location) {
+        List<String> forms = new ArrayList<>();
+        if (location == null || location.trim().isEmpty()) return forms;
+        String full = plain(location).trim();
+        forms.add(full);
+        String noBracket = eachLeg(full, CardText::withoutTrailingBracket);
+        addForm(forms, noBracket);
+        String place = eachLeg(noBracket, leg -> lastPart(leg, AREA_SEPARATOR));
+        addForm(forms, place);
+        addForm(forms, eachLeg(place, CardText::lastWord));
+        return forms;
+    }
+
+    private static final String GAIN_SEPARATOR = "、";
+    private static final String ROUTE_SEPARATOR = " → ";
+    private static final Pattern AREA_SEPARATOR = Pattern.compile("\\s*·\\s*");
+    private static final Pattern TRAILING_BRACKET = Pattern.compile("\\s*[（(][^（()）]*[）)]$");
+
+    private static void addForm(List<String> forms, String form) {
+        String f = form.trim();
+        if (!f.isEmpty() && !forms.contains(f)) forms.add(f);
+    }
+
+    private static String eachLeg(String route, java.util.function.UnaryOperator<String> shorten) {
+        String[] legs = route.split(Pattern.quote(ROUTE_SEPARATOR), -1);
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < legs.length; i++) {
+            if (i > 0) out.append(ROUTE_SEPARATOR);
+            String shorter = shorten.apply(legs[i].trim()).trim();
+            out.append(shorter.isEmpty() ? legs[i].trim() : shorter);
+        }
+        return out.toString();
+    }
+
+    private static String withoutTrailingBracket(String leg) {
+        return TRAILING_BRACKET.matcher(leg).replaceFirst("");
+    }
+
+    private static String lastPart(String leg, Pattern separator) {
+        String[] parts = separator.split(leg);
+        return parts.length == 0 ? leg : parts[parts.length - 1];
+    }
+
+    /** The text after the last space that is not next to a number (「月光馆学园 3楼 学生会室」 → 「学生会室」). */
+    private static String lastWord(String leg) {
+        for (int i = leg.length() - 1; i > 0; i--) {
+            if (leg.charAt(i) != ' ') continue;
+            boolean number = Character.isDigit(leg.charAt(i - 1)) || (i + 1 < leg.length() && Character.isDigit(leg.charAt(i + 1)));
+            if (!number) return leg.substring(i + 1);
+        }
+        return leg;
+    }
+
     /** Name-like parts of a location line, for {@link #title(String, Collection)}. */
     public static List<String> locationWords(String location) {
         if (location == null) return Collections.emptyList();
@@ -270,15 +368,72 @@ public final class CardText {
         }
     }
 
-    /** Longest quoted name (characters inside 「」 or “”) kept on one line in guide text. */
+    /**
+     * Longest quoted name (characters inside 「」 or “”) that guide text always keeps on one line; the
+     * card keeps longer ones whole where they fit a line ({@link #guide(String, Collection, int)}).
+     */
     static final int MAX_QUOTED = 8;
+    /** An arcana's Persona is 「星面具」「倒悬者面具」: one word. */
+    private static final String MASK = "面具";
+    /** Punctuation that ends a clause: guide text prefers to wrap right after it. */
+    private static final String CLAUSE_END = "；，、：。";
+    /** Particles that never start a line (「教室对面的」/「学生会活动室」, never 「教室对面」/「的学生会…」). */
+    private static final String TRAILING_PARTICLES = "的";
+    /** Place words that belong to the word before them (「教室对面」「活动室门口」). */
+    private static final List<String> LOCATIVES = Collections.unmodifiableList(Arrays.asList("对面", "门口", "旁边", "附近", "隔壁"));
+    /** One-character place words that belong to the word before them when 「的」 follows (「教室外的贝培」). */
+    private static final String LOCATIVE_CHARS = "外内前后旁里";
+    /**
+     * One-character verbs of the guide that never end a line apart from their object (「邀结子」
+     * 「找宫本」「带伊莉莎白」「拿申请书」「到长鸣神社」).
+     */
+    private static final String OBJECT_VERBS = "邀找带交送拿到";
 
     /** A short quoted name (「「死亡之怖」」, 「“山间补习班”」) stays whole with its brackets. */
-    private static void joinShortBrackets(String s, boolean[] join, char open, char close) {
+    private static void joinShortBrackets(String s, boolean[] join, char open, char close, int maxQuoted) {
         for (int at = s.indexOf(open); at >= 0; at = s.indexOf(open, at + 1)) {
             int end = s.indexOf(close, at + 1);
             if (end < 0) return;
-            if (visibleLength(s, at + 1, end) <= MAX_QUOTED) joinRange(s, join, at, end + 1);
+            if (visibleLength(s, at + 1, end) <= maxQuoted) joinRange(s, join, at, end + 1);
+        }
+    }
+
+    /**
+     * Small words that lean on a neighbour. A particle such as 「的」 stays with the word or closing
+     * quote before it (「“…”的字条」), and so does a one-character place word before it (「教室外的」);
+     * a place word such as 「对面」 stays with the character before it, and a one-character verb such
+     * as 「邀」 with the character after it (the word after it starts there, unless they already form
+     * one: 「邀约」).
+     */
+    private static void joinSmallWords(String s, boolean[] join) {
+        for (int i = 1; i < s.length(); i++) {
+            if (TRAILING_PARTICLES.indexOf(s.charAt(i)) < 0) continue;
+            char before = s.charAt(i - 1);
+            if (attaches(before) || CLOSING_BRACKETS.indexOf(before) >= 0) join[i] = true;
+            if (i >= 2 && LOCATIVE_CHARS.indexOf(before) >= 0 && isHan(s.charAt(i - 2))) join[i - 1] = true;
+        }
+        for (String place : LOCATIVES) {
+            for (int at = s.indexOf(place); at > 0; at = s.indexOf(place, at + 1)) {
+                if (isHan(s.charAt(at - 1))) join[at] = true;
+            }
+        }
+        for (int i = 0; i + 1 < s.length(); i++) {
+            if (OBJECT_VERBS.indexOf(s.charAt(i)) >= 0 && attaches(s.charAt(i + 1))) join[i + 1] = true;
+        }
+    }
+
+    /** Closing brackets and quotes (the part of {@link #CLOSING} that is no clause punctuation). */
+    private static final String CLOSING_BRACKETS = "）)」』】〕》〉”’";
+
+    /**
+     * A character that starts a clause alone (「；邀结子同行」: 「邀」 belongs to no word) stays with the
+     * character after it, so the line breaks after the punctuation rather than leaving it dangling.
+     */
+    private static void joinAfterClauses(String s, boolean[] join) {
+        for (int i = 0; i + 2 < s.length(); i++) {
+            if (CLAUSE_END.indexOf(s.charAt(i)) < 0) continue;
+            int first = i + 1;
+            if (isHan(s.charAt(first)) && isHan(s.charAt(first + 1)) && !join[first + 1]) join[first + 1] = true;
         }
     }
 
@@ -319,7 +474,9 @@ public final class CardText {
      * them (「委托11」「愚者LV2」), a number with its unit; 「+」「♪」 and 「→」 stay with what they follow
      * (「魅力+♪♪」「魔术师→RANK2」). A 「+」 between two things to buy belongs to the next one, as the
      * line breaker already keeps it (「汽水10个」/「+莫乐蜜G20个」): joined to both, the whole list would
-     * be one unbreakable run. Spaces stay where they are: a space is a deliberate break.
+     * be one unbreakable run. A Latin word inside a sentence also keeps the character after it: it is
+     * read as part of the phrase (「可以SL不同的人物」, 「满月BOSS战」). Spaces stay where they are: a space
+     * is a deliberate break.
      */
     private static void joinNumbersAndSymbols(String s, boolean[] join) {
         int i = 0;
@@ -335,6 +492,7 @@ public final class CardText {
             if (joinsNext(s, start, end)) join[end] = true;
             else if (start > 0 && attaches(s.charAt(start - 1))) join[start] = true;
             boolean number = Character.isDigit(s.charAt(end - 1));
+            if (end < s.length() && end - start >= 2 && isLatinWord(s, start, end) && isHan(s.charAt(end))) join[end] = true;
             if (end < s.length()) {
                 char next = s.charAt(end);
                 if (number && UNITS.indexOf(next) >= 0) {
@@ -391,6 +549,17 @@ public final class CardText {
             return ch == '%' ? digitBefore : digitBefore && digitAfter || (ch == '.' && i > 0 && isLatin(s.charAt(i - 1)));
         }
         return false;
+    }
+
+    /**
+     * Letters only (「SL」「BOSS」), no number or symbol: a word, not a count or a rank. (A single letter
+     * such as the 「G」 of 「莫乐蜜G」 is part of the name before it.)
+     */
+    private static boolean isLatinWord(String s, int start, int end) {
+        for (int i = start; i < end; i++) {
+            if (!isLatin(s.charAt(i))) return false;
+        }
+        return true;
     }
 
     private static boolean isSymbol(char ch) {

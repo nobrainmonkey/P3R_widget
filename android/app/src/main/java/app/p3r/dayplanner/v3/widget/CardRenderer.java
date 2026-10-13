@@ -43,6 +43,8 @@ public final class CardRenderer {
             R.drawable.widget_shafts_3};
     /** Image alpha of an arrow that cannot move further. */
     static final int DISABLED_ARROW_ALPHA = 80;
+    /** Share of the palette's watermark alpha kept when text runs over the numeral. */
+    static final float FAINT_WATERMARK = 0.4f;
 
     /** Ticks available in the layout; days with more entries show only the text progress. */
     public static final int MAX_TICKS = 8;
@@ -56,11 +58,22 @@ public final class CardRenderer {
     private static final float ROW_GAP_DP = 4f;
     /** Gap above the hint and side lines (dp). Mirrors the layout XML. */
     private static final float EXTRA_GAP_DP = 3f;
-    /** Room a location keeps beside a long tag chip (dp): pin, its padding and a few characters. */
-    static final float MIN_LOCATION_DP = 64f;
+    /** Narrowest location worth drawing (dp of text): three characters; below it the row drops it. */
+    static final float MIN_LOCATION_DP = 33f;
+    /** Pin (or reminder mark) in front of the location and reminder lines plus its padding (dp). Mirrors the layout XML. */
+    private static final float PIN_DP = 15f;
     /** Horizontal padding plus right margin of the tag chip (dp). Mirrors the layout XML. */
     private static final float TAG_PADDING_DP = 16f;
     private static final float TAG_MARGIN_DP = 8f;
+    /** Smallest share of its size a chip may take to stay on one line before it wraps instead. */
+    private static final float MIN_CHIP_SCALE = 0.85f;
+    /**
+     * Room (dp) a tall card's title box keeps beyond what the largest title size needs (measured as
+     * the layout's autosize does it), so rounding never makes the autosize pick a smaller size.
+     */
+    private static final float TITLE_SLACK_DP = 2f;
+    /** Share of a tall card's spare height that goes under the buttons, up to {@link #maxSpaceUnderButtonsDp}. */
+    private static final float UNDER_BUTTONS_SHARE = 0.3f;
     /** Gap between the kind mark and the title (dp). Mirrors the layout XML. */
     private static final float TITLE_ICON_GAP_DP = 4f;
     /** Text size (sp), line spacing (dp) and top gap (dp) of the dialogue line. Mirrors the layout XML. */
@@ -77,7 +90,17 @@ public final class CardRenderer {
      * padding), i.e. everything except the title/dialogue/meta/cue stack. Mirrors the layout XML.
      */
     public static float chromeHeightDp(WidgetSize size) {
-        return size == WidgetSize.REGULAR ? 8 + 40 + 6 + 6 + 40 + 8 : 6 + 40 + 3 + 3 + 40 + 6;
+        return 2 * contentPaddingDp(size) + 40 + bodyVerticalPaddingDp(size) + 40;
+    }
+
+    /** Space above the plate and under the buttons in dp. Mirrors the layout XML. */
+    static float contentPaddingDp(WidgetSize size) {
+        return size == WidgetSize.REGULAR ? 8 : 6;
+    }
+
+    /** Most extra space (dp) a tall card adds under its buttons. */
+    static float maxSpaceUnderButtonsDp(WidgetSize size) {
+        return size == WidgetSize.REGULAR ? 6 : 4;
     }
 
     /** Horizontal padding of the body text in dp. Mirrors the layout XML. */
@@ -209,28 +232,33 @@ public final class CardRenderer {
 
     /**
      * As {@link #metaRowHeightDp(Context, CardModel, WidgetSize)} for a body {@code innerWidthDp}
-     * wide: text that has to be cut short is laid out like TextView does it (with the taller CJK
-     * fallback line height), so its height is measured at the width it really gets.
+     * wide: a chip wrapped to two lines and text that has to be cut short are laid out like TextView
+     * does it (with the taller CJK fallback line height), at the width they really get.
      */
     static float metaRowHeightDp(Context c, CardModel model, WidgetSize size, float innerWidthDp) {
         float sp = metaTextSp(size);
-        float chipText = 999;
-        float chipWidth = 0;
-        if (!isBlank(model.tag)) {
-            float fontScale = c.getResources().getConfiguration().fontScale;
-            chipWidth = lineWidthDp(c, model.tag, sp * fontScale, numerals(c, Typeface.BOLD)) + TAG_PADDING_DP;
-            if (model.tagMaxWidthDp > 0 && model.tagMaxWidthDp < chipWidth) {
-                chipWidth = model.tagMaxWidthDp;
-                chipText = chipWidth - TAG_PADDING_DP;
-            }
-            chipWidth += TAG_MARGIN_DP;
-        }
-        float tag = isBlank(model.tag) ? 0 : textHeightDp(c, model.tag, sp, numerals(c, Typeface.BOLD), chipText, 1, 0) + 3;
-        float locationWidth = Math.max(1, innerWidthDp - chipWidth - 15); // pin + its padding
+        float chip = chipWidthDp(c, model, size);
+        boolean wraps = model.tagMaxLines > 1 && chip + TAG_MARGIN_DP > innerWidthDp;
+        float chipText = wraps ? innerWidthDp - TAG_MARGIN_DP - TAG_PADDING_DP : 999;
+        float tag = isBlank(model.tag) ? 0 : textHeightDp(c, model.tag, chipTextSp(model, size), numerals(c, Typeface.BOLD),
+                chipText, Math.max(1, model.tagMaxLines), 0) + 3;
+        float locationWidth = Math.max(1, innerWidthDp - (chip > 0 ? chip + TAG_MARGIN_DP : 0) - PIN_DP);
         float location = isBlank(model.location) ? 0 : textHeightDp(c, model.location, sp, false, locationWidth, 1);
         float row = Math.max(tag, location);
         float gap = size == WidgetSize.REGULAR ? ROW_GAP_DP + 1 : ROW_GAP_DP;
         return row == 0 ? 0 : row + gap;
+    }
+
+    /** Text size (sp) of the tag chip: the bucket's, or the smaller one {@link #fit} chose. */
+    static float chipTextSp(CardModel model, WidgetSize size) {
+        return model.tagTextSp > 0 ? model.tagTextSp : metaTextSp(size);
+    }
+
+    /** Width in dp of the tag chip on one line, padding included (0 without a tag). */
+    static float chipWidthDp(Context c, CardModel model, WidgetSize size) {
+        if (isBlank(model.tag)) return 0;
+        float fontScale = c.getResources().getConfiguration().fontScale;
+        return lineWidthDp(c, model.tag, chipTextSp(model, size) * fontScale, numerals(c, Typeface.BOLD)) + TAG_PADDING_DP;
     }
 
     /** Height in dp of the cue line including its top gap (0 if hidden). */
@@ -247,7 +275,7 @@ public final class CardRenderer {
     /** Height in dp of the reminder line (with its 12dp mark) including its top gap (0 if hidden). */
     static float hintRowHeightDp(Context c, CardModel model, WidgetSize size, float widthDp) {
         if (isBlank(model.hint)) return 0;
-        float text = textHeightDp(c, model.hint, cueTextSp(size), false, Math.max(1, widthDp - 15), 1);
+        float text = textHeightDp(c, model.hint, cueTextSp(size), false, Math.max(1, widthDp - PIN_DP), 1);
         return Math.max(12f, text) + EXTRA_GAP_DP;
     }
 
@@ -257,20 +285,23 @@ public final class CardRenderer {
     }
 
     /**
-     * Widest the tag chip may be (dp, padding included) so a location beside it keeps
-     * {@link #MIN_LOCATION_DP} (or what it needs, if less); 0 when the chip fits as it is.
+     * The longest form of the location ({@link CardText#locationForms}: the floor range, then the
+     * mall or school, then the area go first) that fits whole beside the chip on a body
+     * {@code innerWidthDp} wide; null when not even {@link #MIN_LOCATION_DP} is left or no form fits.
+     * Guide text comes back shaped like the card's other guide text.
      */
-    static float tagMaxWidthDp(Context c, CardModel model, WidgetSize size, float innerWidthDp) {
-        if (isBlank(model.tag)) return 0;
-        float fontScale = c.getResources().getConfiguration().fontScale;
-        float sizeDp = metaTextSp(size) * fontScale;
-        float chip = lineWidthDp(c, model.tag, sizeDp, numerals(c, Typeface.BOLD)) + TAG_PADDING_DP;
-        float room = innerWidthDp - TAG_MARGIN_DP;
-        if (!isBlank(model.location)) {
-            float location = lineWidthDp(c, model.location, sizeDp, Typeface.DEFAULT) + 15; // pin + padding
-            room -= Math.min(location, MIN_LOCATION_DP);
+    static String fitLocation(Context c, CardModel model, WidgetSize size, float innerWidthDp) {
+        if (isBlank(model.location)) return null;
+        float chip = chipWidthDp(c, model, size);
+        float room = innerWidthDp - (chip > 0 ? chip + TAG_MARGIN_DP : 0) - PIN_DP - 1; // 1dp for rounding
+        if (room < MIN_LOCATION_DP) return null;
+        float sizeDp = metaTextSp(size) * c.getResources().getConfiguration().fontScale;
+        for (String form : CardText.locationForms(model.location)) {
+            String shown = model.guideText ? CardText.guide(form, null) : form;
+            if (CardText.plain(shown).equals(CardText.plain(model.location))) shown = model.location;
+            if (lineWidthDp(c, shown, sizeDp, Typeface.DEFAULT) <= room) return shown;
         }
-        return chip <= room ? 0 : Math.max(room, 40f);
+        return null;
     }
 
     /**
@@ -279,35 +310,44 @@ public final class CardRenderer {
      */
     public static RemoteViews render(Context context, CardModel model, float widthDp, float heightDp) {
         WidgetSize size = WidgetSize.of(widthDp, heightDp);
-        CardModel fitted = fitHeader(context, fit(context, shaped(model), size, widthDp, heightDp), size, widthDp);
+        CardModel shaped = shaped(context, model, size, widthDp);
+        CardModel fitted = fitHeader(context, fit(context, shaped, size, widthDp, heightDp), size, widthDp);
         return render(context, fitted, size);
     }
 
     /**
      * {@code model} with its wrapping text shaped for line breaks ({@link CardText}), so it is measured
-     * exactly as it will wrap: the title keeps numbers with their words and, with
+     * exactly as it will wrap: the title (and its short form) keeps numbers with their words and, with
      * {@link CardModel#keepWordsWhole}, names whole and every dialogue choice whole; with
      * {@link CardModel#guideText} (the legacy guide, which shapes its choices itself) every word of the
-     * title and the location whole. Returns {@code model} itself when nothing changes.
+     * title and the location whole; the tag chip keeps every value whole. Returns {@code model}
+     * itself when nothing changes.
      */
-    static CardModel shaped(CardModel model) {
+    static CardModel shaped(Context c, CardModel model, WidgetSize size, float widthDp) {
         String title;
+        String titleShort = model.titleShort;
         String location = model.location;
         if (model.guideText) {
-            title = guideTitle(model.title, model.location);
+            title = guideTitle(c, model.title, model.location, size, titleWidthDp(model, size, widthDp - 2 * bodyPaddingDp(size)));
             location = CardText.guide(model.location, null);
         } else if (model.keepWordsWhole) {
             title = CardText.title(model.title, CardText.locationWords(model.location));
+            titleShort = CardText.title(model.titleShort, CardText.locationWords(model.location));
         } else {
             title = keepNumbersTogether(model.title);
+            titleShort = keepNumbersTogether(model.titleShort);
         }
+        String tag = CardText.chip(model.tag);
         String dialogue = model.keepWordsWhole ? CardText.choices(model.dialogue) : model.dialogue;
         String cue = model.keepWordsWhole && model.cueMaxLines > 1 ? CardText.sentence(model.cue) : model.cue;
         boolean same = Objects.equals(title, model.title) && Objects.equals(dialogue, model.dialogue)
-                && Objects.equals(cue, model.cue) && Objects.equals(location, model.location);
+                && Objects.equals(cue, model.cue) && Objects.equals(location, model.location)
+                && Objects.equals(titleShort, model.titleShort) && Objects.equals(tag, model.tag);
         if (same) return model;
         CardModel shown = model.copy();
         shown.title = title;
+        shown.titleShort = titleShort;
+        shown.tag = tag;
         shown.location = location;
         shown.dialogue = dialogue;
         shown.cue = cue;
@@ -316,10 +356,15 @@ public final class CardRenderer {
 
     /**
      * A legacy guide title as the card wraps it ({@link CardModel#guideText}): every word whole, the
-     * parts of its location included. The guide widget measures its title with this too.
+     * parts of its location included, and a quoted name whole when it fits one line of a title
+     * {@code titleWidthDp} wide at the bucket's largest size. The guide widget measures its title
+     * with this too.
      */
-    public static String guideTitle(String title, String location) {
-        return CardText.guide(title, CardText.locationWords(location));
+    public static String guideTitle(Context c, String title, String location, WidgetSize size, float titleWidthDp) {
+        float em = maxTitleSp(size) * c.getResources().getConfiguration().fontScale;
+        // Characters of a line at the largest title size, less about one for the two quote marks.
+        int quoted = (int) Math.floor(titleWidthDp / em) - 1;
+        return CardText.guide(title, CardText.locationWords(location), quoted);
     }
 
     /**
@@ -406,11 +451,40 @@ public final class CardRenderer {
      * then an optional dialogue line ({@link CardModel#dialogueOptional}; it also goes when it
      * needs more than {@link #MAX_DIALOGUE_LINES} lines). When the title would not fit even at its
      * smallest size, the reminder line goes, then the side-step line, then the tag/location row,
-     * then the cue. Also caps the tag chip so a location beside it keeps some room, and hides the
-     * day numeral behind a shown dialogue line. Returns {@code model} itself when nothing changes.
+     * then the cue; the body's padding goes before an essential instruction's second line or the
+     * chip's row. A title that would still end in "…" gives way to its short form
+     * ({@link CardModel#titleShort}) when that fits. The tag chip is never cut: the location beside
+     * it takes the room that is left, in its longest form that fits whole ({@link #fitLocation}),
+     * and a chip wider than the card takes a smaller size or, much wider, wraps after a 「、」. On a
+     * tall card the spare height is shared out above and below the text and under the buttons.
+     * Hides the day numeral behind a shown dialogue line and fades it behind other text. Returns
+     * {@code model} itself when nothing changes.
      */
     static CardModel fit(Context c, CardModel model, WidgetSize size, float widthDp, float heightDp) {
-        float body = heightDp - chromeHeightDp(size) + (model.tightBody ? bodyVerticalPaddingDp(size) : 0);
+        CardModel fitted = fitRows(c, model, size, widthDp, heightDp);
+        if (!isBlank(model.titleShort) && titleCut(c, fitted, size, widthDp)) {
+            CardModel shorter = model.copy();
+            shorter.title = model.titleShort;
+            shorter.titleShort = null;
+            CardModel refitted = fitRows(c, shorter, size, widthDp, heightDp);
+            if (!titleCut(c, refitted, size, widthDp)) return refitted;
+        }
+        return fitted;
+    }
+
+    /** Whether the fitted title needs more lines than it keeps even at its smallest size (it ends in "…"). */
+    static boolean titleCut(Context c, CardModel fitted, WidgetSize size, float widthDp) {
+        if (isBlank(fitted.title)) return false;
+        float titleWidth = titleWidthDp(fitted, size, widthDp - 2 * bodyPaddingDp(size));
+        StaticLayout layout = layout(c, fitted.title, MIN_TITLE_SP, Typeface.DEFAULT_BOLD, titleWidth, Integer.MAX_VALUE, 0f);
+        return layout.getLineCount() > Math.max(1, fitted.titleMaxLines);
+    }
+
+    private static CardModel edit(CardModel fitted, CardModel model) {
+        return fitted == model ? model.copy() : fitted;
+    }
+
+    private static CardModel fitRows(Context c, CardModel model, WidgetSize size, float widthDp, float heightDp) {
         float innerWidth = widthDp - 2 * bodyPaddingDp(size);
         float titleWidth = titleWidthDp(model, size, innerWidth);
         int lines = Math.max(1, model.titleMaxLines);
@@ -419,78 +493,222 @@ public final class CardRenderer {
         float dialogue = dialogueRowHeightDp(c, model, innerWidth);
         CardModel fitted = model;
         if (dialogue > 0 && model.dialogueOptional && dialogueLines(c, model.dialogue, innerWidth) > MAX_DIALOGUE_LINES) {
-            fitted = model.copy();
+            fitted = edit(fitted, model);
             fitted.dialogue = null;
             dialogue = 0;
         }
-        float tagMax = tagMaxWidthDp(c, model, size, innerWidth);
-        if (tagMax != model.tagMaxWidthDp) {
-            if (fitted == model) fitted = model.copy();
-            fitted.tagMaxWidthDp = tagMax;
+        // The chip is never cut short: a little wider than the card it takes a smaller size, much wider
+        // it wraps, and the location makes way.
+        float chip = chipWidthDp(c, model, size);
+        boolean wide = !isBlank(model.tag) && chip + TAG_MARGIN_DP > innerWidth;
+        float scale = wide ? (innerWidth - TAG_MARGIN_DP - TAG_PADDING_DP) / (chip - TAG_PADDING_DP) : 1;
+        float tagSp = wide && scale >= MIN_CHIP_SCALE ? (float) Math.floor(metaTextSp(size) * scale * 2) / 2 : 0;
+        int tagLines = wide && tagSp == 0 ? 2 : 1;
+        if (tagLines != model.tagMaxLines || tagSp != model.tagTextSp) {
+            fitted = edit(fitted, model);
+            fitted.tagMaxLines = tagLines;
+            fitted.tagTextSp = tagSp;
         }
+        String location = wide ? null : fitLocation(c, model, size, innerWidth);
+        if (!Objects.equals(location, model.location)) {
+            fitted = edit(fitted, model);
+            fitted.location = location;
+        }
+        float padding = bodyVerticalPaddingDp(size);
+        float body = heightDp - chromeHeightDp(size) + (model.tightBody ? padding : 0);
         float meta = metaRowHeightDp(c, fitted, size, innerWidth);
         float hint = hintRowHeightDp(c, fitted, size, innerWidth);
         float side = sideRowHeightDp(c, fitted, size, innerWidth);
         float cue = cueRowHeightDp(c, fitted, size, innerWidth);
+        float reclaimed = 0; // body padding given up so an instruction keeps its lines or the chip its row
         if (cue > 0 && fitted.cueMaxLines > 1 && smallest + dialogue + meta + hint + side + cue > body) {
-            // A wrapping cue that does not fit goes back to one line (ending in "…") before anything goes.
-            if (fitted == model) fitted = fitted.copy();
-            fitted.cueMaxLines = 1;
-            cue = cueRowHeightDp(c, fitted, size, innerWidth);
+            float deficit = smallest + dialogue + meta + hint + side + cue - body;
+            if (model.cueEssential && !model.tightBody && deficit <= padding) {
+                // An instruction keeps its words: as much of the body's padding as it needs goes first.
+                reclaimed = deficit;
+                body += deficit;
+            } else {
+                // A wrapping cue that does not fit goes back to one line (ending in "…") before anything goes.
+                fitted = edit(fitted, model);
+                fitted.cueMaxLines = 1;
+                cue = cueRowHeightDp(c, fitted, size, innerWidth);
+            }
         }
         if (cue > 0 && !model.cueEssential && comfortable + dialogue + meta + hint + side + cue > body) {
-            if (fitted == model) fitted = fitted.copy();
+            fitted = edit(fitted, model);
             fitted.cue = null;
             cue = 0;
         }
         // An optional dialogue line is the next extra to go: it never squeezes the title either.
         if (dialogue > 0 && model.dialogueOptional && comfortable + dialogue + meta + hint + side + cue > body) {
-            if (fitted == model) fitted = fitted.copy();
+            fitted = edit(fitted, model);
             fitted.dialogue = null;
             dialogue = 0;
         }
         if (hint > 0 && smallest + dialogue + meta + hint + side + cue > body) {
-            if (fitted == model) fitted = fitted.copy();
+            fitted = edit(fitted, model);
             fitted.hint = null;
             hint = 0;
         }
         if (side > 0 && smallest + dialogue + meta + side + cue > body) {
-            if (fitted == model) fitted = fitted.copy();
+            fitted = edit(fitted, model);
             fitted.side = null;
             side = 0;
         }
         if (meta > 0 && smallest + dialogue + meta + cue > body) {
-            if (fitted == model) fitted = fitted.copy();
-            fitted.tag = null;
-            fitted.location = null;
-            meta = 0;
+            float deficit = smallest + dialogue + meta + cue - body;
+            if (!isBlank(fitted.tag) && !model.tightBody && reclaimed + deficit <= padding) {
+                // The chip is the step's key fact (RANK 4→5, 学力 +2): the body's padding goes first.
+                reclaimed += deficit;
+                body += deficit;
+            } else {
+                fitted = edit(fitted, model);
+                fitted.tag = null;
+                fitted.location = null;
+                meta = 0;
+            }
         }
         if (cue > 0 && smallest + dialogue + cue > body) {
-            if (fitted == model) fitted = fitted.copy();
+            fitted = edit(fitted, model);
             fitted.cue = null;
             cue = 0;
         }
+        float rows = dialogue + meta + hint + side + cue;
         // On the shortest cards even the smallest title may not fit all its lines: keep the lines that
         // fit and let the last one end in "…" rather than be cut in half.
-        float box = body - dialogue - meta - hint - side - cue;
         int fitLines = lines;
-        while (fitLines > 1 && titleHeightDp(c, fitted.title, MIN_TITLE_SP, titleWidth, fitLines) > box) fitLines--;
+        while (fitLines > 1 && titleHeightDp(c, fitted.title, MIN_TITLE_SP, titleWidth, fitLines) > body - rows) fitLines--;
         if (fitLines != fitted.titleMaxLines) {
-            if (fitted == model) fitted = fitted.copy();
+            fitted = edit(fitted, model);
             fitted.titleMaxLines = fitLines;
         }
+        // A tall card would leave a band between the plate and a title sitting on the buttons: the title
+        // box shrinks to what the largest size needs (as the layout's autosize measures it, which may
+        // be a little taller than the drawn text) and the text sits centred between plate and buttons.
+        float sp = maxTitleSp(size);
+        float drawn = textHeightDp(c, fitted.title, sp, true, titleWidth, fitLines);
+        float inBox = Math.max(0, titleNeedDp(c, fitted.title, sp, titleWidth, fitLines) + TITLE_SLACK_DP - drawn);
+        float spare = body - rows - drawn - inBox;
+        float under = spare > 0 ? Math.min(spare * UNDER_BUTTONS_SHARE, maxSpaceUnderButtonsDp(size)) : 0;
+        float box = spare > 0 ? drawn + inBox : body - rows;
         // A kind mark sits on the title's first line: a title that will wrap hangs from the top.
         boolean top = hasTitleIcon(fitted) && titleLines(c, fitted.title, size, titleWidth, box, fitLines) > 1;
         if (top != fitted.titleTop) {
-            if (fitted == model) fitted = fitted.copy();
+            fitted = edit(fitted, model);
             fitted.titleTop = top;
         }
-        // Full-width dialogue lines stay clear of the outlined day numeral (as the legacy guide does).
+        float above = 0;
+        float below = 0;
+        if (spare > 0) {
+            // The box's own slack shows on the side the text does not hang from (it hangs from the
+            // top only where the title's gravity can be set).
+            float half = (spare - under + inBox) / 2;
+            boolean hangs = top && Build.VERSION.SDK_INT >= 31;
+            float slackSide = Math.max(0, half - inBox);
+            above = hangs ? spare - under - slackSide : slackSide;
+            below = spare - under - above;
+        }
+        // Reclaimed padding comes from above the buttons first: the plate keeps a gap over the title.
+        float reclaimedBelow = Math.min(reclaimed, padding / 2);
+        above -= reclaimed - reclaimedBelow;
+        below -= reclaimedBelow;
+        if (above != fitted.spaceAboveDp || below != fitted.spaceBelowDp || under != fitted.spaceUnderButtonsDp) {
+            fitted = edit(fitted, model);
+            fitted.spaceAboveDp = above;
+            fitted.spaceBelowDp = below;
+            fitted.spaceUnderButtonsDp = under;
+        }
+        // Full-width dialogue lines stay clear of the outlined day numeral (as the legacy guide does);
+        // other text that runs into it gets a fainter numeral.
         if (dialogue > 0 && fitted.watermarkDay >= 0) {
-            if (fitted == model) fitted = fitted.copy();
+            fitted = edit(fitted, model);
             fitted.watermarkDay = -1;
         }
+        boolean faint = textReachesWatermark(c, fitted, size, widthDp);
+        if (faint != fitted.watermarkFaint) {
+            fitted = edit(fitted, model);
+            fitted.watermarkFaint = faint;
+        }
         return fitted;
+    }
+
+    /**
+     * Height in dp the title needs at {@code sp} within {@code maxLines}, measured as the layout's
+     * autosize measures it (with the taller CJK fallback line height); infinite when it needs more lines.
+     */
+    static float titleNeedDp(Context c, String title, float sp, float widthDp, int maxLines) {
+        if (isBlank(title)) return 0;
+        DisplayMetrics metrics = c.getResources().getDisplayMetrics();
+        TextPaint paint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        paint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, metrics));
+        paint.setTypeface(Typeface.DEFAULT_BOLD);
+        int width = Math.max(1, Math.round(widthDp * metrics.density));
+        StaticLayout.Builder builder = StaticLayout.Builder.obtain(title, 0, title.length(), paint, width).setIncludePad(false);
+        if (Build.VERSION.SDK_INT >= 28) builder.setUseLineSpacingFromFallbacks(true);
+        StaticLayout layout = builder.build();
+        if (layout.getLineCount() > Math.max(1, maxLines)) return Float.POSITIVE_INFINITY;
+        return layout.getHeight() / metrics.density;
+    }
+
+    /** Height in dp of the outlined day numeral per bucket. Mirrors the layout XML. */
+    static float watermarkHeightDp(WidgetSize size) {
+        switch (size) {
+            case REGULAR: return 112;
+            case COMPACT: return 92;
+            default: return 84;
+        }
+    }
+
+    /** Width in dp of the outlined numeral of {@code day} (two digit slots, the second overlapping). */
+    static float watermarkWidthDp(Context c, int day, WidgetSize size) {
+        float height = watermarkHeightDp(size);
+        float overlap = size == WidgetSize.REGULAR ? 14 : 11;
+        int tens = day >= 10 ? day / 10 : day;
+        int units = day >= 10 ? day % 10 : 0; // a lone digit keeps the second slot's width
+        return digitWidthDp(c, tens, height) + digitWidthDp(c, units, height) - overlap;
+    }
+
+    private static float digitWidthDp(Context c, int digit, float heightDp) {
+        android.graphics.drawable.Drawable d = c.getDrawable(DIGITS[digit]);
+        if (d == null || d.getIntrinsicHeight() <= 0) return heightDp * 0.65f;
+        return heightDp * d.getIntrinsicWidth() / d.getIntrinsicHeight();
+    }
+
+    /**
+     * Whether a shown line of text reaches the outlined day numeral at the right edge (it spans the
+     * body's height): the title at its largest size, the tag/location row, the reminder, side and cue.
+     */
+    static boolean textReachesWatermark(Context c, CardModel m, WidgetSize size, float widthDp) {
+        if (m.watermarkDay < 1 || m.watermarkDay > 31) return false;
+        float scale = c.getResources().getConfiguration().fontScale;
+        float pad = bodyPaddingDp(size);
+        float inner = widthDp - 2 * pad;
+        float titleWidth = titleWidthDp(m, size, inner);
+        float reach = (inner - titleWidth) + widestLineDp(c, m.title, maxTitleSp(size), Typeface.DEFAULT_BOLD, titleWidth,
+                Math.max(1, m.titleMaxLines));
+        float chip = Math.min(inner, chipWidthDp(c, m, size));
+        float location = isBlank(m.location) ? 0 : PIN_DP + lineWidthDp(c, m.location, metaTextSp(size) * scale, Typeface.DEFAULT);
+        reach = Math.max(reach, (chip > 0 ? chip + TAG_MARGIN_DP : 0) + location);
+        float cueSp = cueTextSp(size);
+        if (!isBlank(m.hint)) reach = Math.max(reach, PIN_DP + lineWidthDp(c, m.hint, cueSp * scale, Typeface.DEFAULT));
+        if (!isBlank(m.side)) reach = Math.max(reach, lineWidthDp(c, m.side, cueSp * scale, Typeface.DEFAULT));
+        reach = Math.max(reach, widestLineDp(c, m.cue, cueSp, Typeface.DEFAULT, inner, Math.max(1, m.cueMaxLines)));
+        float numeral = widthDp + WATERMARK_BLEED_DP - watermarkWidthDp(c, m.watermarkDay, size);
+        return pad + Math.min(inner, reach) > numeral + WATERMARK_TOLERANCE_DP;
+    }
+
+    /** The numeral hangs this far past the right edge (dp). Mirrors the layout XML. */
+    private static final float WATERMARK_BLEED_DP = 2f;
+    /** Text may touch the numeral's (slanted, mostly empty) left edge by this much (dp). */
+    private static final float WATERMARK_TOLERANCE_DP = 4f;
+
+    /** Width in dp of the widest of the first {@code maxLines} lines of {@code text} wrapped to {@code widthDp}. */
+    private static float widestLineDp(Context c, String text, float sp, Typeface typeface, float widthDp, int maxLines) {
+        if (isBlank(text)) return 0;
+        StaticLayout layout = layout(c, text, sp, typeface, widthDp, Integer.MAX_VALUE, 0f);
+        float widest = 0;
+        for (int i = 0; i < Math.min(maxLines, layout.getLineCount()); i++) widest = Math.max(widest, layout.getLineWidth(i));
+        return widest / c.getResources().getDisplayMetrics().density;
     }
 
     /** Height in dp of the dialogue line including its top gap (0 if hidden). */
@@ -541,8 +759,9 @@ public final class CardRenderer {
             return;
         }
         views.setViewVisibility(R.id.widget_watermark, View.VISIBLE);
-        views.setInt(R.id.widget_watermark_tens, "setImageAlpha", palette.watermarkImageAlpha);
-        views.setInt(R.id.widget_watermark_units, "setImageAlpha", palette.watermarkImageAlpha);
+        int alpha = model.watermarkFaint ? Math.round(palette.watermarkImageAlpha * FAINT_WATERMARK) : palette.watermarkImageAlpha;
+        views.setInt(R.id.widget_watermark_tens, "setImageAlpha", alpha);
+        views.setInt(R.id.widget_watermark_units, "setImageAlpha", alpha);
         if (day >= 10) {
             views.setImageViewResource(R.id.widget_watermark_tens, DIGITS[day / 10]);
             views.setImageViewResource(R.id.widget_watermark_units, DIGITS[day % 10]);
@@ -624,10 +843,15 @@ public final class CardRenderer {
     }
 
     private static void applyBody(Context c, RemoteViews views, CardModel model, WidgetPalette palette, WidgetSize size) {
-        if (model.tightBody) {
-            int side = Math.round(bodyPaddingDp(size) * c.getResources().getDisplayMetrics().density);
-            views.setViewPadding(R.id.widget_task_area, side, 0, side, 0);
-        }
+        // Body padding (none when tight) plus the spare height fit() shared out on a tall card, less
+        // what it gave up for an instruction on a short one.
+        float density = c.getResources().getDisplayMetrics().density;
+        int side = Math.round(bodyPaddingDp(size) * density);
+        float padding = model.tightBody ? 0 : bodyVerticalPaddingDp(size) / 2;
+        views.setViewPadding(R.id.widget_task_area, side, Math.round(Math.max(0, padding + model.spaceAboveDp) * density),
+                side, Math.round(Math.max(0, padding + model.spaceBelowDp) * density));
+        views.setViewPadding(R.id.widget_content, 0, 0, 0,
+                Math.round((contentPaddingDp(size) + model.spaceUnderButtonsDp) * density));
         int ink = palette.ink(c);
         int soft = palette.inkSoft(c);
         views.setTextViewText(R.id.widget_task, keepNumbersTogether(model.title));
@@ -653,9 +877,8 @@ public final class CardRenderer {
         setTextOrHide(views, R.id.widget_tag, model.tag);
         views.setInt(R.id.widget_tag, "setBackgroundResource", palette.tag);
         views.setTextColor(R.id.widget_tag, palette.tagInk(c));
-        int tagMax = model.tagMaxWidthDp > 0
-                ? Math.round(model.tagMaxWidthDp * c.getResources().getDisplayMetrics().density) : Integer.MAX_VALUE;
-        views.setInt(R.id.widget_tag, "setMaxWidth", tagMax);
+        views.setInt(R.id.widget_tag, "setMaxLines", Math.max(1, model.tagMaxLines));
+        views.setTextViewTextSize(R.id.widget_tag, TypedValue.COMPLEX_UNIT_SP, chipTextSp(model, size));
 
         setTextOrHide(views, R.id.widget_location, model.location);
         views.setTextColor(R.id.widget_location, soft);

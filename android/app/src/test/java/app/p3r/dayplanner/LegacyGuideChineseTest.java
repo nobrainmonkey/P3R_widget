@@ -111,6 +111,23 @@ public class LegacyGuideChineseTest {
         assertTrue(page.contains("用公用电脑学习“山间补习班”，学力升到 Lv.2"));
     }
 
+    /**
+     * Review: t134_02 read 「铜条美鹤」 (桐条美鹤), and the guide said 「今日」 where everything else says
+     * 「今天」. Checked in all three copies of the text.
+     */
+    @Test
+    public void namesAndDayWordsAreSpelledLikeTheRestOfTheApp() throws Exception {
+        String page = page();
+        for (String[] file : new String[][]{{"index.html", page}, {"data.json", asset("data.json")},
+                {"display_metadata.json", asset("display_metadata.json")}}) {
+            assertFalse(file[0] + " misspells 桐条美鹤", file[1].contains("铜条"));
+            assertFalse(file[0] + " says 今日", file[1].contains("今日"));
+        }
+        JSONObject metadata = new JSONObject(asset("display_metadata.json"));
+        assertTrue(metadata.getJSONObject("t134_02").getString("widgetTitle").contains("找桐条美鹤拿申请书"));
+        assertTrue(page.contains("电视购物 · 查看今天的商品"));
+    }
+
     private static String sha(String text) throws Exception {
         StringBuilder out = new StringBuilder();
         for (byte b : MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8))) out.append(String.format("%02x", b));

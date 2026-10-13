@@ -35,7 +35,7 @@ public class CardRendererTest {
         m.periodZh = night ? "晚上" : "放学后";
         m.watermarkDay = 22;
         m.motif = 1;
-        m.progressLabel = "今日";
+        m.progressLabel = "今天";
         m.ticks.add(night ? CardModel.Tick.DONE : CardModel.Tick.CURRENT);
         m.ticks.add(night ? CardModel.Tick.CURRENT : CardModel.Tick.PENDING);
         m.title = "皇帝 · 小田桐秀利";

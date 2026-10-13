@@ -42,6 +42,8 @@ final class StepCopy {
 
     /** Card title (never blank). */
     String title = "";
+    /** The title for a card too small for it ({@link #shortTitle(String)}), or null. */
+    String shortTitle;
     CardModel.TitleIcon icon = CardModel.TitleIcon.NONE;
     /** Chip text, or null. */
     String tag;
@@ -90,7 +92,24 @@ final class StepCopy {
                 c.tag = tag(kind, step.subtitleZh, step.predicted);
                 break;
         }
+        c.shortTitle = shortTitle(c.title);
         return c;
+    }
+
+    /**
+     * The part of a title that must not be cut, for a card too small for all of it: the person
+     * (「倒悬者 · 舞子」 → 「舞子」, 「羁绊剧情 · 伊织顺平（第 2 话）」 → 「伊织顺平（第 2 话）」,
+     * 「结缘网站的字条 · 岳羽由加莉」 → 「岳羽由加莉」). The kind mark beside the title still tells a note
+     * or an episode apart, and the glossary never shortens the note's name to 「字条」. Null for a
+     * title without parts.
+     */
+    static String shortTitle(String title) {
+        String t = blankToNull(title);
+        if (t == null) return null;
+        t = t.trim();
+        int at = t.lastIndexOf(" · ");
+        if (at < 0) return null;
+        return blankToNull(t.substring(at + 3).trim());
     }
 
     /** Coarse kind with the new action types recognised by their keys ("note:…", "episode:…"). */

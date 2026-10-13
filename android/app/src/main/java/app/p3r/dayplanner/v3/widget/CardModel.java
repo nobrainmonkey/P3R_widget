@@ -43,6 +43,11 @@ public final class CardModel {
     // ---- background
     /** Day of month drawn as the outlined watermark, or -1 for none. */
     public int watermarkDay = -1;
+    /**
+     * Text runs behind the watermark: draw it fainter so it never competes with the words. Set by
+     * {@link CardRenderer#fit}.
+     */
+    public boolean watermarkFaint;
     /** Light-shaft composition 0..3 (chosen from the game date so both widgets agree). */
     public int motif;
 
@@ -54,19 +59,34 @@ public final class CardModel {
 
     // ---- body
     public String title = "";
+    /**
+     * A shorter title for a card too small for the whole one (「岳羽由加莉」 beside the note mark for
+     * 「结缘网站的字条 · 岳羽由加莉」): {@link CardRenderer#fit} shows it rather than cut a name with "…".
+     * Null when there is none.
+     */
+    public String titleShort;
     public TitleIcon titleIcon = TitleIcon.NONE;
     /**
      * Hang the title from the top of its box instead of sitting it on the tag row, so the kind mark
      * stays on its first line when it wraps. Set by {@link CardRenderer#fit}.
      */
     public boolean titleTop;
-    /** Compact subtitle chip such as "RANK 6→7" or "学力 +2"; null hides it. */
+    /** Compact subtitle chip such as "RANK 6→7" or "学力 +2"; null hides it. Never cut short. */
     public String tag;
     /**
-     * Widest the tag chip may be (dp, padding included) so the location keeps some room; 0 means
-     * unbounded. Set by {@link CardRenderer#fit}; the chip ellipsizes beyond it.
+     * Text size (sp) of a chip a little too wide for the card, set a step smaller so it stays whole
+     * on one line; 0 for the layout's size. Set by {@link CardRenderer#fit}.
      */
-    public float tagMaxWidthDp;
+    public float tagTextSp;
+    /**
+     * Lines of the tag chip: 2 when it is wider than the card even at the smaller size, so it wraps
+     * after a 「、」 instead of ending in "…". Set by {@link CardRenderer#fit}.
+     */
+    public int tagMaxLines = 1;
+    /**
+     * Where to go. {@link CardRenderer#fit} shows the longest of {@link CardText#locationForms} that
+     * fits beside the chip, and none when even the shortest does not.
+     */
     public String location;
     /** Short reminder line such as "记得带上「皇帝」阿尔卡那的人格面具"; null hides it. */
     public String hint;
@@ -110,6 +130,14 @@ public final class CardModel {
     public boolean tightBody;
     /** Title line limit; the layout's autosize shrinks the text to fit within it. */
     public int titleMaxLines = 3;
+    /**
+     * Room (dp) the body's text leaves on a tall card, shared out by {@link CardRenderer#fit}: above
+     * and below the text (so it sits centred between the plate and the buttons) and under the buttons.
+     * Negative above/below: body padding given up so an instruction keeps its second line.
+     */
+    public float spaceAboveDp;
+    public float spaceBelowDp;
+    public float spaceUnderButtonsDp;
 
     // ---- actions
     public boolean currentVisible = true;
@@ -143,15 +171,18 @@ public final class CardModel {
         m.prevEnabled = prevEnabled;
         m.nextEnabled = nextEnabled;
         m.watermarkDay = watermarkDay;
+        m.watermarkFaint = watermarkFaint;
         m.motif = motif;
         m.progressLabel = progressLabel;
         m.ticks.addAll(ticks);
         m.progressDescription = progressDescription;
         m.title = title;
+        m.titleShort = titleShort;
         m.titleIcon = titleIcon;
         m.titleTop = titleTop;
         m.tag = tag;
-        m.tagMaxWidthDp = tagMaxWidthDp;
+        m.tagTextSp = tagTextSp;
+        m.tagMaxLines = tagMaxLines;
         m.location = location;
         m.hint = hint;
         m.side = side;
@@ -165,6 +196,9 @@ public final class CardModel {
         m.taskDescription = taskDescription;
         m.tightBody = tightBody;
         m.titleMaxLines = titleMaxLines;
+        m.spaceAboveDp = spaceAboveDp;
+        m.spaceBelowDp = spaceBelowDp;
+        m.spaceUnderButtonsDp = spaceUnderButtonsDp;
         m.currentVisible = currentVisible;
         m.currentEnabled = currentEnabled;
         m.currentLabel = currentLabel;
