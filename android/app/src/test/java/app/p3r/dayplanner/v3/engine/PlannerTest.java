@@ -163,7 +163,7 @@ public class PlannerTest {
             assertTrue("the goal is reached earlier", mustPlan.summary.maxSlot[lovers] <= othersPlan.summary.maxSlot[lovers]);
         }
         String note = mustPlan.summary.notesZh.get(0);
-        assertTrue(note, note.startsWith("恋爱：预计") && note.endsWith("练满"));
+        assertTrue(note, note.startsWith("恋爱：预计 ") && note.endsWith(" 升到 MAX"));
     }
 
     @Test
@@ -408,7 +408,7 @@ public class PlannerTest {
         Plan plan = Engine.plan(rules, profile, start, null, generous());
         assertValid(rules, profile, start, plan);
         assertEquals(4, plan.summary.endRanks[RulesFixtures.S_MAGICIAN]);
-        assertEquals("魔术师：RANK 5 暂时无法升级（需要先听到学校里的传闻），先规划到 RANK 4", plan.summary.notesZh.get(0));
+        assertEquals("魔术师：RANK 5 暂时无法升级（需要先听到学校里的传闻），先安排到 RANK 4", plan.summary.notesZh.get(0));
     }
 
     @Test
@@ -422,7 +422,7 @@ public class PlannerTest {
         Plan plan = Engine.plan(rules, profile, start, null, generous());
         assertValid(rules, profile, start, plan);
         assertEquals(4, plan.summary.endRanks[RulesFixtures.S_MAGICIAN]);
-        assertEquals("魔术师：RANK 5 暂时无法升级（游戏里有提示），先规划到 RANK 4", plan.summary.notesZh.get(0));
+        assertEquals("魔术师：RANK 5 暂时无法升级（游戏里有提示），先安排到 RANK 4", plan.summary.notesZh.get(0));
         int held = 0;
         int socialSteps = 0;
         for (Plan.Step s : plan.steps) {
@@ -453,7 +453,7 @@ public class PlannerTest {
         for (Plan.Step s : alts) if (s.action.equals("act:job_chagall")) job = s;
         assertNotNull(job);
         assertEquals("咖啡店「夏卡尔」打工", job.titleZh);
-        assertEquals("打工 · 预计 +2,500 日元", job.subtitleZh);
+        assertEquals("预计 +2,500 日元 · 魅力 +1、勇气 +1", job.subtitleZh);
         assertEquals(2_500, job.predicted.cashDelta);
         assertTrue(Engine.alternatives(rules, profile, RulesFixtures.newGame(rules, Rules.slot(21, false))).isEmpty());
     }

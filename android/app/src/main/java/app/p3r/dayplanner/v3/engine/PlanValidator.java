@@ -17,7 +17,9 @@ import java.util.Map;
  * in the wrong slot kind, meetings outside the link's O/D days or while missing/lost, unlock steps
  * out of order / too early / without prerequisites, side steps ({@link Plan.Step#side}: listed
  * non-consuming unlock steps, checked for order, slot kind, day rule, minGapDays, requirements and
- * fees, and counted in the unlock progress), excluded or unavailable activities, spending
+ * fees, and counted in the unlock progress), excluded or unavailable activities, dating-site
+ * notes (evening, from their first day, allowed, affordable, an established non-MAX link; never a
+ * rank-up), Link Episodes (opted-in track, slot kind, the day's cell, in order), spending
  * below zero, Tartarus caps, ranks that skip, regress or exceed MAX, predicted ranks or cash that
  * disagree with the recount, and a summary whose end ranks disagree. Warnings: a FREE slot where a
  * productive action was verifiably legal. Messages are developer-facing English.
@@ -69,6 +71,9 @@ final class PlanValidator {
         final int[] visits;
         final int[] shifts;
         final int[] used;
+        /** Link Episodes watched per track. */
+        final int[] episodes;
+        int notesUsed;
 
         Replay(Rules rules, Profile profile, SimState o, Report report) {
             this.rules = rules;
@@ -80,6 +85,7 @@ final class PlanValidator {
             visits = new int[nBlocks];
             shifts = new int[nActs];
             used = new int[nActs];
+            episodes = new int[rules.episodes == null ? 0 : rules.episodes.length];
             slot = o.slot;
             cash = Math.max(0, o.cash);
             copy(o.statPts, stat);
@@ -93,6 +99,8 @@ final class PlanValidator {
             copy(o.towerVisits, visits);
             copy(o.shifts, shifts);
             copy(o.used, used);
+            copy(o.episodes, episodes);
+            notesUsed = Math.max(0, o.notesUsed);
             rescued = o.rescued;
             failed = o.rescueFailed;
             for (int i = 0; i < 22; i++) rank[i] = Math.max(0, Math.min(10, rank[i]));
@@ -172,6 +180,14 @@ final class PlanValidator {
                 case TARTARUS:
                     expectKind(s, "tower");
                     tower(s, a.target, sideCost);
+                    break;
+                case NOTE:
+                    expectKind(s, "note");
+                    note(s, a.target);
+                    break;
+                case EPISODE:
+                    expectKind(s, "episode");
+                    episode(a.target);
                     break;
                 default:
                     break;
@@ -392,6 +408,60 @@ final class PlanValidator {
             }
         }
 
+        /**
+         * Dating-site note: an open evening from the note's first day, notes allowed by the player,
+         * the price (+ cash buffer) affordable, the use limit, and an established manual link at
+         * RANK 1–9 that is not missing or lost. Adds the note's points (no multiplier; capped at the
+         * threshold during a hold) and never changes the rank.
+         */
+        private void note(Plan.Step s, int l) {
+            Rules.DatingNote note = rules.datingNote;
+            Rules.Link link = rules.links[l];
+            int r = rank[l];
+            if (note == null) {
+                error(slot, "dating-site note without a note in the pack");
+                checkRanks(s, r, r);
+                return;
+            }
+            if (!evening()) error(slot, "dating-site note in the daytime");
+            if (!profile.datingNotes) error(slot, "dating-site note while the player turned notes off");
+            if (day() < note.fromDay) error(slot, "dating-site note before it is sold");
+            if (notesUsed >= Model.NOTE_MAX_USES) error(slot, "dating-site note use limit reached");
+            if (link.kind != Rules.LinkKind.MANUAL || r < 1 || r >= 10) error(slot, "dating-site note for " + link.id + " at rank " + r);
+            if (unavailable(l)) error(slot, link.id + " is missing or lost");
+            int cost = Math.max(0, note.cost);
+            int buffer = cost > 0 ? Math.max(0, profile.cashBuffer) : 0;
+            if (cash < cost + buffer) error(slot, "dating-site note costs " + cost + " (+" + buffer + " buffer) with cash " + cash);
+            cash -= cost;
+            notesUsed++;
+            if (r >= 1 && r < 10) {
+                int thr = link.threshold[r + 1];
+                int need = thr + (isGoal(l) && profile.goalBuffer && thr > 0 ? ordinaryGain() : 0);
+                int next = pts[l] + Math.max(0, note.gain);
+                pts[l] = heldNow(l, r + 1) ? Math.min(next, Math.max(pts[l], need)) : next;
+            }
+            checkRanks(s, r, rank[l]);
+        }
+
+        /** Link Episode: an opted-in track, its slot kind, and a day whose cell allows the next episode. */
+        private void episode(int e) {
+            if (e < 0 || e >= episodes.length) {
+                error(slot, "unknown episode track " + e);
+                return;
+            }
+            Rules.Episode ep = rules.episodes[e];
+            int next = episodes[e] + 1;
+            if (!profile.wantsEpisodes(ep.id)) error(slot, "episode of track " + ep.id + ", which the player did not choose");
+            if (ep.evening != evening()) error(slot, "episode of " + ep.id + " in the wrong slot kind");
+            if (next > ep.count) error(slot, "episode " + next + " of " + ep.id + " beyond its " + ep.count + " episodes");
+            if (!episodeAllowed(ep, day(), next)) error(slot, "episode " + next + " of " + ep.id + " not available on day " + day());
+            episodes[e]++;
+        }
+
+        private static boolean episodeAllowed(Rules.Episode ep, int d, int n) {
+            return n >= 1 && n <= 31 && ep.dayMask != null && d >= 0 && d < ep.dayMask.length && (ep.dayMask[d] & (1 << (n - 1))) != 0;
+        }
+
         // ------------------------------------------------------------------ model pieces
 
         private boolean productiveLegal() {
@@ -412,10 +482,35 @@ final class PlanValidator {
                     if (a.gain[s] > 0 && stat[s] < rules.stats[s].thresholds[6]) return true;
                 }
             }
+            for (int e = 0; e < episodes.length; e++) {
+                Rules.Episode ep = rules.episodes[e];
+                if (profile.wantsEpisodes(ep.id) && ep.evening == evening() && episodes[e] < ep.count
+                        && episodeAllowed(ep, d, episodes[e] + 1)) return true;
+            }
+            if (noteUseful(d)) return true;
             Rules.Day day = rules.day(d);
             if (!evening() || day == null || !day.tartarus || day.block < 0 || day.block >= nBlocks) return false;
             // A visit that would use the cap a pending rescue later in this block needs is not counted.
             return visits[day.block] + 1 + pendingRescues(day.block) <= profile.towerCapPerBlock;
+        }
+
+        /** A dating-site note is affordable this evening and some established link the plan wants still needs points. */
+        private boolean noteUseful(int d) {
+            Rules.DatingNote note = rules.datingNote;
+            if (note == null || note.gain <= 0 || !evening() || !profile.datingNotes || d < note.fromDay) return false;
+            int cost = Math.max(0, note.cost);
+            if (notesUsed >= Model.NOTE_MAX_USES || cash < cost + (cost > 0 ? Math.max(0, profile.cashBuffer) : 0)) return false;
+            for (Rules.Link link : rules.links) {
+                int l = link.idx;
+                int r = rank[l];
+                if (link.kind != Rules.LinkKind.MANUAL || r < 1 || r >= 10 || ready[l] || unavailable(l)) continue;
+                if (!isGoal(l) && !profile.otherLinks) continue;
+                if (!profile.otherLinks && r >= Math.max(1, Math.min(10, profile.target[l]))) continue;
+                int thr = link.threshold[r + 1];
+                int need = thr + (isGoal(l) && profile.goalBuffer && thr > 0 ? ordinaryGain() : 0);
+                if (thr > 0 && pts[l] < need) return true;
+            }
+            return false;
         }
 
         /** Rescues of links that still matter whose window has an enterable evening later in this block. */

@@ -686,6 +686,67 @@ final class RulesFixtures {
         return out;
     }
 
+    // ------------------------------------------------------------------ dating-site note and Link Episodes
+
+    /** The dating-site note as the evidence describes it: +10 points, 3,000 日元, one evening. */
+    static Rules.DatingNote datingNote(int fromDay) {
+        Rules.DatingNote n = new Rules.DatingNote();
+        n.zh = "结缘网站的字条";
+        n.howZh = "晚上到桐叶购物中心的放纵俱乐部，向卖网址的人买结缘网站的字条，回宿舍用公用电脑选一位社群对象";
+        n.locationZh = "桐叶购物中心 · 放纵俱乐部";
+        n.fromDay = fromDay;
+        n.cost = 3_000;
+        n.gain = 10;
+        n.conf = "estimate";
+        return n;
+    }
+
+    /** An empty Link Episode track sized for the pack; allow days with {@link #allow}. */
+    static Rules.Episode track(Rules r, int idx, String id, String person, boolean evening, int count) {
+        Rules.Episode e = new Rules.Episode();
+        e.idx = idx;
+        e.id = id;
+        e.personZh = person;
+        e.titleZh = "羁绊剧情 · " + person;
+        e.evening = evening;
+        e.count = count;
+        e.dayMask = new int[r.lastDay + 1];
+        e.locationZh = "严户台宿舍";
+        e.rewardZh = "特性「" + person + "的心意」";
+        e.noteZh = "按顺序看，每话占一个" + (evening ? "晚上" : "白天");
+        return e;
+    }
+
+    /** Episodes {@code fromEp}…{@code toEp} (1-based) can be watched on those weekdays in [fromDay, toDay]. */
+    static void allow(Rules r, Rules.Episode e, int fromEp, int toEp, int fromDay, int toDay, int... weekdays) {
+        int bits = 0;
+        for (int n = fromEp; n <= toEp; n++) bits |= 1 << (n - 1);
+        for (int d = Math.max(r.firstDay, fromDay); d <= Math.min(r.lastDay, toDay); d++) {
+            if (weekdays.length == 0 || Tables.contains(weekdays, r.days[d].wd)) e.dayMask[d] |= bits;
+        }
+    }
+
+    /**
+     * The full-year fixture with the dating-site note (on sale from 11/16) and two Link Episode
+     * tracks: 伊织顺平 (daytime, five episodes in separate windows, the last ones short) and 真田明彦
+     * (evenings, three episodes on Fridays).
+     */
+    static Rules fullYearWithExtras() {
+        Rules r = fullYear();
+        r.datingNote = datingNote(day(11, 16));
+        Rules.Episode junpei = track(r, 0, "junpei", "伊织顺平", false, 5);
+        allow(r, junpei, 1, 1, day(5, 12), day(7, 3), 2, 5);
+        allow(r, junpei, 2, 2, day(8, 18), day(8, 28), 2, 5);
+        allow(r, junpei, 3, 3, day(11, 7), day(11, 13), 2, 3, 5, 6);
+        allow(r, junpei, 4, 4, day(12, 19), day(12, 26), 2, 5, 6);
+        allow(r, junpei, 5, 5, day(1, 15), day(1, 29), 2, 5);
+        Rules.Episode akihiko = track(r, 1, "akihiko", "真田明彦", true, 3);
+        allow(r, akihiko, 1, 3, day(5, 29), day(7, 10), 5);
+        allow(r, akihiko, 2, 3, day(10, 9), day(11, 2), 5);
+        r.episodes = new Rules.Episode[]{junpei, akihiko};
+        return r;
+    }
+
     // ------------------------------------------------------------------ states and profiles
 
     /** A new-game state at {@code slot} sized for the pack. */

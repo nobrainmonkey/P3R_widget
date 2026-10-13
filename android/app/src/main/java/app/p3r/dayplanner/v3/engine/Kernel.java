@@ -310,13 +310,15 @@ final class Kernel {
 
     /**
      * The note may target the link (established manual link at RANK 1–9, not missing or lost) and
-     * its points would count: the next rank needs points ({@code threshold > 0}), the rank-up cue
-     * has not shown and the estimated points are still below what the next rank-up needs. Notes
-     * that could not change anything are not offered (like training above Lv6).
+     * its points would count: the plan wants the link (a goal below its target, or any link when
+     * 其余社群 is on), the next rank needs points ({@code threshold > 0}), the rank-up cue has not
+     * shown and the estimated points are still below what the next rank-up needs. Notes that could
+     * not change anything are not offered (like training above Lv6).
      */
     static boolean noteUseful(Model m, SimState st, int link, int day) {
         int r = st.rank[link];
         if (r < 1 || r >= 10 || st.ready[link] || m.rules.links[link].kind != Rules.LinkKind.MANUAL) return false;
+        if (!wantsSide(m, link) || (!m.profile.otherLinks && r >= m.target(link))) return false;
         if (m.rules.links[link].threshold[r + 1] <= 0 || blocked(m, st, link, day)) return false;
         return st.pts[link] < need(m, link, r);
     }

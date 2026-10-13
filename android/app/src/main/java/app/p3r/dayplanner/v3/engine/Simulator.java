@@ -96,6 +96,9 @@ final class Simulator {
      *       the link's next rank-up until the player reports progress.</li>
      *   <li>OTHER – the forecast transition, then explicit visible values override it.</li>
      * </ul>
+     * A dating-site note (NOTE) pays the price and adds its estimated points under AS_PREDICTED,
+     * NO_RANK_UP and OTHER; it never ranks the link up unless the player reports a higher RANK. A
+     * Link Episode (EPISODE) counts as watched unless it was skipped or not done.
      * In every case a ready cue sets {@code ready}, stat Lv values clamp the hidden points into
      * that Lv's range and a cash balance sets cash exactly. The slot always advances by one.
      *
@@ -149,8 +152,9 @@ final class Simulator {
         return st;
     }
 
+    /** The link an action is about (meetings, unlock steps and dating-site notes), else -1. */
     private static int linkOf(Action a) {
-        return a.type == Action.Type.MEET || a.type == Action.Type.UNLOCK_STEP ? a.target : -1;
+        return a.type == Action.Type.MEET || a.type == Action.Type.UNLOCK_STEP || a.type == Action.Type.NOTE ? a.target : -1;
     }
 
     private static void rankUp(Model m, SimState st, Action action, int link, int observedRank) {
@@ -159,6 +163,12 @@ final class Simulator {
             return;
         }
         int to;
+        if (action.type == Action.Type.NOTE) {
+            // A note never ranks a link up by itself: keep its points and believe an explicit rank only.
+            Kernel.mainEffect(m, st, Kernel.encode(action), null);
+            if (observedRank > st.rank[link]) setRank(m, st, link, Math.min(10, observedRank));
+            return;
+        }
         if (action.type == Action.Type.UNLOCK_STEP) {
             // Pays the step costs; "ranked up" after an unlock step means the link is now established.
             Kernel.mainEffect(m, st, Kernel.encode(action), null);
@@ -238,6 +248,12 @@ final class Simulator {
                 break;
             case TARTARUS:
                 if (a.target < 0 || a.target >= t.nBlocks) throw new IllegalArgumentException("bad block " + a);
+                break;
+            case NOTE:
+                if (a.target < 0 || a.target >= t.nLinks) throw new IllegalArgumentException("bad link " + a);
+                break;
+            case EPISODE:
+                if (a.target < 0 || a.target >= t.nEps) throw new IllegalArgumentException("bad episode track " + a);
                 break;
             default:
                 break;

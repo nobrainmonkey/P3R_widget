@@ -11,8 +11,8 @@ import java.util.List;
  * the kernel from the observed state (side steps included).
  *
  * <ul>
- *   <li>{@link #daytimeWaste}: daytime slots in which the plan does something other than a meeting
- *       or an unlock step while a wanted (goal, or any link when 其余社群 is on), established,
+ *   <li>{@link #daytimeWaste}: daytime slots in which the plan does something other than a meeting,
+ *       an unlock step or an opted-in Link Episode while a wanted (goal, or any link when 其余社群 is on), established,
  *       not-yet-finished link could be met in that slot.</li>
  *   <li>{@link #unlockDay}: day each manual link gets established (-1 never, -2 already at the start).</li>
  *   <li>{@link #towerVisits}: planned visits per Tartarus block (observed ones included).</li>
@@ -34,6 +34,9 @@ final class PlanMetrics {
     int dayStats;
     int eveStats;
     int freeSlots;
+    /** Dating-site notes and Link Episodes in the plan. */
+    int notes;
+    int episodes;
     int unmetTower;
     /** Rescues (index) planned inside their window while the link still mattered. */
     long rescued;
@@ -83,7 +86,9 @@ final class PlanMetrics {
             int type = Kernel.type(code);
             boolean open = t.open(slot);
             boolean day = (slot & 1) == 0;
-            if (open && day && type != Kernel.T_MEET && type != Kernel.T_UNLOCK && meetableWanted(m, st, slot)) {
+            // A Link Episode of a track the player opted into is not waste either (it is wanted).
+            if (open && day && type != Kernel.T_MEET && type != Kernel.T_UNLOCK && type != Kernel.T_EPISODE
+                    && meetableWanted(m, st, slot)) {
                 pm.daytimeWaste++;
                 pm.wasteSlots.add(slot);
             }
@@ -100,6 +105,8 @@ final class PlanMetrics {
                 }
             }
             if (open && code == Kernel.FREE) pm.freeSlots++;
+            if (open && type == Kernel.T_NOTE) pm.notes++;
+            if (open && type == Kernel.T_EPISODE) pm.episodes++;
             int[] before = st.rank.clone();
             Kernel.apply(m, st, open ? code : Kernel.FREE, null);
             for (int l = 0; l < t.nLinks; l++) {
@@ -145,7 +152,8 @@ final class PlanMetrics {
                 .append(" · end cash ").append(endCash)
                 .append(" · jobs day ").append(dayJobs).append(" eve ").append(eveJobs).append(" (+").append(jobIncome).append(")")
                 .append(" · stat training day ").append(dayStats).append(" eve ").append(eveStats)
-                .append(" · free ").append(freeSlots).append('\n');
+                .append(" · free ").append(freeSlots)
+                .append(" · notes ").append(notes).append(" · episodes ").append(episodes).append('\n');
         sb.append("unlocks:");
         for (Rules.Link l : rules.links) {
             if (l.kind != Rules.LinkKind.MANUAL) continue;

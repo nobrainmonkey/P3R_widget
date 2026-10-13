@@ -47,11 +47,12 @@ final class Planner {
      */
     static final double SWITCH_MARGIN = Heuristics.MAX_BONUS_RANKS * Heuristics.W_OTHER;
     /**
-     * Objective gain (half a RANK of a non-goal link) a rollout must show before a daytime slot in
+     * Objective gain (one RANK of a non-goal link) a rollout must show before a daytime slot in
      * which a wanted link could be met is given to training, a job or nothing: such gains are made
-     * of estimates (stat points, yen) while the meeting is certain progress.
+     * of estimates (stat points, yen) while the meeting is certain progress. Plans of the portfolio
+     * are compared with the same margin per wasted slot.
      */
-    static final double WASTE_MARGIN = Heuristics.W_OTHER / 2;
+    static final double WASTE_MARGIN = Heuristics.W_OTHER;
     /** For goals: the waste margin is this share of the goal's weight (2.5 slots earlier MAX). */
     static final double WASTE_GOAL_SHARE = 2.5 * Heuristics.EARLY_PER_SLOT;
 
@@ -96,8 +97,9 @@ final class Planner {
     /**
      * Screens every tuning of {@code portfolio} with its base policy, then fortifies the best
      * {@link #FORTIFY} (in screened order, while the budget allows) and keeps the plan with the best
-     * objective, preferring within {@link #SWITCH_MARGIN} one that keeps the previous plan's next
-     * three days. With a zero time budget only the first tuning's base policy runs.
+     * objective (less the waste margin per wasted daytime slot, see {@link Candidate}), preferring
+     * within {@link #SWITCH_MARGIN} one that keeps the previous plan's next three days. With a zero
+     * time budget only the first tuning's base policy runs.
      */
     static Plan plan(Rules rules, Profile profile, SimState observed, Plan previous, Engine.Options options,
                      Heuristics.Tuning[] portfolio) {
@@ -119,15 +121,15 @@ final class Planner {
             Heuristics h = new Heuristics(m, start, previous, portfolio[v]);
             Search base = new Search(m, h, options, deadline, 0f, 0f);
             int[] codes = base.runBase(start);
-            screened[v] = new Candidate(h, codes, base.objectiveOf(start, codes), v);
+            screened[v] = new Candidate(h, codes, base.objectiveOf(start, codes), v, wasteMargin(h) * daytimeWaste(m, start, codes));
             if (options.progress != null) options.progress.onProgress(SCREEN_SHARE * (v + 1) / variants);
         }
         Candidate[] order = Arrays.stream(screened).filter(c -> c != null)
                 .sorted((a, b) -> a.j != b.j ? Double.compare(b.j, a.j) : Integer.compare(a.variant, b.variant))
                 .toArray(Candidate[]::new);
         for (Candidate c : order) {
-            if (best == null || c.j > best.j + EPS) best = c;
-            if (keepsPreviousWindow(c.h, start.slot, c.codes) && (bestStable == null || c.j > bestStable.j + EPS)) bestStable = c;
+            if (best == null || c.score > best.score + EPS) best = c;
+            if (keepsPreviousWindow(c.h, start.slot, c.codes) && (bestStable == null || c.score > bestStable.score + EPS)) bestStable = c;
         }
         int fortify = search ? Math.min(FORTIFY, order.length) : 0;
         long fortifyStart = System.nanoTime();
@@ -143,11 +145,11 @@ final class Planner {
             Search fortified = new Search(m, h, options, deadline, from, (1 - SCREEN_SHARE) / fortify);
             int[] codes = fortified.run(start);
             exhausted |= fortified.exhausted;
-            Candidate c = new Candidate(h, codes, fortified.objectiveOf(start, codes), base.variant);
-            if (c.j > best.j + EPS) best = c;
-            if (keepsPreviousWindow(h, start.slot, codes) && (bestStable == null || c.j > bestStable.j + EPS)) bestStable = c;
+            Candidate c = new Candidate(h, codes, fortified.objectiveOf(start, codes), base.variant, wasteMargin(h) * daytimeWaste(m, start, codes));
+            if (c.score > best.score + EPS) best = c;
+            if (keepsPreviousWindow(h, start.slot, codes) && (bestStable == null || c.score > bestStable.score + EPS)) bestStable = c;
         }
-        Candidate chosen = bestStable != null && best.j <= bestStable.j + SWITCH_MARGIN ? bestStable : best;
+        Candidate chosen = bestStable != null && best.score <= bestStable.score + SWITCH_MARGIN ? bestStable : best;
         Plan plan = assemble(m, chosen.h, start, chosen.codes);
         plan.budgetExhausted = exhausted;
         plan.elapsedMillis = (System.nanoTime() - t0) / 1_000_000L;
@@ -160,20 +162,67 @@ final class Planner {
     /** Share of the progress bar used by the screening phase. */
     private static final float SCREEN_SHARE = 0.1f;
 
-    /** One tuning's complete result. */
+    /**
+     * One tuning's complete result. Plans are compared by {@link #score}: the objective minus the
+     * waste margin for every daytime slot that skips a wanted link which could be met there, so a
+     * plan that gives such a slot to training or a job wins only by a clear gain (the same rule the
+     * rollout applies slot by slot, see {@link #WASTE_MARGIN}).
+     */
     private static final class Candidate {
         final Heuristics h;
         final int[] codes;
         final double j;
+        final double score;
         /** Index of the tuning in the portfolio. */
         final int variant;
 
-        Candidate(Heuristics h, int[] codes, double j, int variant) {
+        Candidate(Heuristics h, int[] codes, double j, int variant, double wastePenalty) {
             this.h = h;
             this.codes = codes;
             this.j = j;
+            this.score = j - wastePenalty;
             this.variant = variant;
         }
+    }
+
+    /** {@link #WASTE_MARGIN}, raised for goals whose earlier MAX is worth more per slot. */
+    static double wasteMargin(Heuristics h) {
+        double goalWeight = 0;
+        for (double w : h.wGoal) goalWeight = Math.max(goalWeight, w);
+        return Math.max(WASTE_MARGIN, WASTE_GOAL_SHARE * goalWeight);
+    }
+
+    /**
+     * Daytime slots of {@code codes} that do something other than a meeting, an unlock step or an
+     * opted-in Link Episode while a wanted, established, unfinished link could be met there.
+     */
+    static int daytimeWaste(Model m, SimState start, int[] codes) {
+        SimState st = start.copy();
+        int waste = 0;
+        for (int code : codes) {
+            int slot = st.slot;
+            boolean open = m.t.open(slot);
+            int type = Kernel.type(code);
+            if (open && (slot & 1) == 0 && type != Kernel.T_MEET && type != Kernel.T_UNLOCK && type != Kernel.T_EPISODE
+                    && meetableWanted(m, st, slot)) {
+                waste++;
+            }
+            Kernel.apply(m, st, open ? code : Kernel.FREE, null);
+        }
+        return waste;
+    }
+
+    /** A wanted (goal, or any link with 其余社群), established, unfinished link can be met in this slot. */
+    static boolean meetableWanted(Model m, SimState st, int slot) {
+        int day = slot >> 1;
+        int mask = m.t.meetMask[slot];
+        for (int l = 0; mask != 0; l++, mask >>>= 1) {
+            if ((mask & 1) == 0 || !(m.goal[l] || m.profile.otherLinks)) continue;
+            int goalRank = m.goal[l] && !m.profile.otherLinks ? m.target(l) : 10;
+            if (st.rank[l] >= goalRank) continue;
+            if (Kernel.meetLegal(m, st, l, day)) return true;
+        }
+        return false;
     }
 
     /** True when the plan repeats every productive action the previous plan had for the next three days. */
@@ -218,12 +267,15 @@ final class Planner {
             this.progressFrom = progressFrom;
             this.progressSpan = progressSpan;
             this.candidates = Math.max(1, options.candidates);
-            double goalWeight = 0;
-            for (int l = 0; l < h.wGoal.length; l++) goalWeight = Math.max(goalWeight, h.wGoal[l]);
-            this.wasteMargin = Math.max(WASTE_MARGIN, WASTE_GOAL_SHARE * goalWeight);
+            this.wasteMargin = Planner.wasteMargin(h);
             this.buf = new int[Kernel.maxLegal(m)];
             this.rolloutBuf = new int[Kernel.maxLegal(m)];
             this.scores = new double[buf.length];
+        }
+
+        /** Sizes the scratch used by {@link #rollout} for {@code goals} goal links (done by {@link #run}). */
+        void prepareRollouts(int goals) {
+            reachedScratch = new int[goals];
         }
 
         /** The base policy's action code per slot from {@code start.slot} to the last slot (no rollouts). */
@@ -353,14 +405,17 @@ final class Planner {
 
         /**
          * Up to {@code candidates} options to roll out, the base choice included in the count but not
-         * returned: first one per category (best meeting, second meeting, best stat/job, Tartarus),
-         * ordered by H; when K is larger than that, the next best remaining actions by H.
+         * returned: first one per category (best meeting, second meeting, best stat/job, Tartarus,
+         * best dating-site note, Link Episode), ordered by H; when K is larger than that, the next
+         * best remaining actions by H.
          */
         private int[] diverse(int n, int baseIdx) {
             int social1 = -1;
             int social2 = -1;
             int act = -1;
             int tower = -1;
+            int note = -1;
+            int episode = -1;
             for (int i = 0; i < n; i++) {
                 if (Heuristics.vetoed(scores[i])) continue;
                 int type = Kernel.type(buf[i]);
@@ -375,10 +430,14 @@ final class Planner {
                     if (act < 0 || scores[i] > scores[act]) act = i;
                 } else if (type == Kernel.T_TOWER) {
                     if (tower < 0 || scores[i] > scores[tower]) tower = i;
+                } else if (type == Kernel.T_NOTE) {
+                    if (note < 0 || scores[i] > scores[note]) note = i;
+                } else if (type == Kernel.T_EPISODE) {
+                    if (episode < 0 || scores[i] > scores[episode]) episode = i;
                 }
             }
-            List<Integer> picked = new ArrayList<>(4);
-            for (int r : new int[]{social1, social2, act, tower}) if (r >= 0) picked.add(r);
+            List<Integer> picked = new ArrayList<>(6);
+            for (int r : new int[]{social1, social2, act, tower, note, episode}) if (r >= 0) picked.add(r);
             picked.sort(this::byScore);
             if (candidates > picked.size()) {
                 List<Integer> rest = new ArrayList<>();
@@ -430,8 +489,11 @@ final class Planner {
     // ------------------------------------------------------------------ alternatives (改做别的)
 
     /**
-     * Every legal productive action for {@code observed.slot} as a labeled step (best first by the
-     * base policy), for the "改做别的" list. Steps carry the same fields as plan steps.
+     * Every legal productive action for {@code observed.slot} as a labeled step, most useful first,
+     * for the "改做别的" list. Usefulness is the objective J of taking the action now and following
+     * the base policy to the end of the calendar (what the rest of the year looks like after this
+     * choice); ties go to the base policy's H, then the kernel's order. Steps carry the same fields
+     * as plan steps; the caller marks the planned one.
      */
     static List<Plan.Step> alternatives(Rules rules, Profile profile, SimState observed) {
         Model m = new Model(rules, profile, null);
@@ -441,13 +503,21 @@ final class Planner {
         int[] codes = new int[Kernel.maxLegal(m)];
         int n = Kernel.legal(m, st, codes);
         double[] scores = new double[n];
+        double[] value = new double[n];
         h.prepare(st);
+        for (int i = 0; i < n; i++) scores[i] = h.score(st, codes[i]);
+        Engine.Options options = new Engine.Options();
+        Search search = new Search(m, h, options, Long.MAX_VALUE, 0f, 0f);
+        int[] reached = h.initialReached(st);
+        search.prepareRollouts(reached.length);
+        for (int i = 0; i < n; i++) value[i] = search.rollout(st, codes[i], reached);
         List<Integer> order = new ArrayList<>(n);
-        for (int i = 0; i < n; i++) {
-            scores[i] = h.score(st, codes[i]);
-            order.add(i);
-        }
-        order.sort((a, b) -> scores[a] != scores[b] ? Double.compare(scores[b], scores[a]) : Integer.compare(a, b));
+        for (int i = 0; i < n; i++) order.add(i);
+        order.sort((a, b) -> {
+            if (value[a] != value[b]) return Double.compare(value[b], value[a]);
+            if (scores[a] != scores[b]) return Double.compare(scores[b], scores[a]);
+            return Integer.compare(a, b);
+        });
         List<Plan.Step> out = new ArrayList<>(n);
         Kernel.Effect fx = new Kernel.Effect();
         for (int i : order) out.add(describe(m, labels, st, codes[i], fx));
@@ -475,10 +545,27 @@ final class Planner {
 
     // ------------------------------------------------------------------ plan assembly
 
+    /** Slot at which each link goes from RANK 0 to an unlocked link when following {@code codes} (-1 never or already). */
+    static int[] openSlots(Model m, SimState start, int[] codes) {
+        int[] open = new int[m.t.nLinks];
+        Arrays.fill(open, -1);
+        SimState st = start.copy();
+        for (int code : codes) {
+            int slot = st.slot;
+            int[] before = st.rank.clone();
+            Kernel.apply(m, st, m.t.open(slot) ? code : Kernel.FREE, null);
+            for (int l = 0; l < open.length; l++) {
+                if (open[l] < 0 && before[l] == 0 && st.rank[l] > 0) open[l] = slot;
+            }
+        }
+        return open;
+    }
+
     static Plan assemble(Model m, Heuristics h, SimState start, int[] codes) {
         Rules rules = m.rules;
         Tables t = m.t;
         Labels labels = new Labels(m, h);
+        labels.setPlannedOpen(openSlots(m, start, codes));
         Plan plan = new Plan();
         plan.rulesVersion = rules.version;
         plan.fromSlot = start.slot;
