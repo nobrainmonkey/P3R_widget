@@ -135,7 +135,8 @@ public final class RulesLoader {
             }
             rules.schema = schema;
             rules.packVersion = reqString(root, "packVersion", "root");
-            rules.game = optString(root, "game", "root");
+            String game = optString(root, "game", "root");
+            rules.game = game == null ? "" : game;
             for (int i = 0; i < LINK_IDS.size(); i++) linkIndex.put(LINK_IDS.get(i), i);
 
             parseSources();
@@ -200,6 +201,7 @@ public final class RulesLoader {
                     }
                 }
                 checkConf(o, where);
+                sources(o, where);
                 rules.stats[i] = s;
                 statIndex.put(s.id, i);
             }
@@ -239,6 +241,7 @@ public final class RulesLoader {
                 b.top = reqInt(o, "top", where);
                 if (b.top <= 0) throw fail(where + ".top must be positive");
                 checkConf(o, where);
+                sources(o, where);
                 rules.blocks[i] = b;
             }
         }
@@ -313,6 +316,7 @@ public final class RulesLoader {
                 String link = optString(o, "link", where);
                 r.link = link == null ? -1 : linkRef(link, where + ".link");
                 checkConf(o, where);
+                sources(o, where);
                 rules.rescues[i] = r;
             }
         }
@@ -471,6 +475,7 @@ public final class RulesLoader {
             m.rescueId = reqString(o, "rescueId", where);
             if (!rescueIndex.containsKey(m.rescueId)) throw fail(where + ".rescueId '" + m.rescueId + "' is not a known rescue");
             checkConf(o, where);
+            sources(o, where);
             return m;
         }
 
@@ -614,6 +619,7 @@ public final class RulesLoader {
             rules.policy.personaMult = reqPositiveDouble(o, "personaMult", "policy");
             rules.policy.charmMult = reqPositiveDouble(o, "charmMult", "policy");
             checkConf(o, "policy");
+            sources(o, "policy");
         }
 
         private void parseNotes() throws JSONException {

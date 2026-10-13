@@ -134,13 +134,11 @@ def fix_names(text: str) -> str:
 
 
 class Ledger:
-    """Collects every decision, conflict and gap; rendered into REPORT.md and pack notes."""
+    """Collects decisions, conflicts, audit observations and dropped calendar cells for REPORT.md."""
 
     def __init__(self) -> None:
         self.decisions: list[tuple[str, str, str]] = []  # (area, id, text)
         self.conflicts: list[dict] = []
-        self.gaps: list[str] = []
-        self.notes_zh: list[str] = []
         self.audit: list[str] = []
         self.dropped: dict[str, list[str]] = {}
 
@@ -152,12 +150,6 @@ class Ledger:
             "id": ident, "topic": topic, "chosen": chosen,
             "alternates": alternates, "sources": sources,
         })
-
-    def gap(self, text: str) -> None:
-        self.gaps.append(text)
-
-    def note(self, text_zh: str) -> None:
-        self.notes_zh.append(text_zh)
 
 
 # --------------------------------------------------------------------------------------------
@@ -1196,8 +1188,10 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
             "threshold": thresholds[link],
             "unlock": unlock,
         }
-        for bad in location_tokens_ok(record["locationZh"] or "", guide_text):
-            raise BuildError(f"{link}: location fragment {bad!r} not found in the CN guide")
+        places = [record["locationZh"] or ""] + [s["locationZh"] for s in unlock["steps"]]
+        bad = [part for place in places for part in location_tokens_ok(place, guide_text)]
+        if bad:
+            raise BuildError(f"{link}: location fragments {bad} not found in the CN guide")
         ledger.dropped[link] = dropped
         out.append(record)
 
@@ -1222,8 +1216,8 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
     ledger.conflict("unlock.empress.exam", "Empress extra requirement", "Academics Lv6 only (exam first place noted, not modelled)",
                     ["Academics Lv6 + first place in an exam (aqiu)"], ["aqiu_social_events", "ev_romance"])
     ledger.decide("links", "holds", "No mid-chain holds are encoded. Moon R9: aqiu says the link 'will momentarily "
-                  "reverse'; the CN guide reaches MAX after one later meeting, so the 15-point R10 threshold already covers "
-                  "the repair. Hierophant R4->R5: a single Steam report of a rumour gate is contradicted by the CN guide "
+                  "reverse'; the CN guide lists only one later meeting (MAX on 11/23) and no repair step, so the reversal "
+                  "is treated as part of the scene and the 15-point R10 threshold already asks for extra meetings. Hierophant R4->R5: a single Steam report of a rumour gate is contradicted by the CN guide "
                   "(R4 on 5/14, R5 on 5/15). Both are documented in noteZh/notes; players can still report a hold.")
     return out
 
@@ -1452,29 +1446,28 @@ def build_activities(ledger: Ledger, page: AqiuPage, guide_text: str) -> list[di
 # Pack assembly
 
 
-def build_notes(ledger: Ledger) -> list[str]:
-    notes = [
-        "【数据来源】社群升级所需点数、个人能力值门槛、加成倍率、休息日邀约日期和塔尔塔罗斯各区域的开放日期，都取自从本体提取的"
-        "游戏数据（不含付费追加剧情）；每天能见到谁取自玩家社区整理的日历，并和原版中文攻略逐日核对。",
-        "【普通见面】没有升级的见面按 +10 点估算（只有一份实况记录提到，未经验证）；带着同阿尔卡那的人格面具 ×1.51，"
-        "魅力 Lv.6 再 ×1.51（游戏数据）。",
-        "【日历】没有记录不代表不能行动：除了已锁定的时段，每个白天和晚上都默认可以自由安排。剧情未确认的日子"
-        "（屋久岛 7月20日～23日、11月4日、1月1日白天、1月21日放学后）先保守地锁定。",
-        "【平安夜】12月24日默认按婉拒所有邀约来安排，两个时段都可以自由安排。",
-        "【失踪者】北村文吉（9月12日～10月3日）和舞子（10月21日～11月2日）失踪期间见不到人，期限前没有在塔尔塔罗斯救出，对应社群就无法继续。",
-        "【恶魔】隐者社群的要求按较严格的 RANK 4 计算（也有资料说 RANK 3）；三次付钱要分在不同的晚上，前两次不占用时段。",
-        "【塔】勇气要求按较严格的 Lv.4 计算（也有资料说 Lv.2 或 Lv.3）。",
-        "【女皇】星期一、五能不能见面没有确认，只按星期二、三、四、六和考试前一周（12月7日～12日）安排。",
-        "【太阳】最早按 8月9日开始（也有资料说 8月23日）。",
-        "【图书室】自习的学力增加量资料不一（+2 或 +4），按 +2 计算。",
-        "【打工】工钱按最低档估算；饰品店和电影院打工的第二项能力值资料不一，只计学力 +1。",
-        "【对话】对话提示只引用原版中文攻略的原文；括号里的数字是攻略的标注，不一定对应游戏里的选项顺序。",
-        "【人名】采用官方简体中文译名：贝培、伊莉莎白、Ｙ子、舞子；审判社群为避免剧透显示为「伙伴们」。",
-        "【未计入】课堂答题、考试名次、暑期补习、羁绊剧场和宿舍活动带来的能力值不在预测里，请在「同步现状」时更新。",
-        "【月亮】RANK 9 的剧情结束时社群会短暂逆转，之后照常见面即可恢复（只有一份资料提到），按普通升级处理。",
-        "【教皇】有玩家反映 RANK 4→5 前要先听到学校柿子树的传闻，但原版中文攻略是连续两天直接升级，所以不额外限制。",
-    ]
-    return notes + ledger.notes_zh
+# Player-facing summary of the planning assumptions (shown under 规划说明). Developer detail lives in REPORT.md.
+NOTES_ZH = (
+    "【数据来源】社群升级所需点数、个人能力值门槛、加成倍率、休息日邀约日期和塔尔塔罗斯各区域的开放日期，都取自从本体提取的"
+    "游戏数据（不含付费追加剧情）；每天能见到谁取自玩家社区整理的日历，并和原版中文攻略逐日核对。",
+    "【普通见面】没有升级的见面按 +10 点估算（只有一份实况记录提到，未经验证）；带着同阿尔卡那的人格面具 ×1.51，"
+    "魅力 Lv.6 再 ×1.51（游戏数据）。",
+    "【日历】没有记录不代表不能行动：除了已锁定的时段，每个白天和晚上都默认可以自由安排。剧情未确认的日子"
+    "（屋久岛 7月20日～23日、11月4日、1月1日白天、1月21日放学后）先保守地锁定。",
+    "【平安夜】12月24日默认按婉拒所有邀约来安排，两个时段都可以自由安排。",
+    "【失踪者】北村文吉（9月12日～10月3日）和舞子（10月21日～11月2日）失踪期间见不到人，期限前没有在塔尔塔罗斯救出，对应社群就无法继续。",
+    "【恶魔】隐者社群的要求按较严格的 RANK 4 计算（也有资料说 RANK 3）；三次付钱要分在不同的晚上，前两次不占用时段。",
+    "【塔】勇气要求按较严格的 Lv.4 计算（也有资料说 Lv.2 或 Lv.3）。",
+    "【女皇】星期一、五能不能见面没有确认，只按星期二、三、四、六和考试前一周（12月7日～12日）安排。",
+    "【太阳】最早按 8月9日开始（也有资料说 8月23日）。",
+    "【图书室】自习的学力增加量资料不一（+2 或 +4），按 +2 计算。",
+    "【打工】工钱按最低档估算；饰品店和电影院打工的第二项能力值资料不一，只计学力 +1。",
+    "【对话】对话提示只引用原版中文攻略的原文；括号里的数字是攻略的标注，不一定对应游戏里的选项顺序。",
+    "【人名】采用官方简体中文译名：贝培、伊莉莎白、Ｙ子、舞子；审判社群为避免剧透显示为「伙伴们」。",
+    "【未计入】课堂答题、考试名次、暑期补习、羁绊剧场和宿舍活动带来的能力值不在预测里，请在「同步现状」时更新。",
+    "【月亮】RANK 9 的剧情结束时社群会短暂逆转，之后照常见面即可恢复（只有一份资料提到），按普通升级处理。",
+    "【教皇】有玩家反映 RANK 4→5 前要先听到学校柿子树的传闻，但原版中文攻略是连续两天直接升级，所以不额外限制。",
+)
 
 
 def build_pack() -> tuple[dict, Ledger]:
@@ -1536,7 +1529,7 @@ def build_pack() -> tuple[dict, Ledger]:
         "lastDay": LAST_DAY,
         "links": links,
         "lockReasons": {k: {"zh": v} for k, v in LOCK_REASONS.items()},
-        "notes": build_notes(ledger),
+        "notes": list(NOTES_ZH),
         "packVersion": PACK_VERSION,
         "policy": policy,
         "schema": SCHEMA,
