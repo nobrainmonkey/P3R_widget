@@ -130,11 +130,13 @@ final class WidgetIntents {
     }
 
     /**
-     * Idempotency key of a direct record: the same plan, slot and action always map to the same id,
-     * so a double tap (or a retried broadcast) can never record twice.
+     * Idempotency key of a direct record: the same plan, state revision, slot and action always map
+     * to the same id, so a retried broadcast can never record twice (a second tap is stopped earlier
+     * by the revision check). The revision keeps a re-record after an undo apart from the voided
+     * record: undo restores the state exactly, so the replan can come back with the same plan id.
      */
-    static String commitCommandId(String planId, int slot, String action) {
-        return "widget:" + sha256(planId + "|" + slot + "|" + action + "|AS_PREDICTED");
+    static String commitCommandId(String planId, long stateRevision, int slot, String action) {
+        return "widget:" + sha256(planId + "|" + stateRevision + "|" + slot + "|" + action + "|AS_PREDICTED");
     }
 
     static String voidCommandId(long eventSeq, long stateRevision) {

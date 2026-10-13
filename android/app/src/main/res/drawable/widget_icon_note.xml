@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kind mark of the dating-site note step (a folded note with a heart). Tinted at runtime. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="16dp" android:height="16dp"
+    android:viewportWidth="16" android:viewportHeight="16">
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="1.5"
+        android:strokeLineJoin="miter" android:pathData="M3,1.75L10,1.75L13,4.75L13,14.25L3,14.25Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="1.3"
+        android:pathData="M9.6,1.9L9.6,5.15L12.85,5.15" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M8,12.2C5.5,10.5 5.1,9 5.9,8.1C6.6,7.4 7.5,7.6 8,8.4C8.5,7.6 9.4,7.4 10.1,8.1C10.9,9 10.5,10.5 8,12.2Z" />
+</vector>

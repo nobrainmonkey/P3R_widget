@@ -1,0 +1,327 @@
+package app.p3r.dayplanner.v3.widget;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import app.p3r.dayplanner.v3.engine.Plan;
+import app.p3r.dayplanner.v3.engine.SimState;
+import app.p3r.dayplanner.v3.model.Rules;
+
+/**
+ * The widget's wording of one plan step (docs/GLOSSARY_zh.md): the engine's copy cut down to what
+ * fits a card. The tag chip keeps only the short fact (RANK 6→7, 学力 +2, +2,500 日元, 本区块第 1 次);
+ * long unlock instructions move to the cue line; the dating-site note and Link Episodes get their own
+ * titles. Pure Java so it can be tested without Android; {@code rules} may be null.
+ */
+final class StepCopy {
+    static final String NOTE_TITLE = "结缘网站的字条";
+    static final String EPISODE_TITLE = "羁绊剧情";
+    static final String FREE_TITLE = "自由活动";
+
+    private static final Pattern RANK_STEP = Pattern.compile("RANK\\s*(\\d+|MAX)\\s*→\\s*(\\d+|MAX)");
+    private static final Pattern EPISODE_NO = Pattern.compile("第\\s*(\\d+)\\s*话");
+    private static final Pattern VISIT = Pattern.compile("^第\\s*(\\d+)\\s*次$");
+    private static final Pattern LEVEL_UP = Pattern.compile("\\s*[（(]\\s*升到\\s*(Lv\\.?\\s*\\d|MAX)\\s*[）)]");
+    private static final String SEP = "\\s*·\\s*";
+
+    /** Card title (never blank). */
+    String title = "";
+    CardModel.TitleIcon icon = CardModel.TitleIcon.NONE;
+    /** Chip text, or null. */
+    String tag;
+    String location;
+    /** Replaces the why-line on the cue (an unlock step's instruction), or null. */
+    String instruction;
+    /** Reminder line ({@link Plan.Step#hintZh}), or null. */
+    String hint;
+    /** Side steps joined into one line ("顺便：A；B"), or null. */
+    String side;
+
+    private StepCopy() {}
+
+    /**
+     * @param observed the observed state (for the next Link Episode number), may be null
+     * @param plan     the plan {@code step} belongs to (same reason), may be null
+     */
+    static StepCopy of(Plan.Step step, Rules rules, SimState observed, Plan plan) {
+        StepCopy c = new StepCopy();
+        String kind = kindOf(step);
+        c.location = blankToNull(step.locationZh);
+        c.hint = blankToNull(step.hintZh);
+        c.side = sideLine(step.sideZh);
+        switch (kind) {
+            case "note":
+                noteCopy(c, step, rules);
+                break;
+            case "episode":
+                episodeCopy(c, step, rules, observed, plan);
+                break;
+            case "free":
+                c.title = FREE_TITLE;
+                break;
+            case "locked":
+                c.title = titleOf(step.titleZh, kind);
+                break;
+            case "unlock":
+                c.title = titleOf(step.titleZh, kind);
+                unlockCopy(c, step.subtitleZh);
+                break;
+            case "tower":
+                c.title = titleOf(step.titleZh, kind);
+                towerCopy(c, step.subtitleZh);
+                break;
+            default:
+                c.title = titleOf(step.titleZh, kind);
+                c.tag = tag(kind, step.subtitleZh, step.predicted);
+                break;
+        }
+        return c;
+    }
+
+    /** Coarse kind with the new action types recognised by their keys ("note:…", "episode:…"). */
+    static String kindOf(Plan.Step step) {
+        String action = step.action == null ? "" : step.action;
+        if (action.startsWith("note:") || "note".equals(step.kind)) return "note";
+        if (action.startsWith("episode:") || "episode".equals(step.kind)) return "episode";
+        if (action.startsWith("locked:") || "locked".equals(step.kind)) return "locked";
+        if ("free".equals(action) || "free".equals(step.kind)) return "free";
+        return step.kind == null ? "" : step.kind;
+    }
+
+    // ------------------------------------------------------------------ kinds
+
+    private static void noteCopy(StepCopy c, Plan.Step step, Rules rules) {
+        c.icon = CardModel.TitleIcon.NOTE;
+        String person = null;
+        Rules.Link link = rules == null ? null : rules.link(idAfter(step.action, "note:"));
+        if (link != null) person = blankToNull(link.personZh);
+        String engineTitle = blankToNull(step.titleZh);
+        if (person == null && engineTitle != null) {
+            if (engineTitle.contains(NOTE_TITLE)) {
+                c.title = engineTitle.trim();
+            } else {
+                String[] parts = engineTitle.trim().split(SEP);
+                person = blankToNull(parts[parts.length - 1]);
+            }
+        }
+        if (c.title.isEmpty()) c.title = person == null ? NOTE_TITLE : NOTE_TITLE + " · " + person;
+        int rank = step.predicted == null ? -1 : step.predicted.rankFrom;
+        if (rank >= 1 && rank <= 9) {
+            c.tag = "RANK " + rank + " · 加好感";
+        } else {
+            String sub = compact(step.subtitleZh);
+            c.tag = sub == null || c.title.contains(sub) ? "加好感" : sub;
+        }
+        if (c.location == null && rules != null && rules.datingNote != null) c.location = blankToNull(rules.datingNote.locationZh);
+    }
+
+    private static void episodeCopy(StepCopy c, Plan.Step step, Rules rules, SimState observed, Plan plan) {
+        c.icon = CardModel.TitleIcon.EPISODE;
+        String trackId = idAfter(step.action, "episode:");
+        Rules.Episode track = null;
+        if (rules != null) {
+            for (Rules.Episode e : rules.episodes) {
+                if (e != null && e.id != null && e.id.equals(trackId)) track = e;
+            }
+        }
+        String engineText = (step.titleZh == null ? "" : step.titleZh) + " " + (step.subtitleZh == null ? "" : step.subtitleZh);
+        int number = -1;
+        Matcher m = EPISODE_NO.matcher(engineText);
+        if (m.find()) number = Integer.parseInt(m.group(1));
+        else if (track != null) number = nextEpisode(track, step, observed, plan);
+        String person = track == null ? null : blankToNull(track.personZh);
+        if (person == null) person = personFromTitle(step.titleZh);
+        StringBuilder title = new StringBuilder(EPISODE_TITLE);
+        if (person != null) title.append(" · ").append(person);
+        if (number > 0) title.append(" · 第 ").append(number).append(" 话");
+        c.title = title.toString();
+        String sub = compact(step.subtitleZh);
+        boolean redundant = sub == null || EPISODE_NO.matcher(sub).find() || c.title.contains(sub)
+                || sub.contains(EPISODE_TITLE) || sub.contains("羁绊剧场");
+        c.tag = redundant ? null : sub;
+        if (c.location == null && track != null) c.location = blankToNull(track.locationZh);
+    }
+
+    /** Episodes watched so far plus the same track's earlier steps in the plan, plus one. */
+    private static int nextEpisode(Rules.Episode track, Plan.Step step, SimState observed, Plan plan) {
+        int watched = observed != null && track.idx >= 0 && track.idx < observed.episodes.length ? observed.episodes[track.idx] : 0;
+        int from = observed != null ? observed.slot : (plan != null ? plan.fromSlot : step.slot);
+        int earlier = 0;
+        if (plan != null && plan.steps != null) {
+            for (Plan.Step s : plan.steps) {
+                if (s != null && s.slot >= from && s.slot < step.slot && step.action.equals(s.action)) earlier++;
+            }
+        }
+        int n = watched + earlier + 1;
+        return track.count > 0 && n > track.count ? -1 : n;
+    }
+
+    /** "羁绊剧情 · 伊织顺平（第 2 话）" / "羁绊剧场 · 伊织顺平" → "伊织顺平"; null when unclear. */
+    static String personFromTitle(String title) {
+        String t = blankToNull(title);
+        if (t == null) return null;
+        t = EPISODE_NO.matcher(t).replaceAll("").replaceAll("[（(）)]", " ");
+        for (String part : t.split(SEP)) {
+            String p = part.trim();
+            if (p.isEmpty() || p.contains(EPISODE_TITLE) || p.contains("羁绊剧场")) continue;
+            return p;
+        }
+        return null;
+    }
+
+    private static void unlockCopy(StepCopy c, String subtitle) {
+        c.tag = "解锁社群";
+        String s = compact(subtitle);
+        if (s == null) return;
+        String[] parts = s.split(SEP, 2);
+        String what = parts[0].trim();
+        // A bare "开启社群"/"解锁社群" says nothing the chip does not; a cost or an instruction does.
+        boolean plain = what.isEmpty() || what.endsWith("社群") && what.length() <= 4;
+        if (!plain) c.instruction = s;
+        else if (parts.length > 1 && !parts[1].trim().isEmpty()) c.instruction = parts[1].trim();
+    }
+
+    private static void towerCopy(StepCopy c, String subtitle) {
+        String s = compact(subtitle);
+        if (s == null) return;
+        List<String> parts = new ArrayList<>();
+        for (String part : s.split(SEP)) {
+            String p = part.trim();
+            if (!p.isEmpty() && !p.equals("探索塔尔塔罗斯")) parts.add(p);
+        }
+        if (parts.isEmpty()) return;
+        String last = parts.remove(parts.size() - 1);
+        Matcher visit = VISIT.matcher(last);
+        c.tag = visit.matches() ? "本区块第 " + visit.group(1) + " 次" : last;
+        // "探索塔尔塔罗斯" as the title already says where: show the block on the location line instead.
+        if (!parts.isEmpty()) {
+            String block = String.join(" · ", parts);
+            boolean placeRepeatsTitle = c.location == null || c.title.contains(c.location);
+            if (!c.title.contains(block) && placeRepeatsTitle) c.location = block;
+        }
+    }
+
+    // ------------------------------------------------------------------ chip text
+
+    /**
+     * Short chip text for a step kind: the RANK change of a meeting, the stat gain of a training
+     * (cost dropped), the pay of a job. Null for locked and free steps.
+     */
+    static String tag(String kind, String subtitle, Plan.Predicted predicted) {
+        String s = compact(subtitle);
+        switch (kind == null ? "" : kind) {
+            case "locked":
+            case "free":
+                return null;
+            case "social":
+                return socialTag(s, predicted);
+            case "stat":
+                return s == null ? null : statTag(s);
+            case "job":
+                return s == null ? null : jobTag(s);
+            default:
+                return s;
+        }
+    }
+
+    private static String socialTag(String s, Plan.Predicted p) {
+        if (p != null && p.rankFrom >= 1 && p.rankTo >= p.rankFrom) {
+            if (p.rankTo > p.rankFrom) return "RANK " + rank(p.rankFrom) + "→" + rank(p.rankTo);
+            return "RANK " + rank(p.rankFrom) + " · 见面";
+        }
+        if (s == null) return null;
+        Matcher m = RANK_STEP.matcher(s);
+        if (m.find()) return "RANK " + m.group(1) + "→" + m.group(2);
+        String[] parts = s.split(SEP);
+        String last = parts[parts.length - 1].trim();
+        if (last.startsWith("加深关系") || last.startsWith("见面")) return "见面";
+        return last.isEmpty() ? null : last;
+    }
+
+    /** "魅力 +4（升到 Lv.2） · 1,500 日元" → "魅力 +4 → Lv.2"; Lv.6 reads MAX. */
+    private static String statTag(String s) {
+        String gains = s.split(SEP)[0].trim();
+        Matcher m = LEVEL_UP.matcher(gains);
+        StringBuilder out = new StringBuilder();
+        int last = 0;
+        while (m.find()) {
+            out.append(gains, last, m.start());
+            String digits = m.group(1).replaceAll("\\D", "");
+            boolean max = digits.isEmpty() || "6".equals(digits); // "MAX", or Lv.6 which the game calls MAX
+            out.append(" → ").append(max ? "MAX" : "Lv." + digits);
+            last = m.end();
+        }
+        out.append(gains.substring(last));
+        String t = out.toString().trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    /** "打工 · 预计 +5,000 日元" or "预计 +2,500 日元 · 魅力 +1" → "+5,000 日元". */
+    private static String jobTag(String s) {
+        for (String part : s.split(SEP)) {
+            String p = part.trim();
+            if (p.contains("日元")) return p.replaceFirst("^(预计|至少)\\s*", "").trim();
+        }
+        for (String part : s.split(SEP)) {
+            String p = part.trim();
+            if (!p.isEmpty() && !p.equals("打工")) return p;
+        }
+        return null;
+    }
+
+    // ------------------------------------------------------------------ helpers
+
+    /** "顺便：A", "顺便：B" → "顺便：A；B". */
+    static String sideLine(List<String> sideZh) {
+        if (sideZh == null) return null;
+        StringBuilder sb = new StringBuilder();
+        for (String raw : sideZh) {
+            String line = blankToNull(raw);
+            if (line == null) continue;
+            line = line.trim();
+            if (sb.length() == 0) {
+                sb.append(line.startsWith("顺便") ? line : "顺便：" + line);
+            } else {
+                sb.append('；').append(line.replaceFirst("^顺便[：:]\\s*", ""));
+            }
+        }
+        return sb.length() == 0 ? null : sb.toString();
+    }
+
+    /** Never shows an empty title: falls back to a plain description of the step kind. */
+    static String titleOf(String title, String kind) {
+        String t = blankToNull(title);
+        if (t != null) return t.trim();
+        switch (kind == null ? "" : kind) {
+            case "social": return "社群";
+            case "unlock": return "解锁社群";
+            case "stat": return "提升个人能力值";
+            case "job": return "打工";
+            case "tower": return "探索塔尔塔罗斯";
+            case "locked": return "剧情时段";
+            case "note": return NOTE_TITLE;
+            case "episode": return EPISODE_TITLE;
+            default: return FREE_TITLE;
+        }
+    }
+
+    /** "RANK 6 → 7" → "RANK 6→7"; blank → null. */
+    static String compact(String subtitle) {
+        String s = blankToNull(subtitle);
+        return s == null ? null : s.trim().replaceAll("\\s*→\\s*", "→");
+    }
+
+    private static String rank(int r) {
+        return r >= 10 ? "MAX" : String.valueOf(r);
+    }
+
+    private static String idAfter(String action, String prefix) {
+        return action != null && action.startsWith(prefix) ? action.substring(prefix.length()) : "";
+    }
+
+    static String blankToNull(String s) {
+        return s == null || s.trim().isEmpty() ? null : s;
+    }
+}

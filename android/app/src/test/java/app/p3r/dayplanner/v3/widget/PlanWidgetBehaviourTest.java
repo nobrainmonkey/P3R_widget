@@ -125,7 +125,7 @@ public class PlanWidgetBehaviourTest {
         Intent done = lastBroadcast();
         assertEquals(1, fake.recordCalls.size());
         FakePlannerApi.Call call = fake.recordCalls.get(0);
-        assertEquals(WidgetIntents.commitCommandId(FakePlannerApi.PLAN_ID, S + 1, "act:study_room"), call.commandId);
+        assertEquals(WidgetIntents.commitCommandId(FakePlannerApi.PLAN_ID, 7, S + 1, "act:study_room"), call.commandId);
         assertEquals(7, call.expectedRevision);
         assertEquals(S + 1, call.slot);
         assertEquals("act:study_room", call.action);
@@ -141,12 +141,13 @@ public class PlanWidgetBehaviourTest {
     }
 
     @Test
-    public void commandIdIsStablePerPlanSlotAndAction() {
-        String a = WidgetIntents.commitCommandId("plan-A", 10, "act:study_room");
-        assertEquals(a, WidgetIntents.commitCommandId("plan-A", 10, "act:study_room"));
-        assertNotEquals(a, WidgetIntents.commitCommandId("plan-A", 11, "act:study_room"));
-        assertNotEquals(a, WidgetIntents.commitCommandId("plan-B", 10, "act:study_room"));
-        assertNotEquals(a, WidgetIntents.commitCommandId("plan-A", 10, "act:job_chagall"));
+    public void commandIdIsStablePerPlanRevisionSlotAndAction() {
+        String a = WidgetIntents.commitCommandId("plan-A", 7, 10, "act:study_room");
+        assertEquals(a, WidgetIntents.commitCommandId("plan-A", 7, 10, "act:study_room"));
+        assertNotEquals(a, WidgetIntents.commitCommandId("plan-A", 7, 11, "act:study_room"));
+        assertNotEquals(a, WidgetIntents.commitCommandId("plan-B", 7, 10, "act:study_room"));
+        assertNotEquals(a, WidgetIntents.commitCommandId("plan-A", 7, 10, "act:job_chagall"));
+        assertNotEquals("a re-record after an undo is a new command", a, WidgetIntents.commitCommandId("plan-A", 9, 10, "act:study_room"));
     }
 
     @Test
@@ -254,7 +255,7 @@ public class PlanWidgetBehaviourTest {
 
         tap(R.id.button_spec_done); // fresh card: records normally
         assertEquals(1, fake.recordCalls.size());
-        assertEquals(WidgetIntents.commitCommandId("plan-B", S + 1, "act:study_room"), fake.recordCalls.get(0).commandId);
+        assertEquals(WidgetIntents.commitCommandId("plan-B", 8, S + 1, "act:study_room"), fake.recordCalls.get(0).commandId);
     }
 
     @Test

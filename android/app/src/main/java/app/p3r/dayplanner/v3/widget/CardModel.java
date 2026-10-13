@@ -19,6 +19,9 @@ public final class CardModel {
     /** Icon on the primary button. */
     public enum DoneIcon { CHECK, UNDO, NONE }
 
+    /** Kind glyph left of the title (only the step kinds that need telling apart at a glance). */
+    public enum TitleIcon { NONE, NOTE, EPISODE }
+
     /** Use the night palette (evening slot). */
     public boolean night;
 
@@ -44,16 +47,26 @@ public final class CardModel {
     public int motif;
 
     // ---- status cluster (top right)
-    /** Short label next to the ticks, e.g. "今日", "明天", "3/8"; null hides it. */
+    /** Short label next to the ticks, e.g. "今天", "明天", "3/8"; null hides it. */
     public String progressLabel;
     public final List<Tick> ticks = new ArrayList<>();
     public String progressDescription = "";
 
     // ---- body
     public String title = "";
+    public TitleIcon titleIcon = TitleIcon.NONE;
     /** Compact subtitle chip such as "RANK 6→7" or "学力 +2"; null hides it. */
     public String tag;
+    /**
+     * Widest the tag chip may be (dp, padding included) so the location keeps some room; 0 means
+     * unbounded. Set by {@link CardRenderer#fit}; the chip ellipsizes beyond it.
+     */
+    public float tagMaxWidthDp;
     public String location;
+    /** Short reminder line such as "记得带上「皇帝」阿尔卡那的人格面具"; null hides it. */
+    public String hint;
+    /** Side steps done in the same slot, e.g. "顺便：把 20,000 日元交给穿西装的男人"; null hides it. */
+    public String side;
     /** One extra line such as "✓ 已记录 · 再点撤销"; null hides it. */
     public String cue;
     /** Keep the cue even when space is short (it replaces information that did not fit). */
@@ -103,8 +116,12 @@ public final class CardModel {
         m.ticks.addAll(ticks);
         m.progressDescription = progressDescription;
         m.title = title;
+        m.titleIcon = titleIcon;
         m.tag = tag;
+        m.tagMaxWidthDp = tagMaxWidthDp;
         m.location = location;
+        m.hint = hint;
+        m.side = side;
         m.cue = cue;
         m.cueEssential = cueEssential;
         m.dialogue = dialogue;
