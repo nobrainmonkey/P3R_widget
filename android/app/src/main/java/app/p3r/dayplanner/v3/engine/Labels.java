@@ -56,6 +56,11 @@ final class Labels {
      * plan is known (alternatives): money reasons only name links the plan really unlocks later.
      */
     private int[] plannedOpen;
+    /**
+     * Per goal the plan misses, the goal the planner kept instead (see Planner.Pool#tradedFor), -1
+     * when no plan reached the goal; null when unknown (then no goal is named).
+     */
+    private int[] tradedFor;
 
     Labels(Model m, Heuristics h) {
         this.m = m;
@@ -66,6 +71,11 @@ final class Labels {
     /** The plan's unlock slot per link (see {@link #plannedOpen}). */
     void setPlannedOpen(int[] slots) {
         this.plannedOpen = slots;
+    }
+
+    /** The goal each missed goal gave way to (see {@link #tradedFor}). */
+    void setTradedFor(int[] traded) {
+        this.tradedFor = traded;
     }
 
     // ------------------------------------------------------------------ formatting helpers
@@ -615,20 +625,24 @@ final class Labels {
                 continue;
             }
             int endDay = Math.min(rules.lastDay, end.slot >> 1);
+            // The goal the planner kept instead: a plan that reached this one missed it (never a guess).
+            int kept = tradedFor == null || l >= tradedFor.length ? -1 : tradedFor[l];
+            String traded = kept >= 0 ? "这次的安排里没排到 " + what + "（先保证了" + arcana(kept) + "），" : null;
             if (Kernel.lost(m, end, l, endDay)) {
                 out.add(arcana(l) + "：没能及时救出" + rescuedPerson(l) + "，社群无法继续");
             } else if (end.rank[l] == 0) {
                 // A heuristic plan never proves a goal impossible: say what this plan does, not why it must be so.
                 String gate = unmetGate(end, l);
-                out.add(arcana(l) + "：" + (gate != null ? "这次的安排里还没满足解锁条件（需要" + gate + "）" : "这次的安排里还没排上解锁"));
+                if (traded != null) {
+                    out.add(arcana(l) + "：" + traded + (gate != null ? "还没满足解锁条件（需要" + gate + "）" : "还没排上解锁"));
+                } else {
+                    out.add(arcana(l) + "：" + (gate != null ? "这次的安排里还没满足解锁条件（需要" + gate + "）" : "这次的安排里还没排上解锁"));
+                }
             } else if (openEndedHold(end, l) != null) {
                 out.add(arcana(l) + "：" + openEndedHold(end, l) + "，先安排到 RANK " + rankName(end.rank[l]));
             } else {
-                String higher = higherGoal(goals, gi, l, end);
                 String stop = "RANK " + rankName(end.rank[l]);
-                out.add(arcana(l) + "：" + (higher != null
-                        ? "这次的安排里没排到 " + what + "（先保证了" + higher + "），预计停在 " + stop
-                        : "按这次的安排预计停在 " + stop));
+                out.add(arcana(l) + "：" + (traded != null ? traded + "预计停在 " + stop : "按这次的安排预计停在 " + stop));
             }
         }
         if (p.otherLinks) {
@@ -757,22 +771,6 @@ final class Labels {
             return Integer.compare(a, b);
         });
         return out;
-    }
-
-    /**
-     * The goal placed before {@code goals[index]} that shares its slot kind (daytime or evening),
-     * preferring one that reaches its target in this plan, or null.
-     */
-    private String higherGoal(Integer[] goals, int index, int l, SimState end) {
-        boolean eve = rules.links[l].evening;
-        String fallback = null;
-        for (int i = index - 1; i >= 0; i--) {
-            int g = goals[i];
-            if (rules.links[g].evening != eve) continue;
-            if (end.rank[g] >= h.target[g]) return arcana(g);
-            if (fallback == null) fallback = arcana(g);
-        }
-        return fallback;
     }
 
     /** "学力 Lv.3" / "魅力 MAX" / "皇帝 RANK 1" for the first unmet unlock condition, or null. */

@@ -34,6 +34,11 @@ public final class Engine {
          * automatic run. Does not change the plan itself.
          */
         public boolean followUp;
+        /**
+         * Test hook (package-private): when set, receives the end rank of every link for each
+         * complete plan the planner compared (screened, fortified and strict-priority runs).
+         */
+        java.util.List<int[]> trace;
     }
 
     public interface Progress { void onProgress(float fraction); }

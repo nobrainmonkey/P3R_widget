@@ -174,6 +174,12 @@ public final class Plan {
         public int lockedSlots;
         public long endCash;
         public int[] endStatLv = new int[3];
+        /**
+         * Per link: for a goal this plan does not bring to its target, the goal the planner kept
+         * instead (a plan that reached this goal missed that higher-priority one); -1 when no plan
+         * reached the goal, and for every other link. JSON "tradedFor".
+         */
+        public int[] tradedFor = minusOnes(22);
         /** Chinese notes for the 规划说明 sheet (e.g. why a goal cannot reach MAX). */
         public List<String> notesZh = new ArrayList<>();
 
@@ -187,6 +193,7 @@ public final class Plan {
             o.put("lockedSlots", lockedSlots);
             o.put("endCash", endCash);
             o.put("endStatLv", new JSONArray(endStatLv));
+            o.put("tradedFor", new JSONArray(tradedFor));
             JSONArray n = new JSONArray();
             for (String s : notesZh) n.put(s);
             o.put("notes", n);
@@ -206,10 +213,18 @@ public final class Plan {
             s.endCash = o.optLong("endCash");
             JSONArray lv = o.optJSONArray("endStatLv");
             for (int i = 0; lv != null && i < 3; i++) s.endStatLv[i] = lv.getInt(i);
+            JSONArray tf = o.optJSONArray("tradedFor");
+            for (int i = 0; tf != null && i < Math.min(22, tf.length()); i++) s.tradedFor[i] = tf.getInt(i);
             JSONArray n = o.optJSONArray("notes");
             for (int i = 0; n != null && i < n.length(); i++) s.notesZh.add(n.getString(i));
             return s;
         }
+    }
+
+    private static int[] minusOnes(int n) {
+        int[] a = new int[n];
+        java.util.Arrays.fill(a, -1);
+        return a;
     }
 
     public JSONObject toJson() throws JSONException {

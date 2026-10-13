@@ -219,6 +219,53 @@ public class CoreContractTest {
         assertTrue(h.wGoal[8] > h.val[6][10] - h.val[6][9]);
     }
 
+    // ------------------------------------------------------------------ strict goal priority
+
+    private static Planner.Candidate outcome(boolean[] reached, int[] endRank, double score) {
+        return new Planner.Candidate(null, null, null, new int[0], score, score, score, 0, reached, endRank, new int[22]);
+    }
+
+    @Test
+    public void goalsAreComparedInStrictPriorityOrderBeforeTheObjective() {
+        // ① missed at 9, ② reached — against ① reached, ② never opened: the first goal decides.
+        Planner.Candidate secondOnly = outcome(new boolean[]{false, true, false}, new int[]{9, 10, 3}, 5_000_000);
+        Planner.Candidate firstOnly = outcome(new boolean[]{true, false, false}, new int[]{10, 0, 1}, 1_000);
+        assertTrue(Planner.Pool.compareGoals(firstOnly, secondOnly) > 0);
+        assertTrue(Planner.Pool.compareGoals(secondOnly, firstOnly) < 0);
+        assertEquals(0, Planner.Pool.decidingGoal(firstOnly, secondOnly));
+        // Both reach ①: ② decides, whatever ③ does.
+        Planner.Candidate both = outcome(new boolean[]{true, true, false}, new int[]{10, 10, 0}, 900);
+        assertTrue(Planner.Pool.compareGoals(both, firstOnly) > 0);
+        assertEquals(1, Planner.Pool.decidingGoal(both, firstOnly));
+        // Two misses of the same goal: the higher end rank wins.
+        Planner.Candidate nine = outcome(new boolean[]{false, false, true}, new int[]{9, 2, 10}, 0);
+        Planner.Candidate eight = outcome(new boolean[]{false, true, true}, new int[]{8, 10, 10}, 0);
+        assertTrue(Planner.Pool.compareGoals(nine, eight) > 0);
+        // Equal goals: the objective decides (compareGoals ties).
+        Planner.Candidate same = outcome(new boolean[]{true, true, false}, new int[]{10, 10, 0}, 1_000);
+        assertEquals(0, Planner.Pool.compareGoals(both, same));
+        assertEquals(-1, Planner.Pool.decidingGoal(both, same));
+    }
+
+    @Test
+    public void aMissedGoalNamesOnlyAHigherGoalAComparedPlanGaveUpForIt() {
+        Rules rules = RulesFixtures.fullYear();
+        int priestess = 2;
+        int empress = 3;
+        int lovers = 6;
+        Profile profile = RulesFixtures.must(priestess, empress, lovers);
+        SimState start = RulesFixtures.newGame(rules, RulesFixtures.slot(10, 22, false));
+        Model m = new Model(rules, profile, null);
+        Planner.Pool pool = new Planner.Pool(m, start, null, new Engine.Options(), Long.MAX_VALUE, Planner.PORTFOLIO);
+        Planner.Candidate chosen = outcome(new boolean[]{true, false, false}, new int[]{10, 9, 3}, 0);
+        pool.add(chosen);
+        pool.add(outcome(new boolean[]{false, true, false}, new int[]{9, 10, 2}, 0));
+        int[] traded = pool.tradedFor(chosen);
+        assertEquals("女皇 gave way to 女教皇", priestess, traded[empress]);
+        assertEquals("no compared plan reached 恋爱: nothing was traded for it", -1, traded[lovers]);
+        assertEquals(-1, traded[priestess]);
+    }
+
     // ------------------------------------------------------------------ wording and budget
 
     @Test

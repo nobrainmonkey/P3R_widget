@@ -208,13 +208,12 @@ final class Heuristics {
     /** Weight per rank of a 「其余社群」 link (0 when the player turned 其余社群 off). */
     final double wOther;
     /**
-     * Links counted as goals here: the profile's goals, or only the first {@link #goalLimit} of
-     * them in priority order (the others then count as 「其余社群」 links).
+     * Links counted as goals here: the profile's goals, or the ones of a goal order given to the
+     * constructor (the planner's "top-k" and "goal first" variants); the profile's other goals
+     * then count as 「其余社群」 links.
      */
     final boolean[] goal;
-    /** Number of goals (in priority order) counted as goals; the rest count as 「其余社群」. */
-    final int goalLimit;
-    /** Per link: weight per rank as a non-goal link ({@link #wOther}, or W_OTHER for a goal left out by {@link #goalLimit}). */
+    /** Per link: weight per rank as a non-goal link ({@link #wOther}, or W_OTHER for a goal left out of the order). */
     private final double[] otherW;
     final int[] target;
     /** [link][rank] cumulative objective value of having that rank. */
@@ -311,22 +310,23 @@ final class Heuristics {
     }
 
     Heuristics(Model m, SimState start, Plan previous, Tuning tuning) {
-        this(m, start, previous, tuning, Integer.MAX_VALUE);
+        this(m, start, previous, tuning, null);
     }
 
     /**
-     * Base policy and objective that count only the first {@code goalLimit} goals of the profile
-     * (in priority order: 「必须」 then 「想要」, each by order) as goals, weighted as if they were
-     * the only ones; the other goals count as 「其余社群」 links (MAX), even when 其余社群 is off.
-     * The planner runs these "top-k" variants so the first goals get plans of their own
+     * Base policy and objective that count as goals only {@code goals}: goal links of the profile in
+     * the priority order to plan by (null: every goal of the profile in its own order,
+     * {@link #goalOrder}). The goal at place p weighs what the profile's p-th goal weighs (so a
+     * leading prefix keeps its weights, and a goal moved to the front takes the first goal's
+     * weight); goals of the profile left out count as 「其余社群」 links (MAX), even when 其余社群
+     * is off. The planner runs these variants so that the first goals get plans of their own
      * (Planner.plan); legality and transitions still follow the whole profile ({@code m}).
      */
-    Heuristics(Model m, SimState start, Plan previous, Tuning tuning, int goalLimit) {
+    Heuristics(Model m, SimState start, Plan previous, Tuning tuning, int[] goals) {
         this.m = m;
         this.t = m.t;
         this.rules = m.rules;
         this.tuning = tuning;
-        this.goalLimit = Math.max(0, goalLimit);
         this.startSlot = start.slot;
         this.lastSlot = t.lastSlot;
         Profile p = m.profile;
@@ -337,37 +337,31 @@ final class Heuristics {
         wanted = new boolean[n];
         goal = new boolean[n];
         otherW = new double[n];
-        wOther = p.otherLinks ? W_OTHER : 0;
-        int[] mustOrder = tierOrder(p, Profile.Tier.MUST);
-        int[] wantOrder = tierOrder(p, Profile.Tier.WANT);
-        int allMust = 0;
-        for (int l = 0; l < n; l++) if (m.goal[l] && p.tier[l] == Profile.Tier.MUST) allMust++;
-        int nMust = 0;
-        int nWant = 0;
-        int[] place = new int[n];
-        for (int l = 0; l < n; l++) {
-            if (!m.goal[l]) continue;
-            boolean must = p.tier[l] == Profile.Tier.MUST;
-            place[l] = must ? mustOrder[l] : allMust + wantOrder[l];
-            goal[l] = place[l] < this.goalLimit;
-            if (!goal[l]) continue;
-            if (must) nMust++;
-            else nWant++;
-        }
-        int goals = 0;
         goalRank = new int[n];
         Arrays.fill(goalRank, -1);
+        wOther = p.otherLinks ? W_OTHER : 0;
+        int[] profileOrder = goalOrder(m);
+        int[] goalsInOrder = goals == null ? profileOrder : goals;
+        int count = Math.min(goalsInOrder.length, profileOrder.length);
+        int nMust = 0;
+        for (int i = 0; i < count; i++) if (p.tier[profileOrder[i]] == Profile.Tier.MUST) nMust++;
+        int nWant = count - nMust;
+        for (int i = 0; i < count; i++) {
+            int l = goalsInOrder[i];
+            if (l < 0 || l >= n || !m.goal[l] || goal[l]) continue;
+            goal[l] = true;
+            goalRank[l] = i;
+            boolean must = p.tier[profileOrder[i]] == Profile.Tier.MUST;
+            wGoal[l] = must ? MUST_BASE + MUST_STEP * (nMust - 1 - i) : WANT_BASE + WANT_STEP * (nWant - 1 - (i - nMust));
+        }
+        int goalsCounted = 0;
         for (int l = 0; l < n; l++) {
             target[l] = goal[l] ? m.target(l) : 10;
             otherW[l] = m.goal[l] && !goal[l] ? W_OTHER : wOther;
             wanted[l] = goal[l] || otherW[l] > 0;
-            if (!goal[l]) continue;
-            goals++;
-            boolean must = p.tier[l] == Profile.Tier.MUST;
-            wGoal[l] = must ? MUST_BASE + MUST_STEP * (nMust - 1 - mustOrder[l]) : WANT_BASE + WANT_STEP * (nWant - 1 - wantOrder[l]);
-            goalRank[l] = place[l];
+            if (goal[l]) goalsCounted++;
         }
-        goalLinks = new int[goals];
+        goalLinks = new int[goalsCounted];
         for (int l = 0, i = 0; l < n; l++) if (goal[l]) goalLinks[i++] = l;
         val = new double[n][11];
         for (int l = 0; l < n; l++) {
@@ -461,15 +455,23 @@ final class Heuristics {
         linkMult = new double[n];
     }
 
-    private static int[] tierOrder(Profile p, Profile.Tier tier) {
-        int n = p.tier.length;
+    /** The profile's goal links in priority order: 「必须」 then 「想要」, each by {@link Profile#order}, ties by index. */
+    static int[] goalOrder(Model m) {
+        Profile p = m.profile;
+        int n = m.t.nLinks;
         Integer[] idx = new Integer[n];
-        for (int i = 0; i < n; i++) idx[i] = i;
-        Arrays.sort(idx, (a, b) -> p.order[a] != p.order[b] ? Integer.compare(p.order[a], p.order[b]) : Integer.compare(a, b));
-        int[] pos = new int[n];
-        int k = 0;
-        for (int i : idx) if (p.tier[i] == tier) pos[i] = k++;
-        return pos;
+        int count = 0;
+        for (int l = 0; l < n; l++) if (m.goal[l]) idx[count++] = l;
+        Arrays.sort(idx, 0, count, (a, b) -> {
+            int ta = p.tier[a] == Profile.Tier.MUST ? 0 : 1;
+            int tb = p.tier[b] == Profile.Tier.MUST ? 0 : 1;
+            if (ta != tb) return Integer.compare(ta, tb);
+            if (p.order[a] != p.order[b]) return Integer.compare(p.order[a], p.order[b]);
+            return Integer.compare(a, b);
+        });
+        int[] out = new int[count];
+        for (int i = 0; i < count; i++) out[i] = idx[i];
+        return out;
     }
 
     /** Objective weight of reaching {@code rank} on link l. */
