@@ -68,21 +68,6 @@ public final class Async {
         }, null, null);
     }
 
-    /** Posts to the main thread (used by views that need to defer work until after layout). */
-    public static void post(Runnable task) {
-        MAIN.post(task);
-    }
-
-    /** Posts to the main thread after a delay. */
-    public static void postDelayed(Runnable task, long delayMillis) {
-        MAIN.postDelayed(task, delayMillis);
-    }
-
-    /** Cancels a pending {@link #postDelayed} task. */
-    public static void cancel(Runnable task) {
-        MAIN.removeCallbacks(task);
-    }
-
     private static void deliver(Activity owner, Runnable callback) {
         MAIN.post(() -> {
             if (owner != null && (owner.isFinishing() || owner.isDestroyed())) {

@@ -110,6 +110,9 @@ final class Shots {
             boolean italic = t.getTypeface() != null && t.getTypeface().isItalic();
             assertTrue(where + ": CJK in italic face: " + text, !(cjk && (italic || t.getPaint().getTextSkewX() != 0)));
             assertTrue(where + ": raw id shown: " + text, !text.matches(".*\\b[a-z]+[_:][a-z_:0-9]+\\b.*"));
+            String latin = text.replaceAll("RANK|MAX|Lv|P3R|ATLUS|Reload|Barlow|Condensed|SIL", "")
+                .replaceAll("[a-z0-9.-]+\\.[a-z]{2,}", "").replaceAll("\\b[IVX]+\\b", "");
+            assertTrue(where + ": English shown to the player: " + text, !latin.matches("(?s).*[A-Za-z]{2,}.*"));
             if (t.getLayout() != null && t.getLineCount() > 0 && t.getMaxLines() > 1 && t.getHeight() > 0) {
                 int needed = t.getLayout().getLineBottom(t.getLineCount() - 1) + t.getCompoundPaddingTop()
                     + t.getCompoundPaddingBottom();

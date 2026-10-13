@@ -427,7 +427,7 @@ public final class ResultActivity extends Activity {
     private void showNotSetUp() {
         body.removeAllViews();
         body.addView(Ui.title(this, "还没有设置游戏进度"));
-        body.addView(Ui.body(this, "先在 App 里填好现在的进度和目标，之后就能在这里记录结果。"), top(8));
+        body.addView(Ui.body(this, "先打开「P3R 规划」填好现在的进度和目标，之后就能在这里记录结果。"), top(8));
         TextView go = Ui.primary(this, "去设置");
         go.setOnClickListener(v -> {
             Intent intent = new Intent(this, StateActivity.class);
@@ -441,7 +441,7 @@ public final class ResultActivity extends Activity {
     private void showAlreadyRecorded() {
         header(null);
         body.addView(Ui.title(this, "这一项已经记录过了"), top(12));
-        body.addView(Ui.body(this, "要更正的话，可以在 App 的「我的 → 记录历史」里撤销或修改。"), top(8));
+        body.addView(Ui.body(this, "要更正的话，可以在「我的 → 记录历史」里撤销或修改。"), top(8));
         body.addView(closeButton("好的"), top(20));
     }
 
@@ -1073,10 +1073,6 @@ public final class ResultActivity extends Activity {
     private void setBusy(boolean value) {
         busy = value;
         blocker.setVisibility(value ? View.VISIBLE : View.GONE);
-    }
-
-    boolean isBusy() {
-        return busy;
     }
 
     // ------------------------------------------------------------------ test hooks

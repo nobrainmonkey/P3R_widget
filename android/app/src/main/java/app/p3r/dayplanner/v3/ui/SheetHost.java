@@ -20,7 +20,6 @@ public final class SheetHost extends FrameLayout {
     private final ScrollView scroller;
     private final FrameLayout body;
     private Runnable onDismiss;
-    private int bottomInset;
 
     public SheetHost(Context context) {
         super(context);
@@ -62,7 +61,6 @@ public final class SheetHost extends FrameLayout {
 
     /** Bottom system-bar inset so sheet content clears the navigation bar. */
     public void setBottomInset(int px) {
-        bottomInset = px;
         scroller.setPadding(0, 0, 0, px);
     }
 
@@ -106,9 +104,5 @@ public final class SheetHost extends FrameLayout {
     /** The view currently shown (tests), or null. */
     public View content() {
         return body.getChildCount() == 0 ? null : body.getChildAt(0);
-    }
-
-    int bottomInset() {
-        return bottomInset;
     }
 }

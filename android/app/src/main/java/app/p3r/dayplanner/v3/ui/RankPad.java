@@ -170,11 +170,6 @@ public final class RankPad {
         previous.setAlpha(position > 0 ? 1f : 0.4f);
     }
 
-    /** Link currently shown (tests). */
-    int currentLink() {
-        return order.get(position);
-    }
-
     Dialog dialog() {
         return dialog;
     }

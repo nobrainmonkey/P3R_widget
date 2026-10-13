@@ -55,10 +55,6 @@ final class CalendarPicker extends LinearLayout {
         this.listener = listener;
     }
 
-    int selectedDay() {
-        return selectedDay;
-    }
-
     /** Selects a day as if tapped (tests). */
     void pick(int day) {
         selectedDay = day;

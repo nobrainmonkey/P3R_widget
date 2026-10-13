@@ -62,10 +62,6 @@ public final class SegmentedControl extends LinearLayout {
         return segments.get(index);
     }
 
-    public int size() {
-        return segments.size();
-    }
-
     private void select(int index, boolean fromUser) {
         if (index >= 0 && !segments.get(index).isEnabled()) {
             return;

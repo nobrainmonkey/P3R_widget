@@ -75,10 +75,6 @@ final class SchedulePage {
         return root;
     }
 
-    ListView list() {
-        return list;
-    }
-
     void setBottomInset(int px) {
         list.setPadding(list.getPaddingLeft(), list.getPaddingTop(), list.getPaddingRight(), px + Ui.dp(c, 24));
     }
