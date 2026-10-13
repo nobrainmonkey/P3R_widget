@@ -87,8 +87,9 @@ public final class CardText {
      * Free-form guide text: the legacy guide's titles and places (「收集12种饮料交给伊莉莎白，接取委托11」,
      * 「派出所旁小巷进入天鹅绒房间，确认人格面具合成功能」). Everything {@link #title} keeps whole, and
      * also the guide's names, places and game words ({@link GuideWords}), dictionary words, a short
-     * “…” name, and a number or Latin word together with the character before it and its unit
-     * (「委托11」「12种」「1万日元」「愚者LV2」「魔术师→RANK2」「魅力+♪」). The text may wrap between
+     * “…” name, a number or Latin word together with the character before it and its unit
+     * (「委托11」「12种」「1万日元」「魔术师→RANK2」「魅力+♪」), and a choice count 「（2）」 with the
+     * character before it. The text may wrap between
      * words, never inside one. Applying it twice changes nothing.
      */
     public static String guide(String text, Collection<String> words) {
@@ -120,6 +121,7 @@ public final class CardText {
             joinShortBrackets(s, join, '“', '”');
             joinDictionaryWords(s, join);
             joinNumbersAndSymbols(s, join);
+            joinCounts(s, join);
         } else {
             joinBrackets(s, join, '「', '」');
         }
@@ -341,6 +343,18 @@ public final class CardText {
                     joinRange(s, join, end - 1, end + TWO_CHAR_UNITS.length());
                 }
             }
+        }
+    }
+
+    /** A count 「（2）」「（1个）」 stays with the character before it (「MAY BLUES（2）」「救人（1个）」). */
+    private static void joinCounts(String s, boolean[] join) {
+        for (int at = s.indexOf('（'); at >= 0; at = s.indexOf('（', at + 1)) {
+            int end = at + 1;
+            while (end < s.length() && Character.isDigit(s.charAt(end))) end++;
+            if (end == at + 1 || end - at > 3) continue;
+            if (end < s.length() && UNITS.indexOf(s.charAt(end)) >= 0) end++;
+            if (end >= s.length() || s.charAt(end) != '）') continue;
+            if (at > 0 && attaches(s.charAt(at - 1))) joinRange(s, join, at - 1, end + 1);
         }
     }
 

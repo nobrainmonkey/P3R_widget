@@ -807,24 +807,34 @@ public final class PlannerService implements PlannerApi {
     }
 
     /**
-     * Whether a follow-up result replaces the installed plan for the same revisions: a complete
-     * plan always does; one that ran out of time again only when its goals (in priority order:
-     * 「必须」 then 「想要」, each by order) end higher, then more links reach MAX, then the end
-     * ranks add up to more.
+     * Whether a follow-up result replaces the installed plan for the same revisions, with the
+     * planner's strict goal priority: the goals in priority order (「必须」 then 「想要」, each by
+     * order) decide first, each by its end rank up to its target (reaching the target ties); with the
+     * goals tied a complete plan replaces one that ran out of time, and between two that ran out of
+     * time more links at MAX, then the higher sum of end ranks, wins.
      */
     static boolean improves(Profile profile, Plan candidate, Plan current) {
         if (candidate == null) {
             return false;
         }
-        if (current == null || !candidate.budgetExhausted) {
+        if (current == null) {
             return true;
         }
         int[] a = candidate.summary.endRanks;
         int[] b = current.summary.endRanks;
         for (int l : goalOrder(profile)) {
-            if (l < a.length && l < b.length && a[l] != b[l]) {
-                return a[l] > b[l];
+            if (l >= a.length || l >= b.length) {
+                continue;
             }
+            int target = profile.target[l] > 0 ? profile.target[l] : 10;
+            int ra = Math.min(a[l], target);
+            int rb = Math.min(b[l], target);
+            if (ra != rb) {
+                return ra > rb;
+            }
+        }
+        if (!candidate.budgetExhausted) {
+            return true;
         }
         int maxedA = 0;
         int maxedB = 0;

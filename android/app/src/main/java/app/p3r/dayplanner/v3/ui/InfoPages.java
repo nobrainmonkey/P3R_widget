@@ -127,13 +127,23 @@ final class InfoPages {
         return plan != null && plan.followUp;
     }
 
+    /** The installed versionName (「3.0.1」), or 「—」 when the package manager cannot say. */
+    static String versionName(Context c) {
+        try {
+            String v = c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
+            return v == null || v.isEmpty() ? "—" : v;
+        } catch (android.content.pm.PackageManager.NameNotFoundException | RuntimeException unknown) {
+            return "—";
+        }
+    }
+
     /** 关于. */
     static View about(HomeHost host) {
         Context c = host.activity();
         LinearLayout column = Ui.column(c);
         TextView name = Ui.text(c, "P3R 规划", 26, Ui.col(c, R.color.p3r_white), true);
         column.addView(name);
-        column.addView(Ui.mixed(c, "版本 3.0.0", 14, Ui.col(c, R.color.p3r_cyan_300), false), top(c, 4));
+        column.addView(Ui.mixed(c, "版本 " + versionName(c), 14, Ui.col(c, R.color.p3r_cyan_300), false), top(c, 4));
         LinearLayout card = Ui.column(c);
         card.setBackground(Ui.card(c));
         Ui.pad(card, 16, 12, 16, 12);

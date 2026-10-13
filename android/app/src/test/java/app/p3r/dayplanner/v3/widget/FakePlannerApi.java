@@ -132,7 +132,7 @@ final class FakePlannerApi implements PlannerApi {
 
     /** Second Link Episode of 伊织顺平 on a daytime slot. */
     static Plan.Step episodeStep(int slot) {
-        return step(slot, "episode:junpei", "episode", "羁绊剧场 · 伊织顺平", "第 2 话", "月光馆学园 2楼 教室", null);
+        return step(slot, "episode:junpei", "episode", "羁绊剧情 · 伊织顺平", "第 2 话", "月光馆学园 2楼 教室", null);
     }
 
     /** A small rule pack with the people the note/episode steps refer to (no calendar). */
@@ -153,7 +153,7 @@ final class FakePlannerApi implements PlannerApi {
         junpei.idx = 0;
         junpei.id = "junpei";
         junpei.personZh = "伊织顺平";
-        junpei.titleZh = "羁绊剧场 · 伊织顺平";
+        junpei.titleZh = "羁绊剧情 · 伊织顺平";
         junpei.count = 4;
         junpei.locationZh = "月光馆学园 2楼 教室";
         r.episodes = new Rules.Episode[]{junpei};

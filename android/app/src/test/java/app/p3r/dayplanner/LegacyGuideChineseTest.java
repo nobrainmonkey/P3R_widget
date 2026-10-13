@@ -26,14 +26,16 @@ import static org.junit.Assert.assertTrue;
  */
 public class LegacyGuideChineseTest {
     /**
-     * SHA-256 of the embedded guide data and display metadata as in 2.x. The only change since is the
-     * official 主角 for the guide's 主人公 (「宿舍 · 主角房间电视」); undoing it gives these hashes back.
+     * SHA-256 of the embedded guide data and display metadata as in 2.x with every display text
+     * emptied ({@link #skeleton}): ids, kinds, dates, keys, order and list lengths. Only the text
+     * changed since (官方 主角, glossary dates 「10月13日」, 「3,980 日元」, 「Lv.2」, 羁绊剧情, no English glosses).
      */
-    private static final String DATA_SHA = "07e5ef520e107cd466053e09cf70768325326f4168a011236b264c48bc24c395";
-    private static final String METADATA_SHA = "e8d46f8b1f24e2d7a73435cce8bef080c6f57672241eece61215d4546b531d2b";
-    /** The guide's own term, which the official zh-Hans text writes 主角. */
-    private static final String OLD_TERM = "主人公房间";
-    private static final String OFFICIAL_TERM = "主角房间";
+    private static final String DATA_SKELETON_SHA = "bd91221077f01733cb57c5ab8373c407885905df22ba4c6cdb5e105cff0df420";
+    private static final String METADATA_SKELETON_SHA = "6dffa3d993ce349f1381a146365f703d37623105d09f51b4a2161dbad822412d";
+    private static final String STRING = "\"(?:[^\"\\\\]|\\\\.)*\"";
+    private static final Pattern TEXT_VALUE = Pattern.compile("\"(title|where|hint|widgetTitle|locationLabel|dialogueCue)\":" + STRING);
+    private static final Pattern TEXT_LIST = Pattern.compile(
+            "\"(steps|substeps|appBullets|extraNotes|dialogueChoices)\":\\[((?:" + STRING + ",?)*)\\]");
     /** Two or more Latin letters in a row: an English word. */
     private static final Pattern ENGLISH = Pattern.compile("[A-Za-z]{2,}");
 
@@ -77,6 +79,38 @@ public class LegacyGuideChineseTest {
         return a.equals(b);
     }
 
+    /** The embedded JSON with every display text emptied and every text list replaced by its length. */
+    static String skeleton(String json) {
+        String s = TEXT_VALUE.matcher(json).replaceAll("\"$1\":\"\"");
+        Matcher m = TEXT_LIST.matcher(s);
+        StringBuffer out = new StringBuffer();
+        while (m.find()) {
+            int n = 0;
+            for (Matcher item = Pattern.compile(STRING).matcher(m.group(2)); item.find(); ) n++;
+            m.appendReplacement(out, Matcher.quoteReplacement("\"" + m.group(1) + "\":" + n));
+        }
+        m.appendTail(out);
+        return out.toString();
+    }
+
+    @Test
+    public void theGuideTextFollowsTheGlossary() throws Exception {
+        // Final audit: 「10/13 期中考试：选择「成瘾症状（Addiction）」」, 「7/5截止」, 「3980元」, 「LV2」, 「羁绊剧场」.
+        Pattern[] avoid = {Pattern.compile("(?<![\\d/#.])\\d{1,2}/\\d{1,2}(?![\\d/])"), Pattern.compile("\\d{4,}\\s*(日元|元)"),
+            Pattern.compile("LV\\d"), Pattern.compile("羁绊剧场"), Pattern.compile("[（(][A-Za-z][A-Za-z .,'\\-]*[）)]")};
+        String page = page();
+        for (String text : new String[]{block(page, "data"), block(page, "display-metadata"), asset("data.json"), asset("display_metadata.json")}) {
+            for (Pattern p : avoid) {
+                Matcher m = p.matcher(text);
+                assertFalse(p + ": " + (m.find() ? text.substring(Math.max(0, m.start() - 20), Math.min(text.length(), m.end() + 10)) : ""),
+                        p.matcher(text).find());
+            }
+        }
+        assertTrue(page.contains("10月13日 期中考试：选择「成瘾症状」"));
+        assertTrue(page.contains("电视购物 · 同位素汽水10个+莫乐蜜G20个，3,980 日元"));
+        assertTrue(page.contains("用公用电脑学习“山间补习班”，学力升到 Lv.2"));
+    }
+
     private static String sha(String text) throws Exception {
         StringBuilder out = new StringBuilder();
         for (byte b : MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8))) out.append(String.format("%02x", b));
@@ -86,8 +120,8 @@ public class LegacyGuideChineseTest {
     @Test
     public void guideDataIdsAndStorageKeysAreUnchanged() throws Exception {
         String page = page();
-        assertEquals(DATA_SHA, sha(block(page, "data").replace(OFFICIAL_TERM, OLD_TERM)));
-        assertEquals(METADATA_SHA, sha(block(page, "display-metadata").replace(OFFICIAL_TERM, OLD_TERM)));
+        assertEquals(DATA_SKELETON_SHA, sha(skeleton(block(page, "data"))));
+        assertEquals(METADATA_SKELETON_SHA, sha(skeleton(block(page, "display-metadata"))));
         for (String kept : new String[]{"id=\"themeWord\"", "id=\"heroMonth\"", "id=\"heroChinese\"", "id=\"sectionText\"",
                 "id=\"progressLabel\"", "id=\"matchingCount\"", "id=\"prefsTitle\"", "id=\"themeToggle\"", "id=\"months\"",
                 "'p3r_hunterjia_checklist_v1'", "'p3r_hunterjia_substeps_v2'", "'p3r_minimal_motion_v1'", "'p3r_theme_mode_v1'",

@@ -183,9 +183,19 @@ public class PlannerServiceFollowUpTest extends ServiceTestBase {
         assertTrue(PlannerService.improves(p, moreMax, current));
         Plan same = exhausted(current.summary.endRanks.clone());
         assertFalse("equal is not better", PlannerService.improves(p, same, current));
-        Plan complete = exhausted(new int[22]);
+        Plan complete = exhausted(current.summary.endRanks.clone());
         complete.budgetExhausted = false;
-        assertTrue("a complete plan always replaces", PlannerService.improves(p, complete, current));
+        assertTrue("with the goals tied a complete plan replaces", PlannerService.improves(p, complete, current));
+        Plan completeButWorse = exhausted(new int[22]);
+        completeButWorse.budgetExhausted = false;
+        assertFalse("a complete plan never gives up a goal the installed one reaches",
+                PlannerService.improves(p, completeButWorse, current));
+        Plan beyondTarget = exhausted(current.summary.endRanks.clone());
+        p.target[5] = 7;
+        beyondTarget.summary.endRanks[5] = 9;
+        current.summary.endRanks[5] = 7;
+        current.summary.endRanks[12] = 10;
+        assertFalse("past its target a goal ties; the other links decide", PlannerService.improves(p, beyondTarget, current));
         assertTrue(PlannerService.improves(p, same, null));
         assertFalse(PlannerService.improves(p, null, current));
         assertEquals(5_000, PlannerService.followUpBudget(2_500));

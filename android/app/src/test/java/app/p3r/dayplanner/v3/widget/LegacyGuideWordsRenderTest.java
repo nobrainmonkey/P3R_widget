@@ -106,7 +106,7 @@ public class LegacyGuideWordsRenderTest {
         View shopping = render("t106_01", SIZES[0]);
         RenderSupport.save(shopping, dir, "t106_01-180x160");
         TextView title = shopping.findViewById(R.id.widget_task);
-        assertEquals("电视购物 · 同位素汽水10个 / +莫乐蜜G20个，3980日元", RenderSupport.lines(title));
+        assertEquals("电视购物 · 同位素汽水10个 / +莫乐蜜G20个，3,980 日元", RenderSupport.lines(title));
         assertEquals(View.VISIBLE, shopping.findViewById(R.id.widget_location).getVisibility());
     }
 
@@ -121,6 +121,7 @@ public class LegacyGuideWordsRenderTest {
                 records++;
                 List<String> words = new ArrayList<>(GuideWords.WORDS);
                 words.addAll(CardText.locationWords(task.locationLabel));
+                words.addAll(namedThings(task.widgetTitle));
                 for (int[] size : SIZES) {
                     String tag = task.id + "-" + size[0] + "x" + size[1];
                     View root = render(task.id, size);
@@ -129,6 +130,7 @@ public class LegacyGuideWordsRenderTest {
                     RenderSupport.collectJoinerBreaks(root, tag, issues);
                     RenderSupport.collectTextIssues(root, tag, issues);
                     splitWords(title, words, tag, issues);
+                    countsStayAttached(title, tag, issues);
                     if (title.getLineCount() > 1) report.add(tag + "\t" + RenderSupport.lines(title));
                 }
             }
@@ -136,6 +138,44 @@ public class LegacyGuideWordsRenderTest {
         assertEquals(691, records);
         Files.write(new File(dir, "lines.txt").toPath(), report, StandardCharsets.UTF_8);
         assertTrue(issues.size() + " issues:\n" + String.join("\n", issues), issues.isEmpty());
+    }
+
+    /** Short Han names in a quote. */
+    private static final java.util.regex.Pattern QUOTED = java.util.regex.Pattern.compile("[「“]([\\p{IsHan}]{2,6})[」”]");
+    /** One good of a TV shopping title, without its count: 「水果刀」「超甜丰水梨2个」「2个高级巧克力」. */
+    private static final java.util.regex.Pattern GOOD = java.util.regex.Pattern.compile("^(?:\\d+个)?([\\p{IsHan}]{2,6})(?:\\d+个)?$");
+
+    /**
+     * Names the guide record itself spells out, so the check does not depend on {@link GuideWords}
+     * alone (final audit): every short quoted name and every good of a TV shopping list.
+     */
+    static List<String> namedThings(String title) {
+        List<String> out = new ArrayList<>();
+        if (title == null) return out;
+        java.util.regex.Matcher q = QUOTED.matcher(title);
+        while (q.find()) out.add(q.group(1));
+        int shop = title.indexOf("电视购物");
+        if (shop >= 0) {
+            String list = title.substring(shop + "电视购物".length()).replaceFirst("^\\s*·\\s*", "");
+            int price = list.lastIndexOf('，');
+            if (price >= 0) list = list.substring(0, price);
+            for (String good : list.split("\\+")) {
+                java.util.regex.Matcher g = GOOD.matcher(good.trim());
+                if (g.matches()) out.add(g.group(1));
+            }
+        }
+        return out;
+    }
+
+    /** A count 「（2）」「（1个）」 never starts a line: it stays with what it counts. */
+    private static void countsStayAttached(TextView title, String tag, List<String> issues) {
+        android.text.Layout layout = title.getLayout();
+        if (layout == null) return;
+        String text = title.getText().toString();
+        for (int line = 1; line < layout.getLineCount(); line++) {
+            String start = CardText.plain(text.substring(layout.getLineStart(line), layout.getLineEnd(line))).trim();
+            if (start.matches("^（\\d{1,2}\\p{IsHan}?）.*")) issues.add(tag + " starts a line with a count: '" + start + "'");
+        }
     }
 
     /**

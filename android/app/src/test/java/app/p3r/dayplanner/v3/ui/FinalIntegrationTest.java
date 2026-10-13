@@ -3,6 +3,7 @@ package app.p3r.dayplanner.v3.ui;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import android.view.View;
 import android.view.ViewGroup;
@@ -94,6 +95,15 @@ public class FinalIntegrationTest extends UiTestBase {
         plan.followUp = true;
         assertEquals(InfoPages.BUDGET_ROUGH, InfoPages.budgetLine(plan));
         assertNotNull(plan.budgetNoteZh());
+    }
+
+    @Test
+    public void theAboutPageShowsTheInstalledVersion() throws Exception {
+        String gradle = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("build.gradle")),
+            java.nio.charset.StandardCharsets.UTF_8);
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("versionName '([^']+)'").matcher(gradle);
+        assertTrue(m.find());
+        assertEquals(m.group(1), InfoPages.versionName(RuntimeEnvironment.getApplication()));
     }
 
     private static int countTextViews(View v, String needle) {
