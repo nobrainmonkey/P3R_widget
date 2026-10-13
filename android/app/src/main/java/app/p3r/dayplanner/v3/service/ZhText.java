@@ -124,7 +124,9 @@ final class ZhText {
                 continue;
             }
             if (out.length() > 0) {
-                out.append(" · ");
+                char last = out.charAt(out.length() - 1);
+                // Full-width closing brackets already separate visually: "（2–22F）· 本区块第 1 次".
+                out.append(last == '）' || last == '」' ? "· " : " · ");
             }
             out.append(p);
         }

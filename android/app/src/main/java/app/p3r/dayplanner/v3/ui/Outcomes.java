@@ -248,7 +248,7 @@ public final class Outcomes {
                 return label == null ? "跳过 · " + name : "跳过 · " + label;
             case NOT_DONE:
                 if (REASON_HOLD.equals(outcome.reason)) {
-                    return name + " · 暂时升不了";
+                    return name + " · 剧情原因暂时升不了";
                 }
                 if (kind == StepKind.NOTE) {
                     return name + " · 没用字条";

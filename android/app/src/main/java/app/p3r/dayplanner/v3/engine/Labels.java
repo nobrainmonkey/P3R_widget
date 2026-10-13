@@ -627,6 +627,14 @@ final class Labels {
     }
 
     /** One line per opted-in Link Episode track: when it is finished, or how far it gets. */
+    /** True if episode {@code n} of the track can still be watched on some day from {@code fromDay}. */
+    private boolean episodeStillPossible(Rules.Episode ep, int n, int fromDay) {
+        for (int d = Math.max(0, fromDay); d < ep.dayMask.length; d++) {
+            if (ep.allows(d, n)) return true;
+        }
+        return false;
+    }
+
     private void episodeNotes(Plan plan, SimState start, SimState end, List<String> out) {
         for (int e = 0; e < h.t.nEps; e++) {
             if (!m.episodeWanted[e]) continue;
@@ -644,6 +652,8 @@ final class Labels {
                 out.add(head + (last >= 0 ? "预计 " + date(last >> 1) + " 看完全部 " + count + " 话" : "预计能看完全部 " + count + " 话"));
             } else if (seenEnd > seenStart) {
                 out.add(head + "预计能看到第 " + seenEnd + " 话（共 " + count + " 话），后面几话的日子排不开");
+            } else if (!episodeStillPossible(ep, seenStart + 1, start.slot >> 1)) {
+                out.add(head + "第 " + (seenStart + 1) + " 话能看的日子已经过了；如果已经看过，请在「修改进度」里填上已看几话");
             } else {
                 out.add(head + "能看的日子排不开，这次没能安排");
             }

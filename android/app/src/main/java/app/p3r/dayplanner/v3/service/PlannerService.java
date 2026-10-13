@@ -214,6 +214,19 @@ public final class PlannerService implements PlannerApi {
         notifyListeners();
     }
 
+    /** Re-opens the rule pack and ledger after a failed load (worker thread). */
+    private void retryOpen() {
+        if (model.view != null) {
+            return;
+        }
+        model = openModel();
+        if (needsPlan(model)) {
+            replanner.schedule();
+        }
+        refreshWidgets();
+        notifyListeners();
+    }
+
     /** Loads the rule pack and the ledger; a failure yields a model that only carries the error. */
     private Model openModel() {
         Rules rules;
@@ -726,6 +739,11 @@ public final class PlannerService implements PlannerApi {
     @Override
     public void requestReplan() {
         awaitLoaded();
+        if (model.view == null) {
+            // Loading failed earlier (rule pack or database): 重试 opens them again.
+            worker.execute(this::retryOpen);
+            return;
+        }
         synchronized (lock) {
             failedPlanKey = null;
         }

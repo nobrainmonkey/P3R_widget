@@ -369,3 +369,10 @@ GitHub release asset.
 - Daytime-waste margin is one RANK of a non-goal link; the 16 plan variants are compared by objective minus that margin per wasted daytime slot; candidate types include the best dating-site note and the next Link Episode.
 - 改做别的 comes from `Engine.alternatives` (labelled like plan steps, ordered by the objective after each action).
 - Measured on the real pack (desktop JVM, default options, 0.55–0.70 s): new game Persona ALL 22/22 MAX; no Persona 22/22 (21/22 with notes off); 皇帝 MUST 21/22 with 皇帝 MAX 6/29; mid game 10/22 12/22; all five Link Episode tracks complete when opted in.
+
+## 13. Record integrity (final review)
+
+- Outcome and tower payloads carry the exact side steps done (`side` keys + `sideStepIds`) and, for outcomes, `rankAfter`, worked out at record time (from the UI's `sideKeys`, else the installed plan step, else the engine) and excluded from the duplicate-command hash. Replay applies exactly those; only older rows recompute.
+- AS_PREDICTED outcomes that carry `rank` for MEET/UNLOCK_STEP reconcile to that observed rank, so a later profile change (goal tiers, Persona mode, answers, charm bonus) never rewrites confirmed ranks or history.
+- Opting into a 羁绊剧情 track mid-game asks 「已经看了几话？」 and stores it in a checkpoint; 修改进度 / 同步现状 have a 羁绊剧情 page.
+- After a failed load, 重试 re-opens the rule pack and database (`requestReplan` → `retryOpen`).

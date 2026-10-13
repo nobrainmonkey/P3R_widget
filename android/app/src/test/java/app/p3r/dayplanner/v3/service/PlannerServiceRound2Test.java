@@ -262,7 +262,7 @@ public class PlannerServiceRound2Test extends ServiceTestBase {
         }
         assertEquals(List.of(
                 "5月13日 晚上 · 结缘网站的字条 · 皇帝 · 小田桐秀利 · 没用上（钱不够）",
-                "5月13日 放学后 · 羁绊剧情 · 伊织顺平（第 1 话） · 看完了",
+                "5月13日 放学后 · 羁绊剧情 · 伊织顺平（第 1 话）· 看完了",
                 "5月12日 晚上 · 结缘网站的字条 · 皇帝 · 小田桐秀利 · 已完成",
                 "5月12日 晚上 · 设置了初始进度"), lines);
         Pattern internal = Pattern.compile("[a-z]+:|[a-z]{4,}");

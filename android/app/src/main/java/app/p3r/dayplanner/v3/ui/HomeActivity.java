@@ -292,6 +292,8 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     }
 
     private void retryLoad() {
+        // Asks the service to open the rule pack / database again before re-reading.
+        requestReplan();
         errorView.setVisibility(View.GONE);
         loading.setVisibility(View.VISIBLE);
         loading.setText("正在读取记录…");
