@@ -30,6 +30,8 @@ final class Fakes {
         volatile RuntimeException failWith;
         /** 顺便 keys put on every evening step ("act:study_room"), or null for none. */
         volatile List<String> eveningSide;
+        /** Shapes the plan of call n (1-based) before it is returned, e.g. budgetExhausted; null for none. */
+        volatile java.util.function.ObjIntConsumer<Plan> shape;
 
         @Override
         public Plan plan(Rules rules, Profile profile, SimState observed, Plan previous, Engine.Options opts) {
@@ -58,6 +60,10 @@ final class Fakes {
                 plan.steps.add(step);
             }
             plan.planId = "fake-" + n;
+            java.util.function.ObjIntConsumer<Plan> hook = shape;
+            if (hook != null) {
+                hook.accept(plan, n);
+            }
             return plan;
         }
     }

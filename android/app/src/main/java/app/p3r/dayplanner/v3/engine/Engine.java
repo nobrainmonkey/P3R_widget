@@ -28,6 +28,12 @@ public final class Engine {
         public java.util.concurrent.atomic.AtomicBoolean cancelled;
         /** Forecast cash gained per Tartarus visit (estimate from the player's own records), default 0. */
         public int towerIncomePerVisit = 0;
+        /**
+         * This run is the one follow-up the service queues after a plan that ran out of time
+         * ({@link Plan#budgetExhausted}); if it runs out too, its summary note promises no further
+         * automatic run. Does not change the plan itself.
+         */
+        public boolean followUp;
     }
 
     public interface Progress { void onProgress(float fraction); }

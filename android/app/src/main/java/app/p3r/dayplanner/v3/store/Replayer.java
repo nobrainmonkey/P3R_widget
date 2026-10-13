@@ -156,7 +156,7 @@ public final class Replayer {
                 }
             }
         }
-        state = advance(state, StateShape.firstOpenSlot(rules, state.slot));
+        state = advance(state, StateShape.firstOpenSlot(rules, profile, state.slot));
         return new Result(state, run.gains, run.problems);
     }
 

@@ -279,7 +279,7 @@ final class Kernel {
             if (activityLegal(m, st, a)) out[n++] = code(T_ACT, a, 0);
         }
         int b = t.towerBlock[slot];
-        if (b >= 0 && st.towerVisits[b] < m.towerCap) out[n++] = code(T_TOWER, b, 0);
+        if (b >= 0 && st.towerVisits[b] < m.towerCap[b]) out[n++] = code(T_TOWER, b, 0);
         if (eve && noteOpen(m, st, day)) {
             for (int l = 0; l < t.nLinks; l++) {
                 if (noteUseful(m, st, l, day)) out[n++] = code(T_NOTE, l, 0);

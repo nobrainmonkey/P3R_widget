@@ -81,7 +81,7 @@ final class CommandCheck {
             return Rejection.invalid(ZH_OUT_OF_CALENDAR);
         }
         if (slot > observedSlot) {
-            return Rejection.gap(StateShape.openSlotsBetween(view.rules, observedSlot, slot));
+            return Rejection.gap(StateShape.openSlotsBetween(view.rules, view.profile, observedSlot, slot));
         }
         return null;
     }

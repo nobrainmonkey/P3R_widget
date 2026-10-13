@@ -20,6 +20,15 @@ import java.util.Map;
 public final class Rules {
     public static final int DAYTIME = 0;
     public static final int EVENING = 1;
+    /**
+     * Lock reason of both 12/24 slots when the player accepted a Christmas Eve invitation
+     * ({@link Profile#christmasLink}). Profile-dependent, so never stored in {@link Day} locks.
+     */
+    public static final String LOCK_CHRISTMAS = "christmas_date";
+    /** Label of {@link #LOCK_CHRISTMAS} when the pack does not declare one. */
+    public static final String LOCK_CHRISTMAS_ZH = "平安夜约会";
+    /** Month-day of Christmas Eve in {@link Day#md}. */
+    public static final String CHRISTMAS_EVE_MD = "12-24";
 
     public String schema = "p3r.rules.v3";
     public String packVersion = "0";
@@ -88,6 +97,25 @@ public final class Rules {
         Day d = day(dayOf(slot));
         if (d == null) return "out_of_range";
         return isEvening(slot) ? d.eveLock : d.dayLock;
+    }
+
+    /**
+     * Chinese label of a lock reason: the pack's {@code lockReasons}, else a built-in label for
+     * reasons the engine adds itself ({@link #LOCK_CHRISTMAS} → 「平安夜约会」), else null.
+     */
+    public String lockReasonZh(String id) {
+        if (id == null) return null;
+        String zh = lockReasonsZh.get(id);
+        if (zh != null && !zh.trim().isEmpty()) return zh;
+        return LOCK_CHRISTMAS.equals(id) ? LOCK_CHRISTMAS_ZH : null;
+    }
+
+    /** Day ordinal of 12/24 in this pack, or -1 when the calendar has no such day. */
+    public int christmasEveDay() {
+        for (int d = Math.max(0, firstDay); d <= lastDay && d < days.length; d++) {
+            if (days[d] != null && CHRISTMAS_EVE_MD.equals(days[d].md)) return d;
+        }
+        return -1;
     }
 
     /** Block active on a day, or null. */

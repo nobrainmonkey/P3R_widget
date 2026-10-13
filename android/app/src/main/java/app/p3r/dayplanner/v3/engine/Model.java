@@ -32,7 +32,10 @@ final class Model {
     /** Event gains per link, romance route aware. */
     final int[][] eventGain;
     final boolean[] excluded;
-    final int towerCap;
+    /** Hard cap of Tartarus visits per block index ({@link Profile#capFor}). */
+    final int[] towerCap;
+    /** Visits the plan should make per block index: {@code min(Profile#visitsFor, cap)}. */
+    final int[] towerWant;
     final int cashBuffer;
     final int towerIncome;
 
@@ -55,14 +58,20 @@ final class Model {
 
     Model(Rules rules, Profile profile, Engine.Options options) {
         this.rules = rules;
-        this.t = Tables.of(rules);
+        this.t = Tables.of(rules, profile.christmasTaken() && rules.christmasEveDay() >= 0);
         this.profile = profile;
         this.ordinaryGain = Math.max(1, rules.policy.ordinaryGain);
         this.personaFactor = Math.max(1.0, rules.policy.personaMult);
         this.charmMult = profile.charmBonus ? rules.policy.charmMult : 1.0;
         this.bestAnswers = profile.answers == Profile.AnswerPolicy.BEST;
         this.goalBuffer = profile.goalBuffer;
-        this.towerCap = Math.max(0, profile.towerCapPerBlock);
+        this.towerCap = new int[t.nBlocks];
+        this.towerWant = new int[t.nBlocks];
+        for (int b = 0; b < t.nBlocks; b++) {
+            String id = rules.blocks[b].id;
+            towerCap[b] = Math.max(0, profile.capFor(id));
+            towerWant[b] = Math.max(0, Math.min(profile.visitsFor(id), towerCap[b]));
+        }
         this.cashBuffer = Math.max(0, profile.cashBuffer);
         this.towerIncome = options == null ? 0 : Math.max(0, options.towerIncomePerVisit);
         Rules.DatingNote n = rules.datingNote;
@@ -81,7 +90,8 @@ final class Model {
             int l = link.idx;
             goal[l] = l < profile.tier.length && profile.isGoal(l);
             persona[l] = l < profile.tier.length && profile.personaFor(l) && personaFactor > 1.0;
-            boolean romance = l < profile.route.length && profile.route[l] == Profile.Route.ROMANCE;
+            // Route UNDECIDED (the default) counts as the friend route.
+            boolean romance = profile.romance(l);
             eventGain[l] = romance && link.eventGainRomance != null ? link.eventGainRomance : link.eventGain;
             Map<Integer, Integer> stats = new TreeMap<>(link.unlock.statLv);
             reqStat[l] = keys(stats);

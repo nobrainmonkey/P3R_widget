@@ -1,6 +1,7 @@
 package app.p3r.dayplanner.v3.store;
 
 import app.p3r.dayplanner.v3.engine.SimState;
+import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 
 import java.util.Arrays;
@@ -38,9 +39,17 @@ public final class StateShape {
      * {@code rules.lastSlot() + 1} when none is left (the calendar is over).
      */
     public static int firstOpenSlot(Rules rules, int slot) {
+        return firstOpenSlot(rules, null, slot);
+    }
+
+    /**
+     * Like {@link #firstOpenSlot(Rules, int)}, also skipping the slots the profile takes
+     * ({@link Profile#lockOf}: both 12/24 slots after an accepted Christmas Eve invitation).
+     */
+    public static int firstOpenSlot(Rules rules, Profile profile, int slot) {
         int last = rules.lastSlot();
         int s = slot;
-        while (s <= last && rules.lockOf(s) != null) {
+        while (s <= last && lockOf(rules, profile, s) != null) {
             s++;
         }
         return Math.min(s, last + 1);
@@ -48,13 +57,22 @@ public final class StateShape {
 
     /** Number of unlocked slots in {@code [from, to)}. */
     public static int openSlotsBetween(Rules rules, int from, int to) {
+        return openSlotsBetween(rules, null, from, to);
+    }
+
+    /** Number of slots in {@code [from, to)} that neither the calendar nor the profile locks. */
+    public static int openSlotsBetween(Rules rules, Profile profile, int from, int to) {
         int count = 0;
         for (int s = Math.max(0, from); s < to && s <= rules.lastSlot(); s++) {
-            if (rules.lockOf(s) == null) {
+            if (lockOf(rules, profile, s) == null) {
                 count++;
             }
         }
         return count;
+    }
+
+    private static String lockOf(Rules rules, Profile profile, int slot) {
+        return profile == null ? rules.lockOf(slot) : profile.lockOf(rules, slot);
     }
 
     /** {@link #fit} plus {@link #firstOpenSlot}: the canonical observed form. */

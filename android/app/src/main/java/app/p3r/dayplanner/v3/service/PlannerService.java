@@ -178,6 +178,11 @@ public final class PlannerService implements PlannerApi {
     private Ledger ledger;
     /** Guarded by {@link #lock}: revisions whose last plan attempt failed (no automatic retry). */
     private String failedPlanKey;
+    /**
+     * Revisions key ({@link #planKey}) whose budget follow-up was already queued: an installed plan
+     * that ran out of time gets exactly one follow-up computation with twice the budget.
+     */
+    private String followUpKey;
 
     private volatile Model model = new Model(null, null, null);
 
@@ -351,7 +356,7 @@ public final class PlannerService implements PlannerApi {
             return Collections.emptyList();
         }
         Rules rules = v.rules;
-        if (slot < v.observed.slot || slot > rules.lastSlot() || rules.lockOf(slot) != null) {
+        if (slot < v.observed.slot || slot > rules.lastSlot() || v.profile.lockOf(rules, slot) != null) {
             return Collections.emptyList();
         }
         Profile profile = v.profile.copy();
@@ -765,6 +770,74 @@ public final class PlannerService implements PlannerApi {
         return m.view != null && m.view.observed != null && !isCurrent(m);
     }
 
+    /**
+     * The installed plan is current but ran out of time, and its revisions have not had their
+     * follow-up yet ({@link ReplanWorker.Job#followUp}). Caller holds {@link #lock}.
+     */
+    private boolean needsFollowUpLocked(Model m) {
+        return isCurrent(m) && m.view.observed != null && m.plan.budgetExhausted && wiring.planBudgetMillis > 0
+                && !planKey(m.view).equals(followUpKey);
+    }
+
+    /** Budget of the follow-up computation: twice the normal one. */
+    static long followUpBudget(long budgetMillis) {
+        return budgetMillis > Long.MAX_VALUE / 2 ? Long.MAX_VALUE : budgetMillis * 2;
+    }
+
+    /**
+     * Whether a follow-up result replaces the installed plan for the same revisions: a complete
+     * plan always does; one that ran out of time again only when its goals (in priority order:
+     * 「必须」 then 「想要」, each by order) end higher, then more links reach MAX, then the end
+     * ranks add up to more.
+     */
+    static boolean improves(Profile profile, Plan candidate, Plan current) {
+        if (candidate == null) {
+            return false;
+        }
+        if (current == null || !candidate.budgetExhausted) {
+            return true;
+        }
+        int[] a = candidate.summary.endRanks;
+        int[] b = current.summary.endRanks;
+        for (int l : goalOrder(profile)) {
+            if (l < a.length && l < b.length && a[l] != b[l]) {
+                return a[l] > b[l];
+            }
+        }
+        int maxedA = 0;
+        int maxedB = 0;
+        int sumA = 0;
+        int sumB = 0;
+        for (int r : a) {
+            maxedA += r >= 10 ? 1 : 0;
+            sumA += r;
+        }
+        for (int r : b) {
+            maxedB += r >= 10 ? 1 : 0;
+            sumB += r;
+        }
+        return maxedA != maxedB ? maxedA > maxedB : sumA > sumB;
+    }
+
+    /** Goal links in priority order: 「必须」 then 「想要」, each by {@link Profile#order}, ties by index. */
+    private static List<Integer> goalOrder(Profile p) {
+        List<Integer> out = new ArrayList<>();
+        for (int l = 0; l < p.tier.length; l++) {
+            if (p.isGoal(l)) {
+                out.add(l);
+            }
+        }
+        out.sort((x, y) -> {
+            int tx = p.tier[x] == Profile.Tier.MUST ? 0 : 1;
+            int ty = p.tier[y] == Profile.Tier.MUST ? 0 : 1;
+            if (tx != ty) {
+                return Integer.compare(tx, ty);
+            }
+            return p.order[x] != p.order[y] ? Integer.compare(p.order[x], p.order[y]) : Integer.compare(x, y);
+        });
+        return out;
+    }
+
     private static String planKey(LedgerView v) {
         return v.stateRevision + "/" + v.profileRevision + "/" + v.rules.version;
     }
@@ -782,7 +855,8 @@ public final class PlannerService implements PlannerApi {
         public ReplanWorker.Job nextJob() {
             synchronized (lock) {
                 Model m = model;
-                if (!needsPlan(m) || planKey(m.view).equals(failedPlanKey)) {
+                boolean followUp = !needsPlan(m) && m.view != null && needsFollowUpLocked(m);
+                if (!followUp && (!needsPlan(m) || planKey(m.view).equals(failedPlanKey))) {
                     return null;
                 }
                 ReplanWorker.Job job = new ReplanWorker.Job();
@@ -793,6 +867,13 @@ public final class PlannerService implements PlannerApi {
                 job.stateRevision = m.view.stateRevision;
                 job.profileRevision = m.view.profileRevision;
                 job.options = options(m.view);
+                if (followUp) {
+                    // Exactly one follow-up per revisions, even if it runs out of time again.
+                    followUpKey = planKey(m.view);
+                    job.followUp = true;
+                    job.options.followUp = true;
+                    job.options.timeBudgetMillis = followUpBudget(wiring.planBudgetMillis);
+                }
                 return job;
             }
         }
@@ -810,6 +891,19 @@ public final class PlannerService implements PlannerApi {
                 }
                 if (error instanceof CancellationException) {
                     // Cancelled while still current (shutdown): leave everything as it was.
+                    return false;
+                }
+                if (job.followUp) {
+                    // The installed plan stays unless the follow-up is complete or better; a
+                    // failed follow-up is only logged (the installed plan is still valid).
+                    if (error != null || plan == null || !problems.isEmpty()) {
+                        Log.w(TAG, "budget follow-up not used: " + (error != null ? error : problems));
+                        return false;
+                    }
+                    if (isCurrent(m) && improves(job.profile, plan, m.plan)) {
+                        persistPlanLocked(plan);
+                        model = m.withPlan(plan);
+                    }
                     return false;
                 }
                 if (error != null || plan == null || !problems.isEmpty()) {
@@ -836,6 +930,14 @@ public final class PlannerService implements PlannerApi {
         public void runEnded() {
             refreshWidgets();
             notifyListeners();
+            boolean followUp;
+            synchronized (lock) {
+                followUp = needsFollowUpLocked(model);
+            }
+            if (followUp) {
+                // The plan just installed ran out of time: compute it once more with twice the budget.
+                replanner.schedule();
+            }
         }
     }
 

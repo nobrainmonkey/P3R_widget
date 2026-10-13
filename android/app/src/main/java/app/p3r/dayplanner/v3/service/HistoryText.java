@@ -296,7 +296,7 @@ final class HistoryText {
             case EPISODE:
                 return episodeTitle(rules, action.target, traced == null ? -1 : episodeNumber(traced.before, action.target));
             case LOCKED: {
-                String reason = rules.lockReasonsZh.get(action.reason);
+                String reason = rules.lockReasonZh(action.reason);
                 return reason != null ? reason : "剧情";
             }
             default:

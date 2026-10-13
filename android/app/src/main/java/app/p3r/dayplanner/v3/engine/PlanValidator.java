@@ -20,7 +20,8 @@ import java.util.Map;
  * fees, and counted in the unlock progress), excluded or unavailable activities, dating-site
  * notes (evening, from their first day, allowed, affordable, an established non-MAX link; never a
  * rank-up), Link Episodes (opted-in track, slot kind, the day's cell, in order), spending
- * below zero, Tartarus caps, ranks that skip, regress or exceed MAX, predicted ranks or cash that
+ * below zero, Tartarus caps per block ({@link Profile#capFor}), the 12/24 slots planned as
+ * anything but 「平安夜约会」 when the player accepted an invitation, ranks that skip, regress or exceed MAX, predicted ranks or cash that
  * disagree with the recount, and a summary whose end ranks disagree. Warnings: a FREE slot where a
  * productive action was verifiably legal. Messages are developer-facing English.
  */
@@ -144,8 +145,26 @@ final class PlanValidator {
 
         // ------------------------------------------------------------------ one step
 
+        /**
+         * Lock of {@code s} under this profile, derived here on its own: the pack's lock, else
+         * "christmas_date" on both slots of the day whose month-day is 12-24 when the player
+         * accepted a Christmas Eve invitation.
+         */
+        private String lockAt(int s) {
+            String lock = rules.lockOf(s);
+            if (lock != null || profile.christmasLink == null || profile.christmasLink.trim().isEmpty()) return lock;
+            Rules.Day d = rules.day(s >> 1);
+            return d != null && "12-24".equals(d.md) ? "christmas_date" : null;
+        }
+
+        /** Tartarus cap of block {@code b}: its own entry in the profile, else the shared cap. */
+        private int capOf(int b) {
+            Integer own = profile.towerCapByBlock.get(rules.blocks[b].id);
+            return Math.max(0, own != null ? own : profile.towerCapPerBlock);
+        }
+
         private void replayStep(Plan.Step s) {
-            String lock = rules.lockOf(slot);
+            String lock = lockAt(slot);
             if (lock != null) {
                 if (!s.action.equals("locked:" + lock) || !"locked".equals(s.kind)) error(slot, "locked slot (" + lock + ") planned as " + s.action);
                 if (!s.side.isEmpty()) error(slot, "side steps on a locked slot");
@@ -394,7 +413,7 @@ final class PlanValidator {
             Rules.Day d = rules.day(day());
             if (!evening() || d == null || !d.tartarus || d.block != b) error(slot, "Tartarus block " + b + " not enterable in this slot");
             if (b < 0 || b >= nBlocks) return;
-            if (visits[b] >= profile.towerCapPerBlock) error(slot, "Tartarus cap " + profile.towerCapPerBlock + " exceeded in block " + b);
+            if (visits[b] >= capOf(b)) error(slot, "Tartarus cap " + capOf(b) + " exceeded in block " + b);
             visits[b]++;
             // The step's cash delta also carries the side steps' fees, which were paid already.
             long income = s.predicted.cashDelta + sideCost;
@@ -500,7 +519,7 @@ final class PlanValidator {
             Rules.Day day = rules.day(d);
             if (!evening() || day == null || !day.tartarus || day.block < 0 || day.block >= nBlocks) return false;
             // A visit that would use the cap a pending rescue later in this block needs is not counted.
-            return visits[day.block] + 1 + pendingRescues(day.block) <= profile.towerCapPerBlock;
+            return visits[day.block] + 1 + pendingRescues(day.block) <= capOf(day.block);
         }
 
         /** A dating-site note is affordable this evening and some established link the plan wants still needs points. */
@@ -535,7 +554,7 @@ final class PlanValidator {
                 for (int s = slot + 1; s <= Math.min(rules.lastSlot(), r.toDay * 2 + 1); s++) {
                     Rules.Day day = rules.day(s >> 1);
                     if ((s & 1) == 1 && s >> 1 >= r.fromDay && day != null && day.tartarus && day.block == block
-                            && rules.lockOf(s) == null) {
+                            && lockAt(s) == null) {
                         pending++;
                         break;
                     }
