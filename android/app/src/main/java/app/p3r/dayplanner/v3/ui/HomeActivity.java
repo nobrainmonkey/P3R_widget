@@ -40,7 +40,7 @@ import app.p3r.dayplanner.v3.widget.PlanWidget;
  * then returns to 今天, then leaves. All planner calls run through {@link Async}.
  *
  * <p>The undo / message bar is drawn above every layer (tabs, sub-pages, sheets): above the tab
- * bar normally, at the top while a sheet is open or when it would cover the 今天 hero buttons.
+ * bar normally, just above an open sheet, and at the top when it would cover the 今天 hero buttons.
  */
 public final class HomeActivity extends Activity implements HomeHost, PlannerApi.Listener {
     static final int TAB_TODAY = 0;
@@ -320,8 +320,9 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
 
     /**
      * Puts the undo / message bar on top of every layer: above the tab bar on the tabs, near the
-     * bottom edge on sub-pages, at the top while a sheet is open (it would cover the sheet's
-     * buttons) and at the top on 今天 when it would cover the hero card's buttons.
+     * bottom edge on sub-pages, just above an open sheet (never over the sheet's buttons; at the
+     * top when the sheet leaves no room) and at the top on 今天 when it would cover the hero
+     * card's buttons.
      */
     void placeUndo() {
         if (!undo.isShowing()) {
