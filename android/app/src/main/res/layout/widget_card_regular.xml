@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Plan/guide widget card, regular size (about 4x2 cells and up). Shared by PlanWidget and the legacy
-     PlannerWidget. XML defaults are a realistic day-palette sample so this file doubles as the picker
-     preview; CardRenderer overwrites every text, image and palette resource at runtime. -->
+<!-- Plan widget card, regular size (about 4x2 cells and up). XML defaults are a realistic day-palette
+     sample so this file doubles as the picker preview; CardRenderer overwrites every text, image and
+     palette resource at runtime. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widget_root"

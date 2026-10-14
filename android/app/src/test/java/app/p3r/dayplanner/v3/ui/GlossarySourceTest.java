@@ -20,8 +20,6 @@ import java.util.regex.Pattern;
  * plates write a date as M/D ({@link Zh#shortDate}). Plain JVM over the source files.
  */
 public class GlossarySourceTest {
-    /** The legacy guide's own word list: guide text, not app copy. */
-    private static final String GUIDE_WORDS = "GuideWords.java";
     /** 规划 is the app name and two menu items only. */
     private static final Pattern PLAN_WORD = Pattern.compile("规划(?!设置|说明)");
 
@@ -88,9 +86,6 @@ public class GlossarySourceTest {
         assertTrue(literals("a(\"x\\\"字条\"); // \"字条\"\n").contains("x\\\"字条"));
         List<String> issues = new ArrayList<>();
         for (File f : sources()) {
-            if (f.getName().equals(GUIDE_WORDS)) {
-                continue;
-            }
             for (String literal : literals(read(f))) {
                 if (literal.replace("结缘网站的字条", "").contains("字条")) {
                     issues.add(f.getName() + ": \"" + literal + "\"");

@@ -38,8 +38,8 @@ import static org.robolectric.Shadows.shadowOf;
  * End-to-end widget behaviour through real RemoteViews clicks: Robolectric sends each click's
  * PendingIntent, delivers broadcasts to the manifest receiver and records started activities.
  *
- * <p>Uses the legacy fade test's real-ViewAnimator shadow: Robolectric sandboxes are shared per SDK,
- * so every test that inflates the palette host must agree on the ViewAnimator shadow.
+ * <p>Uses the real-ViewAnimator shadow ({@link RealViewAnimator}): Robolectric sandboxes are shared
+ * per SDK, so every test that inflates the palette host must agree on the ViewAnimator shadow.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {26, 31}, shadows = {RealViewAnimator.class})

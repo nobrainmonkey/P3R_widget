@@ -44,7 +44,7 @@ import static org.robolectric.Shadows.shadowOf;
  * side-step keys of a record from the installed plan's step, so a direct record must only ever
  * happen on a step without them.
  *
- * <p>Uses the legacy fade test's real-ViewAnimator shadow, like every test that inflates the
+ * <p>Uses the real-ViewAnimator shadow ({@link RealViewAnimator}), like every test that inflates the
  * palette host on this SDK.
  */
 @RunWith(RobolectricTestRunner.class)

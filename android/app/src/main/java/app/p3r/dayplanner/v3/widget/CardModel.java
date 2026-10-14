@@ -34,7 +34,7 @@ public final class CardModel {
     public String weekdayZh;
     /** Moon phase 0..7 (4 = full), or -1 to hide the glyph. */
     public int moonPhase = -1;
-    /** "白天" / "放学后" / "晚上" (or the legacy guide's period word); null hides it. */
+    /** "白天" / "放学后" / "晚上"; null hides it. */
     public String periodZh;
     /** Spoken form of the plate for accessibility, e.g. "10月22日 周四 放学后". */
     public String dateDescription = "";
@@ -50,7 +50,7 @@ public final class CardModel {
      * {@link CardRenderer#fit}.
      */
     public boolean watermarkFaint;
-    /** Light-shaft composition 0..3 (chosen from the game date so both widgets agree). */
+    /** Light-shaft composition 0..3 (chosen from the game date so every card of a day agrees). */
     public int motif;
 
     // ---- status cluster (top right)
@@ -118,8 +118,8 @@ public final class CardModel {
      */
     public final List<ReminderLine> reminders = new ArrayList<>();
     /**
-     * The answers row as drawn: one paragraph per {@link #answers} line (or the legacy guide's
-     * {@link #dialogue}), shaped for line breaks; null hides the row. Set by {@link CardRenderer#fit}.
+     * The answers row as drawn: one paragraph per {@link #answers} line, shaped for line breaks;
+     * null hides the row. Set by {@link CardRenderer#fit}.
      */
     public String answersShown;
     /** Text size (sp) of the answers row; 0 for the layout's. Set by {@link CardRenderer#fit}. */
@@ -130,24 +130,10 @@ public final class CardModel {
     public String reminderShown;
     /**
      * Keep names in the title whole when it wraps ({@link CardText#title}: 「皇帝」/「小田桐秀利」,
-     * never 「小田桐/秀利」). The legacy guide's free-form titles use {@link #guideText} instead.
+     * never 「小田桐/秀利」).
      */
     public boolean keepWordsWhole;
     public String taskDescription = "";
-    // ---- legacy 逐日攻略 card only (PlannerWidget); goes with it (spec 3.1.0 §1.3 item 9)
-    /**
-     * The legacy guide's dialogue choices joined with " / ", already shaped for line breaks by the
-     * guide widget; null hides them. {@link CardRenderer#fit} keeps them as they are.
-     */
-    public String dialogue;
-    /**
-     * The legacy guide's free-form title and location: words stay whole when they wrap
-     * ({@link CardText#guide}: 「交给/伊莉莎白」, never 「交给伊莉莎/白」). The guide widget shapes its
-     * dialogue choices itself.
-     */
-    public boolean guideText;
-    /** Drop the body's vertical padding to make room (legacy dialogue choices). */
-    public boolean tightBody;
     /** Title line limit; the layout's autosize shrinks the text to fit within it. */
     public int titleMaxLines = 3;
     /**
@@ -295,9 +281,6 @@ public final class CardModel {
         m.reminderShown = reminderShown;
         m.keepWordsWhole = keepWordsWhole;
         m.taskDescription = taskDescription;
-        m.dialogue = dialogue;
-        m.guideText = guideText;
-        m.tightBody = tightBody;
         m.titleMaxLines = titleMaxLines;
         m.spaceAboveDp = spaceAboveDp;
         m.spaceBelowDp = spaceBelowDp;

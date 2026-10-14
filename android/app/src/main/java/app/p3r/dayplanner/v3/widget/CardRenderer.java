@@ -480,7 +480,6 @@ public final class CardRenderer {
      * The longest form of the location ({@link CardText#locationForms}: the floor range, then the
      * mall or school, then the area go first) that fits whole beside the chip on a body
      * {@code innerWidthDp} wide; null when not even {@link #MIN_LOCATION_DP} is left or no form fits.
-     * Guide text comes back shaped like the card's other guide text.
      */
     static String fitLocation(Context c, CardModel model, WidgetSize size, float innerWidthDp) {
         if (isBlank(model.location)) return null;
@@ -489,8 +488,7 @@ public final class CardRenderer {
         if (room < MIN_LOCATION_DP) return null;
         float sizeDp = layoutTextDp(c, metaTextSp(size));
         for (String form : CardText.locationForms(model.location)) {
-            String shown = model.guideText ? CardText.guide(form, null) : form;
-            if (CardText.plain(shown).equals(CardText.plain(model.location))) shown = model.location;
+            String shown = CardText.plain(form).equals(CardText.plain(model.location)) ? model.location : form;
             if (lineWidthDp(c, shown, sizeDp, Typeface.DEFAULT) <= room) return shown;
         }
         return null;
@@ -525,19 +523,13 @@ public final class CardRenderer {
     /**
      * {@code model} with its wrapping text shaped for line breaks ({@link CardText}), so it is measured
      * exactly as it will wrap: the title (and its short form) keeps numbers with their words and, with
-     * {@link CardModel#keepWordsWhole}, names whole and every dialogue choice whole; with
-     * {@link CardModel#guideText} (the legacy guide, which shapes its choices itself) every word of the
-     * title and the location whole; the tag chip keeps every value whole. Returns {@code model}
-     * itself when nothing changes.
+     * {@link CardModel#keepWordsWhole}, names whole; the tag chip keeps every value whole. (The answers
+     * row is shaped by {@link #fit}.) Returns {@code model} itself when nothing changes.
      */
     static CardModel shaped(Context c, CardModel model, WidgetSize size, float widthDp) {
         String title;
         String titleShort = model.titleShort;
-        String location = model.location;
-        if (model.guideText) {
-            title = guideTitle(c, model.title, model.location, size, titleWidthDp(model, size, widthDp - 2 * bodyPaddingDp(size)));
-            location = CardText.guide(model.location, null);
-        } else if (model.keepWordsWhole) {
+        if (model.keepWordsWhole) {
             title = CardText.title(model.title, CardText.locationWords(model.location));
             titleShort = CardText.title(model.titleShort, CardText.locationWords(model.location));
         } else {
@@ -545,33 +537,16 @@ public final class CardRenderer {
             titleShort = keepNumbersTogether(model.titleShort);
         }
         String tag = CardText.chip(model.tag);
-        String dialogue = model.keepWordsWhole ? CardText.choices(model.dialogue) : model.dialogue;
         String cue = model.keepWordsWhole && model.cueMaxLines > 1 ? CardText.sentence(model.cue) : model.cue;
-        boolean same = Objects.equals(title, model.title) && Objects.equals(dialogue, model.dialogue)
-                && Objects.equals(cue, model.cue) && Objects.equals(location, model.location)
+        boolean same = Objects.equals(title, model.title) && Objects.equals(cue, model.cue)
                 && Objects.equals(titleShort, model.titleShort) && Objects.equals(tag, model.tag);
         if (same) return model;
         CardModel shown = model.copy();
         shown.title = title;
         shown.titleShort = titleShort;
         shown.tag = tag;
-        shown.location = location;
-        shown.dialogue = dialogue;
         shown.cue = cue;
         return shown;
-    }
-
-    /**
-     * A legacy guide title as the card wraps it ({@link CardModel#guideText}): every word whole, the
-     * parts of its location included, and a quoted name whole when it fits one line of a title
-     * {@code titleWidthDp} wide at the bucket's largest size. The guide widget measures its title
-     * with this too.
-     */
-    public static String guideTitle(Context c, String title, String location, WidgetSize size, float titleWidthDp) {
-        float em = maxTitleSp(size) * c.getResources().getConfiguration().fontScale;
-        // Characters of a line at the largest title size, less about one for the two quote marks.
-        int quoted = (int) Math.floor(titleWidthDp / em) - 1;
-        return CardText.guide(title, CardText.locationWords(location), quoted);
     }
 
     /**
@@ -716,11 +691,11 @@ public final class CardRenderer {
         float smallest = textHeightDp(c, model.title, MIN_TITLE_SP, true, titleWidth, lines);
         CardModel fitted = model;
         // The answers row is essential: the width ladder's first form that fits, shorter forms only
-        // after every other row but the cue. (The legacy guide's choices come shaped and stay as they are.)
+        // after every other row but the cue.
         List<AnswerForm> forms = answerForms(c, model.answers, innerWidth);
         int form = 0;
-        String answersText = forms.isEmpty() ? model.dialogue : forms.get(0).text;
-        float answers = forms.isEmpty() ? dialogueRowHeightDp(c, model, innerWidth) : forms.get(0).heightDp;
+        String answersText = forms.isEmpty() ? null : forms.get(0).text;
+        float answers = forms.isEmpty() ? 0 : forms.get(0).heightDp;
         // The 当日提醒 row: the first one whole or short, never cut.
         String reminderText = fitReminder(c, model, size, innerWidth);
         float reminder = reminderRowHeightDp(c, reminderText, size, innerWidth);
@@ -742,7 +717,7 @@ public final class CardRenderer {
             fitted.location = location;
         }
         float padding = bodyVerticalPaddingDp(size);
-        float body = heightDp - chromeHeightDp(size) + (model.tightBody ? padding : 0);
+        float body = heightDp - chromeHeightDp(size);
         float meta = metaRowHeightDp(c, fitted, size, innerWidth);
         float hint = hintRowHeightDp(c, fitted, size, innerWidth);
         float side = sideRowHeightDp(c, fitted, size, innerWidth);
@@ -751,7 +726,7 @@ public final class CardRenderer {
         float extras = hint + side + reminder; // the rows that go before the chip's
         if (cue > 0 && fitted.cueMaxLines > 1 && smallest + answers + meta + extras + cue > body) {
             float deficit = smallest + answers + meta + extras + cue - body;
-            if (model.cueEssential && !model.tightBody && deficit <= padding) {
+            if (model.cueEssential && deficit <= padding) {
                 // An instruction keeps its words: as much of the body's padding as it needs goes first.
                 reclaimed = deficit;
                 body += deficit;
@@ -798,7 +773,7 @@ public final class CardRenderer {
         }
         // The chip is the step's key fact (RANK 4→5, 学力 +2) and the answers are essential: the body's
         // padding goes first, then the chip's row, then the answers take their shorter forms.
-        float room = model.tightBody ? 0 : padding - reclaimed;
+        float room = padding - reclaimed;
         float deficit = smallest + answers + meta + cue - body;
         boolean keyFacts = !isBlank(fitted.tag) || !forms.isEmpty();
         if (deficit > 0 && meta > 0 && keyFacts && deficit <= room) {
@@ -813,7 +788,7 @@ public final class CardRenderer {
             meta = 0;
             deficit = smallest + answers + cue - body;
         }
-        room = model.tightBody ? 0 : padding - reclaimed;
+        room = padding - reclaimed;
         if (deficit > 0 && !forms.isEmpty() && deficit <= room) {
             reclaimed += deficit;
             body += deficit;
@@ -918,7 +893,7 @@ public final class CardRenderer {
             fitted.spaceBelowDp = below;
             fitted.spaceUnderButtonsDp = under;
         }
-        // Full-width answers stay clear of the outlined day numeral (as the legacy guide does); other
+        // Full-width answers stay clear of the outlined day numeral (they run the card's whole width); other
         // text that runs into it gets a fainter numeral.
         if (answers > 0 && fitted.watermarkDay >= 0) {
             fitted = edit(fitted, model);
@@ -1022,32 +997,6 @@ public final class CardRenderer {
         float widest = 0;
         for (int i = 0; i < Math.min(maxLines, layout.getLineCount()); i++) widest = Math.max(widest, layout.getLineWidth(i));
         return widest / c.getResources().getDisplayMetrics().density;
-    }
-
-    /** Height in dp of the legacy guide's dialogue choices including their top gap (0 if hidden). */
-    static float dialogueRowHeightDp(Context c, CardModel model, float widthDp) {
-        if (isBlank(model.dialogue)) return 0;
-        return DIALOGUE_GAP_DP + textHeightDp(c, model.dialogue, DIALOGUE_SP, false, widthDp, 20, DIALOGUE_SPACING_DP);
-    }
-
-    /**
-     * Whether every choice of {@code choices} (「A / B」) fits one line of the dialogue text at
-     * {@code widthDp}. Only then can {@link CardText#choices} keep each one whole: a longer choice is
-     * cut wherever the card's line breaker likes, which the measured height does not follow.
-     */
-    public static boolean choicesFitWhole(Context c, String choices, float widthDp) {
-        if (isBlank(choices)) return true;
-        for (String choice : CardText.plain(choices).split(java.util.regex.Pattern.quote(CardText.CHOICE_SEPARATOR))) {
-            String text = choice.trim();
-            if (!text.isEmpty() && dialogueLines(c, text, widthDp) > 1) return false;
-        }
-        return true;
-    }
-
-    /** Lines the dialogue text wraps to at {@code widthDp}. */
-    static int dialogueLines(Context c, String text, float widthDp) {
-        if (isBlank(text)) return 0;
-        return layout(c, text, DIALOGUE_SP, Typeface.DEFAULT, widthDp, Integer.MAX_VALUE, DIALOGUE_SPACING_DP).getLineCount();
     }
 
     /** Renders {@code model} into the layout of {@code size}. */
@@ -1160,7 +1109,7 @@ public final class CardRenderer {
         // what it gave up for an instruction on a short one.
         float density = c.getResources().getDisplayMetrics().density;
         int side = Math.round(bodyPaddingDp(size) * density);
-        float padding = model.tightBody ? 0 : bodyVerticalPaddingDp(size) / 2;
+        float padding = bodyVerticalPaddingDp(size) / 2;
         views.setViewPadding(R.id.widget_task_area, side, Math.round(Math.max(0, padding + model.spaceAboveDp) * density),
                 side, Math.round(Math.max(0, padding + model.spaceBelowDp) * density));
         views.setViewPadding(R.id.widget_content, 0, 0, 0,
@@ -1184,11 +1133,9 @@ public final class CardRenderer {
             views.setInt(R.id.widget_title_icon, "setColorFilter", ink);
         }
 
-        // The answers in the primary ink; the lines of a meeting that may not rank up are muted. (The
-        // legacy guide's choices keep the secondary ink.)
-        boolean legacy = model.answers.isEmpty();
+        // The answers in the primary ink; the lines of a meeting that may not rank up are muted.
         setTextOrHide(views, R.id.widget_dialogue_choices, answersText(model, soft));
-        views.setTextColor(R.id.widget_dialogue_choices, legacy ? soft : ink);
+        views.setTextColor(R.id.widget_dialogue_choices, ink);
         views.setTextViewTextSize(R.id.widget_dialogue_choices, TypedValue.COMPLEX_UNIT_SP,
                 model.answersTextSp > 0 ? model.answersTextSp : DIALOGUE_SP);
         views.setViewPadding(R.id.widget_dialogue_choices, 0, model.answersTight ? 0 : Math.round(DIALOGUE_GAP_DP * density), 0, 0);
@@ -1286,7 +1233,7 @@ public final class CardRenderer {
      */
     static CharSequence answersText(CardModel model, int soft) {
         String text = model.answersShown;
-        if (isBlank(text) || model.answers.isEmpty()) return text;
+        if (isBlank(text)) return text;
         android.text.SpannableString spanned = new android.text.SpannableString(text);
         int muted = (soft & 0x00FFFFFF) | (MUTED_ANSWER_ALPHA << 24);
         int start = 0;
