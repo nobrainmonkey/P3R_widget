@@ -15,7 +15,6 @@ import java.util.List;
 
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.Intents;
-import app.p3r.dayplanner.v3.engine.DialogueHint;
 import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
@@ -23,10 +22,9 @@ import app.p3r.dayplanner.v3.model.Rules;
 
 /**
  * 今天 tab: date plate, return banner, replanning status, resource strip, the hero card for the
- * next slot (with its 人格面具 reminder, "顺便" side steps and [做不了…] [完成 ✓]), the day's
- * 当日提醒 still to come (「今天别错过」), the rest of today plus the next 3 days (a 「提醒 N」 mark on
- * slots with reminders), and goal progress chips. Once Jan 31 is recorded the hero card becomes a
- * closing summary.
+ * next slot (with its 人格面具 reminder, "顺便" side steps and [做不了…] [完成 ✓]), the rest
+ * of today plus the next 3 days, and goal progress chips. Once Jan 31 is recorded the hero card
+ * becomes a closing summary.
  */
 final class TodayPage {
     private static final int LOOKAHEAD_DAYS = 3;
@@ -104,6 +102,7 @@ final class TodayPage {
         }
         column.addView(resources(d), spaced(16));
         column.addView(finished ? finishedCard(d) : hero(d), spaced(20));
+        // 今天别错过: the day's 当日提醒 still to come, under the hero.
         View reminders = finished ? null : ReminderViews.todayBlock(host, d);
         if (reminders != null) {
             column.addView(reminders, spaced(20));
@@ -390,8 +389,8 @@ final class TodayPage {
         // The scene's answers; a meeting that may not rank up gets the next scene's, muted.
         String dialogue = Dialogue.line(d.rules, d.profile(), step);
         if (dialogue != null) {
-            boolean maybe = dialogue.startsWith(DialogueHint.CONDITIONAL_PREFIX);
-            TextView options = Ui.text(c, dialogue, 14, Ui.col(c, maybe ? R.color.p3r_ink_muted : R.color.p3r_ice_100), false);
+            int ink = Dialogue.conditional(dialogue) ? R.color.p3r_ink_muted : R.color.p3r_ice_100;
+            TextView options = Ui.text(c, dialogue, 14, Ui.col(c, ink), false);
             card.addView(options, spaced(6));
         }
         if (StepViews.hasSide(step)) {

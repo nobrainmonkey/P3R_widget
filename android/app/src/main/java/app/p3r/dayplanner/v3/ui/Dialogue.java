@@ -80,6 +80,11 @@ public final class Dialogue {
         return line(rules, profile, step);
     }
 
+    /** The answers of a meeting that may not rank up after all: 「要是升级了，答：…」 (drawn muted). */
+    static boolean conditional(String line) {
+        return line != null && line.startsWith(DialogueHint.CONDITIONAL_PREFIX);
+    }
+
     /** A how-to line that is the guide's answers: 「参考回答：…」 or 「要是升级了，答：…」. */
     static boolean isAnswerLine(String line) {
         return line.startsWith(PREFIX) || line.startsWith(DialogueHint.CONDITIONAL_PREFIX);
