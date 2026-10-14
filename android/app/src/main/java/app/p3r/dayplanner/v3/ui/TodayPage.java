@@ -102,6 +102,11 @@ final class TodayPage {
         }
         column.addView(resources(d), spaced(16));
         column.addView(finished ? finishedCard(d) : hero(d), spaced(20));
+        // 今天别错过: the day's 当日提醒 still to come, under the hero.
+        View reminders = finished ? null : ReminderViews.todayBlock(host, d);
+        if (reminders != null) {
+            column.addView(reminders, spaced(20));
+        }
         View upcoming = upcoming(d);
         if (upcoming != null) {
             column.addView(upcoming, spaced(24));
@@ -396,9 +401,11 @@ final class TodayPage {
             loc.addView(where, wp);
             card.addView(loc, spaced(10));
         }
+        // The scene's answers; a meeting that may not rank up gets the next scene's, muted.
         String dialogue = Dialogue.line(d.rules, d.profile(), step);
         if (dialogue != null) {
-            TextView options = Ui.text(c, dialogue, 14, Ui.col(c, R.color.p3r_ice_100), false);
+            int ink = Dialogue.conditional(dialogue) ? R.color.p3r_ink_muted : R.color.p3r_ice_100;
+            TextView options = Ui.text(c, dialogue, 14, Ui.col(c, ink), false);
             card.addView(options, spaced(6));
         }
         if (StepViews.hasSide(step)) {
@@ -543,6 +550,12 @@ final class TodayPage {
                 box.addView(dayCard, spaced(8));
             }
             LinearLayout line = SlotRows.line(c, d.rules, step, SlotRows.State.FUTURE, true);
+            TextView marker = ReminderViews.marker(c, ReminderViews.countAt(plan, slot));
+            if (marker != null) {
+                LinearLayout.LayoutParams mp = Ui.wrap();
+                mp.leftMargin = Ui.dp(c, 6);
+                line.addView(marker, mp);
+            }
             line.setClickable(true);
             line.setFocusable(true);
             line.setBackground(new SlantedPanelDrawable().fill(0).pressedFill(Ui.col(c, R.color.ui_cyan_faint)));

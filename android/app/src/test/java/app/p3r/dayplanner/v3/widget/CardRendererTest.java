@@ -18,6 +18,7 @@ import java.util.List;
 import app.p3r.dayplanner.R;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 /** Renderer-level checks on hand-built models (palette, visibility, no clipping). */
@@ -111,6 +112,70 @@ public class CardRendererTest {
         }
         RuntimeEnvironment.setFontScale(1f);
         assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
+    /**
+     * The answers row (DESIGN §18): one paragraph per line, a meeting that may not rank up muted, and
+     * the width ladder's forms best first, each shorter than the one before.
+     */
+    @Test
+    public void theAnswersRowMutesTheLinesOfAMeetingThatMayNotRankUp() {
+        Context c = RuntimeEnvironment.getApplication();
+        CardModel m = sample(false);
+        m.keepWordsWhole = true;
+        m.answers.add(new CardModel.AnswerLine("要是升级了，答：", "升级时答：", java.util.Arrays.asList("我会帮你的", "这样的规矩没有意义"),
+                null, true));
+        m.answers.add(new CardModel.AnswerLine("课堂：", null, java.util.Collections.singletonList("马（第 2 项）"), null, false));
+        View root = RenderSupport.layout(c, CardRenderer.render(c, m, 320, 240), 320, 240);
+        TextView row = root.findViewById(R.id.widget_dialogue_choices);
+        assertEquals(View.VISIBLE, row.getVisibility());
+        String drawn = row.getText().toString();
+        assertTrue(CardText.plain(drawn), CardText.plain(drawn).matches("(要是升级了，|升级时)答：我会帮你的 / 这样的规矩没有意义\n课堂：马（第 2 项）"));
+        android.text.Spanned spanned = (android.text.Spanned) row.getText();
+        android.text.style.ForegroundColorSpan[] muted = spanned.getSpans(0, spanned.length(), android.text.style.ForegroundColorSpan.class);
+        assertEquals(1, muted.length);
+        assertEquals(0, spanned.getSpanStart(muted[0]));
+        assertEquals("only the meeting's line", drawn.indexOf(CardText.ANSWER_LINE_BREAK), spanned.getSpanEnd(muted[0]));
+        assertEquals(CardRenderer.MUTED_ANSWER_ALPHA, muted[0].getForegroundColor() >>> 24);
+        assertEquals("the watermark steps aside", View.GONE, root.findViewById(R.id.widget_watermark).getVisibility());
+
+        List<CardRenderer.AnswerForm> forms = CardRenderer.answerForms(c, m.answers, 180 - 2 * CardRenderer.bodyPaddingDp(WidgetSize.TINY));
+        assertTrue(forms.size() > 1);
+        for (int i = 1; i < forms.size(); i++) assertTrue("form " + i, forms.get(i).heightDp < forms.get(i - 1).heightDp);
+        assertTrue("the shortest keeps the meeting's first answer", CardText.plain(forms.get(forms.size() - 1).text).contains("我会帮你的"));
+        assertTrue(CardRenderer.answerForms(c, new ArrayList<>(), 160).isEmpty());
+    }
+
+    /**
+     * A class answer whose 「（第 n 项）」 makes it wrap gives up the position before any choice is cut
+     * to 「等 N 项」, and a 180x150 card keeps every choice of both lines (as on the real pack's
+     * new-game plan, where the position used to take the class line with it).
+     */
+    @Test
+    public void aClassAnswerGivesUpItsPositionBeforeAnyChoice() {
+        Context c = RuntimeEnvironment.getApplication();
+        CardModel m = sample(false);
+        m.keepWordsWhole = true;
+        m.title = "倒悬者 · 舞子";
+        m.answers.add(new CardModel.AnswerLine("答：", null, java.util.Arrays.asList("一定会有的", "好啊"), null, false));
+        m.answers.add(new CardModel.AnswerLine("课堂：", null,
+                java.util.Collections.singletonList("布拉瓦茨基夫人" + CardModel.AnswerLine.position(2)), null, false));
+        assertEquals("课堂：布拉瓦茨基夫人", m.answers.get(1).withoutPosition().text());
+        assertSame("a line without a position stays as it is", m.answers.get(0), m.answers.get(0).withoutPosition());
+
+        List<String> forms = new ArrayList<>();
+        for (CardRenderer.AnswerForm form : CardRenderer.answerForms(c, m.answers, 150)) {
+            forms.add(CardText.plain(form.text).replaceAll(" *\u00A0*/ *", " / "));
+        }
+        int bare = forms.indexOf("答：一定会有的 / 好啊\n课堂：布拉瓦茨基夫人");
+        assertTrue(String.join(" | ", forms), bare > 0);
+        for (int i = 0; i < bare; i++) assertTrue(forms.get(i), forms.get(i).contains("（第 2 项）"));
+
+        View root = RenderSupport.layout(c, CardRenderer.render(c, m, 180, 150), 180, 150);
+        TextView row = root.findViewById(R.id.widget_dialogue_choices);
+        assertEquals(View.VISIBLE, row.getVisibility());
+        String drawn = CardText.plain(row.getText().toString());
+        assertTrue(drawn, drawn.matches("答：一定会有的 */ *好啊\n课堂：布拉瓦茨基夫人(（第 2 项）)?"));
     }
 
     /** A wrapped title breaks before 「（第 2 话）」, never inside it. */

@@ -227,24 +227,27 @@ public class PlanWidgetRenderTest {
     }
 
     @Test
-    public void meetingsShowTheGuideAnswersWhenThereIsRoom() {
+    public void meetingsShowTheGuideAnswersAtEverySize() {
         state("dialogue");
         View regular = render(false, 320, 200);
         TextView line = regular.findViewById(R.id.widget_dialogue_choices);
         assertEquals(View.VISIBLE, line.getVisibility());
-        assertEquals("参考回答：我会帮你的 / 这样的规矩没有意义", CardText.plain(line.getText().toString()));
+        // The widget's 「答：」, never the app's 「参考回答：」 (docs/GLOSSARY_zh.md).
+        assertEquals("答：我会帮你的 / 这样的规矩没有意义", CardText.plain(line.getText().toString()));
         assertTrue("「规矩」 is kept whole", line.getText().toString().contains("规" + CardText.WJ + "矩"));
-        assertTrue("at most two lines", line.getLineCount() <= CardRenderer.MAX_DIALOGUE_LINES);
+        assertTrue("at most two lines", line.getLineCount() <= CardRenderer.MAX_ANSWER_LINES);
         assertEquals("the outlined day numeral steps aside", View.GONE, regular.findViewById(R.id.widget_watermark).getVisibility());
         assertEquals("RANK 6→7", text(regular, R.id.widget_tag));
         assertEquals(View.VISIBLE, regular.findViewById(R.id.widget_meta_row).getVisibility());
-        // Where it does not fit it goes before the reminder, side step or RANK/location row: the title keeps its size.
+        // The answers are essential: the smallest card keeps them whole too (the title gives way).
         View tiny = render(false, 180, 150);
-        assertEquals(View.GONE, tiny.findViewById(R.id.widget_dialogue_choices).getVisibility());
-        assertEquals(View.VISIBLE, tiny.findViewById(R.id.widget_meta_row).getVisibility());
+        TextView small = tiny.findViewById(R.id.widget_dialogue_choices);
+        assertEquals(View.VISIBLE, small.getVisibility());
+        assertEquals("答：我会帮你的 / 这样的规矩没有意义", CardText.plain(small.getText().toString()).replace("\n", ""));
+        assertFalse(RenderSupport.ellipsized(small));
         state("dialogue-hint");
         View hint = render(false, 250, 160);
-        assertEquals(View.VISIBLE, hint.findViewById(R.id.widget_hint).getVisibility());
+        assertEquals(View.VISIBLE, hint.findViewById(R.id.widget_dialogue_choices).getVisibility());
         // Steps without guide text (or that are no meetings) never show the line.
         for (String other : new String[]{"social", "stat", "note", "tower"}) {
             state(other);

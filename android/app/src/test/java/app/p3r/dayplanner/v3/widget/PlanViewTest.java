@@ -7,6 +7,7 @@ import java.util.List;
 import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
+import app.p3r.dayplanner.v3.ui.ReminderFixtures;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -531,6 +532,84 @@ public class PlanViewTest {
 
     private static CardModel card(FakePlannerApi fake) {
         return PlanView.resolve(fake.snapshot(), -1, null, NOW).toCard(fake.rules);
+    }
+
+    /**
+     * The answers row (DESIGN §18): the scene of the meeting as 「答：」 (the app line read out), the
+     * next scene's as 「要是升级了，答：」 when it may rank up after all, none when it certainly does not
+     * or without rules (never the generic hint); a side step's pick after it.
+     */
+    @Test
+    public void answersFollowTheSceneOfTheMeeting() {
+        FakePlannerApi fake = new FakePlannerApi();
+        fake.rules = FakePlannerApi.miniRules();
+        fake.rules.link("emperor").dialogue.put(7, java.util.Arrays.asList("我会帮你的", "这样的规矩没有意义"));
+        Plan.Step emperor = fake.plan.steps.get(2);
+        emperor.entity = "emperor";
+        fake.observeAt("meet:emperor");
+        CardModel up = card(fake);
+        assertEquals(1, up.answers.size());
+        assertEquals("答：我会帮你的 / 这样的规矩没有意义", up.answers.get(0).text());
+        assertFalse(up.answers.get(0).conditional);
+        assertTrue(up.taskDescription, up.taskDescription.contains("参考回答：我会帮你的 / 这样的规矩没有意义"));
+
+        emperor.predicted.rankTo = 6;
+        emperor.predicted.rankUp = false;
+        CardModel maybe = card(fake);
+        assertEquals("要是升级了，答：我会帮你的 / 这样的规矩没有意义", maybe.answers.get(0).text());
+        assertTrue(maybe.answers.get(0).conditional);
+        assertEquals("升级时答：", maybe.answers.get(0).shortLabel);
+        assertTrue(maybe.taskDescription.contains("要是升级了，答：我会帮你的 / 这样的规矩没有意义"));
+        emperor.predicted.certain = true;
+        assertTrue("no rank-up for certain: no scene", card(fake).answers.isEmpty());
+        emperor.predicted.certain = false;
+        emperor.assumptions.add("rank_hold");
+        assertTrue("held: no scene", card(fake).answers.isEmpty());
+        emperor.assumptions.clear();
+
+        // A side step with a pick (a justice talk) adds its line; the side row keeps its own text.
+        Rules.Link justice = new Rules.Link();
+        justice.id = "justice";
+        justice.idx = 2;
+        Rules.Step talk = new Rules.Step();
+        talk.howZh = "放学后到学生会活动室门口找伏见千寻，选「有话想和你说」。这一步不会消耗时间。";
+        justice.unlock.steps.add(talk);
+        fake.rules.links = new Rules.Link[]{fake.rules.links[0], fake.rules.links[1], justice};
+        FakePlannerApi.side(emperor, "unlock:justice:0", "顺便：和伏见千寻搭话（第 1 次）");
+        CardModel side = card(fake);
+        assertEquals("顺便选：有话想和你说", side.answers.get(1).text());
+        assertEquals("顺便：和伏见千寻搭话（第 1 次）", side.side);
+
+        FakePlannerApi none = new FakePlannerApi();
+        none.observeAt("meet:emperor");
+        assertTrue("without rules only class and exam answers could show", card(none).answers.isEmpty());
+    }
+
+    /** 当日提醒 on the card: answers (class, exam) last in the answers row, the rest by priority; all read out. */
+    @Test
+    public void remindersOfTheCardsSlots() {
+        FakePlannerApi fake = new FakePlannerApi();
+        int nov2 = Rules.dayOf(S + 2);
+        ReminderFixtures.with(fake.plan,
+                ReminderFixtures.classAnswer(nov2, "马", 2),
+                ReminderFixtures.feature(nov2),
+                ReminderFixtures.nurse(nov2));
+        fake.observeAt("meet:emperor");
+        CardModel card = card(fake);
+        assertEquals("课堂：马（第 2 项）", card.answers.get(card.answers.size() - 1).text());
+        assertEquals(2, card.reminders.size());
+        assertEquals("放学后先去保健室：勇气 +2，不会消耗时间", card.reminders.get(0).text);
+        assertEquals("保健室：勇气 +2", card.reminders.get(0).shortText);
+        assertEquals("真宵堂今天开张了", card.reminders.get(1).text);
+        for (Plan.Reminder r : fake.plan.reminders) assertTrue(r.textZh, card.taskDescription.contains(r.textZh));
+        // The evening card of the same day carries none of them.
+        fake.observeAt("act:job_chagall");
+        assertTrue(card(fake).reminders.isEmpty());
+        assertTrue(card(fake).answers.isEmpty());
+        // An exam answer without its own field reads as its short form.
+        Plan.Reminder bare = ReminderFixtures.exam(nov2, "五月病", false);
+        bare.answerZh = null;
+        assertEquals("考试：五月病", PlanView.answerLine(bare).text());
     }
 
     @Test

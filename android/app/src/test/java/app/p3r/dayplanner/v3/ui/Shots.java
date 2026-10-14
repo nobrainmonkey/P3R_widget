@@ -111,8 +111,10 @@ final class Shots {
             boolean italic = t.getTypeface() != null && t.getTypeface().isItalic();
             assertTrue(where + ": CJK in italic face: " + text, !(cjk && (italic || t.getPaint().getTextSkewX() != 0)));
             assertTrue(where + ": raw id shown: " + text, !text.matches(".*\\b[a-z]+[_:][a-z_:0-9]+\\b.*"));
+            // A class or exam answer the guide spells in capitals (「MAY BLUES」「MADRID」「JUNE」) is quoted verbatim.
             String latin = text.replaceAll("RANK|MAX|Lv|P3R|ATLUS|Reload|Barlow|Condensed|SIL", "")
-                .replaceAll("[a-z0-9.-]+\\.[a-z]{2,}", "").replaceAll("\\b[IVX]+\\b", "");
+                .replaceAll("[a-z0-9.-]+\\.[a-z]{2,}", "").replaceAll("\\b[IVX]+\\b", "")
+                .replaceAll("「[A-Z][A-Z .'-]*」", "");
             assertTrue(where + ": English shown to the player: " + text, !latin.matches("(?s).*[A-Za-z]{2,}.*"));
             checkNumeralWords(t, where);
             if (t.getLayout() != null && t.getLineCount() > 0 && t.getMaxLines() > 1 && t.getHeight() > 0) {

@@ -122,7 +122,8 @@ final class RenderSupport {
      */
     static void collectCutText(View root, String tag, List<String> issues) {
         for (int id : new int[]{app.p3r.dayplanner.R.id.widget_tag, app.p3r.dayplanner.R.id.widget_location,
-                app.p3r.dayplanner.R.id.widget_detail_cue}) {
+                app.p3r.dayplanner.R.id.widget_detail_cue, app.p3r.dayplanner.R.id.widget_dialogue_choices,
+                app.p3r.dayplanner.R.id.widget_reminder}) {
             TextView text = root.findViewById(id);
             if (text.getVisibility() == View.VISIBLE && ellipsized(text)) {
                 issues.add(tag + " cuts " + name(text) + ": '" + CardText.plain(text.getText().toString()) + "'");
@@ -210,15 +211,41 @@ final class RenderSupport {
     /**
      * Names and dialogue choices must not split mid-word (audit: 「小田桐/秀利」, 「你说得对」/「（1）」):
      * a wrapped title with 「 · 」 parts may only break after a space or punctuation, or before an
-     * opening bracket; a wrapped dialogue line only after a slash or the 「参考回答：」 prefix. A line
-     * without any break opportunity (one word wider than the card) is the only exception.
+     * opening bracket. The answers row is checked by {@link #collectAnswerSplits}. A line without any
+     * break opportunity (one word wider than the card) is the only exception.
      */
     static void collectWordSplits(View root, String tag, List<String> issues) {
         TextView title = root.findViewById(app.p3r.dayplanner.R.id.widget_task);
         TextView dialogue = root.findViewById(app.p3r.dayplanner.R.id.widget_dialogue_choices);
         String plainTitle = title == null ? "" : titleText(title);
         if (plainTitle.contains(" · ")) collectSplits(title, tag + " title", issues);
-        collectSplits(dialogue, tag + " dialogue", issues);
+        collectAnswerSplits(dialogue, tag + " answers", issues);
+    }
+
+    /**
+     * The answers row (docs/DESIGN_v3.md §18) wraps only where its shaping lets it: after 「 / 」, a
+     * label or a hard line break, before a 「 · 」 note, and inside a choice only in its loose form
+     * (never at a word joiner, unless one unbreakable run is wider than the line). No line starts
+     * with 「/」 or is one character alone, and nothing ends in "…".
+     */
+    static void collectAnswerSplits(TextView text, String tag, List<String> issues) {
+        if (text == null || text.getVisibility() != View.VISIBLE || text.getLayout() == null) return;
+        android.text.Layout layout = text.getLayout();
+        String s = text.getText().toString();
+        if (ellipsized(text)) issues.add(tag + " ends in …: '" + CardText.plain(s) + "'");
+        for (int line = 0; line < layout.getLineCount(); line++) {
+            int start = layout.getLineStart(line);
+            int end = layout.getLineEnd(line);
+            String shown = CardText.plain(s.substring(start, end)).trim();
+            if (shown.startsWith("/")) issues.add(tag + " line starts with a slash: '" + shown + "'");
+            if (shown.codePointCount(0, shown.length()) == 1) issues.add(tag + " leaves one character alone: '" + shown + "'");
+            if (line == layout.getLineCount() - 1 || (end > 0 && s.charAt(end - 1) == '\n')) continue;
+            boolean joined = (end > 0 && s.charAt(end - 1) == CardText.WJ) || (end < s.length() && s.charAt(end) == CardText.WJ);
+            if (joined && !forcedBreak(text, end)) {
+                issues.add(tag + " splits a word: '" + CardText.plain(s.substring(start, end)) + "' / '"
+                        + CardText.plain(s.substring(end)) + "'");
+            }
+        }
     }
 
     /**

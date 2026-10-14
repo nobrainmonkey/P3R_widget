@@ -249,7 +249,7 @@
                 android:id="@+id/widget_dialogue_choices"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:paddingTop="3dp"
                 android:includeFontPadding="false"
                 android:lineSpacingExtra="1dp"
                 android:textColor="#FF0A2A5C"
@@ -325,6 +325,24 @@
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:text="顺便：把 20,000 日元交给穿西装的男人"
+                android:textColor="#FF0A2A5C"
+                android:textSize="10.5sp"
+                android:visibility="gone" />
+
+            <!-- 当日提醒 the card carries (top priority; "（共 N 条）" when there are more), one line, never cut:
+                 CardRenderer shows it whole, in its short form or not at all. -->
+            <TextView
+                android:id="@+id/widget_reminder"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:drawableLeft="@drawable/widget_icon_remind_day"
+                android:drawablePadding="3dp"
+                android:ellipsize="end"
+                android:gravity="center_vertical"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="电视购物：玫瑰花束、高级巧克力 ×2，2,980 日元"
                 android:textColor="#FF0A2A5C"
                 android:textSize="10.5sp"
                 android:visibility="gone" />

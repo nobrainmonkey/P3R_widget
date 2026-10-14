@@ -86,6 +86,43 @@ public class CardTextTest {
         assertEquals(choices, CardText.choices(choices));
     }
 
+    /** The answers row (DESIGN §18): one line per answers line, labels, choices and notes whole. */
+    @Test
+    public void answerLinesKeepLabelsChoicesAndNotesWhole() {
+        CardModel.AnswerLine own = new CardModel.AnswerLine("要是升级了，答：", "升级时答：",
+                Arrays.asList("我也去看看吧或者我在这里等她", "真担心啊"), "别选表白", true);
+        CardModel.AnswerLine side = new CardModel.AnswerLine("顺便选：", null, Collections.singletonList("有话想和你说"), null, false);
+        String shaped = CardText.answers(Arrays.asList(own, side), false, false, false, Integer.MAX_VALUE);
+        assertEquals("要是升级了，答：我也去看看吧或者我在这里等她 / 真担心啊 · 别选表白\n顺便选：有话想和你说", CardText.plain(shaped));
+        assertTrue("a line starts with its marked break", shaped.contains(CardText.ANSWER_LINE_BREAK + "顺"));
+        assertTrue("the label stays whole", shaped.startsWith("要" + WJ + "是"));
+        assertTrue("a choice stays whole", shaped.contains("她" + NBSP + "/ 真" + WJ + "担"));
+        assertTrue("the note goes with its dot", shaped.contains("啊 ·" + NBSP + "别" + WJ + "选"));
+        // Ladder: the short label, 「或」, the first choices plus 「等 N 项」.
+        String narrow = CardText.answers(Collections.singletonList(own), true, true, false, 1);
+        assertEquals("升级时答：我也去看看吧或我在这里等她 等 2 项 · 别选表白", CardText.plain(narrow));
+        assertTrue("「等 2 项」 stays whole", narrow.contains("等" + NBSP + "2" + NBSP + "项"));
+        // Loose: a long choice may wrap after its 「或」 (each side whole while short); a short one stays whole.
+        String loose = CardText.answers(Collections.singletonList(own), true, true, true, Integer.MAX_VALUE);
+        assertEquals("升级时答：我也去看看吧或我在这里等她 / 真担心啊 · 别选表白", CardText.plain(loose));
+        assertTrue("a break after 「或」", loose.contains("或我") && !loose.contains("或" + WJ + "我"));
+        assertTrue("「真担心啊」 whole", loose.contains("真" + WJ + "担" + WJ + "心" + WJ + "啊"));
+        assertEquals("或", CardText.shortOr("或" + WJ + "者"));
+        assertEquals("A或B", CardText.shortOr("A或者B"));
+    }
+
+    /** A note that a drawn line starts with goes there without its 「·」. */
+    @Test
+    public void aNoteStartingALineDropsItsDot() {
+        CardModel.AnswerLine own = new CardModel.AnswerLine("答：", null, Collections.singletonList("随便问吧"), "别选「产生恋爱感情了」", false);
+        String shaped = CardText.answers(Collections.singletonList(own), false, false, false, Integer.MAX_VALUE);
+        int note = shaped.indexOf("·");
+        String broken = CardText.breakBeforeNotes(shaped, new int[]{0, note});
+        assertEquals("答：随便问吧\n别选「产生恋爱感情了」", CardText.plain(broken));
+        assertFalse(broken.contains(CardText.ANSWER_LINE_BREAK));
+        assertEquals("a line that does not start there is left alone", shaped, CardText.breakBeforeNotes(shaped, new int[]{0, 3}));
+    }
+
     @Test
     public void choicesStayWholeAndBreakOnlyAfterASlash() {
         String shaped = CardText.choices("发生什么了吗？（1） / 那也没办法（2） / 你说得对（1）");

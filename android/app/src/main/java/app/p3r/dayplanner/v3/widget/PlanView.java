@@ -1,8 +1,10 @@
 package app.p3r.dayplanner.v3.widget;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import app.p3r.dayplanner.v3.engine.DialogueHint;
 import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
@@ -267,12 +269,31 @@ final class PlanView {
         m.hint = copy.hint;
         m.side = copy.side;
         m.cue = cueFor(step, copy, rules);
-        // The guide's answers for this meeting, as the app shows them; the card keeps it if it fits.
-        // Only real guide answers; the app's generic hint would be noise on every meeting card.
-        String answers = app.p3r.dayplanner.v3.ui.Dialogue.line(rules, snapshot.profile, step);
-        m.dialogue = answers != null && answers.startsWith("参考回答：") ? answers : null;
-        m.dialogueOptional = true;
-        m.taskDescription = describe(m) + "。点击查看详情";
+        // What to answer: the step's own choices, the side steps' picks, then the class and exam
+        // answers of the card's slots; never the app's generic hint. The full app line is read out.
+        List<String> spoken = new ArrayList<>();
+        DialogueHint.Answers own = ownAnswers(step, rules);
+        if (!own.isEmpty()) {
+            m.answers.add(answerLine(own, null));
+            spoken.add("social".equals(step.kind) ? DialogueHint.appLine(own) : m.answers.get(0).text());
+        }
+        for (String key : step.side == null ? Collections.<String>emptyList() : step.side) {
+            DialogueHint.Answers picks = DialogueHint.forUnlockStep(unlockStep(rules, key));
+            if (picks.isEmpty()) continue;
+            CardModel.AnswerLine line = answerLine(picks, DialogueHint.SIDE_PREFIX);
+            m.answers.add(line);
+            spoken.add(line.text());
+        }
+        List<Plan.Reminder> others = new ArrayList<>();
+        for (Plan.Reminder r : item.reminders) {
+            if (r.isAnswer()) m.answers.add(answerLine(r));
+            else others.add(r);
+            spoken.add(r.textZh);
+        }
+        // The reminder row shows the most important one first (stable: plan order among equals).
+        others.sort((a, b) -> Integer.compare(b.priority, a.priority));
+        for (Plan.Reminder r : others) m.reminders.add(new CardModel.ReminderLine(r.textZh, blankToNull(r.shortZh)));
+        m.taskDescription = describe(m, spoken) + "。点击查看详情";
         switch (done) {
             case COMMIT:
                 m.doneDescription = "完成：按安排记录「" + m.title + "」";
@@ -406,13 +427,72 @@ final class PlanView {
     }
 
     private static String describe(CardModel m) {
+        return describe(m, Collections.emptyList());
+    }
+
+    /** The card read out: title, chip, place, hint, side steps, then {@code extra} (answers, 当日提醒). */
+    private static String describe(CardModel m, List<String> extra) {
         StringBuilder sb = new StringBuilder(m.title);
         if (m.tag != null) sb.append("，").append(m.tag);
         if (m.location != null) sb.append("，地点：").append(m.location);
         if (m.hint != null) sb.append("。").append(m.hint);
         if (m.side != null) sb.append("。").append(m.side);
-        if (m.dialogue != null) sb.append("。").append(m.dialogue);
+        for (String line : extra) {
+            if (blankToNull(line) != null) sb.append("。").append(line.trim());
+        }
         return sb.toString();
+    }
+
+    // ------------------------------------------------------------------ answers
+
+    /**
+     * The choices of the step itself (docs/DESIGN_v3.md §18): a meeting's guide answers for its scene
+     * ({@link DialogueHint#forMeeting}), an unlock step's picks; none without rules.
+     */
+    private DialogueHint.Answers ownAnswers(Plan.Step step, Rules rules) {
+        if (rules == null || step == null) return DialogueHint.Answers.NONE;
+        if ("social".equals(step.kind)) return DialogueHint.forMeeting(rules, snapshot.profile, step);
+        if (step.action != null && step.action.startsWith("unlock:")) {
+            return DialogueHint.forUnlockStep(unlockStep(rules, step.action));
+        }
+        return DialogueHint.Answers.NONE;
+    }
+
+    /** The unlock step of an action key "unlock:justice:0", or null. */
+    static Rules.Step unlockStep(Rules rules, String key) {
+        if (rules == null || key == null || !key.startsWith("unlock:")) return null;
+        String[] parts = key.split(":");
+        Rules.Link link = parts.length == 3 ? rules.link(parts[1]) : null;
+        if (link == null || link.unlock == null) return null;
+        try {
+            int k = Integer.parseInt(parts[2]);
+            return k >= 0 && k < link.unlock.steps.size() ? link.unlock.steps.get(k) : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** The widget's line of {@code a}; {@code label} overrides the 「答：」 (a side step's 「顺便选：」). */
+    static CardModel.AnswerLine answerLine(DialogueHint.Answers a, String label) {
+        String shortLabel = label == null && a.conditional ? DialogueHint.CONDITIONAL_SHORT_PREFIX : null;
+        String note = DialogueHint.widgetNote(a);
+        List<String> choices = DialogueHint.widgetChoices(a);
+        if (choices.isEmpty() && a.any) note = DialogueHint.ANY_ZH;
+        return new CardModel.AnswerLine(label != null ? label : DialogueHint.widgetLabel(a), shortLabel, choices, note,
+                a.conditional);
+    }
+
+    /** 「课堂：马（第 2 项）」 / 「考试：五月病」 for a class or exam 当日提醒. */
+    static CardModel.AnswerLine answerLine(Plan.Reminder r) {
+        String answer = blankToNull(r.answerZh);
+        if (answer == null) {
+            // A reminder without its answer field: its short form is the whole line.
+            String whole = blankToNull(r.shortZh) != null ? r.shortZh.trim() : r.textZh;
+            return new CardModel.AnswerLine("", null, Collections.emptyList(), whole, false);
+        }
+        String label = Plan.Reminder.CLASS.equals(r.kind) ? "课堂：" : "考试：";
+        String choice = answer.trim() + (Plan.Reminder.CLASS.equals(r.kind) && r.option > 0 ? CardModel.AnswerLine.position(r.option) : "");
+        return new CardModel.AnswerLine(label, null, Collections.singletonList(choice), null, false);
     }
 
     static String blankToNull(String s) {

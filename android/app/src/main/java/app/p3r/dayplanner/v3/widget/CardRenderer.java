@@ -14,6 +14,8 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.RemoteViews;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -62,7 +64,7 @@ public final class CardRenderer {
     private static final float EXTRA_GAP_DP = 3f;
     /** Narrowest location worth drawing (dp of text): three characters; below it the row drops it. */
     static final float MIN_LOCATION_DP = 33f;
-    /** Pin (or reminder mark) in front of the location and reminder lines plus its padding (dp). Mirrors the layout XML. */
+    /** Pin (or the 人格面具 / 当日提醒 mark) in front of the location, hint and reminder rows plus its padding (dp). Mirrors the layout XML. */
     private static final float PIN_DP = 15f;
     /** Horizontal padding plus right margin of the tag chip (dp). Mirrors the layout XML. */
     private static final float TAG_PADDING_DP = 16f;
@@ -78,12 +80,17 @@ public final class CardRenderer {
     private static final float UNDER_BUTTONS_SHARE = 0.3f;
     /** Gap between the kind mark and the title (dp). Mirrors the layout XML. */
     private static final float TITLE_ICON_GAP_DP = 4f;
-    /** Text size (sp), line spacing (dp) and top gap (dp) of the dialogue line. Mirrors the layout XML. */
+    /** Text size (sp), line spacing (dp) and top gap (dp) of the answers row. Mirrors the layout XML. */
     static final float DIALOGUE_SP = 12f;
     private static final float DIALOGUE_SPACING_DP = 1f;
     private static final float DIALOGUE_GAP_DP = 3f;
-    /** Most lines an optional dialogue line ({@link CardModel#dialogueOptional}) may take. */
-    public static final int MAX_DIALOGUE_LINES = 2;
+    /** The answers row's last text size step (sp, spec 3.1.0 §1.4.3 step 6). */
+    static final float ANSWERS_SMALL_SP = 11f;
+    /** Lines the answers row may take before the width ladder allows {@link #MORE_ANSWER_LINES}. */
+    public static final int MAX_ANSWER_LINES = 2;
+    public static final int MORE_ANSWER_LINES = 3;
+    /** Alpha of a muted answers line (a meeting that may not rank up): about 4:1 on the day surface. */
+    static final int MUTED_ANSWER_ALPHA = 0xD9;
 
     private CardRenderer() {}
 
@@ -303,7 +310,7 @@ public final class CardRenderer {
         return textHeightDp(c, model.cue, cueTextSp(size), false, widthDp, Math.max(1, model.cueMaxLines)) + ROW_GAP_DP;
     }
 
-    /** Height in dp of the reminder line (with its 12dp mark) including its top gap (0 if hidden). */
+    /** Height in dp of the 人格面具 reminder (with its 12dp mark) including its top gap (0 if hidden). */
     static float hintRowHeightDp(Context c, CardModel model, WidgetSize size, float widthDp) {
         if (isBlank(model.hint)) return 0;
         float text = textHeightDp(c, model.hint, cueTextSp(size), false, Math.max(1, widthDp - PIN_DP), 1);
@@ -313,6 +320,160 @@ public final class CardRenderer {
     /** Height in dp of the side-step line ("顺便：…") including its top gap (0 if hidden). */
     static float sideRowHeightDp(Context c, CardModel model, WidgetSize size, float widthDp) {
         return isBlank(model.side) ? 0 : textHeightDp(c, model.side, cueTextSp(size), false, widthDp, 1) + EXTRA_GAP_DP;
+    }
+
+    /** Height in dp of the reminder row ({@code text}, with its 12dp mark) including its top gap (0 if none). */
+    static float reminderRowHeightDp(Context c, String text, WidgetSize size, float widthDp) {
+        if (isBlank(text)) return 0;
+        float height = textHeightDp(c, text, cueTextSp(size), false, Math.max(1, widthDp - PIN_DP), 1);
+        return Math.max(12f, height) + EXTRA_GAP_DP;
+    }
+
+    /**
+     * The reminder row of {@code model} on a body {@code innerWidthDp} wide: its first 当日提醒 whole,
+     * else in its short form, never cut with "…"; with more than one, 「（共 N 条）」 follows (the short
+     * form alone is the last resort). Null when none fits one line.
+     */
+    static String fitReminder(Context c, CardModel model, WidgetSize size, float innerWidthDp) {
+        if (model.reminders.isEmpty()) return null;
+        CardModel.ReminderLine first = model.reminders.get(0);
+        int count = model.reminders.size();
+        String more = count > 1 ? "（共 " + count + " 条）" : "";
+        List<String> forms = new ArrayList<>();
+        if (!isBlank(first.text)) forms.add(first.text.trim() + more);
+        if (!isBlank(first.shortText)) forms.add(first.shortText.trim() + more);
+        if (count > 1 && !isBlank(first.shortText)) forms.add(first.shortText.trim());
+        float sizeDp = layoutTextDp(c, cueTextSp(size));
+        for (String form : forms) {
+            if (PIN_DP + lineWidthDp(c, form, sizeDp, Typeface.DEFAULT) <= innerWidthDp - 1) return form; // 1dp for rounding
+        }
+        return null;
+    }
+
+    /** One way to draw the answers row: a rung of the width ladder (spec 3.1.0 §1.4.3). */
+    static final class AnswerForm {
+        /** Shaped text, one paragraph per answers line. */
+        final String text;
+        final float sp;
+        /** Height including the row's top gap. */
+        final float heightDp;
+
+        AnswerForm(String text, float sp, float heightDp) {
+            this.text = text;
+            this.sp = sp;
+            this.heightDp = heightDp;
+        }
+    }
+
+    /**
+     * The ways to draw {@code answers} on a body {@code widthDp} wide, best first. First the rung of
+     * the width ladder that fits: labels in full, 「或者」 and every choice whole on at most
+     * {@link #MAX_ANSWER_LINES} lines (or one per answers line); then 「升级时答：」; then 「或」; then up
+     * to {@link #MORE_ANSWER_LINES} lines; then choices that wrap inside ({@link CardText#choicesLoose});
+     * then {@link #ANSWERS_SMALL_SP}. After it, for a card short of height: each later rung that
+     * takes less height, then a class answer without its 「（第 n 项）」
+     * ({@link CardModel.AnswerLine#withoutPosition}; it stays out of the forms after it), then the
+     * lines cut to their first whole choices plus 「等 N 项」, then (on the
+     * shortest cards, where only two lines of text fit under the plate) the later lines dropped, the
+     * step's own first line kept to its first choice, and last a 朋友-route line's caution alone
+     * (「答：别选「…」」). The guide's 「（1）」 counts are already left out
+     * ({@link app.p3r.dayplanner.v3.engine.DialogueHint#widgetChoices}, decision O3), and no choice
+     * is ever cut with "…" or skipped in the middle. Empty without answers.
+     */
+    static List<AnswerForm> answerForms(Context c, List<CardModel.AnswerLine> answers, float widthDp) {
+        List<AnswerForm> forms = new ArrayList<>();
+        if (answers.isEmpty()) return forms;
+        int few = Math.max(MAX_ANSWER_LINES, answers.size());
+        int more = Math.max(MORE_ANSWER_LINES, answers.size());
+        // {shortLabels, shortOr, loose, lines, sp}: the ladder's rungs in order.
+        Object[][] ladder = {
+                {false, false, false, few, DIALOGUE_SP},
+                {true, false, false, few, DIALOGUE_SP},
+                {true, true, false, few, DIALOGUE_SP},
+                {true, true, false, more, DIALOGUE_SP},
+                {true, true, true, more, DIALOGUE_SP},
+                {true, true, true, more, ANSWERS_SMALL_SP}};
+        for (Object[] rung : ladder) {
+            AnswerForm form = answerForm(c, answers, widthDp, (Boolean) rung[0], (Boolean) rung[1], (Boolean) rung[2],
+                    (Integer) rung[3], (Float) rung[4], Integer.MAX_VALUE);
+            if (form != null && (forms.isEmpty() || form.heightDp < forms.get(forms.size() - 1).heightDp)) forms.add(form);
+        }
+        // A class answer names its option itself: its position goes before any choice does.
+        List<CardModel.AnswerLine> bare = new ArrayList<>(answers.size());
+        for (CardModel.AnswerLine line : answers) bare.add(line.withoutPosition());
+        if (!bare.equals(answers)) {
+            answers = bare;
+            for (float sp : new float[]{DIALOGUE_SP, ANSWERS_SMALL_SP}) {
+                AnswerForm form = answerForm(c, answers, widthDp, true, true, false, more, sp, Integer.MAX_VALUE);
+                if (form != null && (forms.isEmpty() || form.heightDp < forms.get(forms.size() - 1).heightDp)) forms.add(form);
+            }
+        }
+        int most = 0;
+        for (CardModel.AnswerLine line : answers) most = Math.max(most, line.choices.size());
+        for (int shown = most - 1; shown >= 1; shown--) {
+            for (float sp : new float[]{DIALOGUE_SP, ANSWERS_SMALL_SP}) {
+                AnswerForm form = answerForm(c, answers, widthDp, true, true, false, more, sp, shown);
+                if (form != null && (forms.isEmpty() || form.heightDp < forms.get(forms.size() - 1).heightDp)) forms.add(form);
+            }
+        }
+        // The shortest cards: the later lines go, the step's own line stays with its first choice
+        // (whole where it fits a line).
+        for (int keep = answers.size(); keep >= 1; keep--) {
+            List<CardModel.AnswerLine> first = answers.subList(0, keep);
+            AnswerForm form = answerForm(c, first, widthDp, true, true, false, keep, ANSWERS_SMALL_SP, 1);
+            if (form == null) form = answerForm(c, first, widthDp, true, true, true, Integer.MAX_VALUE, ANSWERS_SMALL_SP, 1);
+            if (forms.isEmpty() || form.heightDp < forms.get(forms.size() - 1).heightDp) forms.add(form);
+        }
+        // Last, a 朋友-route line keeps its caution rather than its first choice: the confession picked
+        // by mistake costs more than a weaker answer.
+        CardModel.AnswerLine own = answers.get(0);
+        if (own.note != null && !own.choices.isEmpty()) {
+            List<CardModel.AnswerLine> caution = Collections.singletonList(new CardModel.AnswerLine(own.label,
+                    own.shortLabel, Collections.emptyList(), own.note, own.conditional));
+            AnswerForm form = answerForm(c, caution, widthDp, true, true, false, 1, ANSWERS_SMALL_SP, 1);
+            if (form != null && form.heightDp < forms.get(forms.size() - 1).heightDp) forms.add(form);
+        }
+        return forms;
+    }
+
+    /**
+     * {@code answers} shaped for one rung, or null when it does not fit: more than {@code maxLines}
+     * lines, or (unless {@code loose}) a choice, note or label wider than a line, which the line
+     * breaker would cut wherever it likes.
+     */
+    private static AnswerForm answerForm(Context c, List<CardModel.AnswerLine> answers, float widthDp, boolean shortLabels,
+                                         boolean shortOr, boolean loose, int maxLines, float sp, int shown) {
+        String text = CardText.answers(answers, shortLabels, shortOr, loose, shown);
+        StaticLayout layout = layout(c, text, sp, Typeface.DEFAULT, widthDp, Integer.MAX_VALUE, DIALOGUE_SPACING_DP);
+        if (layout.getLineCount() > maxLines) return null;
+        // A note that starts a line goes there without its 「·」 (the lines stay as they are).
+        int[] starts = new int[layout.getLineCount()];
+        for (int i = 0; i < starts.length; i++) starts[i] = layout.getLineStart(i);
+        String broken = CardText.breakBeforeNotes(text, starts);
+        if (!broken.equals(text)) {
+            text = broken;
+            layout = layout(c, text, sp, Typeface.DEFAULT, widthDp, Integer.MAX_VALUE, DIALOGUE_SPACING_DP);
+        }
+        if (!loose) {
+            for (CardModel.AnswerLine line : answers) {
+                List<String> pieces = new ArrayList<>();
+                pieces.add(shortLabels && line.shortLabel != null ? line.shortLabel : line.label);
+                int count = Math.min(line.choices.size(), Math.max(1, shown));
+                for (String choice : line.choices.subList(0, count)) pieces.add(shortOr ? CardText.shortOr(choice) : choice);
+                if (count < line.choices.size()) pieces.add(CardText.etc(line.choices.size()));
+                if (line.note != null) pieces.add(line.note);
+                for (String piece : pieces) {
+                    if (!isBlank(piece) && answerLines(c, piece, sp, widthDp) > 1) return null;
+                }
+            }
+        }
+        float height = DIALOGUE_GAP_DP + layout.getHeight() / c.getResources().getDisplayMetrics().density;
+        return new AnswerForm(text, sp, height);
+    }
+
+    /** Lines {@code text} wraps to in the answers row at {@code sp}. */
+    private static int answerLines(Context c, String text, float sp, float widthDp) {
+        return layout(c, text, sp, Typeface.DEFAULT, widthDp, Integer.MAX_VALUE, DIALOGUE_SPACING_DP).getLineCount();
     }
 
     /**
@@ -326,7 +487,7 @@ public final class CardRenderer {
         float chip = chipWidthDp(c, model, size);
         float room = innerWidthDp - (chip > 0 ? chip + TAG_MARGIN_DP : 0) - PIN_DP - 1; // 1dp for rounding
         if (room < MIN_LOCATION_DP) return null;
-        float sizeDp = metaTextSp(size) * c.getResources().getConfiguration().fontScale;
+        float sizeDp = layoutTextDp(c, metaTextSp(size));
         for (String form : CardText.locationForms(model.location)) {
             String shown = model.guideText ? CardText.guide(form, null) : form;
             if (CardText.plain(shown).equals(CardText.plain(model.location))) shown = model.location;
@@ -342,7 +503,7 @@ public final class CardRenderer {
      */
     static String fitCue(Context c, String cue, WidgetSize size, float innerWidthDp) {
         if (isBlank(cue)) return null;
-        float sizeDp = cueTextSp(size) * c.getResources().getConfiguration().fontScale;
+        float sizeDp = layoutTextDp(c, cueTextSp(size));
         List<String> forms = CardText.clauseForms(cue);
         for (int i = 0; i < forms.size(); i++) {
             if (lineWidthDp(c, forms.get(i), sizeDp, Typeface.DEFAULT) <= innerWidthDp - 1) return i == 0 ? cue : forms.get(i); // 1dp for rounding
@@ -439,6 +600,16 @@ public final class CardRenderer {
         }
     }
 
+    /**
+     * Text size in dp that a text view sized {@code sp} in the layout XML draws at: the font scale
+     * applied and, like {@code getDimensionPixelSize}, rounded to whole pixels (12sp at 115% on xhdpi
+     * draws at 28px, not 27.6, and a long location measured at 27.6 came out 7dp short).
+     */
+    static float layoutTextDp(Context c, float sp) {
+        DisplayMetrics metrics = c.getResources().getDisplayMetrics();
+        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, metrics)) / metrics.density;
+    }
+
     /** Width in dp of a single line of {@code text} at {@code sizeDp} (not scaled by font size). */
     static float lineWidthDp(Context c, String text, float sizeDp, Typeface typeface) {
         if (isBlank(text)) return 0;
@@ -492,13 +663,17 @@ public final class CardRenderer {
     }
 
     /**
-     * Gives the title room before optional rows. The cue line goes first (unless
-     * {@link CardModel#cueEssential}) when the title would otherwise drop below a comfortable size,
-     * then an optional dialogue line ({@link CardModel#dialogueOptional}; it also goes when it
-     * needs more than {@link #MAX_DIALOGUE_LINES} lines). When the title would not fit even at its
-     * smallest size, the reminder line goes, then the side-step line, then the tag/location row,
-     * then the cue; the body's padding goes before an essential instruction's second line or the
-     * chip's row. A title that would still end in "…" gives way to its short form
+     * Gives the title room before optional rows (docs/DESIGN_v3.md §18). The answers row is
+     * essential: it takes the first form of {@link #answerForms} and goes only on the shortest cards
+     * (130dp, two lines of text under the plate), where not even its shortest form fits beside a
+     * one-line title (after giving up the gap above it). The cue line goes
+     * first (unless {@link CardModel#cueEssential}) when the title would otherwise drop below a
+     * comfortable size. When the title would not fit even at its smallest size, the 当日提醒 row goes
+     * ({@link #fitReminder}: whole, short or not at all), then the 人格面具 reminder, then the
+     * side-step line; then the body's padding, then the tag/location row, then the answers take
+     * their shorter forms (choices that wrap inside, 11sp, then cut to 「等 N 项」), then the cue; the
+     * body's padding also goes before an essential instruction's second line. A title that would
+     * still end in "…" gives way to its short form
      * ({@link CardModel#titleShort}) when that fits, and a title that wraps at a 「 · 」 drops the dot
      * there ({@link #wrapAtSeparators}). The tag chip is never cut: the location beside
      * it takes the room that is left, in its longest form that fits whole ({@link #fitLocation}),
@@ -506,7 +681,7 @@ public final class CardRenderer {
      * one-line cue shows whole, or its leading whole clauses ({@link #fitCue}), or goes (an essential
      * one stays). On a tall card the spare height is shared out above and below the text and under
      * the buttons.
-     * Hides the day numeral behind a shown dialogue line and fades it behind other text. Returns
+     * Hides the day numeral behind a shown answers row and fades it behind other text. Returns
      * {@code model} itself when nothing changes.
      */
     static CardModel fit(Context c, CardModel model, WidgetSize size, float widthDp, float heightDp) {
@@ -539,13 +714,16 @@ public final class CardRenderer {
         int lines = Math.max(1, model.titleMaxLines);
         float comfortable = textHeightDp(c, model.title, comfortableTitleSp(size), true, titleWidth, lines);
         float smallest = textHeightDp(c, model.title, MIN_TITLE_SP, true, titleWidth, lines);
-        float dialogue = dialogueRowHeightDp(c, model, innerWidth);
         CardModel fitted = model;
-        if (dialogue > 0 && model.dialogueOptional && dialogueLines(c, model.dialogue, innerWidth) > MAX_DIALOGUE_LINES) {
-            fitted = edit(fitted, model);
-            fitted.dialogue = null;
-            dialogue = 0;
-        }
+        // The answers row is essential: the width ladder's first form that fits, shorter forms only
+        // after every other row but the cue. (The legacy guide's choices come shaped and stay as they are.)
+        List<AnswerForm> forms = answerForms(c, model.answers, innerWidth);
+        int form = 0;
+        String answersText = forms.isEmpty() ? model.dialogue : forms.get(0).text;
+        float answers = forms.isEmpty() ? dialogueRowHeightDp(c, model, innerWidth) : forms.get(0).heightDp;
+        // The 当日提醒 row: the first one whole or short, never cut.
+        String reminderText = fitReminder(c, model, size, innerWidth);
+        float reminder = reminderRowHeightDp(c, reminderText, size, innerWidth);
         // The chip is never cut short: a little wider than the card it takes a smaller size, much wider
         // it wraps, and the location makes way.
         float chip = chipWidthDp(c, model, size);
@@ -569,9 +747,10 @@ public final class CardRenderer {
         float hint = hintRowHeightDp(c, fitted, size, innerWidth);
         float side = sideRowHeightDp(c, fitted, size, innerWidth);
         float cue = cueRowHeightDp(c, fitted, size, innerWidth);
-        float reclaimed = 0; // body padding given up so an instruction keeps its lines or the chip its row
-        if (cue > 0 && fitted.cueMaxLines > 1 && smallest + dialogue + meta + hint + side + cue > body) {
-            float deficit = smallest + dialogue + meta + hint + side + cue - body;
+        float reclaimed = 0; // body padding given up so an instruction keeps its lines, the chip its row, the answers their form
+        float extras = hint + side + reminder; // the rows that go before the chip's
+        if (cue > 0 && fitted.cueMaxLines > 1 && smallest + answers + meta + extras + cue > body) {
+            float deficit = smallest + answers + meta + extras + cue - body;
             if (model.cueEssential && !model.tightBody && deficit <= padding) {
                 // An instruction keeps its words: as much of the body's padding as it needs goes first.
                 reclaimed = deficit;
@@ -596,46 +775,99 @@ public final class CardRenderer {
                 fitted.cue = whole;
             }
         }
-        if (cue > 0 && !model.cueEssential && comfortable + dialogue + meta + hint + side + cue > body) {
+        if (cue > 0 && !model.cueEssential && comfortable + answers + meta + extras + cue > body) {
             fitted = edit(fitted, model);
             fitted.cue = null;
             cue = 0;
         }
-        // An optional dialogue line is the next extra to go: it never squeezes the title either.
-        if (dialogue > 0 && model.dialogueOptional && comfortable + dialogue + meta + hint + side + cue > body) {
-            fitted = edit(fitted, model);
-            fitted.dialogue = null;
-            dialogue = 0;
+        // Then, only when the title would not fit even at its smallest: the 当日提醒 row, the 人格面具
+        // reminder, the side step.
+        if (reminder > 0 && smallest + answers + meta + hint + side + reminder + cue > body) {
+            reminderText = null;
+            reminder = 0;
         }
-        if (hint > 0 && smallest + dialogue + meta + hint + side + cue > body) {
+        if (hint > 0 && smallest + answers + meta + hint + side + cue > body) {
             fitted = edit(fitted, model);
             fitted.hint = null;
             hint = 0;
         }
-        if (side > 0 && smallest + dialogue + meta + side + cue > body) {
+        if (side > 0 && smallest + answers + meta + side + cue > body) {
             fitted = edit(fitted, model);
             fitted.side = null;
             side = 0;
         }
-        if (meta > 0 && smallest + dialogue + meta + cue > body) {
-            float deficit = smallest + dialogue + meta + cue - body;
-            if (!isBlank(fitted.tag) && !model.tightBody && reclaimed + deficit <= padding) {
-                // The chip is the step's key fact (RANK 4→5, 学力 +2): the body's padding goes first.
+        // The chip is the step's key fact (RANK 4→5, 学力 +2) and the answers are essential: the body's
+        // padding goes first, then the chip's row, then the answers take their shorter forms.
+        float room = model.tightBody ? 0 : padding - reclaimed;
+        float deficit = smallest + answers + meta + cue - body;
+        boolean keyFacts = !isBlank(fitted.tag) || !forms.isEmpty();
+        if (deficit > 0 && meta > 0 && keyFacts && deficit <= room) {
+            reclaimed += deficit;
+            body += deficit;
+            deficit = 0;
+        }
+        if (deficit > 0 && meta > 0) {
+            fitted = edit(fitted, model);
+            fitted.tag = null;
+            fitted.location = null;
+            meta = 0;
+            deficit = smallest + answers + cue - body;
+        }
+        room = model.tightBody ? 0 : padding - reclaimed;
+        if (deficit > 0 && !forms.isEmpty() && deficit <= room) {
+            reclaimed += deficit;
+            body += deficit;
+            deficit = 0;
+        }
+        for (int i = form + 1; deficit > 0 && i < forms.size(); i++) {
+            // The last form stays if none fits: the title gives up lines below, or (on the shortest
+            // cards) the row goes.
+            form = i;
+            answers = forms.get(i).heightDp;
+            deficit = smallest + answers + cue - body;
+            if (deficit > 0 && deficit <= room) {
                 reclaimed += deficit;
                 body += deficit;
-            } else {
-                fitted = edit(fitted, model);
-                fitted.tag = null;
-                fitted.location = null;
-                meta = 0;
+                deficit = 0;
             }
         }
-        if (cue > 0 && smallest + dialogue + cue > body) {
+        if (!forms.isEmpty()) answersText = forms.get(form).text;
+        float answersSp = forms.isEmpty() || forms.get(form).sp == DIALOGUE_SP ? 0 : forms.get(form).sp;
+        // The shortest cards (130dp, a large font) hold two lines of text under the plate: where even
+        // the shortest form does not fit beside a one-line title, the row gives up the gap above it,
+        // and failing that it goes rather than push the title out (the card's tap shows the step).
+        boolean tight = false;
+        if (deficit > 0 && !forms.isEmpty()) {
+            float need = titleHeightDp(c, fitted.title, MIN_TITLE_SP, titleWidth, 1) + answers - body;
+            if (need > room) {
+                tight = true;
+                answers -= DIALOGUE_GAP_DP;
+                need -= DIALOGUE_GAP_DP;
+            }
+            if (need > room) {
+                tight = false;
+                answersText = null;
+                answersSp = 0;
+                answers = 0;
+            } else if (need > 0) {
+                reclaimed += need;
+                body += need;
+            }
+        }
+        if (cue > 0 && smallest + answers + cue > body) {
             fitted = edit(fitted, model);
             fitted.cue = null;
             cue = 0;
         }
-        float rows = dialogue + meta + hint + side + cue;
+        if (!Objects.equals(answersText, fitted.answersShown) || answersSp != fitted.answersTextSp
+                || tight != fitted.answersTight || !Objects.equals(reminderText, fitted.reminderShown)) {
+            fitted = edit(fitted, model);
+            fitted.answersShown = answersText;
+            fitted.answersTextSp = answersSp;
+            fitted.answersTight = tight;
+            fitted.reminderShown = reminderText;
+        }
+        float rows = answers + meta + hint + side + reminder + cue;
         // On the shortest cards even the smallest title may not fit all its lines: keep the lines that
         // fit and let the last one end in "…" rather than be cut in half.
         int fitLines = lines;
@@ -686,9 +918,9 @@ public final class CardRenderer {
             fitted.spaceBelowDp = below;
             fitted.spaceUnderButtonsDp = under;
         }
-        // Full-width dialogue lines stay clear of the outlined day numeral (as the legacy guide does);
-        // other text that runs into it gets a fainter numeral.
-        if (dialogue > 0 && fitted.watermarkDay >= 0) {
+        // Full-width answers stay clear of the outlined day numeral (as the legacy guide does); other
+        // text that runs into it gets a fainter numeral.
+        if (answers > 0 && fitted.watermarkDay >= 0) {
             fitted = edit(fitted, model);
             fitted.watermarkDay = -1;
         }
@@ -770,6 +1002,9 @@ public final class CardRenderer {
         float cueSp = cueTextSp(size);
         if (!isBlank(m.hint)) reach = Math.max(reach, PIN_DP + lineWidthDp(c, m.hint, cueSp * scale, Typeface.DEFAULT));
         if (!isBlank(m.side)) reach = Math.max(reach, lineWidthDp(c, m.side, cueSp * scale, Typeface.DEFAULT));
+        if (!isBlank(m.reminderShown)) {
+            reach = Math.max(reach, PIN_DP + lineWidthDp(c, m.reminderShown, cueSp * scale, Typeface.DEFAULT));
+        }
         reach = Math.max(reach, widestLineDp(c, m.cue, cueSp, Typeface.DEFAULT, inner, Math.max(1, m.cueMaxLines)));
         float numeral = widthDp + WATERMARK_BLEED_DP - watermarkWidthDp(c, m.watermarkDay, size);
         return pad + Math.min(inner, reach) > numeral + WATERMARK_TOLERANCE_DP;
@@ -789,7 +1024,7 @@ public final class CardRenderer {
         return widest / c.getResources().getDisplayMetrics().density;
     }
 
-    /** Height in dp of the dialogue line including its top gap (0 if hidden). */
+    /** Height in dp of the legacy guide's dialogue choices including their top gap (0 if hidden). */
     static float dialogueRowHeightDp(Context c, CardModel model, float widthDp) {
         if (isBlank(model.dialogue)) return 0;
         return DIALOGUE_GAP_DP + textHeightDp(c, model.dialogue, DIALOGUE_SP, false, widthDp, 20, DIALOGUE_SPACING_DP);
@@ -949,8 +1184,19 @@ public final class CardRenderer {
             views.setInt(R.id.widget_title_icon, "setColorFilter", ink);
         }
 
-        setTextOrHide(views, R.id.widget_dialogue_choices, model.dialogue);
-        views.setTextColor(R.id.widget_dialogue_choices, soft);
+        // The answers in the primary ink; the lines of a meeting that may not rank up are muted. (The
+        // legacy guide's choices keep the secondary ink.)
+        boolean legacy = model.answers.isEmpty();
+        setTextOrHide(views, R.id.widget_dialogue_choices, answersText(model, soft));
+        views.setTextColor(R.id.widget_dialogue_choices, legacy ? soft : ink);
+        views.setTextViewTextSize(R.id.widget_dialogue_choices, TypedValue.COMPLEX_UNIT_SP,
+                model.answersTextSp > 0 ? model.answersTextSp : DIALOGUE_SP);
+        views.setViewPadding(R.id.widget_dialogue_choices, 0, model.answersTight ? 0 : Math.round(DIALOGUE_GAP_DP * density), 0, 0);
+
+        setTextOrHide(views, R.id.widget_reminder, model.reminderShown);
+        views.setTextColor(R.id.widget_reminder, ink);
+        views.setTextViewCompoundDrawables(R.id.widget_reminder,
+                model.night ? R.drawable.widget_icon_remind_night : R.drawable.widget_icon_remind_day, 0, 0, 0);
 
         setTextOrHide(views, R.id.widget_tag, model.tag);
         views.setInt(R.id.widget_tag, "setBackgroundResource", palette.tag);
@@ -1028,10 +1274,32 @@ public final class CardRenderer {
         }
     }
 
-    private static void setTextOrHide(RemoteViews views, int id, String text) {
-        boolean visible = !isBlank(text);
+    private static void setTextOrHide(RemoteViews views, int id, CharSequence text) {
+        boolean visible = text != null && !isBlank(text.toString());
         views.setViewVisibility(id, visible ? View.VISIBLE : View.GONE);
         views.setTextViewText(id, visible ? text : "");
+    }
+
+    /**
+     * The answers row as drawn ({@link CardModel#answersShown}), an {@link CardModel.AnswerLine#conditional}
+     * line in {@code soft} at {@link #MUTED_ANSWER_ALPHA}; null when hidden.
+     */
+    static CharSequence answersText(CardModel model, int soft) {
+        String text = model.answersShown;
+        if (isBlank(text) || model.answers.isEmpty()) return text;
+        android.text.SpannableString spanned = new android.text.SpannableString(text);
+        int muted = (soft & 0x00FFFFFF) | (MUTED_ANSWER_ALPHA << 24);
+        int start = 0;
+        for (int i = 0; i < model.answers.size() && start <= text.length(); i++) {
+            int end = text.indexOf(CardText.ANSWER_LINE_BREAK, start);
+            if (end < 0) end = text.length();
+            if (model.answers.get(i).conditional && end > start) {
+                spanned.setSpan(new android.text.style.ForegroundColorSpan(muted), start, end,
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            start = end + CardText.ANSWER_LINE_BREAK.length();
+        }
+        return spanned;
     }
 
     static boolean isBlank(String s) {

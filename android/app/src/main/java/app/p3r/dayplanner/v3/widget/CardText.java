@@ -29,12 +29,21 @@ public final class CardText {
     static final String SHAPED_SEPARATOR = " ·" + NBSP;
     /** What a separator becomes where a drawn title wraps at it: the dot goes with the break. */
     public static final char TITLE_BREAK = '\n';
+    /**
+     * Between two lines of the answers row ({@link #answers}): a line break, then a joiner that marks
+     * it as the start of the next line (a note moved to a line of its own starts without one).
+     */
+    static final String ANSWER_LINE_BREAK = "\n" + WJ;
     /** Separator between dialogue choices (「A / B」). */
     static final String CHOICE_SEPARATOR = " / ";
-    /** The prefix of the plan widget's dialogue line, as the app writes it. */
+    /** The app's prefix of guide answers (「参考回答：」): {@link #choices} keeps it whole where a line starts with it. */
     static final String ANSWER_PREFIX = "参考回答：";
     /** Joins two alternatives inside one dialogue choice (「我也去看看吧或者我在这里等她」). */
     private static final String ALTERNATIVES = "或者";
+    /** {@link #ALTERNATIVES} on a card too narrow for it. */
+    private static final String SHORT_ALTERNATIVES = "或";
+    /** Longest choice (characters) the answers row keeps whole even where it wraps choices inside. */
+    private static final int LOOSE_WHOLE = 6;
     /** Longest title part (characters) still treated as one name. */
     static final int MAX_NAME = 12;
 
@@ -289,6 +298,77 @@ public final class CardText {
             out.append(build(part, join));
         }
         return out.toString();
+    }
+
+    /**
+     * The answers row (docs/DESIGN_v3.md §18) as the card draws it: one paragraph per line, joined
+     * with {@link #ANSWER_LINE_BREAK}. A label (「答：」) stays whole and so does a note (「别选表白」), which may only
+     * move to the next line with its 「 · 」. With {@code loose} false every choice stays whole and
+     * lines break only after a 「 / 」 ({@link #choices}); with it a choice may wrap inside, as
+     * {@link #choicesLoose} allows. {@code shortLabels} takes each line's short label (「升级时答：」),
+     * {@code shortOr} writes the 「或者」 between two alternatives as 「或」, and a line with more than
+     * {@code shown} choices keeps its first ones and ends 「等 N 项」 (N its choices in all). Plain text
+     * in, shaped text out; {@link #plain} reads it back.
+     */
+    static String answers(List<CardModel.AnswerLine> lines, boolean shortLabels, boolean shortOr, boolean loose, int shown) {
+        StringBuilder out = new StringBuilder();
+        for (CardModel.AnswerLine line : lines) {
+            if (out.length() > 0) out.append(ANSWER_LINE_BREAK);
+            String label = shortLabels && line.shortLabel != null ? line.shortLabel : line.label;
+            out.append(keep(label));
+            int total = line.choices.size();
+            List<String> choices = line.choices.subList(0, Math.min(total, Math.max(1, shown)));
+            if (!choices.isEmpty()) {
+                // Shaped first, so a loose 「A或者B」 still wraps after its 「或者」 when written 「或」. Loose,
+                // a short choice still stays whole (「好啊」 never wraps as 「好」/「啊」).
+                String shaped;
+                if (loose) {
+                    List<String> parts = new ArrayList<>();
+                    for (String choice : choices) {
+                        String plain = strip(choice);
+                        boolean small = visibleLength(plain, 0, plain.length()) <= LOOSE_WHOLE;
+                        parts.add(small ? keep(plain.replace(' ', NBSP)) : choicesLoose(plain));
+                    }
+                    shaped = String.join(NBSP + "/ ", parts); // as choices(): a line breaks after the slash
+                } else {
+                    shaped = choices(String.join(CHOICE_SEPARATOR, choices));
+                }
+                out.append(shortOr ? shortOr(shaped) : shaped);
+                if (choices.size() < total) out.append(' ').append(keepNumbersTogether(etc(total)).replace(' ', NBSP));
+            }
+            if (line.note != null) {
+                if (!choices.isEmpty()) out.append(" ·").append(NBSP);
+                out.append(keep(line.note.replace(' ', NBSP)));
+            }
+        }
+        return out.toString();
+    }
+
+    /**
+     * Shaped answers ({@link #answers}) with each 「 · 」 before a note that a drawn line starts with
+     * turned into a line break, the dot dropped: 「答：随便问吧 等 3 项」/「别选「…」」, never a line
+     * starting with 「·」. {@code lineStarts} are the offsets where the drawn lines start.
+     */
+    static String breakBeforeNotes(String shaped, int[] lineStarts) {
+        if (shaped == null) return null;
+        StringBuilder out = new StringBuilder(shaped);
+        String dot = "·" + NBSP;
+        // From the last line back, so the earlier offsets still hold.
+        for (int k = lineStarts.length - 1; k >= 0; k--) {
+            int at = lineStarts[k];
+            if (at > 0 && shaped.startsWith(dot, at) && shaped.charAt(at - 1) == ' ') out.replace(at - 1, at + dot.length(), "\n");
+        }
+        return out.toString();
+    }
+
+    /** 「等 4 项」: what a line cut to its first choices ends with. */
+    static String etc(int total) {
+        return "等 " + total + " 项";
+    }
+
+    /** The 「或者」 between two alternatives of a choice written 「或」 (shaped or plain text). */
+    static String shortOr(String text) {
+        return text == null ? null : text.replace("或" + WJ + "者", SHORT_ALTERNATIVES).replace(ALTERNATIVES, SHORT_ALTERNATIVES);
     }
 
     /**
