@@ -13,10 +13,10 @@ import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.model.Rules;
 
 /**
- * Detail sheet for one slot: the day's note, what to do, where, the 人格面具 reminder, dialogue hint, the "顺便"
- * side steps, the numbered how-to, why it was chosen, which estimates it relies on, and the
- * actions that make sense for its position (record now, change this slot, or "已经玩到这里" for
- * a future item).
+ * Detail sheet for one slot: the day's note, the day's 当日提醒 (「当天提醒」), what to do, where, the
+ * 人格面具 reminder, dialogue hint, the "顺便" side steps, the numbered how-to, why it was chosen,
+ * which estimates it relies on, and the actions that make sense for its position (record now,
+ * change this slot, or "已经玩到这里" for a future item).
  */
 final class DayDetailSheet {
     private DayDetailSheet() {}
@@ -43,6 +43,10 @@ final class DayDetailSheet {
             tp.leftMargin = Ui.dp(c, 8);
             note.addView(text, tp);
             column.addView(note, top(c, 10));
+        }
+        View reminders = ReminderViews.daySection(c, plan, Rules.dayOf(slot));
+        if (reminders != null) {
+            column.addView(reminders, top(c, 10));
         }
         if (step == null) {
             column.addView(Ui.body(c, "这个时段不在现在的安排里。"), top(c, 12));

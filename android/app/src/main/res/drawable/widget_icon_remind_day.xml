@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bell before the 当日提醒 row ("电视购物：…") on the day surface. Keep edits consistent across siblings. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="12dp" android:height="12dp"
+    android:viewportWidth="12" android:viewportHeight="12">
+    <path android:fillColor="#FF0A2A5C"
+        android:pathData="M6,0.9C6.45,0.9 6.8,1.25 6.8,1.7L6.8,2C8.35,2.35 9.3,3.6 9.3,5.2L9.3,7.3L10.45,8.6L10.45,9.2L1.55,9.2L1.55,8.6L2.7,7.3L2.7,5.2C2.7,3.6 3.65,2.35 5.2,2L5.2,1.7C5.2,1.25 5.55,0.9 6,0.9Z M4.7,9.85L7.3,9.85C7.3,10.6 6.7,11.15 6,11.15C5.3,11.15 4.7,10.6 4.7,9.85Z" />
+</vector>

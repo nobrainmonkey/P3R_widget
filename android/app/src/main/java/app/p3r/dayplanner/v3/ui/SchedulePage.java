@@ -20,13 +20,16 @@ import app.p3r.dayplanner.v3.model.Rules;
 
 /**
  * 日程 tab: the whole remaining calendar as a ListView with month headers and one row per day
- * (白天/放学后 and 晚上 lines, kind icons, grey locks, "≈" for estimated rank-ups). Today is
+ * (白天/放学后 and 晚上 lines, kind icons, grey locks, "≈" for estimated rank-ups, a gold
+ * 「提醒：…」 line for the day's 当日提醒). Today is
  * highlighted; tapping a line opens the day detail sheet.
  */
 final class SchedulePage {
     private static final int TYPE_SUMMARY = 0;
     private static final int TYPE_MONTH = 1;
     private static final int TYPE_DAY = 2;
+    /** Under the summary: how to read the rows. */
+    static final String LEGEND = "带「≈」的升级是估计，灰色时段被剧情占用，金色的是顺便要做的事和当天提醒。";
 
     /** One adapter entry. */
     static final class Item {
@@ -205,8 +208,7 @@ final class SchedulePage {
         }
         TextView sub = Ui.mixed(c, text, 13, Ui.col(c, R.color.p3r_ink_muted), false);
         box.addView(sub);
-        TextView legend = Ui.mixed(c, "带「≈」的升级是估计，灰色时段被剧情占用，金色的是顺便要做的事。", 12,
-            Ui.col(c, R.color.p3r_ink_faint), false);
+        TextView legend = Ui.mixed(c, LEGEND, 12, Ui.col(c, R.color.p3r_ink_faint), false);
         LinearLayout.LayoutParams lp = Ui.matchWrap();
         lp.topMargin = Ui.dp(c, 4);
         box.addView(legend, lp);
@@ -238,12 +240,13 @@ final class SchedulePage {
         return row;
     }
 
-    /** One calendar day: date column and the two slot lines. */
+    /** One calendar day: date column, the two slot lines and the gold 「提醒：…」 line of its 当日提醒. */
     private final class DayRow extends LinearLayout {
         private final TextView dayNumber;
         private final TextView weekday;
         private final TextView todayTag;
         private final SlotRows.Line[] lines = new SlotRows.Line[2];
+        private final TextView reminders;
 
         DayRow(Context context) {
             super(context);
@@ -274,6 +277,13 @@ final class SchedulePage {
                     .pressedFill(Ui.col(context, R.color.ui_cyan_faint)));
                 slots.addView(lines[i], Ui.matchWrap());
             }
+            reminders = Ui.text(context, "", 12, Ui.col(context, R.color.ui_gold), false);
+            reminders.setMaxLines(2);
+            reminders.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            LayoutParams reminderParams = Ui.matchWrap();
+            reminderParams.leftMargin = Ui.dp(context, 4);
+            reminderParams.bottomMargin = Ui.dp(context, 4);
+            slots.addView(reminders, reminderParams);
             LayoutParams slotParams = Ui.weight(1);
             slotParams.leftMargin = Ui.dp(context, 8);
             addView(slots, slotParams);
@@ -307,6 +317,11 @@ final class SchedulePage {
                 final int target = slot;
                 lines[i].setOnClickListener(v -> host.openDetail(target));
             }
+            String reminderLine = ReminderViews.scheduleLine(plan, day);
+            reminders.setText(reminderLine == null ? "" : reminderLine);
+            reminders.setVisibility(reminderLine == null ? GONE : VISIBLE);
+            reminders.setTextColor(Rules.slot(day, true) < current ? Ui.col(context, R.color.p3r_ink_faint)
+                : Ui.col(context, R.color.ui_gold));
             dayNumber.setTextColor(allLocked ? Ui.col(context, R.color.ui_locked) : Ui.col(context, R.color.p3r_white));
             SlantedPanelDrawable bg = Ui.card(context);
             if (today) {
@@ -317,7 +332,8 @@ final class SchedulePage {
                 bg.fill(Ui.col(context, R.color.ui_card_sunken));
             }
             setBackground(bg);
-            setContentDescription(Zh.date(day) + " " + wd + (today ? "，今天" : ""));
+            setContentDescription(Zh.date(day) + " " + wd + (today ? "，今天" : "")
+                + (reminderLine == null ? "" : "，" + reminderLine));
         }
     }
 }

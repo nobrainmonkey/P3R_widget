@@ -1,0 +1,170 @@
+package app.p3r.dayplanner.v3.ui;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import android.content.Intent;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
+
+import java.util.Arrays;
+
+import app.p3r.dayplanner.v3.Intents;
+import app.p3r.dayplanner.v3.engine.DialogueHint;
+import app.p3r.dayplanner.v3.engine.Plan;
+import app.p3r.dayplanner.v3.model.Rules;
+
+/**
+ * 当日提醒 and the dialogue scene rule in the app (docs/DESIGN_v3.md §17.2, §18): the 「今天别错过」
+ * block, the 「提醒 N」 marks of 接下来, the day sheet's 「当天提醒」 with the estimate caption, the 日程
+ * day's gold 「提醒：…」 line and legend, and the hero's answers line. Synthetic reminders
+ * ({@link ReminderFixtures}) until the engine's (WP-C) are in the pack.
+ */
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk = 34, qualifiers = "zh-rCN-w360dp-h780dp-xxhdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+public class RemindersUiTest extends UiTestBase {
+    private static final int OCT_22 = Fixtures.OCT_22;
+    private static final int NOW = Fixtures.SLOT_NOW;
+    private static final String CLASS_LINE = "课堂提问：选「朱诺」（第 3 项）";
+    private static final String TV_LINE = "电视购物：玫瑰花束、高级巧克力 ×2，2,980 日元";
+    private static final String RESCUE_LINE = "今晚去塔尔塔罗斯时，顺便救出失踪者（3 人）";
+    private static final String NURSE_LINE = "放学后先去保健室：勇气 +2，不会消耗时间";
+
+    /** 10/22: class answer, TV shopping (day) and a rescue tonight; 10/23: 保健室; 12/16: the JUNE exam. */
+    private void remind() {
+        ReminderFixtures.with(api.snap.plan,
+                ReminderFixtures.classAnswer(OCT_22, "朱诺", 3),
+                ReminderFixtures.tv(OCT_22),
+                ReminderFixtures.rescueTonight(OCT_22),
+                ReminderFixtures.nurse(OCT_22 + 1),
+                ReminderFixtures.exam(Fixtures.day(12, 16), "JUNE", true));
+    }
+
+    private HomeActivity homeOn(String tab) {
+        Intent intent = new Intent(RuntimeEnvironment.getApplication(), HomeActivity.class);
+        intent.putExtra(Intents.EXTRA_TAB, tab);
+        return home(intent);
+    }
+
+    @Test
+    public void todayListsTheRestOfTodaysRemindersUnderTheHero() {
+        remind();
+        HomeActivity a = home();
+        assertTrue(Shots.has(a, ReminderViews.TODAY_TITLE));
+        for (String line : new String[]{CLASS_LINE, TV_LINE, RESCUE_LINE}) assertTrue(line, Shots.has(a, line));
+        assertTrue("the class answer says what it gives", Shots.has(a, "魅力 +2"));
+        assertTrue("label chips", Shots.has(a, "课堂提问") && Shots.has(a, "电视购物") && Shots.has(a, "失踪者"));
+        assertFalse("tomorrow's reminder waits for tomorrow", Shots.has(a, NURSE_LINE));
+        String all = Shots.allText(a.getWindow().getDecorView());
+        assertTrue("under the hero, before 接下来",
+                all.indexOf("完成 ✓") < all.indexOf(ReminderViews.TODAY_TITLE) && all.indexOf(ReminderViews.TODAY_TITLE) < all.indexOf("接下来"));
+        assertTrue("most important first", all.indexOf(CLASS_LINE) < all.indexOf(TV_LINE));
+        Shots.shot(a, "home_today_reminders");
+
+        // A row opens the day sheet of its slot, with every reminder of the day and the longer text.
+        Shots.click(a, CLASS_LINE);
+        assertTrue(Shots.has(a, ReminderViews.DAY_TITLE));
+        assertTrue(Shots.has(a, "在自己房间看电视就能买，不会消耗时间；最好出门前先买。花的钱不在安排的预计里，买了以后记得在「同步现状」里更新现金。"));
+    }
+
+    @Test
+    public void theBlockIsHiddenWithoutRemindersAndOnceTheDaysAreDone() {
+        HomeActivity plain = home();
+        assertFalse(Shots.has(plain, ReminderViews.TODAY_TITLE));
+        // Evening: the day's class answer and TV shopping are behind; tonight's rescue is not.
+        remind();
+        api.snap.observed.slot = NOW + 1;
+        HomeActivity evening = home();
+        assertTrue(Shots.has(evening, RESCUE_LINE));
+        assertFalse(Shots.has(evening, CLASS_LINE));
+        assertEquals(Arrays.asList(), ReminderViews.today(api.snap.plan, -1));
+        assertEquals(1, ReminderViews.today(api.snap.plan, NOW + 1).size());
+    }
+
+    @Test
+    public void upcomingRowsCarryAGoldReminderMark() {
+        remind();
+        HomeActivity a = home();
+        // Tonight's rescue and tomorrow's 保健室: one each.
+        assertEquals(2, Shots.findAll(a.getWindow().getDecorView(), "提醒 1").size());
+        assertEquals(1, ReminderViews.countAt(api.snap.plan, NOW + 1));
+        assertEquals(0, ReminderViews.countAt(api.snap.plan, NOW + 3));
+        assertNull(ReminderViews.marker(a, 0));
+    }
+
+    @Test
+    public void theDaySheetListsTheDaysRemindersWithTheEstimateCaption() {
+        remind();
+        HomeActivity a = home();
+        int exam = Rules.slot(Fixtures.day(12, 16), false);
+        a.openDetail(exam);
+        Shots.idle();
+        assertTrue(Shots.has(a, ReminderViews.DAY_TITLE));
+        assertTrue(Shots.has(a, "考试：选「JUNE」"));
+        assertTrue(Shots.has(a, ReminderFixtures.ESTIMATE_DETAIL));
+        assertTrue(Shots.has(a, ReminderViews.ESTIMATE_CAPTION));
+        // The exam answers 「JUNE」「MADRID」 ship verbatim (spec 3.1.0 decision O4): saved without the
+        // typography pass, which takes any Latin word for leaked English.
+        Shots.save(Shots.capture(a, true), "day_sheet_reminders_estimate");
+        // A day without reminders has no section.
+        a.dismissSheet();
+        Shots.idle();
+        a.openDetail(Rules.slot(Fixtures.day(11, 3), false));
+        Shots.idle();
+        assertFalse(Shots.has(a, ReminderViews.DAY_TITLE));
+    }
+
+    @Test
+    public void theScheduleNamesTheDaysRemindersInGold() {
+        remind();
+        HomeActivity a = homeOn("schedule");
+        assertTrue(Shots.has(a, SchedulePage.LEGEND));
+        assertEquals("带「≈」的升级是估计，灰色时段被剧情占用，金色的是顺便要做的事和当天提醒。", SchedulePage.LEGEND);
+        assertTrue(Shots.has(a, "提醒：课堂提问 · 电视购物 · 失踪者"));
+        assertTrue(Shots.has(a, "提醒：保健室"));
+        Shots.shot(a, "home_schedule_reminders");
+        // At most three labels, then 「等」; each label once.
+        Plan plan = ReminderFixtures.with(new Plan(), ReminderFixtures.classAnswer(OCT_22, "朱诺", 3),
+                ReminderFixtures.tv(OCT_22), ReminderFixtures.doze(OCT_22), ReminderFixtures.fragment(OCT_22),
+                ReminderFixtures.rescueTonight(OCT_22), ReminderFixtures.feature(OCT_22));
+        assertEquals("提醒：课堂提问 · 上课犯困 · 新开放 等", ReminderViews.scheduleLine(plan, OCT_22));
+        assertNull(ReminderViews.scheduleLine(plan, OCT_22 + 1));
+    }
+
+    /** spec 3.1.0 §1.4.1: a meeting that may not rank up shows the next scene's answers, not the last. */
+    @Test
+    public void theHeroShowsTheNextScenesAnswersForAMeetingThatMayNotRankUp() {
+        Plan.Step maybe = Fixtures.social(api.rules, NOW, "emperor", 6, 6, false, false);
+        api.snap.plan.steps.set(0, maybe);
+        HomeActivity a = home();
+        assertTrue(Shots.has(a, "要是升级了，答：我会帮你的 / 这样的规矩没有意义"));
+        // The same rule on every surface: certain no-rank-up and holds show no answers at all.
+        Plan.Step certain = Fixtures.social(api.rules, NOW, "emperor", 6, 6, false, true);
+        assertNull(Dialogue.line(api.rules, api.snap.profile, certain));
+        Plan.Step held = Fixtures.social(api.rules, NOW, "emperor", 6, 6, false, false);
+        held.assumptions.add("rank_hold");
+        assertNull(Dialogue.line(api.rules, api.snap.profile, held));
+        // A rank-up reads exactly as in 3.0.2.
+        assertEquals("参考回答：我会帮你的 / 这样的规矩没有意义", Dialogue.line(api.rules, api.snap.profile,
+                Fixtures.social(api.rules, NOW, "emperor", 6, 7, true, true)));
+    }
+
+    /** The conditional line in a how-to is a note under the steps, like 「参考回答：…」, and is said once. */
+    @Test
+    public void theConditionalLineIsAHowToNote() {
+        String how = "放学后到月光馆学园 · 学生会活动室找小田桐秀利\n" + DialogueHint.CONDITIONAL_PREFIX + "我会帮你的 / 这样的规矩没有意义";
+        assertEquals(Arrays.asList("放学后到月光馆学园 · 学生会活动室找小田桐秀利"), StepViews.howToSteps(how));
+        assertEquals(1, StepViews.howToNotes(how).size());
+        Plan.Step maybe = Fixtures.social(api.rules, NOW, "emperor", 6, 6, false, false);
+        maybe.detailZh = how;
+        assertNull(Dialogue.besideHowTo(api.rules, api.snap.profile, maybe));
+    }
+}

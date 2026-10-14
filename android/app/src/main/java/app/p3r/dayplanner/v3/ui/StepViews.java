@@ -111,9 +111,12 @@ final class StepViews {
         return out;
     }
 
-    /** A how-to line shown under the numbered steps rather than as one: 「注意：…」 and 「参考回答：…」. */
+    /**
+     * A how-to line shown under the numbered steps rather than as one: 「注意：…」, 「参考回答：…」 and
+     * 「要是升级了，答：…」.
+     */
     static boolean isAnnotation(String line) {
-        return line.startsWith(NOTE_PREFIX) || line.startsWith(Dialogue.PREFIX);
+        return line.startsWith(NOTE_PREFIX) || Dialogue.isAnswerLine(line);
     }
 
     /** The how-to lines that are steps (numbered). */

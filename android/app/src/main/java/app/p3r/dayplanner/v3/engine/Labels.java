@@ -295,16 +295,25 @@ final class Labels {
 
     /**
      * 「怎么做」 of a meeting, one line each: when, where and whom
-     * ("放学后到月光馆学园 · 学生会活动室找小田桐秀利", {@link #meetWhere}), the scene's dialogue hint
-     * when the guide has one ({@link DialogueHint}; the generic fallback is left out), and the
-     * link's own note as 「注意：…」.
+     * ("放学后到月光馆学园 · 学生会活动室找小田桐秀利", {@link #meetWhere}), the dialogue hint when the
+     * guide has one ({@link DialogueHint#appLine}; the generic fallback is left out), and the link's
+     * own note as 「注意：…」. The hint follows {@link DialogueHint#forMeeting}: a rank-up gets the
+     * scene it ranks up into, a meeting during a hold none, any other the next scene's answers as
+     * 「要是升级了，答：…」.
      */
     String meetHow(int slot, int l, Kernel.Effect fx) {
         Rules.Link link = rules.links[l];
         List<String> lines = new ArrayList<>();
         lines.add(meetWhere(slot, l, fx.invite));
-        String hint = DialogueHint.line(rules, m.profile, l, fx.rankUp ? fx.rankTo : fx.rankFrom);
-        if (!DialogueHint.FALLBACK.equals(hint)) lines.add(hint);
+        DialogueHint.Answers answers;
+        if (fx.rankUp) {
+            answers = DialogueHint.forScene(rules, m.profile, l, fx.rankTo, false);
+        } else if (fx.held || fx.certain || fx.rankFrom < 1 || fx.rankFrom >= 10) {
+            answers = DialogueHint.Answers.NONE;
+        } else {
+            answers = DialogueHint.forScene(rules, m.profile, l, fx.rankFrom + 1, true);
+        }
+        if (!answers.isEmpty()) lines.add(DialogueHint.appLine(answers));
         if (!blank(link.noteZh)) lines.add(NOTE_PREFIX + link.noteZh.trim());
         return String.join("\n", lines);
     }

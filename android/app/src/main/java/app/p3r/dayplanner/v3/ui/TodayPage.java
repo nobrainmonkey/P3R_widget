@@ -15,6 +15,7 @@ import java.util.List;
 
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.Intents;
+import app.p3r.dayplanner.v3.engine.DialogueHint;
 import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
@@ -22,9 +23,10 @@ import app.p3r.dayplanner.v3.model.Rules;
 
 /**
  * 今天 tab: date plate, return banner, replanning status, resource strip, the hero card for the
- * next slot (with its 人格面具 reminder, "顺便" side steps and [做不了…] [完成 ✓]), the rest
- * of today plus the next 3 days, and goal progress chips. Once Jan 31 is recorded the hero card
- * becomes a closing summary.
+ * next slot (with its 人格面具 reminder, "顺便" side steps and [做不了…] [完成 ✓]), the day's
+ * 当日提醒 still to come (「今天别错过」), the rest of today plus the next 3 days (a 「提醒 N」 mark on
+ * slots with reminders), and goal progress chips. Once Jan 31 is recorded the hero card becomes a
+ * closing summary.
  */
 final class TodayPage {
     private static final int LOOKAHEAD_DAYS = 3;
@@ -102,6 +104,10 @@ final class TodayPage {
         }
         column.addView(resources(d), spaced(16));
         column.addView(finished ? finishedCard(d) : hero(d), spaced(20));
+        View reminders = finished ? null : ReminderViews.todayBlock(host, d);
+        if (reminders != null) {
+            column.addView(reminders, spaced(20));
+        }
         View upcoming = upcoming(d);
         if (upcoming != null) {
             column.addView(upcoming, spaced(24));
@@ -381,9 +387,11 @@ final class TodayPage {
             loc.addView(where, wp);
             card.addView(loc, spaced(10));
         }
+        // The scene's answers; a meeting that may not rank up gets the next scene's, muted.
         String dialogue = Dialogue.line(d.rules, d.profile(), step);
         if (dialogue != null) {
-            TextView options = Ui.text(c, dialogue, 14, Ui.col(c, R.color.p3r_ice_100), false);
+            boolean maybe = dialogue.startsWith(DialogueHint.CONDITIONAL_PREFIX);
+            TextView options = Ui.text(c, dialogue, 14, Ui.col(c, maybe ? R.color.p3r_ink_muted : R.color.p3r_ice_100), false);
             card.addView(options, spaced(6));
         }
         if (StepViews.hasSide(step)) {
@@ -528,6 +536,12 @@ final class TodayPage {
                 box.addView(dayCard, spaced(8));
             }
             LinearLayout line = SlotRows.line(c, d.rules, step, SlotRows.State.FUTURE, true);
+            TextView marker = ReminderViews.marker(c, ReminderViews.countAt(plan, slot));
+            if (marker != null) {
+                LinearLayout.LayoutParams mp = Ui.wrap();
+                mp.leftMargin = Ui.dp(c, 6);
+                line.addView(marker, mp);
+            }
             line.setClickable(true);
             line.setFocusable(true);
             line.setBackground(new SlantedPanelDrawable().fill(0).pressedFill(Ui.col(c, R.color.ui_cyan_faint)));
