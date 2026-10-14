@@ -42,8 +42,8 @@ final class StepCopy {
 
     /** Card title (never blank). */
     String title = "";
-    /** The title for a card too small for it ({@link #shortTitle(String)}), or null. */
-    String shortTitle;
+    /** Shorter titles for a card too small for the whole one ({@link #shortTitles}), longest first. */
+    final List<String> shortTitles = new ArrayList<>();
     CardModel.TitleIcon icon = CardModel.TitleIcon.NONE;
     /** Chip text, or null. */
     String tag;
@@ -92,24 +92,57 @@ final class StepCopy {
                 c.tag = tag(kind, step.subtitleZh, step.predicted);
                 break;
         }
-        c.shortTitle = shortTitle(c.title);
+        c.shortTitles.addAll(shortTitles(c.title, c.location));
         return c;
     }
 
+    /** A trailing 「（第 2 话）」 or other bracketed note. */
+    private static final Pattern TRAILING_NOTE = Pattern.compile("\\s*[（(][^（()）]*[）)]$");
+
     /**
-     * The part of a title that must not be cut, for a card too small for all of it: the person
-     * (「倒悬者 · 舞子」 → 「舞子」, 「羁绊剧情 · 伊织顺平（第 2 话）」 → 「伊织顺平（第 2 话）」,
-     * 「结缘网站的字条 · 岳羽由加莉」 → 「岳羽由加莉」). The kind mark beside the title still tells a note
-     * or an episode apart, and the glossary never shortens the note's name to 「字条」. Null for a
-     * title without parts.
+     * Shorter forms of a title for a card too small for all of it, longest first, each shorter than
+     * the one before (docs/DESIGN_v3.md §18: a card never hides its title, it shortens it). First the
+     * part that must not be cut, the person: 「倒悬者 · 舞子」 → 「舞子」,
+     * 「羁绊剧情 · 伊织顺平（第 2 话）」 → 「伊织顺平（第 2 话）」 → 「伊织顺平」,
+     * 「结缘网站的字条 · 岳羽由加莉」 → 「岳羽由加莉」, and of two people the first:
+     * 「教皇 · 北村文吉、光子」 → 「北村文吉、光子」 → 「北村文吉」; last the arcana when it is shorter still
+     * (「教皇」). An activity drops the place that its location names: 「在电玩大巡游游玩「你就是答案」」 at
+     * 「桐叶购物中心 · 电玩大巡游」 → 「游玩「你就是答案」」. The kind mark beside the title still tells a
+     * note or an episode apart, and the glossary never shortens the note's name to 「字条」. Empty for a
+     * title without shorter forms.
      */
-    static String shortTitle(String title) {
+    static List<String> shortTitles(String title, String location) {
+        List<String> out = new ArrayList<>();
         String t = blankToNull(title);
-        if (t == null) return null;
+        if (t == null) return out;
         t = t.trim();
         int at = t.lastIndexOf(" · ");
-        if (at < 0) return null;
-        return blankToNull(t.substring(at + 3).trim());
+        if (at >= 0) {
+            String who = t.substring(at + 3).trim();
+            addShorter(out, t, who);
+            addShorter(out, t, TRAILING_NOTE.matcher(who).replaceFirst(""));
+            int comma = who.indexOf('、');
+            if (comma > 0) addShorter(out, t, who.substring(0, comma));
+            addShorter(out, t, t.substring(0, t.indexOf(" · ")).trim());
+            return out;
+        }
+        String place = blankToNull(location);
+        if (place == null) return out;
+        int dot = place.lastIndexOf(" · ");
+        place = (dot < 0 ? place : place.substring(dot + 3)).trim(); // its last part: 「电玩大巡游」
+        for (String go : new String[]{"在", "到"}) {
+            if (!place.isEmpty() && t.startsWith(go + place)) addShorter(out, t, t.substring(go.length() + place.length()));
+        }
+        return out;
+    }
+
+    /** Adds {@code form} to {@code forms} when it has words and is shorter than {@code title} and every form so far. */
+    private static void addShorter(List<String> forms, String title, String form) {
+        String f = blankToNull(form);
+        if (f == null) return;
+        f = f.trim();
+        String last = forms.isEmpty() ? title : forms.get(forms.size() - 1);
+        if (f.codePointCount(0, f.length()) < last.codePointCount(0, last.length())) forms.add(f);
     }
 
     /** Coarse kind with the new action types recognised by their keys ("note:…", "episode:…"). */

@@ -62,11 +62,13 @@ public final class CardModel {
     // ---- body
     public String title = "";
     /**
-     * A shorter title for a card too small for the whole one (「岳羽由加莉」 beside the note mark for
-     * 「结缘网站的字条 · 岳羽由加莉」): {@link CardRenderer#fit} shows it rather than cut a name with "…".
-     * Null when there is none.
+     * Shorter titles for a card too small for the whole one, longest first (「北村文吉、光子」, 「北村文吉」,
+     * 「教皇」 for 「教皇 · 北村文吉、光子」; 「岳羽由加莉」 beside the note mark for 「结缘网站的字条 · 岳羽由加莉」):
+     * {@link CardRenderer#fit} shows the first that is whole rather than cut a name with "…", and a card
+     * with room for one title line only the longest that fits it. The title is never hidden. Empty when
+     * there are none.
      */
-    public String titleShort;
+    public final List<String> shortTitles = new ArrayList<>();
     public TitleIcon titleIcon = TitleIcon.NONE;
     /**
      * Hang the title from the top of its box instead of sitting it on the tag row, so the kind mark
@@ -128,11 +130,6 @@ public final class CardModel {
     public boolean answersTight;
     /** The reminder row as drawn, or null to hide it. Set by {@link CardRenderer#fit}. */
     public String reminderShown;
-    /**
-     * The title row is left out: on the shortest cards the answers need its room, and they are never
-     * hidden (the card's description still names the step). Set by {@link CardRenderer#fit}.
-     */
-    public boolean titleHidden;
     /**
      * Keep names in the title whole when it wraps ({@link CardText#title}: 「皇帝」/「小田桐秀利」,
      * never 「小田桐/秀利」).
@@ -270,7 +267,7 @@ public final class CardModel {
         m.ticks.addAll(ticks);
         m.progressDescription = progressDescription;
         m.title = title;
-        m.titleShort = titleShort;
+        m.shortTitles.addAll(shortTitles);
         m.titleIcon = titleIcon;
         m.titleTop = titleTop;
         m.tag = tag;
@@ -288,7 +285,6 @@ public final class CardModel {
         m.answersTextSp = answersTextSp;
         m.answersTight = answersTight;
         m.reminderShown = reminderShown;
-        m.titleHidden = titleHidden;
         m.keepWordsWhole = keepWordsWhole;
         m.taskDescription = taskDescription;
         m.titleMaxLines = titleMaxLines;

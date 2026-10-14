@@ -115,7 +115,7 @@ public class FullReplanUiTest extends UiTestBase {
     @Test
     public void whileRunningTodaySaysSoAndOffersToStop() {
         api.snap.fullReplanning = true;
-        api.snap.planErrorZh = "生成安排时出了问题，已保留上一版";
+        api.snap.planErrorZh = "生成安排时出了问题，现在的安排先不变";
         HomeActivity a = home();
         assertTrue(Shots.has(a, RUNNING));
         assertTrue(Shots.has(a, "可以照常记录，记下的结果会一起算进去"));

@@ -80,7 +80,8 @@ public final class PlannerService implements PlannerApi {
     static final String ZH_COMMAND_ID = "保存失败了，请再试一次";
     static final String ZH_OUTCOME_MISSING = "请先选择结果";
     static final String ZH_TOWER_MISSING = "请先填写这次探索塔尔塔罗斯的结果";
-    static final String ZH_PLAN_FAILED_KEPT = "生成安排时出了问题，已保留上一版";
+    /** A failed replan with a plan installed (out of date): it stays, as 从头重新安排's 「现在的安排不变」 says. */
+    static final String ZH_PLAN_FAILED_KEPT = "生成安排时出了问题，现在的安排先不变";
     static final String ZH_PLAN_FAILED_NONE = "生成安排时出了问题，请稍后再试";
     /** Import duplicate with nothing recorded since: the data already is the backup. */
     static final String ZH_IMPORT_ALREADY = "这份备份刚才已经恢复过了，现在的进度就是备份里的";

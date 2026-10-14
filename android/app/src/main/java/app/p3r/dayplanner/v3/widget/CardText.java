@@ -317,6 +317,17 @@ public final class CardText {
         return "等 " + total + " 项";
     }
 
+    /** What an answers line with no room even for its first choice says: the card's tap shows them. */
+    static final String TAP_TO_SEE = "点开看看";
+
+    /**
+     * 「共 2 项，点开看看」 ({@link #TAP_TO_SEE} alone for one choice): an answers line with no room even
+     * for its first choice says how many there are.
+     */
+    static String countOnly(int total) {
+        return total > 1 ? "共 " + total + " 项，" + TAP_TO_SEE : TAP_TO_SEE;
+    }
+
     /** The 「或者」 between two alternatives of a choice written 「或」 (shaped or plain text). */
     static String shortOr(String text) {
         return text == null ? null : text.replace("或" + WJ + "者", SHORT_ALTERNATIVES).replace(ALTERNATIVES, SHORT_ALTERNATIVES);

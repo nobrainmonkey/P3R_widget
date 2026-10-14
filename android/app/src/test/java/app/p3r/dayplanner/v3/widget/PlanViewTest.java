@@ -237,18 +237,25 @@ public class PlanViewTest {
      */
     @Test
     public void titlesWithPartsHaveAShortFormThatKeepsTheName() {
-        assertEquals("岳羽由加莉", StepCopy.shortTitle("结缘网站的字条 · 岳羽由加莉"));
-        assertEquals("舞子", StepCopy.shortTitle("倒悬者 · 舞子"));
-        assertEquals("伊织顺平（第 2 话）", StepCopy.shortTitle("羁绊剧情 · 伊织顺平（第 2 话）"));
-        assertNull(StepCopy.shortTitle("在宿舍房间学习"));
-        assertNull(StepCopy.shortTitle(null));
+        assertEquals(List.of("岳羽由加莉"), StepCopy.shortTitles("结缘网站的字条 · 岳羽由加莉", null));
+        assertEquals(List.of("舞子"), StepCopy.shortTitles("倒悬者 · 舞子", "月光馆学园 · 1 楼教职员室前走廊"));
+        assertEquals(List.of("伊织顺平（第 2 话）", "伊织顺平"), StepCopy.shortTitles("羁绊剧情 · 伊织顺平（第 2 话）", null));
+        // Of two people the first, then the arcana: a card with room for one title line never hides it.
+        assertEquals(List.of("北村文吉、光子", "北村文吉", "教皇"), StepCopy.shortTitles("教皇 · 北村文吉、光子", null));
+        assertEquals(List.of("山岸风花", "女教皇"), StepCopy.shortTitles("女教皇 · 山岸风花", null));
+        // An activity without the place its location names.
+        assertEquals(List.of("游玩「你就是答案」"), StepCopy.shortTitles("在电玩大巡游游玩「你就是答案」", "桐叶购物中心 · 电玩大巡游"));
+        assertEquals(List.of("喝费洛蒙咖啡"), StepCopy.shortTitles("在夏卡尔咖啡店喝费洛蒙咖啡", "桐叶购物中心 · 夏卡尔咖啡店"));
+        assertTrue(StepCopy.shortTitles("在宿舍房间学习", "宿舍 · 自己的房间").isEmpty());
+        assertTrue(StepCopy.shortTitles("探索塔尔塔罗斯", "塔尔塔罗斯 · 提齐亚（69–117F）").isEmpty());
+        assertTrue(StepCopy.shortTitles(null, null).isEmpty());
         FakePlannerApi fake = new FakePlannerApi();
         fake.rules = FakePlannerApi.miniRules();
         fake.plan.steps.set(3, FakePlannerApi.noteStep(S + 3));
         fake.observeAt("note:priestess");
         CardModel note = PlanView.resolve(snapshot(fake), -1, null, NOW).toCard(fake.rules);
         assertEquals("结缘网站的字条 · 山岸风花", note.title);
-        assertEquals("山岸风花", note.titleShort);
+        assertEquals(List.of("山岸风花"), note.shortTitles);
         assertEquals(CardModel.TitleIcon.NOTE, note.titleIcon);
     }
 

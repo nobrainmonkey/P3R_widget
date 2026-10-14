@@ -16,8 +16,9 @@ import java.util.regex.Pattern;
 /**
  * docs/GLOSSARY_zh.md over the app and widget sources (re-audit 3.0.1): every string literal says
  * 「结缘网站的字条」 in full, never the short 「字条」 alone (StepKind 「社群 · 字条」, Outcomes 「没用字条」,
- * the widget's 「在放纵俱乐部买字条…」), uses 安排 rather than 规划 in sentences, and only the date
- * plates write a date as M/D ({@link Zh#shortDate}). Plain JVM over the source files.
+ * the widget's 「在放纵俱乐部买字条…」), uses 安排 rather than 规划 in sentences, never says the
+ * glossary's forbidden words ({@link #FORBIDDEN}: 「上一版」, also in the service's and engine's messages),
+ * and only the date plates write a date as M/D ({@link Zh#shortDate}). Plain JVM over the source files.
  */
 public class GlossarySourceTest {
     /** 规划 is the app name and two menu items only. */
@@ -34,9 +35,13 @@ public class GlossarySourceTest {
     }
 
     private static List<File> sources() {
+        return sources("v3/ui", "v3/widget");
+    }
+
+    private static List<File> sources(String... dirs) {
         File root = sourceRoot();
         List<File> out = new ArrayList<>();
-        for (String dir : new String[]{"v3/ui", "v3/widget"}) {
+        for (String dir : dirs) {
             File[] files = new File(root, dir).listFiles((d, name) -> name.endsWith(".java"));
             if (files != null) {
                 for (File f : files) {
@@ -89,6 +94,32 @@ public class GlossarySourceTest {
             for (String literal : literals(read(f))) {
                 if (literal.replace("结缘网站的字条", "").contains("字条")) {
                     issues.add(f.getName() + ": \"" + literal + "\"");
+                }
+            }
+        }
+        assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
+    /**
+     * Words docs/GLOSSARY_zh.md keeps out of the UI: a plan is never a 「版」 (「上一版」「这一版」; a failed
+     * replan says 「现在的安排先不变」, like 从头重新安排's 「现在的安排不变」).
+     */
+    private static final String[] FORBIDDEN = {"上一版", "这一版"};
+
+    @Test
+    public void uiStringsAvoidTheGlossarysForbiddenWords() throws IOException {
+        // Every source with user-visible text: the service's and the engine's messages too.
+        List<File> files = sources("v3/ui", "v3/widget", "v3/service", "v3/engine");
+        File service = new File(sourceRoot(), "v3/service/PlannerService.java");
+        assertTrue("the scan sees the service's messages", files.contains(service)
+                && literals(read(service)).contains("生成安排时出了问题，现在的安排先不变"));
+        List<String> issues = new ArrayList<>();
+        for (File f : files) {
+            for (String literal : literals(read(f))) {
+                for (String word : FORBIDDEN) {
+                    if (literal.contains(word)) {
+                        issues.add(f.getName() + ": \"" + literal + "\" says 「" + word + "」");
+                    }
                 }
             }
         }

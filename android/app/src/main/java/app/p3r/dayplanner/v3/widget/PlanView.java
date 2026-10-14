@@ -262,7 +262,7 @@ final class PlanView {
         progress(m, item.slot, item.lastSlot, rules);
         StepCopy copy = StepCopy.of(step, rules, snapshot.observed, snapshot.plan);
         m.title = copy.title;
-        m.titleShort = copy.shortTitle;
+        m.shortTitles.addAll(copy.shortTitles);
         m.titleIcon = copy.icon;
         m.tag = copy.tag;
         m.location = copy.location;
@@ -329,9 +329,9 @@ final class PlanView {
         m.nextEnabled = !items.isEmpty();
         progress(m, receipt.slot, receipt.slot, rules);
         m.title = StepCopy.titleOf(receipt.title, receipt.kind);
-        m.titleShort = StepCopy.shortTitle(m.title);
         m.tag = StepCopy.tag(receipt.kind, receipt.subtitle, null);
         m.location = blankToNull(receipt.location);
+        m.shortTitles.addAll(StepCopy.shortTitles(m.title, m.location));
         m.cue = "✓ 已记录 · 再点撤销";
         m.cueEssential = true; // explains why 完成 now reads 撤销
         m.taskDescription = describe(m) + "，已记录";
