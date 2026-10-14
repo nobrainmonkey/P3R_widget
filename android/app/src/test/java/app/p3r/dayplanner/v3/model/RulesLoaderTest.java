@@ -27,7 +27,7 @@ public class RulesLoaderTest {
     public void parsesTheShippedPack() {
         Rules r = PackFixture.rules();
         assertEquals("p3r.rules.v3", r.schema);
-        assertEquals("3.0.0", r.packVersion);
+        assertEquals("3.1.0", r.packVersion);
         assertTrue(r.game.contains("Persona 3 Reload"));
         assertEquals(6, r.firstDay);
         assertEquals(305, r.lastDay);
@@ -59,6 +59,7 @@ public class RulesLoaderTest {
         assertEquals(5, r.episodes.length);
         for (int i = 0; i < r.episodes.length; i++) assertEquals(i, r.episodes[i].idx);
         assertNotNull(r.datingNote);
+        assertTrue("当日提醒", r.reminders.items.size() > 90);
     }
 
     @Test
@@ -110,7 +111,7 @@ public class RulesLoaderTest {
         StringBuilder hex = new StringBuilder();
         for (byte b : digest) hex.append(String.format("%02x", b));
         Rules r = RulesLoader.parse(json);
-        assertEquals("3.0.0|" + hex.substring(0, 12), r.version);
+        assertEquals("3.1.0|" + hex.substring(0, 12), r.version);
         assertEquals(r.version, RulesLoader.parse(json).version);
 
         Rules touched = RulesLoader.parse(json + "\n");

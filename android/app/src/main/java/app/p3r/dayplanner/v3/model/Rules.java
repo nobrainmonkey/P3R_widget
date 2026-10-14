@@ -51,6 +51,8 @@ public final class Rules {
     public Episode[] episodes = new Episode[0];
     /** Dating-site note (evening points for an established link), or null when not modelled. */
     public DatingNote datingNote;
+    /** 当日提醒 data (static lines, 上课犯困 days, the 保健室 rule, missing-person groups); empty when the pack has none. */
+    public Reminders reminders = new Reminders();
     public Map<String, String> lockReasonsZh = new HashMap<>();
     public Policy policy = new Policy();
     public List<Source> sources = new ArrayList<>();
@@ -424,6 +426,80 @@ public final class Rules {
         public List<String> src = new ArrayList<>();
 
         public boolean unlimited() { return maxUses == UNLIMITED; }
+    }
+
+    /**
+     * One static 当日提醒 line of the pack ({@code reminders.items}): something slot-free to answer or do on a
+     * game day. The text is final Chinese; the engine puts it on a plan when its day is in the plan and its stat
+     * requirement is met (engine Reminders, docs/DESIGN_v3.md §17.1).
+     */
+    public static final class Reminder {
+        /** Stable id, e.g. "class.07-08" or "request.06-06.deadline". */
+        public String id;
+        /** class | exam | tv | request | fragment | trip | feature. */
+        public String kind;
+        /** Chip label, e.g. "课堂提问". */
+        public String labelZh;
+        /** Line for the card and the 今天 page. */
+        public String zh;
+        /** Small-widget form (at most 16 characters). */
+        public String shortZh;
+        /** Class/exam only: the answer exactly as the zh guide writes it; otherwise null. */
+        public String answerZh;
+        /** Longer text for the day sheet, or null. */
+        public String detailZh;
+        /** What it gives, e.g. "魅力 +2", or null. */
+        public String gainZh;
+        public String conf;
+        public int day;
+        /** Deadline day, or -1. With {@link #firstEligible}: the last day to look at (-1 = the end of the calendar). */
+        public int untilDay = -1;
+        /** Class only: the answer's position 1..4 in the zh guide; 0 when unknown. */
+        public int option;
+        /** 1 nice to know, 2 a deadline coming up, 3 missable for good. */
+        public int priority = 1;
+        /** Yen it costs (TV shopping), 0 otherwise. */
+        public int costYen;
+        public boolean evening;
+        /**
+         * Shown on the first slot of its kind from {@link #day} (to {@link #untilDay}) on whose forecast meets
+         * {@link #requiresLv}, instead of on {@link #day} itself.
+         */
+        public boolean firstEligible;
+        /** Stat index → minimum visible Lv (1..6) the forecast must reach; empty = none. */
+        public Map<Integer, Integer> requiresLv = new HashMap<>();
+        public List<String> src = new ArrayList<>();
+    }
+
+    /** Missing people who went missing on the same day with the same limit ({@code reminders.rescueGroups}). */
+    public static final class RescueGroup {
+        /** "rescue.MM-DD" of {@link #fromDay}. */
+        public String id;
+        public int fromDay;
+        /** Last day they can be rescued (whether the day itself counts is not verified). */
+        public int toDay;
+        /** Number of people in the group (≥ 1). */
+        public int count;
+        /** Ids of {@link Rules#rescues} in this group (the people the engine models), possibly empty. */
+        public List<String> rescueIds = new ArrayList<>();
+    }
+
+    /** The {@code reminders} section of the pack; the engine words 上课犯困, 保健室 and 失踪者 against the plan. */
+    public static final class Reminders {
+        /** Static lines, sorted by (day, slot, id). */
+        public List<Reminder> items = new ArrayList<>();
+        /** School days on which class makes the protagonist drowsy (stay awake or close the eyes), ascending. */
+        public int[] dozeDays = new int[0];
+        /** Academics points for staying awake, Courage points for closing the eyes. */
+        public int dozeAcademics = 2;
+        public int dozeCourage = 2;
+        /** Courage points of the nurse's office the school day after a Tartarus or full-moon night; 0 = not modelled. */
+        public int nurseCourage;
+        public List<RescueGroup> rescueGroups = new ArrayList<>();
+
+        public boolean isEmpty() {
+            return items.isEmpty() && dozeDays.length == 0 && nurseCourage == 0 && rescueGroups.isEmpty();
+        }
     }
 
     public static final class Policy {

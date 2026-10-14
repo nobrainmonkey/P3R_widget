@@ -10,6 +10,7 @@ import importlib.util
 import json
 import unittest
 from pathlib import Path
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 
@@ -226,6 +227,120 @@ class BuildTest(unittest.TestCase):
         section = report.split("## 7. Not verified against SC game screens", 1)[1]
         for term in ("Dialogue options", "夏卡尔咖啡店", "「结缘网站的字条」", "世俗之庭 台伯勒", "134 of 140"):
             self.assertIn(term, section)
+
+    # ---------------------------------------------------------------- 当日提醒 (reminders)
+
+    def reminders(self, kind: str) -> list[dict]:
+        return [x for x in self.pack["reminders"]["items"] if x["kind"] == kind]
+
+    def reminder(self, ident: str) -> dict:
+        return next(x for x in self.pack["reminders"]["items"] if x["id"] == ident)
+
+    def test_reminder_counts_per_kind(self) -> None:
+        rem = self.pack["reminders"]
+        # 36 aqiu class dates; 3DM has no zh line for 12/7, 12/9, 12/11 (its December text starts on 12.13) and
+        # 1/18 (its text ends on 1.13).
+        self.assertEqual(set(builder.WITHHELD_CLASS), {"12-07", "12-09", "12-11", "01-18"})
+        self.assertEqual(len(self.reminders("class")), 36 - len(builder.WITHHELD_CLASS))
+        exams = self.reminders("exam")
+        self.assertEqual(len(exams), 17)
+        self.assertEqual(sorted(x["id"] for x in exams if x["conf"] == "estimate"), ["exam.07-17", "exam.12-16"])
+        self.assertEqual(len(self.reminders("tv")), 32)
+        requests = self.reminders("request")
+        self.assertEqual(sum(1 for x in requests if not x["id"].endswith(".deadline")), 9)
+        self.assertEqual(sum(1 for x in requests if x["id"].endswith(".deadline")), 8)
+        self.assertEqual(len(rem["rescueGroups"]), 13)
+        self.assertEqual(sum(g["count"] for g in rem["rescueGroups"]), 20)
+        self.assertTrue(30 <= len(rem["doze"]["days"]) <= 36, len(rem["doze"]["days"]))
+        self.assertEqual((rem["doze"]["academics"], rem["doze"]["courage"], rem["nurse"]["courage"]), (2, 2, 2))
+        self.assertEqual(len(self.reminders("fragment")), 5)
+        self.assertEqual(len(self.reminders("trip")), 2)
+        self.assertEqual(len(self.reminders("feature")), 1)
+
+    def test_reminder_answers(self) -> None:
+        ids = {x["id"] for x in self.pack["reminders"]["items"]}
+        self.assertNotIn("tv.01-03", ids)
+        for md in builder.WITHHELD_CLASS:
+            self.assertNotIn(f"class.{md}", ids)
+        cases = (("class.07-08", "马", 2), ("class.10-22", "朱诺", 3), ("exam.05-19", "五月病", 0), ("exam.10-14", "摩西", 0))
+        for ident, answer, option in cases:
+            x = self.reminder(ident)
+            self.assertEqual((x["answerZh"], x["option"]), (answer, option), ident)
+            self.assertTrue(any(s.startswith("cn_3dm_p") for s in x["src"]), ident)
+            self.assertNotIn("cn_guide", x["src"], ident)
+        self.assertEqual(self.reminder("class.07-08")["zh"], "课堂提问：选「马」（第 2 项）")
+        self.assertEqual(self.reminder("class.07-08")["shortZh"], "课堂：马（第 2 项）")
+        self.assertEqual(self.reminder("exam.05-19")["zh"], "考试：选「五月病」")
+        self.assertEqual(self.reminder("class.11-07")["answerZh"], "奥义书")  # 3DM typo 肉义书, dated 11.6 by 3DM
+
+    def test_cn_guide_drift_is_exactly_the_contaminated_dates(self) -> None:
+        self.assertEqual(builder.CN_GUIDE_DIVERGENT, frozenset(
+            {"07-08", "10-22", "12-11", "05-19", "07-15", "07-17", "10-14", "12-16", "12-18"}))
+        report = builder.render_report(self.pack, self.ledger, self.text)
+        for md in builder.CN_GUIDE_DIVERGENT:
+            self.assertIn(f"| `answer.{md}` |", report)
+        with mock.patch.object(builder, "CN_GUIDE_DIVERGENT", builder.CN_GUIDE_DIVERGENT - {"07-08"}):
+            with self.assertRaisesRegex(builder.BuildError, "CN guide answer drift changed"):
+                builder.build_pack()
+
+    def test_a_3dm_option_that_disagrees_with_aqiu_fails_the_build(self) -> None:
+        real = builder.aqiu_choices
+
+        def shifted(page, section):
+            choices = real(page, section)
+            if section == "class-answers":
+                choices[builder.day_of_md("07-08")] = 3
+            return choices
+
+        with mock.patch.object(builder, "aqiu_choices", shifted):
+            with self.assertRaisesRegex(builder.BuildError, r"class 07-08: 3DM option 2 != aqiu Choice 3"):
+                builder.build_pack()
+
+    def test_reminder_text_rules(self) -> None:
+        items = self.pack["reminders"]["items"]
+        self.assertEqual([(x["day"], x["slot"] == "eve", x["id"]) for x in items],
+                         sorted((x["day"], x["slot"] == "eve", x["id"]) for x in items))
+        editions = {s["id"]: s["edition"] for s in self.pack["sources"]}
+        for x in items:
+            self.assertTrue(any(editions[s] in builder.RELOAD_EDITIONS for s in x["src"]), x["id"])
+            self.assertTrue(builder.fits_short(x["shortZh"]), x["shortZh"])
+            for key in ("labelZh", "zh", "shortZh", "detailZh", "gainZh"):
+                text = (x[key] or "").replace(x["answerZh"] or "\0", "")
+                for word in builder.GLOSSARY_AVOID + builder.FORBIDDEN_STRINGS:
+                    self.assertNotIn(word, text, (x["id"], key))
+                self.assertNotRegex(text, r"\d+/\d+|[?!]|\.\.\.", (x["id"], key))
+        self.assertLess(len(self.text.encode("utf-8")), builder.MAX_PACK_BYTES)
+        pack = json.loads(self.text)
+        pack["reminders"]["items"][0]["detailZh"] = "宿舍天台有黄昏碎片"
+        with self.assertRaisesRegex(builder.BuildError, "黄昏碎片"):
+            builder.validate_pack(pack)
+        pack = json.loads(self.text)
+        pack["reminders"]["items"][3]["zh"] = "不占用时段的小事"
+        with self.assertRaisesRegex(builder.BuildError, "不占用时段"):
+            builder.validate_pack(pack)
+        pack = json.loads(self.text)
+        pack["reminders"]["items"][0]["src"] = ["lpbeach"]
+        with self.assertRaisesRegex(builder.BuildError, "relies only on non-Reload"):
+            builder.validate_pack(pack)
+        pack = json.loads(self.text)
+        pack["reminders"]["items"].reverse()
+        with self.assertRaisesRegex(builder.BuildError, "sorted"):
+            builder.validate_pack(pack)
+
+    def test_3dm_pages_are_pinned(self) -> None:
+        by_path = {e["path"]: e for e in builder.load_manifest()["files"]}
+        sources = {s["id"]: s for s in self.pack["sources"]}
+        for n in builder.CN_3DM_SCHEDULE_PAGES:
+            entry = by_path[f"cn_guides/3dm_p{n}.html"]
+            self.assertEqual(entry["url"], f"https://www.3dmgame.com/gl/3928716_{n}.html")
+            self.assertEqual(entry["edition"], "cn_guide_reload")
+            self.assertEqual(sources[f"cn_3dm_p{n}"]["sha256"], entry["sha256"])
+        self.assertEqual(sources["gd_mail_order"]["edition"], "game_data_reload")
+        self.assertIn("edited derivative of the 3DM walkthrough", sources["cn_guide"]["note"])
+        report = builder.render_report(self.pack, self.ledger, self.text)
+        for heading in ("### 4.8 Reminders (当日提醒)", "当日提醒 answers", "当日提醒 editorial lines",
+                        "当日提醒 not shipped yet"):
+            self.assertIn(heading, report)
 
     def test_calendar_helpers(self) -> None:
         self.assertEqual(builder.day_of(4, 7), 6)
