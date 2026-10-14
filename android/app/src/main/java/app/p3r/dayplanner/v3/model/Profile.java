@@ -4,8 +4,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -19,6 +21,26 @@ public final class Profile {
     public enum Route { UNDECIDED, FRIEND, ROMANCE }
     /** Matching-arcana Persona carried on meetings: never, only for goal links, or (almost) always. */
     public enum PersonaMode { NONE, GOALS, ALL }
+    /**
+     * 安排风格 (docs/DESIGN_v3.md §20): how the planner values 「其余社群」. {@link #BREADTH}
+     * (「尽量都体验」, the default) unlocks and raises every link before stacking a few;
+     * {@link #MAX} (「尽量多 MAX」) brings as many links as possible to MAX (the 3.0 objective).
+     * Goals keep strict priority under both. JSON values {@code "breadth"} / {@code "max"}.
+     */
+    public enum Style {
+        BREADTH("breadth"), MAX("max");
+
+        public final String json;
+
+        Style(String json) {
+            this.json = json;
+        }
+
+        /** The style written as {@code json}; anything else (a missing key included) is {@link #BREADTH}. */
+        public static Style fromJson(String json) {
+            return MAX.json.equals(json) ? MAX : BREADTH;
+        }
+    }
 
     public static final int LINKS = 22;
 
@@ -32,6 +54,11 @@ public final class Profile {
 
     /** "其余社群也尽量提升" — secondary optimisation of non-goal links. */
     public boolean otherLinks = true;
+    /**
+     * 安排风格; {@link Style#BREADTH} also for profiles stored before 3.1.0 (it changes how the
+     * planner values links, not a choice the player made). JSON key {@code style}.
+     */
+    public Style style = Style.BREADTH;
     /**
      * Deprecated mirror of {@code personaMode == ALL}; kept so older code and backups still read.
      * New code uses {@link #personaMode} / {@link #personaFor(int)}.
@@ -137,6 +164,27 @@ public final class Profile {
         return false;
     }
 
+    /**
+     * Defaults of a profile made by onboarding (stored profiles are never rewritten): under
+     * 「尽量都体验」 the player opts into every 羁绊剧情 track of the pack, since Link Episodes are
+     * content to see too. Does nothing when a track is already chosen or under 「尽量多 MAX」.
+     */
+    public void applyNewProfileDefaults(Rules rules) {
+        if (rules == null || style != Style.BREADTH || episodeTracks.length > 0) return;
+        episodeTracks = defaultEpisodeTracks(rules);
+    }
+
+    /** Ids of every 羁绊剧情 track of the pack with at least one episode, in pack order. */
+    public static String[] defaultEpisodeTracks(Rules rules) {
+        List<String> ids = new ArrayList<>();
+        if (rules != null && rules.episodes != null) {
+            for (Rules.Episode track : rules.episodes) {
+                if (track != null && track.id != null && track.count > 0 && !ids.contains(track.id)) ids.add(track.id);
+            }
+        }
+        return ids.toArray(new String[0]);
+    }
+
     public boolean hasAnyGoal() {
         for (Tier t : tier) if (t != Tier.NONE) return true;
         return false;
@@ -165,6 +213,7 @@ public final class Profile {
         o.put("schema", "p3r.profile.v3");
         o.put("links", goals);
         o.put("otherLinks", otherLinks);
+        o.put("style", style.json);
         o.put("personaBonus", effectivePersonaMode() == PersonaMode.ALL);
         o.put("personaMode", effectivePersonaMode().name());
         o.put("datingNotes", datingNotes);
@@ -199,6 +248,7 @@ public final class Profile {
             }
         }
         p.otherLinks = o.optBoolean("otherLinks", true);
+        p.style = Style.fromJson(o.optString("style", Style.BREADTH.json));
         p.personaBonus = o.optBoolean("personaBonus", false);
         p.personaMode = PersonaMode.valueOf(o.optString("personaMode", p.personaBonus ? "ALL" : "NONE"));
         p.personaBonus = p.personaMode == PersonaMode.ALL;

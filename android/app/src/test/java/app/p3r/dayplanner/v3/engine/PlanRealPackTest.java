@@ -18,8 +18,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Integration with the real rule pack {@code assets/p3r/p3r_rules.json} (built by the rules module).
@@ -40,10 +38,10 @@ import java.util.regex.Pattern;
  *   <tr><td>new game, Persona for every link (ALL)</td><td>22/22 (22/22)</td><td>0</td></tr>
  *   <tr><td>new game, no Persona</td><td>≥ 21/22 (22/22 with 15 notes; 21/22 without notes)</td><td>0</td></tr>
  *   <tr><td>new game, 皇帝 MUST (MAX by 6/29, every Emperor day used)</td><td>≥ 20/22 (21/22)</td><td>0</td></tr>
- *   <tr><td>mid game 10/22 (¥1,000, Charm Lv3)</td><td>≥ 12/22 (13/22)</td><td>≤ 3</td></tr>
+ *   <tr><td>mid game 10/22 (¥1,000, Charm Lv3)</td><td>≥ 9/22, 21 unlocked (9/22; 尽量多 MAX 13/22)</td><td>≤ 3</td></tr>
  *   <tr><td>new game, Persona for goals only (GOALS), 皇帝 MUST + 恋爱/女皇 WANT</td><td>≥ 20/22 (20/22 with the hard fee reserve)</td><td>≤ 2</td></tr>
  *   <tr><td>new game, every Link Episode track</td><td>every completable track complete; ≥ 19/22 (21/22)</td><td>0</td></tr>
- *   <tr><td>mid game 10/22, 皇帝 必须 + 女教皇 想要</td><td>both MAX; ≥ 10/22 (10/22)</td><td>≤ 30 (jobs that pay the goals' notes)</td></tr>
+ *   <tr><td>mid game 10/22, 皇帝 必须 + 女教皇 想要</td><td>both MAX; ≥ 7/22 (7/22; 尽量多 MAX 10/22)</td><td>≤ 30 (jobs that pay the goals' notes)</td></tr>
  *   <tr><td>mid game 10/22, 必须 ① 力量 ② 正义 (either order)</td><td>both MAX (the audit found 力量 9)</td><td>≤ 30</td></tr>
  *   <tr><td>1/8, 力量 6 + 正义 6, both 必须</td><td>the first goal reaches MAX, the second does not; swapping swaps them</td><td>—</td></tr>
  *   <tr><td>mid game 10/22, 必须 ①女教皇 ②女皇 ③恋爱 / ①恶魔 ②女皇 ③月亮</td><td>① MAX (the audit found ① RANK 9 with ② MAX)</td><td>—</td></tr>
@@ -140,7 +138,10 @@ public class PlanRealPackTest {
         SimState start = midGameState();
         Result r = run("中期 · 10月22日 · 魔术师 2、太阳 7、1,000 日元、魅力 Lv.3", profile, start, 3);
         assertTrue(r.plan.summary.endRanks[link("magician")] > 2);
-        assertTrue("maxed " + r.metrics.maxed, r.metrics.maxed >= 12);
+        // 尽量都体验 (the default) raises the links 尽量多 MAX leaves low instead of finishing a few
+        // more (PlanBreadthRealPackTest): every link but 女皇 (Academics MAX from Lv.4) is unlocked.
+        assertTrue("maxed " + r.metrics.maxed, r.metrics.maxed >= 9);
+        assertTrue("unlocked " + r.metrics.unlocked, r.metrics.unlocked >= 21);
         // Every chain that can still complete does: the Justice talks, the Devil payments (Charm Lv4 and
         // ¥40,000 from ¥1,000), the Tower and Moon rumours; Temperance, Star and Aeon open too.
         for (String id : new String[]{"justice", "devil", "tower", "moon", "temperance", "star", "aeon"}) {
@@ -207,7 +208,7 @@ public class PlanRealPackTest {
         assertTrue(r.plan.summary.maxSlot[emperor] < r.plan.summary.maxSlot[priestess]);
         assertEquals("皇帝：预计 " + noteDate(r.plan.summary.maxSlot[emperor]) + " 升到 MAX", r.plan.summary.notesZh.get(0));
         assertEquals("女教皇：预计 " + noteDate(r.plan.summary.maxSlot[priestess]) + " 升到 MAX", r.plan.summary.notesZh.get(1));
-        assertTrue("maxed " + r.metrics.maxed, r.metrics.maxed >= 10);
+        assertTrue("maxed " + r.metrics.maxed, r.metrics.maxed >= 7);
         System.out.println("皇帝 MAX " + PlanReport.date(rules, r.plan.summary.maxSlot[emperor]) + " · 女教皇 MAX "
                 + PlanReport.date(rules, r.plan.summary.maxSlot[priestess]));
     }
@@ -677,7 +678,7 @@ public class PlanRealPackTest {
         assertFalse("budget exhausted", plan.budgetExhausted);
         assertTrue(plan.planId.equals(Engine.plan(rules, profile, start, null, new Engine.Options()).planId));
         assertFeeDaysKeepTheReserve(rules, start, plan);
-        record(rules, title, profile, start, plan, pm, ms);
+        PlanMetrics.record(rules, title, profile, start, plan, pm, ms);
         return new Result(plan, pm);
     }
 
@@ -755,96 +756,14 @@ public class PlanRealPackTest {
 
     // ------------------------------------------------------------------ metrics table (plan_metrics.md)
 
-    /** One row of the metrics table per scenario run. */
-    private static final List<String[]> ROWS = new ArrayList<>();
-
-    private static void record(Rules rules, String title, Profile profile, SimState start, Plan plan, PlanMetrics pm, long ms) {
-        StringBuilder goals = new StringBuilder();
-        for (int l : goalOrder(profile)) {
-            if (goals.length() > 0) goals.append("；");
-            String name = rules.links[l].arcanaZh;
-            int target = Math.max(1, Math.min(10, profile.target[l]));
-            int at = plan.summary.maxSlot[l];
-            if (start.rank[l] >= target) {
-                goals.append(name).append(" 已经 MAX");
-            } else if (plan.summary.endRanks[l] >= target && at >= 0) {
-                goals.append(name).append(' ').append(PlanReport.date(rules, at));
-            } else {
-                goals.append(name).append(" 停在 RANK ").append(plan.summary.endRanks[l]);
-            }
-        }
-        synchronized (ROWS) {
-            ROWS.add(new String[]{title, PlanReport.date(rules, start.slot),
-                    PlanReport.date(rules, plan.fromSlot) + " → " + PlanReport.date(rules, plan.toSlot),
-                    String.valueOf(plan.steps.size()), String.valueOf(plan.summary.usefulActions),
-                    String.valueOf(plan.summary.freeSlots), pm.maxed + "/" + rules.links.length,
-                    goals.length() == 0 ? "—" : goals.toString(), ms + " ms"});
-        }
-    }
-
-    /** Goal links in priority order: 「必须」 then 「想要」, each by order. */
-    private static List<Integer> goalOrder(Profile p) {
-        List<Integer> out = new ArrayList<>();
-        for (Profile.Tier tier : new Profile.Tier[]{Profile.Tier.MUST, Profile.Tier.WANT}) {
-            List<Integer> part = new ArrayList<>();
-            for (int l = 0; l < p.tier.length; l++) if (p.tier[l] == tier) part.add(l);
-            part.sort((a, b) -> p.order[a] != p.order[b] ? Integer.compare(p.order[a], p.order[b]) : Integer.compare(a, b));
-            out.addAll(part);
-        }
-        return out;
-    }
-
     /**
-     * Writes {@code build/plan_metrics.md} of the app module (the integrator commits it): one row per
-     * scenario run on the real pack, sorted by start date then title, so only the runtimes change
-     * from run to run.
+     * Writes {@code build/plan_metrics.md} of the app module (the integrator commits it as
+     * docs/PLAN_METRICS.md): the rows of this class and of PlanBreadthRealPackTest (PlanMetrics).
      */
     @AfterClass
     public static void writeMetrics() throws Exception {
-        List<String[]> rows;
-        synchronized (ROWS) {
-            rows = new ArrayList<>(ROWS);
-        }
-        if (rows.isEmpty() || rules == null || packJson == null) return;
-        rows.sort((a, b) -> {
-            int c = Integer.compare(dateKey(a[1]), dateKey(b[1]));
-            return c != 0 ? c : a[0].compareTo(b[0]);
-        });
-        StringBuilder md = new StringBuilder();
-        md.append("# 安排质量（真实规则包）\n\n");
-        md.append("由 `PlanRealPackTest` 生成：规则包 ").append(rules.packVersion)
-                .append("，默认选项（时间预算 2.5 秒），桌面 JVM，用时随机器而变。")
-                .append("每个场景都排到 1月31日，并通过独立校验（PlanValidator）。\n\n");
-        md.append("| 场景 | 开始 | 安排范围 | 步数 | 要做的事 | 自由活动 | MAX 社群 | 目标升到 MAX | 用时 |\n");
-        md.append("|---|---|---|---|---|---|---|---|---|\n");
-        for (String[] r : rows) {
-            md.append('|');
-            for (String cell : r) md.append(' ').append(cell.replace("|", "／")).append(" |");
-            md.append('\n');
-        }
-        File out = metricsFile();
-        File parent = out.getAbsoluteFile().getParentFile();
-        if (parent != null && !parent.isDirectory() && !parent.mkdirs()) return;
-        Files.write(out.toPath(), md.toString().getBytes(StandardCharsets.UTF_8));
-        System.out.println("plan metrics: " + out.getAbsolutePath());
-    }
-
-    /** Sort key of a "10月22日 白天" cell, April first. */
-    private static int dateKey(String date) {
-        Matcher m = Pattern.compile("(\\d+)月(\\d+)日 (白天|晚上)").matcher(date);
-        if (!m.find()) return Integer.MAX_VALUE;
-        int month = Integer.parseInt(m.group(1));
-        int key = (month < 4 ? month + 12 : month) * 100 + Integer.parseInt(m.group(2));
-        return key * 2 + ("晚上".equals(m.group(3)) ? 1 : 0);
-    }
-
-    /** {@code android/app/build/plan_metrics.md}, wherever Gradle runs the tests from. */
-    private static File metricsFile() {
-        String override = System.getProperty("p3r.metrics.out");
-        if (override != null && !override.isEmpty()) return new File(override);
-        if (new File("src/main/assets/p3r").isDirectory()) return new File("build/plan_metrics.md");
-        if (new File("app/src/main/assets/p3r").isDirectory()) return new File("app/build/plan_metrics.md");
-        return new File("android/app/build/plan_metrics.md");
+        if (rules == null || packJson == null) return;
+        PlanMetrics.writeTable(rules);
     }
 
     /** A copy of the pack that a scenario may extend without touching {@link #rules}. */

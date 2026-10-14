@@ -34,7 +34,8 @@ final class SettingsPage {
         Rules rules = host.data().rules;
         LinearLayout column = Ui.column(c);
 
-        column.addView(Ui.sectionHeader(c, "社群点数", null));
+        column.addView(style(host, p));
+        column.addView(Ui.sectionHeader(c, "社群点数", null), gapTop(c, 20));
         column.addView(persona(host, p), gapTop(c, 4));
         column.addView(toggle(host, "魅力 MAX 后的加成",
             "魅力升到 MAX 后，社群点数 ×1.51。", p.charmBonus,
@@ -113,6 +114,44 @@ final class SettingsPage {
             sb.append(Zh.date(note.fromDay)).append("起能买到。");
         }
         return sb.toString();
+    }
+
+    /** Choice order of the 安排风格 card. */
+    static final Profile.Style[] STYLES = {Profile.Style.BREADTH, Profile.Style.MAX};
+
+    /** Title and one-line explanation of each 安排风格 (in {@link #STYLES} order). */
+    static final String[][] STYLE_TEXT = {
+        {"尽量都体验", "先把每个社群都解锁、都往上提，再冲 MAX；时间不够时更均衡。"},
+        {"尽量多 MAX", "集中时间把尽量多的社群升到 MAX。"},
+    };
+
+    /**
+     * 安排风格, the first card of the page (DESIGN §20): 尽量都体验 (the default) or 尽量多 MAX,
+     * stacked like the 人格面具 choices. A change is saved at once and triggers a replan.
+     */
+    private static View style(HomeHost host, Profile p) {
+        Context c = host.activity();
+        LinearLayout card = Ui.column(c);
+        card.setBackground(Ui.card(c));
+        Ui.pad(card, 16, 12, 16, 14);
+        card.addView(Ui.text(c, "安排风格", 16, Ui.col(c, R.color.p3r_white), true));
+        List<LinearLayout> rows = new ArrayList<>();
+        int selected = Arrays.asList(STYLES).indexOf(p.style);
+        for (int i = 0; i < STYLES.length; i++) {
+            final int index = i;
+            LinearLayout row = choiceRow(c, STYLE_TEXT[i][0], STYLE_TEXT[i][1]);
+            row.setOnClickListener(v -> {
+                for (int k = 0; k < rows.size(); k++) {
+                    markChoice(c, rows.get(k), STYLE_TEXT[k][0], STYLE_TEXT[k][1], k == index);
+                }
+                Profile.Style chosen = STYLES[index];
+                edit(host, q -> q.style = chosen);
+            });
+            markChoice(c, row, STYLE_TEXT[i][0], STYLE_TEXT[i][1], i == selected);
+            rows.add(row);
+            card.addView(row, gapTop(c, i == 0 ? 10 : 6));
+        }
+        return card;
     }
 
     /** Title and one-line explanation of each 人格面具 choice (in {@link #PERSONA_MODES} order). */

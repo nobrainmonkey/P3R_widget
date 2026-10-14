@@ -171,6 +171,22 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         String failedZh;
     }
 
+    /**
+     * The profile the wizard starts from: the stored one, except that a first onboarding (nothing
+     * recorded and no profile saved yet) starts from the defaults of a new profile, which under
+     * 「尽量都体验」 opt into every 羁绊剧情 track (so the wizard asks how many were watched).
+     * Stored profiles are never rewritten.
+     */
+    static Profile startProfile(StateDraft.Mode mode, PlannerApi.Snapshot snapshot, Rules rules) {
+        Profile profile = snapshot.profile;
+        if (mode != StateDraft.Mode.ONBOARDING || snapshot.observed != null || snapshot.profileRevision != 0 || profile == null) {
+            return profile;
+        }
+        Profile fresh = profile.copy();
+        fresh.applyNewProfileDefaults(rules);
+        return fresh;
+    }
+
     /** Loads the snapshot and the saved draft; {@code previous} edits are carried over when given. */
     private void load(StateDraft previous) {
         Context app = getApplicationContext();
@@ -187,8 +203,8 @@ public final class StateActivity extends Activity implements StateSteps.Callback
             }
             StateDraft.Mode effective = m == StateDraft.Mode.ONBOARDING || l.snapshot.observed != null
                 ? m : StateDraft.Mode.ONBOARDING;
-            l.draft = new StateDraft(effective, rules, l.snapshot.observed, l.snapshot.profile, l.snapshot.plan,
-                l.snapshot.stateRevision);
+            l.draft = new StateDraft(effective, rules, l.snapshot.observed, startProfile(effective, l.snapshot, rules),
+                l.snapshot.plan, l.snapshot.stateRevision);
             if (previous != null) {
                 l.draft.copyEditsFrom(previous);
             } else {

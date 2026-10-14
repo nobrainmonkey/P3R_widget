@@ -454,4 +454,25 @@ _Placeholder: WP-D writes this section (spec §1.4)._
 
 ## 20. 3.1.0: 尽量都体验
 
-_Placeholder: WP-E writes this section (spec §8)._
+Owner directive (spec §8): plan for a player who wants to see as much of the game as possible, not ten MAX links and the rest ignored.
+
+- **安排风格.** `Profile.style` (JSON `style`: `"breadth"` / `"max"`), default 「尽量都体验」 (`BREADTH`), also for profiles stored without the key: it changes how the planner values links, not a choice the player made. 「尽量多 MAX」 (`MAX`) is the 3.0 objective. 规划设置 shows it as the first card (「先把每个社群都解锁、都往上提，再冲 MAX；时间不够时更均衡。」 / 「集中时间把尽量多的社群升到 MAX。」) and 规划说明 says which style plans (`InfoPages.styleLine`). Goals keep strict priority under both (`Planner.Pool.compareGoals` and `PlanValidator` are unchanged).
+- **Objective.** Under 「尽量都体验」 each RANK of a 「其余社群」 link weighs `W_OTHER × BREADTH_RANK[r]` = 4, 2, 1.6, 1.4, 1.25, 1.15, 1.05, 1.0, 0.95, 0.9 for RANK 1…10 and MAX adds two ranks' worth instead of six, so two unlocks (8) beat taking a link from RANK 5 to MAX (7.05). Goals weigh exactly as before up to their target; above it they count as 「其余社群」.
+- **Base policy** (`Heuristics`, only under 「尽量都体验」, so 「尽量多 MAX」 plans are byte-identical to 3.0):
+  - a link that will not reach its milestone is as urgent as the share of its remaining opportunities its next six meetings need (3.0 treats such meetings as filler);
+  - its stat gates keep their full value (3.0 halves them), since its first ranks are most of its worth; a link already too late to reach MAX keeps 3.0's discount;
+  - the value of a link that cannot reach MAX counts its reachable ranks by their own weights (`ranksValue`);
+  - in the goal-first tunings a required Tartarus visit that is not yet mandatory scores `BREADTH_RANK[1]`× its 3.0 value: otherwise an early 其余社群 unlock pushes the visits to the block's last evenings, where they crowd out the goals' 结缘网站的字条 (1/8, 必须 ①正义 ②力量: 力量 RANK 7 instead of 8 without it).
+- **Plan id.** `PlanHash` adds the style only for 「尽量都体验」, so a 「尽量多 MAX」 plan keeps its 3.0 id (golden ids in `BreadthObjectiveTest`, synthetic year, and `PlanBreadthRealPackTest`, real pack, recorded at the WP-0 commit).
+- **羁绊剧情 by default.** A first onboarding (nothing recorded, no profile saved) starts from `Profile.applyNewProfileDefaults`: under 「尽量都体验」 every track of the pack is opted in, so the wizard asks 「羁绊剧情已经看了几话？」. Stored profiles are never rewritten (`StateActivity.startProfile`).
+- **Tuning** (real pack, default options, `PlanBreadthRealPackTest`). Weighting the ranks alone was not enough: from 10/22 with goals and from the 1/8 late start fewer links reached RANK 5 than under 「尽量多 MAX」 (11 vs 12, 14 vs 15), because the base policy still valued a link by its average worth up to MAX. Sweeps over the curve (RANK 1 from 3 to 14, flatter and steeper tails, MAX bonus 1–3) and the policy terms kept the suggested curve: in the sweeps RANK 1 = 14 unlocked everything from 10/22 with goals but lost 18% of the rank sum, a MAX bonus of 1 cost MAX links (10/22: 6 instead of 9) and 3 fell below 「尽量多 MAX」 on RANK ≥ 5 (10/22: 13 vs 14).
+
+| start | MAX | unlocked | rank sum | RANK ≥ 5 | lowest RANK (opened) |
+|---|---|---|---|---|---|
+| new game 4/21, no Persona | 21 → 22 | 22 → 22 | 219 → 220 | 22 → 22 | 9 → 10 |
+| new game 4/21, every 羁绊剧情 track | 21 → 20 | 22 → 22 | 216 → 217 | 22 → 22 | 6 → 8 |
+| mid game 10/22 | 13 → 9 | 20 → 21 | 152 → 152 | 14 → 17 | 0 → 3 |
+| mid game 10/22, 皇帝 必须 + 女教皇 想要 | 10 → 7 | 21 → 21 | 137 → 132 | 12 → 12 | 1 → 3 |
+| 1/8 late start (every link but 恶魔 open) | 8 → 5 | 22 → 22 | 135 → 139 | 15 → 16 | 1 → 3 |
+
+(「尽量多 MAX」 → 「尽量都体验」; the lowest RANK is over the non-story links either plan unlocks: from the 10/22 state 女皇 needs Academics MAX from Lv.4, about 40 evenings, which neither style buys.) Goals end where they end under 「尽量多 MAX」 in every scenario of `PlanRealPackTest` and `PlanBreadthRealPackTest`; over 34 必须 sets from 10/22 and 1/8 (those tests' fixed and random sets) they differ in 11, 8 better and 3 worse by strict priority, where only one late search run of either style finds the goal at all. `docs/PLAN_METRICS.md` lists every scenario with both styles' breadth columns.

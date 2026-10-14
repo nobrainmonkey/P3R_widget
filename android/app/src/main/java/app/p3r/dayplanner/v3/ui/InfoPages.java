@@ -11,6 +11,7 @@ import java.util.Map;
 
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.engine.Plan;
+import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 
 /** 规划说明 and 关于: read-only explanation pages. */
@@ -56,7 +57,10 @@ final class InfoPages {
             }
         }
         column.addView(Ui.sectionHeader(c, "是怎么排的", null), top(c, plan == null ? 0 : 20));
-        column.addView(bullets(c, Assumptions.global(d.profile(), d.rules)), top(c, 4));
+        List<String> how = new java.util.ArrayList<>();
+        how.add(styleLine(d.profile()));
+        how.addAll(Assumptions.global(d.profile(), d.rules));
+        column.addView(bullets(c, how), top(c, 4));
 
         column.addView(Ui.sectionHeader(c, "资料来源", null), top(c, 20));
         LinearLayout sources = Ui.column(c);
@@ -75,6 +79,14 @@ final class InfoPages {
         sources.addView(pack, pp);
         column.addView(sources, top(c, 4));
         return column;
+    }
+
+    /** The 是怎么排的 sentence on the 安排风格 (DESIGN §20): what the default does, or what the player chose. */
+    static String styleLine(Profile profile) {
+        if (profile != null && profile.style == Profile.Style.MAX) {
+            return "你选了「尽量多 MAX」：集中时间把尽量多的社群升到 MAX；可在「规划设置」里改回「尽量都体验」。";
+        }
+        return "默认「尽量都体验」：先把每个社群都解锁、都往上提，再冲 MAX；想集中冲 MAX，可在「规划设置」里改成「尽量多 MAX」。";
     }
 
     /** How the plan's own note about running out of time starts (engine Labels.BUDGET_NOTE*). */
