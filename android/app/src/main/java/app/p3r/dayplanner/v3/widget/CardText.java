@@ -36,7 +36,7 @@ public final class CardText {
     static final String ANSWER_LINE_BREAK = "\n" + WJ;
     /** Separator between dialogue choices (「A / B」). */
     static final String CHOICE_SEPARATOR = " / ";
-    /** The prefix of the plan widget's dialogue line, as the app writes it. */
+    /** The app's prefix of guide answers (「参考回答：」): {@link #choices} keeps it whole where a line starts with it. */
     static final String ANSWER_PREFIX = "参考回答：";
     /** Joins two alternatives inside one dialogue choice (「我也去看看吧或者我在这里等她」). */
     private static final String ALTERNATIVES = "或者";

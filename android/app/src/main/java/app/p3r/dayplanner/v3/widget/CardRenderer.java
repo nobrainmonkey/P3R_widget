@@ -63,7 +63,7 @@ public final class CardRenderer {
     private static final float EXTRA_GAP_DP = 3f;
     /** Narrowest location worth drawing (dp of text): three characters; below it the row drops it. */
     static final float MIN_LOCATION_DP = 33f;
-    /** Pin (or reminder mark) in front of the location and reminder lines plus its padding (dp). Mirrors the layout XML. */
+    /** Pin (or the 人格面具 / 当日提醒 mark) in front of the location, hint and reminder rows plus its padding (dp). Mirrors the layout XML. */
     private static final float PIN_DP = 15f;
     /** Horizontal padding plus right margin of the tag chip (dp). Mirrors the layout XML. */
     private static final float TAG_PADDING_DP = 16f;
@@ -309,7 +309,7 @@ public final class CardRenderer {
         return textHeightDp(c, model.cue, cueTextSp(size), false, widthDp, Math.max(1, model.cueMaxLines)) + ROW_GAP_DP;
     }
 
-    /** Height in dp of the reminder line (with its 12dp mark) including its top gap (0 if hidden). */
+    /** Height in dp of the 人格面具 reminder (with its 12dp mark) including its top gap (0 if hidden). */
     static float hintRowHeightDp(Context c, CardModel model, WidgetSize size, float widthDp) {
         if (isBlank(model.hint)) return 0;
         float text = textHeightDp(c, model.hint, cueTextSp(size), false, Math.max(1, widthDp - PIN_DP), 1);
@@ -372,7 +372,8 @@ public final class CardRenderer {
      * then {@link #ANSWERS_SMALL_SP}. After it, for a card short of height: each later rung that
      * takes less height, then the lines cut to their first whole choices plus 「等 N 项」, then (on the
      * shortest cards, where only two lines of text fit under the plate) the later lines dropped, the
-     * step's own first line kept to its first choice. The guide's 「（1）」 counts are already left out
+     * step's own first line kept to its first choice, and last a 朋友-route line's caution alone
+     * (「答：别选「…」」). The guide's 「（1）」 counts are already left out
      * ({@link app.p3r.dayplanner.v3.engine.DialogueHint#widgetChoices}, decision O3), and no choice
      * is ever cut with "…" or skipped in the middle. Empty without answers.
      */
@@ -650,7 +651,9 @@ public final class CardRenderer {
 
     /**
      * Gives the title room before optional rows (docs/DESIGN_v3.md §18). The answers row is
-     * essential: it takes the first form of {@link #answerForms} and never goes. The cue line goes
+     * essential: it takes the first form of {@link #answerForms} and goes only on the shortest cards
+     * (130dp, two lines of text under the plate), where not even its shortest form fits beside a
+     * one-line title (after giving up the gap above it). The cue line goes
      * first (unless {@link CardModel#cueEssential}) when the title would otherwise drop below a
      * comfortable size. When the title would not fit even at its smallest size, the 当日提醒 row goes
      * ({@link #fitReminder}: whole, short or not at all), then the 人格面具 reminder, then the
@@ -665,7 +668,7 @@ public final class CardRenderer {
      * one-line cue shows whole, or its leading whole clauses ({@link #fitCue}), or goes (an essential
      * one stays). On a tall card the spare height is shared out above and below the text and under
      * the buttons.
-     * Hides the day numeral behind a shown dialogue line and fades it behind other text. Returns
+     * Hides the day numeral behind a shown answers row and fades it behind other text. Returns
      * {@code model} itself when nothing changes.
      */
     static CardModel fit(Context c, CardModel model, WidgetSize size, float widthDp, float heightDp) {
@@ -1007,7 +1010,7 @@ public final class CardRenderer {
         return widest / c.getResources().getDisplayMetrics().density;
     }
 
-    /** Height in dp of the dialogue line including its top gap (0 if hidden). */
+    /** Height in dp of the legacy guide's dialogue choices including their top gap (0 if hidden). */
     static float dialogueRowHeightDp(Context c, CardModel model, float widthDp) {
         if (isBlank(model.dialogue)) return 0;
         return DIALOGUE_GAP_DP + textHeightDp(c, model.dialogue, DIALOGUE_SP, false, widthDp, 20, DIALOGUE_SPACING_DP);

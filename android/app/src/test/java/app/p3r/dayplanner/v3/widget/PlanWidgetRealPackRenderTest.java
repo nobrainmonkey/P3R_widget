@@ -1,7 +1,5 @@
 package app.p3r.dayplanner.v3.widget;
 
-import app.p3r.dayplanner.v3.ui.Dialogue;
-
 import android.content.Context;
 import android.view.View;
 import android.widget.TextView;
@@ -26,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import app.p3r.dayplanner.R;
+import app.p3r.dayplanner.v3.engine.DialogueHint;
 import app.p3r.dayplanner.v3.engine.Engine;
 import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.engine.SimState;
@@ -98,7 +97,7 @@ public class PlanWidgetRealPackRenderTest {
 
     /**
      * Steps worth looking at: per kind the longest subtitle and location, plus side steps and hints,
-     * plus meetings with guide answers (the longest 参考回答 line and a few more).
+     * plus meetings with guide answers (the longest 「答：」 line and a few more).
      */
     private static List<Plan.Step> picks(Plan plan, Rules rules) {
         Map<String, Plan.Step> chosen = new LinkedHashMap<>();
@@ -115,8 +114,8 @@ public class PlanWidgetRealPackRenderTest {
             if ((!s.side.isEmpty() || s.hintZh != null) && extras++ < 6) chosen.put(s.action + "@" + s.slot, s);
         }
         List<Plan.Step> answered = new ArrayList<>();
-        for (Plan.Step s : plan.steps) if (Dialogue.line(rules, s) != null) answered.add(s);
-        answered.stream().max(Comparator.comparingInt(s -> len(Dialogue.line(rules, s))))
+        for (Plan.Step s : plan.steps) if (!DialogueHint.forMeeting(rules, null, s).isEmpty()) answered.add(s);
+        answered.stream().max(Comparator.comparingInt(s -> len(DialogueHint.widgetLine(DialogueHint.forMeeting(rules, null, s)))))
                 .ifPresent(s -> chosen.put(s.action + "@" + s.slot, s));
         for (int i = 0; i < Math.min(3, answered.size()); i++) chosen.put(answered.get(i).action + "@" + answered.get(i).slot, answered.get(i));
         return new ArrayList<>(chosen.values());
@@ -167,7 +166,10 @@ public class PlanWidgetRealPackRenderTest {
                     RenderSupport.collectCutText(root, tag, issues);
                     RenderSupport.collectDotLineEnds(root, tag, issues);
                     RenderSupport.collectLocationEdges(root, tag, issues);
-                    if (root.findViewById(R.id.widget_dialogue_choices).getVisibility() == View.VISIBLE) answers++;
+                    boolean row = root.findViewById(R.id.widget_dialogue_choices).getVisibility() == View.VISIBLE;
+                    if (row) answers++;
+                    // The answers are essential: only a 130dp card may have no room for them beside the title.
+                    if (!row && !model.answers.isEmpty() && size[1] > 130) issues.add(tag + " hides its answers");
                     String title = ((TextView) root.findViewById(R.id.widget_task)).getText().toString();
                     assertFalse(tag + " blank title", title.trim().isEmpty());
                     for (int id : new int[]{R.id.widget_task, R.id.widget_tag, R.id.widget_location, R.id.widget_hint,

@@ -113,6 +113,38 @@ public class CardRendererTest {
         assertTrue(String.join("\n", issues), issues.isEmpty());
     }
 
+    /**
+     * The answers row (DESIGN §18): one paragraph per line, a meeting that may not rank up muted, and
+     * the width ladder's forms best first, each shorter than the one before.
+     */
+    @Test
+    public void theAnswersRowMutesTheLinesOfAMeetingThatMayNotRankUp() {
+        Context c = RuntimeEnvironment.getApplication();
+        CardModel m = sample(false);
+        m.keepWordsWhole = true;
+        m.answers.add(new CardModel.AnswerLine("要是升级了，答：", "升级时答：", java.util.Arrays.asList("我会帮你的", "这样的规矩没有意义"),
+                null, true));
+        m.answers.add(new CardModel.AnswerLine("课堂：", null, java.util.Collections.singletonList("马（第 2 项）"), null, false));
+        View root = RenderSupport.layout(c, CardRenderer.render(c, m, 320, 240), 320, 240);
+        TextView row = root.findViewById(R.id.widget_dialogue_choices);
+        assertEquals(View.VISIBLE, row.getVisibility());
+        String drawn = row.getText().toString();
+        assertTrue(CardText.plain(drawn), CardText.plain(drawn).matches("(要是升级了，|升级时)答：我会帮你的 / 这样的规矩没有意义\n课堂：马（第 2 项）"));
+        android.text.Spanned spanned = (android.text.Spanned) row.getText();
+        android.text.style.ForegroundColorSpan[] muted = spanned.getSpans(0, spanned.length(), android.text.style.ForegroundColorSpan.class);
+        assertEquals(1, muted.length);
+        assertEquals(0, spanned.getSpanStart(muted[0]));
+        assertEquals("only the meeting's line", drawn.indexOf(CardText.ANSWER_LINE_BREAK), spanned.getSpanEnd(muted[0]));
+        assertEquals(CardRenderer.MUTED_ANSWER_ALPHA, muted[0].getForegroundColor() >>> 24);
+        assertEquals("the watermark steps aside", View.GONE, root.findViewById(R.id.widget_watermark).getVisibility());
+
+        List<CardRenderer.AnswerForm> forms = CardRenderer.answerForms(c, m.answers, 180 - 2 * CardRenderer.bodyPaddingDp(WidgetSize.TINY));
+        assertTrue(forms.size() > 1);
+        for (int i = 1; i < forms.size(); i++) assertTrue("form " + i, forms.get(i).heightDp < forms.get(i - 1).heightDp);
+        assertTrue("the shortest keeps the meeting's first answer", CardText.plain(forms.get(forms.size() - 1).text).contains("我会帮你的"));
+        assertTrue(CardRenderer.answerForms(c, new ArrayList<>(), 160).isEmpty());
+    }
+
     /** A wrapped title breaks before 「（第 2 话）」, never inside it. */
     @Test
     public void aNumberStaysWithItsWordsWhenTheTitleWraps() {
