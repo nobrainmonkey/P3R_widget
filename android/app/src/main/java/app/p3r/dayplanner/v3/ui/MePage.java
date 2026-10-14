@@ -89,6 +89,10 @@ final class MePage {
             true, actions::openSettings), spaced(4));
         column.addView(entry(R.drawable.ui_ic_info, "规划说明", "怎么排的、数据从哪来",
             true, actions::openExplain), spaced(8));
+        boolean replanning = FullReplanSheet.running(d);
+        column.addView(entry(R.drawable.ui_ic_replan, FullReplanSheet.TITLE,
+            replanning ? FullReplanSheet.RUNNING : "重新读取进度和规划设置，从头再排一遍",
+            FullReplanSheet.available(d) && !replanning, () -> FullReplanSheet.show(host)), spaced(8));
 
         column.addView(Ui.sectionHeader(c, "其他", null), spaced(16));
         column.addView(entry(R.drawable.ui_ic_backup, "备份与恢复", "导出全部记录，或从备份恢复",

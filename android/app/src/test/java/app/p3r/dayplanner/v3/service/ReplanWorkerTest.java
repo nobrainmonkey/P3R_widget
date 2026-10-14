@@ -28,6 +28,8 @@ public class ReplanWorkerTest {
     /** Hands out one job for revision 3/1, records what {@link #finish} receives. */
     private final class Host implements ReplanWorker.Host {
         boolean handedOut;
+        /** The job handed out is a 从头重新安排 one. */
+        boolean full;
         final List<Plan> finishedPlans = new ArrayList<>();
         final List<Throwable> finishedErrors = new ArrayList<>();
         int runsEnded;
@@ -45,6 +47,8 @@ public class ReplanWorkerTest {
             job.stateRevision = 3;
             job.profileRevision = 1;
             job.options = new Engine.Options();
+            job.full = full;
+            job.ticket = full ? 1 : 0;
             return job;
         }
 
@@ -106,6 +110,55 @@ public class ReplanWorkerTest {
         assertNull(host.finishedPlans.get(0));
         assertTrue(host.finishedErrors.get(0) instanceof CancellationException);
         assertEquals(0, validator.calls.get());
+    }
+
+    /**
+     * A full request supersedes the computation in flight ({@code cancelPartial}) but never another
+     * full one; 「先不算了」 ({@code cancelFull}) stops only a full one.
+     */
+    @Test
+    public void partialAndFullCancelsOnlyHitTheirOwnKind() {
+        for (boolean full : new boolean[]{false, true}) {
+            for (boolean cancelFull : new boolean[]{false, true}) {
+                Host host = new Host();
+                host.full = full;
+                AtomicReference<ReplanWorker> worker = new AtomicReference<>();
+                AtomicReference<Boolean> cancelled = new AtomicReference<>();
+                PlanFunction planner = (r, p, observed, previous, options) -> {
+                    if (cancelFull) {
+                        worker.get().cancelFull();
+                    } else {
+                        worker.get().cancelPartial();
+                    }
+                    cancelled.set(options.cancelled.get());
+                    return new Plan();
+                };
+                worker.set(new ReplanWorker(Runnable::run, host, planner, new Fakes.Validator(), () -> 0L));
+
+                worker.get().schedule();
+
+                String what = (full ? "full job, " : "partial job, ") + (cancelFull ? "cancelFull" : "cancelPartial");
+                boolean expected = full == cancelFull;
+                assertEquals(what, expected, cancelled.get());
+                assertEquals(what, expected, host.finishedErrors.get(0) instanceof CancellationException);
+                assertEquals(what, !expected, host.finishedPlans.get(0) != null);
+            }
+        }
+    }
+
+    @Test
+    public void nothingIsQueuedAfterCancelAll() {
+        Host host = new Host();
+        List<Runnable> queued = new ArrayList<>();
+        ReplanWorker worker = new ReplanWorker(queued::add, host, (r, p, o, prev, opts) -> new Plan(),
+            (r, p, o, plan) -> Collections.emptyList(), () -> 0L);
+
+        worker.cancelAll();
+
+        assertTrue(worker.stopped());
+        assertFalse(worker.schedule());
+        assertTrue(queued.isEmpty());
+        assertFalse(worker.busy());
     }
 
     @Test

@@ -66,6 +66,9 @@ final class FakePlannerApi implements PlannerApi {
     private final java.util.Set<String> importIds = new java.util.HashSet<>();
     String backupJson = "{\"schema\":\"p3r.backup.v3\"}";
     int replanRequests;
+    /** Calls of {@link #requestFullReplan} / {@link #cancelFullReplan}. */
+    int fullReplanRequests;
+    int fullReplanCancels;
     private long seq = 100;
 
     FakePlannerApi(Rules rules) {
@@ -180,6 +183,10 @@ final class FakePlannerApi implements PlannerApi {
         s.planErrorZh = snap.planErrorZh;
         s.lastRecordMillis = snap.lastRecordMillis;
         s.eventsSinceCheckpoint = snap.eventsSinceCheckpoint;
+        s.fullReplanning = snap.fullReplanning;
+        s.fullReplanTicket = snap.fullReplanTicket;
+        s.fullReplanDoneTicket = snap.fullReplanDoneTicket;
+        s.fullReplanResult = snap.fullReplanResult;
         return s;
     }
 
@@ -308,6 +315,32 @@ final class FakePlannerApi implements PlannerApi {
     @Override
     public void requestReplan() {
         replanRequests++;
+    }
+
+    /** Like the service: a ticket per request, the same one while it is pending, 0 before onboarding. */
+    @Override
+    public synchronized long requestFullReplan() {
+        fullReplanRequests++;
+        if (snap.observed == null) {
+            return 0;
+        }
+        if (!snap.fullReplanning) {
+            snap.fullReplanTicket++;
+            snap.fullReplanning = true;
+        }
+        return snap.fullReplanTicket;
+    }
+
+    @Override
+    public synchronized void cancelFullReplan() {
+        fullReplanCancels++;
+    }
+
+    /** Ends the pending full request with {@code result} (the plan is whatever the test installed). */
+    synchronized void endFullReplan(FullReplanResult result) {
+        snap.fullReplanning = false;
+        snap.fullReplanDoneTicket = snap.fullReplanTicket;
+        snap.fullReplanResult = result;
     }
 
     @Override

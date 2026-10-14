@@ -62,6 +62,12 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     private Plan lastPlan;
     private String changeSummary;
     private long bannerDismissedFor;
+    /** 从头重新安排 asked for here and not answered by the service yet (shown as running meanwhile). */
+    private boolean fullRunning;
+    /** Ticket of the 从头重新安排 asked for here whose result is still to be shown once, 0 if none. */
+    private long fullTicket;
+    /** The plan shown when 从头重新安排 was asked for (what the result is compared with), or null. */
+    private Plan fullBefore;
 
     private FrameLayout root;
     private FrameLayout pageLayer;
@@ -95,6 +101,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         buildChrome();
         if (savedInstanceState != null) {
             tab = savedInstanceState.getInt("tab", TAB_TODAY);
+            fullTicket = savedInstanceState.getLong("fullTicket", 0);
         }
         handleIntent(getIntent());
         selectTab(tab);
@@ -145,6 +152,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putInt("tab", tab);
+        outState.putLong("fullTicket", fullTicket);
     }
 
     @Override
@@ -243,6 +251,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         }
         stateRevision.set(snap.stateRevision);
         profileRevision.set(snap.profileRevision);
+        Plan shownBefore = lastPlan;
         Plan plan = snap.plan;
         if (plan != null && snap.planCurrent) {
             if (lastPlan != null && !lastPlan.planId.equals(plan.planId) && snap.observed != null) {
@@ -250,10 +259,29 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             }
             lastPlan = plan;
         }
+        String fullResult = null;
+        if (fullTicket > 0 && snap.fullReplanDoneTicket >= fullTicket) {
+            // The 从头重新安排 asked for here has ended: say how, once.
+            Plan before = fullBefore != null ? fullBefore : shownBefore;
+            fullResult = PlanDiff.fullSummary(rules, before, plan, snap.observed == null ? 0 : snap.observed.slot,
+                snap.fullReplanResult);
+            fullTicket = 0;
+            fullBefore = null;
+            if (fullResult != null) {
+                changeSummary = fullResult;
+            }
+        } else if (fullRunning && !snap.fullReplanning) {
+            // Asked for, but the request has not reached the service yet: it is still running.
+            snap = copyOf(snap);
+            snap.fullReplanning = true;
+        }
         boolean banner = UiData.returnBannerDue(snap, System.currentTimeMillis(), bannerDismissedFor);
         data = new UiData(rules, snap, changeSummary, banner, System.currentTimeMillis());
         loading.setVisibility(View.GONE);
         bindPages();
+        if (fullResult != null) {
+            showMessage(fullResult);
+        }
         if (pendingOpenSlot >= 0) {
             int slot = pendingOpenSlot;
             pendingOpenSlot = -1;
@@ -728,6 +756,10 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         c.noticeZh = s.noticeZh;
         c.lastRecordMillis = s.lastRecordMillis;
         c.eventsSinceCheckpoint = s.eventsSinceCheckpoint;
+        c.fullReplanning = s.fullReplanning;
+        c.fullReplanTicket = s.fullReplanTicket;
+        c.fullReplanDoneTicket = s.fullReplanDoneTicket;
+        c.fullReplanResult = s.fullReplanResult;
         return c;
     }
 
@@ -745,6 +777,44 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         }
         PlannerApi target = api;
         Async.run(this, target::requestReplan);
+    }
+
+    @Override
+    public void requestFullReplan() {
+        if (data == null || api == null || fullRunning || data.snap.fullReplanning) {
+            return;
+        }
+        // Optimistic: the entries and the 今天 status line show it running right away.
+        fullRunning = true;
+        fullBefore = data.plan();
+        PlannerApi.Snapshot optimistic = copyOf(data.snap);
+        optimistic.fullReplanning = true;
+        data = new UiData(data.rules, optimistic, data.changeSummary, data.returnBanner, data.nowMillis);
+        bindPages();
+        PlannerApi target = api;
+        Async.run(this, target::requestFullReplan, ticket -> {
+            fullRunning = false;
+            fullTicket = ticket;
+            // Also drops optimistic leftovers (e.g. a profile) for what the service re-read.
+            load();
+        }, error -> {
+            fullRunning = false;
+            fullBefore = null;
+            showMessage(Messages.GENERIC_ERROR);
+            load();
+        });
+    }
+
+    @Override
+    public void cancelFullReplan() {
+        if (api == null) {
+            return;
+        }
+        PlannerApi target = api;
+        Async.run(this, () -> {
+            target.cancelFullReplan();
+            return Boolean.TRUE;
+        }, done -> load(), error -> showMessage(Messages.GENERIC_ERROR));
     }
 
     @Override

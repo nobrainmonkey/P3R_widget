@@ -64,7 +64,27 @@ final class SettingsPage {
 
         column.addView(Ui.sectionHeader(c, "不再安排的活动", null), gapTop(c, 20));
         column.addView(excluded(host, p), gapTop(c, 4));
+
+        column.addView(fullReplanFooter(host), gapTop(c, 28));
         return column;
+    }
+
+    /**
+     * Footer: changes here replan on their own; 从头重新安排 is for planning again without leaning on
+     * the current plan (opens {@link FullReplanSheet}).
+     */
+    private static View fullReplanFooter(HomeHost host) {
+        Context c = host.activity();
+        LinearLayout box = Ui.column(c);
+        box.addView(Ui.muted(c, "改动会马上生效并自动重新安排；想不沿用上一版、从头排一遍："));
+        TextView again = Ui.quiet(c, FullReplanSheet.TITLE);
+        again.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        boolean enabled = FullReplanSheet.available(host.data());
+        again.setEnabled(enabled);
+        again.setAlpha(enabled ? 1f : 0.45f);
+        again.setOnClickListener(v -> FullReplanSheet.show(host));
+        box.addView(again, Ui.wrap());
+        return box;
     }
 
     /** 「平安夜」: 都婉拒了 / 接受了XX的邀约 (romanceable links at RANK 1 or above). */

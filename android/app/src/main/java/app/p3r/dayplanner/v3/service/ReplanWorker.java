@@ -27,10 +27,15 @@ import java.util.function.LongSupplier;
  *       only if both revisions are still current, otherwise the run recomputes.</li>
  *   <li>A write during a computation cancels it early through {@code Engine.Options.cancelled}
  *       (its result would be discarded anyway). Only computations for older revisions are
- *       cancelled, so a late cancel can never hit the computation for the latest state.</li>
+ *       cancelled, so a late cancel can never hit the computation for the latest state; a full
+ *       replan cancelled this way is computed again for the new revisions.</li>
  *   <li>Follow-up: when the installed plan ran out of time ({@link Plan#budgetExhausted}), the
  *       host queues exactly one more computation for the same revisions with twice the budget
  *       ({@link Job#followUp}) and installs its result only if it is complete or better.</li>
+ *   <li>Full replan (从头重新安排, {@link Job#full}): computed without the installed plan as
+ *       {@code previous} and with three times the budget. A request supersedes the other
+ *       computation in flight ({@link #cancelPartial}); 「先不算了」 stops only the full one
+ *       ({@link #cancelFull}).</li>
  * </ul>
  */
 final class ReplanWorker {
@@ -50,6 +55,13 @@ final class ReplanWorker {
          * which ran out of time ({@link Plan#budgetExhausted}) for the same revisions.
          */
         boolean followUp;
+        /**
+         * 从头重新安排: computed with no {@link #previous} plan (no stability bias) and three times
+         * the budget, for the request {@link #ticket}.
+         */
+        boolean full;
+        /** The request a {@link #full} job answers ({@code PlannerApi#requestFullReplan}); 0 otherwise. */
+        long ticket;
     }
 
     /** The service side of the worker. */
@@ -77,6 +89,8 @@ final class ReplanWorker {
     private volatile boolean running;
     /** Job being computed (its {@code options.cancelled} is set), or null. */
     private volatile Job inFlight;
+    /** Set by {@link #cancelAll}: {@link #schedule} queues nothing any more. */
+    private volatile boolean stopped;
 
     ReplanWorker(Executor executor, Host host, PlanFunction planner, PlanCheck validator, LongSupplier clock) {
         this.executor = executor;
@@ -88,7 +102,7 @@ final class ReplanWorker {
 
     /** Queues a run unless one is already queued. Returns true when this call queued it. */
     boolean schedule() {
-        if (!queued.compareAndSet(false, true)) {
+        if (stopped || !queued.compareAndSet(false, true)) {
             return false;
         }
         try {
@@ -117,12 +131,37 @@ final class ReplanWorker {
         }
     }
 
-    /** Asks any computation in flight to stop (shutdown). */
+    /**
+     * Asks the computation in flight to stop unless it is a full replan: a full request supersedes
+     * a normal computation or a follow-up (the full one replaces their result anyway).
+     */
+    void cancelPartial() {
+        Job job = inFlight;
+        if (job != null && !job.full) {
+            job.options.cancelled.set(true);
+        }
+    }
+
+    /** Asks the full replan in flight, if any, to stop (「先不算了」); other computations go on. */
+    void cancelFull() {
+        Job job = inFlight;
+        if (job != null && job.full) {
+            job.options.cancelled.set(true);
+        }
+    }
+
+    /** Asks any computation in flight to stop and queues no further runs (shutdown). */
     void cancelAll() {
+        stopped = true;
         Job job = inFlight;
         if (job != null) {
             job.options.cancelled.set(true);
         }
+    }
+
+    /** {@link #cancelAll} was called: the service is shutting down. */
+    boolean stopped() {
+        return stopped;
     }
 
     private void run() {
