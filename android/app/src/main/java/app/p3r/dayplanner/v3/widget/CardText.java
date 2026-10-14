@@ -326,9 +326,10 @@ public final class CardText {
                     List<String> parts = new ArrayList<>();
                     for (String choice : choices) {
                         String plain = strip(choice);
-                        parts.add(visibleLength(plain, 0, plain.length()) <= LOOSE_WHOLE ? keep(plain.replace(' ', NBSP)) : choicesLoose(plain));
+                        boolean small = visibleLength(plain, 0, plain.length()) <= LOOSE_WHOLE;
+                        parts.add(small ? keep(plain.replace(' ', NBSP)) : choicesLoose(plain));
                     }
-                    shaped = String.join(NBSP + "/ ", parts);
+                    shaped = String.join(NBSP + "/ ", parts); // as choices(): a line breaks after the slash
                 } else {
                     shaped = choices(String.join(CHOICE_SEPARATOR, choices));
                 }

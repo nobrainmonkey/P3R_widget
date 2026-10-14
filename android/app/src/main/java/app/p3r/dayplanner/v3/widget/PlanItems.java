@@ -2,7 +2,9 @@ package app.p3r.dayplanner.v3.widget;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.model.Rules;
@@ -65,14 +67,16 @@ public final class PlanItems {
     public static List<Item> of(Plan plan, int fromSlot) {
         if (plan == null || plan.steps == null) return Collections.emptyList();
         List<Item> items = new ArrayList<>();
+        Set<Integer> reminded = remindedDays(plan);
         Plan.Step runStep = null;
         int runStart = -1;
         int runEnd = -1;
         for (Plan.Step step : plan.steps) {
             if (step == null || step.slot < fromSlot) continue;
             boolean locked = isLocked(step);
+            boolean remindedDayStarts = !Rules.isEvening(step.slot) && reminded.contains(Rules.dayOf(step.slot));
             boolean continuesRun = locked && runStep != null && step.slot == runEnd + 1 && step.action.equals(runStep.action)
-                    && !(!Rules.isEvening(step.slot) && remindedDay(plan, Rules.dayOf(step.slot)));
+                    && !remindedDayStarts;
             if (continuesRun) {
                 runEnd = step.slot;
                 continue;
@@ -94,13 +98,14 @@ public final class PlanItems {
         return items;
     }
 
-    /** Whether any 当日提醒 of {@code plan} falls on {@code day}. */
-    private static boolean remindedDay(Plan plan, int day) {
-        if (plan.reminders == null) return false;
+    /** The days {@code plan} has a 当日提醒 on. */
+    private static Set<Integer> remindedDays(Plan plan) {
+        Set<Integer> days = new HashSet<>();
+        if (plan.reminders == null) return days;
         for (Plan.Reminder r : plan.reminders) {
-            if (r != null && Rules.dayOf(r.slot) == day) return true;
+            if (r != null) days.add(Rules.dayOf(r.slot));
         }
-        return false;
+        return days;
     }
 
     /** Puts each 当日提醒 from {@code fromSlot} on the item that carries it (see the class comment). */

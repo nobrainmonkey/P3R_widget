@@ -15,6 +15,7 @@ import android.view.View;
 import android.widget.RemoteViews;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -403,8 +404,8 @@ public final class CardRenderer {
                 if (form != null && (forms.isEmpty() || form.heightDp < forms.get(forms.size() - 1).heightDp)) forms.add(form);
             }
         }
-        // Whatever it takes, the row is never hidden: the step's own line stays, its first choice whole
-        // where it fits a line, on as many lines as it needs.
+        // The shortest cards: the later lines go, the step's own line stays with its first choice
+        // (whole where it fits a line).
         for (int keep = answers.size(); keep >= 1; keep--) {
             List<CardModel.AnswerLine> first = answers.subList(0, keep);
             AnswerForm form = answerForm(c, first, widthDp, true, true, false, keep, ANSWERS_SMALL_SP, 1);
@@ -415,8 +416,8 @@ public final class CardRenderer {
         // by mistake costs more than a weaker answer.
         CardModel.AnswerLine own = answers.get(0);
         if (own.note != null && !own.choices.isEmpty()) {
-            List<CardModel.AnswerLine> caution = java.util.Collections.singletonList(new CardModel.AnswerLine(own.label,
-                    own.shortLabel, java.util.Collections.emptyList(), own.note, own.conditional));
+            List<CardModel.AnswerLine> caution = Collections.singletonList(new CardModel.AnswerLine(own.label,
+                    own.shortLabel, Collections.emptyList(), own.note, own.conditional));
             AnswerForm form = answerForm(c, caution, widthDp, true, true, false, 1, ANSWERS_SMALL_SP, 1);
             if (form != null && form.heightDp < forms.get(forms.size() - 1).heightDp) forms.add(form);
         }
@@ -702,8 +703,8 @@ public final class CardRenderer {
         float comfortable = textHeightDp(c, model.title, comfortableTitleSp(size), true, titleWidth, lines);
         float smallest = textHeightDp(c, model.title, MIN_TITLE_SP, true, titleWidth, lines);
         CardModel fitted = model;
-        // The answers row is essential: the width ladder's first form that fits, never dropped. (The
-        // legacy guide's choices come shaped and are kept as they are.)
+        // The answers row is essential: the width ladder's first form that fits, shorter forms only
+        // after every other row but the cue. (The legacy guide's choices come shaped and stay as they are.)
         List<AnswerForm> forms = answerForms(c, model.answers, innerWidth);
         int form = 0;
         String answersText = forms.isEmpty() ? model.dialogue : forms.get(0).text;
@@ -807,7 +808,8 @@ public final class CardRenderer {
             deficit = 0;
         }
         for (int i = form + 1; deficit > 0 && i < forms.size(); i++) {
-            // The last form stays whatever it takes: the title gives up lines below instead.
+            // The last form stays if none fits: the title gives up lines below, or (on the shortest
+            // cards) the row goes.
             form = i;
             answers = forms.get(i).heightDp;
             deficit = smallest + answers + cue - body;
