@@ -62,6 +62,10 @@ public class StateWizardTest extends UiTestBase {
         assertEquals(StateSteps.Page.LINKS, a.currentPage());
         Shots.shot(a, "state_onboarding_links");
         Shots.click(a, "下一步");
+        // A new profile opts into every 羁绊剧情 track (尽量都体验), so the wizard asks how many were watched.
+        assertEquals(StateSteps.Page.EPISODES, a.currentPage());
+        Shots.shot(a, "state_onboarding_episodes");
+        Shots.click(a, "下一步");
         assertEquals(StateSteps.Page.TOWER, a.currentPage());
         Shots.shot(a, "state_onboarding_tower");
         Shots.click(a, "下一步");

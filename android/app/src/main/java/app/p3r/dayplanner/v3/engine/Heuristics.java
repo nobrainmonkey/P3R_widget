@@ -10,7 +10,10 @@ import java.util.List;
  * Base policy H and objective J of the planner (docs/DESIGN_v3.md §5.3–5.4), built once per plan.
  *
  * <p>Everything is measured in objective units: one RANK of a "其余社群" link is worth
- * {@link #W_OTHER}, MAX adds six ranks' worth, a 「必须」 goal weighs 100 000 per rank. The base
+ * {@link #W_OTHER}, MAX adds six ranks' worth, a 「必须」 goal weighs 100 000 per rank. That is
+ * the 安排风格 「尽量多 MAX」; under 「尽量都体验」 (the default, DESIGN §20) the ranks of a
+ * "其余社群" link have diminishing weights ({@link #BREADTH_RANK}: RANK 1 four ranks' worth, RANK 10
+ * 0.9) and MAX adds two, while goals weigh the same under both. The base
  * policy is a greedy over H and must be a pure function of (state, slot): the fortified rollout
  * relies on "follow the base policy from here" reproducing the incumbent's tail exactly.
  *
@@ -58,6 +61,19 @@ import java.util.List;
 final class Heuristics {
     static final double W_OTHER = 300;
     static final double MAX_BONUS_RANKS = 6;
+    /**
+     * 「尽量都体验」 ({@link Profile.Style#BREADTH}): weight of reaching RANK r (index) of a
+     * 「其余社群」 link, in units of {@link #W_OTHER}, with diminishing returns: unlocking a link
+     * is worth the most, each further RANK a little less, so the plan unlocks and raises every
+     * link before stacking a few. 「尽量多 MAX」 weighs every RANK 1.
+     */
+    static final double[] BREADTH_RANK = {0, 4, 2, 1.6, 1.4, 1.25, 1.15, 1.05, 1.0, 0.95, 0.9};
+    /**
+     * MAX bonus of a 「其余社群」 link under 「尽量都体验」, in ranks' worth (instead of
+     * {@link #MAX_BONUS_RANKS}): the MAX scene and its reward are content too, but must not
+     * outweigh breadth.
+     */
+    static final double BREADTH_MAX_BONUS_RANKS = 2;
     static final double EARLY_PER_SLOT = 0.002;
     static final double PENALTY = 1e6;
     /** Score of a required Tartarus visit on its last possible evening: beats everything but a veto. */
@@ -207,6 +223,8 @@ final class Heuristics {
     final double[] wGoal;
     /** Weight per rank of a 「其余社群」 link (0 when the player turned 其余社群 off). */
     final double wOther;
+    /** 安排风格 「尽量都体验」: 「其余社群」 ranks weigh {@link #BREADTH_RANK}, MAX {@link #BREADTH_MAX_BONUS_RANKS}. */
+    final boolean breadth;
     /**
      * Links counted as goals here: the profile's goals, or the ones of a goal order given to the
      * constructor (the planner's "top-k" and "goal first" variants); the profile's other goals
@@ -340,6 +358,7 @@ final class Heuristics {
         goalRank = new int[n];
         Arrays.fill(goalRank, -1);
         wOther = p.otherLinks ? W_OTHER : 0;
+        breadth = p.style == Profile.Style.BREADTH;
         int[] profileOrder = goalOrder(m);
         int[] goalsInOrder = goals == null ? profileOrder : goals;
         int count = Math.min(goalsInOrder.length, profileOrder.length);
@@ -369,7 +388,7 @@ final class Heuristics {
             for (int r = 1; r <= 10; r++) {
                 v += wRank(l, r);
                 if (goal[l] && r == target[l]) v += MAX_BONUS_RANKS * wGoal[l];
-                if (r == 10 && (!goal[l] || target[l] < 10)) v += MAX_BONUS_RANKS * otherW[l];
+                if (r == 10 && (!goal[l] || target[l] < 10)) v += (breadth ? BREADTH_MAX_BONUS_RANKS : MAX_BONUS_RANKS) * otherW[l];
                 val[l][r] = v;
             }
         }
@@ -407,7 +426,9 @@ final class Heuristics {
             latestUnlock[l] = s;
             int remain = t.meetRemain[l][Math.max(startSlot, t.firstSlot)];
             double full = val[l][target[l]];
-            unlockValue[l] = remain >= needSlots ? full : wRank(l, 1) * target[l] * remain / Math.max(1.0, needSlots);
+            unlockValue[l] = remain >= needSlots ? full
+                    : breadth ? ranksValue(l, target[l] * remain / Math.max(1.0, needSlots))
+                    : wRank(l, 1) * target[l] * remain / Math.max(1.0, needSlots);
             openSlot[l] = firstOpenSlot(l);
             gateDeadline[l] = lastSlotKeeping(l, openSlot[l], tuning.openSlack * needSlots);
             hardDeadline[l] = lastSlotKeeping(l, openSlot[l], HARD_SLACK * needSlots);
@@ -477,7 +498,16 @@ final class Heuristics {
     /** Objective weight of reaching {@code rank} on link l. */
     double wRank(int l, int rank) {
         if (goal[l] && rank <= target[l]) return wGoal[l];
-        return otherW[l];
+        return breadth ? otherW[l] * BREADTH_RANK[Math.max(0, Math.min(10, rank))] : otherW[l];
+    }
+
+    /** Rank weights of link l up to {@code ranks} (a fraction counts that share of the next RANK), no MAX bonus. */
+    private double ranksValue(int l, double ranks) {
+        double v = 0;
+        int whole = (int) Math.min(10, Math.max(0, ranks));
+        for (int r = 1; r <= whole; r++) v += wRank(l, r);
+        if (whole < 10) v += (Math.max(0, ranks) - whole) * wRank(l, whole + 1);
+        return v;
     }
 
     private void buildStatTables() {
@@ -657,7 +687,8 @@ final class Heuristics {
             if (st.rank[l] != 0 || !wanted[l] || unlockValue[l] <= 0 || rules.links[l].kind != Rules.LinkKind.MANUAL) continue;
             if (Kernel.lost(m, st, l, day)) continue;
             boolean late = latestUnlock[l] < slot;
-            double v = unlockValue[l] * (late ? 0.3 : admitted[l] ? 1.0 : 0.5);
+            // 「尽量都体验」: a link that will not reach MAX keeps its value (its first ranks are most of it).
+            double v = unlockValue[l] * (late ? 0.3 : admitted[l] || breadth ? 1.0 : 0.5);
             int deadline = Math.max(slot, Math.min(gateDeadline[l], Math.max(slot, latestUnlock[l])));
             // Daytime training only for links still planned to reach their milestone in time.
             int hard = late || !admitted[l] ? -1 : Math.max(slot, hardDeadline[l]);
@@ -1113,13 +1144,23 @@ final class Heuristics {
         return 1.5 * linkScore(st, l) + linkBonus[l];
     }
 
-    /** Value per meeting × urgency (link scarcity × slot-kind contention). */
+    /**
+     * Value per meeting × urgency (link scarcity × slot-kind contention). A link that will not reach
+     * its milestone has no scarcity of its own under 「尽量多 MAX」 (its meetings are filler); under
+     * 「尽量都体验」 its next ranks are worth the most, so it is as urgent as the share of its
+     * remaining opportunities its next {@link #PARTIAL_HORIZON} meetings need.
+     */
     private double linkScore(SimState st, int l) {
         if (demand[l] <= 0) return 0.05;
         int remain = Math.max(1, t.meetRemain[l][st.slot]);
-        double ratio = admitted[l] ? Math.min(1.0, demand[l] / (double) remain) : 0;
+        double ratio = admitted[l] ? Math.min(1.0, demand[l] / (double) remain) : breadth ? nextRanksShare(l, remain) : 0;
         // Contention raises every meeting of that slot kind alike; the link's own scarcity orders them.
         return perMeeting[l] * urgency(ratio) * Math.sqrt(Math.max(1.0, load[kind(l)]));
+    }
+
+    /** 「尽量都体验」: share of the link's {@code remain} opportunities its next few meetings need (≤ 1). */
+    private double nextRanksShare(int l, int remain) {
+        return Math.min(1.0, Math.min(demand[l], PARTIAL_HORIZON) / (double) remain);
     }
 
     /**
@@ -1171,7 +1212,12 @@ final class Heuristics {
             if (remaining >= open) return MANDATORY; // every evening left in the block is needed
             double ratio = remaining / (double) open;
             if (ratio >= 0.5) return 50_000 * ratio;
-            return 120 + 400 * ratio + income;
+            double visit = 120 + 400 * ratio;
+            // 「尽量都体验」 with goals first: an early 其余社群 unlock now weighs up to BREADTH_RANK[1]
+            // times more, and required visits pushed to a block's last evenings would crowd out the
+            // goals' dating-site notes there, so the visit keeps its place against such actions.
+            if (breadth && tuning.goalFirst) visit *= BREADTH_RANK[1];
+            return visit + income;
         }
         // A spare visit under the cap (experience, items) beats a filler job that only piles up yen.
         return SPARE_TOWER + income;

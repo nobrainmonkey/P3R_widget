@@ -52,6 +52,8 @@ final class PlanHash {
             for (java.util.Map.Entry<String, Integer> e : new java.util.TreeMap<>(p.towerVisitsByBlock).entrySet()) str(e.getKey()).num(e.getValue() == null ? -1 : e.getValue());
             str(p.christmasTaken() ? p.christmasLink.trim() : null);
         }
+        // Added in 3.1.0; 「尽量多 MAX」 is left out so its plan ids stay the same as before.
+        if (p.style != Profile.Style.MAX) str("style").str(p.style.json);
         return this;
     }
 
