@@ -7,7 +7,7 @@ import android.widget.RemoteViews;
 import app.p3r.dayplanner.R;
 
 /**
- * Builds the stable host tree used by both widgets for the day/night crossfade
+ * Builds the stable host tree the plan widget uses for the day/night crossfade
  * ({@code widget_palette_host}: a ViewFlipper with a day and a night slot, plus a static slot).
  *
  * <p>Normal update: both flipper slots are refreshed, the flipper stays INVISIBLE and the static

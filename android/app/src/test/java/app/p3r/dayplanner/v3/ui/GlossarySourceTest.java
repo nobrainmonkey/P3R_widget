@@ -46,7 +46,6 @@ public class GlossarySourceTest {
                 }
             }
         }
-        out.add(new File(root, "PlannerWidget.java"));
         assertTrue(out.size() > 40);
         return out;
     }

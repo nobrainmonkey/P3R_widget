@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import app.p3r.dayplanner.R;
-import app.p3r.dayplanner.WidgetPaletteFadeTest;
 import app.p3r.dayplanner.v3.Intents;
 import app.p3r.dayplanner.v3.engine.Outcome;
 
@@ -43,7 +42,7 @@ import static org.robolectric.Shadows.shadowOf;
  * so every test that inflates the palette host must agree on the ViewAnimator shadow.
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = {26, 31}, shadows = {WidgetPaletteFadeTest.RealViewAnimator.class})
+@Config(sdk = {26, 31}, shadows = {RealViewAnimator.class})
 public class PlanWidgetBehaviourTest {
     private static final int S = FakePlannerApi.FIRST_SLOT;
     private Application app;

@@ -4,6 +4,9 @@
 audit.json   — first full audit of P3R_HANDOFF_PROMPT.md + owner directives (per section, per requirement)
 reaudit.json — re-check of the items that were partial
 final.json   — (optional) last verification of the items still partial after the re-audit
+overrides.json — (optional) owner decisions and later releases that change a row after the audits,
+               matched by section and requirement text (status 'superseded' when the owner replaced
+               the requirement); each entry names its reason in `label`
 Later files override earlier ones for the same requirement.
 """
 import json, os, re, sys
@@ -16,7 +19,7 @@ SECTIONS = {
     'visual_widget_sources': '视觉、小组件、数据来源与语言（57–67 行 + 所有者要求）',
     'defects_engineering': '已知缺陷、工程与交付（69–103 行）',
 }
-MARK = {'met': '✅ 已满足', 'partial': '🟡 部分满足', 'not_met': '❌ 未满足'}
+MARK = {'met': '✅ 已满足', 'partial': '🟡 部分满足', 'not_met': '❌ 未满足', 'superseded': '⚪ 已被取代'}
 
 
 def key(text):
@@ -44,6 +47,22 @@ REVIEWS = (
     ('design_review_2.json', '外观（第 2 轮）'),
 )
 VERDICT = {'pass': '✅ 通过', 'pass_with_nits': '✅ 通过（只有小问题）', 'pass_with_notes': '✅ 通过（附说明）', 'fail': '❌ 不通过'}
+
+
+def apply_overrides(items):
+    """Applies overrides.json: a new status and/or evidence/gap text for one row each."""
+    for sec in load('overrides.json'):
+        for it in sec['items']:
+            k = (sec['section'], key(it['requirement']))
+            if k not in items:
+                raise SystemExit(f"overrides.json: no row {it['requirement']!r} in {sec['section']}")
+            row = dict(items[k])
+            for field in ('status', 'evidence', 'gap'):
+                if field in it:
+                    row[field] = it[field]
+            # A new status is the owner's call; an update of the text keeps the audit round it amends.
+            row['round'] = it['label'] if 'status' in it else row['round'] + '；' + it['label']
+            items[k] = row
 
 
 def reviews():
@@ -80,6 +99,7 @@ def main():
             pending = [k for k in order if k[0] == sec['section'] and items[k]['status'] != 'met']
             for k, it in zip(pending, sec['items']):
                 items[k] = dict(it, requirement=items[k]['requirement'], section=sec['section'], round=label)
+    apply_overrides(items)
     counts = {s: 0 for s in MARK}
     for v in items.values():
         counts[v['status']] += 1
@@ -87,7 +107,10 @@ def main():
            f'本文件逐条对照 `P3R_HANDOFF_PROMPT.md`（交接/设计文档）以及所有者在开发过程中补充的要求，列出 {version()} 的完成情况和证据。',
            '每一条都由独立审查代理对照代码、测试、真机/模拟器截图核实（只读审查，证据含文件位置、测试名与运行结果、截图路径），'
            '未满足的地方如实写出。原始审查记录在 `docs/analysis/audit/`。', '',
-           f"**统计**：已满足 {counts['met']} 条 · 部分满足 {counts['partial']} 条 · 未满足 {counts['not_met']} 条（共 {len(items)} 条）。", '',
+           f"**统计**：已满足 {counts['met']} 条 · 部分满足 {counts['partial']} 条 · 未满足 {counts['not_met']} 条"
+           + (f" · 已被所有者要求取代 {counts['superseded']} 条" if counts['superseded'] else '') + f"（共 {len(items)} 条）。", '',
+           '3.1.0 按所有者要求移除了 3.0.x 里附带的旧攻略和它的小组件（`docs/DESIGN_v3.md` §19）。依赖它的那一条标为「已被取代」，'
+           '引用已删除文件的证据已更新（`docs/analysis/audit/overrides.json`）；其余证据里提到旧攻略的，说的是当时审计的版本。', '',
            '相关文档：`docs/DESIGN_v3.md`（设计）、`docs/PLAN_METRICS.md`（各场景安排质量）、`rules/build/REPORT.md`（数据来源与 Reload 专用来源政策）、'
            '`docs/GLOSSARY_zh.md`（用语表）、`scripts/verify_selfcontained.sh`（证明构建只依赖项目目录）。', '']
     for sec, title in SECTIONS.items():

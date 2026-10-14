@@ -74,11 +74,6 @@ public final class GameCalendar {
         return (int) ChronoUnit.DAYS.between(DAY_ZERO, LocalDate.of(year, month, dayOfMonth));
     }
 
-    /** Calendar ordinal of a legacy guide date (April–December 2009, January–March 2010). */
-    public static int ordinalOfGuideDate(int month, int dayOfMonth) {
-        return ordinal(month >= 4 ? 2009 : 2010, month, dayOfMonth);
-    }
-
     /** Info for a plan slot ({@code slot = day*2 + evening}). {@code rules} may be null. */
     public static Info ofSlot(int slot, Rules rules) {
         Info info = ofDay(Rules.dayOf(slot), rules);

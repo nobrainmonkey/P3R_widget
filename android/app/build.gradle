@@ -60,7 +60,7 @@ android {
             maxHeapSize '3g'
             doFirst {
                 new File(toolchainDir, 'test-home/.m2').mkdirs()
-                ['p3r_dialogue_qa', 'p3r_native_final_qa', 'v3/ui', 'v3/widget', 'v3/engine'].each { new File(qaDir, it).mkdirs() }
+                ['v3/ui', 'v3/widget', 'v3/engine'].each { new File(qaDir, it).mkdirs() }
             }
             ['https.proxyHost', 'https.proxyPort', 'http.proxyHost', 'http.proxyPort'].each { key ->
                 if (System.getProperty(key)) systemProperty key, System.getProperty(key)

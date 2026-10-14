@@ -20,7 +20,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 import app.p3r.dayplanner.R;
-import app.p3r.dayplanner.WidgetPaletteFadeTest;
 import app.p3r.dayplanner.v3.Intents;
 import app.p3r.dayplanner.v3.engine.Action;
 import app.p3r.dayplanner.v3.engine.Engine;
@@ -49,7 +48,7 @@ import static org.robolectric.Shadows.shadowOf;
  * palette host on this SDK.
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = 31, shadows = {WidgetPaletteFadeTest.RealViewAnimator.class})
+@Config(sdk = 31, shadows = {RealViewAnimator.class})
 public class PlanWidgetRealServiceTest {
     private static final long SETTLE_MS = 60_000L;
     private Application app;

@@ -25,8 +25,6 @@ import org.robolectric.annotation.GraphicsMode;
 import java.io.File;
 import java.io.FileOutputStream;
 
-import app.p3r.dayplanner.PlannerStore;
-import app.p3r.dayplanner.PlannerWidget;
 import app.p3r.dayplanner.R;
 
 import static org.junit.Assert.assertNotNull;
@@ -34,7 +32,7 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * QA renders of the adaptive launcher icon (circle and rounded-square masks, themed layer) and of
- * the widget picker previews. The legacy-density PNG icons and the previewImage PNGs in the source
+ * the widget picker preview. The legacy-density PNG icons and the previewImage PNG in the source
  * tree are copies of these outputs.
  */
 @RunWith(RobolectricTestRunner.class)
@@ -127,12 +125,9 @@ public class LauncherIconAndPreviewRenderTest {
         c.getSharedPreferences(WidgetPrefs.PREFS, 0).edit().clear().commit();
         View plan = RenderSupport.layout(c, PlanWidget.renderForTest(c, 77, 320, 180), 320, 180);
         save(RenderSupport.draw(plan), dir, "widget_preview_plan");
-        PlannerStore.setWidgetCursor(c, 78, "t005_04");
-        View guide = RenderSupport.layout(c, PlannerWidget.renderForTest(c, 78, 320, 180), 320, 180);
-        save(RenderSupport.draw(guide), dir, "widget_preview_guide");
         View sample = RenderSupport.layout(c,
                 new android.widget.RemoteViews(c.getPackageName(), R.layout.widget_card_regular), 320, 180);
         save(RenderSupport.draw(sample), dir, "preview-layout-xml-defaults");
-        assertTrue(plan.getWidth() > 0 && guide.getWidth() > 0 && sample.getWidth() > 0);
+        assertTrue(plan.getWidth() > 0 && sample.getWidth() > 0);
     }
 }

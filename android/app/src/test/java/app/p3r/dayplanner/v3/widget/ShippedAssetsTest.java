@@ -21,7 +21,8 @@ import static org.junit.Assert.assertTrue;
  * unit tests with the module directory as working directory.
  */
 public class ShippedAssetsTest {
-    private static final String[] REMOVED = {"character_day", "character_night", "character_day_compact", "official_p3r_logo_color"};
+    private static final String[] REMOVED = {"character_day", "character_night", "character_day_compact", "official_p3r_logo_color",
+            "widget_preview_guide"};
 
     private static File module() {
         for (String candidate : new String[]{".", "app", "android/app"}) {
