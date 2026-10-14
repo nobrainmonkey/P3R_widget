@@ -154,18 +154,18 @@ public class PlanBreadthRealPackTest {
     // ------------------------------------------------------------------ 尽量多 MAX = the plans before 3.1.0
 
     /**
-     * 「尽量多 MAX」 makes exactly the plans of the engine before 3.1.0 (recorded at the WP-0 commit
-     * with a time budget the search never runs out of): the same slot actions and side steps
-     * (step fingerprint) and, on the pack they were recorded on, the same plan ids (the style is
-     * left out of a max plan's id). A pack rebuild that changes the pack version changes every plan
-     * id but not the steps.
+     * 「尽量多 MAX」 makes exactly the plans of the engine before 3.1.0 (step fingerprints recorded at
+     * the WP-0 commit on pack 3.0.0, plan ids on pack 3.1.0 with the engine just before 安排风格, with
+     * a time budget the search never runs out of): the same slot actions and side steps and, on the
+     * pack they were recorded on, the same plan ids (the style is left out of a max plan's id). A
+     * pack rebuild that changes the pack version changes every plan id but not the steps.
      */
     @Test
     public void maxStyleReproducesThePreviousPlans() {
         Object[][] golden = {
-                {"新游戏", new Profile(), newGame(dayOf(4, 21)), "34604f4c96d9520c", "f70c2fbdf1419327"},
-                {"中期 10月22日", new Profile(), midGameState(), "36389407a7a568f6", "f6fda48bc63e720f"},
-                {"中期 10月22日 · 必须：皇帝 · 想要：女教皇", midGoals(), midGameState(), "fda71266df9c484e", "6180ff64af7c33ca"}};
+                {"新游戏", new Profile(), newGame(dayOf(4, 21)), "34604f4c96d9520c", "253ac6d57a6c0a00"},
+                {"中期 10月22日", new Profile(), midGameState(), "36389407a7a568f6", "b19a7e04c1cdb390"},
+                {"中期 10月22日 · 必须：皇帝 · 想要：女教皇", midGoals(), midGameState(), "fda71266df9c484e", "d021df66a452f281"}};
         boolean samePack = GOLDEN_RULES_VERSION.equals(rules.version);
         if (!samePack) System.out.println("pack " + rules.version + " is not " + GOLDEN_RULES_VERSION + ": plan ids not compared");
         for (Object[] g : golden) {
@@ -185,8 +185,11 @@ public class PlanBreadthRealPackTest {
         }
     }
 
-    /** {@link Rules#version} of the pack the golden plan ids were recorded on (3.0.0 at WP-0). */
-    private static final String GOLDEN_RULES_VERSION = "3.0.0|3a8d6bd8156e";
+    /**
+     * {@link Rules#version} of the pack the golden plan ids were recorded on (3.1.0, by the engine of
+     * the WP-C merge, before 安排风格; at WP-0 they were recorded on 3.0.0).
+     */
+    private static final String GOLDEN_RULES_VERSION = "3.1.0|8e4fbeda99c2";
 
     /** FNV-1a 64 over "slot|action|side…" per step: the plan's actions, independent of the pack version. */
     static String fingerprint(Plan plan) {
