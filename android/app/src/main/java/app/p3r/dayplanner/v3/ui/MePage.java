@@ -83,7 +83,7 @@ final class MePage {
 
         // "规划" is only the app name and the two menu names below (docs/GLOSSARY_zh.md).
         column.addView(Ui.sectionHeader(c, "安排", null), spaced(16));
-        column.addView(entry(R.drawable.ui_ic_settings, "规划设置", "人格面具、结缘网站的字条、塔尔塔罗斯、平安夜",
+        column.addView(entry(R.drawable.ui_ic_settings, "规划设置", "安排风格、人格面具、塔尔塔罗斯、平安夜等",
             true, actions::openSettings), spaced(4));
         column.addView(entry(R.drawable.ui_ic_info, "规划说明", "怎么排的、数据从哪来",
             true, actions::openExplain), spaced(8));

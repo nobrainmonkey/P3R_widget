@@ -52,15 +52,21 @@ public final class ReminderFixtures {
         return r;
     }
 
+    /** 上课犯困 as the engine writes it: the gain is in the line and in {@code gainZh}. */
     public static Plan.Reminder doze(int day) {
-        return reminder("doze." + md(day), Plan.Reminder.DOZE, "上课犯困", day, false, "上课犯困时别闭眼：学力 +2",
+        Plan.Reminder r = reminder("doze." + md(day), Plan.Reminder.DOZE, "上课犯困", day, false, "上课犯困时别闭眼：学力 +2",
                 "犯困别闭眼：学力 +2", Plan.Reminder.DEADLINE);
+        r.gainZh = "学力 +2";
+        return r;
     }
 
+    /** 保健室 as the engine writes it: the gain is in the line and in {@code gainZh}. */
     public static Plan.Reminder nurse(int day) {
         Plan.Reminder r = reminder("nurse." + md(day), Plan.Reminder.NURSE, "保健室", day, false,
                 "放学后先去保健室：勇气 +2，不会消耗时间", "保健室：勇气 +2", Plan.Reminder.DEADLINE);
-        r.detailZh = "这份加成不在安排的预计里，能力值升级后去「同步现状」更新一下，安排会更准。";
+        r.gainZh = "勇气 +2";
+        r.detailZh = "前一晚探索了塔尔塔罗斯或打了满月作战，放学后到 1 楼保健室喝药，勇气 +2，不会消耗时间。"
+                + "这份加成不在安排的预计里，能力值升级后去「同步现状」更新一下，安排会更准。";
         return r;
     }
 

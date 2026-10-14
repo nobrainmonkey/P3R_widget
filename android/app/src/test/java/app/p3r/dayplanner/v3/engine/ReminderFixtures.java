@@ -18,7 +18,7 @@ import java.util.List;
  *   <li>上课犯困 on 4/22 and 4/24 (days 21 and 23); 保健室 Courage +2.</li>
  *   <li>A full-moon operation on 5/12 evening (day 41, a Tuesday) in addition to the fixture's 5/9.</li>
  *   <li>Missing people: 北村文吉 alone from 5/11 (day 40, the modelled rescue) and two more from 5/13 (day
- *       42), both until 5/16 (day 45).</li>
+ *       42, whose rescue a request needs: {@link #LOCKS}), both until 5/16 (day 45).</li>
  * </ul>
  */
 final class ReminderFixtures {
@@ -34,6 +34,8 @@ final class ReminderFixtures {
     static final int MISSING_FROM = 40;
     static final int MORE_MISSING_FROM = 42;
     static final int MISSING_TO = 45;
+    /** What the 5/13 group's rescue keeps possible (as the pack's 6/18 group says of request #97). */
+    static final String LOCKS = "救不出来的话，伊莉莎白的第 97 号委托就做不了。";
 
     static Rules rules() {
         Rules r = RulesFixtures.small();
@@ -67,7 +69,9 @@ final class ReminderFixtures {
         rem.dozeDays = DOZE_DAYS.clone();
         rem.nurseCourage = 2;
         rem.rescueGroups.add(group("rescue.05-11", MISSING_FROM, MISSING_TO, 1, "bunkichi"));
-        rem.rescueGroups.add(group("rescue.05-13", MORE_MISSING_FROM, MISSING_TO, 2));
+        Rules.RescueGroup more = group("rescue.05-13", MORE_MISSING_FROM, MISSING_TO, 2);
+        more.locksZh = LOCKS;
+        rem.rescueGroups.add(more);
         return r;
     }
 

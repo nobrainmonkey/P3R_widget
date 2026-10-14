@@ -40,6 +40,15 @@ final class PlanMetrics {
     int atLeast5;
     /** Lowest end rank among non-story (manual) links. */
     int minRank;
+    /**
+     * Lowest end rank among the non-story links that are unlocked at the end: of this plan, or, for a
+     * 尽量都体验 / 尽量多 MAX comparison, of either plan (PlanBreadthRealPackTest sets it). A link no
+     * plan opens (女皇 from 10/22 needs Academics MAX from Lv.4) says nothing about the styles.
+     */
+    int minOpened;
+    /** The plan measured, and its row for the metrics table while it waits for {@link #minOpened} (or null). */
+    Plan plan;
+    Runnable pending;
     int daytimeWaste;
     final List<Integer> wasteSlots = new ArrayList<>();
     final int[] unlockDay;
@@ -140,6 +149,9 @@ final class PlanMetrics {
         for (int l = 0; l < t.nLinks; l++) if (st.rank[l] >= 10) pm.maxed++;
         System.arraycopy(st.rank, 0, pm.endRank, 0, Math.min(st.rank.length, pm.endRank.length));
         pm.minRank = pm.minRankOver(null);
+        boolean[] opened = new boolean[pm.endRank.length];
+        for (int l = 0; l < opened.length; l++) opened[l] = pm.endRank[l] >= 1;
+        pm.minOpened = pm.minRankOver(opened);
         for (int r : pm.endRank) {
             if (r >= 1) pm.unlocked++;
             if (r >= 5) pm.atLeast5++;
@@ -168,6 +180,13 @@ final class PlanMetrics {
         return slot - fromSlot >= cashAt.length ? endCash : cashAt[i];
     }
 
+    /** Records the row this plan's test left pending (see {@link #pending}). */
+    void recordPending() {
+        Runnable r = pending;
+        pending = null;
+        if (r != null) r.run();
+    }
+
     /**
      * Lowest end rank among the non-story links in {@code links} (null: every non-story link), or
      * 10 when there is none.
@@ -190,10 +209,10 @@ final class PlanMetrics {
         return out;
     }
 
-    /** "解锁 21/22 · RANK 合计 152 · RANK 5 以上 14 · 最低 RANK 0": the breadth metrics in one line. */
+    /** "解锁 21/22 · RANK 合计 152 · RANK 5 以上 14 · 最低 RANK 0（解锁的 3）": the breadth metrics in one line. */
     String breadthLine() {
         return "解锁 " + unlocked + "/" + rules.links.length + " · RANK 合计 " + rankSum + " · RANK 5 以上 " + atLeast5
-                + " · 最低 RANK " + minRank + " · 羁绊剧情 " + episodes;
+                + " · 最低 RANK " + minRank + "（解锁的 " + minOpened + "）· 羁绊剧情 " + episodes;
     }
 
     int rescuesMissed() {
@@ -263,7 +282,7 @@ final class PlanMetrics {
                     String.valueOf(plan.steps.size()), String.valueOf(plan.summary.usefulActions),
                     String.valueOf(plan.summary.freeSlots), pm.maxed + "/" + rules.links.length,
                     pm.unlocked + "/" + rules.links.length, String.valueOf(pm.rankSum), String.valueOf(pm.atLeast5),
-                    String.valueOf(pm.minRank), String.valueOf(pm.episodes),
+                    String.valueOf(pm.minRank), String.valueOf(pm.minOpened), String.valueOf(pm.episodes),
                     goals.length() == 0 ? "—" : goals.toString(), ms + " ms"});
         }
     }
@@ -301,9 +320,11 @@ final class PlanMetrics {
         md.append("由 `PlanRealPackTest` 和 `PlanBreadthRealPackTest` 生成：规则包 ").append(rules.packVersion)
                 .append("，默认选项（时间预算 2.5 秒），桌面 JVM，用时随机器而变。")
                 .append("每个场景都排到 1月31日，并通过独立校验（PlanValidator）。")
-                .append("「解锁」是 RANK 1 以上的社群，「最低 RANK」只看非剧情社群。\n\n");
-        md.append("| 场景 | 安排风格 | 开始 | 安排范围 | 步数 | 要做的事 | 自由活动 | MAX 社群 | 解锁 | RANK 合计 | RANK 5 以上 | 最低 RANK | 羁绊剧情 | 目标升到 MAX | 用时 |\n");
-        md.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n");
+                .append("「解锁」是 RANK 1 以上的社群，「最低 RANK」只看非剧情社群；「最低 RANK（解锁的）」只看解锁了的非剧情社群，")
+                .append("「对比」两行看两种风格任一解锁的（10月22日起女皇要学力从 Lv.4 练到 MAX，两种风格都不练，")
+                .append("它会让两边的「最低 RANK」都是 0）。\n\n");
+        md.append("| 场景 | 安排风格 | 开始 | 安排范围 | 步数 | 要做的事 | 自由活动 | MAX 社群 | 解锁 | RANK 合计 | RANK 5 以上 | 最低 RANK | 最低 RANK（解锁的） | 羁绊剧情 | 目标升到 MAX | 用时 |\n");
+        md.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n");
         for (String[] r : rows) {
             md.append('|');
             for (String cell : r) md.append(' ').append(cell.replace("|", "／")).append(" |");

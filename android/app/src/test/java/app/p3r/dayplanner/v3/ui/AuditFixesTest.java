@@ -474,7 +474,7 @@ public class AuditFixesTest extends UiTestBase {
     @Test
     public void meAndSettingsWording() {
         HomeActivity a = homeOn("me");
-        assertTrue(Shots.has(a, "人格面具、结缘网站的字条、塔尔塔罗斯、平安夜"));
+        assertTrue(Shots.has(a, "安排风格、人格面具、塔尔塔罗斯、平安夜等"));
         Shots.click(a, "规划设置");
         // ×1.51 is set in the numeral face in plain and mixed text alike.
         int styled = 0;

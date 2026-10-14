@@ -490,7 +490,7 @@ final class PlanView {
             String whole = blankToNull(r.shortZh) != null ? r.shortZh.trim() : r.textZh;
             return new CardModel.AnswerLine("", null, Collections.emptyList(), whole, false);
         }
-        String label = Plan.Reminder.CLASS.equals(r.kind) ? "课堂：" : "考试：";
+        String label = Plan.Reminder.CLASS.equals(r.kind) ? CardModel.CLASS_LABEL : CardModel.EXAM_LABEL;
         String choice = answer.trim() + (Plan.Reminder.CLASS.equals(r.kind) && r.option > 0 ? CardModel.AnswerLine.position(r.option) : "");
         return new CardModel.AnswerLine(label, null, Collections.singletonList(choice), null, false);
     }

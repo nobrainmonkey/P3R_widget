@@ -779,6 +779,15 @@ public final class RulesLoader {
             if (!o.isNull("nurse")) {
                 JSONObject nurse = reqObject(o, "nurse", "reminders");
                 out.nurseCourage = intInRange(nurse, "courage", "reminders.nurse", 1, 100);
+                if (nurse.has("storyTowerDays")) {
+                    out.nurseStoryDays = sortedDays(nurse, "storyTowerDays", "reminders.nurse");
+                    for (int d : out.nurseStoryDays) {
+                        if (rules.days[d].eveLock == null) {
+                            throw fail("reminders.nurse.storyTowerDays contains day " + d + " (" + rules.days[d].md
+                                    + "), whose evening is not a story lock");
+                        }
+                    }
+                }
                 checkConf(nurse, "reminders.nurse");
                 sources(nurse, "reminders.nurse");
             }
@@ -806,6 +815,7 @@ public final class RulesLoader {
                         group.rescueIds.add(id);
                     }
                     if (group.rescueIds.size() > group.count) throw fail(where + ".rescueIds has more people than count");
+                    group.locksZh = optString(g, "locksZh", where);
                     checkConf(g, where);
                     sources(g, where);
                     out.rescueGroups.add(group);

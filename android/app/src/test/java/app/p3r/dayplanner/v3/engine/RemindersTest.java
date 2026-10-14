@@ -184,12 +184,16 @@ public class RemindersTest {
         assertEquals(ReminderFixtures.MISSING_TO, first.untilDay);
         Plan.Reminder more = find(plan, "rescue.05-13.start");
         assertEquals("有 3 名失踪者（包括北村文吉），期限 5月16日", more.textZh);
+        assertTrue(more.detailZh.startsWith(Reminders.RESCUE_DETAIL));
+        assertTrue("a group that a request needs says so", more.detailZh.contains(ReminderFixtures.LOCKS));
+        assertFalse(first.detailZh.contains(ReminderFixtures.LOCKS));
         assertEquals("失踪者 3 人 · 期限 5月16日", more.shortZh);
         assertEquals(Reminders.RESCUE_LABEL, more.labelZh);
         Plan.Reminder tower = find(plan, "rescue.05-11.tower");
         assertEquals(eve(43), tower.slot);
         assertEquals("今晚去塔尔塔罗斯时，顺便救出失踪者（3 人）", tower.textZh);
         assertEquals("顺便救出失踪者", tower.shortZh);
+        assertTrue(tower.detailZh.contains(ReminderFixtures.LOCKS));
         assertNull("one line per evening", find(plan, "rescue.05-13.tower"));
         assertNull(find(plan, "rescue.05-11.deadline"));
         assertNull(find(plan, "rescue.05-13.deadline"));
@@ -200,7 +204,8 @@ public class RemindersTest {
         assertEquals("有 2 名失踪者，期限 5月16日", find(early, "rescue.05-13.start").textZh);
         Plan.Reminder late = find(early, "rescue.05-13.deadline");
         assertEquals(day(ReminderFixtures.MISSING_TO - 1), late.slot);
-        assertEquals("失踪者期限 5月16日：这几天的安排里没有塔尔塔罗斯", late.textZh);
+        assertEquals("失踪者 5月16日截止：这几天没安排去塔尔塔罗斯", late.textZh);
+        assertTrue("what the 5/13 group locks", late.detailZh.endsWith(ReminderFixtures.LOCKS));
         assertEquals(Plan.Reminder.MISSABLE, late.priority);
     }
 
@@ -213,7 +218,7 @@ public class RemindersTest {
         assertNotNull("one line per limit", deadline);
         assertNull(find(none, "rescue.05-13.deadline"));
         assertEquals(day(ReminderFixtures.MISSING_TO - 1), deadline.slot);
-        assertEquals("失踪者期限 5月16日", deadline.shortZh);
+        assertEquals("失踪者 5月16日截止", deadline.shortZh);
         assertTrue(deadline.detailZh.contains("教皇社群就没法继续了"));
 
         // Gone before the plan, and the latest recorded Tartarus evening came after: taken as rescued.
@@ -354,6 +359,13 @@ public class RemindersTest {
         assertNull("1/3 is not in the game's TV table", find(newGame, "tv.01-03"));
         assertTrue(find(newGame, "exam.07-17").estimate);
         assertEquals(Rules.slot(dayOf(rules, 5, 25), true), find(newGame, "fragment.05-25").slot);
+        // A new game's first plan starts the day after the story's own Tartarus evening (4/20): 保健室 on 4/21.
+        Plan.Reminder nurse = find(newGame, "nurse.04-21");
+        assertNotNull("保健室 after the 4/20 story evening in Tartarus", nurse);
+        assertEquals(newGame.fromSlot, nurse.slot);
+        // Request #44 is accepted the evening before Yakushima; #97 says in June what failing the rescue locks.
+        assertEquals(Rules.slot(dayOf(rules, 7, 19), true), find(newGame, "trip.07-19.accept").slot);
+        assertTrue(find(newGame, "rescue.06-18.start").detailZh.contains("伊莉莎白的第 97 号委托就做不了"));
 
         SimState mid = newGame(rules, dayOf(rules, 10, 22));
         mid.cash = 1_000;

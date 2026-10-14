@@ -113,7 +113,7 @@ public final class CardModel {
     public final List<AnswerLine> answers = new ArrayList<>();
     /**
      * The other 当日提醒 the card carries, most important first: {@link CardRenderer#fit} shows the
-     * first on the reminder row whole or in its short form, with 「（共 N 条）」 when there are more
+     * first on the reminder row whole or in its short form, with 「 · 共 N 条」 when there are more
      * ({@link #reminderShown}). Empty for none.
      */
     public final List<ReminderLine> reminders = new ArrayList<>();
@@ -128,6 +128,11 @@ public final class CardModel {
     public boolean answersTight;
     /** The reminder row as drawn, or null to hide it. Set by {@link CardRenderer#fit}. */
     public String reminderShown;
+    /**
+     * The title row is left out: on the shortest cards the answers need its room, and they are never
+     * hidden (the card's description still names the step). Set by {@link CardRenderer#fit}.
+     */
+    public boolean titleHidden;
     /**
      * Keep names in the title whole when it wraps ({@link CardText#title}: 「皇帝」/「小田桐秀利」,
      * never 「小田桐/秀利」).
@@ -158,6 +163,10 @@ public final class CardModel {
     public WidgetPalette palette() {
         return WidgetPalette.of(night);
     }
+
+    /** Labels of the class and exam answers of a card's slots in the answers row. */
+    public static final String CLASS_LABEL = "课堂：";
+    public static final String EXAM_LABEL = "考试：";
 
     /**
      * One labelled line of the answers row: 「答：A / B · 别选表白」, 「要是升级了，答：A / B」,
@@ -279,6 +288,7 @@ public final class CardModel {
         m.answersTextSp = answersTextSp;
         m.answersTight = answersTight;
         m.reminderShown = reminderShown;
+        m.titleHidden = titleHidden;
         m.keepWordsWhole = keepWordsWhole;
         m.taskDescription = taskDescription;
         m.titleMaxLines = titleMaxLines;

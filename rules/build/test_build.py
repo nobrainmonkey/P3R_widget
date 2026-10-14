@@ -254,7 +254,7 @@ class BuildTest(unittest.TestCase):
         self.assertTrue(30 <= len(rem["doze"]["days"]) <= 36, len(rem["doze"]["days"]))
         self.assertEqual((rem["doze"]["academics"], rem["doze"]["courage"], rem["nurse"]["courage"]), (2, 2, 2))
         self.assertEqual(len(self.reminders("fragment")), 5)
-        self.assertEqual(len(self.reminders("trip")), 2)
+        self.assertEqual(len(self.reminders("trip")), 3)
         self.assertEqual(len(self.reminders("feature")), 1)
 
     def test_reminder_answers(self) -> None:
@@ -272,6 +272,37 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(self.reminder("class.07-08")["shortZh"], "课堂：马（第 2 项）")
         self.assertEqual(self.reminder("exam.05-19")["zh"], "考试：选「五月病」")
         self.assertEqual(self.reminder("class.11-07")["answerZh"], "奥义书")  # 3DM typo 肉义书, dated 11.6 by 3DM
+
+    def test_request_trip_and_nurse_timing(self) -> None:
+        # Request #44 is accepted before the trip: 3DM's 7/19 evening, the day before the Yakushima beach.
+        accept = self.reminder("trip.07-19.accept")
+        self.assertEqual((accept["day"], accept["slot"], accept["priority"]), (builder.day_of_md("07-19"), "eve", 3))
+        self.assertEqual(accept["zh"], "明天去屋久岛：出发前先在天鹅绒房间接下伊莉莎白的第 44 号委托")
+        self.assertIn("cn_3dm_p5", accept["src"])
+        self.assertLess(accept["day"], self.reminder("trip.07-20")["day"])
+        # New requests: 5/10 and 1/1 in the evening (3DM's evening column), the other batches after school.
+        batches = {x["id"]: x["slot"] for x in self.reminders("request") if not x["id"].endswith(".deadline")}
+        self.assertEqual({i for i, slot in batches.items() if slot == "eve"}, {"request.05-10", "request.01-01"})
+        # #97 is shown from 12/22: its rescue condition is in the past by then, and the rescue group warns in June.
+        deadline = self.reminder("request.12-25.deadline")["detailZh"]
+        self.assertIn("只有在 7月6日前救出了 6月18日失踪的学生才能完成", deadline)
+        self.assertIn("只能做到 12月25日", deadline)
+        groups = {g["id"]: g for g in self.pack["reminders"]["rescueGroups"]}
+        self.assertEqual(groups["rescue.06-18"]["locksZh"], "救不出来的话，伊莉莎白的第 97 号委托就做不了。")
+        self.assertEqual([g for g in groups if "locksZh" in groups[g]], ["rescue.06-18"])
+        # The story's own Tartarus evening (4/20) is followed by the nurse's office on 4/21 (3DM, aqiu).
+        self.assertEqual(self.pack["reminders"]["nurse"]["storyTowerDays"], [builder.day_of_md("04-20")])
+        pack = json.loads(self.text)
+        pack["reminders"]["nurse"]["storyTowerDays"] = [builder.day_of_md("04-21")]
+        with self.assertRaisesRegex(builder.BuildError, "storyTowerDays"):
+            builder.validate_pack(pack)
+        # Wording: 伊莉莎白的第 N 号委托 everywhere, the club fragment by the stage, the oden bought for 5,000 日元.
+        for x in self.pack["reminders"]["items"]:
+            if "号委托" in x["zh"]:
+                self.assertIn("伊莉莎白的第", x["zh"], x["id"])
+            self.assertNotIn("伊莉莎白第", x["detailZh"] or "", x["id"])
+        self.assertIn("舞台旁", self.reminder("fragment.05-25.club")["zh"])
+        self.assertIn("再花 5,000 日元向她买关东煮", self.reminder("trip.11-17")["detailZh"])
 
     def test_cn_guide_drift_is_exactly_the_contaminated_dates(self) -> None:
         self.assertEqual(builder.CN_GUIDE_DIVERGENT, frozenset(

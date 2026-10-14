@@ -213,6 +213,66 @@ public class PlannerServiceFullReplanTest extends ServiceTestBase {
         assertNull("nothing to report: the ordinary replan shows its own summary", s.fullReplanResult);
     }
 
+    /**
+     * The full job claims the budget follow-up of its revisions when it is handed out. Stopped while
+     * the plan is out of date it installs nothing, so the ordinary replan that runs instead keeps
+     * its one 2× follow-up when it runs out of time (the 3.1.0 review found the note 「这次没来得及算完，
+     * 稍后会自动再算一次」 left standing with no run behind it).
+     */
+    @Test
+    public void stoppingWithAnOutOfDatePlanKeepsTheOrdinaryReplansFollowUp() throws Exception {
+        staleWithAnError();
+        planner.shape = (plan, n) -> exhaustedOn(plan, n, 4);
+        CountDownLatch gate = hold(3);
+        service.requestFullReplan();
+        awaitHeld();
+        service.cancelFullReplan();
+        gate.countDown();
+        settle();
+
+        assertEquals("the stopped full job, the ordinary replan, its follow-up", 5, planner.calls.get());
+        assertEquals(50, planner.options.get(3).timeBudgetMillis);
+        assertTrue(planner.options.get(4).followUp);
+        assertEquals("twice the budget", 100, planner.options.get(4).timeBudgetMillis);
+        PlannerApi.Snapshot s = service.snapshot();
+        assertEquals("fake-5", s.plan.planId);
+        assertTrue(s.planCurrent);
+        assertFalse("no promise left without a run behind it", s.plan.followUpPending());
+    }
+
+    /** As above for a full job that fails while the plan is out of date: 重试 gets its follow-up. */
+    @Test
+    public void aFullFailureWithAnOutOfDatePlanKeepsTheRetrysFollowUp() {
+        staleWithAnError();
+        planner.shape = (plan, n) -> {
+            if (n == 3) throw new IllegalStateException("engine bug");
+            exhaustedOn(plan, n, 4);
+        };
+        long ticket = service.requestFullReplan();
+        settle();
+        PlannerApi.Snapshot failed = service.snapshot();
+        assertEquals(ticket, failed.fullReplanDoneTicket);
+        assertEquals(FullReplanResult.FAILED, failed.fullReplanResult);
+        assertNotNull("the ordinary failure card", failed.planErrorZh);
+
+        service.requestReplan();
+        settle();
+        assertEquals("the failed full job, 重试, its follow-up", 5, planner.calls.get());
+        assertTrue(planner.options.get(4).followUp);
+        assertEquals(100, planner.options.get(4).timeBudgetMillis);
+        PlannerApi.Snapshot s = service.snapshot();
+        assertEquals("fake-5", s.plan.planId);
+        assertFalse(s.plan.followUpPending());
+        assertNull(s.planErrorZh);
+    }
+
+    /** Call {@code n} of the fake planner runs out of time, as the engine marks such a plan. */
+    private static void exhaustedOn(Plan plan, int n, int exhausted) {
+        if (n != exhausted) return;
+        plan.budgetExhausted = true;
+        plan.summary.notesZh.add(0, Plan.BUDGET_NOTE_PENDING);
+    }
+
     @Test
     public void anOutOfDatePlanIsReplacedAsAnOrdinaryJobWouldReplaceIt() {
         staleWithAnError();

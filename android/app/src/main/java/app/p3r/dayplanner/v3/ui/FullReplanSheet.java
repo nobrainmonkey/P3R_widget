@@ -29,7 +29,7 @@ final class FullReplanSheet {
     }
 
     static String body(Rules rules) {
-        return "会重新读取你记下的进度和规划设置，不沿用现在这一版，从头排到" + Zh.date(rules.lastDay)
+        return "会重新读取你记下的进度和规划设置，不参考现在的安排，从头排到" + Zh.date(rules.lastDay)
             + "。比平时多算一会儿，一般几秒，最多十来秒。接下来几天的安排可能会变。";
     }
 

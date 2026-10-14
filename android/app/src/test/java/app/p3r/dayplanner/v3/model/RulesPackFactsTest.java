@@ -891,7 +891,7 @@ public class RulesPackFactsTest {
         Rules.Reminder shoes = reminder("tv.07-12");
         assertEquals("电视购物：超级安全靴、速食咖喱 ×2，9,800 日元", shoes.zh);
         assertEquals(2, shoes.priority);
-        assertTrue(shoes.detailZh.endsWith("超级安全靴是伊莉莎白第 40 号委托要的东西。"));
+        assertTrue(shoes.detailZh.endsWith("超级安全靴是伊莉莎白的第 40 号委托要的东西。"));
         assertEquals(2, reminder("tv.11-29").priority);
         assertEquals("电视购物：日本人偶 ×3、人造人 ×2，9,800 日元", reminder("tv.11-08").zh);
         for (Rules.Reminder x : r.reminders.items) {
@@ -909,6 +909,9 @@ public class RulesPackFactsTest {
             if ("request".equals(x.kind) && !x.id.endsWith(".deadline")) {
                 batches++;
                 assertEquals("伊莉莎白有新的委托", x.zh);
+                // The request system opens on 5/10 evening; 1/1's daytime is the shrine visit (3DM: evening).
+                boolean evening = x.id.equals("request.05-10") || x.id.equals("request.01-01");
+                assertEquals(x.id, evening, x.evening);
             }
         }
         assertEquals(9, batches);
@@ -917,7 +920,8 @@ public class RulesPackFactsTest {
         assertEquals("委托 6月6日截止", first.shortZh);
         assertEquals(day(6, 3), first.day);
         assertEquals(day(6, 6), first.untilDay);
-        assertTrue(reminder("request.12-25.deadline").detailZh.startsWith("要先救出 6月18日失踪的学生。"));
+        assertEquals("这个委托只能做到 12月25日，而且只有在 7月6日前救出了 6月18日失踪的学生才能完成；接委托和交东西都不会消耗时间。",
+                reminder("request.12-25.deadline").detailZh);
 
         assertEquals("今天城里能捡到黄昏的碎片（14 处）", reminder("fragment.04-21").zh);
         assertEquals(15, reminder("fragment.04-21").detailZh.split("\n").length);
@@ -925,8 +929,17 @@ public class RulesPackFactsTest {
         assertEquals(3, reminder("fragment.08-06").priority);
         Rules.Reminder trip = reminder("trip.07-20");
         assertEquals("屋久岛", trip.labelZh);
-        assertEquals("屋久岛：在海边捡一件贝壳、海藻、浮木或小螃蟹，伊莉莎白的第 44 号委托要用，错过就没了", trip.zh);
+        assertEquals("屋久岛：在海边捡一样东西（贝壳、海藻、浮木或小螃蟹都行），伊莉莎白的第 44 号委托要用，错过就没了", trip.zh);
         assertEquals("海边捡东西（委托用）", trip.shortZh);
+        // #44 has to be accepted before the trip: the evening before, not on the beach day.
+        Rules.Reminder accept = reminder("trip.07-19.accept");
+        assertEquals("明天去屋久岛：出发前先在天鹅绒房间接下伊莉莎白的第 44 号委托", accept.zh);
+        assertEquals("出发前接第 44 号委托", accept.shortZh);
+        assertEquals(day(7, 19), accept.day);
+        assertTrue(accept.evening);
+        assertEquals(3, accept.priority);
+        assertTrue(reminder("trip.11-17").detailZh.contains("再花 5,000 日元向她买关东煮"));
+        assertEquals("勇气到 Lv.2 了：晚上去放纵俱乐部，舞台旁有一块黄昏的碎片", reminder("fragment.05-25.club").zh);
         assertEquals("修学旅行", reminder("trip.11-17").labelZh);
         assertEquals("真宵堂今天开张了", reminder("feature.07-18").zh);
         assertTrue(reminder("feature.07-18").evening);
@@ -944,6 +957,7 @@ public class RulesPackFactsTest {
         assertTrue(contains(rem.dozeDays, day(4, 21)));
         assertFalse("4/9 is a prologue day", contains(rem.dozeDays, day(4, 9)));
         assertEquals(2, rem.nurseCourage);
+        assertArrayEquals("the story's Tartarus evening before a new game's plan", new int[] {day(4, 20)}, rem.nurseStoryDays);
         assertEquals(13, rem.rescueGroups.size());
         Map<String, Rules.RescueGroup> groups = new java.util.HashMap<>();
         for (Rules.RescueGroup g : rem.rescueGroups) groups.put(g.id, g);
@@ -951,6 +965,7 @@ public class RulesPackFactsTest {
         assertEquals(day(6, 18), ayako.fromDay);
         assertEquals(day(7, 6), ayako.toDay);
         assertEquals(1, ayako.count);
+        assertEquals("救不出来的话，伊莉莎白的第 97 号委托就做不了。", ayako.locksZh);
         assertEquals(2, groups.get("rescue.06-26").count);
         assertEquals(List.of("bunkichi"), groups.get("rescue.09-12").rescueIds);
         assertEquals(List.of("maiko"), groups.get("rescue.10-21").rescueIds);

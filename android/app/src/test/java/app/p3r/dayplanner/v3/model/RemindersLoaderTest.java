@@ -58,6 +58,17 @@ public class RemindersLoaderTest {
         int people = 0;
         for (Rules.RescueGroup g : rem.rescueGroups) people += g.count;
         assertEquals(20, people);
+        // The story's own Tartarus evening (4/20) counts for 保健室; the 6/18 rescue keeps request #97 possible.
+        assertEquals(1, rem.nurseStoryDays.length);
+        assertEquals(day(4, 20), rem.nurseStoryDays[0]);
+        Rules.RescueGroup june = rem.rescueGroups.get(0);
+        assertEquals("rescue.06-18", june.id);
+        assertEquals("救不出来的话，伊莉莎白的第 97 号委托就做不了。", june.locksZh);
+        assertNull(rem.rescueGroups.get(1).locksZh);
+        Rules.Reminder accept = item(r, "trip.07-19.accept");
+        assertTrue(accept.evening);
+        assertEquals(day(7, 19), accept.day);
+        assertTrue(item(r, "request.05-10").evening);
     }
 
     @Test
@@ -161,6 +172,14 @@ public class RemindersLoaderTest {
         root = PackFixture.tree();
         root.getJSONObject("reminders").getJSONObject("doze").put("src", new JSONArray().put("lpbeach"));
         expect(root, "reminders.doze.src");
+
+        root = PackFixture.tree();
+        root.getJSONObject("reminders").getJSONObject("nurse").put("storyTowerDays", new JSONArray().put(day(4, 21)));
+        expect(root, "reminders.nurse.storyTowerDays contains day " + day(4, 21));
+
+        root = PackFixture.tree();
+        root.getJSONObject("reminders").getJSONArray("rescueGroups").getJSONObject(0).put("locksZh", 97);
+        expect(root, "reminders.rescueGroups[0].locksZh must be a string");
     }
 
     // ------------------------------------------------------------------ helpers

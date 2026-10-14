@@ -168,7 +168,14 @@ public class CardTextTest {
         assertTrue(question.contains("对" + NBSP + "/ "));
         String longer = CardText.choicesLoose("不去看汉堡堆成的山并继续吃");
         assertTrue("the last two characters stay together", longer.endsWith("继续" + WJ + "吃"));
-        assertFalse("but the rest may wrap", longer.startsWith("不" + WJ));
+        assertTrue("so do the first three (never 「… / 不」 then 「去看…」)", longer.startsWith("不" + WJ + "去" + WJ + "看"));
+        assertFalse("but the rest may wrap", longer.contains("看" + WJ + "汉"));
+        // A long choice before 「或者」: its first characters stay together too (隐者 RANK 5).
+        assertTrue(CardText.choicesLoose("大~~蠢~~蛋~~！ / Ｙ子是教醉拳的代理师傅？或者Ｙ子是老师？").contains("Ｙ" + WJ + "子" + WJ + "是"));
+        // A class answer's position never breaks at its spaces.
+        String position = CardText.choicesLoose("布拉瓦茨基夫人（第 2 项）");
+        assertFalse(position, position.contains(" "));
+        assertTrue(position.contains("（" + WJ + "第" + NBSP + "2" + NBSP + "项" + WJ + "）"));
         assertEquals(shaped, CardText.choicesLoose(shaped));
     }
 

@@ -52,7 +52,7 @@ public class FullReplanUiTest extends UiTestBase {
         assertTrue(a.sheets().isShowing());
         View sheet = a.sheets();
         Shots.find(sheet, "从头重新安排？");
-        Shots.find(sheet, "会重新读取你记下的进度和规划设置，不沿用现在这一版，从头排到1月31日。"
+        Shots.find(sheet, "会重新读取你记下的进度和规划设置，不参考现在的安排，从头排到1月31日。"
             + "比平时多算一会儿，一般几秒，最多十来秒。接下来几天的安排可能会变。");
         Shots.find(sheet, "先不了");
         Shots.shot(a, "full_replan_sheet");
@@ -133,7 +133,7 @@ public class FullReplanUiTest extends UiTestBase {
         Object[][] cases = {
             {FullReplanResult.CHANGED, "从头重新安排好了：这一周有 1 处变动"},
             {FullReplanResult.UNCHANGED, "重新算过了，安排没有变化"},
-            {FullReplanResult.KEPT, "重新算过了，没有比现在的安排更好，保留现在的安排"},
+            {FullReplanResult.KEPT, "重新算过了，没找到更好的，现在的安排不变"},
             {FullReplanResult.FAILED, "这次没能从头重新安排，现在的安排不变"},
             {FullReplanResult.CANCELLED, "已停下，现在的安排不变"},
         };
@@ -168,6 +168,50 @@ public class FullReplanUiTest extends UiTestBase {
         assertEquals(cases.length, api.fullReplanRequests);
     }
 
+    /**
+     * A record made during the run (今天 invites it) shows 「已记录：… 撤销」 for 8 s; a result that ends
+     * the run meanwhile does not take the bar and its 撤销 away. The status line still says it.
+     */
+    @Test
+    public void aResultDoesNotTakeTheUndoOfARecordMadeDuringTheRun() {
+        HomeActivity a = home();
+        a.requestFullReplan();
+        Shots.idle();
+        a.showUndo(7, "皇帝 RANK 7");
+        assertEquals("已记录：皇帝 RANK 7", a.undoBar().messageText().toString());
+        assertTrue(a.undoBar().hasAction());
+        api.endFullReplan(FullReplanResult.KEPT);
+        api.fireChanged();
+        Shots.idle();
+        assertEquals("the record's bar stays", "已记录：皇帝 RANK 7", a.undoBar().messageText().toString());
+        assertTrue("with its 撤销", a.undoBar().hasAction());
+        assertTrue("the result is in the status line", Shots.has(a, PlanDiff.FULL_KEPT));
+    }
+
+    /**
+     * The screen that asked is gone before the service answered (made again, or the player backed out
+     * and came back from the launcher): the new screen takes the running request's ticket from the
+     * snapshot and shows its result once, counted against the plan it found installed.
+     */
+    @Test
+    public void aNewScreenShowsTheResultOfARequestItFoundRunning() {
+        long ticket = api.requestFullReplan();
+        HomeActivity a = home();
+        assertTrue("running", Shots.has(a, RUNNING));
+        api.snap.plan = Fixtures.planMid(api.rules, api.snap.observed, api.snap.observed.slot, "plan-full");
+        api.snap.plan.steps.set(1, Fixtures.social(api.rules, Fixtures.SLOT_NOW + 1, "hermit", 3, 4, true, false));
+        api.endFullReplan(FullReplanResult.CHANGED);
+        api.fireChanged();
+        Shots.idle();
+        assertEquals(ticket, api.snap.fullReplanDoneTicket);
+        assertTrue(a.undoBar().isShowing());
+        assertEquals("从头重新安排好了：这一周有 1 处变动", a.undoBar().messageText().toString());
+        a.undoBar().hide();
+        api.fireChanged();
+        Shots.idle();
+        assertFalse("once", a.undoBar().isShowing());
+    }
+
     /** The request ends with load(): what the service re-read replaces an optimistic profile. */
     @Test
     public void theRequestReloadsAndDropsOptimisticLeftovers() {
@@ -191,7 +235,7 @@ public class FullReplanUiTest extends UiTestBase {
         HomeActivity a = home();
         a.pushPage("规划设置", SettingsPage.build(a));
         Shots.idle();
-        assertTrue(Shots.has(a, "改动会马上生效并自动重新安排；想不沿用上一版、从头排一遍："));
+        assertTrue(Shots.has(a, "改动会马上生效，安排也会自动更新；想完全不参考现在的安排、从头排一遍："));
         Shots.click(a, ENTRY);
         assertTrue(a.sheets().isShowing());
         Shots.find(a.sheets(), "从头重新安排？");

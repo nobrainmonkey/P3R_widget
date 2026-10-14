@@ -77,7 +77,7 @@ final class SettingsPage {
     private static View fullReplanFooter(HomeHost host) {
         Context c = host.activity();
         LinearLayout box = Ui.column(c);
-        box.addView(Ui.muted(c, "改动会马上生效并自动重新安排；想不沿用上一版、从头排一遍："));
+        box.addView(Ui.muted(c, "改动会马上生效，安排也会自动更新；想完全不参考现在的安排、从头排一遍："));
         TextView again = Ui.quiet(c, FullReplanSheet.TITLE);
         again.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         boolean enabled = FullReplanSheet.available(host.data());

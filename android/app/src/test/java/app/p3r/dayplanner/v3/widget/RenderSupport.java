@@ -130,9 +130,14 @@ final class RenderSupport {
             }
         }
         TextView title = root.findViewById(app.p3r.dayplanner.R.id.widget_task);
-        if (titleText(title).contains(" · ") && ellipsized(title)) {
+        if (titleShown(root) && titleText(title).contains(" · ") && ellipsized(title)) {
             issues.add(tag + " cuts the name in its title: '" + titleText(title) + "'");
         }
+    }
+
+    /** The card shows its title (the shortest cards leave it out for the answers, CardModel.titleHidden). */
+    static boolean titleShown(View root) {
+        return root.findViewById(app.p3r.dayplanner.R.id.widget_title_row).getVisibility() == View.VISIBLE;
     }
 
     /** The title a reader sees, on one line as the card model holds it ({@link CardText#plainTitle}). */
@@ -146,7 +151,7 @@ final class RenderSupport {
      */
     static void collectDotLineEnds(View root, String tag, List<String> issues) {
         TextView title = root.findViewById(app.p3r.dayplanner.R.id.widget_task);
-        if (title == null || title.getVisibility() != View.VISIBLE || title.getLayout() == null) return;
+        if (title == null || title.getVisibility() != View.VISIBLE || !titleShown(root) || title.getLayout() == null) return;
         android.text.Layout layout = title.getLayout();
         String s = title.getText().toString();
         for (int line = 0; line < layout.getLineCount(); line++) {
@@ -217,7 +222,7 @@ final class RenderSupport {
     static void collectWordSplits(View root, String tag, List<String> issues) {
         TextView title = root.findViewById(app.p3r.dayplanner.R.id.widget_task);
         TextView dialogue = root.findViewById(app.p3r.dayplanner.R.id.widget_dialogue_choices);
-        String plainTitle = title == null ? "" : titleText(title);
+        String plainTitle = title == null || !titleShown(root) ? "" : titleText(title);
         if (plainTitle.contains(" · ")) collectSplits(title, tag + " title", issues);
         collectAnswerSplits(dialogue, tag + " answers", issues);
     }
@@ -239,6 +244,16 @@ final class RenderSupport {
             String shown = CardText.plain(s.substring(start, end)).trim();
             if (shown.startsWith("/")) issues.add(tag + " line starts with a slash: '" + shown + "'");
             if (shown.codePointCount(0, shown.length()) == 1) issues.add(tag + " leaves one character alone: '" + shown + "'");
+            // A class answer's position 「（第 n 项）」 stays whole, and a choice never leaves its first
+            // character alone after a slash (「… / Ｙ」 then 「子是…」 reads as a choice of its own).
+            if (shown.startsWith("项）") || shown.matches(".*（第( \\d+)?")) {
+                issues.add(tag + " splits 「（第 n 项）」: '" + shown + "'");
+            }
+            java.util.regex.Matcher lastChoice = java.util.regex.Pattern.compile("/ (\\S+)$").matcher(shown);
+            boolean wrapped = line < layout.getLineCount() - 1 && !(end > 0 && s.charAt(end - 1) == '\n');
+            if (wrapped && lastChoice.find() && lastChoice.group(1).codePointCount(0, lastChoice.group(1).length()) < 2) {
+                issues.add(tag + " leaves the first character of a choice after a slash: '" + shown + "'");
+            }
             if (line == layout.getLineCount() - 1 || (end > 0 && s.charAt(end - 1) == '\n')) continue;
             boolean joined = (end > 0 && s.charAt(end - 1) == CardText.WJ) || (end < s.length() && s.charAt(end) == CardText.WJ);
             if (joined && !forcedBreak(text, end)) {

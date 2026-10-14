@@ -33,8 +33,9 @@ import app.p3r.dayplanner.v3.model.Rules;
 public class RemindersUiTest extends UiTestBase {
     private static final int OCT_22 = Fixtures.OCT_22;
     private static final int NOW = Fixtures.SLOT_NOW;
-    private static final String CLASS_LINE = "课堂提问：选「朱诺」（第 3 项）";
-    private static final String TV_LINE = "电视购物：玫瑰花束、高级巧克力 ×2，2,980 日元";
+    /** The lines after their chips (「课堂提问：」 and 「电视购物：」 are on the chips). */
+    private static final String CLASS_LINE = "选「朱诺」（第 3 项）";
+    private static final String TV_LINE = "玫瑰花束、高级巧克力 ×2，2,980 日元";
     private static final String RESCUE_LINE = "今晚去塔尔塔罗斯时，顺便救出失踪者（3 人）";
     private static final String NURSE_LINE = "放学后先去保健室：勇气 +2，不会消耗时间";
 
@@ -46,6 +47,20 @@ public class RemindersUiTest extends UiTestBase {
                 ReminderFixtures.rescueTonight(OCT_22),
                 ReminderFixtures.nurse(OCT_22 + 1),
                 ReminderFixtures.exam(Fixtures.day(12, 16), "JUNE", true));
+    }
+
+    /**
+     * {@code reminders} as 今天别错过 rows, laid out at the phone width less the page's and the card's
+     * padding, checked by the typography pass and saved (the block is below the fold of a screen shot).
+     */
+    private static void rows(HomeActivity a, String name, boolean detail, Plan.Reminder... reminders) {
+        android.widget.LinearLayout box = Ui.column(a);
+        box.setBackgroundColor(Ui.col(a, app.p3r.dayplanner.R.color.p3r_navy_950));
+        Ui.pad(box, 16 + 14, 6, 16 + 12, 6);
+        for (Plan.Reminder r : reminders) box.addView(ReminderViews.row(a, r, detail));
+        android.graphics.Bitmap bitmap = Shots.render(box);
+        Shots.checkTypography(box, name);
+        Shots.save(bitmap, name);
     }
 
     private HomeActivity homeOn(String tab) {
@@ -64,6 +79,9 @@ public class RemindersUiTest extends UiTestBase {
         assertTrue("label chips", Shots.has(a, "课堂提问") && Shots.has(a, "电视购物") && Shots.has(a, "失踪者"));
         assertFalse("tomorrow's reminder waits for tomorrow", Shots.has(a, NURSE_LINE));
         String all = Shots.allText(a.getWindow().getDecorView());
+        assertFalse("the chip says the label once", all.contains("课堂提问：") || all.contains("电视购物："));
+        assertTrue("TalkBack reads the label once",
+                Shots.has(a, "课堂提问，选「朱诺」（第 3 项），魅力 +2"));
         assertTrue("under the hero, before 接下来",
                 all.indexOf("完成 ✓") < all.indexOf(ReminderViews.TODAY_TITLE) && all.indexOf(ReminderViews.TODAY_TITLE) < all.indexOf("接下来"));
         assertTrue("most important first", all.indexOf(CLASS_LINE) < all.indexOf(TV_LINE));
@@ -108,9 +126,10 @@ public class RemindersUiTest extends UiTestBase {
         a.openDetail(exam);
         Shots.idle();
         assertTrue(Shots.has(a, ReminderViews.DAY_TITLE));
-        assertTrue(Shots.has(a, "考试：选「JUNE」"));
+        assertTrue(Shots.has(a, "选「JUNE」"));
         assertTrue(Shots.has(a, ReminderFixtures.ESTIMATE_DETAIL));
-        assertTrue(Shots.has(a, ReminderViews.ESTIMATE_CAPTION));
+        // The longer text already says it has a single source: no second caption that says it again.
+        assertFalse(Shots.has(a, ReminderViews.ESTIMATE_CAPTION));
         // The exam answers 「JUNE」「MADRID」 ship verbatim (spec 3.1.0 decision O4): the typography pass
         // takes a quoted capitalised answer for what it is, not leaked English.
         Shots.shot(a, "day_sheet_reminders_estimate");
@@ -120,6 +139,58 @@ public class RemindersUiTest extends UiTestBase {
         a.openDetail(Rules.slot(Fixtures.day(11, 3), false));
         Shots.idle();
         assertFalse(Shots.has(a, ReminderViews.DAY_TITLE));
+        // An estimate without that sentence gets the caption.
+        Plan.Reminder bare = ReminderFixtures.exam(Fixtures.day(12, 16), "JUNE", true);
+        bare.detailZh = "这天考试有一道题要自己选，选「JUNE」。";
+        String spoken = ReminderViews.row(a, bare, true).getContentDescription().toString();
+        assertTrue(spoken, spoken.endsWith(ReminderViews.ESTIMATE_CAPTION));
+    }
+
+    /**
+     * 上课犯困 and 保健室 say what they give in the line itself (the widget shows the line alone): the row
+     * does not repeat it beside the line, nor does TalkBack.
+     */
+    @Test
+    public void aGainTheLineAlreadySaysIsNotRepeated() {
+        ReminderFixtures.with(api.snap.plan, ReminderFixtures.doze(OCT_22), ReminderFixtures.nurse(OCT_22));
+        HomeActivity a = home();
+        assertTrue(Shots.has(a, "上课犯困时别闭眼：学力 +2"));
+        assertTrue(Shots.has(a, NURSE_LINE));
+        assertTrue("no separate 学力 +2",
+                Shots.findAll(ReminderViews.row(a, ReminderFixtures.doze(OCT_22), false), "学力 +2").isEmpty());
+        assertTrue("no separate 勇气 +2",
+                Shots.findAll(ReminderViews.row(a, ReminderFixtures.nurse(OCT_22), true), "勇气 +2").isEmpty());
+        assertEquals("a class answer still says it", 1,
+                Shots.findAll(ReminderViews.row(a, ReminderFixtures.classAnswer(OCT_22, "朱诺", 3), false), "魅力 +2").size());
+        assertTrue(Shots.has(a, "上课犯困，上课犯困时别闭眼：学力 +2"));
+        assertTrue(Shots.has(a, "保健室，放学后先去保健室：勇气 +2，不会消耗时间"));
+        rows(a, "reminder_rows", false, ReminderFixtures.classAnswer(OCT_22, "朱诺", 3), ReminderFixtures.doze(OCT_22),
+                ReminderFixtures.nurse(OCT_22), ReminderFixtures.tv(OCT_22));
+        assertNull(ReminderViews.gainOf(ReminderFixtures.doze(OCT_22)));
+        assertEquals("魅力 +2", ReminderViews.gainOf(ReminderFixtures.classAnswer(OCT_22, "朱诺", 3)));
+        assertEquals("选「朱诺」（第 3 项）", ReminderViews.lineOf(ReminderFixtures.classAnswer(OCT_22, "朱诺", 3)));
+        assertEquals("今晚去塔尔塔罗斯时，顺便救出失踪者（3 人）", ReminderViews.lineOf(ReminderFixtures.rescueTonight(OCT_22)));
+    }
+
+    /**
+     * At 130% font a long real class answer (10/10 「布拉瓦茨基夫人」, the second choice) stays whole on
+     * 今天 and in the day sheet: the line has the whole width after the chip (Shots checks every break).
+     */
+    @Test
+    @Config(fontScale = 1.3f)
+    public void aLongAnswerStaysWholeAtALargeFont() {
+        Plan.Reminder answer = ReminderFixtures.classAnswer(OCT_22, "布拉瓦茨基夫人", 2);
+        ReminderFixtures.with(api.snap.plan, answer, ReminderFixtures.tv(OCT_22), ReminderFixtures.doze(OCT_22));
+        HomeActivity a = home();
+        assertTrue(Shots.has(a, "选「布拉瓦茨基夫人」（第 2 项）"));
+        Shots.shot(a, "home_today_reminders_font130");
+        rows(a, "reminder_rows_font130", false, answer, ReminderFixtures.tv(OCT_22), ReminderFixtures.doze(OCT_22),
+                ReminderFixtures.nurse(OCT_22));
+        rows(a, "reminder_rows_detail_font130", true, answer, ReminderFixtures.nurse(OCT_22));
+        a.openDetail(answer.slot);
+        Shots.idle();
+        assertTrue(Shots.has(a, ReminderViews.DAY_TITLE));
+        Shots.shot(a, "day_sheet_reminders_font130");
     }
 
     @Test

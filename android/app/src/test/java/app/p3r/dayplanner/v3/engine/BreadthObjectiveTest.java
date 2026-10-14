@@ -43,7 +43,7 @@ public class BreadthObjectiveTest {
 
     /**
      * 「尽量都体验」: each further RANK of a 「其余社群」 link is worth less than the one before, unlocking
-     * the most, and MAX adds two ranks' worth; 「尽量多 MAX」 keeps one {@code W_OTHER} per RANK and
+     * the most, and MAX adds one rank's worth; 「尽量多 MAX」 keeps one {@code W_OTHER} per RANK and
      * six for MAX.
      */
     @Test
@@ -58,7 +58,8 @@ public class BreadthObjectiveTest {
             for (int r = 1; r <= 10; r++) {
                 double b = breadth.val[l][r] - breadth.val[l][r - 1];
                 double m = max.val[l][r] - max.val[l][r - 1];
-                assertEquals(link.id + " RANK " + r, w * Heuristics.BREADTH_RANK[r] + (r == 10 ? 2 * w : 0), b, EPS);
+                assertEquals(link.id + " RANK " + r, w * Heuristics.BREADTH_RANK[r] + (r == 10 ? Heuristics.BREADTH_MAX_BONUS_RANKS * w : 0),
+                        b, EPS);
                 assertEquals(link.id + " RANK " + r, w + (r == 10 ? 6 * w : 0), m, EPS);
                 assertEquals(w * Heuristics.BREADTH_RANK[r], breadth.wRank(l, r), EPS);
                 assertEquals(w, max.wRank(l, r), EPS);
@@ -71,6 +72,30 @@ public class BreadthObjectiveTest {
         assertTrue(2 * unlock * w > breadth.val[4][10] - breadth.val[4][5]);
         assertTrue("under max, the MAX of a RANK 5 link beats two unlocks", 2 * w < max.val[4][10] - max.val[4][5]);
         assertTrue(Heuristics.BREADTH_MAX_BONUS_RANKS < Heuristics.MAX_BONUS_RANKS);
+    }
+
+    /**
+     * The earlier MAX of a goal is worth half as much under 「尽量都体验」 (Heuristics.BREADTH_EARLY_SHARE):
+     * finishing a goal a few days earlier must not buy away meetings, unlocks and MAX links of 其余社群.
+     */
+    @Test
+    public void aGoalsEarlierMaxWeighsHalfUnderBreadth() {
+        Rules rules = RulesFixtures.fullYear();
+        SimState start = RulesFixtures.newGame(rules, RulesFixtures.slot(4, 21, false));
+        Profile profile = RulesFixtures.must(4);
+        Heuristics breadth = heuristics(rules, profile, start);
+        Heuristics max = heuristics(rules, styled(profile, Profile.Style.MAX), start);
+        double[] perSlot = new double[2];
+        Heuristics[] both = {breadth, max};
+        for (int i = 0; i < 2; i++) {
+            int[] reached = both[i].initialReached(start);
+            reached[0] = start.slot + 10;
+            double early = both[i].objective(start, reached);
+            reached[0] = start.slot + 11;
+            perSlot[i] = early - both[i].objective(start, reached);
+        }
+        assertEquals(max.wGoal[4] * Heuristics.EARLY_PER_SLOT, perSlot[1], EPS);
+        assertEquals(Heuristics.BREADTH_EARLY_SHARE * perSlot[1], perSlot[0], EPS);
     }
 
     /** Goals keep their own weights per RANK under both styles; only the 「其余社群」 weights change. */

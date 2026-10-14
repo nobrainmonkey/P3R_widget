@@ -35,7 +35,7 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * The widget's 当日提醒 (spec 3.1.0 §1.2.7, docs/DESIGN_v3.md §17.2): the reminder row shows the most
- * important one whole, else its short form, else nothing (never "…"), with 「（共 N 条）」 when the
+ * important one whole, else its short form, else nothing (never "…"), with 「 · 共 N 条」 when the
  * card carries more; every reminder is read out; class and exam answers go into the answers row, on
  * the daytime card and on their own exam-day card. Renders go to $p3r.qa.dir/v3/widget/reminders.
  */
@@ -108,13 +108,13 @@ public class ReminderRowRenderTest {
         check(wide, "tv-320x200", issues);
         check(narrow, "tv-180x200", issues);
 
-        // Two on the card: the more important first, then 「（共 2 条）」.
+        // Two on the card: the more important first, then 「 · 共 2 条」.
         ReminderFixtures.with(fake.plan, ReminderFixtures.tv(NOV_2), ReminderFixtures.requestDeadline(NOV_2));
         View two = render(320, 200);
         RenderSupport.save(two, dir, "two-320x200");
-        assertEquals("伊莉莎白的第 12、13 号委托 6月6日截止（共 2 条）", text(two, R.id.widget_reminder));
+        assertEquals("伊莉莎白的第 12、13 号委托 6月6日截止 · 共 2 条", text(two, R.id.widget_reminder));
         View twoNarrow = render(180, 200);
-        assertEquals("委托 6月6日截止（共 2 条）", text(twoNarrow, R.id.widget_reminder));
+        assertEquals("委托 6月6日截止 · 共 2 条", text(twoNarrow, R.id.widget_reminder));
         check(two, "two-320x200", issues);
         check(twoNarrow, "two-180x200", issues);
 

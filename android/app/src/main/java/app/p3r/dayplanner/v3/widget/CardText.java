@@ -208,9 +208,10 @@ public final class CardText {
 
     /**
      * Dialogue choices for a card too small for whole ones: a choice may wrap inside, but its count
-     * 「（1）」 stays with the character before it, its last character never starts a line alone, a
-     * choice of two alternatives 「A或者B」 wraps after 「或者」 (each side whole while short), and a
-     * line never starts with a slash.
+     * 「（1）」 or position 「（第 2 项）」 stays whole with the character before it (its spaces do not
+     * break), neither its first two characters nor its last two ever split (「… / Ｙ」 then 「子是…」
+     * would read as a choice of its own), a choice of two alternatives 「A或者B」 wraps after 「或者」
+     * (each side whole while short), and a line never starts with a slash.
      */
     public static String choicesLoose(String text) {
         if (text == null) return null;
@@ -220,8 +221,9 @@ public final class CardText {
         StringBuilder out = new StringBuilder();
         for (int i = 0; i < parts.length; i++) {
             if (i > 0) out.append(separator);
-            String part = parts[i];
+            String part = parts[i].replace(' ', NBSP);
             boolean[] join = new boolean[part.length() + 1];
+            if (visibleLength(part, 0, part.length()) > 4) joinRange(part, join, 0, Math.min(part.length(), 3));
             int or = part.indexOf(ALTERNATIVES);
             if (or > 0) {
                 int cut = or + ALTERNATIVES.length();
@@ -252,13 +254,21 @@ public final class CardText {
      * in, shaped text out; {@link #plain} reads it back.
      */
     static String answers(List<CardModel.AnswerLine> lines, boolean shortLabels, boolean shortOr, boolean loose, int shown) {
+        int[] each = new int[lines.size()];
+        Arrays.fill(each, shown);
+        return answers(lines, shortLabels, shortOr, loose, each);
+    }
+
+    /** {@link #answers} with each line's own number of choices kept before 「等 N 项」 ({@code shown[i]}). */
+    static String answers(List<CardModel.AnswerLine> lines, boolean shortLabels, boolean shortOr, boolean loose, int[] shown) {
         StringBuilder out = new StringBuilder();
-        for (CardModel.AnswerLine line : lines) {
+        for (int i = 0; i < lines.size(); i++) {
+            CardModel.AnswerLine line = lines.get(i);
             if (out.length() > 0) out.append(ANSWER_LINE_BREAK);
             String label = shortLabels && line.shortLabel != null ? line.shortLabel : line.label;
             out.append(keep(label));
             int total = line.choices.size();
-            List<String> choices = line.choices.subList(0, Math.min(total, Math.max(1, shown)));
+            List<String> choices = line.choices.subList(0, Math.min(total, Math.max(1, shown[i])));
             if (!choices.isEmpty()) {
                 // Shaped first, so a loose 「A或者B」 still wraps after its 「或者」 when written 「或」. Loose,
                 // a short choice still stays whole (「好啊」 never wraps as 「好」/「啊」).

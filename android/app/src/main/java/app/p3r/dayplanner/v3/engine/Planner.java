@@ -134,6 +134,7 @@ final class Planner {
         Pool pool = new Pool(m, start, previous, options, deadline, portfolio);
         boolean exhausted = pool.run(null, search, true);
         if (search) exhausted |= pool.prioritise();
+        if (search) exhausted |= pool.addMaxStylePlans();
         Candidate chosen = pool.choose();
         Plan plan = assemble(m, pool.labelHeuristics(chosen), start, chosen.codes, pool.tradedFor(chosen));
         Reminders.attach(m, start, chosen.codes, plan, options.lastTowerSlot);
@@ -246,25 +247,47 @@ final class Planner {
         final int[] goals;
         /** Objective of the whole profile (the same for every tuning). */
         final Heuristics ref;
+        /** 安排风格 of the plans this pool makes: {@code false} is 「尽量多 MAX」 (see {@link #addMaxStylePlans}). */
+        final boolean breadth;
+        /** The main runs of this pool report progress (not the 「尽量多 MAX」 pool run inside a 「尽量都体验」 one). */
+        private final boolean reports;
         private final double margin;
         final List<Candidate> all = new ArrayList<>();
         private long fortifyNanos;
         private int fortified;
 
         Pool(Model m, SimState start, Plan previous, Engine.Options options, long deadline, Heuristics.Tuning[] portfolio) {
+            this(m, start, previous, options, deadline, portfolio, m.profile.style == Profile.Style.BREADTH, true);
+        }
+
+        private Pool(Model m, SimState start, Plan previous, Engine.Options options, long deadline, Heuristics.Tuning[] portfolio,
+                     boolean breadth, boolean reports) {
             this.m = m;
             this.start = start;
             this.previous = previous;
             this.options = options;
             this.deadline = deadline;
             this.portfolio = portfolio;
+            this.breadth = breadth;
+            this.reports = reports;
             this.goals = Heuristics.goalOrder(m);
-            this.ref = new Heuristics(m, start, previous, portfolio[0]);
+            this.ref = heuristics(portfolio[0], null);
             this.margin = wasteMargin(ref);
+        }
+
+        /** Base policy and objective of this pool's style for {@code tuning} and {@code goalOrder} (null: the profile's). */
+        Heuristics heuristics(Heuristics.Tuning tuning, int[] goalOrder) {
+            return new Heuristics(m, start, previous, tuning, goalOrder, breadth);
         }
 
         /** Measures {@code codes}: objective of the whole profile, daytime waste, goal outcomes. */
         Candidate candidate(Heuristics h, Heuristics.Tuning tuning, int[] goalOrder, int[] codes, int variant) {
+            Candidate c = measure(h, tuning, goalOrder, codes, variant);
+            if (options.trace != null) options.trace.add(c.linkRanks.clone());
+            return c;
+        }
+
+        private Candidate measure(Heuristics h, Heuristics.Tuning tuning, int[] goalOrder, int[] codes, int variant) {
             SimState st = start.copy();
             int[] reachedAt = ref.initialReached(start);
             int waste = 0;
@@ -287,7 +310,6 @@ final class Planner {
                 reached[i] = endRank[i] >= m.target(goals[i]);
             }
             int[] linkRanks = Arrays.copyOf(st.rank, m.t.nLinks);
-            if (options.trace != null) options.trace.add(linkRanks.clone());
             double own = goalOrder == null ? j : new Search(m, h, options, deadline, 0f, 0f).objectiveOf(start, codes);
             return new Candidate(h, tuning, goalOrder, codes, j, own, j - margin * waste, variant, reached, endRank, linkRanks);
         }
@@ -308,10 +330,10 @@ final class Planner {
                     exhausted = true;
                     break;
                 }
-                Heuristics h = new Heuristics(m, start, previous, portfolio[v], goalOrder);
+                Heuristics h = heuristics(portfolio[v], goalOrder);
                 Search base = new Search(m, h, options, deadline, 0f, 0f);
                 screened[v] = candidate(h, portfolio[v], goalOrder, base.runBase(start), v);
-                if (main && options.progress != null) options.progress.onProgress(SCREEN_SHARE * (v + 1) / variants);
+                if (main && reports && options.progress != null) options.progress.onProgress(SCREEN_SHARE * (v + 1) / variants);
             }
             Candidate[] order = Arrays.stream(screened).filter(c -> c != null)
                     .sorted((a, b) -> a.ownJ != b.ownJ ? Double.compare(b.ownJ, a.ownJ) : Integer.compare(a.variant, b.variant))
@@ -327,8 +349,8 @@ final class Planner {
                     break;
                 }
                 Candidate base = fortifyOrder[k];
-                float from = main ? SCREEN_SHARE + (1 - SCREEN_SHARE) * k / fortify : 0.99f;
-                float span = main ? (1 - SCREEN_SHARE) / fortify : 0f;
+                float from = main && reports ? SCREEN_SHARE + (1 - SCREEN_SHARE) * k / fortify : 0.99f;
+                float span = main && reports ? (1 - SCREEN_SHARE) / fortify : 0f;
                 Candidate c = fortify(portfolio[base.variant], goalOrder, base.variant, from, span);
                 exhausted |= c.exhausted;
                 add(c);
@@ -343,7 +365,7 @@ final class Planner {
         /** Fortified search of {@code tuning} with goal order {@code goalOrder} (null: the profile's). */
         Candidate fortify(Heuristics.Tuning tuning, int[] goalOrder, int variant, float progressFrom, float progressSpan) {
             long t0 = System.nanoTime();
-            Heuristics h = new Heuristics(m, start, previous, tuning, goalOrder);
+            Heuristics h = heuristics(tuning, goalOrder);
             Search search = new Search(m, h, options, deadline, progressFrom, progressSpan);
             int[] codes = search.run(start);
             Candidate c = candidate(h, tuning, goalOrder, codes, variant);
@@ -390,7 +412,7 @@ final class Planner {
                 promoted[0] = goals[i];
                 for (int a = 0, b = 1; a < n; a++) if (a != i) promoted[b++] = goals[a];
                 Heuristics.Tuning tuning = Heuristics.Tuning.DEFAULT.goalFirst();
-                Heuristics h = new Heuristics(m, start, previous, tuning, promoted);
+                Heuristics h = heuristics(tuning, promoted);
                 add(candidate(h, tuning, promoted, new Search(m, h, options, deadline, 0f, 0f).runBase(start), -1));
             }
             return false;
@@ -457,11 +479,37 @@ final class Planner {
         }
 
         /**
-         * Heuristics that label the plan: the plan's own, with the whole profile's goals (a top-k
-         * plan is labelled like any other plan of this profile).
+         * Heuristics that label the plan: the plan's own, with the whole profile's goals and style (a
+         * top-k plan, or one of the 「尽量多 MAX」 run of {@link #addMaxStylePlans}, is labelled like
+         * any other plan of this profile).
          */
         Heuristics labelHeuristics(Candidate c) {
-            return c.goals == null ? c.h : new Heuristics(m, start, previous, c.tuning);
+            return c.goals == null && c.h.breadth == breadth ? c.h : heuristics(c.tuning, null);
+        }
+
+        /**
+         * 「尽量都体验」 keeps every goal that 「尽量多 MAX」 reaches (spec §8.1: strict goal priority
+         * exactly as in 3.0). Its policy shares the days out differently, and its search can then miss
+         * a goal the 3.0 policy reaches (10/22, 必须 ①女教皇 ②永劫 ③恋爱: 恋爱 RANK 9 instead of
+         * MAX). So when the best plan of a 「尽量都体验」 pool misses a goal, the whole 「尽量多 MAX」
+         * run (the same screening, fortified searches and strict-priority runs as a profile with that
+         * style) joins the pool, every plan measured with this profile's objective:
+         * {@link #compareGoals} then sees every plan the 3.0 engine makes, and among plans whose
+         * goals tie the 「尽量都体验」 objective decides. Nothing runs under 「尽量多 MAX」, without
+         * goals, or when every goal is reached (no plan does better on the goals). Returns true when
+         * the time budget ran out before that run was complete.
+         */
+        boolean addMaxStylePlans() {
+            if (!breadth || goals.length == 0 || firstMissed(best()) < 0) return false;
+            Pool max = new Pool(m, start, previous, options, deadline, portfolio, false, false);
+            boolean exhausted = max.run(null, true, true);
+            exhausted |= max.prioritise();
+            for (Candidate c : max.all) {
+                Candidate mine = measure(c.h, c.tuning, c.goals, c.codes, c.variant);
+                mine.exhausted = c.exhausted;
+                add(mine);
+            }
+            return exhausted;
         }
 
         /**

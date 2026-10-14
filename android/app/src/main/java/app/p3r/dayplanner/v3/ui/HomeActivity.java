@@ -67,6 +67,8 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     private long fullTicket;
     /** The plan shown when 从头重新安排 was asked for (what the result is compared with), or null. */
     private Plan fullBefore;
+    /** Latest 从头重新安排 ticket whose result this screen has shown (it is shown once). */
+    private long fullShown;
 
     private FrameLayout root;
     private FrameLayout pageLayer;
@@ -101,6 +103,12 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         if (savedInstanceState != null) {
             tab = savedInstanceState.getInt("tab", TAB_TODAY);
             fullTicket = savedInstanceState.getLong("fullTicket", 0);
+        }
+        // The plan a pending 从头重新安排 is compared with, kept across a configuration change (too big
+        // for the saved state; after the process is gone there is no result to show anyway).
+        Object kept = getLastNonConfigurationInstance();
+        if (kept instanceof Plan) {
+            fullBefore = (Plan) kept;
         }
         handleIntent(getIntent());
         selectTab(tab);
@@ -145,6 +153,11 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             api.removeListener(this);
         }
         super.onStop();
+    }
+
+    @Override
+    public Object onRetainNonConfigurationInstance() {
+        return fullTicket > 0 || fullRunning ? fullBefore : null;
     }
 
     @Override
@@ -258,12 +271,27 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             }
             lastPlan = plan;
         }
+        if (snap.fullReplanning && snap.fullReplanTicket > Math.max(fullTicket, fullShown)) {
+            // Running, but this screen never got its ticket (asked for before the screen was made
+            // again, or by the screen the player backed out of; only this app asks): its result is
+            // shown here, once, against the plan installed now.
+            fullTicket = snap.fullReplanTicket;
+            if (fullBefore == null) {
+                fullBefore = plan;
+            }
+        }
         String fullResult = null;
         if (fullTicket > 0 && snap.fullReplanDoneTicket >= fullTicket) {
             // The 从头重新安排 asked for here has ended: say how, once.
             Plan before = fullBefore != null ? fullBefore : shownBefore;
+            if (before != null && plan != null && before.planId != null && before.planId.equals(plan.planId)
+                && snap.fullReplanResult == PlannerApi.FullReplanResult.CHANGED) {
+                // Read in the instant the new plan was in and the request not yet ended: not the plan before.
+                before = null;
+            }
             fullResult = PlanDiff.fullSummary(rules, before, plan, snap.observed == null ? 0 : snap.observed.slot,
                 snap.fullReplanResult);
+            fullShown = Math.max(fullShown, snap.fullReplanDoneTicket);
             fullTicket = 0;
             fullBefore = null;
             if (fullResult != null) {
@@ -278,7 +306,9 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         data = new UiData(rules, snap, changeSummary, banner, System.currentTimeMillis());
         loading.setVisibility(View.GONE);
         bindPages();
-        if (fullResult != null) {
+        if (fullResult != null && !undo.hasAction()) {
+            // Said once in the message bar, unless a record made during the run still offers its 撤销
+            // there (the 今天 status line says it as well, changeSummary).
             showMessage(fullResult);
         }
         if (pendingOpenSlot >= 0) {
@@ -793,7 +823,10 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         PlannerApi target = api;
         Async.run(this, target::requestFullReplan, ticket -> {
             fullRunning = false;
-            fullTicket = ticket;
+            // Already taken from a snapshot (and maybe shown) before this answer came: shown once.
+            if (ticket > fullShown) {
+                fullTicket = ticket;
+            }
             // Also drops optimistic leftovers (e.g. a profile) for what the service re-read.
             load();
         }, error -> {

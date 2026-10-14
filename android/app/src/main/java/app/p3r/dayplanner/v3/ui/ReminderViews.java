@@ -29,6 +29,8 @@ final class ReminderViews {
     static final String DAY_TITLE = "当天提醒";
     /** Under a reminder whose answer has a single source or is an estimate. */
     static final String ESTIMATE_CAPTION = "这条只有一份攻略写过，仅供参考";
+    /** A longer text that already says {@link #ESTIMATE_CAPTION} (the pack's estimated exam answers). */
+    static final String ESTIMATE_SAID = "只有一份攻略写过";
     /** Starts the 日程 day's third line: 「提醒：课堂提问 · 电视购物」. */
     static final String SCHEDULE_PREFIX = "提醒：";
     /** Labels a 日程 line names before 「等」. */
@@ -113,8 +115,11 @@ final class ReminderViews {
     // ------------------------------------------------------------------ rows
 
     /**
-     * One reminder: gold label chip, the line and, beside it, what it gives (「魅力 +2」); with
-     * {@code detail}, its longer text and the estimate caption below.
+     * One reminder: gold label chip, then the line ({@link #lineOf}: without the label it starts with,
+     * which the chip already says) and, under it, what it gives (「魅力 +2」) unless the line already says
+     * so ({@link #gainOf}); with {@code detail}, its longer text and the estimate caption below (the
+     * caption only when the longer text does not say it already). The line gets the whole width after
+     * the chip, so a quoted answer stays whole at a large font.
      */
     static LinearLayout row(Context c, Plan.Reminder r, boolean detail) {
         LinearLayout row = Ui.row(c);
@@ -126,19 +131,17 @@ final class ReminderViews {
         chipParams.topMargin = Ui.dp(c, 2);
         row.addView(chip, chipParams);
         LinearLayout texts = Ui.column(c);
-        LinearLayout line = Ui.row(c);
-        line.setGravity(Gravity.TOP);
-        TextView text = Ui.mixed(c, r.textZh, 14, Ui.col(c, R.color.p3r_white), detail);
-        line.addView(text, Ui.weight(1));
-        String gain = blank(r.gainZh) ? null : r.gainZh.trim();
+        String line = lineOf(r);
+        TextView text = Ui.mixed(c, line, 14, Ui.col(c, R.color.p3r_white), detail);
+        texts.addView(text, Ui.matchWrap());
+        String gain = gainOf(r);
         if (gain != null) {
             TextView g = Ui.mixed(c, gain, 13, Ui.col(c, R.color.p3r_cyan_300), true);
             LinearLayout.LayoutParams gp = Ui.wrap();
-            gp.leftMargin = Ui.dp(c, 8);
-            line.addView(g, gp);
+            gp.topMargin = Ui.dp(c, 1);
+            texts.addView(g, gp);
         }
-        texts.addView(line);
-        StringBuilder spoken = new StringBuilder(blank(r.labelZh) ? "" : r.labelZh.trim() + "，").append(r.textZh);
+        StringBuilder spoken = new StringBuilder(blank(r.labelZh) ? "" : r.labelZh.trim() + "，").append(line);
         if (gain != null) {
             spoken.append("，").append(gain);
         }
@@ -150,7 +153,7 @@ final class ReminderViews {
             texts.addView(more, mp);
             spoken.append("。").append(r.detailZh.trim());
         }
-        if (detail && r.estimate) {
+        if (detail && r.estimate && (blank(r.detailZh) || !r.detailZh.contains(ESTIMATE_SAID))) {
             TextView caption = Ui.text(c, ESTIMATE_CAPTION, 12, Ui.col(c, R.color.ui_gold), false);
             LinearLayout.LayoutParams ep = Ui.matchWrap();
             ep.topMargin = Ui.dp(c, 3);
@@ -162,6 +165,33 @@ final class ReminderViews {
         row.addView(texts, tp);
         row.setContentDescription(spoken.toString());
         return row;
+    }
+
+    /**
+     * The reminder's line after its chip: {@code textZh} without a leading 「label：」 (「课堂提问：选「马」」
+     * → 「选「马」」, 「考试：选「JUNE」」 → 「选「JUNE」」). The widget, which has no chip, keeps the whole line.
+     */
+    static String lineOf(Plan.Reminder r) {
+        String line = r.textZh == null ? "" : r.textZh.trim();
+        if (!blank(r.labelZh)) {
+            String prefix = r.labelZh.trim() + "：";
+            if (line.startsWith(prefix) && line.length() > prefix.length()) {
+                return line.substring(prefix.length());
+            }
+        }
+        return line;
+    }
+
+    /**
+     * What the reminder gives (「魅力 +2」), or null when it gives nothing or its line already says it
+     * (「上课犯困时别闭眼：学力 +2」, 「放学后先去保健室：勇气 +2，不会消耗时间」).
+     */
+    static String gainOf(Plan.Reminder r) {
+        if (blank(r.gainZh)) {
+            return null;
+        }
+        String gain = r.gainZh.trim();
+        return r.textZh != null && r.textZh.contains(gain) ? null : gain;
     }
 
     /** The kind label (「课堂提问」) on a small gold chip. */

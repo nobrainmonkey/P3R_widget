@@ -64,9 +64,11 @@ public final class PlanDiff {
 
     /** 从头重新安排 ended with the same steps as before (also when nothing visible changed). */
     static final String FULL_UNCHANGED = "重新算过了，安排没有变化";
-    static final String FULL_KEPT = "重新算过了，没有比现在的安排更好，保留现在的安排";
+    static final String FULL_KEPT = "重新算过了，没找到更好的，现在的安排不变";
     static final String FULL_FAILED = "这次没能从头重新安排，现在的安排不变";
     static final String FULL_CANCELLED = "已停下，现在的安排不变";
+    /** CHANGED when the plan before is not known (followed by the plan's last day, 「1月31日」). */
+    static final String FULL_CHANGED_UNCOUNTED = "从头重新安排好了，一直排到";
 
     /**
      * What a 从头重新安排 request ended with, for the message bar and the 今天 status line;
@@ -95,8 +97,8 @@ public final class PlanDiff {
             return null;
         }
         if (before == null) {
-            // The plan before is not known here (the screen was rebuilt meanwhile): no counts.
-            return "从头重新安排好了，一直排到" + Zh.date(Rules.dayOf(after.toSlot));
+            // The plan before is not known here (the screen was made again with no plan to compare): no counts.
+            return FULL_CHANGED_UNCOUNTED + Zh.date(Rules.dayOf(after.toSlot));
         }
         int nearEnd = Rules.slot(Rules.dayOf(fromSlot) + NEAR_DAYS, true);
         int near = changedSlots(before, after, fromSlot, nearEnd);

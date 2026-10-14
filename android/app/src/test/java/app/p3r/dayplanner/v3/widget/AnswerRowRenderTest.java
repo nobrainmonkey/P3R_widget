@@ -121,6 +121,8 @@ public class AnswerRowRenderTest {
                     out.add(canon(label + String.join("/", choices) + note));
                     for (int k = 1; k < n; k++) out.add(canon(label + String.join("/", choices.subList(0, k)) + CardText.etc(n) + note));
                     if (n > 0 && form.note != null) out.add(canon(label + note));
+                    // A 朋友-route caution alone may take the shorter 「别选表白」 (the same warning).
+                    if (note.startsWith("别选")) out.add(canon(label + DialogueHint.FRIEND_AVOID));
                 }
             }
         }
@@ -128,18 +130,20 @@ public class AnswerRowRenderTest {
     }
 
     /**
-     * The drawn answers row against the card model: visible, never 「…」, wrapping only where its
-     * shaping allows, each drawn line one of {@link #forms} of its model line, in order. Only a
-     * shortest card (130dp high: two lines of text under the plate) may keep just the step's own
-     * line, or none where even its shortest form does not fit beside a one-line title. A taller card
-     * keeps every line unless the row already fills {@link CardRenderer#MAX_ANSWER_LINES} lines (a
-     * 180x150 card at a large font holds two under a one-line title: a meeting's conditional line
-     * that takes both leaves no room for the class answer). Returns whether the row shows.
+     * The drawn answers row against the card model: visible at every size (spec §1.4.4: the answers are
+     * never hidden), never 「…」, wrapping only where its shaping allows, each drawn line one of
+     * {@link #forms} of its model line, in order. A line is cut to 「等 N 项」 only where the choices it
+     * leaves out are wider than 「等 N 项」. Lines go the least needed first ({@link CardRenderer#dropOrder}:
+     * a 课堂/考试 answer, certain and missed for good, outlasts the side picks and a 「要是升级了」 line),
+     * and a card taller than the shortest (130dp high: two lines of text under the plate) keeps every
+     * line unless the row already fills {@link CardRenderer#MAX_ANSWER_LINES} lines or a 「要是升级了」
+     * line gave way. Returns whether the row shows.
      */
     private static boolean checkRow(View root, CardModel model, String tag, boolean shortest, List<String> issues) {
         TextView row = root.findViewById(R.id.widget_dialogue_choices);
         if (row.getVisibility() != View.VISIBLE) {
-            if (!shortest) issues.add(tag + " hides its answers " + model.answers);
+            issues.add(tag + " hides its answers " + model.answers + " (title '"
+                    + text(root, R.id.widget_task) + "')");
             return false;
         }
         boolean allLines = !shortest && row.getLineCount() < CardRenderer.MAX_ANSWER_LINES;
@@ -149,15 +153,80 @@ public class AnswerRowRenderTest {
             System.out.println(tag + " keeps " + drawn.length + " of " + model.answers.size() + " lines in a full row: "
                     + CardText.plain(row.getText().toString()));
         }
-        if (drawn.length > model.answers.size() || (allLines && drawn.length < model.answers.size())) {
-            issues.add(tag + " draws " + drawn.length + " of " + model.answers.size() + " lines: " + CardText.plain(row.getText().toString()));
+        List<CardModel.AnswerLine> shown = matched(model.answers, drawn);
+        // (A 「要是升级了」 line that has given way to a 课堂/考试 answer is not counted: it needs more room
+        // than is left beside that line.)
+        boolean ownGaveWay = shown != null && !shown.contains(model.answers.get(0));
+        if (shown == null || (allLines && !ownGaveWay && drawn.length < model.answers.size())) {
+            issues.add(tag + " draws " + drawn.length + " of " + model.answers.size() + " lines: " + CardText.plain(row.getText().toString())
+                    + " (model " + model.answers + ")");
+            return true;
         }
-        for (int i = 0; i < Math.min(drawn.length, model.answers.size()); i++) {
-            if (!forms(model.answers.get(i)).contains(canon(drawn[i]))) {
-                issues.add(tag + " line '" + CardText.plain(drawn[i]) + "' is no form of '" + model.answers.get(i).text() + "'");
+        for (int i = 0; i < drawn.length; i++) {
+            String why = needlessCut(row, shown.get(i), drawn[i]);
+            if (why != null) issues.add(tag + " " + why);
+        }
+        // Lines go the least needed first (CardRenderer.dropOrder): a 课堂/考试 line never goes while a
+        // side pick or a 「要是升级了」 line (the meeting may not rank up) stays.
+        for (CardModel.AnswerLine line : model.answers) {
+            if (!CardRenderer.certain(line) || shown.contains(line)) continue;
+            for (int i = 0; i < shown.size(); i++) {
+                CardModel.AnswerLine other = shown.get(i);
+                if (!CardRenderer.certain(other) && (other.conditional || model.answers.indexOf(other) > 0)) {
+                    issues.add(tag + " drops the " + line.label + " line but keeps '" + other.text() + "'");
+                }
             }
         }
+        if (!shortest && shown.size() < model.answers.size()) dropped.add(tag);
         return true;
+    }
+
+    /** Taller cards (150dp or more) that left a line out, for the report. */
+    private static final List<String> dropped = new ArrayList<>();
+
+    /**
+     * The model line each drawn line is a form of, in the model's order (later lines may be left out,
+     * never reordered), or null when a drawn line is no form of any line after the previous one.
+     */
+    private static List<CardModel.AnswerLine> matched(List<CardModel.AnswerLine> lines, String[] drawn) {
+        List<CardModel.AnswerLine> out = new ArrayList<>();
+        int next = 0;
+        for (String d : drawn) {
+            int found = -1;
+            for (int i = next; i < lines.size() && found < 0; i++) if (forms(lines.get(i)).contains(canon(d))) found = i;
+            if (found < 0) return null;
+            out.add(lines.get(found));
+            next = found + 1;
+        }
+        return out;
+    }
+
+    /**
+     * Why a drawn line cut to 「等 N 项」 should have kept its choices: the ones it leaves out are no wider
+     * than 「等 N 项」 at the row's size. Null when it is not cut or the cut saves width.
+     */
+    private static String needlessCut(TextView row, CardModel.AnswerLine line, String drawn) {
+        int n = line.choices.size();
+        String etc = CardText.etc(n);
+        if (n < 2 || !canon(drawn).contains(canon(etc))) return null;
+        for (CardModel.AnswerLine form : new LinkedHashSet<>(Arrays.asList(line, line.withoutPosition()))) {
+            for (boolean shortOr : new boolean[]{false, true}) {
+                List<String> choices = new ArrayList<>();
+                for (String c : form.choices) choices.add(shortOr ? CardText.shortOr(c) : c);
+                for (int k = 1; k < n; k++) {
+                    String head = String.join("/", choices.subList(0, k)) + etc;
+                    if (!canon(drawn).contains(canon(head))) continue;
+                    android.graphics.Paint paint = row.getPaint();
+                    float left = paint.measureText(" / " + String.join(" / ", choices.subList(k, n)));
+                    float cut = paint.measureText(" " + etc);
+                    if (left <= cut) {
+                        return "cuts '" + CardText.plain(drawn) + "' although the choices it leaves out are no wider than 「" + etc + "」";
+                    }
+                    return null;
+                }
+            }
+        }
+        return null;
     }
 
     // ------------------------------------------------------------------ real pack
@@ -178,6 +247,19 @@ public class AnswerRowRenderTest {
             if (l.kind != Rules.LinkKind.STORY || l.storyRankDay == null) continue;
             for (int r = 1; r < l.storyRankDay.length && r <= 10; r++) {
                 if (l.storyRankDay[r] >= 0 && l.storyRankDay[r] <= day) s.rank[l.idx] = r;
+            }
+        }
+        return s;
+    }
+
+    /** 7/1 daytime of a game played with every link underway: the summer exams, 屋久岛 and the class answers after them. */
+    private static SimState julyStart() {
+        SimState s = start(dayOf(7, 1));
+        s.cash = 20_000;
+        for (Rules.Stat st : pack.stats) s.statPts[st.idx] = st.thresholds[Math.min(3, st.thresholds.length - 1)];
+        for (Rules.Link l : pack.links) {
+            if (l.kind == Rules.LinkKind.MANUAL && pack.day(dayOf(7, 1)) != null && l.unlock.earliestDay <= dayOf(7, 1)) {
+                s.rank[l.idx] = Math.max(s.rank[l.idx], 2);
             }
         }
         return s;
@@ -205,11 +287,12 @@ public class AnswerRowRenderTest {
         SimState midStart = start(dayOf(10, 22));
         midStart.cash = 1_000;
         List<Plan> plans = Arrays.asList(Engine.plan(pack, new Profile(), start(dayOf(4, 21)), null, new Engine.Options()),
-                Engine.plan(pack, mid, midStart, null, new Engine.Options()));
+                Engine.plan(pack, mid, midStart, null, new Engine.Options()),
+                Engine.plan(pack, new Profile(), julyStart(), null, new Engine.Options()));
         Map<String, Object[]> cards = new LinkedHashMap<>();
         for (Plan plan : plans) {
             for (Plan.Step step : plan.steps) {
-                if (!PlanItems.isProductive(step)) continue;
+                // Locked runs too: an exam day's card carries its answer.
                 CardModel model = model(on(plan, step.slot));
                 if (model.answers.isEmpty()) continue;
                 cards.putIfAbsent(model.answers.toString(), new Object[]{plan, step.slot});
@@ -237,7 +320,9 @@ public class AnswerRowRenderTest {
                 }
             }
         }
-        System.out.println("answers rows rendered: " + rendered + ", cut to 等 N 项: " + cut + ", none on a 130dp card: " + hidden);
+        System.out.println("answers rows rendered: " + rendered + ", cut to 等 N 项: " + cut + ", hidden: " + hidden
+                + ", a line left out on a taller card: " + dropped.size() + " " + dropped);
+        if (!issues.isEmpty()) System.out.println("ISSUES\n" + String.join("\n", issues));
         assertTrue(String.join("\n", issues), issues.isEmpty());
     }
 

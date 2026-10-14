@@ -111,10 +111,10 @@ public FullReplanResult fullReplanResult; // of fullReplanDoneTicket, or null
 | Where | Text |
 |---|---|
 | 我的 → 安排, third entry, after 规划说明 (`MePage.java:87-91`) | Title `从头重新安排`. Subtitle `重新读取进度和规划设置，从头再排一遍`. While running, subtitle `正在从头重新安排…` and the entry is disabled. Also disabled (alpha 0.45) with no state, or when the calendar is finished (`PlanDiff.finished`). New icon `res/drawable/ui_ic_replan.xml` (circular arrows; `ui_ic_sync` is already 同步现状's). |
-| 规划设置 footer (after `SettingsPage.java:66`) | `改动会马上生效并自动重新安排；想不沿用上一版、从头排一遍：` plus a quiet button `从头重新安排` that opens the same sheet. |
-| Confirm sheet | Title `从头重新安排？`. Body `会重新读取你记下的进度和规划设置，不沿用现在这一版，从头排到{Zh.date(lastDay)}。比平时多算一会儿，一般几秒，最多十来秒。接下来几天的安排可能会变。`. Buttons `先不了` / `从头重新安排`. If `snap.fullReplanning`, show the running text instead of the button. |
+| 规划设置 footer (after `SettingsPage.java:66`) | `改动会马上生效，安排也会自动更新；想完全不参考现在的安排、从头排一遍：` (3.1.0 review wording) plus a quiet button `从头重新安排` that opens the same sheet. |
+| Confirm sheet | Title `从头重新安排？`. Body `会重新读取你记下的进度和规划设置，不参考现在的安排，从头排到{Zh.date(lastDay)}。比平时多算一会儿，一般几秒，最多十来秒。接下来几天的安排可能会变。`. Buttons `先不了` / `从头重新安排`. If `snap.fullReplanning`, show the running text instead of the button. |
 | 今天 status line (new first branch in `TodayPage.statusLine`, `:190`) | `正在从头重新安排…` + `BusyStripe`, caption `可以照常记录，记下的结果会一起算进去`, quiet link `先不算了` → `cancelFullReplan()`. The error card condition becomes `!planning && !fullReplanning`. |
-| Result, shown once in the message bar and as `changeSummary` | CHANGED: `从头重新安排好了：这一周有 N 处变动，之后的也顺着调整了` / `从头重新安排好了：这一周不变，之后的安排顺着调整了` / `从头重新安排好了：要做的事没变，顺便做的事有调整` · UNCHANGED: `重新算过了，安排没有变化` · KEPT: `重新算过了，没有比现在的安排更好，保留现在的安排` · FAILED: `这次没能从头重新安排，现在的安排不变` · CANCELLED: `已停下，现在的安排不变` |
+| Result, shown once in the message bar and as `changeSummary` | CHANGED: `从头重新安排好了：这一周有 N 处变动，之后的也顺着调整了` / `从头重新安排好了：这一周不变，之后的安排顺着调整了` / `从头重新安排好了：要做的事没变，顺便做的事有调整` · UNCHANGED: `重新算过了，安排没有变化` · KEPT: `重新算过了，没找到更好的，现在的安排不变` (3.1.0 review wording) · CHANGED when the plan before is not known (a screen made again with nothing to compare): `从头重新安排好了，一直排到{Zh.date(lastDay)}` · FAILED: `这次没能从头重新安排，现在的安排不变` · CANCELLED: `已停下，现在的安排不变` |
 
 - Not on the 今天 hero and not on 规划说明. The existing 「重新安排」/「重试」 keep calling `requestReplan`.
 - `HomeActivity` changes:
@@ -176,13 +176,13 @@ These are `textZh` / `shortZh` / `detailZh`. Static text comes from the builder,
 | doze | `上课犯困时别闭眼：学力 +2` (academics < MAX) / `上课犯困时闭上眼：勇气 +2` (academics MAX, courage < MAX) / omitted when both are MAX | `犯困别闭眼：学力 +2` / `犯困闭眼：勇气 +2` | 2 | day |
 | nurse | `放学后先去保健室：勇气 +2，不会消耗时间` (omitted at courage MAX) | `保健室：勇气 +2` | 2 | day |
 | tv | `电视购物：玫瑰花束、高级巧克力 ×2，2,980 日元`; without names: `电视购物有新商品：3,980 日元`. Detail `在自己房间看电视就能买，不会消耗时间；最好出门前先买。花的钱不在安排的预计里，买了以后记得在「同步现状」里更新现金。`; engine appends `按预计，这天的现金可能不够。` when price > forecast cash; request items add e.g. `超级安全靴是伊莉莎白第 40 号委托要的东西。` | `电视购物 2,980 日元` | 1 (2 for 7/12 and 11/29) | day |
-| request batch | `伊莉莎白有新的委托`; detail `去天鹅绒房间找伊莉莎白看看新委托；接委托和交东西都不会消耗时间。` | `伊莉莎白有新委托` | 1 | day |
-| request deadline | `伊莉莎白的第 12、13 号委托 6月6日截止` (shown from max(batch, deadline − 3), `untilDay` = deadline); #97 adds `要先救出 6月18日失踪的学生。` | `委托 6月6日截止` | 2 | day |
-| rescue start | `有 3 名失踪者，期限 7月6日`; with a modelled person: `有 3 名失踪者（包括北村文吉），期限 10月3日`. Detail `在塔尔塔罗斯里找到他们就能救出，能拿到奖励。期限当天还算不算没核对过，最好提前去。` | `失踪者 3 人 · 期限 7月6日` | 2 | day of max(from, plan start) |
+| request batch | `伊莉莎白有新的委托`; detail `去天鹅绒房间找伊莉莎白看看新委托；接委托和交东西都不会消耗时间。` (5/10 and 1/1 on the evening slot: 3DM's evening column, 3.1.0 review) | `伊莉莎白有新委托` | 1 | day |
+| request deadline | `伊莉莎白的第 12、13 号委托 6月6日截止` (shown from max(batch, deadline − 3), `untilDay` = deadline); #97's detail: `这个委托只能做到 12月25日，而且只有在 7月6日前救出了 6月18日失踪的学生才能完成；…` (past tense, shown from 12/22; the 6/18 rescue group says `救不出来的话，伊莉莎白的第 97 号委托就做不了。` in its own details, 3.1.0 review) | `委托 6月6日截止` | 2 | day |
+| rescue start | `有 3 名失踪者，期限 7月6日`; with a modelled person: `有 3 名失踪者（包括北村文吉），期限 10月3日`. Detail `在塔尔塔罗斯里找到他们就能救出，还能拿到奖励。期限当天去还来不来得及不确定，最好提前去。` (3.1.0 review wording) | `失踪者 3 人 · 期限 7月6日` | 2 | day of max(from, plan start) |
 | rescue planned | `今晚去塔尔塔罗斯时，顺便救出失踪者（3 人）` | `顺便救出失踪者` | 2 | eve of the planned tower night |
-| rescue unplanned | `失踪者期限 7月6日：这几天的安排里没有塔尔塔罗斯` | `失踪者期限 7月6日` | 3 | day of max(start, to − 1) |
-| fragment | `今天城里能捡到黄昏的碎片（14 处）` (detail lists the spots) / `宿舍 4 楼有一块黄昏的碎片` / `宿舍屋顶有一块黄昏的碎片` / `勇气到 Lv.2 了：晚上去放纵俱乐部，舞台上有一块黄昏的碎片` / `作战地图上有 2 块黄昏的碎片，错过就没了` | `能捡黄昏的碎片` etc. | 1 (3 for 8/6) | per item |
-| trip | `屋久岛：在海边捡一件{item}，伊莉莎白的第 44 号委托要用，错过就没了`; `修学旅行：把 2 楼自动贩卖机的 3 种饮料都买下，第 96 号委托要用` | `海边捡东西（委托用）` | 3 | day |
+| rescue unplanned | `失踪者 7月6日截止：这几天没安排去塔尔塔罗斯` (3.1.0 review wording) | `失踪者 7月6日截止` | 3 | day of max(start, to − 1) |
+| fragment | `今天城里能捡到黄昏的碎片（14 处）` (detail lists the spots) / `宿舍 4 楼有一块黄昏的碎片` / `宿舍屋顶有一块黄昏的碎片` / `勇气到 Lv.2 了：晚上去放纵俱乐部，舞台旁有一块黄昏的碎片` / `满月作战的地图上有 2 块黄昏的碎片，错过就没了` (3.1.0 review wording) | `能捡黄昏的碎片` etc. | 1 (3 for 8/6) | per item |
+| trip | `屋久岛：在海边捡一样东西（{items}都行），伊莉莎白的第 44 号委托要用，错过就没了`, and the evening before (7/19, eve, priority 3, 3.1.0 review) `明天去屋久岛：出发前先在天鹅绒房间接下伊莉莎白的第 44 号委托` (short `出发前接第 44 号委托`); `修学旅行：把 2 楼自动贩卖机的 3 种饮料都买下，伊莉莎白的第 96 号委托要用` (detail: the oden is then bought from the student for 5,000 日元) | `海边捡东西（委托用）` | 3 | day |
 | feature | `真宵堂今天开张了` | `真宵堂开张` | 1 | day |
 
 The builder lists every editorial zh line in REPORT §7.
@@ -317,7 +317,7 @@ public Reminders reminders = new Reminders();   // empty when the pack has none
 - **Widget:** see 1.4.4 for row priority.
   - Answer kinds (class/exam) go into the answers row.
   - Every other kind uses a new one-line reminder row (`widget_reminder`, 11sp, new drawables `widget_icon_remind_day/night.xml`).
-  - The row shows the top-priority reminder: `textZh` if it fits whole, else `shortZh`, else nothing (never "…"). When there are more, it appends `（共 N 条）`.
+  - The row shows the top-priority reminder: `textZh` if it fits whole, else `shortZh`, else nothing (never "…"). When there are more, it appends ` · 共 N 条` (3.1.0 review: `（共 N 条）` fused with a line ending in a number or a bracket).
   - All reminders go into `taskDescription`.
 - **Which card carries a reminder (`PlanItems`):**
   - The item covering the reminder's slot.
@@ -367,7 +367,7 @@ The research plan is adopted, with the ownership split below. All of it compiled
 9. **Not WP-A's (owned by WP-D):** guide-only code in `CardText`, `CardRenderer`, `CardModel`, `GuideWords.java`, the `CardTextTest` guide cases, the `GlossarySourceTest` `GUIDE_WORDS` skip, `RenderSupport` legacy helpers, and the layout comments in `widget_card_regular.xml:2-4` / `widget_card_compact.xml:2`.
 10. **User consequences, for the release notes:**
     - An old 「P3R 逐日攻略」 widget stops working. Copy: `如果桌面上还有「P3R 逐日攻略」小组件，更新后它会失效，长按把它移除就好；「P3R 每日安排」不受影响。`
-    - 逐日攻略 progress (`p3r_native_progress_v1`, WebView localStorage) is no longer readable. Copy: `想保留的话，更新前先在逐日攻略里「导出」。`
+    - 逐日攻略 progress (`p3r_native_progress_v1`, WebView localStorage) is no longer readable. Copy (3.1.0 review: it names the real menu and button, and where the file can be used): `3.1.0 去掉了「我的 → 逐日攻略」，它的打勾进度更新后就看不到了。想保留的话，更新前先打开逐日攻略，点右上角的菜单按钮打开「设置」，再点「导出进度备份」；这个文件可以导入旧版 2.0.0「P3R」的固定攻略。`
     - **Owner decision O2 (default: keep).** Do not delete on-device leftovers. If the owner opts in, the v3 upgrade receiver deletes them once with `goAsync()`, never calling `WebStorage`.
 11. **APK** goes from about 1.03 MB to about 0.83 MB.
 
@@ -646,7 +646,7 @@ cd $WT/android && ./gradlew --offline -q testDebugUnitTest            # full sui
   5. No data → no row; ANY → 「怎么回答都可以」.
   6. Moon unlock card shows the three answers; justice side step 「顺便选：有话想和你说」.
   7. Class answer only on the daytime card; exam answer on its own per-day locked card; locked runs split only where reminders exist.
-  8. Reminder row: textZh → shortZh → hidden, never "…"; `（共 N 条）`; all reminders in `taskDescription`.
+  8. Reminder row: textZh → shortZh → hidden, never "…"; ` · 共 N 条`; all reminders in `taskDescription`.
   9. Golden PNGs under `qa_out/v3/widget/answers/` for justice R5, hermit R5, strength R2, justice R2. Run `collectCutText` / `collectWordSplits` / `collectDotLineEnds` over the answer and reminder rows.
   10. Widget choices equal the engine how-to choices for the same step.
   11. App surfaces:

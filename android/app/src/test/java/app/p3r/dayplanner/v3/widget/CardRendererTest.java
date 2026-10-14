@@ -142,8 +142,43 @@ public class CardRendererTest {
         List<CardRenderer.AnswerForm> forms = CardRenderer.answerForms(c, m.answers, 180 - 2 * CardRenderer.bodyPaddingDp(WidgetSize.TINY));
         assertTrue(forms.size() > 1);
         for (int i = 1; i < forms.size(); i++) assertTrue("form " + i, forms.get(i).heightDp < forms.get(i - 1).heightDp);
-        assertTrue("the shortest keeps the meeting's first answer", CardText.plain(forms.get(forms.size() - 1).text).contains("我会帮你的"));
+        // Lines go the least needed first: a meeting that may not rank up gives way to the class answer
+        // (certain, and missed for good); with a certain own line the class answer goes first.
+        String shortest = CardText.plain(forms.get(forms.size() - 1).text);
+        assertEquals("the shortest keeps the class answer", "课堂：马", shortest);
+        List<CardModel.AnswerLine> certainOwn = java.util.Arrays.asList(
+                new CardModel.AnswerLine("答：", null, java.util.Arrays.asList("我会帮你的", "这样的规矩没有意义"), null, false),
+                m.answers.get(1));
+        List<CardRenderer.AnswerForm> own = CardRenderer.answerForms(c, certainOwn, 180 - 2 * CardRenderer.bodyPaddingDp(WidgetSize.TINY));
+        assertTrue(CardText.plain(own.get(own.size() - 1).text).startsWith("答：我会帮你的"));
         assertTrue(CardRenderer.answerForms(c, new ArrayList<>(), 160).isEmpty());
+    }
+
+    /**
+     * Spec §1.4.4: the answers are never hidden. On a 130dp card where not even the shortest form fits
+     * beside a one-line title (a first choice wider than the card), the title goes instead; a taller
+     * card keeps both.
+     */
+    @Test
+    public void theTitleGivesWayToAnswersThatDoNotFitBesideIt() {
+        Context c = RuntimeEnvironment.getApplication();
+        CardModel m = sample(false);
+        m.keepWordsWhole = true;
+        m.title = "教皇 · 北村文吉、光子";
+        m.answers.add(new CardModel.AnswerLine("答：", null, java.util.Arrays.asList("我也去看看吧或者我在这里等她", "真担心啊"), null, false));
+        RuntimeEnvironment.setFontScale(1.15f);
+        try {
+            View small = RenderSupport.layout(c, CardRenderer.render(c, m, 180, 130), 180, 130);
+            assertEquals(View.VISIBLE, small.findViewById(R.id.widget_dialogue_choices).getVisibility());
+            assertEquals("the title makes room", View.GONE, small.findViewById(R.id.widget_title_row).getVisibility());
+            assertTrue(CardText.plain(((TextView) small.findViewById(R.id.widget_dialogue_choices)).getText().toString())
+                    .startsWith("答：我也去看看吧或"));
+            View tall = RenderSupport.layout(c, CardRenderer.render(c, m, 180, 150), 180, 150);
+            assertEquals(View.VISIBLE, tall.findViewById(R.id.widget_title_row).getVisibility());
+            assertEquals(View.VISIBLE, tall.findViewById(R.id.widget_dialogue_choices).getVisibility());
+        } finally {
+            RuntimeEnvironment.setFontScale(1f);
+        }
     }
 
     /**

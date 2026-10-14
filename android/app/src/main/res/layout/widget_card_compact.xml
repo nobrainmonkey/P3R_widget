@@ -323,7 +323,7 @@
                 android:textSize="10.5sp"
                 android:visibility="gone" />
 
-            <!-- 当日提醒 the card carries (top priority; "（共 N 条）" when there are more), one line, never cut:
+            <!-- 当日提醒 the card carries (top priority; " · 共 N 条" when there are more), one line, never cut:
                  CardRenderer shows it whole, in its short form or not at all. -->
             <TextView
                 android:id="@+id/widget_reminder"

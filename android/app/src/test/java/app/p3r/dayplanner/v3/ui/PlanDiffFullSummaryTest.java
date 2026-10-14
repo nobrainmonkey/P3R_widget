@@ -39,7 +39,7 @@ public class PlanDiffFullSummaryTest {
     @Test
     public void resultsWithoutANewPlanHaveFixedWords() {
         assertEquals("重新算过了，安排没有变化", summary(plan, plan, FullReplanResult.UNCHANGED));
-        assertEquals("重新算过了，没有比现在的安排更好，保留现在的安排", summary(plan, plan, FullReplanResult.KEPT));
+        assertEquals("重新算过了，没找到更好的，现在的安排不变", summary(plan, plan, FullReplanResult.KEPT));
         assertEquals("这次没能从头重新安排，现在的安排不变", summary(plan, plan, FullReplanResult.FAILED));
         assertEquals("已停下，现在的安排不变", summary(plan, plan, FullReplanResult.CANCELLED));
         assertNull("nothing to tell (an import, or an ordinary replan took over)", summary(plan, plan, null));
@@ -75,6 +75,7 @@ public class PlanDiffFullSummaryTest {
     @Test
     public void withoutThePlanBeforeOnlyTheEndIsSaid() {
         assertEquals("从头重新安排好了，一直排到1月31日", summary(null, plan, FullReplanResult.CHANGED));
+        assertEquals(PlanDiff.FULL_CHANGED_UNCOUNTED + "1月31日", summary(null, plan, FullReplanResult.CHANGED));
         Plan done = copy("plan-done");
         done.steps.clear();
         assertNull("the calendar is over", summary(plan, done, FullReplanResult.CHANGED));

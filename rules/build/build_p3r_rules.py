@@ -2001,6 +2001,15 @@ AQIU_FIXES = {
     "request.44": ("6/20", "7/20", "Request #44 says 'Accept > 6/20: Collect …', but the beach items are on the Yakushima "
                    "trip: 3DM and the CN guide (t088_01) pick them up on 7/20"),
 }
+# Request batches that appear in the evening (3DM's evening column), date -> (3DM line, why); the others are after school.
+REQUEST_BATCH_EVENING = {
+    "05-10": (r"解锁任务委托系统", "the request system opens that evening: Elizabeth calls when you are back in your room"),
+    "01-01": (r"新的支线更新", "the daytime is the shrine visit (new_year); 3DM lists the new requests in the evening"),
+}
+# Missing-person groups whose rescue a request needs (aqiu overworld bullets): group start -> (request, aqiu bullet).
+RESCUE_LOCKS = {"06-18": (97, "Failing to save Ayako will lock Request #97")}
+# Evenings the story spends in Tartarus before the player chooses anything (the 保健室 rule counts them like a visit).
+STORY_TOWER_EVENINGS = {"04-20": (r"探索塔尔塔罗斯", "Fool Rank 2: Auto Mon 4/20 Evening")}
 REMINDER_KINDS = ("class", "exam", "tv", "request", "fragment", "trip", "feature")
 REMINDER_LABELS = {"class": "课堂提问", "exam": "考试", "tv": "电视购物", "request": "委托", "fragment": "黄昏的碎片",
                    "feature": "新开放"}
@@ -2435,7 +2444,7 @@ def tv_reminders(ledger: Ledger, sched: Schedule3dm, guide: dict[int, list[dict]
             if d in requests:
                 pos, no, required = requests[d]
                 item = names[pos][0]
-                detail += f"{item}是伊莉莎白第 {no} 号委托要的东西。" if required else f"{item}在伊莉莎白第 {no} 号委托里很有用。"
+                detail += f"{item}是伊莉莎白的第 {no} 号委托要的东西。" if required else f"{item}在伊莉莎白的第 {no} 号委托里很有用。"
                 priority = 2
         else:
             src = []
@@ -2457,7 +2466,7 @@ def tv_reminders(ledger: Ledger, sched: Schedule3dm, guide: dict[int, list[dict]
     return out
 
 
-def request_reminders(ledger: Ledger, people: list[tuple[int, int, str]]) -> list[dict]:
+def request_reminders(ledger: Ledger, people: list[tuple[int, int, str]], sched: Schedule3dm) -> list[dict]:
     """伊莉莎白的委托: the days new requests appear and the last days of the time-limited ones (aqiu)."""
     _bullets, rows = overworld_section("Elizabeth Requests")
     batches: set[int] = set()
@@ -2483,17 +2492,23 @@ def request_reminders(ledger: Ledger, people: list[tuple[int, int, str]]) -> lis
                 who = [p for p in people if p[2].split(" ")[0] == rescued.group(1)]
                 if len(who) != 1:
                     raise BuildError(f"request #{number}: missing person {rescued.group(1)} not found")
-                prereq[last] = f"要先救出 {cn_date(who[0][0])}失踪的学生。"
+                prereq[last] = f"，而且只有在 {cn_date(who[0][1])}前救出了 {cn_date(who[0][0])}失踪的学生才能完成"
     if len(batches) != 9 or len(windows) != 8:
         raise BuildError(f"Elizabeth requests: {len(batches)} batch dates / {len(windows)} deadlines, expected 9 / 8")
     out = []
+    for md, (pattern, _why) in REQUEST_BATCH_EVENING.items():
+        d = day_of_md(md)
+        if d not in batches or not sched.matches(d, re.compile(pattern)):
+            raise BuildError(f"REQUEST_BATCH_EVENING {md}: no batch that day, or 3DM has no line matching {pattern}")
     for d in sorted(batches):
-        out.append(reminder(f"request.{md_of(d)}", "request", d, "day", "伊莉莎白有新的委托", "伊莉莎白有新委托",
-                            detail="去天鹅绒房间找伊莉莎白看看新委托；接委托和交东西都不会消耗时间。",
-                            conf="verified", src=["aqiu_overworld", "cn_guide"]))
+        evening = md_of(d) in REQUEST_BATCH_EVENING
+        src = ["aqiu_overworld", "cn_guide"] + ([sched.source(d)] if evening else [])
+        out.append(reminder(f"request.{md_of(d)}", "request", d, "eve" if evening else "day", "伊莉莎白有新的委托",
+                            "伊莉莎白有新委托", detail="去天鹅绒房间找伊莉莎白看看新委托；接委托和交东西都不会消耗时间。",
+                            conf="verified", src=src))
     for last, (first, numbers) in sorted(windows.items()):
         these = "这些" if len(numbers) > 1 else "这个"
-        detail = prereq.get(last, "") + f"{these}委托只能做到{cn_date(last)}；接委托和交东西都不会消耗时间。"
+        detail = f"{these}委托只能做到 {cn_date(last)}{prereq.get(last, '')}；接委托和交东西都不会消耗时间。"
         out.append(reminder(
             f"request.{md_of(last)}.deadline", "request", max(first, last - 3), "day",
             f"伊莉莎白的第 {'、'.join(map(str, numbers))} 号委托 {cn_date(last)}截止", f"委托 {cn_date(last)}截止",
@@ -2502,13 +2517,15 @@ def request_reminders(ledger: Ledger, people: list[tuple[int, int, str]]) -> lis
                   + ", ".join(md_of(d) for d in sorted(batches)) + "; the time-limited ones end on "
                   + ", ".join(f"{md_of(last)} (#{'/'.join(map(str, n))})" for last, (_f, n) in sorted(windows.items()))
                   + ", each shown from 3 days before its end (not before its batch). #97 needs the student missing from "
-                  "6/18 rescued. Not shipped: request #75 (8 faculty-office visits, Academics +16) and the outings #77-81.")
+                  "6/18 rescued (by 7/6; the rescue group carries the warning). Batches in the evening: "
+                  + "; ".join(f"{md} ({why})" for md, (_p, why) in REQUEST_BATCH_EVENING.items())
+                  + ". Not shipped: request #75 (8 faculty-office visits, Academics +16) and the outings #77-81.")
     return out
 
 
 def rescue_groups(ledger: Ledger) -> tuple[list[dict], list[tuple[int, int, str]]]:
     """失踪者: the 20 missing people of aqiu overworld in (missing from, limit) groups; the engine words the reminders."""
-    _bullets, rows = overworld_section("Missing People")
+    bullets, rows = overworld_section("Missing People")
     people = [(md_slash(r[0]), md_slash(r[1]), r[2]) for r in rows]
     board = {line.split("\t")[1].split("\\n")[0] for line in
              (SOURCES_DIR / "aqiu_gamedata" / "BMD_DisappearHelp.tsv").read_text(encoding="utf-8").splitlines()[2:]}
@@ -2527,8 +2544,15 @@ def rescue_groups(ledger: Ledger) -> tuple[list[dict], list[tuple[int, int, str]
                 if (m_first, m_last) != (first, last):
                     raise BuildError(f"rescue {ident}: window {md_of(m_first)}-{md_of(m_last)} is not its aqiu group")
                 ids.append(ident)
-        out.append({"conf": "verified", "count": len(names), "fromDay": first, "id": f"rescue.{md_of(first)}",
-                    "rescueIds": ids, "src": ["aqiu_overworld", "gd_disappear_help"], "toDay": last})
+        group = {"conf": "verified", "count": len(names), "fromDay": first, "id": f"rescue.{md_of(first)}",
+                 "rescueIds": ids, "src": ["aqiu_overworld", "gd_disappear_help"], "toDay": last}
+        if md_of(first) in RESCUE_LOCKS:
+            number, bullet = RESCUE_LOCKS[md_of(first)]
+            who = bullet.split(" ")[3]
+            if not any(b.startswith(bullet) for b in bullets) or not any(n.split(" ")[0] == who for n in names):
+                raise BuildError(f"RESCUE_LOCKS {md_of(first)}: aqiu no longer says {bullet!r} of this group")
+            group["locksZh"] = f"救不出来的话，伊莉莎白的第 {number} 号委托就做不了。"
+        out.append(group)
     if modelled:
         raise BuildError(f"modelled rescues not in the aqiu table: {sorted(modelled)}")
     if len(out) != 13 or len({g["id"] for g in out}) != 13:
@@ -2537,7 +2561,9 @@ def rescue_groups(ledger: Ledger) -> tuple[list[dict], list[tuple[int, int, str]
                   "missing-person board) in 13 (missing from, limit) groups; 北村文吉 and 舞子 are the modelled rescues "
                   "(rescueIds). The engine words them against the plan: when they go missing, on the first planned "
                   "Tartarus evening in the window (rescued on that visit), or the day before the limit when no Tartarus "
-                  "evening is planned. Whether the limit day itself still counts is not verified (the reminders say so).")
+                  "evening is planned. Whether the limit day itself still counts is not verified (the reminders say so). "
+                  "A group whose rescue a request needs says so (locksZh): "
+                  + "; ".join(f"{md} → #{n} ({bullet})" for md, (n, bullet) in RESCUE_LOCKS.items()) + ".")
     return out, people
 
 
@@ -2572,11 +2598,11 @@ def collectible_reminders(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, gu
                  "宿舍屋顶：黄昏的碎片", detail="宿舍屋顶这时开放了，晚上上去就能捡到。",
                  conf="verified", src=["cn_guide", "cn_3dm_p3", src_terms]),
         reminder("fragment.05-25.club", "fragment", day_of_md("05-25"), "eve",
-                 f"勇气到 Lv.{club_lv} 了：晚上去放纵俱乐部，舞台上有一块黄昏的碎片", "放纵俱乐部：黄昏的碎片",
+                 f"勇气到 Lv.{club_lv} 了：晚上去放纵俱乐部，舞台旁有一块黄昏的碎片", "放纵俱乐部：黄昏的碎片",
                  detail=f"放纵俱乐部晚上要勇气 Lv.{club_lv} 才能进去，舞台旁有一块黄昏的碎片。",
                  requires={"courage": club_lv}, first_eligible=True, conf="single",
                  src=["cn_guide", "aqiu_social_events", src_terms]),
-        reminder("fragment.08-06", "fragment", day_of_md("08-06"), "eve", "作战地图上有 2 块黄昏的碎片，错过就没了",
+        reminder("fragment.08-06", "fragment", day_of_md("08-06"), "eve", "满月作战的地图上有 2 块黄昏的碎片，错过就没了",
                  "作战时捡黄昏的碎片", detail="满月作战的地图上，前进的路上有 2 块黄昏的碎片，作战结束后就拿不到了。",
                  priority=3, conf="verified", src=["cn_guide", "cn_3dm_p6", src_terms]),
     ]
@@ -2595,22 +2621,38 @@ def collectible_reminders(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, gu
     beach = "\n".join(trip["substeps"])
     if by_day[md_slash(right)]["dayLock"] != "yakushima":
         raise BuildError("7/20 is no longer a Yakushima day")
+    # #44 has to be accepted before the trip: 3DM's 7/19 evening 「确保接取支线委托44」, aqiu's #44 opens on 7/9.
+    eve_before = md_slash(right) - 1
+    accept_from = md_slash(req["44"][0])
+    if not sched.matches(eve_before, re.compile(r"接取支线委托44")) or not accept_from < eve_before:
+        raise BuildError("3DM no longer says to accept request #44 on the evening before Yakushima, or #44 opens later")
+    if by_day[eve_before]["eveLock"] is not None:
+        raise BuildError(f"{md_of(eve_before)} evening is no longer free")
     out.append(reminder(
-        "trip.07-20", "trip", md_slash(right), "day", f"屋久岛：在海边捡一件{things}，伊莉莎白的第 44 号委托要用，错过就没了",
+        f"trip.{md_of(eve_before)}.accept", "trip", eve_before, "eve", "明天去屋久岛：出发前先在天鹅绒房间接下伊莉莎白的第 44 号委托",
+        "出发前接第 44 号委托", label="屋久岛", priority=3,
+        detail=f"伊莉莎白的第 44 号委托要在屋久岛的海边捡东西，出发前没接下的话，到了海边也捡不到。从 {cn_date(accept_from)}起"
+               "就能接，接委托不会消耗时间。",
+        conf="verified", src=["aqiu_overworld", sched.source(eve_before), "cn_guide"]))
+    out.append(reminder(
+        "trip.07-20", "trip", md_slash(right), "day", f"屋久岛：在海边捡一样东西（{things}都行），伊莉莎白的第 44 号委托要用，错过就没了",
         "海边捡东西（委托用）", label="屋久岛", priority=3,
-        detail="出发前要先在天鹅绒房间接下第 44 号委托。到了海边，下面任意一件都行：\n" + beach,
+        detail="出发前要先在天鹅绒房间接下伊莉莎白的第 44 号委托。到了海边，下面任意一件都行：\n" + beach,
         conf="verified", src=["aqiu_overworld", "cn_guide", "cn_3dm_p5"]))
     # 修学旅行: request #96 needs all three drinks of the Kyoto vending machine.
     _b, kyoto = overworld_section("Kyoto Vending Machines")
-    if len(kyoto) != 3 or "Bought all 3 drinks from Kyoto vending machine" not in req["96"][4]:
+    oden = re.search(r"Bought all 3 drinks from Kyoto vending machine > .* > Oden Juice \(Y(\d+)\)", req["96"][4])
+    if len(kyoto) != 3 or not oden:
         raise BuildError("aqiu Kyoto vending machine / request #96 changed")
     cn_guide_item(guide, CN_ITEMS["trip.kyoto"], "11-17", "二楼自动贩卖机全买光")
     if by_day[day_of_md("11-17")]["dayLock"] != "school_trip":
         raise BuildError("11/17 is no longer a school-trip day")
     out.append(reminder(
-        "trip.11-17", "trip", day_of_md("11-17"), "day", "修学旅行：把 2 楼自动贩卖机的 3 种饮料都买下，第 96 号委托要用",
+        "trip.11-17", "trip", day_of_md("11-17"), "day", "修学旅行：把 2 楼自动贩卖机的 3 种饮料都买下，伊莉莎白的第 96 号委托要用",
         "买齐 3 种饮料（委托用）", label="修学旅行", priority=3,
-        detail="住的地方 2 楼有自动贩卖机，3 种饮料每种买一瓶。回学校后在连接走廊把饮料给那位女学生，换来的关东煮可以交第 96 号委托。",
+        detail="住的地方 2 楼有自动贩卖机，3 种饮料每种买一瓶。回学校后在连接走廊把饮料给那位女学生，再花 "
+               f"{yen(int(oden.group(1)))}向她买关东煮，交给伊莉莎白就能完成第 96 号委托。这笔钱不在安排的预计里，"
+               "买了以后记得在「同步现状」里更新现金。",
         conf="verified", src=["aqiu_overworld", "cn_guide"]))
     # 真宵堂 opens on 7/18 (aqiu Tartarus notes, the CN guide that evening).
     if "Mayoido Antiques opens on 7/18" not in (SOURCES_DIR / "aqiu_gamedata" / "tartarus.md").read_text(encoding="utf-8"):
@@ -2662,7 +2704,19 @@ def doze_and_nurse(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, guide: di
     pages = sorted({sched.source(d) for d in from_3dm}, key=lambda s: int(s[len("cn_3dm_p"):]))
     doze = {"academics": int(awake.group(1)), "conf": "single", "courage": int(awake.group(2)), "days": school,
             "src": ["aqiu_social_events", "cn_guide"] + pages}
-    return doze, {"conf": "single", "courage": int(nurse.group(1)), "src": ["aqiu_social_events", "cn_guide"]}
+    story = []
+    for md, (pattern, auto) in STORY_TOWER_EVENINGS.items():
+        d = day_of_md(md)
+        if by_day[d]["eveLock"] is None or not sched.matches(d, re.compile(pattern)) or auto not in page.html:
+            raise BuildError(f"STORY_TOWER_EVENINGS {md}: no longer a story evening in Tartarus (3DM / aqiu)")
+        if not sched.matches(d + 1, re.compile(r"保健室")):
+            raise BuildError(f"STORY_TOWER_EVENINGS {md}: 3DM no longer sends you to the nurse's office the next day")
+        story.append(d)
+    ledger.decide("reminders", "nurse-story", "保健室 after the story's own Tartarus evenings (the player chooses nothing): "
+                  + "; ".join(f"{md} ({auto}; 3DM: the nurse's office the next day)" for md, (_p, auto)
+                              in STORY_TOWER_EVENINGS.items()) + ".")
+    nurse_src = ["aqiu_social_events", "cn_guide"] + sorted({sched.source(d) for d in story})
+    return doze, {"conf": "single", "courage": int(nurse.group(1)), "src": nurse_src, "storyTowerDays": story}
 
 
 def build_reminders(ledger: Ledger, page: AqiuPage, days: list[dict]) -> dict:
@@ -2673,7 +2727,7 @@ def build_reminders(ledger: Ledger, page: AqiuPage, days: list[dict]) -> dict:
     groups, people = rescue_groups(ledger)
     items = answer_reminders(ledger, page, sched, guide)
     items += tv_reminders(ledger, sched, guide)
-    items += request_reminders(ledger, people)
+    items += request_reminders(ledger, people, sched)
     items += collectible_reminders(ledger, page, sched, guide, by_day)
     doze, nurse = doze_and_nurse(ledger, page, sched, guide, by_day)
     items.sort(key=lambda x: (x["day"], x["slot"] == "eve", x["id"]))
@@ -2714,9 +2768,9 @@ NOTES_ZH = (
     "不加社群点数，奖励是能力值和道具，看完最后一话还能合体新的人格面具。望月绫时的羁绊剧情跟着主线在固定日子发生，不单独安排。",
     "【对话】对话提示只引用原版中文攻略的原文；括号里的数字是攻略的标注，不一定对应游戏里的选项顺序。",
     "【人名】采用官方简体中文译名：贝培、伊莉莎白、Ｙ子、舞子；审判社群为避免剧透显示为「伙伴们」。",
-    "【当日提醒】课堂提问和考试的答案、电视购物、伊莉莎白的委托、失踪者和黄昏的碎片这些不会消耗时间的事，会在当天提醒。"
-    "答案取自中文攻略的原文；只有一份攻略写过的答案会注明。",
-    "【未计入】课堂提问、上课犯困、保健室、考试名次、暑期补习和宿舍活动带来的能力值不在预测里，请在「同步现状」时更新。",
+    "【当天提醒】课堂提问和考试的答案、上课犯困、保健室、电视购物、伊莉莎白的委托、黄昏的碎片这些不会消耗时间的事，"
+    "还有失踪者的期限，会在当天提醒。答案取自中文攻略的原文；只有一份攻略写过的答案会注明。",
+    "【未计入】课堂提问、上课犯困、保健室、考试名次、暑期补习和宿舍活动带来的能力值不在安排的预计里，请在「同步现状」时更新。",
 )
 
 
@@ -2938,12 +2992,17 @@ def validate_reminders(pack: dict, check_src) -> None:
     check_src("reminders.nurse", rem["nurse"])
     if rem["nurse"]["courage"] < 1:
         raise BuildError("reminders.nurse.courage must be positive")
+    story = rem["nurse"].get("storyTowerDays", [])
+    if story != sorted(set(story)) or any(by_day[d]["eveLock"] is None for d in story):
+        raise BuildError("reminders.nurse.storyTowerDays must be ascending days whose evening is a story lock")
     rescues = {r["id"] for r in pack["tartarus"]["rescues"]}
     for i, group in enumerate(rem["rescueGroups"]):
         where = f"reminders.rescueGroups[{i}]"
         check_src(where, group)
         if group["count"] < 1 or not set(group["rescueIds"]) <= rescues or not group["fromDay"] <= group["toDay"]:
             raise BuildError(f"{where}: count >= 1, known rescueIds and fromDay <= toDay are required")
+        if "locksZh" in group and not group["locksZh"]:
+            raise BuildError(f"{where}: locksZh, when present, must not be empty")
 
 
 # Words docs/GLOSSARY_zh.md tells us not to use in player-facing text (解锁, 见面, 安排, MAX, 羁绊剧情 …),
@@ -3446,10 +3505,14 @@ def render_reminders(pack: dict) -> list[str]:
     out.append(f"- 上课犯困: {len(doze['days'])} school days, Academics +{doze['academics']} awake / Courage "
                f"+{doze['courage']} eyes closed, conf={doze['conf']}, src: {', '.join(doze['src'])}.")
     nurse = rem["nurse"]
-    out.append(f"- 保健室: Courage +{nurse['courage']}, conf={nurse['conf']}, src: {', '.join(nurse['src'])}.")
+    out.append(f"- 保健室: Courage +{nurse['courage']}, also after the story's Tartarus evenings "
+               f"{', '.join(md_of(d) for d in nurse['storyTowerDays']) or 'none'}, conf={nurse['conf']}, "
+               f"src: {', '.join(nurse['src'])}.")
     groups = rem["rescueGroups"]
     out.append(f"- 失踪者: {len(groups)} groups, {sum(g['count'] for g in groups)} people, modelled rescues "
                + ", ".join(f"{g['id']} {'/'.join(g['rescueIds'])}" for g in groups if g["rescueIds"])
+               + "; a request needs " + (", ".join(f"{g['id']} (「{g['locksZh']}」)" for g in groups if g.get("locksZh"))
+                                        or "none")
                + f"; src: {', '.join(groups[0]['src'])}.")
     out.append("- Withheld class answers: " + "; ".join(f"{md} ({why})" for md, why in WITHHELD_CLASS.items()) + ".")
     out.append("")

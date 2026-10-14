@@ -482,6 +482,8 @@ public final class Rules {
         public int count;
         /** Ids of {@link Rules#rescues} in this group (the people the engine models), possibly empty. */
         public List<String> rescueIds = new ArrayList<>();
+        /** What failing this group's rescue locks (「救不出来的话，伊莉莎白的第 97 号委托就做不了。」), or null. */
+        public String locksZh;
     }
 
     /** The {@code reminders} section of the pack; the engine words 上课犯困, 保健室 and 失踪者 against the plan. */
@@ -495,6 +497,11 @@ public final class Rules {
         public int dozeCourage = 2;
         /** Courage points of the nurse's office the school day after a Tartarus or full-moon night; 0 = not modelled. */
         public int nurseCourage;
+        /**
+         * Days whose evening the story spends in Tartarus (4/20, a prologue lock): the nurse's office
+         * counts them like a Tartarus night. Ascending.
+         */
+        public int[] nurseStoryDays = new int[0];
         public List<RescueGroup> rescueGroups = new ArrayList<>();
 
         public boolean isEmpty() {

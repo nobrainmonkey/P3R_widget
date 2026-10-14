@@ -72,6 +72,11 @@ public final class UndoBar extends LinearLayout {
         return getVisibility() == View.VISIBLE;
     }
 
+    /** Showing with its action (「撤销」) still on offer. */
+    public boolean hasAction() {
+        return isShowing() && action.getVisibility() == View.VISIBLE;
+    }
+
     /** Current message text (tests). */
     public CharSequence messageText() {
         return Zh.plain(message.getText());

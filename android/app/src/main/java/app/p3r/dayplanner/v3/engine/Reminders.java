@@ -3,6 +3,7 @@ package app.p3r.dayplanner.v3.engine;
 import app.p3r.dayplanner.v3.model.Rules;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -26,7 +27,7 @@ final class Reminders {
     static final String DOZE_LABEL = "上课犯困";
     static final String NURSE_LABEL = "保健室";
     static final String RESCUE_LABEL = "失踪者";
-    static final String RESCUE_DETAIL = "在塔尔塔罗斯里找到他们就能救出，能拿到奖励。期限当天还算不算没核对过，最好提前去。";
+    static final String RESCUE_DETAIL = "在塔尔塔罗斯里找到他们就能救出，还能拿到奖励。期限当天去还来不来得及不确定，最好提前去。";
     static final String TOWER_DETAIL = "失踪的人在塔尔塔罗斯里，探索时找到他们就能救出，能拿到奖励。";
     static final String DEADLINE_DETAIL = "期限前没去塔尔塔罗斯的话就救不出来了；想救的话，在期限前找一个晚上去塔尔塔罗斯。";
     /** Visible stat level that is MAX. */
@@ -180,8 +181,9 @@ final class Reminders {
 
     /**
      * 保健室 on school day D whose after-school slot is free when the evening before was a planned Tartarus
-     * visit, a full-moon operation, or (before the plan) the latest recorded Tartarus evening, and Courage is
-     * not MAX yet.
+     * visit, a full-moon operation, an evening the story spends in Tartarus ({@link Rules.Reminders#nurseStoryDays},
+     * 4/20 before a new game's first plan), or (before the plan) the latest recorded Tartarus evening, and
+     * Courage is not MAX yet.
      */
     private static void nurse(Model m, Rules.Reminders data, Plan plan, Walk walk, int lastTowerSlot,
                               List<Plan.Reminder> out) {
@@ -198,6 +200,7 @@ final class Reminders {
             Rules.Day prev = rules.day(d - 1);
             boolean afterNight = before != null && "tower".equals(before.kind)
                     || prev != null && prev.fullMoon && "full_moon".equals(prev.eveLock)
+                    || Arrays.binarySearch(data.nurseStoryDays, d - 1) >= 0
                     || eve < plan.fromSlot && lastTowerSlot == eve;
             if (!afterNight) continue;
             Plan.Reminder x = new Plan.Reminder();
@@ -207,7 +210,7 @@ final class Reminders {
             x.gainZh = "勇气 +" + data.nurseCourage;
             x.textZh = "放学后先去保健室：" + x.gainZh + "，不会消耗时间";
             x.shortZh = "保健室：" + x.gainZh;
-            x.detailZh = "前一晚去了塔尔塔罗斯或满月作战，放学后到 1 楼保健室喝药，勇气 +" + data.nurseCourage
+            x.detailZh = "前一晚探索了塔尔塔罗斯或打了满月作战，放学后到 1 楼保健室喝药，勇气 +" + data.nurseCourage
                     + "，不会消耗时间。" + STAT_NOTE;
             x.slot = slot;
             x.priority = Plan.Reminder.DEADLINE;
@@ -300,8 +303,8 @@ final class Reminders {
             for (Rules.RescueGroup g : e.getValue()) people(rules, g, new ArrayList<>(), notes);
             Plan.Reminder x = rescueLine("deadline", e.getValue().get(0), slot, Plan.Reminder.MISSABLE, limitDay);
             String limit = date(rules, limitDay);
-            x.textZh = "失踪者期限 " + limit + "：这几天的安排里没有塔尔塔罗斯";
-            x.shortZh = "失踪者期限 " + limit;
+            x.textZh = "失踪者 " + limit + "截止：这几天没安排去塔尔塔罗斯";
+            x.shortZh = "失踪者 " + limit + "截止";
             x.detailZh = DEADLINE_DETAIL + String.join("", notes);
             out.add(x);
         }
@@ -326,8 +329,12 @@ final class Reminders {
         return -1;
     }
 
-    /** Names of the group's modelled people, and what is lost when they are not rescued. */
+    /**
+     * Names of the group's modelled people, and what is lost when they are not rescued: their link, and what
+     * the group says it locks (伊莉莎白的第 97 号委托, {@link Rules.RescueGroup#locksZh}).
+     */
     private static void people(Rules rules, Rules.RescueGroup g, List<String> names, List<String> notes) {
+        if (g.locksZh != null && !g.locksZh.isEmpty()) notes.add(g.locksZh);
         for (String id : g.rescueIds) {
             int i = rescueIndex(rules, id);
             if (i < 0) continue;

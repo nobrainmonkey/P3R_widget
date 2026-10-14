@@ -868,6 +868,11 @@ public final class PlannerService implements PlannerApi {
                 // A follow-up superseded by this request does not run again for these revisions.
                 endFollowUpLocked(m);
             }
+            if (!current) {
+                // No plan of these revisions came from the stopped job: the ordinary one that runs
+                // instead keeps its budget follow-up.
+                releaseFollowUpLocked(m);
+            }
             full = f.ended(current ? FullReplanResult.CANCELLED : null);
             replan = !current;
         }
@@ -920,6 +925,19 @@ public final class PlannerService implements PlannerApi {
         marked.markFollowUpDone();
         persistPlanLocked(marked);
         model = m.withPlan(marked);
+    }
+
+    /**
+     * Gives back the follow-up a full job claimed when it was handed out ({@link ReplanHost#nextJob})
+     * when that job installs no plan for those revisions (stopped, or failed while the installed plan
+     * is out of date): the ordinary job that computes them instead keeps its one 2× follow-up if it
+     * runs out of time (DESIGN_v3 §10.6). Nothing has run for revisions without a plan of their own,
+     * so this never repeats a follow-up. Caller holds {@link #lock}.
+     */
+    private void releaseFollowUpLocked(Model m) {
+        if (m.view != null && !isCurrent(m) && planKey(m.view).equals(followUpKey)) {
+            followUpKey = null;
+        }
     }
 
     /**
@@ -1176,6 +1194,7 @@ public final class PlannerService implements PlannerApi {
                     // end the request rather than leave 「正在从头重新安排…」 up for good.
                     Log.w(TAG, "full replan " + f.pending + " ended without a result");
                     endFollowUpLocked(model);
+                    releaseFollowUpLocked(model);
                     full = f.ended(FullReplanResult.FAILED);
                 }
                 // A request that came in while this run was ending, or the plan just installed ran
@@ -1207,15 +1226,19 @@ public final class PlannerService implements PlannerApi {
                 // still replaces an out-of-date plan, as an ordinary job's would.
                 if (!failed && !current) {
                     installLocked(m, plan);
+                } else if (failed) {
+                    releaseFollowUpLocked(m);
                 }
                 return;
             }
             FullReplanResult result;
             if (failed) {
                 if (!current) {
-                    // Out of date as well: the ordinary failure (error card, no automatic retry).
+                    // Out of date as well: the ordinary failure (error card, no automatic retry). The
+                    // plan that 重试 computes for these revisions keeps its follow-up.
                     failedPlanKey = planKey(m.view);
                     model = m.withError(m.plan != null ? ZH_PLAN_FAILED_KEPT : ZH_PLAN_FAILED_NONE);
+                    releaseFollowUpLocked(m);
                 } else {
                     // The installed plan is still valid: no error, it just stays.
                     endFollowUpLocked(m);

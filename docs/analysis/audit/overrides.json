@@ -23,11 +23,16 @@
         "evidence": "The 2.2 MB of unused character and logo art is gone, and 3.1.0 also removed the guide widget's picker preview with the guide (docs/DESIGN_v3.md §19). android/app/src/main/res/drawable-nodpi now holds only ui_art_protagonist.png (the 今天 header art, TodayPage) and widget_preview_plan.png (res/xml/plan_widget_info.xml). ShippedAssetsTest.everyNodpiBitmapIsUsedAndTheDeadArtIsGone asserts that every nodpi bitmap is referenced and that character_day, character_night, character_day_compact, official_p3r_logo_color and the guide preview stay absent and unreferenced. A release build with the guide removed is about 0.84 MB (839,496 B before the other 3.1.0 changes; 3.0.0: 3,192,908 B; 3.0.2: 1,028,444 B), and `unzip -l` lists no asset besides assets/p3r/p3r_rules.json."
       },
       {
+        "requirement": "[59] No character illustration redesign; existing day/night fade works and must not regress",
+        "label": "3.1.0 更新",
+        "evidence": "No character art was redrawn: the old illustrations are unused, and a separate silhouette (ui_art_protagonist.png) is used in the app. WidgetPaletteFadeTest went with the 3.0.x guide in 3.1.0 (docs/DESIGN_v3.md §19); its coverage of the shared fade code was ported to the plan widget: PaletteHostTest (both palette slots, the settled tree, a crossfade that survives attach and is drawn frame by frame into qa_out/v3/widget/fade; 3 methods × sdk {26,31}), PlanWidgetFadeTest (a resize cancels the running fade; a burst of taps fades once; 2 methods × sdk {26,31}), FadeGuardTest (tap throttle and settle generations, 4 tests) and PlanWidgetBehaviourTest.paletteChangeFadesThenSettles (sdk {26,31}). All of them pass in the 3.1.0 full test run."
+      },
+      {
         "requirement": "[61] Existing fixed-guide widget and progress remain safe alongside adaptive planning",
         "status": "superseded",
         "label": "3.1.0 所有者要求",
         "evidence": "The owner asked to drop the old entry completely and cut ties with the old project (docs/DESIGN_v3.md §19; spec docs/specs/SPEC_3.1.0.md §1.3). 3.1.0 no longer carries the 3.0.x copy of the guide: its activity, home-screen widget, progress store, assets and tests are gone, and WidgetUpgradeReceiverTest.theManifestDeclaresOnlyThePlannersComponents asserts that the manifest declares only the planner's activities, the plan widget and the v3 upgrade receiver. The guide's data stays as pinned sources under rules/sources/cn_guides/.",
-        "gap": "The 2.0.0 app (app.p3r.dayplanner.test) is a separate package, so its guide and progress are untouched. Progress ticked in the 3.0.x guide can no longer be read after the update: the 3.1.0 release notes tell players to export it first and to remove an old guide widget from the home screen. Leftover data on the device is not deleted (owner decision O2)."
+        "gap": "The 2.0.0 app (app.p3r.dayplanner.test) is a separate package, so its guide and progress are untouched. Progress ticked in the 3.0.x guide can no longer be read after the update: the 3.1.0 release notes will tell players to export it first (in the 3.0.x guide: the menu button at the top right, 「设置」, 「导出进度备份」; the 2.0.0 app's guide imports the same file) and to remove an old guide widget from the home screen. The copy is prepared in docs/DESIGN_v3.md §19 and README.md (下载), and goes into docs/RELEASE_NOTES_3.1.0.md at the release step (spec §5). Leftover data on the device is not deleted (owner decision O2)."
       }
     ]
   },
