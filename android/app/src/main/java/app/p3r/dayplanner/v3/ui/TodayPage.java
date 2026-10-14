@@ -188,7 +188,19 @@ final class TodayPage {
     }
 
     private View statusLine(UiData d) {
-        if (d.snap.planErrorZh != null && !d.snap.planning) {
+        if (d.snap.fullReplanning) {
+            // 从头重新安排 (the plan may still be current): recording goes on as usual meanwhile.
+            LinearLayout box = Ui.column(c);
+            box.addView(Ui.text(c, FullReplanSheet.RUNNING, 14, Ui.col(c, R.color.p3r_cyan_300), true));
+            box.addView(new BusyStripe(c), spaced(6));
+            box.addView(Ui.caption(c, "可以照常记录，记下的结果会一起算进去"), spaced(6));
+            TextView stop = Ui.quiet(c, "先不算了");
+            stop.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+            stop.setOnClickListener(v -> host.cancelFullReplan());
+            box.addView(stop, Ui.wrap());
+            return box;
+        }
+        if (d.snap.planErrorZh != null && !d.snap.planning && !d.snap.fullReplanning) {
             LinearLayout card = Ui.row(c);
             card.setBackground(Ui.card(c).accent(Ui.col(c, R.color.p3r_danger), Ui.dp(c, 4)));
             Ui.pad(card, 18, 10, 8, 10);
@@ -216,7 +228,10 @@ final class TodayPage {
         }
         if (d.changeSummary != null) {
             LinearLayout row = Ui.row(c);
-            row.addView(Ui.icon(c, R.drawable.ui_ic_check, Ui.col(c, R.color.p3r_good), 18));
+            // A 从头重新安排 that failed or was stopped redid nothing: no check mark for it.
+            boolean neutral = PlanDiff.neutral(d.changeSummary);
+            row.addView(Ui.icon(c, neutral ? R.drawable.ui_ic_info : R.drawable.ui_ic_check,
+                Ui.col(c, neutral ? R.color.p3r_ink_muted : R.color.p3r_good), 18));
             TextView text = Ui.mixed(c, d.changeSummary, 14, Ui.col(c, R.color.p3r_ice_100), false);
             LinearLayout.LayoutParams p = Ui.weight(1);
             p.leftMargin = Ui.dp(c, 8);

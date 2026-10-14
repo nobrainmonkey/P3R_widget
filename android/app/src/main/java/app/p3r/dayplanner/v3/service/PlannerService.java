@@ -154,6 +154,40 @@ public final class PlannerService implements PlannerApi {
         }
     }
 
+    /**
+     * State of 从头重新安排 ({@link #requestFullReplan}), replaced as a whole under {@link #lock};
+     * {@link #snapshot} reads it without locks. Tickets count from 1 per process.
+     */
+    private static final class Full {
+        static final Full NONE = new Full(0, 0, 0, null);
+
+        /** Latest ticket handed out, 0 if none. */
+        final long ticket;
+        /** Ticket of the request still waiting for its plan (queued or computing), 0 if none. */
+        final long pending;
+        /** Latest ticket whose request has ended. */
+        final long done;
+        /** How {@link #done} ended, or null when there is nothing to tell the player. */
+        final FullReplanResult result;
+
+        private Full(long ticket, long pending, long done, FullReplanResult result) {
+            this.ticket = ticket;
+            this.pending = pending;
+            this.done = done;
+            this.result = result;
+        }
+
+        /** A new pending request (callers check {@link #pending} first). */
+        Full requested() {
+            return new Full(ticket + 1, ticket + 1, done, result);
+        }
+
+        /** The pending request has ended with {@code r}. */
+        Full ended(FullReplanResult r) {
+            return new Full(ticket, 0, pending, r);
+        }
+    }
+
     /** Body of a write; runs inside the transaction and the lock. */
     private interface TxCommand {
         Receipt run(LedgerView view) throws JSONException;
@@ -183,8 +217,15 @@ public final class PlannerService implements PlannerApi {
      * that ran out of time gets exactly one follow-up computation with twice the budget.
      */
     private String followUpKey;
+    /**
+     * Guarded by {@link #lock}: the 从头重新安排 ticket last handed to the worker. A run that ends
+     * while that ticket is still pending ended without an answer for it (it failed).
+     */
+    private long dispatchedTicket;
 
     private volatile Model model = new Model(null, null, null);
+    /** 从头重新安排 state; written after {@link #model}, so read it first. */
+    private volatile Full full = Full.NONE;
 
     private PlannerService(Context context, Wiring wiring) {
         this.context = applicationOf(context);
@@ -302,10 +343,16 @@ public final class PlannerService implements PlannerApi {
     @Override
     public Snapshot snapshot() {
         awaitLoaded();
+        // The request state first: a request seen as ended then comes with the plan it installed.
+        Full f = full;
         Model m = model;
         Snapshot s = new Snapshot();
         LedgerView v = m.view;
         s.planErrorZh = m.planErrorZh;
+        s.fullReplanning = f.pending > 0;
+        s.fullReplanTicket = f.ticket;
+        s.fullReplanDoneTicket = f.done;
+        s.fullReplanResult = f.result;
         if (v == null) {
             s.profile = new Profile();
             return s;
@@ -757,6 +804,80 @@ public final class PlannerService implements PlannerApi {
         }
     }
 
+    /**
+     * 从头重新安排 (docs/DESIGN_v3.md §16): re-reads the view from the store, then queues a full
+     * job ({@link ReplanWorker.Job#full}: no previous plan, three times the budget) that takes
+     * precedence over any other computation and supersedes the one in flight. Not a write.
+     */
+    @Override
+    public long requestFullReplan() {
+        awaitLoaded();
+        if (model.view == null) {
+            // Loading failed earlier (rule pack or database): this works as 重试.
+            worker.execute(this::retryOpen);
+            return 0;
+        }
+        long ticket;
+        synchronized (lock) {
+            Model m = model;
+            if (ledger == null || m.view == null) {
+                return 0;
+            }
+            Full f = full;
+            if (f.pending > 0) {
+                return f.pending;
+            }
+            try {
+                // The records and the profile as stored, not the cached view; the rule pack is an
+                // APK asset and stays as loaded.
+                m = m.withView(LedgerView.load(ledger, m.view.rules, wiring.applier));
+                model = m;
+            } catch (SQLException e) {
+                Log.e(TAG, "full replan: the records could not be re-read; using the cached view", e);
+            }
+            if (m.view.observed == null) {
+                return 0;
+            }
+            // Asked for by the player, like 重新安排: an earlier failure does not block it.
+            failedPlanKey = null;
+            full = f.requested();
+            ticket = full.pending;
+        }
+        replanner.cancelPartial();
+        replanner.schedule();
+        notifyListeners();
+        return ticket;
+    }
+
+    /**
+     * 「先不算了」: ends the pending request. A current plan stays ({@link FullReplanResult#CANCELLED});
+     * for an out-of-date plan an ordinary replan still runs and the request ends without a result.
+     */
+    @Override
+    public void cancelFullReplan() {
+        awaitLoaded();
+        boolean replan;
+        synchronized (lock) {
+            Full f = full;
+            if (f.pending == 0) {
+                return;
+            }
+            Model m = model;
+            boolean current = isCurrent(m);
+            if (current && planKey(m.view).equals(followUpKey)) {
+                // A follow-up superseded by this request does not run again for these revisions.
+                endFollowUpLocked(m);
+            }
+            full = f.ended(current ? FullReplanResult.CANCELLED : null);
+            replan = !current;
+        }
+        replanner.cancelFull();
+        if (replan) {
+            replanner.schedule();
+        }
+        notifyListeners();
+    }
+
     private static boolean isCurrent(Model m) {
         LedgerView v = m.view;
         Plan p = m.plan;
@@ -801,17 +922,54 @@ public final class PlannerService implements PlannerApi {
         model = m.withPlan(marked);
     }
 
+    /**
+     * {@link #followUpDoneLocked} for a current plan that still promises its follow-up: after a
+     * 从头重新安排 for these revisions (or its end) no follow-up runs. Caller holds {@link #lock}.
+     */
+    private void endFollowUpLocked(Model m) {
+        if (isCurrent(m) && m.plan.followUpPending()) {
+            followUpDoneLocked(m);
+        }
+    }
+
     /** Budget of the follow-up computation: twice the normal one. */
     static long followUpBudget(long budgetMillis) {
         return budgetMillis > Long.MAX_VALUE / 2 ? Long.MAX_VALUE : budgetMillis * 2;
     }
 
+    /** Budget of a 从头重新安排 computation: three times the normal one (7.5 s on device). */
+    static long fullReplanBudget(long budgetMillis) {
+        return budgetMillis > Long.MAX_VALUE / 3 ? Long.MAX_VALUE : budgetMillis * 3;
+    }
+
+    /**
+     * The planner's strict goal priority between two plans for the same revisions: the goals in
+     * priority order (「必须」 then 「想要」, each by order) decide, each by its end rank up to its
+     * target (reaching the target ties). Positive when {@code a} is better, negative when {@code b}
+     * is, 0 when the goals tie.
+     */
+    static int compareGoals(Profile profile, Plan a, Plan b) {
+        int[] ra = a.summary.endRanks;
+        int[] rb = b.summary.endRanks;
+        for (int l : goalOrder(profile)) {
+            if (l >= ra.length || l >= rb.length) {
+                continue;
+            }
+            int target = profile.target[l] > 0 ? profile.target[l] : 10;
+            int x = Math.min(ra[l], target);
+            int y = Math.min(rb[l], target);
+            if (x != y) {
+                return Integer.compare(x, y);
+            }
+        }
+        return 0;
+    }
+
     /**
      * Whether a follow-up result replaces the installed plan for the same revisions, with the
-     * planner's strict goal priority: the goals in priority order (「必须」 then 「想要」, each by
-     * order) decide first, each by its end rank up to its target (reaching the target ties); with the
-     * goals tied a complete plan replaces one that ran out of time, and between two that ran out of
-     * time more links at MAX, then the higher sum of end ranks, wins.
+     * planner's strict goal priority ({@link #compareGoals}); with the goals tied a complete plan
+     * replaces one that ran out of time, and between two that ran out of time more links at MAX,
+     * then the higher sum of end ranks, wins.
      */
     static boolean improves(Profile profile, Plan candidate, Plan current) {
         if (candidate == null) {
@@ -820,19 +978,12 @@ public final class PlannerService implements PlannerApi {
         if (current == null) {
             return true;
         }
+        int goals = compareGoals(profile, candidate, current);
+        if (goals != 0) {
+            return goals > 0;
+        }
         int[] a = candidate.summary.endRanks;
         int[] b = current.summary.endRanks;
-        for (int l : goalOrder(profile)) {
-            if (l >= a.length || l >= b.length) {
-                continue;
-            }
-            int target = profile.target[l] > 0 ? profile.target[l] : 10;
-            int ra = Math.min(a[l], target);
-            int rb = Math.min(b[l], target);
-            if (ra != rb) {
-                return ra > rb;
-            }
-        }
         if (!candidate.budgetExhausted) {
             return true;
         }
@@ -849,6 +1000,36 @@ public final class PlannerService implements PlannerApi {
             sumB += r;
         }
         return maxedA != maxedB ? maxedA > maxedB : sumA > sumB;
+    }
+
+    /**
+     * Whether a 从头重新安排 result replaces the current plan: better on the goals, or tied on them
+     * and not worse on time (complete, or both ran out of time). Unlike {@link #improves}, the other
+     * links do not decide: dropping the stability bias is the point of the request.
+     */
+    static boolean acceptsFull(Profile profile, Plan fresh, Plan current) {
+        int goals = compareGoals(profile, fresh, current);
+        return goals > 0 || (goals == 0 && (!fresh.budgetExhausted || current.budgetExhausted));
+    }
+
+    /**
+     * True when {@code after} does the same thing as {@code before} in every one of its slots
+     * (action and 顺便 lines) and ends at the same slot.
+     */
+    static boolean sameSteps(Plan before, Plan after) {
+        if (before == null || after == null) {
+            return before == after;
+        }
+        if (before.toSlot != after.toSlot) {
+            return false;
+        }
+        for (Plan.Step b : after.steps) {
+            Plan.Step a = before.at(b.slot);
+            if (a == null || !Objects.equals(a.action, b.action) || !Objects.equals(a.side, b.side)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** Goal links in priority order: 「必须」 then 「想要」, each by {@link Profile#order}, ties by index. */
@@ -888,19 +1069,35 @@ public final class PlannerService implements PlannerApi {
         public ReplanWorker.Job nextJob() {
             synchronized (lock) {
                 Model m = model;
-                boolean followUp = !needsPlan(m) && m.view != null && needsFollowUpLocked(m);
-                if (!followUp && (!needsPlan(m) || planKey(m.view).equals(failedPlanKey))) {
+                // A pending 从头重新安排 goes first, whether the installed plan is current or not.
+                // Marked as handed out before anything can fail: a run that ends with it still
+                // pending ends it (runEnded) instead of trying again forever.
+                long pending = full.pending;
+                if (pending > 0) {
+                    dispatchedTicket = pending;
+                }
+                long ticket = m.view != null && m.view.observed != null ? pending : 0;
+                boolean followUp = ticket == 0 && !needsPlan(m) && m.view != null && needsFollowUpLocked(m);
+                if (ticket == 0 && !followUp && (!needsPlan(m) || planKey(m.view).equals(failedPlanKey))) {
                     return null;
                 }
                 ReplanWorker.Job job = new ReplanWorker.Job();
                 job.rules = m.view.rules;
                 job.profile = m.view.profile.copy();
                 job.observed = m.view.observed.copy();
-                job.previous = m.plan;
+                // From scratch: without the installed plan the planner adds no stability bias.
+                job.previous = ticket > 0 ? null : m.plan;
                 job.stateRevision = m.view.stateRevision;
                 job.profileRevision = m.view.profileRevision;
                 job.options = options(m.view);
-                if (followUp) {
+                if (ticket > 0) {
+                    // Already the larger budget: no follow-up after it for these revisions.
+                    followUpKey = planKey(m.view);
+                    job.full = true;
+                    job.ticket = ticket;
+                    job.options.followUp = true;
+                    job.options.timeBudgetMillis = fullReplanBudget(wiring.planBudgetMillis);
+                } else if (followUp) {
                     // Exactly one follow-up per revisions, even if it runs out of time again.
                     followUpKey = planKey(m.view);
                     job.followUp = true;
@@ -923,7 +1120,12 @@ public final class PlannerService implements PlannerApi {
                     return true;
                 }
                 if (error instanceof CancellationException) {
-                    // Cancelled while still current (shutdown): leave everything as it was.
+                    // Cancelled while still current (shutdown, superseded by a full request, or
+                    // 「先不算了」): leave everything as it was.
+                    return false;
+                }
+                if (job.full) {
+                    finishFullLocked(m, job, plan, problems, error);
                     return false;
                 }
                 if (job.followUp) {
@@ -966,16 +1168,75 @@ public final class PlannerService implements PlannerApi {
          */
         @Override
         public void runEnded() {
+            boolean again;
+            synchronized (lock) {
+                Full f = full;
+                if (f.pending > 0 && f.pending == dispatchedTicket && !replanner.stopped()) {
+                    // Handed out, but the run ended without its result (a bug or a failed reload):
+                    // end the request rather than leave 「正在从头重新安排…」 up for good.
+                    Log.w(TAG, "full replan " + f.pending + " ended without a result");
+                    endFollowUpLocked(model);
+                    full = f.ended(FullReplanResult.FAILED);
+                }
+                // A request that came in while this run was ending, or the plan just installed ran
+                // out of time (compute it once more with twice the budget).
+                again = full.pending > 0 || needsFollowUpLocked(model);
+            }
             refreshWidgets();
             notifyListeners();
-            boolean followUp;
-            synchronized (lock) {
-                followUp = needsFollowUpLocked(model);
-            }
-            if (followUp) {
-                // The plan just installed ran out of time: compute it once more with twice the budget.
+            if (again) {
                 replanner.schedule();
             }
+        }
+
+        /**
+         * Installs or rejects the result of a full job and ends its request (spec: accept only
+         * what is not worse on the goals). A job whose request has ended meanwhile reports nothing.
+         * Caller holds {@link #lock}; the job's revisions are current.
+         */
+        private void finishFullLocked(Model m, ReplanWorker.Job job, Plan plan, List<String> problems,
+                                      Throwable error) {
+            Full f = full;
+            boolean current = isCurrent(m);
+            boolean failed = error != null || plan == null || !problems.isEmpty();
+            if (failed) {
+                Log.w(TAG, "full replan failed: " + (error != null ? error : problems));
+            }
+            if (f.pending != job.ticket) {
+                // Stopped (「先不算了」) or voided by an import after it was computed: a valid result
+                // still replaces an out-of-date plan, as an ordinary job's would.
+                if (!failed && !current) {
+                    installLocked(m, plan);
+                }
+                return;
+            }
+            FullReplanResult result;
+            if (failed) {
+                if (!current) {
+                    // Out of date as well: the ordinary failure (error card, no automatic retry).
+                    failedPlanKey = planKey(m.view);
+                    model = m.withError(m.plan != null ? ZH_PLAN_FAILED_KEPT : ZH_PLAN_FAILED_NONE);
+                } else {
+                    // The installed plan is still valid: no error, it just stays.
+                    endFollowUpLocked(m);
+                }
+                result = FullReplanResult.FAILED;
+            } else if (!current || acceptsFull(job.profile, plan, m.plan)) {
+                result = sameSteps(m.plan, plan) ? FullReplanResult.UNCHANGED : FullReplanResult.CHANGED;
+                installLocked(m, plan);
+            } else {
+                endFollowUpLocked(m);
+                result = FullReplanResult.KEPT;
+            }
+            full = f.ended(result);
+        }
+
+        /** Installs a full job's plan; it already had the larger budget, so it promises no follow-up. */
+        private void installLocked(Model m, Plan plan) {
+            plan.markFollowUpDone();
+            persistPlanLocked(plan);
+            failedPlanKey = null;
+            model = m.withPlan(plan);
         }
     }
 
@@ -1069,6 +1330,10 @@ public final class PlannerService implements PlannerApi {
             changed = receipt.ok && !receipt.duplicate;
             if (changed) {
                 rebuildAfterWriteLocked(dropPlan);
+                if (dropPlan && full.pending > 0) {
+                    // The records were replaced: the request is void, and there is nothing to report.
+                    full = full.ended(null);
+                }
             }
             fillRevisions(receipt, model.view);
         }

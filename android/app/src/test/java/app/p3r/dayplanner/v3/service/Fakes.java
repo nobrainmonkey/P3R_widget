@@ -20,13 +20,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 final class Fakes {
     private Fakes() {}
 
-    /** Records every call; can block its first call to simulate a slow computation. */
+    /** Records every call; can block one call (the first by default) to simulate a slow computation. */
     static final class Planner implements PlanFunction {
         final AtomicInteger calls = new AtomicInteger();
         final List<Engine.Options> options = new CopyOnWriteArrayList<>();
         final List<String> previousIds = new CopyOnWriteArrayList<>();
+        /** The profile of every call, as the service handed it over. */
+        final List<Profile> profiles = new CopyOnWriteArrayList<>();
+        /** Opens when the blocked call ({@link #blockedCall}) starts. */
         final CountDownLatch firstCallEntered = new CountDownLatch(1);
+        /** Holds the blocked call until it opens; null for none. */
         volatile CountDownLatch blockFirstCall;
+        /** Which call (1-based) {@link #blockFirstCall} holds: the first unless a test picks another. */
+        volatile int blockedCall = 1;
         volatile RuntimeException failWith;
         /** 顺便 keys put on every evening step ("act:study_room"), or null for none. */
         volatile List<String> eveningSide;
@@ -38,7 +44,8 @@ final class Fakes {
             int n = calls.incrementAndGet();
             options.add(opts);
             previousIds.add(previous == null ? "" : previous.planId);
-            if (n == 1 && blockFirstCall != null) {
+            profiles.add(profile);
+            if (n == blockedCall && blockFirstCall != null) {
                 firstCallEntered.countDown();
                 awaitQuietly(blockFirstCall);
             }

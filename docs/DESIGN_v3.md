@@ -206,7 +206,7 @@ with `w(MUST, order i) = 100 000 − 100 i`, `w(WANT, i) = 8 000 − 10 i`, `w(o
    Tower ← Strength 4, …) carry part of the gated link's value; money is a list of near-term needs
    (fees about to open, a small training float), so jobs stop once they are covered; admission
    control keeps the densest links "planned to MAX" when a slot kind is overbooked.
-3. **Budget**: soft time budget (default 4 s on device, configurable in tests). When exhausted, follow
+3. **Budget**: soft time budget (default 2.5 s on device, configurable in tests). When exhausted, follow
    the incumbent for the remaining slots — the plan still covers the full calendar.
 4. **Validation**: `PlanValidator` re-derives everything with its own independent accumulator and
    checks: one action per slot, contiguous slots, no action on a locked slot, link availability,
@@ -403,7 +403,23 @@ the new wizard. Release signing key lives in `.signing/` (git-ignored, never pub
 
 ## 16. 3.1.0: 从头重新安排
 
-_Placeholder: WP-B writes this section (spec `docs/specs/SPEC_3.1.0.md` §1.1)._
+- **Why.** Every automatic replan passes the installed plan as `previous`, which biases the next three days towards it (the base policy's +2 %, `Planner.STABILITY_MARGIN`, `SWITCH_MARGIN`), and `requestReplan` does nothing while the plan is current. After several setting changes the plan can therefore look held back by its own history. 「从头重新安排」 is the player's way to drop that bias. With budget to spare, planning is deterministic, so the run only differs where the bias or the budget mattered.
+- **Service** (`PlannerApi.requestFullReplan` / `cancelFullReplan`, `PlannerService`). A request first re-reads the view from the store under the lock (`LedgerView.load`; the rule pack stays as loaded). It then queues a full job (`ReplanWorker.Job.full`, with a ticket): `previous = null`, three times the budget (`fullReplanBudget`: 7.5 s on device) and the usual 4 candidates (they are in the plan id). It also sets `options.followUp` and `followUpKey`, so no automatic 2× run follows.
+  - A pending full job takes precedence over a follow-up or an ordinary job (`nextJob`). A request cancels the other computation in flight (`cancelPartial`). 「先不算了」 cancels only a full one (`cancelFull`).
+  - It is not a write: no revision moves, no command id, nothing in 记录历史, and `planCurrent` stays true throughout. So the widget keeps recording with one tap, and `Snapshot.planning` stays false. `Snapshot.fullReplanning` says a request is queued or computing.
+  - A record during the run cancels the computation for the old records (`cancelOutdated`). The request stays pending, and the next job is again a full one for the new revisions.
+- **Accepting the result.** With an out-of-date plan, the result is installed as an ordinary job's would be (including the ordinary failure: error card, no automatic retry). With a current plan, the result replaces it when `acceptsFull` holds: better on the goals (`compareGoals`, the strict goal priority that `improves` is now built on), or tied on them and not worse on time (complete, or both ran out of time). The other links do not decide, because dropping the bias is the point. Otherwise the plan stays (`KEPT`) and its follow-up promise ends (`followUpDoneLocked`). A failure keeps a current plan without `planErrorZh` or `failedPlanKey`. An installed full plan is marked `followUp`, so its budget note reads `BUDGET_NOTE_DONE`.
+- **Results** (`Snapshot.fullReplanTicket`, `fullReplanDoneTicket`, `fullReplanResult`; immutable holder `PlannerService.Full`, read before the model so a finished ticket comes with its plan):
+  - `CHANGED`/`UNCHANGED`: action and 顺便 lines per slot against the installed plan (`sameSteps`);
+  - `KEPT`, `FAILED`, `CANCELLED`;
+  - null when there is nothing to tell: a backup import voids the request; 「先不算了」 with an out-of-date plan lets an ordinary replan run instead.
+  - Tickets count per process. A repeated request while one is pending returns the same ticket. 0 means no state yet, or, after a failed load, the request works as 重试.
+- **UI.** Entry 我的 → 安排 → 「从头重新安排」 (after 规划说明; off without state, after the last day and while running), and a quiet button under the 规划设置 footer 「改动会马上生效并自动重新安排；想不沿用上一版、从头排一遍：」. Both open `FullReplanSheet` 「从头重新安排？」 ([先不了] [从头重新安排]; the running line instead while a request runs).
+  - `HomeActivity.requestFullReplan` shows the running state at once (optimistic snapshot), then keeps the ticket (it survives `onSaveInstanceState`) and reloads. The reload also drops optimistic leftovers such as a profile.
+  - 今天 shows 「正在从头重新安排…」 with the busy stripe, 「可以照常记录，记下的结果会一起算进去」 and 「先不算了」; the error card waits.
+  - When the done ticket reaches the kept one, `PlanDiff.fullSummary` gives the line once in the message bar and as the status line: 「从头重新安排好了：这一周有 N 处变动(，之后的也顺着调整了)」 / 「…这一周不变，之后的安排顺着调整了」 / 「…要做的事没变，顺便做的事有调整」, 「重新算过了，安排没有变化」, 「重新算过了，没有比现在的安排更好，保留现在的安排」, 「这次没能从头重新安排，现在的安排不变」, 「已停下，现在的安排不变」. Changes are counted against the plan shown when the request was made. If the screen was rebuilt meanwhile and that plan is unknown, the line is 「从头重新安排好了，一直排到1月31日」. The last two lines get a neutral mark instead of the check.
+  - Not on the 今天 hero or 规划说明. 「重新安排」/「重试」 still call `requestReplan`. Automatic replans after a profile change keep `previous` (owner decision O1: off).
+- **Tests.** `PlannerServiceFullReplanTest`, `ReplanWorkerTest` (selective cancels), `FullReplanUiTest`, `PlanDiffFullSummaryTest`, `widget/PlanViewFullReplanTest`.
 
 ## 17. 3.1.0: 当日提醒
 

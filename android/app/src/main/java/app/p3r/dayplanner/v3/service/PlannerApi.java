@@ -54,6 +54,36 @@ public interface PlannerApi {
         public long lastRecordMillis;
         /** Number of non-voided events since the current checkpoint. */
         public int eventsSinceCheckpoint;
+        /**
+         * A 从头重新安排 request ({@link #requestFullReplan}) is queued or computing. Unlike
+         * {@link #planning}, {@link #planCurrent} may stay true meanwhile: the installed plan is
+         * still the plan for the current records (the widget keeps recording with one tap).
+         */
+        public boolean fullReplanning;
+        /** Latest ticket {@link #requestFullReplan} handed out in this process, 0 if none. */
+        public long fullReplanTicket;
+        /** Latest ticket whose request has ended (with {@link #fullReplanResult}), 0 if none. */
+        public long fullReplanDoneTicket;
+        /**
+         * How the request {@link #fullReplanDoneTicket} ended, or null when there is nothing to tell
+         * the player (none yet, a backup import replaced the records, or it was stopped while the
+         * plan was out of date and an ordinary replan took over).
+         */
+        public FullReplanResult fullReplanResult;
+    }
+
+    /** How a 从头重新安排 request ended. */
+    enum FullReplanResult {
+        /** A new plan is installed whose steps (action and 顺便 lines per slot) differ from before. */
+        CHANGED,
+        /** Recomputed from scratch; the steps are the same as before. */
+        UNCHANGED,
+        /** The fresh plan was not better (goals first, see the service), so the installed one stays. */
+        KEPT,
+        /** The computation failed; the installed plan stays. */
+        FAILED,
+        /** Stopped by the player (「先不算了」); the installed plan stays. */
+        CANCELLED
     }
 
     final class Receipt {
@@ -236,6 +266,30 @@ public interface PlannerApi {
 
     /** Queue a replan if the installed plan is stale (no-op otherwise). */
     void requestReplan();
+
+    /**
+     * 从头重新安排: re-reads the records and the profile from storage, then computes a new plan
+     * from scratch (no stability bias towards the installed plan, a larger time budget), even when
+     * the installed plan is current. Not a write: no revision moves and nothing is recorded. While
+     * it runs {@link Snapshot#fullReplanning} is true; records may still be written (the
+     * computation then starts over for them). When it ends, {@link Snapshot#fullReplanDoneTicket}
+     * reaches the returned ticket and {@link Snapshot#fullReplanResult} says how it went. Reads the
+     * disk: call it off the main thread.
+     *
+     * @return the request's ticket (&gt; 0; the same one while a request is pending), or 0 before
+     *         onboarding and after a failed load (then it re-opens the data like {@link #requestReplan})
+     */
+    default long requestFullReplan() {
+        requestReplan();
+        return 0;
+    }
+
+    /**
+     * Stops a pending 从头重新安排 (「先不算了」). With a current plan the plan stays and the result
+     * is {@link FullReplanResult#CANCELLED}; with an out-of-date plan an ordinary replan still runs.
+     */
+    default void cancelFullReplan() {
+    }
 
     /**
      * Legal alternatives for a slot (for 改做别的), labelled like plan steps. For a future slot the

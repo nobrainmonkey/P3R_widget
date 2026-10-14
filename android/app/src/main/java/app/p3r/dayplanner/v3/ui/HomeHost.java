@@ -56,6 +56,15 @@ interface HomeHost {
 
     void requestReplan();
 
+    /**
+     * 从头重新安排: re-read the records and settings and plan from scratch. Shows the running state
+     * at once; the result is shown once in the message bar and the 今天 status line.
+     */
+    void requestFullReplan();
+
+    /** 「先不算了」: stops a running 从头重新安排. */
+    void cancelFullReplan();
+
     /** Hides the return banner until the next record. */
     void dismissReturnBanner();
 

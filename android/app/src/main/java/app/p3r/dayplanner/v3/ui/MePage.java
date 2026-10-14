@@ -10,8 +10,8 @@ import android.widget.TextView;
 import app.p3r.dayplanner.R;
 
 /**
- * 我的 tab: entry points to 同步现状, 修改进度, 记录历史, 规划设置, 规划说明, 备份与恢复,
- * 添加桌面小组件 and 关于.
+ * 我的 tab: entry points to 同步现状, 修改进度, 记录历史, 规划设置, 规划说明, 从头重新安排,
+ * 备份与恢复, 添加桌面小组件 and 关于.
  */
 final class MePage {
     /** Callbacks for the entries that need the activity. */
@@ -87,6 +87,10 @@ final class MePage {
             true, actions::openSettings), spaced(4));
         column.addView(entry(R.drawable.ui_ic_info, "规划说明", "怎么排的、数据从哪来",
             true, actions::openExplain), spaced(8));
+        boolean replanning = FullReplanSheet.running(d);
+        column.addView(entry(R.drawable.ui_ic_replan, FullReplanSheet.TITLE,
+            replanning ? FullReplanSheet.RUNNING : "重新读取进度和规划设置，从头再排一遍",
+            FullReplanSheet.available(d) && !replanning, () -> FullReplanSheet.show(host)), spaced(8));
 
         column.addView(Ui.sectionHeader(c, "其他", null), spaced(16));
         column.addView(entry(R.drawable.ui_ic_backup, "备份与恢复", "导出全部记录，或从备份恢复",
