@@ -115,6 +115,17 @@ final class LedgerView {
         return block == null ? -1 : block.idx;
     }
 
+    /** Slot of the latest Tartarus evening recorded since the latest checkpoint (voided rows skipped), -1 if none. */
+    int lastTowerSlot() {
+        int last = -1;
+        for (EventRow row : chain) {
+            if (!row.voided && EventKind.TOWER.equals(row.kind)) {
+                last = Math.max(last, row.slot());
+            }
+        }
+        return last;
+    }
+
     /** The checkpoint carried over to {@code rules} (see {@link CheckpointRow#stateFor}), or null if unreadable. */
     static PackLayout.Remapped start(CheckpointRow checkpoint, Rules rules) {
         try {

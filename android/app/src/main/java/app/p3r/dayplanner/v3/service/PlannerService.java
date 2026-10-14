@@ -878,6 +878,7 @@ public final class PlannerService implements PlannerApi {
         Engine.Options options = new Engine.Options();
         options.timeBudgetMillis = wiring.planBudgetMillis;
         options.towerIncomePerVisit = TowerIncome.estimate(view.towerGains, view.currentBlock());
+        options.lastTowerSlot = view.lastTowerSlot();
         return options;
     }
 

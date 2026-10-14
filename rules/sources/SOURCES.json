@@ -86,6 +86,18 @@
    "edition": "cn_guide_reload"
   },
   {
+   "path": "cn_guides/data.json",
+   "sha256": "08719e728ab953852292b18dd49c40c5790302eac24dfb3962db4be4ab271e49",
+   "derivedFrom": "assets/data.json of the retired 2.x 逐日攻略 (handoff zip sha ff93b765…); an edited reformat of the 3DM Reload walkthrough; class/exam answers on 9 dates carry English-localisation text, see REPORT §3",
+   "edition": "cn_guide_reload"
+  },
+  {
+   "path": "cn_guides/display_metadata.json",
+   "sha256": "28a19706f48a79cc9e8c19a0008ffb7605d64c5936308843989ffb0f60fdfd5e",
+   "derivedFrom": "assets/display_metadata.json of the retired 2.x 逐日攻略 (handoff zip sha 74f881cd…); per-task display labels (widget titles, places, dialogue choices) for cn_guides/data.json",
+   "edition": "cn_guide_reload"
+  },
+  {
    "path": "aqiu_gamedata/ActivityDataAsset.tsv",
    "sha256": "250d83b38ff305e4b633d5d79668861f6318fb2ad1176e5859bcf1ca98cf5d24",
    "url": "https://raw.githubusercontent.com/aqiu384/megaten-database/master/src/p3r/Content/Xrd777/Activity/ActivityDataAsset.tsv",

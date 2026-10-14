@@ -63,11 +63,27 @@ public final class Plan {
     }
     public List<Step> steps = new ArrayList<>();
     public Summary summary = new Summary();
+    /**
+     * 当日提醒: slot-free things to do or answer on a game day (class and exam answers, TV shopping,
+     * 保健室, requests, missing people…), sorted by slot, then priority (highest first), then id
+     * (docs/DESIGN_v3.md §17). Display-only: not in {@link PlanHash} and not counted in the
+     * forecast. Empty when the rule pack has none. JSON "reminders", omitted when empty.
+     */
+    public List<Reminder> reminders = new ArrayList<>();
 
     /** Step for a slot, or null if outside the plan. */
     public Step at(int slot) {
         int i = slot - fromSlot;
         return i >= 0 && i < steps.size() ? steps.get(i) : null;
+    }
+
+    /** Reminders with fromSlot <= slot <= toSlot, in list order. */
+    public List<Reminder> remindersIn(int fromSlot, int toSlot) {
+        List<Reminder> out = new ArrayList<>();
+        for (Reminder r : reminders) {
+            if (r.slot >= fromSlot && r.slot <= toSlot) out.add(r);
+        }
+        return out;
     }
 
     public static final class Predicted {
@@ -258,6 +274,81 @@ public final class Plan {
         }
     }
 
+    /**
+     * One 当日提醒 line. Static ones come from the rule pack's reminders section, dynamic ones
+     * (上课犯困, 保健室, 失踪者) are worked out from the forecast; either way the text is final Chinese.
+     */
+    public static final class Reminder {
+        public static final String CLASS = "class", EXAM = "exam", DOZE = "doze", NURSE = "nurse", TV = "tv",
+                REQUEST = "request", RESCUE = "rescue", FRAGMENT = "fragment", TRIP = "trip", FEATURE = "feature";
+        /** {@link #priority}: nice to know, a deadline coming up, or missable for good. */
+        public static final int NICE = 1, DEADLINE = 2, MISSABLE = 3;
+
+        /** Stable id, e.g. "class.07-08", "nurse.04-21", "rescue.06-18.start". */
+        public String id = "";
+        /** One of the kind constants above. */
+        public String kind = "";
+        /** Chip label, e.g. "课堂提问". */
+        public String labelZh = "";
+        /** Line for the card and the 今天 page, e.g. "课堂提问：选「马」（第 2 项）". */
+        public String textZh = "";
+        /** Slot of the card that carries it: {@link app.p3r.dayplanner.v3.model.Rules#slot}(day, evening). */
+        public int slot;
+        /** Short form for a small widget (at most 12 Han characters), or null. */
+        public String shortZh;
+        /** Class/exam only: the answer exactly as the zh guide writes it; otherwise null. */
+        public String answerZh;
+        /** Class only: the answer's position 1..4 from the zh guide; 0 when unknown. */
+        public int option;
+        /** Longer text for the day sheet, or null. */
+        public String detailZh;
+        /** What it gives, e.g. "魅力 +2", or null. */
+        public String gainZh;
+        public int priority = NICE;
+        /** Deadline day, or -1. */
+        public int untilDay = -1;
+        /** The answer text has a single source, or is an estimate. */
+        public boolean estimate;
+
+        public boolean isAnswer() { return CLASS.equals(kind) || EXAM.equals(kind); }
+
+        JSONObject toJson() throws JSONException {
+            JSONObject o = new JSONObject();
+            o.put("id", id);
+            o.put("kind", kind);
+            o.put("slot", slot);
+            o.put("label", labelZh);
+            o.put("text", textZh);
+            if (shortZh != null) o.put("short", shortZh);
+            if (answerZh != null) o.put("answer", answerZh);
+            if (option != 0) o.put("option", option);
+            if (detailZh != null) o.put("detail", detailZh);
+            if (gainZh != null) o.put("gain", gainZh);
+            o.put("priority", priority);
+            if (untilDay >= 0) o.put("until", untilDay);
+            if (estimate) o.put("estimate", true);
+            return o;
+        }
+
+        static Reminder fromJson(JSONObject o) throws JSONException {
+            Reminder r = new Reminder();
+            r.id = o.optString("id", "");
+            r.kind = o.optString("kind", "");
+            r.slot = o.getInt("slot");
+            r.labelZh = o.optString("label", "");
+            r.textZh = o.optString("text", "");
+            r.shortZh = o.has("short") ? o.getString("short") : null;
+            r.answerZh = o.has("answer") ? o.getString("answer") : null;
+            r.option = o.optInt("option");
+            r.detailZh = o.has("detail") ? o.getString("detail") : null;
+            r.gainZh = o.has("gain") ? o.getString("gain") : null;
+            r.priority = o.optInt("priority", NICE);
+            r.untilDay = o.optInt("until", -1);
+            r.estimate = o.optBoolean("estimate");
+            return r;
+        }
+    }
+
     private static int[] minusOnes(int n) {
         int[] a = new int[n];
         java.util.Arrays.fill(a, -1);
@@ -281,6 +372,11 @@ public final class Plan {
         for (Step s : steps) a.put(s.toJson());
         o.put("steps", a);
         o.put("summary", summary.toJson());
+        if (!reminders.isEmpty()) {
+            JSONArray r = new JSONArray();
+            for (Reminder x : reminders) r.put(x.toJson());
+            o.put("reminders", r);
+        }
         return o;
     }
 
@@ -300,6 +396,8 @@ public final class Plan {
         for (int i = 0; a != null && i < a.length(); i++) p.steps.add(Step.fromJson(a.getJSONObject(i)));
         JSONObject s = o.optJSONObject("summary");
         if (s != null) p.summary = Summary.fromJson(s);
+        JSONArray r = o.optJSONArray("reminders");
+        for (int i = 0; r != null && i < r.length(); i++) p.reminders.add(Reminder.fromJson(r.getJSONObject(i)));
         return p;
     }
 }

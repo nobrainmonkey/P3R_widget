@@ -4,10 +4,10 @@
 Inputs (never shipped in the APK):
   rules/sources/**           pinned third-party snapshots (aqiu game-data tables, aqiu calendar page,
                              Steam zh-Hans strings, CN guide page); hashes in rules/sources/SOURCES.json
+  rules/sources/cn_guides/data.json
+                             the original Simplified Chinese walkthrough of the retired 2.x guide
+                             (location names, wording, timing witnesses)
   rules/p3r/*.json           earlier research/evidence files (candidates, conflicts, witnesses)
-  android/app/src/main/assets/data.json
-                             the original Simplified Chinese walkthrough (location names, wording,
-                             timing witnesses)
 
 Outputs:
   android/app/src/main/assets/p3r/p3r_rules.json   the compiled pack (deterministic, < 1 MB)
@@ -35,7 +35,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SOURCES_DIR = ROOT / "rules" / "sources"
 EVIDENCE_DIR = ROOT / "rules" / "p3r"
-GUIDE_PATH = ROOT / "android" / "app" / "src" / "main" / "assets" / "data.json"
+GUIDE_REL = "cn_guides/data.json"
+GUIDE_PATH = SOURCES_DIR / GUIDE_REL
 PACK_PATH = ROOT / "android" / "app" / "src" / "main" / "assets" / "p3r" / "p3r_rules.json"
 REPORT_PATH = ROOT / "rules" / "build" / "REPORT.md"
 
@@ -405,7 +406,7 @@ def build_sources() -> list[dict]:
         snap("cn_3dm", "cn_guides/3dm_p42.html", "cn_guide", "3DM SC guide, page 42: Tartarus block names (single source)"),
         {"edition": "cn_guide_reload", "id": "cn_guide", "kind": "cn_guide",
          "note": "Original Simplified Chinese Reload walkthrough shipped with the legacy guide (wording, places, dialogue, timing witnesses)",
-         "path": "android/app/src/main/assets/data.json", "sha256": sha256_file(GUIDE_PATH), "url": None},
+         "path": "rules/sources/" + GUIDE_REL, "sha256": pinned[GUIDE_REL]["sha256"], "url": None},
         evidence("ev_calendar_constraints", "calendar_global_constraints_candidate.json", reload, "Locks, exams, full moons, school-closure candidates"),
         evidence("ev_slot_locks", "global_slot_locks_expansion_candidate.json", reload, "Whole-slot lock claims, Tartarus closures, witnesses"),
         evidence("ev_tartarus_supplement", "tartarus_entry_availability_supplement.json", reload, "Tartarus entry witnesses and closures"),
@@ -1708,7 +1709,7 @@ EPISODE_TRACKS = (
                 "会有剧情，这里已经先把那天空出来了。",
         "reward": "每一话都有小奖励（能力值或顺平的能力），看完第 5 话可以合体人格面具「苏尔特尔」。",
         "fusion": ("Surt", "苏尔特尔"),
-        # CN guide (assets/data.json): ep1 5/12 classroom, ep2 8/9 invitation, ep3 11/7 invitation,
+        # CN guide (cn_guides/data.json): ep1 5/12 classroom, ep2 8/9 invitation, ep3 11/7 invitation,
         # ep4 12/19 classroom, ep5 1/15 invitation (苏尔特尔).
         "witness": {1: "05-12", 2: "08-09", 3: "11-07", 4: "12-19", 5: "01-15"},
     },
@@ -2691,14 +2692,14 @@ def render_unverified(pack: dict) -> list[str]:
     out.append("Checked against official zh-Hans text: arcana and person names and the SEES label (game tables "
                "DatRaceDataAsset, DatPlayerNameDataAsset, DatSocialLinkDataAsset) and the terms 社群, 主角 and "
                "休息日邀约 (Steam achievement and store text). Nobody has compared the Chinese below with Simplified "
-               "Chinese game screens: it is walkthrough wording (CN guide `assets/data.json`, 3DM) or a plain "
-               "description, and it stays guide wording until someone checks it in the game.")
+               "Chinese game screens: it is walkthrough wording (CN guide `rules/sources/cn_guides/data.json`, 3DM) "
+               "or a plain description, and it stays guide wording until someone checks it in the game.")
     out.append("")
     out.append(f"- **Dialogue options** — {len(fragments)} fragments for {len(dialogue_links)} links (`links[].dialogue`), "
                "quoted from the CN guide through `guide_dialogue_reference_map.json`, which itself records "
                "sourceOptionOrderVerifiedAgainstChineseGame = false; its own provenance files are scratch paths that "
                f"are not in this repository. {len(fragments) - len(rewritten)} of {len(fragments)} occur verbatim in "
-               f"`assets/data.json`; {len(rewritten)} are editorial rewrites: "
+               f"`cn_guides/data.json`; {len(rewritten)} are editorial rewrites: "
                + "; ".join(f"{link} R{rank} 「{frag}」" for link, rank, frag in rewritten) + ". The answers quoted "
                "in unlock how-to texts come from the same guide.")
     found = sorted(p for p in places if p in official)

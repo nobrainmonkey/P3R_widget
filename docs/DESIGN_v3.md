@@ -400,3 +400,28 @@ GitHub release asset.
 - **Looks.** Two independent design reviews (`design_review_1.json`, `design_review_2.json`) looked at the README gallery, emulator captures and the Robolectric renders. Round-1 nits were fixed: every app text view goes through `ZhTextView` (keep-words-whole shaping, no lone last character, no line ending in 「·」); widget status cards have one live action; chips, names and locations are never cut with 「…」 (lower-priority parts are dropped first); large cards centre their text; pre-S widgets have round corners; the legacy guide widget breaks after clause punctuation and keeps 「<arcana>面具」 whole.
 - **Fonts.** The bundled Barlow Condensed files are the upstream ones, pinned by SHA-256 in `PlanWidgetRenderTest`. Adding a 「→」 glyph to the upright files broke the italic numerals on a device (Android takes a family's coverage from its first font), so the system arrow is used as before.
 
+## 16. 3.1.0: 从头重新安排
+
+_Placeholder: WP-B writes this section (spec `docs/specs/SPEC_3.1.0.md` §1.1)._
+
+## 17. 3.1.0: 当日提醒
+
+### 17.1 Data and engine
+
+_Placeholder: WP-C writes this part (spec §1.2.1–§1.2.5; the `Plan.reminders` contract is spec §2)._
+
+### 17.2 UI and widget
+
+_Placeholder: WP-D writes this part (spec §1.2.7)._
+
+## 18. 3.1.0: 小组件对话选项
+
+_Placeholder: WP-D writes this section (spec §1.4)._
+
+## 19. 3.1.0: 逐日攻略移除
+
+_Placeholder: WP-A writes this section (spec §1.3)._
+
+## 20. 3.1.0: 尽量都体验
+
+_Placeholder: WP-E writes this section (spec §8)._

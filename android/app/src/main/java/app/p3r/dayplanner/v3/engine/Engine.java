@@ -34,6 +34,8 @@ public final class Engine {
          * too, its summary note promises no further automatic run. Does not change the plan itself.
          */
         public boolean followUp;
+        /** Slot of the latest recorded Tartarus evening, for the 保健室 reminder; -1 when none. */
+        public int lastTowerSlot = -1;
         /**
          * Test hook (package-private): when set, receives the end rank of every link for each
          * complete plan the planner compared (screened, fortified and strict-priority runs).
