@@ -248,28 +248,6 @@ final class RenderSupport {
         }
     }
 
-    /**
-     * A shaped free-form title (the legacy guide, {@link CardText#guide}) never wraps inside a word it
-     * keeps whole: no line ends or starts at a word joiner, unless the unbreakable run there is wider
-     * than the title (the line breaker had to cut it).
-     */
-    static void collectJoinerBreaks(View root, String tag, List<String> issues) {
-        TextView title = root.findViewById(app.p3r.dayplanner.R.id.widget_task);
-        if (title == null || title.getVisibility() != View.VISIBLE || title.getLayout() == null) return;
-        android.text.Layout layout = title.getLayout();
-        String s = title.getText().toString();
-        for (int line = 0; line < layout.getLineCount() - 1; line++) {
-            if (layout.getEllipsisCount(line) > 0) continue;
-            int start = layout.getLineStart(line);
-            int end = layout.getLineEnd(line);
-            boolean inside = (end > 0 && s.charAt(end - 1) == CardText.WJ) || (end < s.length() && s.charAt(end) == CardText.WJ);
-            if (inside && !forcedBreak(title, end)) {
-                issues.add(tag + " title splits a word: '" + CardText.plain(s.substring(start, end)) + "' / '"
-                        + CardText.plain(s.substring(end)) + "'");
-            }
-        }
-    }
-
     /** The visible lines of a title, joined with 「/」 (for reports). */
     static String lines(TextView text) {
         if (text == null || text.getLayout() == null) return "";
