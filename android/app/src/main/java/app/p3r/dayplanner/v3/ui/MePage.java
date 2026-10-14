@@ -11,7 +11,7 @@ import app.p3r.dayplanner.R;
 
 /**
  * 我的 tab: entry points to 同步现状, 修改进度, 记录历史, 规划设置, 规划说明, 备份与恢复,
- * 逐日攻略, 添加桌面小组件 and 关于.
+ * 添加桌面小组件 and 关于.
  */
 final class MePage {
     /** Callbacks for the entries that need the activity. */
@@ -23,8 +23,6 @@ final class MePage {
         void openBackup();
 
         void openExplain();
-
-        void openGuide();
 
         void addWidget();
 
@@ -93,8 +91,6 @@ final class MePage {
         column.addView(Ui.sectionHeader(c, "其他", null), spaced(16));
         column.addView(entry(R.drawable.ui_ic_backup, "备份与恢复", "导出全部记录，或从备份恢复",
             true, actions::openBackup), spaced(4));
-        column.addView(entry(R.drawable.ui_ic_guide, "逐日攻略", "打开原来的攻略和进度",
-            true, actions::openGuide), spaced(8));
         column.addView(entry(R.drawable.ui_ic_widget, "添加桌面小组件", "在桌面上看下一步，点「完成」直接记录",
             true, actions::addWidget), spaced(8));
         column.addView(entry(R.drawable.ui_ic_star, "关于", null, true, actions::openAbout), spaced(8));

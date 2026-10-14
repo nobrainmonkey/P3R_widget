@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Looper;
 
 import app.p3r.dayplanner.v3.engine.Engine;
@@ -64,9 +63,6 @@ public class EndToEndRealPackTest {
 
     @Test
     public void followDeviateCorrectAndSyncKeepsEveryPlanValidAndComplete() {
-        SharedPreferences legacy = context.getSharedPreferences("p3r_native_progress_v1", Context.MODE_PRIVATE);
-        legacy.edit().putString("completed", "{\"t005_03\":true}").commit();
-
         Profile profile = new Profile();
         profile.tier[rules.link("emperor").idx] = Profile.Tier.MUST;
         profile.tier[rules.link("lovers").idx] = Profile.Tier.WANT;
@@ -166,11 +162,10 @@ public class EndToEndRealPackTest {
         Plan synced = settledPlan("after sync");
         assertTrue(synced.fromSlot >= later.slot);
 
-        // History reads naturally and the legacy guide's progress is untouched.
+        // History reads naturally.
         List<PlannerApi.HistoryItem> history = service.history(200);
         assertFalse(history.isEmpty());
         for (PlannerApi.HistoryItem h : history) assertFalse(h.summaryZh, h.summaryZh.matches(".*[a-z_]{4,}.*"));
-        assertEquals("{\"t005_03\":true}", legacy.getString("completed", null));
         System.out.println("followed plan: " + followed.summary.usefulActions + " useful actions");
     }
 

@@ -21,7 +21,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.atomic.AtomicLong;
 
-import app.p3r.dayplanner.MainActivity;
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.Intents;
 import app.p3r.dayplanner.v3.engine.Outcome;
@@ -785,11 +784,6 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             @Override
             public void openExplain() {
                 pushPage("规划说明", InfoPages.explain(HomeActivity.this));
-            }
-
-            @Override
-            public void openGuide() {
-                startActivity(new Intent(HomeActivity.this, MainActivity.class));
             }
 
             @Override

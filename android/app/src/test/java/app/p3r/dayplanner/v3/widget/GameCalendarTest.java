@@ -16,8 +16,6 @@ public class GameCalendarTest {
         assertEquals(0, GameCalendar.ordinal(2009, 4, 1));
         assertEquals(6, GameCalendar.ordinal(2009, 4, 7));
         assertEquals(305, GameCalendar.ordinal(2010, 1, 31));
-        assertEquals(GameCalendar.ordinal(2010, 3, 4), GameCalendar.ordinalOfGuideDate(3, 4));
-        assertEquals(GameCalendar.ordinal(2009, 10, 22), GameCalendar.ordinalOfGuideDate(10, 22));
     }
 
     @Test
@@ -81,9 +79,7 @@ public class GameCalendarTest {
     }
 
     @Test
-    public void motifKeyIsTheGameDayInBothWidgets() {
-        int day = GameCalendar.ordinal(2009, 5, 2);
-        assertEquals(WidgetMotif.forDay(day), WidgetMotif.forDay(GameCalendar.ordinalOfGuideDate(5, 2)));
+    public void everyShaftCompositionIsUsed() {
         boolean[] seen = new boolean[WidgetMotif.VARIANTS];
         for (int d = 0; d <= 305; d++) seen[WidgetMotif.forDay(d)] = true;
         for (boolean used : seen) assertTrue("every shaft composition is used", used);

@@ -13,7 +13,7 @@ import java.util.List;
 
 import app.p3r.dayplanner.R;
 
-/** Size buckets and host-reported sizes shared by both widgets. All sizes are in dp. */
+/** Size buckets and host-reported sizes of the plan widget. All sizes are in dp. */
 public enum WidgetSize {
     /** Narrow (under 220dp): the plate spans the whole width, no status cluster. */
     TINY(R.layout.widget_card_tiny),
@@ -54,7 +54,7 @@ public enum WidgetSize {
 
     /**
      * Best single-size guess before API 31: portrait hosts give min width × max height, landscape
-     * hosts max width × min height (same rule the legacy widget has always used).
+     * hosts max width × min height.
      */
     public static float[] fallback(Context context, Bundle options) {
         if (options == null) return new float[]{280, 180};

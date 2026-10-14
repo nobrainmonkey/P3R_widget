@@ -6,9 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import android.content.Context;
-import android.content.SharedPreferences;
-
 import app.p3r.dayplanner.v3.engine.Outcome;
 import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.engine.SimState;
@@ -21,9 +18,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 /** Ledger behaviour through the public facade: CAS, idempotency, validation, replay, history. */
@@ -351,31 +346,6 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
 
         assertTrue("past slot", service.alternatives(MAY12_DAY - 1).isEmpty());
         assertTrue("locked slot", service.alternatives(rules.lastSlot()).isEmpty());
-    }
-
-    @Test
-    public void legacyGuidePreferencesAreNeverTouched() {
-        SharedPreferences guide = context.getSharedPreferences("p3r_native_progress_v1", Context.MODE_PRIVATE);
-        guide.edit()
-                .putString("completed", "{\"t001_01\":true}")
-                .putString("theme", "night")
-                .putLong("widgetActionRevision", 12L)
-                .commit();
-        Map<String, Object> before = new HashMap<>(guide.getAll());
-
-        onboard(MAY12_EVE);
-        PlannerApi.Receipt visit = tower(MAY12_EVE, 20, false, 3_000);
-        service.correctTower(id(), rev(), visit.eventSeq, towerReturn(0, 22, true, 13_500));
-        record(MAY13_DAY, "meet:emperor", Outcome.Code.AS_PREDICTED);
-        service.voidEvent(id(), rev(), visit.eventSeq);
-        service.saveProfile(id(), service.snapshot().profileRevision, new Profile());
-        String backup = service.exportBackup();
-        service.importBackup(id(), backup);
-        service.history(0);
-        service.alternatives(observed().slot);
-        settle();
-
-        assertEquals(before, context.getSharedPreferences("p3r_native_progress_v1", Context.MODE_PRIVATE).getAll());
     }
 
     private static void assertMessage(PlannerApi.Receipt r, String zh) {

@@ -20,7 +20,6 @@ conceptually; everything else in `v2/` is replaced.
 
 ```
 android/app/src/main/java/app/p3r/dayplanner/
-  MainActivity, PlannerStore, PlannerWidget, WidgetUpgradeReceiver   legacy fixed guide (kept, restyled labels only)
   v3/model/     Rules POJOs + RulesLoader (JSON → immutable model)          [rules agent]
   v3/engine/    SimState, Action, Simulator, Heuristics, Planner,
                 PlanValidator, Plan, PlanStep, Outcome, PlanJson             [engine agent]
@@ -268,8 +267,8 @@ Principle: **确认而不是录入** — every field is prefilled (last observed
   end RANK, goal tier chip cycling 「—」→「想要」→「必须」, order for 必须/想要 via ↑↓, MAX date or reason
   ("时间不够：优先级低于 恋爱"). Story links show "剧情自动推进".
 - **我的 (tab 4)**: 同步现状 / 完整修改状态, 规划设置 (人格面具加成, 魅力加成, 目标留余量, 回答方式, 每区块进塔
-  次数与上限, 现金余量), 记录历史 (撤销/修改), 备份与恢复, 规划说明 (assumptions & sources), 固定攻略 (legacy
-  guide), 添加桌面小组件.
+  次数与上限, 现金余量), 记录历史 (撤销/修改), 备份与恢复, 规划说明 (assumptions & sources), 添加桌面小组件
+  (the 3.0.x guide entry was removed in 3.1.0, §19).
 - **State wizard / 同步现状 (StateActivity)**: one screen per step, prefilled: 日期 (月份标签 + 日历格,
   白天/晚上) → 现金 (keypad, "不确定") → 个人能力值 (Lv 1–6 segmented ×3) → 社群 RANK (grid; RankPad with
   未建立 1–9 MAX ? and auto-advance) → 解锁进度 (only relevant links) → 塔尔塔罗斯 (区块 auto from date,
@@ -317,22 +316,24 @@ and diagonal cuts, bold condensed italic Latin numerals (bundled OFL font), no f
 - Deviations: skipped, no-rank-up, early rank-up, swap, weeks-later sync, low money, tower cap 0/1,
   story lock, stale replan rejection, idempotent retry, tower correction adds no visit.
 - UI: Robolectric renders of every screen/sheet at 360×780 and widget sizes, day/night.
-- Legacy guide: all legacy tests unchanged; isolation check (planner never touches guide prefs).
+- Legacy guide (3.0.x): its tests and the planner/guide isolation check went with the guide in 3.1.0
+  (§19); the shared widget pieces they covered (fade host, fade throttle, card chrome) have their own tests.
 
 ## 9. Identity, signing, release
 `applicationId` changes to **`app.p3r.planner`** (label "P3R 规划"). Reason: the installed 2.0.0 is
 signed with a debug certificate that is not available here; any APK built here cannot update it.
-A side-by-side package avoids telling the player to uninstall. Legacy guide progress can be moved via
-the guide's export/import; planner state is re-entered once with the new wizard. Release signing key
-lives in `.signing/` (git-ignored, never published). Version 3.0.0 (code 30). APK published as a
-GitHub release asset.
+A side-by-side package avoids telling the player to uninstall. The 2.0.0 guide and its progress stay in
+the old app (3.0.x carried a copy of the guide until 3.1.0, §19); planner state is re-entered once with
+the new wizard. Release signing key lives in `.signing/` (git-ignored, never published). Version 3.0.0
+(code 30). APK published as a GitHub release asset.
 
 ## 10. Settled decisions (after the critic pass)
 
 1. **Persona bonus** (superseded by Profile.personaMode NONE/GOALS/ALL — players do not carry every matching Persona): a three-way question in onboarding and 规划设置 ("见面时通常带着同阿尔卡那的人格面具吗？" → 基本都带 / 只给目标社群带 / 不带·不一定), default 不带. When on, ×1.51 applies to ordinary meetings and rank-up answers. **Charm bonus**
    (×1.51 at 魅力 Lv6, game data) applies when the forecast reaches Lv6; toggle default on, listed
-   in 规划说明. The legacy guide maxes all 22 links only with matching Personas (146 items) — use it
-   as the benchmark: with personaBonus=true from a new game the planner should MAX ≥ 18 links.
+   in 规划说明. The CN guide (pinned as `rules/sources/cn_guides/data.json`) maxes all 22 links only
+   with matching Personas (146 items) — use it as the benchmark: with personaBonus=true from a new
+   game the planner should MAX ≥ 18 links.
 2. **Mid-chain holds** (rank-ups blocked by story/rumour, e.g. Hierophant R4→R5, Moon R9 reversal):
    encoded in the pack as `links[].holds:[{rank, untilDay|untilFlag, zh}]`; meetings during a hold give
    ordinary points only. Result sheets offer "游戏提示暂时无法升级" which freezes that link until the
@@ -389,15 +390,15 @@ GitHub release asset.
 - **Hard fee reserve.** `Kernel.FEE_RESERVE` = 2,500 日元 (one café shift): an unlock fee is paid leaving at least that much unless waiting would cost the link its milestone (`feeAffordable`); while a fee is due within 14 days and affordable, paid training and 结缘网站的字条 leave the fee plus the reserve; on a fee day they leave the reserve (`optionalHold`). The 规划说明 sheet states this (`Labels.FEE_NOTE`).
 - **Honest follow-up.** A plan whose time budget ran out says 「稍后会自动再算一次」 only while the service's one follow-up computation is still to come; that computation sets `Plan.followUp` (JSON `followUp`), and the note then reads 「后半段是粗略安排；记下一个结果后会重新安排」 (`Plan.budgetNoteZh`). The UI reads the flag directly. The follow-up replaces the installed plan only by the same strict goal priority (`PlannerService.improves`: goals in order, each by end rank up to its target; then a complete plan beats one that ran out of time).
 - **Meeting how-to.** 「怎么做」 of a meeting is: when/where/whom, the guide's 「参考回答：…」 (engine `DialogueHint`, same filtering as the UI's `Dialogue`), side steps, and the link's own note as 「注意：…」. The UI shows 「参考回答」 and 「注意」 lines as marked notes under the numbered steps (not counted as steps) and drops its separate 参考回答 row when the how-to already has it.
-- **Legacy guide.** Text fields of `assets/data.json`, `display_metadata.json` and the copy embedded in `index.html` follow the glossary (「10月13日」, 「3,980 日元」, 「Lv.2」 for stats and 「→RANK2」 for links, 羁绊剧情, no English glosses after Chinese answers; English-class options such as 「Lives」 stay); ids, kinds, dates, keys, order and list lengths are pinned by `LegacyGuideChineseTest` against the 2.x structure. The guide widget keeps goods, answers and counts (「（2）」「（1个）」) whole; `LegacyGuideWordsRenderTest` derives the quoted names and shopping goods from the data itself instead of relying on the word list alone.
-- **Wording.** 主角 (not 主人公) in the legacy guide data too; dates in text are 「10月23日 周五」 (the date plate keeps 「10/23」); 结缘网站的字条 always in full; legacy widget and app text are shaped so names and short tags never break across lines (only （…） notes of up to 5 characters are glued, so longer ones can wrap at large font sizes).
+- **Legacy guide** (removed in 3.1.0, §19). Text fields of `assets/data.json`, `display_metadata.json` and the copy embedded in `index.html` followed the glossary (「10月13日」, 「3,980 日元」, 「Lv.2」 for stats and 「→RANK2」 for links, 羁绊剧情, no English glosses after Chinese answers; English-class options such as 「Lives」 stay); ids, kinds, dates, keys, order and list lengths were pinned by `LegacyGuideChineseTest` against the 2.x structure. The guide widget kept goods, answers and counts (「（2）」「（1个）」) whole; `LegacyGuideWordsRenderTest` derived the quoted names and shopping goods from the data itself instead of relying on the word list alone. The two JSON files now live only as pinned sources under `rules/sources/cn_guides/`.
+- **Wording.** 主角 (not 主人公), also in the 3.0.x guide data; dates in text are 「10月23日 周五」 (the date plate keeps 「10/23」); 结缘网站的字条 always in full; widget and app text are shaped so names and short tags never break across lines (only （…） notes of up to 5 characters are glued, so longer ones can wrap at large font sizes).
 - **Aeon meeting days.** The aqiu calendar has Aigis after school Mon–Sat from 1/8; Game8, PC Invasion, Prima and GamesHorizon (Reload) list Mon/Wed/Fri/Sat. By the strictest-claim rule the pack keeps Mon/Wed/Fri/Sat (conflict `avail.aeon.tuethu` in `rules/build/REPORT.md`), found by the independent source check (`docs/analysis/audit/wiki_sources.json`).
 - **Measured** (real pack, desktop JVM, default options; full table in `docs/PLAN_METRICS.md`): new game with the arcana Persona for every meeting 22/22 MAX; no Persona 21/22 (恋爱 RANK 9; also 21/22 with all five Link Episode tracks); 皇帝 MUST 21/22 with 皇帝 MAX 6月29日; MUST 皇帝 + WANT 恋爱、女皇 with Persona for goals only 21/22, all three goals MAX; every scenario plans to 1月31日 and passes `PlanValidator`.
 
 ## 15. 3.0.2: independent sign-off reviews
 
 - **Sources.** A read-only agent re-verified the Reload-only source policy (`docs/analysis/audit/wiki_sources.json`): all 33 pinned hashes and 40 cited local files match, no P3/FES/P3P data feeds a shipped rule, and 18 facts were checked against the pinned sources and public Reload guides; the one disagreement (Aeon weekdays) was resolved by the strictest-claim rule (§14).
-- **Looks.** Two independent design reviews (`design_review_1.json`, `design_review_2.json`) looked at the README gallery, emulator captures and the Robolectric renders. Round-1 nits were fixed: every app text view goes through `ZhTextView` (keep-words-whole shaping, no lone last character, no line ending in 「·」); widget status cards have one live action; chips, names and locations are never cut with 「…」 (lower-priority parts are dropped first); large cards centre their text; pre-S widgets have round corners; the legacy guide widget breaks after clause punctuation and keeps 「<arcana>面具」 whole.
+- **Looks.** Two independent design reviews (`design_review_1.json`, `design_review_2.json`) looked at the README gallery, emulator captures and the Robolectric renders. Round-1 nits were fixed: every app text view goes through `ZhTextView` (keep-words-whole shaping, no lone last character, no line ending in 「·」); widget status cards have one live action; chips, names and locations are never cut with 「…」 (lower-priority parts are dropped first); large cards centre their text; pre-S widgets have round corners; the 3.0.x guide widget (removed in 3.1.0, §19) broke after clause punctuation and kept 「<arcana>面具」 whole.
 - **Fonts.** The bundled Barlow Condensed files are the upstream ones, pinned by SHA-256 in `PlanWidgetRenderTest`. Adding a 「→」 glyph to the upright files broke the italic numerals on a device (Android takes a family's coverage from its first font), so the system arrow is used as before.
 
 ## 16. 3.1.0: 从头重新安排
@@ -420,7 +421,14 @@ _Placeholder: WP-D writes this section (spec §1.4)._
 
 ## 19. 3.1.0: 逐日攻略移除
 
-_Placeholder: WP-A writes this section (spec §1.3)._
+- **Owner override.** The owner asked to drop the old entry and cut ties with the old project (「能不能把老的entry彻底删了，和老的项目断舍离」; spec `docs/specs/SPEC_3.1.0.md` §1.3). This supersedes `P3R_HANDOFF_PROMPT.md:61` (「Existing fixed-guide widget and progress must remain safe when adding adaptive planning」) and §2/§7.1/§8/§9 above for the copy of the 2.x guide that 3.0.x carried. The 2.0.0 app (`app.p3r.dayplanner.test`) is a separate package and keeps its own guide and progress; `HANDOFF_COMPLIANCE.md` marks row [61] as superseded (`docs/analysis/audit/overrides.json`).
+- **Removed.** `MainActivity` (the WebView page `assets/index.html`), `PlannerStore` (its progress in the prefs `p3r_native_progress_v1` and WebView storage), the 「P3R 逐日攻略」 widget `PlannerWidget` with `res/xml/planner_widget_info.xml`, the picker preview `widget_preview_guide.png` and the strings `widget_description` / `guide_widget_label`, the guide's theme `AppTheme` (`values/styles.xml`, `values-v27/`), the 我的 entry and its icon `ui_ic_guide`, and `GameCalendar.ordinalOfGuideDate`. Tests that only covered the guide went with it (`LegacyGuideChineseTest`, `PlannerIntegrityTest`, `PlannerNavigationTest`, `WidgetDialogueRenderTest`, `WidgetNativeRenderTest`, `WidgetPaletteFadeTest`, `WidgetRemoteViewsTest`, `LegacyWidgetRenderTest`, `LegacyGuideWordsRenderTest`), as did the stale `android/README.md`, `android/README_original_v1_2.md`, `android/NATIVE_WIP_CHECKPOINT_2026-10-12.md`, the Python `prototype/` and `docs/screenshots/legacy_guide.png`.
+- **Kept.** The guide's `data.json` and `display_metadata.json` are pinned sources under `rules/sources/cn_guides/` (the rule builder reads `data.json`); the handoff zip, `P3R_HANDOFF_PROMPT.md`, `docs/handoff/`, `docs/analysis/` and `android/SEES_ASSET_SOURCE.txt` stay as records.
+- **Moved.** `v3/widget/WidgetUpgradeReceiver` handles `MY_PACKAGE_REPLACED` and only calls `PlanWidget.refreshAll`. The manifest's application theme is `P3R.App` (every activity already sets its own).
+- **Coverage kept.** The guide's tests were the only ones on some shared widget code, so they were ported: `FadeGuardTest` (tap throttle, settle generations), `PaletteHostTest` (both palette slots, the settled tree, an attached crossfade drawn frame by frame into `qa_out/v3/widget/fade`), `CardChromeTest` (40 dp targets around 34 dp silhouettes, flat surface, 当前/完成 clear of their glyphs, plate, light shafts, wordmark), `PlanWidgetFadeTest` (a resize cancels a running fade; a burst of taps fades once). `WidgetUpgradeReceiverTest` checks that the broadcast redraws every placed widget and that the manifest declares only the planner's components; `MePageTest` checks the 我的 entries. The real-ViewAnimator test shadow is `v3/widget/RealViewAnimator`.
+- **Players.** An old 「P3R 逐日攻略」 widget on the home screen stops working, and the guide's progress can no longer be read. Release-note copy (spec §1.3 item 10): 「如果桌面上还有「P3R 逐日攻略」小组件，更新后它会失效，长按把它移除就好；「P3R 每日安排」不受影响。」 and 「想保留的话，更新前先在逐日攻略里「导出」。」 Owner decision O2 (default): the leftovers on the device (prefs and WebView storage) are not deleted; nothing in the app reads or writes them.
+- **Not in this part.** Guide-only code inside the shared card renderer (`CardText` guide shaping, `CardRenderer.guideTitle`, `CardModel.guideText`, `GuideWords`, the `RenderSupport` legacy helpers, the "legacy" comments in the card layouts) goes with the widget answers rewrite (§18).
+- **APK.** 3.0.2 was 1,028,444 B; a release build with only this removal is 839,496 B (the guide page, its two JSON files and the preview PNG were most of it), and it ships no asset besides `assets/p3r/p3r_rules.json`.
 
 ## 20. 3.1.0: 尽量都体验
 

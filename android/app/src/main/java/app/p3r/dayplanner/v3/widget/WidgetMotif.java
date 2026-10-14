@@ -1,8 +1,8 @@
 package app.p3r.dayplanner.v3.widget;
 
 /**
- * Picks the background light-shaft composition for a game date. Both widgets key on the game-day
- * ordinal (days since 2009-04-01), so the same date always looks the same in either widget.
+ * Picks the background light-shaft composition for a game date, keyed on the game-day ordinal (days
+ * since 2009-04-01), so the same date always looks the same.
  */
 public final class WidgetMotif {
     /** Number of shaft compositions ({@code widget_shafts_0..3}). */
