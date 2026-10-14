@@ -86,6 +86,76 @@
    "edition": "cn_guide_reload"
   },
   {
+   "path": "cn_guides/3dm_p2.html",
+   "sha256": "04149c43bd5b92b89a055f965034f878f4e83bf5992c4e8e0cd0567e26f80840",
+   "url": "https://www.3dmgame.com/gl/3928716_2.html",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/3dm_p3.html",
+   "sha256": "1b6439b909617401496ba8abe6fbf748b1b8e5ceddbc525926c2a575f2ba9a73",
+   "url": "https://www.3dmgame.com/gl/3928716_3.html",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/3dm_p4.html",
+   "sha256": "6ae8b0275b081aee7ad77d2769667349c1b4fa239cb842b7c398a4f9ddc4794e",
+   "url": "https://www.3dmgame.com/gl/3928716_4.html",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/3dm_p5.html",
+   "sha256": "ee642535c3af0705455ddc782802a2c577a0b425121ee322b9c3dd9584f65fa1",
+   "url": "https://www.3dmgame.com/gl/3928716_5.html",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/3dm_p6.html",
+   "sha256": "ca662a47178abc16eee49f4a7562bf2bcab83b55844d5f6458bf3e4dfc4b8dd6",
+   "url": "https://www.3dmgame.com/gl/3928716_6.html",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/3dm_p7.html",
+   "sha256": "18e67c7984ca6ad2d67ad509aed71f73474070a557ce2c1ecefc7d1b7a17fdcb",
+   "url": "https://www.3dmgame.com/gl/3928716_7.html",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/3dm_p8.html",
+   "sha256": "b46b1cb90ed315e57f668d9d6bb1a412bd37c991cb8a8b2dec451a2270c546fe",
+   "url": "https://www.3dmgame.com/gl/3928716_8.html",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/3dm_p9.html",
+   "sha256": "817d8d5fa8c3f9640bb15c2c25219e008087ed737b50df93b2d37cf19535428c",
+   "url": "https://www.3dmgame.com/gl/3928716_9.html",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/3dm_p10.html",
+   "sha256": "e12082e88f29b4454fc16968115c713669013fa19a90ff8608385ce2d5ca4847",
+   "url": "https://www.3dmgame.com/gl/3928716_10.html",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/3dm_p11.html",
+   "sha256": "1e9b76911ee42c690a1b81a7e46cd3e5f12118d9fc6e65a7495d2f0321c33351",
+   "url": "https://www.3dmgame.com/gl/3928716_11.html",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
    "path": "cn_guides/data.json",
    "sha256": "08719e728ab953852292b18dd49c40c5790302eac24dfb3962db4be4ab271e49",
    "derivedFrom": "assets/data.json of the retired 2.x 逐日攻略 (handoff zip sha ff93b765…); an edited reformat of the 3DM Reload walkthrough; class/exam answers on 9 dates carry English-localisation text, see REPORT §3",

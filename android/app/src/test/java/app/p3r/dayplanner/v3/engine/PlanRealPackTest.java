@@ -32,8 +32,8 @@ import java.util.regex.Pattern;
  * goal MAX dates, runtime) to {@code android/app/build/plan_metrics.md}. Asserts full
  * coverage, a clean independent validation, useful actions until the last two weeks of January,
  * every Tartarus requirement and rescue, runtime, and the plan-quality benchmarks below as lower
- * bounds (the numbers this planner reaches with default options; the legacy CN walkthrough in
- * assets/data.json maxes all 22 links with matching Personas and is the feasibility witness):
+ * bounds (the numbers this planner reaches with default options; the CN walkthrough pinned in
+ * rules/sources/cn_guides/data.json maxes all 22 links with matching Personas and is the feasibility witness):
  *
  * <table>
  *   <tr><th>scenario</th><th>bound (reached 2026-10-13, pack with notes and episodes)</th><th>daytimeWaste</th></tr>
@@ -129,7 +129,7 @@ public class PlanRealPackTest {
         Profile profile = new Profile();
         profile.personaBonus = true;
         Result r = run("新游戏 · 携带同阿尔卡那人格面具（×1.51）· 全部社群", profile, newGame(dayOf(4, 21)), 0);
-        System.out.println("benchmark: legacy guide maxes 22/22 with matching Personas; this plan maxes "
+        System.out.println("benchmark: the CN walkthrough maxes 22/22 with matching Personas; this plan maxes "
                 + r.metrics.maxed + "/" + rules.links.length);
         assertEquals(rules.links.length, r.metrics.maxed);
     }

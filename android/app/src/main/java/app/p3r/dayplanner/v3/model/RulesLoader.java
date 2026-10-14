@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Parses {@code assets/p3r/p3r_rules.json} (schema {@code p3r.rules.v3}, docs/DESIGN_v3.md §4) into
@@ -30,8 +31,9 @@ import java.util.Set;
  *
  * <p>The loader only checks structure and internal consistency (contiguous days, 22 links in
  * arcana order, array lengths, indices and ids in range, meeting and Link Episode days on unlocked
- * slots, the optional {@code episodes} and {@code datingNote} sections) and the Reload-only source policy
- * (every source declares an {@link #EDITIONS edition}; every {@code src} list names a Reload source). Game
+ * slots, the optional {@code episodes}, {@code datingNote} and {@code reminders} sections) and the
+ * Reload-only source policy (every source declares an {@link #EDITIONS edition}; every {@code src} list
+ * names a Reload source). Game
  * facts are verified by the builder ({@code rules/build/build_p3r_rules.py}) and by the unit tests.
  */
 public final class RulesLoader {
@@ -64,6 +66,16 @@ public final class RulesLoader {
 
     /** Number of hex digits of the SHA-256 that identify a pack in {@link Rules#version}. */
     static final int VERSION_HASH_DIGITS = 12;
+
+    /** Kinds of the static 当日提醒 lines; 上课犯困, 保健室 and 失踪者 have blocks of their own. */
+    public static final List<String> REMINDER_KINDS = Collections.unmodifiableList(Arrays.asList(
+            "class", "exam", "tv", "request", "fragment", "trip", "feature"));
+
+    /** Longest {@code shortZh} of a reminder (small widget). */
+    public static final int REMINDER_SHORT_MAX = 16;
+
+    /** Reminder and missing-person group ids: kind, month-day, optional part ("request.06-06.deadline"). */
+    private static final Pattern REMINDER_ID = Pattern.compile("[a-z]+\\.[0-9]{2}-[0-9]{2}(\\.[a-z0-9_]+)?");
 
     private RulesLoader() {}
 
@@ -171,6 +183,7 @@ public final class RulesLoader {
             parseActivities();
             parseEpisodes();
             parseDatingNote();
+            parseReminders();
             parsePolicy();
             parseNotes();
             return rules;
@@ -731,6 +744,122 @@ public final class RulesLoader {
             n.conf = checkConf(o, where);
             n.src = sources(o, where);
             rules.datingNote = n;
+        }
+
+        /**
+         * Optional 当日提醒 section ({@code reminders}); absent = none. Its {@code doze}, {@code nurse} and
+         * {@code rescueGroups} blocks are optional too.
+         */
+        private void parseReminders() throws JSONException {
+            if (root.isNull("reminders")) return;
+            JSONObject o = reqObject(root, "reminders", "root");
+            Rules.Reminders out = new Rules.Reminders();
+            JSONArray items = reqArray(o, "items", "reminders");
+            Set<String> ids = new HashSet<>();
+            for (int i = 0; i < items.length(); i++) {
+                String where = "reminders.items[" + i + "]";
+                Rules.Reminder r = parseReminder(reqObject(items, i, where), where);
+                if (!ids.add(r.id)) throw fail(where + ".id '" + r.id + "' is duplicated");
+                out.items.add(r);
+            }
+            if (!o.isNull("doze")) {
+                String where = "reminders.doze";
+                JSONObject doze = reqObject(o, "doze", "reminders");
+                out.dozeDays = sortedDays(doze, "days", where);
+                for (int d : out.dozeDays) {
+                    if (rules.days[d].type != Rules.DayType.SCHOOL) {
+                        throw fail(where + ".days contains day " + d + " (" + rules.days[d].md + "), which is not a school day");
+                    }
+                }
+                out.dozeAcademics = doze.isNull("academics") ? out.dozeAcademics : intInRange(doze, "academics", where, 1, 100);
+                out.dozeCourage = doze.isNull("courage") ? out.dozeCourage : intInRange(doze, "courage", where, 1, 100);
+                checkConf(doze, where);
+                sources(doze, where);
+            }
+            if (!o.isNull("nurse")) {
+                JSONObject nurse = reqObject(o, "nurse", "reminders");
+                out.nurseCourage = intInRange(nurse, "courage", "reminders.nurse", 1, 100);
+                checkConf(nurse, "reminders.nurse");
+                sources(nurse, "reminders.nurse");
+            }
+            if (!o.isNull("rescueGroups")) {
+                JSONArray groups = reqArray(o, "rescueGroups", "reminders");
+                Set<String> groupIds = new HashSet<>();
+                for (int i = 0; i < groups.length(); i++) {
+                    String where = "reminders.rescueGroups[" + i + "]";
+                    JSONObject g = reqObject(groups, i, where);
+                    Rules.RescueGroup group = new Rules.RescueGroup();
+                    group.id = reqString(g, "id", where);
+                    if (!REMINDER_ID.matcher(group.id).matches() || !groupIds.add(group.id)) {
+                        throw fail(where + ".id '" + group.id + "' is malformed or duplicated");
+                    }
+                    group.fromDay = dayInRange(g, "fromDay", where);
+                    group.toDay = dayInRange(g, "toDay", where);
+                    if (group.toDay < group.fromDay) throw fail(where + " ends before it starts");
+                    group.count = intInRange(g, "count", where, 1, 100);
+                    JSONArray rescues = reqArray(g, "rescueIds", where);
+                    for (int k = 0; k < rescues.length(); k++) {
+                        String id = rescues.getString(k);
+                        if (!rescueIndex.containsKey(id)) {
+                            throw fail(where + ".rescueIds[" + k + "] '" + id + "' is not in tartarus.rescues");
+                        }
+                        group.rescueIds.add(id);
+                    }
+                    if (group.rescueIds.size() > group.count) throw fail(where + ".rescueIds has more people than count");
+                    checkConf(g, where);
+                    sources(g, where);
+                    out.rescueGroups.add(group);
+                }
+            }
+            rules.reminders = out;
+        }
+
+        private Rules.Reminder parseReminder(JSONObject o, String where) throws JSONException {
+            Rules.Reminder r = new Rules.Reminder();
+            r.id = reqString(o, "id", where);
+            if (!REMINDER_ID.matcher(r.id).matches()) {
+                throw fail(where + ".id '" + r.id + "' must look like kind.MM-DD or kind.MM-DD.part");
+            }
+            r.kind = reqString(o, "kind", where);
+            if (!REMINDER_KINDS.contains(r.kind)) throw fail(where + ".kind must be one of " + REMINDER_KINDS + ", got '" + r.kind + "'");
+            r.day = dayInRange(o, "day", where);
+            if (r.day < rules.firstDay) throw fail(where + ".day " + r.day + " is before the calendar");
+            if (!o.isNull("untilDay")) {
+                r.untilDay = dayInRange(o, "untilDay", where);
+                if (r.untilDay < r.day) throw fail(where + ".untilDay " + r.untilDay + " is before day " + r.day);
+            }
+            r.evening = isEvening(reqString(o, "slot", where), where + ".slot");
+            r.labelZh = reqString(o, "labelZh", where);
+            r.zh = reqString(o, "zh", where);
+            r.shortZh = reqString(o, "shortZh", where);
+            if (r.shortZh.length() > REMINDER_SHORT_MAX) {
+                throw fail(where + ".shortZh must be at most " + REMINDER_SHORT_MAX + " characters, got " + r.shortZh.length());
+            }
+            boolean answer = "class".equals(r.kind) || "exam".equals(r.kind);
+            r.answerZh = optString(o, "answerZh", where);
+            if (answer && (r.answerZh == null || r.answerZh.isEmpty())) throw fail(where + ".answerZh is required for class and exam");
+            if (!answer && r.answerZh != null) throw fail(where + ".answerZh is only for class and exam");
+            r.option = o.isNull("option") ? 0 : intInRange(o, "option", where, 0, 4);
+            if (r.option != 0 && !"class".equals(r.kind)) throw fail(where + ".option must be 0 except for class");
+            r.detailZh = optString(o, "detailZh", where);
+            r.gainZh = optString(o, "gainZh", where);
+            r.priority = intInRange(o, "priority", where, 1, 3);
+            r.costYen = o.isNull("costYen") ? 0 : nonNegative(o, "costYen", where);
+            if (!o.isNull("requires")) {
+                JSONObject requires = reqObject(o, "requires", where);
+                Iterator<String> keys = requires.keys();
+                while (keys.hasNext()) {
+                    String id = keys.next();
+                    Integer idx = statIndex.get(id);
+                    if (idx == null) throw fail(where + ".requires references unknown stat '" + id + "'");
+                    r.requiresLv.put(idx, intInRange(requires, id, where + ".requires", 1, 6));
+                }
+            }
+            r.firstEligible = !o.isNull("firstEligible") && reqBool(o, "firstEligible", where);
+            if (r.firstEligible && r.requiresLv.isEmpty()) throw fail(where + ".firstEligible needs requires");
+            r.conf = checkConf(o, where);
+            r.src = sources(o, where);
+            return r;
         }
 
         private void parsePolicy() throws JSONException {

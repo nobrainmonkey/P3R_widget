@@ -136,6 +136,7 @@ final class Planner {
         if (search) exhausted |= pool.prioritise();
         Candidate chosen = pool.choose();
         Plan plan = assemble(m, pool.labelHeuristics(chosen), start, chosen.codes, pool.tradedFor(chosen));
+        Reminders.attach(m, start, chosen.codes, plan, options.lastTowerSlot);
         plan.budgetExhausted = exhausted;
         plan.followUp = options.followUp;
         if (exhausted) plan.summary.notesZh.add(0, plan.budgetNoteZh());

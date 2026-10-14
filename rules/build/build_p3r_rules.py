@@ -3,7 +3,8 @@
 
 Inputs (never shipped in the APK):
   rules/sources/**           pinned third-party snapshots (aqiu game-data tables, aqiu calendar page,
-                             Steam zh-Hans strings, CN guide page); hashes in rules/sources/SOURCES.json
+                             Steam zh-Hans strings, 3DM CN guide pages: Tartarus names and the schedule
+                             pages 2-11 for the 当日提醒 answers); hashes in rules/sources/SOURCES.json
   rules/sources/cn_guides/data.json
                              the original Simplified Chinese walkthrough of the retired 2.x guide
                              (location names, wording, timing witnesses)
@@ -41,7 +42,7 @@ PACK_PATH = ROOT / "android" / "app" / "src" / "main" / "assets" / "p3r" / "p3r_
 REPORT_PATH = ROOT / "rules" / "build" / "REPORT.md"
 
 SCHEMA = "p3r.rules.v3"
-PACK_VERSION = "3.0.0"
+PACK_VERSION = "3.1.0"
 GAME = "Persona 3 Reload (Xrd777, base game; excludes Episode Aigis/Astrea)"
 
 EPOCH = datetime.date(2009, 4, 1)
@@ -85,13 +86,17 @@ NAME_FIXES = (
     ("Y子", "Ｙ子"),
 )
 # Outdated names (above) and terms that differ from the official zh-Hans text: the Steam store page says
-# 主角 (never 主人公) and the achievement text says 休息日的出游邀请短信, so invitations are 休息日邀约.
-FORBIDDEN_STRINGS = ("伊丽莎白", "贝贝", "大桥舞子", "女帝", "倒吊人", "主人公", "假日邀约", "节日邀约")
+# 主角 (never 主人公), the achievement text says 休息日的出游邀请短信, so invitations are 休息日邀约, and
+# 黄昏的碎片 (never the walkthroughs' 黄昏碎片).
+FORBIDDEN_STRINGS = ("伊丽莎白", "贝贝", "大桥舞子", "女帝", "倒吊人", "主人公", "假日邀约", "节日邀约", "黄昏碎片")
 # Official zh-Hans wording the pack relies on: (snapshot, text that must occur in it, why).
 OFFICIAL_TERMS = (
     ("steam_schinese/p3r_sc.txt", "作为主角的少年", "主角 (store description)"),
     ("steam_schinese/ach_schinese.txt", "休息日的出游邀请短信", "休息日邀约 (achievement 争相邀约)"),
     ("steam_schinese/ach_schinese.txt", "社群", "社群 (achievements)"),
+    ("steam_schinese/ach_schinese.txt", "黄昏的碎片", "黄昏的碎片 (achievements)"),
+    ("steam_schinese/ach_schinese.txt", "失踪者", "失踪者 (achievement 课外活动的成果)"),
+    ("aqiu_gamedata/DatPlayerNameDataAsset.tsv", "伊莉莎白", "伊莉莎白 (character name table)"),
 )
 
 # Source editions (pack sources[].edition and rules/sources/SOURCES.json). Only the first three are
@@ -291,6 +296,14 @@ class AqiuPage:
         end = self.html.find("<h4", start + 5)
         return html_to_text(self.html[start:end])
 
+    def subsection(self, name: str) -> str:
+        """Text of any aqiu heading (h3-h5, e.g. class-answers) up to the next heading of the same or a higher level."""
+        m = re.search(rf'<h([1-6]) id="{re.escape(name)}">', self.html)
+        if not m:
+            raise BuildError(f"aqiu section {name} not found")
+        nxt = re.compile(rf"<h[1-{m.group(1)}][ >]").search(self.html, m.end())
+        return html_to_text(self.html[m.start():nxt.start() if nxt else len(self.html)])
+
 
 def check_day_calendar_json(page_cells: dict[int, dict[str, str]]) -> None:
     """The derived day-calendar JSON must agree cell-for-cell with the HTML table."""
@@ -404,8 +417,13 @@ def build_sources() -> list[dict]:
         snap("steam_thread_hierophant", "steam_schinese/d_4206993639701168068.html", "forum", "Player report of a Hierophant rank hold"),
         snap("steam_thread_rankup", "steam_schinese/d_4206994023684392768.html", "forum", "Player reports on rank-up cues and matching Personas"),
         snap("cn_3dm", "cn_guides/3dm_p42.html", "cn_guide", "3DM SC guide, page 42: Tartarus block names (single source)"),
+        *[snap(f"cn_3dm_p{n}", f"cn_guides/3dm_p{n}.html", "cn_guide",
+               f"3DM SC guide, page {n}: {CN_3DM_MONTHS[n]} schedule (class and exam answers, 上课 lines, TV shopping, "
+               "黄昏的碎片)") for n in CN_3DM_SCHEDULE_PAGES],
+        snap("gd_mail_order", gd + "DT_FldMailOrderTable.tsv", "game_data", "TV shopping: buy dates, items, quantities, prices"),
         {"edition": "cn_guide_reload", "id": "cn_guide", "kind": "cn_guide",
-         "note": "Original Simplified Chinese Reload walkthrough shipped with the legacy guide (wording, places, dialogue, timing witnesses)",
+         "note": "Original Simplified Chinese Reload walkthrough shipped with the legacy guide, an edited derivative of the "
+                 "3DM walkthrough (wording, places, dialogue, timing witnesses; never the source of class/exam answers)",
          "path": "rules/sources/" + GUIDE_REL, "sha256": pinned[GUIDE_REL]["sha256"], "url": None},
         evidence("ev_calendar_constraints", "calendar_global_constraints_candidate.json", reload, "Locks, exams, full moons, school-closure candidates"),
         evidence("ev_slot_locks", "global_slot_locks_expansion_candidate.json", reload, "Whole-slot lock claims, Tartarus closures, witnesses"),
@@ -1944,6 +1962,725 @@ def build_dating_note(ledger: Ledger, days: list[dict], guide_text: str) -> dict
 
 
 # --------------------------------------------------------------------------------------------
+# 当日提醒 (reminders): slot-free things to answer or do on a game day
+
+
+# The 3DM walkthrough's schedule pages, pinned unmodified: 4月日程 is page 2 and 1月日程~结局 page 11 (its text
+# ends on 1.13); page 12 is 怪物弱点. The December page has no text before 12.13.
+CN_3DM_SCHEDULE_PAGES = tuple(range(2, 12))
+CN_3DM_MONTHS = dict(zip(CN_3DM_SCHEDULE_PAGES, ("April", "May", "June", "July", "August", "September", "October",
+                                                 "November", "December", "January")))
+# aqiu class dates without a zh answer line on the 3DM pages. They are never filled in from the CN guide, which is
+# an edited copy of 3DM with English-localisation answers on 9 dates (CN_GUIDE_DIVERGENT).
+WITHHELD_CLASS = {
+    "12-07": "3DM's December page has no text before 12.13; the CN guide's answer is not used",
+    "12-09": "3DM's December page has no text before 12.13; the CN guide's answer is not used",
+    "12-11": "no zh answer: 3DM has no text for the date and the CN guide has the English-localisation answer (Lives)",
+    "01-18": "3DM's schedule text ends on 1.13; the CN guide's answer is not used",
+}
+WITHHELD_EXAM: dict[str, str] = {}
+# Exam answers that only 3DM gives and that read like untranslated English (owner decision O4: shown, marked).
+ESTIMATE_ANSWERS = frozenset({"07-17", "12-16"})
+# Dates on which the CN guide's class/exam answer is not 3DM's: English-localisation text instead (zh vs zh only).
+CN_GUIDE_DIVERGENT = frozenset({"05-19", "07-08", "07-15", "07-17", "10-14", "10-22", "12-11", "12-16", "12-18"})
+# Dates on which only the CN guide has an answer (3DM has no text there): it cannot be checked, so it is withheld.
+CN_GUIDE_UNCHECKED = frozenset({"12-07", "12-09", "01-18"})
+# Obvious 3DM typos, each corrected to the CN guide's spelling on the same date (zh vs zh): (md, 3DM text) -> fix.
+ZH_TYPO_FIXES = {
+    ("11-07", "肉义书"): "奥义书",
+    ("11-08", "人适人"): "人造人",
+    ("12-22", "欣快悲"): "欣快感",
+}
+# 3DM rows whose line belongs to another date: (row md, line prefix) -> (md, why). Dates and option positions only.
+CN_3DM_ROW_FIXES = {
+    ("11-06", "上课问答："): ("11-07", "3DM's early-November rows are shifted (its 11.4 row has the 11/5 club note); aqiu "
+                                    "and the CN guide date this class answer 11/7, and 3DM's option (1) is aqiu's Choice 1"),
+}
+# Explicit corrections of aqiu typos: key -> (aqiu text, corrected text, why).
+AQIU_FIXES = {
+    "request.44": ("6/20", "7/20", "Request #44 says 'Accept > 6/20: Collect …', but the beach items are on the Yakushima "
+                   "trip: 3DM and the CN guide (t088_01) pick them up on 7/20"),
+}
+REMINDER_KINDS = ("class", "exam", "tv", "request", "fragment", "trip", "feature")
+REMINDER_LABELS = {"class": "课堂提问", "exam": "考试", "tv": "电视购物", "request": "委托", "fragment": "黄昏的碎片",
+                   "feature": "新开放"}
+REMINDER_ID = re.compile(r"[a-z]+\.[0-9]{2}-[0-9]{2}(\.[a-z0-9_]+)?")
+# shortZh (small widget): at most 16 characters, at most 12 of them Han.
+SHORT_MAX_CHARS = 16
+SHORT_MAX_HAN = 12
+# Every reminder that gives a stat ends its detail with this sentence (stats are not forecast, DESIGN §10.9).
+STAT_SENTENCE = "这份加成不在安排的预计里，能力值升级后去「同步现状」更新一下，安排会更准。"
+TV_DETAIL = "在自己房间看电视就能买，不会消耗时间；最好出门前先买。花的钱不在安排的预计里，买了以后记得在「同步现状」里更新现金。"
+# The missing people the engine models as rescues (RESCUES), by their name in the aqiu table.
+RESCUE_EN = {"bunkichi": "Bunkichi Kitamura", "maiko": "Maiko Oohashi"}
+# CN guide items (cn_guides/data.json ids) the collectible, trip and shop reminders rest on.
+CN_ITEMS = {
+    "fragment.city": "t005_03", "fragment.dorm": "t005_07", "fragment.roof": "t035_06", "fragment.operation": "t103_01",
+    "feature.mayoido": "t086_01", "trip.yakushima": "t088_01", "trip.kyoto": "t195_01",
+}
+
+
+def han_count(text: str) -> int:
+    return sum(1 for ch in text if "一" <= ch <= "鿿")
+
+
+def fits_short(text: str) -> bool:
+    return len(text) <= SHORT_MAX_CHARS and han_count(text) <= SHORT_MAX_HAN
+
+
+def fit_short(where: str, *candidates: str | None) -> str:
+    """The first candidate that fits the small widget (never cut with an ellipsis)."""
+    for text in candidates:
+        if text and fits_short(text):
+            return text
+    raise BuildError(f"{where}: no shortZh fits {SHORT_MAX_CHARS} chars / {SHORT_MAX_HAN} Han: {candidates}")
+
+
+def yen(amount: int) -> str:
+    return f"{amount:,} 日元"
+
+
+def typo_fix(md: str, text: str) -> str:
+    for (fix_md, wrong), right in ZH_TYPO_FIXES.items():
+        if fix_md == md:
+            text = text.replace(wrong, right)
+    return text
+
+
+def norm_answer(text: str) -> str:
+    """Answer text for zh-vs-zh comparisons: no spaces or quote marks."""
+    return re.sub(r"[\s「」“”\"']", "", text)
+
+
+class Schedule3dm:
+    """The pinned 3DM schedule pages (cn_guides/3dm_p2.html … 3dm_p11.html): the text lines of every date.
+
+    Each page is one table, a row per date (date | class | after school | evening | notes). A page's first row has no
+    date when it carries the last day of the previous month (that day's row at the end of the previous page is
+    empty); page 2 starts with the column headings instead."""
+
+    DATE = re.compile(r"(\d{1,2})\s*\.\s*(\d{1,2})(?:（.）)?")
+    CLASS = re.compile(r"上课问答：(.+)")
+    EXAM = re.compile(r"(期中|期末)考试：(.+)")
+    DOZE = re.compile(r"上课：(不闭眼|闭不闭眼[都部]行)")
+    TV = re.compile(r"电视购物（(.+?)，([\d,]+)(?:日元|元)）")
+    TV_ONE = re.compile(r"电视购物，购买(.+?)（委托相关）")
+
+    def __init__(self) -> None:
+        self.lines: dict[int, list[str]] = {}
+        self.page: dict[int, int] = {}
+        self.month_page: dict[int, int] = {}
+        last: int | None = None
+        for number in CN_3DM_SCHEDULE_PAGES:
+            text = (SOURCES_DIR / "cn_guides" / f"3dm_p{number}.html").read_text(encoding="utf-8")
+            title = re.search(r"<title>(\d{1,2})月日程", text)
+            start = text.find('<div class="news_warp_center">')
+            end = text.find("</table>", start)
+            if not title or start < 0 or end < 0:
+                raise BuildError(f"3DM page {number} is not a schedule page with one table")
+            month = int(title.group(1))
+            self.month_page[month] = number
+            for i, row in enumerate(re.findall(r"<tr[^>]*>(.*?)</tr>", text[start:end], flags=re.S)):
+                cells = [self._cell(c) for c in re.findall(r"<td[^>]*>(.*?)</td>", row, flags=re.S)]
+                lines = [line for cell in cells[1:] for line in cell]
+                m = self.DATE.fullmatch(cells[0][0]) if cells and cells[0] else None
+                if m is None:
+                    if i == 0 and cells and cells[0] and cells[0][0] == "日期":
+                        continue
+                    if i == 0 and last is not None and md_of(last + 1)[3:] == "01" and not self.lines[last]:
+                        self.lines[last] = lines  # the previous month's last day, carried over to this page
+                        self.page[last] = number
+                        continue
+                    raise BuildError(f"3DM page {number} row {i}: no date ({lines[:2]})")
+                if int(m.group(1)) != month:
+                    raise BuildError(f"3DM page {number} ({month}月日程) has a row for {m.group(1)}.{m.group(2)}")
+                d = day_of(month, int(m.group(2)))
+                if d in self.lines:
+                    raise BuildError(f"3DM lists {md_of(d)} twice")
+                self.lines[d] = lines
+                self.page[d] = number
+                last = d
+        for (row_md, prefix), (md, _why) in CN_3DM_ROW_FIXES.items():
+            row, target = day_of_md(row_md), day_of_md(md)
+            moved = [line for line in self.lines[row] if line.startswith(prefix)]
+            if len(moved) != 1 or any(line.startswith(prefix) for line in self.lines[target]):
+                raise BuildError(f"CN_3DM_ROW_FIXES {row_md} {prefix}: 3DM no longer has exactly this line there")
+            self.lines[row].remove(moved[0])
+            self.lines[target].append(moved[0])
+
+    @staticmethod
+    def _cell(fragment: str) -> list[str]:
+        text = re.sub(r"<br\s*/?>|</p>", "\n", fragment)
+        text = html.unescape(re.sub(r"<[^>]+>", "", text))
+        return [line.strip() for line in text.splitlines() if line.strip()]
+
+    def source(self, d: int) -> str:
+        return f"cn_3dm_p{self.page[d]}"
+
+    def matches(self, d: int, pattern: re.Pattern) -> list[re.Match]:
+        return [m for line in self.lines.get(d, []) for m in [pattern.search(line)] if m]
+
+    def one(self, d: int, pattern: re.Pattern) -> re.Match | None:
+        found = self.matches(d, pattern)
+        if len(found) > 1:
+            raise BuildError(f"3DM {md_of(d)}: {len(found)} lines match {pattern.pattern}")
+        return found[0] if found else None
+
+    def class_answer(self, d: int) -> tuple[str, int] | None:
+        """(answer, option 1..4 or 0) of the 3DM class line 「上课问答：X（n）」 of a date."""
+        m = self.one(d, self.CLASS)
+        if not m:
+            return None
+        rest = re.sub(r"[，。]?魅力\+♪*$", "", m.group(1)).strip()
+        n = re.fullmatch(r"(.+?)（(\d)）", rest)
+        return (n.group(1).strip(), int(n.group(2))) if n else (rest, 0)
+
+    def exam_answer(self, d: int) -> str | None:
+        """Answer of the 3DM exam line 「期中/期末考试：X」 of a date (a stray closing quote mark dropped)."""
+        m = self.one(d, self.EXAM)
+        return m.group(2).strip().strip("“”\"「」").strip() if m else None
+
+
+def cn_guide_days() -> dict[int, list[dict]]:
+    """CN guide items per day ordinal."""
+    out: dict[int, list[dict]] = {}
+    for block in json.loads(GUIDE_PATH.read_text(encoding="utf-8"))["blocks"]:
+        out.setdefault(day_of(block["month"], block["day"]), []).extend(block["items"])
+    return out
+
+
+def cn_guide_item(guide: dict[int, list[dict]], ident: str, md: str, *words: str) -> dict:
+    """A CN guide item by id; it must be on ``md`` and mention every word (title, steps, substeps, hint)."""
+    for d, items in guide.items():
+        for item in items:
+            if item.get("id") != ident:
+                continue
+            text = json.dumps(item, ensure_ascii=False)
+            if md_of(d) != md or any(w not in text for w in words):
+                raise BuildError(f"CN guide {ident} is on {md_of(d)} / lacks {words}")
+            return item
+    raise BuildError(f"CN guide item {ident} not found")
+
+
+CN_ANSWER = (
+    re.compile(r"课堂 · (?!不闭眼|闭不闭眼)(.+?)(?:（\d）)?(?:[，。].*)?"),
+    re.compile(r"课堂问答：选择?「?(.+?)」?"),
+    re.compile(r"考试 · 选择 ?「?(.+?)」?"),
+    re.compile(r"\d+月\d+日 期[中末]考试：选择「(.+)」"),
+)
+
+
+def cn_guide_answers(guide: dict[int, list[dict]]) -> dict[int, str]:
+    """The CN guide's class/exam answer per day (only for the zh-vs-zh drift check, never shipped)."""
+    out: dict[int, str] = {}
+    for d, items in guide.items():
+        for item in items:
+            if item.get("kind") not in ("class", "exam"):
+                continue
+            for pattern in CN_ANSWER:
+                m = pattern.fullmatch(item["title"])
+                if m:
+                    out[d] = m.group(1).strip()
+                    break
+    return out
+
+
+def aqiu_choices(page: AqiuPage, section: str) -> dict[int, int]:
+    """aqiu class or exam answers: day ordinal -> Choice N (the English answer text is never used)."""
+    out = {}
+    for line in page.subsection(section).splitlines():
+        m = re.match(r"(\d+)/(\d+) \| Choice (\d): ", line.strip())
+        if m:
+            out[day_of(int(m.group(1)), int(m.group(2)))] = int(m.group(3))
+    if not out:
+        raise BuildError(f"aqiu {section} table not found")
+    return out
+
+
+def overworld_section(title: str) -> tuple[list[str], list[list[str]]]:
+    """Bullets and table rows (without header) under one heading of aqiu overworld.md."""
+    lines = (SOURCES_DIR / "aqiu_gamedata" / "overworld.md").read_text(encoding="utf-8").splitlines()
+    start = next((i for i, line in enumerate(lines) if re.fullmatch(r"#+ " + re.escape(title), line.strip())), None)
+    if start is None:
+        raise BuildError(f"aqiu overworld section {title!r} not found")
+    bullets: list[str] = []
+    rows: list[list[str]] = []
+    for line in lines[start + 1:]:
+        s = line.strip()
+        if s.startswith("#"):
+            break
+        if s.startswith("* "):
+            bullets.append(s[2:])
+        elif s.startswith("|"):
+            rows.append([c.strip() for c in s.strip("|").split("|")])
+    if len(rows) < 3:
+        raise BuildError(f"aqiu overworld section {title!r} has no table")
+    return bullets, rows[2:]
+
+
+def md_slash(md: str) -> int:
+    """Day ordinal of an aqiu "M/D" date."""
+    month, dom = md.split("/")
+    return day_of(int(month), int(dom))
+
+
+def reminder(ident: str, kind: str, d: int, slot: str, zh: str, short: str, *, conf: str, src: list[str],
+             label: str | None = None, answer: str | None = None, option: int = 0, detail: str | None = None,
+             gain: str | None = None, priority: int = 1, cost: int = 0, until: int | None = None,
+             requires: dict | None = None, first_eligible: bool = False) -> dict:
+    return {
+        "answerZh": answer, "conf": conf, "costYen": cost, "day": d, "detailZh": detail, "firstEligible": first_eligible,
+        "gainZh": gain, "id": ident, "kind": kind, "labelZh": label or REMINDER_LABELS[kind], "option": option,
+        "priority": priority, "requires": requires, "shortZh": short, "slot": slot, "src": src, "untilDay": until,
+        "zh": zh,
+    }
+
+
+def answer_reminders(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, guide: dict[int, list[dict]]) -> list[dict]:
+    """课堂提问 and 考试: aqiu dates and option positions, zh text from the pinned 3DM pages only."""
+    general = page.subsection("class-answers")
+    m = re.search(r"All correct answers give Charm \+(\d+)", general)
+    if not m:
+        raise BuildError("aqiu class-answer gain not found")
+    charm = int(m.group(1))
+    classes = aqiu_choices(page, "class-answers")
+    exams = aqiu_choices(page, "exam-answers")
+    out = []
+    shipped: dict[int, str] = {}
+    for d, choice in sorted(classes.items()):
+        md = md_of(d)
+        found = sched.class_answer(d)
+        if found is None:
+            if md not in WITHHELD_CLASS:
+                raise BuildError(f"class {md}: no 3DM line; withhold it explicitly (WITHHELD_CLASS) or fix the parser")
+            continue
+        if md in WITHHELD_CLASS:
+            raise BuildError(f"class {md} is withheld but 3DM has a line for it")
+        answer, option = typo_fix(md, found[0]), found[1]
+        if option and option != choice:
+            raise BuildError(f"class {md}: 3DM option {option} != aqiu Choice {choice}")
+        mark = f"（第 {option} 项）" if option else ""
+        out.append(reminder(
+            f"class.{md}", "class", d, "day", f"课堂提问：选「{answer}」{mark}",
+            fit_short(f"class.{md}", f"课堂：{answer}{mark}", f"课堂：{answer}"),
+            answer=answer, option=option, gain=f"魅力 +{charm}", priority=3,
+            detail=f"上课被点名提问时选「{answer}」{mark}，答对了魅力 +{charm}。" + STAT_SENTENCE,
+            conf="verified" if option else "single", src=["aqiu_social_events", sched.source(d)]))
+        shipped[d] = answer
+    for d in sorted(set(d for d in sched.lines if sched.class_answer(d)) - set(classes)):
+        raise BuildError(f"3DM has a class answer on {md_of(d)}, which aqiu does not list")
+    for d in sorted(exams):
+        md = md_of(d)
+        found = sched.exam_answer(d)
+        if not found:
+            if md not in WITHHELD_EXAM:
+                raise BuildError(f"exam {md}: no 3DM line")
+            continue
+        answer = typo_fix(md, found)
+        estimate = md in ESTIMATE_ANSWERS
+        detail = f"这天考试有一道题要自己选，选「{answer}」。"
+        if estimate:
+            detail += "这条答案只有一份攻略写过，游戏里的写法可能略有不同。"
+        out.append(reminder(
+            f"exam.{md}", "exam", d, "day", f"考试：选「{answer}」", fit_short(f"exam.{md}", f"考试：{answer}"),
+            answer=answer, detail=detail, priority=3, conf="estimate" if estimate else "single",
+            src=["aqiu_social_events", sched.source(d)]))
+        shipped[d] = answer
+    if len([x for x in out if x["kind"] == "exam"]) != len(exams) - len(WITHHELD_EXAM):
+        raise BuildError("exam answers missing")
+
+    # CN guide drift (zh vs zh only): where its answer is not 3DM's, 3DM wins and the CN text is never shipped.
+    cn = cn_guide_answers(guide)
+    for (md, wrong), right in ZH_TYPO_FIXES.items():
+        d = day_of_md(md)
+        if not any(wrong in line for line in sched.lines.get(d, [])):
+            raise BuildError(f"ZH_TYPO_FIXES {md}: 3DM does not write {wrong!r}")
+        guide_text = json.dumps(guide.get(d, []), ensure_ascii=False)
+        if right not in guide_text:
+            raise BuildError(f"ZH_TYPO_FIXES {md}: the CN guide does not write {right!r} that day")
+    divergent = {md_of(d) for d, text in cn.items()
+                 if d in classes or d in exams if norm_answer(text) != norm_answer(shipped.get(d, ""))}
+    if divergent != CN_GUIDE_DIVERGENT | CN_GUIDE_UNCHECKED:
+        raise BuildError(f"CN guide answer drift changed: {sorted(divergent)} != "
+                         f"{sorted(CN_GUIDE_DIVERGENT | CN_GUIDE_UNCHECKED)}")
+    for md in sorted(CN_GUIDE_DIVERGENT, key=day_of_md):
+        d = day_of_md(md)
+        ours = shipped.get(d)
+        ledger.conflict(f"answer.{md}", f"{'exam' if d in exams else 'class'} answer on {md} (zh text)",
+                        f"3DM 「{ours}」" if ours else "withheld (no 3DM text)", [f"CN guide 「{cn[d]}」"],
+                        [f"cn_3dm_p{sched.month_page[int(md[:2])]}", "cn_guide"])
+    ledger.decide("reminders", "answers", f"课堂提问 ({len(classes)} aqiu dates) and 考试 ({len(exams)}) take the date and the "
+                  "option position from aqiu and the zh answer text from the pinned 3DM schedule pages only; every 3DM "
+                  "position equals aqiu's Choice N (checked). Only dates, prices and option positions are compared with "
+                  "English sources, never answer text. The CN guide is an edited copy of 3DM: its answers differ from "
+                  f"3DM on {', '.join(sorted(CN_GUIDE_DIVERGENT, key=day_of_md))} (English-localisation text, §3) and it "
+                  f"alone answers {', '.join(sorted(CN_GUIDE_UNCHECKED, key=day_of_md))}, so it is never used for "
+                  "answers. Withheld class dates: " + "; ".join(f"{md} ({why})" for md, why in WITHHELD_CLASS.items())
+                  + f". Exam answers {', '.join(sorted(ESTIMATE_ANSWERS))} ship verbatim with conf=estimate (owner "
+                  "decision O4). 3DM typos fixed to the CN guide's spelling of the same day: "
+                  + "; ".join(f"{md} {wrong} → {right}" for (md, wrong), right in ZH_TYPO_FIXES.items())
+                  + "; 12/14 drops a stray closing quote (数字0”).")
+    return out
+
+
+def tv_names(text: str) -> list[tuple[str, int]]:
+    """「玫瑰花束+2个高级巧克力」 -> [(玫瑰花束, 1), (高级巧克力, 2)]."""
+    out = []
+    for part in text.split("+"):
+        part = part.strip()
+        m = re.fullmatch(r"(\d+)个(.+)", part) or re.fullmatch(r"(.+?)(\d+)个", part)
+        if m is None:
+            out.append((part, 1))
+        elif m.group(1).isdigit():
+            out.append((m.group(2), int(m.group(1))))
+        else:
+            out.append((m.group(1), int(m.group(2))))
+    return out
+
+
+def tv_reminders(ledger: Ledger, sched: Schedule3dm, guide: dict[int, list[dict]]) -> list[dict]:
+    """电视购物: dates, items and prices from the game table; zh item names from 3DM, else the CN guide."""
+    rows = read_tsv("DT_FldMailOrderTable")
+    if rows[0][:2] != ["BuyMonth", "BuyDay"] or rows[0][9] != "Price":
+        raise BuildError("DT_FldMailOrderTable header changed")
+    game = {}
+    for r in rows[1:]:
+        game[day_of(int(r[0]), int(r[1]))] = {"items": [(int(r[4]), int(r[5])), (int(r[7]), int(r[8]))], "price": int(r[9])}
+    if len(game) != 32:
+        raise BuildError(f"DT_FldMailOrderTable has {len(game)} rows, expected 32")
+    bullets, aqiu_rows = overworld_section("TV Shopping")
+    aqiu = {md_slash(r[0]): (r[2], int(r[3])) for r in aqiu_rows}
+    if {d: p for d, (_items, p) in aqiu.items()} != {d: g["price"] for d, g in game.items()}:
+        raise BuildError("aqiu TV shopping dates/prices disagree with the game table")
+    for d, (items, _price) in aqiu.items():
+        counts = [int(m.group(1)) if m else 1 for m in (re.search(r" x(\d+)$", x.strip()) for x in items.split(" + "))]
+        if counts != [n for _id, n in game[d]["items"]]:
+            raise BuildError(f"aqiu TV shopping {md_of(d)}: quantities disagree with the game table")
+
+    # zh names per buy date: (names with quantities, source ids); 3DM first, then the CN guide.
+    named: dict[int, tuple[list[tuple[str, int]], list[str]]] = {}
+    extra: list[str] = []
+    for d in sorted(set(sched.lines) | set(guide)):
+        md = md_of(d)
+        m = sched.one(d, Schedule3dm.TV) if d in sched.lines else None
+        src_names = None
+        if m:
+            src_names = (tv_names(typo_fix(md, m.group(1))), int(m.group(2).replace(",", "")), [sched.source(d)])
+        else:
+            for item in guide.get(d, []):
+                t = re.fullmatch(r"电视购物 · (.+?)(?:，([\d,]+) 日元)?", item.get("title", ""))
+                if t and "+" in t.group(1):
+                    price = int(t.group(2).replace(",", "")) if t.group(2) else None
+                    src_names = (tv_names(t.group(1)), price, ["cn_guide"])
+        if src_names is None:
+            continue
+        names, price, src = src_names
+        if d not in game:
+            extra.append(f"{md} {'+'.join(n for n, _q in names)} ({src[0]})")
+            continue
+        if price is not None and price != game[d]["price"]:
+            raise BuildError(f"TV shopping {md}: zh price {price} != game price {game[d]['price']}")
+        if [q for _n, q in names] != [q for _id, q in game[d]["items"]]:
+            raise BuildError(f"TV shopping {md}: zh quantities {names} disagree with the game table")
+        named[d] = (names, src)
+    if [x.split(" ")[0] for x in extra] != ["01-03"]:
+        raise BuildError(f"zh TV shopping dates outside the game table: {extra} (expected only 1/3)")
+    # Same game item -> same zh name everywhere; a date that names only its request item borrows the other name.
+    by_id: dict[int, tuple[str, list[str]]] = {}
+    for d, (names, src) in sorted(named.items()):
+        for (item_id, _q), (name, _n) in zip(game[d]["items"], names):
+            known = by_id.setdefault(item_id, (name, src))
+            if known[0] != name:
+                raise BuildError(f"TV item {item_id} is called {known[0]!r} and {name!r}")
+    requests: dict[int, tuple[int, int, bool]] = {}  # day -> (item position, request number, the request names it)
+    _b, request_rows = overworld_section("Elizabeth Requests")
+    titles = {r[1]: r[3] for r in request_rows}
+    for bullet in bullets:
+        m = re.fullmatch(r"(.+?): Highly recommended for Request #(\d+): (.+)", bullet)
+        if not m:
+            raise BuildError(f"unexpected TV shopping note {bullet!r}")
+        hits = [(d, i) for d, (items, _p) in aqiu.items() for i, x in enumerate(items.split(" + ")) if x.strip() == m.group(1)]
+        if len(hits) != 1 or titles.get(m.group(2)) != m.group(3):
+            raise BuildError(f"TV shopping note {bullet!r} does not match one item / request")
+        requests[hits[0][0]] = (hits[0][1], int(m.group(2)), m.group(1) in m.group(3))
+    for d, (pos, _no, _named) in requests.items():
+        if d in named:
+            continue
+        one = sched.one(d, Schedule3dm.TV_ONE)
+        if not one:
+            raise BuildError(f"TV shopping {md_of(d)}: 3DM does not name the request item")
+        names = []
+        src = [sched.source(d)]
+        for i, (item_id, qty) in enumerate(game[d]["items"]):
+            if i == pos:
+                name = one.group(1)
+            elif item_id in by_id:
+                name, borrowed = by_id[item_id]
+                src += [s for s in borrowed if s not in src]
+            else:
+                raise BuildError(f"TV shopping {md_of(d)}: no zh name for item {item_id}")
+            names.append((name, qty))
+        named[d] = (names, src)
+
+    out = []
+    for d, g in sorted(game.items()):
+        md = md_of(d)
+        price = yen(g["price"])
+        detail = TV_DETAIL
+        priority = 1
+        if d in named:
+            names, src = named[d]
+            listed = "、".join(n if q == 1 else f"{n} ×{q}" for n, q in names)
+            zh = f"电视购物：{listed}，{price}"
+            if d in requests:
+                pos, no, required = requests[d]
+                item = names[pos][0]
+                detail += f"{item}是伊莉莎白第 {no} 号委托要的东西。" if required else f"{item}在伊莉莎白第 {no} 号委托里很有用。"
+                priority = 2
+        else:
+            src = []
+            zh = f"电视购物有新商品：{price}"
+            if d in requests:
+                raise BuildError(f"TV shopping {md}: a request item without a zh name")
+        out.append(reminder(f"tv.{md}", "tv", d, "day", zh, fit_short(f"tv.{md}", f"电视购物 {price}"), detail=detail,
+                            priority=priority, cost=g["price"], conf="single",
+                            src=["gd_mail_order", "aqiu_overworld"] + src))
+    unnamed = [md_of(d) for d in sorted(game) if d not in named]
+    ledger.decide("reminders", "tv", f"电视购物: the {len(game)} rows of DT_FldMailOrderTable (game data: buy date, items, "
+                  "quantities, price; the aqiu table agrees) are the dates; delivery dates are not shown. zh item names come "
+                  "from the 3DM line of the buy date, else the CN guide's; quantities and prices must equal the game's, and "
+                  "one game item always has the same zh name (7/12: 3DM names only the request item, the other name comes "
+                  f"from the same item on another date). Without zh names: {', '.join(unnamed) or 'none'} (shown as 有新商品). "
+                  f"zh-source dates outside the game table are dropped: {'; '.join(extra) or 'none'}. Request items (aqiu "
+                  "notes): " + ", ".join(f"{md_of(d)} #{no}" for d, (_p, no, _r) in sorted(requests.items()))
+                  + " (priority 2).")
+    return out
+
+
+def request_reminders(ledger: Ledger, people: list[tuple[int, int, str]]) -> list[dict]:
+    """伊莉莎白的委托: the days new requests appear and the last days of the time-limited ones (aqiu)."""
+    _bullets, rows = overworld_section("Elizabeth Requests")
+    batches: set[int] = set()
+    windows: dict[int, tuple[int, list[int]]] = {}
+    prereq: dict[int, str] = {}
+    for row in rows:
+        avail, number, hint = row[0], row[1], row[4]
+        if avail == "-":
+            continue
+        m = re.fullmatch(r"(\d+/\d+)(?:-(\d+/\d+))?", avail)
+        if not m:
+            raise BuildError(f"request #{number}: availability {avail!r}")
+        first = md_slash(m.group(1))
+        batches.add(first)
+        if m.group(2):
+            last = md_slash(m.group(2))
+            start, numbers = windows.setdefault(last, (first, []))
+            if start != first:
+                raise BuildError(f"requests ending {m.group(2)} start on different days")
+            numbers.append(int(number))
+            rescued = re.match(r"Rescued (\w+) >", hint)
+            if rescued:
+                who = [p for p in people if p[2].split(" ")[0] == rescued.group(1)]
+                if len(who) != 1:
+                    raise BuildError(f"request #{number}: missing person {rescued.group(1)} not found")
+                prereq[last] = f"要先救出 {cn_date(who[0][0])}失踪的学生。"
+    if len(batches) != 9 or len(windows) != 8:
+        raise BuildError(f"Elizabeth requests: {len(batches)} batch dates / {len(windows)} deadlines, expected 9 / 8")
+    out = []
+    for d in sorted(batches):
+        out.append(reminder(f"request.{md_of(d)}", "request", d, "day", "伊莉莎白有新的委托", "伊莉莎白有新委托",
+                            detail="去天鹅绒房间找伊莉莎白看看新委托；接委托和交东西都不会消耗时间。",
+                            conf="verified", src=["aqiu_overworld", "cn_guide"]))
+    for last, (first, numbers) in sorted(windows.items()):
+        these = "这些" if len(numbers) > 1 else "这个"
+        detail = prereq.get(last, "") + f"{these}委托只能做到{cn_date(last)}；接委托和交东西都不会消耗时间。"
+        out.append(reminder(
+            f"request.{md_of(last)}.deadline", "request", max(first, last - 3), "day",
+            f"伊莉莎白的第 {'、'.join(map(str, numbers))} 号委托 {cn_date(last)}截止", f"委托 {cn_date(last)}截止",
+            detail=detail, priority=2, until=last, conf="verified", src=["aqiu_overworld", "cn_guide"]))
+    ledger.decide("reminders", "requests", "伊莉莎白的委托 (aqiu overworld): new requests appear on "
+                  + ", ".join(md_of(d) for d in sorted(batches)) + "; the time-limited ones end on "
+                  + ", ".join(f"{md_of(last)} (#{'/'.join(map(str, n))})" for last, (_f, n) in sorted(windows.items()))
+                  + ", each shown from 3 days before its end (not before its batch). #97 needs the student missing from "
+                  "6/18 rescued. Not shipped: request #75 (8 faculty-office visits, Academics +16) and the outings #77-81.")
+    return out
+
+
+def rescue_groups(ledger: Ledger) -> tuple[list[dict], list[tuple[int, int, str]]]:
+    """失踪者: the 20 missing people of aqiu overworld in (missing from, limit) groups; the engine words the reminders."""
+    _bullets, rows = overworld_section("Missing People")
+    people = [(md_slash(r[0]), md_slash(r[1]), r[2]) for r in rows]
+    board = {line.split("\t")[1].split("\\n")[0] for line in
+             (SOURCES_DIR / "aqiu_gamedata" / "BMD_DisappearHelp.tsv").read_text(encoding="utf-8").splitlines()[2:]}
+    if len(people) != 20 or {p[2] for p in people} != board:
+        raise BuildError("aqiu missing people disagree with the game's missing-person board (20 names)")
+    groups: dict[tuple[int, int], list[str]] = {}
+    for first, last, name in people:
+        groups.setdefault((first, last), []).append(name)
+    out = []
+    modelled = {RESCUE_EN[ident]: (ident, day_of_md(first), day_of_md(last)) for ident, _zh, first, last, _link in RESCUES}
+    for (first, last), names in sorted(groups.items()):
+        ids = []
+        for name in names:
+            if name in modelled:
+                ident, m_first, m_last = modelled.pop(name)
+                if (m_first, m_last) != (first, last):
+                    raise BuildError(f"rescue {ident}: window {md_of(m_first)}-{md_of(m_last)} is not its aqiu group")
+                ids.append(ident)
+        out.append({"conf": "verified", "count": len(names), "fromDay": first, "id": f"rescue.{md_of(first)}",
+                    "rescueIds": ids, "src": ["aqiu_overworld", "gd_disappear_help"], "toDay": last})
+    if modelled:
+        raise BuildError(f"modelled rescues not in the aqiu table: {sorted(modelled)}")
+    if len(out) != 13 or len({g["id"] for g in out}) != 13:
+        raise BuildError(f"expected 13 missing-person groups, found {len(out)}")
+    ledger.decide("reminders", "rescue", "失踪者: the 20 people of aqiu overworld (the same names as the game's "
+                  "missing-person board) in 13 (missing from, limit) groups; 北村文吉 and 舞子 are the modelled rescues "
+                  "(rescueIds). The engine words them against the plan: when they go missing, on the first planned "
+                  "Tartarus evening in the window (rescued on that visit), or the day before the limit when no Tartarus "
+                  "evening is planned. Whether the limit day itself still counts is not verified (the reminders say so).")
+    return out, people
+
+
+def collectible_reminders(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, guide: dict[int, list[dict]],
+                          by_day: dict[int, dict]) -> list[dict]:
+    """黄昏的碎片, the Yakushima and Kyoto request items, and 真宵堂 (3DM, CN guide and aqiu agree)."""
+    src_terms = "steam_sc_achievements"
+    city = cn_guide_item(guide, CN_ITEMS["fragment.city"], "04-21", "14 处")
+    spots = city["substeps"]
+    if len(spots) != 14:
+        raise BuildError(f"CN guide lists {len(spots)} city fragment spots on 4/21, expected 14")
+    if not sched.matches(day_of_md("04-21"), re.compile(r"黄昏的?碎片")):
+        raise BuildError("3DM has no 黄昏的碎片 line on 4/21")
+    cn_guide_item(guide, CN_ITEMS["fragment.dorm"], "04-21", "4 楼")
+    cn_guide_item(guide, CN_ITEMS["fragment.roof"], "05-25", "宿舍天台", "放纵俱乐部", "勇气达到2级")
+    cn_guide_item(guide, CN_ITEMS["fragment.operation"], "08-06", "黄昏的碎片（2个）")
+    for md, pattern in (("04-21", r"宿舍4楼.*黄昏碎片"), ("05-25", r"宿舍天台的黄昏碎片"), ("08-06", r"黄昏的碎片（2个）"),
+                        ("07-18", r"真宵堂解锁"), ("07-20", r"委托44")):
+        if not sched.matches(day_of_md(md), re.compile(pattern)):
+            raise BuildError(f"3DM {md}: no line matching {pattern}")
+    if not re.search(r"^2 \|[^|]*\|[^|]*\| Club Escapade \|", page.subsection("required-for"), flags=re.M):
+        raise BuildError("aqiu Required For no longer says Courage Lv2 opens Club Escapade")
+    club_lv = 2
+    out = [
+        reminder("fragment.04-21", "fragment", day_of_md("04-21"), "day", "今天城里能捡到黄昏的碎片（14 处）",
+                 "能捡黄昏的碎片", detail="放学后在这 14 处能捡到：\n" + "\n".join(fix_names(s) for s in spots),
+                 conf="single", src=["cn_guide", "cn_3dm_p2", src_terms]),
+        reminder("fragment.04-21.dorm", "fragment", day_of_md("04-21"), "eve", "宿舍 4 楼有一块黄昏的碎片",
+                 "宿舍 4 楼：黄昏的碎片", detail="在宿舍 4 楼通向屋顶的楼梯旁，台灯附近。",
+                 conf="verified", src=["cn_guide", "cn_3dm_p2", src_terms]),
+        reminder("fragment.05-25", "fragment", day_of_md("05-25"), "eve", "宿舍屋顶有一块黄昏的碎片",
+                 "宿舍屋顶：黄昏的碎片", detail="宿舍屋顶这时开放了，晚上上去就能捡到。",
+                 conf="verified", src=["cn_guide", "cn_3dm_p3", src_terms]),
+        reminder("fragment.05-25.club", "fragment", day_of_md("05-25"), "eve",
+                 f"勇气到 Lv.{club_lv} 了：晚上去放纵俱乐部，舞台上有一块黄昏的碎片", "放纵俱乐部：黄昏的碎片",
+                 detail=f"放纵俱乐部晚上要勇气 Lv.{club_lv} 才能进去，舞台旁有一块黄昏的碎片。",
+                 requires={"courage": club_lv}, first_eligible=True, conf="single",
+                 src=["cn_guide", "aqiu_social_events", src_terms]),
+        reminder("fragment.08-06", "fragment", day_of_md("08-06"), "eve", "作战地图上有 2 块黄昏的碎片，错过就没了",
+                 "作战时捡黄昏的碎片", detail="满月作战的地图上，前进的路上有 2 块黄昏的碎片，作战结束后就拿不到了。",
+                 priority=3, conf="verified", src=["cn_guide", "cn_3dm_p6", src_terms]),
+    ]
+    if by_day[day_of_md("08-06")]["eveLock"] != "full_moon":
+        raise BuildError("8/6 evening is no longer the full-moon operation")
+
+    # 屋久岛: request #44's beach items (aqiu's "6/20" is a typo for 7/20, AQIU_FIXES).
+    _b, request_rows = overworld_section("Elizabeth Requests")
+    req = {r[1]: r for r in request_rows}
+    wrong, right, _why = AQIU_FIXES["request.44"]
+    if f"Accept > {wrong}: Collect" not in req["44"][4]:
+        raise BuildError("aqiu request #44 no longer has the 6/20 typo: drop AQIU_FIXES['request.44']")
+    trip = cn_guide_item(guide, CN_ITEMS["trip.yakushima"], right.replace("/", "-").zfill(5), "#44", "任意一种")
+    things = "、".join(re.match(r"([^：]+)：", s).group(1) for s in trip["substeps"])
+    things = things[:things.rfind("、")] + "或" + things[things.rfind("、") + 1:]
+    beach = "\n".join(trip["substeps"])
+    if by_day[md_slash(right)]["dayLock"] != "yakushima":
+        raise BuildError("7/20 is no longer a Yakushima day")
+    out.append(reminder(
+        "trip.07-20", "trip", md_slash(right), "day", f"屋久岛：在海边捡一件{things}，伊莉莎白的第 44 号委托要用，错过就没了",
+        "海边捡东西（委托用）", label="屋久岛", priority=3,
+        detail="出发前要先在天鹅绒房间接下第 44 号委托。到了海边，下面任意一件都行：\n" + beach,
+        conf="verified", src=["aqiu_overworld", "cn_guide", "cn_3dm_p5"]))
+    # 修学旅行: request #96 needs all three drinks of the Kyoto vending machine.
+    _b, kyoto = overworld_section("Kyoto Vending Machines")
+    if len(kyoto) != 3 or "Bought all 3 drinks from Kyoto vending machine" not in req["96"][4]:
+        raise BuildError("aqiu Kyoto vending machine / request #96 changed")
+    cn_guide_item(guide, CN_ITEMS["trip.kyoto"], "11-17", "二楼自动贩卖机全买光")
+    if by_day[day_of_md("11-17")]["dayLock"] != "school_trip":
+        raise BuildError("11/17 is no longer a school-trip day")
+    out.append(reminder(
+        "trip.11-17", "trip", day_of_md("11-17"), "day", "修学旅行：把 2 楼自动贩卖机的 3 种饮料都买下，第 96 号委托要用",
+        "买齐 3 种饮料（委托用）", label="修学旅行", priority=3,
+        detail="住的地方 2 楼有自动贩卖机，3 种饮料每种买一瓶。回学校后在连接走廊把饮料给那位女学生，换来的关东煮可以交第 96 号委托。",
+        conf="verified", src=["aqiu_overworld", "cn_guide"]))
+    # 真宵堂 opens on 7/18 (aqiu Tartarus notes, the CN guide that evening).
+    if "Mayoido Antiques opens on 7/18" not in (SOURCES_DIR / "aqiu_gamedata" / "tartarus.md").read_text(encoding="utf-8"):
+        raise BuildError("aqiu tartarus.md no longer says Mayoido Antiques opens on 7/18")
+    cn_guide_item(guide, CN_ITEMS["feature.mayoido"], "07-18", "真宵堂解锁")
+    out.append(reminder("feature.07-18", "feature", day_of_md("07-18"), "eve", "真宵堂今天开张了", "真宵堂开张",
+                        detail="真宵堂从今天起开张，可以去看看。", conf="verified",
+                        src=["aqiu_tartarus", "cn_guide", "cn_3dm_p5"]))
+    ledger.conflict("fragment.04-21", "Twilight Fragments in town on 4/21", "14 places by day (CN guide list) + dorm 4F "
+                    "in the evening", ["14 in all, one of them in the dorm at night (3DM note)"], ["cn_guide", "cn_3dm_p2"])
+    ledger.decide("reminders", "collectibles", "黄昏的碎片 (official achievement wording; 黄昏碎片 is forbidden): 4/21 the 14 "
+                  "town spots of the CN guide by day and the dorm 4F one in the evening, 5/25 the dorm roof, Club Escapade "
+                  f"(Courage Lv{club_lv}, aqiu Required For) on the first evening at or after 5/25 that the forecast "
+                  "allows, 8/6 the two on the operation map (missable). 屋久岛 7/20: one beach item for request #44 "
+                  f"({AQIU_FIXES['request.44'][2]}); 修学旅行 11/17: the three Kyoto vending-machine drinks for request "
+                  "#96 (aqiu lists exactly three). 真宵堂 opens on 7/18 (aqiu tartarus notes, CN guide and 3DM on that "
+                  "evening; the daytime is a story lock). Not shipped: Mitsuru's results-day reward, shop restocks, URL "
+                  "notes going on sale, the exam first-place threshold, 'unlock becomes possible', request #75, outings "
+                  "#77-81, Persona fusion names; dropped: the CN 1/3 TV entry, cat rescues, shrine fortunes, 4/29 山间补习班, "
+                  "9/1 tutoring items, the 'slot-free' label on requests #38 and #10.")
+    return out
+
+
+def doze_and_nurse(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, guide: dict[int, list[dict]],
+                   by_day: dict[int, dict]) -> tuple[dict, dict]:
+    """上课犯困 days (3DM 「上课：不闭眼 / 闭不闭眼都行」 and the CN guide) and the 保健室 rule (aqiu)."""
+    general = page.subsection("general")
+    awake = re.search(r"stay awake for Academics \+(\d+) or close your eyes for Courage \+(\d+)", general)
+    nurse = re.search(r"Tartarus visit or Full Moon Operation, you can visit the Nurse's Office for Courage \+(\d+) "
+                      r"without taking up any time", general)
+    if not awake or not nurse or awake.group(1) != "2" or awake.group(2) != "2":
+        raise BuildError("aqiu scheduled-activities bullets (class dozing / nurse's office) changed")
+    from_3dm = {d for d in sched.lines if sched.matches(d, Schedule3dm.DOZE)}
+    from_cn = {d for d, items in guide.items() for item in items
+               if item.get("kind") == "class" and re.match(r"课堂 · (不闭眼|闭不闭眼都行)", item["title"])}
+    both = from_3dm | from_cn
+    school = sorted(d for d in both if by_day.get(d, {}).get("type") == "school")
+    dropped = sorted(md_of(d) for d in both if d not in school)
+    ledger.decide("reminders", "doze", f"上课犯困 on {len(school)} school days: 3DM lines 「上课：不闭眼 / 闭不闭眼都行」 "
+                  f"({len(from_3dm)} dates) and the CN guide's ({len(from_cn)}); 3DM only: "
+                  f"{', '.join(md_of(d) for d in sorted(from_3dm - from_cn)) or 'none'}; CN guide only (3DM has no text "
+                  f"there): {', '.join(md_of(d) for d in sorted(from_cn - from_3dm)) or 'none'}. Not school days, "
+                  f"dropped: {', '.join(dropped) or 'none'}. The choice is the engine's: stay awake (Academics "
+                  f"+{awake.group(1)}) until Academics is MAX, then close the eyes (Courage +{awake.group(2)}) until "
+                  "Courage is MAX (aqiu).")
+    ledger.decide("reminders", "nurse", f"保健室: on a school day right after a Tartarus visit or a full-moon operation, "
+                  f"the nurse's office gives Courage +{nurse.group(1)} without taking time (aqiu); the engine applies it to "
+                  "planned Tartarus evenings, full-moon operations and the latest recorded Tartarus evening.")
+    pages = sorted({sched.source(d) for d in from_3dm}, key=lambda s: int(s[len("cn_3dm_p"):]))
+    doze = {"academics": int(awake.group(1)), "conf": "single", "courage": int(awake.group(2)), "days": school,
+            "src": ["aqiu_social_events", "cn_guide"] + pages}
+    return doze, {"conf": "single", "courage": int(nurse.group(1)), "src": ["aqiu_social_events", "cn_guide"]}
+
+
+def build_reminders(ledger: Ledger, page: AqiuPage, days: list[dict]) -> dict:
+    """The pack's `reminders` section: static items, 上课犯困 days, the 保健室 rule and missing-person groups."""
+    by_day = {x["d"]: x for x in days}
+    sched = Schedule3dm()
+    guide = cn_guide_days()
+    groups, people = rescue_groups(ledger)
+    items = answer_reminders(ledger, page, sched, guide)
+    items += tv_reminders(ledger, sched, guide)
+    items += request_reminders(ledger, people)
+    items += collectible_reminders(ledger, page, sched, guide, by_day)
+    doze, nurse = doze_and_nurse(ledger, page, sched, guide, by_day)
+    items.sort(key=lambda x: (x["day"], x["slot"] == "eve", x["id"]))
+    return {"doze": doze, "items": items, "nurse": nurse, "rescueGroups": groups}
+
+
+# --------------------------------------------------------------------------------------------
 # Pack assembly
 
 
@@ -1977,7 +2714,9 @@ NOTES_ZH = (
     "不加社群点数，奖励是能力值和道具，看完最后一话还能合体新的人格面具。望月绫时的羁绊剧情跟着主线在固定日子发生，不单独安排。",
     "【对话】对话提示只引用原版中文攻略的原文；括号里的数字是攻略的标注，不一定对应游戏里的选项顺序。",
     "【人名】采用官方简体中文译名：贝培、伊莉莎白、Ｙ子、舞子；审判社群为避免剧透显示为「伙伴们」。",
-    "【未计入】课堂答题、考试名次、暑期补习和宿舍活动带来的能力值不在预测里，请在「同步现状」时更新。",
+    "【当日提醒】课堂提问和考试的答案、电视购物、伊莉莎白的委托、失踪者和黄昏的碎片这些不会消耗时间的事，会在当天提醒。"
+    "答案取自中文攻略的原文；只有一份攻略写过的答案会注明。",
+    "【未计入】课堂提问、上课犯困、保健室、考试名次、暑期补习和宿舍活动带来的能力值不在预测里，请在「同步现状」时更新。",
 )
 
 
@@ -2006,6 +2745,7 @@ def build_pack() -> tuple[dict, Ledger]:
     activities = build_activities(ledger, page, guide_text, days)
     episodes = build_episodes(ledger, page, days, guide_text)
     dating_note = build_dating_note(ledger, days, guide_text)
+    reminders = build_reminders(ledger, page, days)
 
     stat_thresholds = load_stat_thresholds()
     expected = {"academics": [0, 0, 20, 55, 100, 155, 230], "charm": [0, 0, 15, 30, 45, 70, 100], "courage": [0, 0, 15, 30, 45, 60, 80]}
@@ -2048,6 +2788,7 @@ def build_pack() -> tuple[dict, Ledger]:
         "notes": list(NOTES_ZH),
         "packVersion": PACK_VERSION,
         "policy": policy,
+        "reminders": reminders,
         "schema": SCHEMA,
         "sources": sources,
         "stats": stats,
@@ -2128,6 +2869,7 @@ def validate_pack(pack: dict) -> None:
         raise BuildError("datingNote: evening use, positive cost/gain and a free first evening are required")
     if note["maxUses"] is not None and note["maxUses"] < 1:
         raise BuildError("datingNote.maxUses must be null (no limit) or positive")
+    validate_reminders(pack, check_src)
     check_reload_sources(pack)
     text = json.dumps(pack, ensure_ascii=False)
     for word in FORBIDDEN_STRINGS:
@@ -2142,7 +2884,11 @@ def validate_pack(pack: dict) -> None:
     for block in pack["tartarus"]["blocks"]:
         if any(part not in page_3dm for part in block["zh"].split(" ")):
             raise BuildError(f"block {block['id']}: name {block['zh']!r} is not in the 3DM page")
+    answers = sorted({x["answerZh"] for x in pack["reminders"]["items"] if x["answerZh"]}, key=len, reverse=True)
     for where, value in player_texts(pack):
+        if where.startswith("reminders.items"):
+            for answer in answers:  # verbatim 3DM answers (MAY BLUES, MADRID…) are exempt, as dialogue is
+                value = value.replace(answer, "")
         latin = [w for w in re.findall(r"[A-Za-z]+", value) if w not in ALLOWED_LATIN]
         if latin:
             raise BuildError(f"{where}: player-facing text contains Latin words {latin}: {value}")
@@ -2154,11 +2900,57 @@ def validate_pack(pack: dict) -> None:
             raise BuildError(f"{where}: player-facing text uses {off} (docs/GLOSSARY_zh.md): {value}")
 
 
+def validate_reminders(pack: dict, check_src) -> None:
+    """The reminders section: the rules RulesLoader.parseReminders enforces again when the app loads the pack."""
+    rem = pack["reminders"]
+    by_day = {d["d"]: d for d in pack["days"]}
+    stats = {s["id"] for s in pack["stats"]}
+    ids: set[str] = set()
+    for i, item in enumerate(rem["items"]):
+        where = f"reminders.items[{i}]"
+        check_src(where, item)
+        if not REMINDER_ID.fullmatch(item["id"]) or item["id"] in ids:
+            raise BuildError(f"{where}: id {item['id']!r} is malformed or duplicated")
+        ids.add(item["id"])
+        if item["kind"] not in REMINDER_KINDS or item["slot"] not in ("day", "eve"):
+            raise BuildError(f"{where}: kind {item['kind']!r} / slot {item['slot']!r}")
+        if item["day"] not in by_day or (item["untilDay"] is not None and not item["day"] <= item["untilDay"] <= LAST_DAY):
+            raise BuildError(f"{where}: day {item['day']} / untilDay {item['untilDay']} outside the calendar")
+        if not item["zh"] or not item["labelZh"] or not item["shortZh"] or not fits_short(item["shortZh"]):
+            raise BuildError(f"{where}: zh, labelZh and a shortZh of at most {SHORT_MAX_CHARS} chars are required")
+        answer = item["kind"] in ("class", "exam")
+        if bool(item["answerZh"]) != answer or not 0 <= item["option"] <= 4 or (item["option"] and item["kind"] != "class"):
+            raise BuildError(f"{where}: answerZh only (and always) for class/exam, option 0..4 for class only")
+        if not 1 <= item["priority"] <= 3 or item["costYen"] < 0:
+            raise BuildError(f"{where}: priority 1..3 and costYen >= 0")
+        requires = item["requires"] or {}
+        if any(k not in stats or not 1 <= v <= 6 for k, v in requires.items()) or (item["firstEligible"] and not requires):
+            raise BuildError(f"{where}: requires maps stats to Lv 1..6; firstEligible needs requires")
+    if [(x["day"], x["slot"] == "eve", x["id"]) for x in rem["items"]] != sorted((x["day"], x["slot"] == "eve", x["id"])
+                                                                                  for x in rem["items"]):
+        raise BuildError("reminders.items must be sorted by (day, slot, id)")
+    doze = rem["doze"]
+    check_src("reminders.doze", doze)
+    if doze["days"] != sorted(set(doze["days"])) or any(by_day[d]["type"] != "school" for d in doze["days"]):
+        raise BuildError("reminders.doze.days must be ascending school days")
+    if doze["academics"] < 1 or doze["courage"] < 1:
+        raise BuildError("reminders.doze gains must be positive")
+    check_src("reminders.nurse", rem["nurse"])
+    if rem["nurse"]["courage"] < 1:
+        raise BuildError("reminders.nurse.courage must be positive")
+    rescues = {r["id"] for r in pack["tartarus"]["rescues"]}
+    for i, group in enumerate(rem["rescueGroups"]):
+        where = f"reminders.rescueGroups[{i}]"
+        check_src(where, group)
+        if group["count"] < 1 or not set(group["rescueIds"]) <= rescues or not group["fromDay"] <= group["toDay"]:
+            raise BuildError(f"{where}: count >= 1, known rescueIds and fromDay <= toDay are required")
+
+
 # Words docs/GLOSSARY_zh.md tells us not to use in player-facing text (解锁, 见面, 安排, MAX, 羁绊剧情 …),
 # and the menu names that legitimately contain 规划.
 GLOSSARY_AVOID = (
     "开启", "建立", "练满", "满级", "计划", "规划", "羁绊剧场", "估算", "规则包", "社交链接", "交友网站", "牵绊",
-    "不占用时段", "锁定", "约会", "会面", "加深关系", "Lv.6",
+    "不占用时段", "不占时间", "锁定", "约会", "会面", "加深关系", "Lv.6", "上课问答", "医务室",
 )
 # 约会 is reserved for romance (docs/GLOSSARY_zh.md); the Christmas Eve date lock is one.
 GLOSSARY_ALLOWED = ("规划设置", "规划说明", "平安夜约会")
@@ -2240,8 +3032,9 @@ def check_reload_sources(pack: dict) -> None:
                 raise BuildError(f"{label}: {record.get('id', '')} does not cite {missing}")
 
 # Latin tokens allowed in player-facing Chinese text: stat levels, ranks, floors, karaoke, and the
-# item name 莫乐蜜G as written in the CN guide.
-ALLOWED_LATIN = ("Lv", "RANK", "MAX", "F", "OK", "G")
+# item names 莫乐蜜G and 急救组合M as the CN guide and 3DM write them. Class/exam answers are exempt (verbatim
+# 3DM text such as MAY BLUES or MADRID, listed in REPORT §7).
+ALLOWED_LATIN = ("Lv", "RANK", "MAX", "F", "OK", "G", "M")
 
 
 def player_texts(node, path: str = "") -> list[tuple[str, str]]:
@@ -2268,12 +3061,17 @@ def player_texts(node, path: str = "") -> list[tuple[str, str]]:
 # Output
 
 
+# Sections whose nested record lists are also written one record per line (readable diffs).
+NESTED_RECORD_KEYS = ("reminders",)
+
+
 def compact(value) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 def dump_pack(pack: dict) -> str:
-    """Deterministic layout: one top-level key per line, one record per line for record lists."""
+    """Deterministic layout: one top-level key per line, one record per line for record lists (also the record lists
+    inside `reminders`)."""
     lines = ["{"]
     keys = sorted(pack)
     for i, key in enumerate(keys):
@@ -2288,7 +3086,14 @@ def dump_pack(pack: dict) -> str:
             lines.append(f"{json.dumps(key)}:{{")
             sub = sorted(value)
             for j, sub_key in enumerate(sub):
-                lines.append(f"{json.dumps(sub_key)}:{compact(value[sub_key])}" + ("," if j < len(sub) - 1 else ""))
+                sub_tail = "," if j < len(sub) - 1 else ""
+                records = value[sub_key]
+                if key in NESTED_RECORD_KEYS and isinstance(records, list) and records and isinstance(records[0], dict):
+                    lines.append(f"{json.dumps(sub_key)}:[")
+                    lines.extend(compact(r) + ("," if k < len(records) - 1 else "") for k, r in enumerate(records))
+                    lines.append("]" + sub_tail)
+                else:
+                    lines.append(f"{json.dumps(sub_key)}:{compact(records)}{sub_tail}")
             lines.append("}" + tail)
         else:
             lines.append(f"{json.dumps(key)}:{compact(value)}{tail}")
@@ -2302,8 +3107,20 @@ KNOWN_GAPS = (
     "the game shows on the map is the reliable signal; the engine/UI should prefer it over the estimate.",
     "Multiplier rounding order (per answer vs per meeting) and the exam-bonus expiry are unknown; the pack says "
     "floor_per_meeting.",
-    "Free stat gains (class answers, exam top-of-class Charm +4, summer school Academics +18, Link Episodes, dorm "
-    "hangouts, nurse's office) are not forecast (DESIGN §10.9); the player syncs stats.",
+    "Free stat gains (class answers, class dozing, exam top-of-class Charm +4, summer school Academics +18, Link "
+    "Episodes, dorm hangouts, nurse's office) are not forecast (DESIGN §10.9); the player syncs stats. 当日提醒 "
+    "only reminds of them.",
+    "当日提醒 not shipped yet (P2, same schema later): Mitsuru's reward on results days, shop restocks, URL notes "
+    "going on sale, the exam first-place threshold, 'unlock becomes possible', request #75 (8 faculty-office visits) "
+    "and the outings #77-81, Persona fusion names. Dropped: the CN guide's 1/3 TV entry (not in the game table), cat "
+    "rescues, shrine fortunes, 4/29 山间补习班, 9/1 tutoring items, the 'slot-free' label on requests #38 and #10.",
+    "当日提醒 answers: 3DM's schedule text has nothing for 12/1-12/12 and nothing after 1/13, so the class answers of "
+    "12/7, 12/9 and 1/18 are withheld (the CN guide answers them, but its answers are never used), and 12/11 has no zh "
+    "answer at all. Exam answers 7/17 (MADRID) and 12/16 (JUNE) are single-sourced and shown with conf=estimate. "
+    "上课犯困 days 12/12 and 1/15-1/28 rest on the CN guide alone.",
+    "当日提醒 missing people: whether the limit day itself still counts is not verified; the reminders tell the "
+    "player to go earlier. Floors are unknown. Rescues follow the plan's Tartarus evenings and the latest recorded "
+    "one, not nights the player improvises.",
     "Not modelled: Wakatsu seafood course, Hagakure bowl, weekend Wilduck set, burger challenge, shrine donations, "
     "shrine fortunes, gifts, film-festival hangouts, Koromaru walks, Ryoji's and Takaya's Link Episodes. All of them "
     "can only add points/stats, so plans stay conservative.",
@@ -2377,6 +3194,13 @@ FIELD_SEMANTICS = (
     "`datingNote` (结缘网站的字条): from `fromDay`, an evening (club + dorm PC) that costs `cost` yen and adds `gain` "
     "points (no multipliers) to one established manual link at rank 1-9; it never ranks the link up by itself. "
     "`requires` = stat Lv to enter the club; `maxUses` = null means no limit.",
+    "`reminders` (当日提醒, display only, never forecast): `items` are static lines for a `day`+`slot` (`untilDay` = "
+    "deadline or null; `zh` card/today line, `shortZh` ≤ 16 chars for the small widget, `answerZh`/`option` for "
+    "class and exam answers, `requires` stat Lv with `firstEligible` = shown on the first slot of that kind from "
+    "`day` on where the forecast meets it), sorted by (day, slot, id). `doze.days` (上课犯困, school days; "
+    "`academics`/`courage` = points for staying awake / closing the eyes), `nurse` "
+    "(保健室 Courage after a Tartarus or full-moon night) and `rescueGroups` (missing people per (from, limit), "
+    "`rescueIds` = modelled rescues) are worded by the engine against the plan.",
     "`conf`: game_data > verified > single > estimate; conflict = strictest claim chosen, alternatives in `alt` "
     "(activities) or in this report.",
 )
@@ -2572,6 +3396,7 @@ def render_report(pack: dict, ledger: Ledger, pack_text: str) -> str:
     out.append(f"From {md_of(note['fromDay'])}, evening, ¥{note['cost']:,}, +{note['gain']} points, requires "
                f"{compact(note['requires'])}, uses: {uses}, conf={note['conf']}, src: {', '.join(note['src'])}.")
     out.append("")
+    out.extend(render_reminders(pack))
 
     out.append("## 5. Audit observations")
     out.append("")
@@ -2589,6 +3414,46 @@ def render_report(pack: dict, ledger: Ledger, pack_text: str) -> str:
     out.append("")
     out.extend(render_unverified(pack))
     return "\n".join(out)
+
+
+def render_reminders(pack: dict) -> list[str]:
+    """REPORT §4.8: count, conf and sources per reminder kind."""
+    rem = pack["reminders"]
+    out = ["### 4.8 Reminders (当日提醒)", ""]
+    out.append("Static items per kind; the engine adds 上课犯困, 保健室 and 失踪者 from the blocks below. `first`/`last` "
+               "are item days.")
+    out.append("")
+    out.append("| kind | label | items | priority | conf | sources | first | last |")
+    out.append("|---|---|---|---|---|---|---|---|")
+    for kind in REMINDER_KINDS:
+        items = [x for x in rem["items"] if x["kind"] == kind]
+        if not items:
+            continue
+        confs = ", ".join(f"{c} {sum(1 for x in items if x['conf'] == c)}" for c in CONF_VALUES
+                          if any(x["conf"] == c for x in items))
+        prios = ", ".join(f"{p}×{sum(1 for x in items if x['priority'] == p)}" for p in (1, 2, 3)
+                          if any(x["priority"] == p for x in items))
+        labels = "／".join(sorted({x["labelZh"] for x in items}))
+        sources = sorted({s for x in items for s in x["src"]},
+                         key=lambda s: (s[:len("cn_3dm_p")], int(s[len("cn_3dm_p"):])) if s.startswith("cn_3dm_p") else (s, 0))
+        pages = sorted(int(s[len("cn_3dm_p"):]) for s in sources if s.startswith("cn_3dm_p"))
+        if len(pages) > 2 and pages == list(range(pages[0], pages[-1] + 1)):
+            sources = [f"cn_3dm_p{pages[0]}…p{pages[-1]}"] + [s for s in sources if not s.startswith("cn_3dm_p")]
+        out.append(f"| {kind} | {labels} | {len(items)} | {prios} | {confs} | {', '.join(sources)} | "
+                   f"{md_of(items[0]['day'])} | {md_of(items[-1]['day'])} |")
+    out.append("")
+    doze = rem["doze"]
+    out.append(f"- 上课犯困: {len(doze['days'])} school days, Academics +{doze['academics']} awake / Courage "
+               f"+{doze['courage']} eyes closed, conf={doze['conf']}, src: {', '.join(doze['src'])}.")
+    nurse = rem["nurse"]
+    out.append(f"- 保健室: Courage +{nurse['courage']}, conf={nurse['conf']}, src: {', '.join(nurse['src'])}.")
+    groups = rem["rescueGroups"]
+    out.append(f"- 失踪者: {len(groups)} groups, {sum(g['count'] for g in groups)} people, modelled rescues "
+               + ", ".join(f"{g['id']} {'/'.join(g['rescueIds'])}" for g in groups if g["rescueIds"])
+               + f"; src: {', '.join(groups[0]['src'])}.")
+    out.append("- Withheld class answers: " + "; ".join(f"{md} ({why})" for md, why in WITHHELD_CLASS.items()) + ".")
+    out.append("")
+    return out
 
 
 def render_sources(pack: dict) -> list[str]:
@@ -2714,7 +3579,44 @@ def render_unverified(pack: dict) -> list[str]:
                + ". The blocks' conf=game_data covers their dates and floors, not these names.")
     out.append("- **Plain descriptions instead of official names** — 饰品店 (Be Blue V), 电影院 (Screen Shot), "
                "图书室, 卡拉OK; stat levels are shown as Lv.N.")
+    out.extend(render_reminder_lines(pack))
     out.append("")
+    return out
+
+
+def render_reminder_lines(pack: dict) -> list[str]:
+    """REPORT §7, 当日提醒: the answers as 3DM writes them and every editorial line the builder writes."""
+    items = pack["reminders"]["items"]
+    answers = [x for x in items if x["answerZh"]]
+    latin = sorted({x["answerZh"] for x in answers if re.search(r"[A-Za-z]", x["answerZh"])})
+    out = [f"- **当日提醒 answers** — {sum(1 for x in answers if x['kind'] == 'class')} class and "
+           f"{sum(1 for x in answers if x['kind'] == 'exam')} exam answers are 3DM text (cn_3dm_p2…p11), dated and "
+           "positioned by aqiu; nobody has seen them on SC game screens. Latin as 3DM writes it (exempt from the Latin "
+           "check): " + "、".join(f"「{a}」" for a in latin) + ". Typos fixed to the CN guide's spelling of the same day: "
+           + "、".join(f"{md} 「{wrong}」→「{right}」" for (md, wrong), right in ZH_TYPO_FIXES.items())
+           + "; 12/14 「数字0”」 loses the stray quote mark. Item names in 电视购物 lines are 3DM's or the CN guide's."]
+    templates = {
+        "class": "课堂提问：选「{answer}」（第 {n} 项） / 课堂：{answer}（第 {n} 项） / 上课被点名提问时选「{answer}」（第 {n} 项），"
+                 "答对了魅力 +2。" + STAT_SENTENCE,
+        "exam": "考试：选「{answer}」 / 考试：{answer} / 这天考试有一道题要自己选，选「{answer}」。（estimate: "
+                "这条答案只有一份攻略写过，游戏里的写法可能略有不同。）",
+        "tv": "电视购物：{item}、{item} ×{n}，{price} 日元 / 电视购物有新商品：{price} 日元 / 电视购物 {price} 日元 / " + TV_DETAIL
+              + "（+ {item}是伊莉莎白第 {n} 号委托要的东西。 / {item}在伊莉莎白第 {n} 号委托里很有用。）",
+    }
+    lines: list[str] = []
+    for item in items:
+        if item["kind"] in templates or item["kind"] == "request" and item["id"].endswith(".deadline"):
+            continue
+        for text in (item["labelZh"], item["zh"], item["shortZh"], item["detailZh"]):
+            if text and text not in lines:
+                lines.append(text)
+    deadline = next(x for x in items if x["id"].endswith(".deadline"))
+    lines.append(f"{deadline['zh']} / {deadline['shortZh']} / {deadline['detailZh']}（模板；#97 前面加「要先救出 "
+                 "6月18日失踪的学生。」）")
+    out.append("- **当日提醒 editorial lines** (builder copy, no game text): "
+               + "；".join(f"{kind}: {text}" for kind, text in templates.items()) + "；"
+               + "；".join(text.replace("\n", " / ") for text in lines)
+               + ". The engine's lines (上课犯困, 保健室, 失踪者, the TV cash sentence) are in DESIGN §17.1.")
     return out
 
 

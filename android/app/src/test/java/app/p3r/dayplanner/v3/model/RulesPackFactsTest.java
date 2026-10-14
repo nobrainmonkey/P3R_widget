@@ -126,7 +126,8 @@ public class RulesPackFactsTest {
     @Test
     public void playerFacingTextHasNoRawEnglishOrIds() {
         Pattern latin = Pattern.compile("[A-Za-z]+");
-        Set<String> allowed = new HashSet<>(List.of("Lv", "RANK", "MAX", "F", "OK", "G"));
+        // 莫乐蜜G and 急救组合M are item names as the CN guides write them (class/exam answers are left out).
+        Set<String> allowed = new HashSet<>(List.of("Lv", "RANK", "MAX", "F", "OK", "G", "M"));
         List<String> texts = new ArrayList<>();
         for (Rules.Link l : r.links) {
             add(texts, l.arcanaZh, l.personZh, l.genderZh, l.labelZh, l.locationZh, l.noteZh, l.unlock.noteZh);
@@ -841,6 +842,150 @@ public class RulesPackFactsTest {
         assertTrue(note.noteZh.contains("不会直接升级"));
     }
 
+    // ------------------------------------------------------------------ 3.1.0: 当日提醒
+
+    /**
+     * Class and exam answers: aqiu dates, zh text from the pinned 3DM pages only (REPORT §4.8). The CN guide's
+     * English-localisation answers never reach the pack, and dates without a 3DM line are withheld.
+     */
+    @Test
+    public void classAndExamAnswersComeFromTheChineseScheduleOnly() {
+        assertEquals(32, kind("class"));
+        assertEquals(17, kind("exam"));
+        assertAnswer("class.07-08", "马", 2, "课堂提问：选「马」（第 2 项）", "课堂：马（第 2 项）");
+        assertAnswer("class.10-22", "朱诺", 3, "课堂提问：选「朱诺」（第 3 项）", "课堂：朱诺（第 3 项）");
+        assertAnswer("class.11-07", "奥义书", 1, "课堂提问：选「奥义书」（第 1 项）", "课堂：奥义书（第 1 项）");
+        assertAnswer("class.04-27", "A", 0, "课堂提问：选「A」", "课堂：A");
+        assertAnswer("exam.05-19", "五月病", 0, "考试：选「五月病」", "考试：五月病");
+        assertAnswer("exam.10-14", "摩西", 0, "考试：选「摩西」", "考试：摩西");
+        assertAnswer("exam.12-18", "做好了拼命的心理准备", 0, "考试：选「做好了拼命的心理准备」", "考试：做好了拼命的心理准备");
+        for (String withheld : new String[] {"class.12-07", "class.12-09", "class.12-11", "class.01-18"}) {
+            assertNull(withheld, reminder(withheld));
+        }
+        for (String estimate : new String[] {"exam.07-17", "exam.12-16"}) {
+            assertEquals(estimate, "estimate", reminder(estimate).conf);
+            assertTrue(reminder(estimate).detailZh.contains("只有一份攻略写过"));
+        }
+        assertEquals("single", reminder("exam.07-15").conf);
+        for (String english : new String[] {"Lives", "Geeses", "May Blues", "毕达哥拉斯", "逗号拼接", "翻译错误"}) {
+            assertFalse("CN guide answer " + english, PackFixture.json().contains(english));
+        }
+        for (Rules.Reminder x : r.reminders.items) {
+            if (!"class".equals(x.kind)) continue;
+            assertEquals(x.id, "魅力 +2", x.gainZh);
+            assertEquals(x.id, 3, x.priority);
+            assertFalse(x.id, x.evening);
+        }
+    }
+
+    @Test
+    public void tvShoppingFollowsTheGameTable() {
+        assertEquals(32, kind("tv"));
+        assertNull("1/3 is not in the game table", reminder("tv.01-03"));
+        Rules.Reminder first = reminder("tv.05-03");
+        assertEquals("电视购物：玫瑰花束、高级巧克力 ×2，2,980 日元", first.zh);
+        assertEquals("电视购物 2,980 日元", first.shortZh);
+        assertEquals(2_980, first.costYen);
+        assertEquals(1, first.priority);
+        assertEquals("电视购物有新商品：3,980 日元", reminder("tv.07-05").zh);
+        Rules.Reminder shoes = reminder("tv.07-12");
+        assertEquals("电视购物：超级安全靴、速食咖喱 ×2，9,800 日元", shoes.zh);
+        assertEquals(2, shoes.priority);
+        assertTrue(shoes.detailZh.endsWith("超级安全靴是伊莉莎白第 40 号委托要的东西。"));
+        assertEquals(2, reminder("tv.11-29").priority);
+        assertEquals("电视购物：日本人偶 ×3、人造人 ×2，9,800 日元", reminder("tv.11-08").zh);
+        for (Rules.Reminder x : r.reminders.items) {
+            if (!"tv".equals(x.kind)) continue;
+            assertTrue(x.id, x.src.contains("gd_mail_order"));
+            assertTrue(x.id, x.detailZh.contains("不会消耗时间") && x.detailZh.contains("同步现状"));
+        }
+    }
+
+    @Test
+    public void requestsCollectiblesTripsAndShops() {
+        assertEquals(17, kind("request"));
+        int batches = 0;
+        for (Rules.Reminder x : r.reminders.items) {
+            if ("request".equals(x.kind) && !x.id.endsWith(".deadline")) {
+                batches++;
+                assertEquals("伊莉莎白有新的委托", x.zh);
+            }
+        }
+        assertEquals(9, batches);
+        Rules.Reminder first = reminder("request.06-06.deadline");
+        assertEquals("伊莉莎白的第 12、13 号委托 6月6日截止", first.zh);
+        assertEquals("委托 6月6日截止", first.shortZh);
+        assertEquals(day(6, 3), first.day);
+        assertEquals(day(6, 6), first.untilDay);
+        assertTrue(reminder("request.12-25.deadline").detailZh.startsWith("要先救出 6月18日失踪的学生。"));
+
+        assertEquals("今天城里能捡到黄昏的碎片（14 处）", reminder("fragment.04-21").zh);
+        assertEquals(15, reminder("fragment.04-21").detailZh.split("\n").length);
+        assertTrue(reminder("fragment.04-21.dorm").evening);
+        assertEquals(3, reminder("fragment.08-06").priority);
+        Rules.Reminder trip = reminder("trip.07-20");
+        assertEquals("屋久岛", trip.labelZh);
+        assertEquals("屋久岛：在海边捡一件贝壳、海藻、浮木或小螃蟹，伊莉莎白的第 44 号委托要用，错过就没了", trip.zh);
+        assertEquals("海边捡东西（委托用）", trip.shortZh);
+        assertEquals("修学旅行", reminder("trip.11-17").labelZh);
+        assertEquals("真宵堂今天开张了", reminder("feature.07-18").zh);
+        assertTrue(reminder("feature.07-18").evening);
+        for (Rules.Reminder x : r.reminders.items) {
+            assertFalse(x.id, x.zh.contains("黄昏碎片"));
+            assertTrue(x.id + " short: " + x.shortZh, x.shortZh.length() <= RulesLoader.REMINDER_SHORT_MAX);
+        }
+    }
+
+    @Test
+    public void dozeNurseAndMissingPeople() {
+        Rules.Reminders rem = r.reminders;
+        assertTrue("about 33 school days: " + rem.dozeDays.length, rem.dozeDays.length >= 30 && rem.dozeDays.length <= 36);
+        for (int d : rem.dozeDays) assertEquals(r.day(d).md, Rules.DayType.SCHOOL, r.day(d).type);
+        assertTrue(contains(rem.dozeDays, day(4, 21)));
+        assertFalse("4/9 is a prologue day", contains(rem.dozeDays, day(4, 9)));
+        assertEquals(2, rem.nurseCourage);
+        assertEquals(13, rem.rescueGroups.size());
+        Map<String, Rules.RescueGroup> groups = new java.util.HashMap<>();
+        for (Rules.RescueGroup g : rem.rescueGroups) groups.put(g.id, g);
+        Rules.RescueGroup ayako = groups.get("rescue.06-18");
+        assertEquals(day(6, 18), ayako.fromDay);
+        assertEquals(day(7, 6), ayako.toDay);
+        assertEquals(1, ayako.count);
+        assertEquals(2, groups.get("rescue.06-26").count);
+        assertEquals(List.of("bunkichi"), groups.get("rescue.09-12").rescueIds);
+        assertEquals(List.of("maiko"), groups.get("rescue.10-21").rescueIds);
+        for (Rules.Rescue rescue : r.rescues) {
+            boolean inside = false;
+            for (Rules.RescueGroup g : rem.rescueGroups) {
+                inside |= g.rescueIds.contains(rescue.id) && g.fromDay == rescue.fromDay && g.toDay == rescue.toDay;
+            }
+            assertTrue(rescue.id, inside);
+        }
+    }
+
+    private int kind(String kind) {
+        int n = 0;
+        for (Rules.Reminder x : r.reminders.items) if (kind.equals(x.kind)) n++;
+        return n;
+    }
+
+    private Rules.Reminder reminder(String id) {
+        for (Rules.Reminder x : r.reminders.items) if (x.id.equals(id)) return x;
+        return null;
+    }
+
+    private void assertAnswer(String id, String answer, int option, String zh, String shortZh) {
+        Rules.Reminder x = reminder(id);
+        assertNotNull(id, x);
+        assertEquals(id, answer, x.answerZh);
+        assertEquals(id, option, x.option);
+        assertEquals(id, zh, x.zh);
+        assertEquals(id, shortZh, x.shortZh);
+        assertTrue(id, x.src.contains("aqiu_social_events"));
+        assertTrue(id + " " + x.src, x.src.stream().anyMatch(s -> s.startsWith("cn_3dm_p")));
+        assertFalse(id + " never the CN guide", x.src.contains("cn_guide"));
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private List<String> playerTexts() {
@@ -860,6 +1005,12 @@ public class RulesPackFactsTest {
             add(texts, e.partRewardZh);
         }
         if (r.datingNote != null) add(texts, r.datingNote.zh, r.datingNote.howZh, r.datingNote.locationZh, r.datingNote.noteZh);
+        for (Rules.Reminder x : r.reminders.items) {
+            // Class/exam answers are verbatim guide text (like dialogue): everything around them follows the rules.
+            for (String t : new String[] {x.labelZh, x.zh, x.shortZh, x.detailZh, x.gainZh}) {
+                if (t != null) texts.add(x.answerZh == null ? t : t.replace(x.answerZh, ""));
+            }
+        }
         texts.addAll(r.lockReasonsZh.values());
         texts.addAll(r.notes);
         return texts;
