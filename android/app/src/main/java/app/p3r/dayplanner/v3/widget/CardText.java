@@ -39,7 +39,7 @@ public final class CardText {
     /** The app's prefix of guide answers (「参考回答：」): {@link #choices} keeps it whole where a line starts with it. */
     static final String ANSWER_PREFIX = "参考回答：";
     /** Joins two alternatives inside one dialogue choice (「我也去看看吧或者我在这里等她」). */
-    private static final String ALTERNATIVES = "或者";
+    private static final String ALTERNATIVES = CardModel.AnswerLine.ALTERNATIVES;
     /** {@link #ALTERNATIVES} on a card too narrow for it. */
     private static final String SHORT_ALTERNATIVES = "或";
     /** Longest choice (characters) the answers row keeps whole even where it wraps choices inside. */
@@ -261,10 +261,41 @@ public final class CardText {
 
     /** {@link #answers} with each line's own number of choices kept before 「等 N 项」 ({@code shown[i]}). */
     static String answers(List<CardModel.AnswerLine> lines, boolean shortLabels, boolean shortOr, boolean loose, int[] shown) {
+        return shape(lines, shortLabels, shortOr, loose, shown, false).text;
+    }
+
+    /** Shaped answers ({@link #shape}) and where each of its lines starts. */
+    static final class Shaped {
+        final String text;
+        /** Offset in {@link #text} of each line's label (the line's first character), in order. */
+        final int[] starts;
+
+        Shaped(String text, int[] starts) {
+            this.text = text;
+            this.starts = starts;
+        }
+    }
+
+    /**
+     * Before a 课堂/考试 answer that goes on the line before it ({@link #shape} with {@code merge}):
+     * 「答：好的 · 课堂：变为零」. A line may break before the dot, never after it, and a drawn line that
+     * starts there starts without it ({@link #breakBeforeNotes}).
+     */
+    static final String MERGE_SEPARATOR = " ·" + NBSP;
+
+    /**
+     * {@link #answers} with each line's own number of choices ({@code shown[i]}); with {@code merge},
+     * each 课堂/考试 answer ({@link CardModel.AnswerLine#certain}) after another line goes on that line
+     * after {@link #MERGE_SEPARATOR} instead of a line of its own: 「答：好的 / 没那回事 · 课堂：变为零」.
+     */
+    static Shaped shape(List<CardModel.AnswerLine> lines, boolean shortLabels, boolean shortOr, boolean loose, int[] shown,
+                        boolean merge) {
         StringBuilder out = new StringBuilder();
+        int[] starts = new int[lines.size()];
         for (int i = 0; i < lines.size(); i++) {
             CardModel.AnswerLine line = lines.get(i);
-            if (out.length() > 0) out.append(ANSWER_LINE_BREAK);
+            if (out.length() > 0) out.append(merge && line.certain() ? MERGE_SEPARATOR : ANSWER_LINE_BREAK);
+            starts[i] = out.length();
             String label = shortLabels && line.shortLabel != null ? line.shortLabel : line.label;
             out.append(keep(label));
             int total = line.choices.size();
@@ -292,22 +323,31 @@ public final class CardText {
                 out.append(keep(line.note.replace(' ', NBSP)));
             }
         }
-        return out.toString();
+        return new Shaped(out.toString(), starts);
     }
 
     /**
-     * Shaped answers ({@link #answers}) with each 「 · 」 before a note that a drawn line starts with
-     * turned into a line break, the dot dropped: 「答：随便问吧 等 3 项」/「别选「…」」, never a line
-     * starting with 「·」. {@code lineStarts} are the offsets where the drawn lines start.
+     * Shaped answers ({@link #answers}) with each 「 · 」 before a note (or a 课堂/考试 answer on the line
+     * before it) that a drawn line starts with turned into a line break, the dot dropped:
+     * 「答：随便问吧 等 3 项」/「别选「…」」, never a line starting with 「·」. {@code lineStarts} are the
+     * offsets where the drawn lines start.
      */
     static String breakBeforeNotes(String shaped, int[] lineStarts) {
+        return breakBeforeNotes(shaped, lineStarts, new int[0]);
+    }
+
+    /** {@link #breakBeforeNotes(String, int[])}, moving each of {@code offsets} with the text after it. */
+    static String breakBeforeNotes(String shaped, int[] lineStarts, int[] offsets) {
         if (shaped == null) return null;
         StringBuilder out = new StringBuilder(shaped);
         String dot = "·" + NBSP;
         // From the last line back, so the earlier offsets still hold.
         for (int k = lineStarts.length - 1; k >= 0; k--) {
             int at = lineStarts[k];
-            if (at > 0 && shaped.startsWith(dot, at) && shaped.charAt(at - 1) == ' ') out.replace(at - 1, at + dot.length(), "\n");
+            if (at > 0 && shaped.startsWith(dot, at) && shaped.charAt(at - 1) == ' ') {
+                out.replace(at - 1, at + dot.length(), "\n");
+                for (int i = 0; i < offsets.length; i++) if (offsets[i] >= at + dot.length()) offsets[i] -= dot.length();
+            }
         }
         return out.toString();
     }

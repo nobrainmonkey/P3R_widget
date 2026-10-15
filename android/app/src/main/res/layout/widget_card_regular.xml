@@ -247,6 +247,20 @@
                     android:textColor="#FF0A2A5C"
                     android:textSize="19sp"
                     android:textStyle="bold" />
+                <!-- A 课堂/考试 answer with no room left in the answers row (docs/DESIGN_v3.md §18): on the title's
+                     line, at its right, never cut (CardRenderer keeps it out unless it fits whole). -->
+                <TextView
+                    android:id="@+id/widget_title_aside"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:layout_marginLeft="8dp"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    tools:text="课堂：卡巴拉"
+                    android:textColor="#FF0A2A5C"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <TextView

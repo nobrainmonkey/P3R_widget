@@ -272,6 +272,8 @@ final class PlanView {
         m.cue = cueFor(step, copy, rules);
         // What to answer: the step's own choices, the side steps' picks, then the class and exam
         // answers of the card's slots; never the app's generic hint. The full app line is read out.
+        // CardRenderer keeps the step's own answers and the class/exam ones on the card at every size
+        // (a class answer on the line before it or beside the title; docs/DESIGN_v3.md §18).
         List<String> spoken = new ArrayList<>();
         DialogueHint.Answers own = ownAnswers(step, rules);
         if (!own.isEmpty()) {
