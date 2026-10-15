@@ -192,6 +192,7 @@ public class PlanWidgetRenderTest {
                     RenderSupport.collectCutText(root, tag, issues);
                     RenderSupport.collectDotLineEnds(root, tag, issues);
                     RenderSupport.collectLocationEdges(root, tag, issues);
+                    RenderSupport.collectHiddenTitle(root, tag, issues);
                     TextView title = root.findViewById(R.id.widget_task);
                     assertFalse(tag + " blank title", title.getText().toString().trim().isEmpty());
                     assertTrue(tag + " title collapsed", title.getHeight() > 0);
@@ -221,13 +222,14 @@ public class PlanWidgetRenderTest {
                 RenderSupport.collectCutText(root, tag, issues);
                 RenderSupport.collectDotLineEnds(root, tag, issues);
                 RenderSupport.collectLocationEdges(root, tag, issues);
+                RenderSupport.collectHiddenTitle(root, tag, issues);
             }
         }
         assertTrue(String.join("\n", issues), issues.isEmpty());
     }
 
     @Test
-    public void meetingsShowTheGuideAnswersAtEverySize() {
+    public void meetingsShowTheGuideAnswersAtEverySize() throws Exception {
         state("dialogue");
         View regular = render(false, 320, 200);
         TextView line = regular.findViewById(R.id.widget_dialogue_choices);
@@ -239,12 +241,33 @@ public class PlanWidgetRenderTest {
         assertEquals("the outlined day numeral steps aside", View.GONE, regular.findViewById(R.id.widget_watermark).getVisibility());
         assertEquals("RANK 6→7", text(regular, R.id.widget_tag));
         assertEquals(View.VISIBLE, regular.findViewById(R.id.widget_meta_row).getVisibility());
-        // The answers are essential: the smallest card keeps them whole too (the title gives way).
+        // The answers are essential: the narrow card keeps them whole too, beside its title.
         View tiny = render(false, 180, 150);
         TextView small = tiny.findViewById(R.id.widget_dialogue_choices);
         assertEquals(View.VISIBLE, small.getVisibility());
         assertEquals("答：我会帮你的 / 这样的规矩没有意义", CardText.plain(small.getText().toString()).replace("\n", ""));
         assertFalse(RenderSupport.ellipsized(small));
+        assertEquals("皇帝 · 小田桐秀利", RenderSupport.titleText(tiny.findViewById(R.id.widget_task)));
+        // The shortest cards (130dp high) keep both too: the title on one line, the answers beside it.
+        File dir = RenderSupport.outputDir("plan");
+        List<String> issues = new ArrayList<>();
+        for (float scale : new float[]{1f, 1.15f}) {
+            RuntimeEnvironment.setFontScale(scale);
+            for (int width : new int[]{180, 250}) {
+                View shortest = render(false, width, 130);
+                String tag = "dialogue-day-" + width + "x130" + (scale > 1 ? "-font115" : "");
+                RenderSupport.save(shortest, dir, tag);
+                RenderSupport.collectHiddenTitle(shortest, tag, issues);
+                RenderSupport.collectTextIssues(shortest, tag, issues);
+                RenderSupport.collectCutText(shortest, tag, issues);
+                RenderSupport.collectWordSplits(shortest, tag, issues);
+                assertEquals(tag, View.VISIBLE, shortest.findViewById(R.id.widget_dialogue_choices).getVisibility());
+                assertTrue(tag, text(shortest, R.id.widget_dialogue_choices).startsWith("答："));
+                assertEquals(tag, 1, ((TextView) shortest.findViewById(R.id.widget_task)).getLineCount());
+            }
+        }
+        RuntimeEnvironment.setFontScale(1f);
+        assertTrue(String.join("\n", issues), issues.isEmpty());
         state("dialogue-hint");
         View hint = render(false, 250, 160);
         assertEquals(View.VISIBLE, hint.findViewById(R.id.widget_dialogue_choices).getVisibility());

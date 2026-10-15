@@ -123,6 +123,10 @@ public class AnswerRowRenderTest {
                     if (n > 0 && form.note != null) out.add(canon(label + note));
                     // A 朋友-route caution alone may take the shorter 「别选表白」 (the same warning).
                     if (note.startsWith("别选")) out.add(canon(label + DialogueHint.FRIEND_AVOID));
+                    // Beside a one-line title on the shortest cards, the count alone: 「答：共 2 项，点开看看」,
+                    // 「升级时答：点开看看」.
+                    if (n > 0) out.add(canon(label + CardText.countOnly(n)));
+                    if (n > 0) out.add(canon(label + CardText.TAP_TO_SEE));
                 }
             }
         }
@@ -140,6 +144,7 @@ public class AnswerRowRenderTest {
      * line gave way. Returns whether the row shows.
      */
     private static boolean checkRow(View root, CardModel model, String tag, boolean shortest, List<String> issues) {
+        checkTitle(root, model, tag, issues);
         TextView row = root.findViewById(R.id.widget_dialogue_choices);
         if (row.getVisibility() != View.VISIBLE) {
             issues.add(tag + " hides its answers " + model.answers + " (title '"
@@ -183,6 +188,25 @@ public class AnswerRowRenderTest {
 
     /** Taller cards (150dp or more) that left a line out, for the report. */
     private static final List<String> dropped = new ArrayList<>();
+    /** Cards that showed a short form of their title, for the report. */
+    private static final List<String> shortened = new ArrayList<>();
+
+    /**
+     * The title beside the answers (docs/DESIGN_v3.md §18): never hidden, and whole, the model's title
+     * or one of its {@link CardModel#shortTitles} (「北村文吉」, 「教皇」 for 「教皇 · 北村文吉、光子」), never
+     * cut with "…" and never clipped.
+     */
+    private static void checkTitle(View root, CardModel model, String tag, List<String> issues) {
+        RenderSupport.collectHiddenTitle(root, tag, issues);
+        TextView title = root.findViewById(R.id.widget_task);
+        String drawn = RenderSupport.titleText(title);
+        List<String> forms = new ArrayList<>();
+        forms.add(CardText.plainTitle(model.title));
+        for (String form : model.shortTitles) forms.add(CardText.plainTitle(form));
+        if (!forms.contains(drawn)) issues.add(tag + " shows the title '" + drawn + "', none of " + forms);
+        else if (!drawn.equals(forms.get(0))) shortened.add(tag + " " + drawn);
+        if (RenderSupport.ellipsized(title)) issues.add(tag + " cuts its title: '" + RenderSupport.lines(title) + "'");
+    }
 
     /**
      * The model line each drawn line is a form of, in the model's order (later lines may be left out,
@@ -282,13 +306,7 @@ public class AnswerRowRenderTest {
     @Test
     public void everyCardWithAnswersShowsThemWholeAtEverySize() throws Exception {
         Assume.assumeTrue("rule pack not available", pack != null);
-        Profile mid = new Profile();
-        mid.personaMode = Profile.PersonaMode.ALL;
-        SimState midStart = start(dayOf(10, 22));
-        midStart.cash = 1_000;
-        List<Plan> plans = Arrays.asList(Engine.plan(pack, new Profile(), start(dayOf(4, 21)), null, new Engine.Options()),
-                Engine.plan(pack, mid, midStart, null, new Engine.Options()),
-                Engine.plan(pack, new Profile(), julyStart(), null, new Engine.Options()));
+        List<Plan> plans = realPlans();
         Map<String, Object[]> cards = new LinkedHashMap<>();
         for (Plan plan : plans) {
             for (Plan.Step step : plan.steps) {
@@ -304,6 +322,7 @@ public class AnswerRowRenderTest {
         int cut = 0;
         int hidden = 0;
         int rendered = 0;
+        List<String> counted = new ArrayList<>();
         for (float scale : new float[]{1f, 1.15f}) {
             RuntimeEnvironment.setFontScale(scale);
             for (Object[] card : cards.values()) {
@@ -316,13 +335,84 @@ public class AnswerRowRenderTest {
                     RenderSupport.collectTextIssues(root, tag, issues);
                     RenderSupport.collectCutText(root, tag, issues);
                     if (text(root, R.id.widget_dialogue_choices).contains("项") && !model.answers.toString().contains("项")) cut++;
+                    if (text(root, R.id.widget_dialogue_choices).contains(CardText.TAP_TO_SEE)) {
+                        counted.add(tag + " " + RenderSupport.titleText(root.findViewById(R.id.widget_task)) + " | "
+                                + text(root, R.id.widget_dialogue_choices));
+                    }
                     rendered++;
                 }
             }
         }
         System.out.println("answers rows rendered: " + rendered + ", cut to 等 N 项: " + cut + ", hidden: " + hidden
                 + ", a line left out on a taller card: " + dropped.size() + " " + dropped);
+        System.out.println("short titles shown: " + shortened.size() + " " + shortened);
+        System.out.println("count only: " + counted.size() + "\n" + String.join("\n", counted));
         if (!issues.isEmpty()) System.out.println("ISSUES\n" + String.join("\n", issues));
+        assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
+    /** The three real plans of the matrix: a new game, 10/22 with every Persona, 7/1 with every link underway. */
+    private static List<Plan> realPlans() {
+        Profile mid = new Profile();
+        mid.personaMode = Profile.PersonaMode.ALL;
+        SimState midStart = start(dayOf(10, 22));
+        midStart.cash = 1_000;
+        return Arrays.asList(Engine.plan(pack, new Profile(), start(dayOf(4, 21)), null, new Engine.Options()),
+                Engine.plan(pack, mid, midStart, null, new Engine.Options()),
+                Engine.plan(pack, new Profile(), julyStart(), null, new Engine.Options()));
+    }
+
+    /**
+     * Review: the shortest cards left their title out for the answers (7/10 教皇 at 180x130 also lost its
+     * 「课堂：卡巴拉」 line; 10/22 战车 at 180x130 and 115% font), and 「答：…」 without who it is for confuses.
+     * At 130dp high the title keeps one line beside one line of answers: a form of the row that fits, a
+     * 课堂/考试 answer whole rather than a line with no choice in it, else the count (「答：共 2 项，点开看看」).
+     * Renders under answers/ as shortest-*.
+     */
+    @Test
+    public void theShortestCardsKeepTheirTitleBesideTheAnswers() throws Exception {
+        Assume.assumeTrue("rule pack not available", pack != null);
+        File dir = RenderSupport.outputDir("answers");
+        Object[][] wanted = {{"0710-hierophant", dayOf(7, 10), "meet:hierophant"}, {"1022-chariot", dayOf(10, 22), "meet:chariot"}};
+        List<Plan> plans = realPlans();
+        List<String> issues = new ArrayList<>();
+        for (Object[] w : wanted) {
+            Plan found = null;
+            int slot = -1;
+            for (Plan plan : plans) {
+                for (Plan.Step step : plan.steps) {
+                    if (found == null && Rules.dayOf(step.slot) == (Integer) w[1] && w[2].equals(step.action)) {
+                        found = plan;
+                        slot = step.slot;
+                    }
+                }
+            }
+            assertNotNull(w[0] + " is in a real plan", found);
+            for (float scale : new float[]{1f, 1.15f}) {
+                RuntimeEnvironment.setFontScale(scale);
+                FakePlannerApi fake = on(found, slot);
+                CardModel model = model(fake);
+                assertFalse(w[0] + " has answers", model.answers.isEmpty());
+                for (int[] size : new int[][]{{180, 130}, {250, 130}, {180, 150}}) {
+                    View root = render(fake, size[0], size[1]);
+                    String tag = "shortest-" + w[0] + "-" + size[0] + "x" + size[1] + (scale > 1 ? "-font115" : "");
+                    RenderSupport.save(root, dir, tag);
+                    RenderSupport.collectTextIssues(root, tag, issues);
+                    RenderSupport.collectCutText(root, tag, issues);
+                    RenderSupport.collectWordSplits(root, tag, issues);
+                    RenderSupport.collectDotLineEnds(root, tag, issues);
+                    checkRow(root, model, tag, size[1] < 150, issues);
+                    TextView title = root.findViewById(R.id.widget_task);
+                    TextView row = root.findViewById(R.id.widget_dialogue_choices);
+                    if (size[1] == 130 && (title.getLineCount() != 1 || row.getLineCount() != 1)) {
+                        issues.add(tag + " shows " + title.getLineCount() + " title and " + row.getLineCount() + " answers lines");
+                    }
+                    System.out.println(tag + ": " + RenderSupport.lines(title) + " | " + text(root, R.id.widget_dialogue_choices)
+                            .replace("\n", " / "));
+                }
+            }
+        }
+        RuntimeEnvironment.setFontScale(1f);
         assertTrue(String.join("\n", issues), issues.isEmpty());
     }
 

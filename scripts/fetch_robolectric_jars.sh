@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pre-fetch the Robolectric Android SDK jars the unit tests run on (API 26, 28, 31, 33, 34, 35) into
+# Pre-fetch the Robolectric Android SDK jars the unit tests run on (API 26, 31, 33, 34, 35) into
 # the test user.home's Maven repository, with retries and SHA-512 checks. Robolectric would otherwise
 # download them in the middle of the test run, without retries.
 #   scripts/fetch_robolectric_jars.sh [TOOLCHAIN_DIR]   (default: ./.toolchain, or $P3R_TOOLCHAIN)
@@ -8,8 +8,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TC="${1:-${P3R_TOOLCHAIN:-$ROOT/.toolchain}}"
 REPO="$TC/test-home/.m2/repository/org/robolectric/android-all-instrumented"
 BASE="https://repo1.maven.org/maven2/org/robolectric/android-all-instrumented"
-# Robolectric 4.14.1 (instrumentation i7): API 26, 28, 31, 33, 34, 35.
-VERSIONS="8.0.0_r4-robolectric-r1-i7 9-robolectric-4913185-2-i7 12-robolectric-7732740-i7
+# Robolectric 4.14.1 (instrumentation i7): API 26, 31, 33, 34, 35 (no test runs at API 28 any more).
+VERSIONS="8.0.0_r4-robolectric-r1-i7 12-robolectric-7732740-i7
 13-robolectric-9030017-i7 14-robolectric-10818077-i7 15-robolectric-12650502-i7"
 
 sha512() { if command -v sha512sum >/dev/null; then sha512sum "$1" | cut -d' ' -f1; else shasum -a 512 "$1" | cut -d' ' -f1; fi; }

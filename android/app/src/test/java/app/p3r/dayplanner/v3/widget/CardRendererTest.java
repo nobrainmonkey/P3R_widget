@@ -155,27 +155,87 @@ public class CardRendererTest {
     }
 
     /**
-     * Spec §1.4.4: the answers are never hidden. On a 130dp card where not even the shortest form fits
-     * beside a one-line title (a first choice wider than the card), the title goes instead; a taller
-     * card keeps both.
+     * Spec §1.4.4 and the 3.1.0 review: neither the answers nor the title is ever hidden. On a 130dp card
+     * at 115% font, where a first choice wider than the card leaves no form of the row that fits beside
+     * the title, the title keeps one line and the row says how many choices there are; a taller card
+     * keeps both whole. A 课堂/考试 answer that fits whole goes before a line with no choice in it.
      */
     @Test
-    public void theTitleGivesWayToAnswersThatDoNotFitBesideIt() {
+    public void theTitleKeepsOneLineBesideAnswersThatNeedTheRoom() {
         Context c = RuntimeEnvironment.getApplication();
         CardModel m = sample(false);
         m.keepWordsWhole = true;
         m.title = "教皇 · 北村文吉、光子";
+        m.shortTitles.addAll(StepCopy.shortTitles(m.title, null));
         m.answers.add(new CardModel.AnswerLine("答：", null, java.util.Arrays.asList("我也去看看吧或者我在这里等她", "真担心啊"), null, false));
         RuntimeEnvironment.setFontScale(1.15f);
         try {
             View small = RenderSupport.layout(c, CardRenderer.render(c, m, 180, 130), 180, 130);
-            assertEquals(View.VISIBLE, small.findViewById(R.id.widget_dialogue_choices).getVisibility());
-            assertEquals("the title makes room", View.GONE, small.findViewById(R.id.widget_title_row).getVisibility());
-            assertTrue(CardText.plain(((TextView) small.findViewById(R.id.widget_dialogue_choices)).getText().toString())
-                    .startsWith("答：我也去看看吧或"));
+            List<String> issues = new ArrayList<>();
+            RenderSupport.collectHiddenTitle(small, "small", issues);
+            RenderSupport.collectTextIssues(small, "small", issues);
+            assertTrue(String.join("\n", issues), issues.isEmpty());
+            TextView title = small.findViewById(R.id.widget_task);
+            assertEquals("教皇 · 北村文吉、光子", RenderSupport.titleText(title));
+            assertEquals(1, title.getLineCount());
+            TextView row = small.findViewById(R.id.widget_dialogue_choices);
+            assertEquals(View.VISIBLE, row.getVisibility());
+            assertEquals("答：" + CardText.countOnly(2), CardText.plain(row.getText().toString()));
+            assertEquals(View.GONE, small.findViewById(R.id.widget_meta_row).getVisibility());
+            // With a class answer that fits whole, the class answer shows instead of the count.
+            CardModel withClass = m.copy();
+            withClass.answers.add(new CardModel.AnswerLine("课堂：", null,
+                    java.util.Collections.singletonList("卡巴拉" + CardModel.AnswerLine.position(3)), null, false));
+            View classCard = RenderSupport.layout(c, CardRenderer.render(c, withClass, 180, 130), 180, 130);
+            RenderSupport.collectHiddenTitle(classCard, "class", issues);
+            RenderSupport.collectTextIssues(classCard, "class", issues);
+            assertTrue(String.join("\n", issues), issues.isEmpty());
+            assertTrue(CardText.plain(((TextView) classCard.findViewById(R.id.widget_dialogue_choices)).getText().toString())
+                    .startsWith("课堂：卡巴拉"));
             View tall = RenderSupport.layout(c, CardRenderer.render(c, m, 180, 150), 180, 150);
             assertEquals(View.VISIBLE, tall.findViewById(R.id.widget_title_row).getVisibility());
-            assertEquals(View.VISIBLE, tall.findViewById(R.id.widget_dialogue_choices).getVisibility());
+            assertTrue(CardText.plain(((TextView) tall.findViewById(R.id.widget_dialogue_choices)).getText().toString())
+                    .startsWith("答：我也去看看吧或"));
+        } finally {
+            RuntimeEnvironment.setFontScale(1f);
+        }
+    }
+
+    /**
+     * A title too long for the one line a 130dp card leaves it takes its longest short form that fits
+     * that line whole: the person beside the note mark, the first of two people, then the arcana.
+     */
+    @Test
+    public void aTitleWithOneLineTakesItsLongestFormThatFits() {
+        Context c = RuntimeEnvironment.getApplication();
+        CardModel m = sample(false);
+        m.keepWordsWhole = true;
+        m.title = "教皇 · 北村文吉、光子";
+        m.shortTitles.addAll(StepCopy.shortTitles(m.title, null));
+        assertEquals("教皇 · 北村文吉、光子", CardRenderer.oneLineTitle(c, m, 160));
+        assertEquals("北村文吉、光子", CardRenderer.oneLineTitle(c, m, 100));
+        assertEquals("北村文吉", CardRenderer.oneLineTitle(c, m, 60));
+        assertEquals("教皇", CardRenderer.oneLineTitle(c, m, 30));
+
+        CardModel note = sample(false);
+        note.keepWordsWhole = true;
+        note.title = "结缘网站的字条 · 岳羽由加莉";
+        note.titleIcon = CardModel.TitleIcon.NOTE;
+        note.shortTitles.addAll(StepCopy.shortTitles(note.title, null));
+        note.answers.add(new CardModel.AnswerLine("课堂：", null, java.util.Collections.singletonList("马" + CardModel.AnswerLine.position(2)),
+                null, false));
+        RuntimeEnvironment.setFontScale(1.15f);
+        try {
+            View root = RenderSupport.layout(c, CardRenderer.render(c, note, 180, 130), 180, 130);
+            List<String> issues = new ArrayList<>();
+            RenderSupport.collectHiddenTitle(root, "note", issues);
+            RenderSupport.collectTextIssues(root, "note", issues);
+            RenderSupport.collectCutText(root, "note", issues);
+            assertTrue(String.join("\n", issues), issues.isEmpty());
+            TextView title = root.findViewById(R.id.widget_task);
+            assertEquals("岳羽由加莉", RenderSupport.titleText(title));
+            assertEquals(View.VISIBLE, root.findViewById(R.id.widget_title_icon).getVisibility());
+            assertEquals("课堂：马（第 2 项）", CardText.plain(((TextView) root.findViewById(R.id.widget_dialogue_choices)).getText().toString()));
         } finally {
             RuntimeEnvironment.setFontScale(1f);
         }

@@ -130,14 +130,23 @@ final class RenderSupport {
             }
         }
         TextView title = root.findViewById(app.p3r.dayplanner.R.id.widget_task);
-        if (titleShown(root) && titleText(title).contains(" · ") && ellipsized(title)) {
+        if (titleText(title).contains(" · ") && ellipsized(title)) {
             issues.add(tag + " cuts the name in its title: '" + titleText(title) + "'");
         }
     }
 
-    /** The card shows its title (the shortest cards leave it out for the answers, CardModel.titleHidden). */
-    static boolean titleShown(View root) {
-        return root.findViewById(app.p3r.dayplanner.R.id.widget_title_row).getVisibility() == View.VISIBLE;
+    /**
+     * A card never hides its title (docs/DESIGN_v3.md §18: a card that shows 「答：…」 says who or what
+     * it is for): the title row shows, with words in it and room for them. The shortest cards shorten
+     * the title to one line instead ({@link CardRenderer#oneLineTitle}).
+     */
+    static void collectHiddenTitle(View root, String tag, List<String> issues) {
+        View row = root.findViewById(app.p3r.dayplanner.R.id.widget_title_row);
+        TextView title = root.findViewById(app.p3r.dayplanner.R.id.widget_task);
+        if (row.getVisibility() != View.VISIBLE || title.getVisibility() != View.VISIBLE
+                || titleText(title).trim().isEmpty() || title.getHeight() <= 0 || title.getLayout() == null) {
+            issues.add(tag + " hides its title '" + titleText(title) + "'");
+        }
     }
 
     /** The title a reader sees, on one line as the card model holds it ({@link CardText#plainTitle}). */
@@ -151,7 +160,7 @@ final class RenderSupport {
      */
     static void collectDotLineEnds(View root, String tag, List<String> issues) {
         TextView title = root.findViewById(app.p3r.dayplanner.R.id.widget_task);
-        if (title == null || title.getVisibility() != View.VISIBLE || !titleShown(root) || title.getLayout() == null) return;
+        if (title == null || title.getVisibility() != View.VISIBLE || title.getLayout() == null) return;
         android.text.Layout layout = title.getLayout();
         String s = title.getText().toString();
         for (int line = 0; line < layout.getLineCount(); line++) {
@@ -222,7 +231,7 @@ final class RenderSupport {
     static void collectWordSplits(View root, String tag, List<String> issues) {
         TextView title = root.findViewById(app.p3r.dayplanner.R.id.widget_task);
         TextView dialogue = root.findViewById(app.p3r.dayplanner.R.id.widget_dialogue_choices);
-        String plainTitle = title == null || !titleShown(root) ? "" : titleText(title);
+        String plainTitle = title == null ? "" : titleText(title);
         if (plainTitle.contains(" · ")) collectSplits(title, tag + " title", issues);
         collectAnswerSplits(dialogue, tag + " answers", issues);
     }
