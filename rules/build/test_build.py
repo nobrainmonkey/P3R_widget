@@ -436,10 +436,18 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(sum(n for _d, n in builder.walkthrough_rescues()), 20)
         for record in self.pack["tartarus"]["rescues"] + self.pack["reminders"]["rescueGroups"]:
             self.assertEqual(record["src"], list(builder.RESCUE_SRC), record["id"])
-        # The copy says the limit evening still counts and never words the limit as 「…前」.
+        # The copy never words the limit as 「…前」, and never promises the limit evening without saying that
+        # nobody checked it in the game (the engine plans the rescue by the day before, DESIGN §10.3).
         days = {d["md"]: d for d in self.pack["days"]}
-        self.assertEqual(days["10-03"]["noteZh"], "今天是救出北村文吉的最后期限，今晚去塔尔塔罗斯还来得及")
-        self.assertEqual(days["09-12"]["noteZh"], "北村文吉失踪了，最晚要在10月3日晚上到塔尔塔罗斯把人救出来")
+        self.assertEqual(days["10-03"]["noteZh"],
+                         "今天是救出北村文吉的最后期限：按游戏数据和攻略今晚去塔尔塔罗斯还来得及，但没在游戏里核对过")
+        self.assertEqual(days["09-12"]["noteZh"], "北村文吉失踪了，期限 10月3日，到塔尔塔罗斯把人救出来")
+        links = {link["id"]: link for link in self.pack["links"]}
+        self.assertEqual(links["hierophant"]["noteZh"], "9月12日北村文吉失踪，期限 10月3日，要到塔尔塔罗斯救出他，否则教皇社群无法继续。")
+        for where, text in builder.player_texts(self.pack):
+            if "还来得及" in text:
+                self.assertIn("没在游戏里核对过", text, where)
+            self.assertNotIn("最晚要在", text, where)
         for where, text in builder.player_texts(self.pack):
             self.assertNotRegex(text, r"不一定来得及|\d+日前(?:没)?(?:救出|到塔尔塔罗斯)", where)
         # Moving the limit-day rescues one evening earlier leaves the reading without its witness.

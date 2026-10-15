@@ -48,7 +48,9 @@ import java.util.List;
  *       fees it would eat into. A daytime job while a wanted link could be met gets no money value.</li>
  *   <li><b>Tartarus</b>: required visits become mandatory as a block's open evenings run out (on the
  *       last possible evening they beat everything); a visit inside a missing-person window is a
- *       strong priority while the link still matters, and a must on the window's last evening.</li>
+ *       strong priority while the link still matters, and a must on the last evening by the planning
+ *       deadline ({@link #rescueBy}: the day before the limit whenever an earlier evening is open, so a
+ *       plan never depends on the limit evening, which nobody has checked in the game).</li>
  *   <li><b>Dating-site notes</b> (evenings, from mid-November): the share of an ordinary meeting
  *       their points replace, valued where a saved meeting matters (a link short of its milestone,
  *       or an overbooked slot kind), minus the fees the price eats into.</li>
@@ -309,6 +311,20 @@ final class Heuristics {
     final boolean[] rescueMatters;
     /** [rescue][block] last enterable evening of that block inside the rescue window, or -1. */
     private final int[][] rescueLastSlot;
+    /**
+     * Planning deadline of each rescue (a day; DESIGN §10.3): the day before the limit when the window has
+     * an evening before the limit day on which this plan could visit Tartarus ({@link #earlierRescueEvening}),
+     * else the limit day. The game window is unchanged (the limit evening still rescues, Kernel and
+     * PlanValidator), but nobody has checked that evening in the game, so a plan never depends on it when it
+     * can help it: the tower evenings are reserved by this deadline, and a rescue after it counts in the
+     * objective like a missed one ({@link #lateRescues}).
+     */
+    final int[] rescueBy;
+    /**
+     * [rescue][block] last enterable evening of that block inside [fromDay, {@link #rescueBy}] (the visit
+     * that becomes a must), or {@link #rescueLastSlot} when the block has none before the limit evening.
+     */
+    private final int[][] rescueDueSlot;
 
     /** Previous plan's action code per slot (stability bonus window only), or -1. */
     private final int[] prevCode;
@@ -491,12 +507,21 @@ final class Heuristics {
             rescueMatters[i] = open && linkMatters;
         }
         rescueLastSlot = new int[t.nRescues][t.nBlocks];
+        rescueBy = new int[t.nRescues];
+        rescueDueSlot = new int[t.nRescues][t.nBlocks];
         for (int i = 0; i < t.nRescues; i++) {
             Arrays.fill(rescueLastSlot[i], -1);
+            Arrays.fill(rescueDueSlot[i], -1);
+            rescueBy[i] = earlierRescueEvening(m, start, i) ? t.rescueTo[i] - 1 : t.rescueTo[i];
             int to = Math.min(t.lastSlot, t.rescueTo[i] * 2 + 1);
+            int due = Math.min(t.lastSlot, rescueBy[i] * 2 + 1);
             for (int s = Math.max(0, t.rescueFrom[i] * 2); s <= to; s++) {
-                if (t.towerBlock[s] >= 0) rescueLastSlot[i][t.towerBlock[s]] = s;
+                int b = t.towerBlock[s];
+                if (b < 0) continue;
+                rescueLastSlot[i][b] = s;
+                if (s <= due) rescueDueSlot[i][b] = s;
             }
+            for (int b = 0; b < t.nBlocks; b++) if (rescueDueSlot[i][b] < 0) rescueDueSlot[i][b] = rescueLastSlot[i][b];
         }
 
         prevCode = new int[t.lastSlot + 2];
@@ -622,6 +647,24 @@ final class Heuristics {
         int to = Math.min(t.lastSlot, t.rescueTo[rescue] * 2 + 1);
         for (int s = from; s <= to; s++) if (t.towerBlock[s] >= 0) count++;
         return count;
+    }
+
+    /**
+     * The rescue's window has an evening before its limit day on which a plan from {@code start} could
+     * visit Tartarus: from the start slot on, inside [fromDay, toDay − 1], enterable (not locked, a
+     * Tartarus night of a block), and in a block whose cap the start has not used up. Without one the
+     * limit evening is the plan's only chance (a plan that starts on the limit day, or locks or caps
+     * that leave only that evening), and the plan may use it ({@link #rescueBy}).
+     */
+    static boolean earlierRescueEvening(Model m, SimState start, int rescue) {
+        Tables t = m.t;
+        int from = Math.max(start.slot, t.rescueFrom[rescue] * 2);
+        int to = Math.min(t.lastSlot, (t.rescueTo[rescue] - 1) * 2 + 1);
+        for (int s = from; s <= to; s++) {
+            int b = t.towerBlock[s];
+            if (b >= 0 && start.towerVisits[b] < m.towerCap[b]) return true;
+        }
+        return false;
     }
 
     private void loadPrevious(Plan previous) {
@@ -1242,8 +1285,10 @@ final class Heuristics {
             long bit = 1L << i;
             if (rescueMatters[i] && day >= t.rescueFrom[i] && day <= t.rescueTo[i]
                     && ((st.rescued | st.rescueFailed) & bit) == 0) {
-                // The last enterable evening of the window is a must; before that a strong priority.
-                return rescueLastSlot[i][block] <= st.slot ? MANDATORY : 200_000;
+                // A strong priority inside the window; a must on the last enterable evening by the planning
+                // deadline (the day before the limit when an earlier evening was open, rescueBy), and on the
+                // limit evening itself, the last chance, when that deadline was missed.
+                return rescueDueSlot[i][block] <= st.slot ? MANDATORY : 200_000;
             }
         }
         if (st.towerVisits[block] + 1 > m.towerCap[block] - pendingRescues(st, block)) return VETO;
@@ -1393,7 +1438,9 @@ final class Heuristics {
     /**
      * Objective J of a complete trajectory ending in {@code end}; {@code reached} as kept by
      * {@link #track}: rank values (with MAX bonuses), earlier goal targets, stat levels, opted-in
-     * Link Episodes, a little cash, minus a penalty per unmet Tartarus visit or missed rescue.
+     * Link Episodes, a little cash, minus a penalty per unmet Tartarus visit, missed rescue, or rescue
+     * left to the limit evening although an earlier one was open ({@link #lateRescues}: the link goes on,
+     * but the plan would depend on an evening nobody has checked in the game).
      * Complete plans are compared by this less {@link #FRAGILE_MAX_PENALTY} per {@link #fragileMaxes}.
      */
     double objective(SimState end, int[] reached) {
@@ -1411,7 +1458,23 @@ final class Heuristics {
         for (int i = 0; i < t.nRescues; i++) {
             if (rescueMatters[i] && (end.rescued & (1L << i)) == 0) unmet++;
         }
+        unmet += lateRescues(reached);
         return j - PENALTY * unmet;
+    }
+
+    /**
+     * Rescues that matter done after their planning deadline {@link #rescueBy} (on the limit evening although
+     * the window had an earlier evening the plan could use), from the rescue slots {@link #track} keeps. The
+     * planner never prefers such a plan (Planner.Pool compares this before the goals).
+     */
+    int lateRescues(int[] reached) {
+        int base = goalLinks.length + t.nLinks;
+        int late = 0;
+        for (int i = 0; i < t.nRescues; i++) {
+            int at = reached[base + i];
+            if (rescueMatters[i] && at >= 0 && (at >> 1) > rescueBy[i]) late++;
+        }
+        return late;
     }
 
     /**
@@ -1430,8 +1493,9 @@ final class Heuristics {
 
     /**
      * Record, in {@code reached}, the slot at which each goal first reaches its target (first
-     * {@code goalLinks.length} entries) and each link first reaches MAX (one entry per link after
-     * them; {@link #MAX_BEFORE} when it was MAX before the plan).
+     * {@code goalLinks.length} entries), each link first reaches MAX (one entry per link after
+     * them; {@link #MAX_BEFORE} when it was MAX before the plan) and each rescue happens (one entry
+     * per rescue after those; {@link #MAX_BEFORE} when it was settled before the plan).
      */
     void track(SimState st, int slot, int[] reached) {
         int g = goalLinks.length;
@@ -1441,19 +1505,26 @@ final class Heuristics {
         for (int l = 0; l < t.nLinks; l++) {
             if (reached[g + l] == -1 && st.rank[l] >= 10) reached[g + l] = slot;
         }
+        int base = g + t.nLinks;
+        for (int i = 0; i < t.nRescues; i++) {
+            if (reached[base + i] == -1 && (st.rescued & (1L << i)) != 0) reached[base + i] = slot;
+        }
     }
 
-    /** Marks a link that was already MAX when the plan starts (no slack to keep). */
+    /** Marks a link that was already MAX (or a rescue already settled) when the plan starts. */
     static final int MAX_BEFORE = -2;
 
     /** Initial reached slots for a plan starting at {@code start} (see {@link #track}). */
     int[] initialReached(SimState start) {
         int g = goalLinks.length;
-        int[] reached = new int[g + t.nLinks];
+        int[] reached = new int[g + t.nLinks + t.nRescues];
         for (int i = 0; i < g; i++) {
             reached[i] = start.rank[goalLinks[i]] >= target[goalLinks[i]] ? startSlot : -1;
         }
         for (int l = 0; l < t.nLinks; l++) reached[g + l] = start.rank[l] >= 10 ? MAX_BEFORE : -1;
+        for (int i = 0; i < t.nRescues; i++) {
+            reached[g + t.nLinks + i] = ((start.rescued | start.rescueFailed) & (1L << i)) != 0 ? MAX_BEFORE : -1;
+        }
         return reached;
     }
 

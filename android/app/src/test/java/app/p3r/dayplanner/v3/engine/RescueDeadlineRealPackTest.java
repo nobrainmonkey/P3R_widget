@@ -23,8 +23,11 @@ import java.util.List;
 /**
  * Missing-person deadlines on the shipped pack. Both ends of a window count: the game's table gives each
  * person a start and a limit day (DisappearDataAsset), and aqiu's tested Reload walkthrough rescues on the
- * limit day itself (REPORT, tartarus "rescue deadline"). So the planner may rescue on the limit evening, the
- * validator accepts exactly the visits inside the window, and from the day after the limit the link is lost.
+ * limit day itself (REPORT, tartarus "rescue deadline"). So the validator accepts exactly the visits inside
+ * the window and from the day after the limit the link is lost. Nobody has checked the limit evening in the
+ * game, though, so the planner keeps a one-day margin (DESIGN §10.3, {@link RescueMargin}): it rescues by
+ * the day before the limit whenever an earlier evening is open, and uses the limit evening only when it is
+ * the last one left, saying so.
  */
 public class RescueDeadlineRealPackTest {
     private static final String CLAIM = PlanValidator.RESCUE_ASSUMPTION;
@@ -98,7 +101,12 @@ public class RescueDeadlineRealPackTest {
             assertTrue(r.id, evening.assumptions.contains(CLAIM));
             assertTrue(evening.subtitleZh, evening.subtitleZh.endsWith("救出" + r.zh));
             String date = rules.day(r.toDay).month() + "月" + rules.day(r.toDay).dayOfMonth() + "日";
-            assertTrue(evening.whyZh, evening.whyZh.contains("最晚要在" + date + "晚上救出"));
+            // The only evening left: the plan uses it, and says the evidence has it in time but nobody checked it.
+            assertEquals("今天是救出" + r.zh + "的最后期限：" + Labels.LIMIT_EVENING_CAVEAT, evening.whyZh);
+            assertTrue(plan.summary.notesZh.toString(), plan.summary.notesZh.contains(rules.links[r.link].arcanaZh
+                    + "：只剩期限当天（" + date + "）的晚上能救出" + r.zh + "，" + Labels.LIMIT_EVENING_CAVEAT));
+            String broken = RescueMargin.broken(rules, profile, onLimit, plan);
+            assertTrue(broken, broken == null);
             assertTrue(r.id + " goes on after the rescue", plan.summary.endRanks[r.link] > 3);
 
             // The day after the limit: lost, no step rescues this person, and a claimed rescue is rejected.
@@ -132,6 +140,57 @@ public class RescueDeadlineRealPackTest {
             if (!pre.assumptions.contains(CLAIM)) pre.assumptions.add(CLAIM);
             assertRejected(profile, before, wrong, "claims a rescue outside every open rescue window");
         }
+    }
+
+    /**
+     * The one-day margin (DESIGN §10.3) where it bites: plans that start in the last four days before a limit,
+     * in the daytime and in the evening, with the block's wanted Tartarus visits still to make or already made
+     * (then the rescue is the only visit left and the evening before the limit has other uses), under both
+     * 安排风格, with the rescue's own link as a 「必须」 goal and with 「必须」 goals that want the evenings (恶魔
+     * and 塔 meet only in the evening). Every one rescues on or before toDay − 1 and validates; none mentions
+     * an unchecked limit evening. Before the margin, 6 of these 128 plans rescued on the limit evening (文吉
+     * from 10/1 and 10/2 evening, 舞子 from 11/1, all with the wanted visits made).
+     */
+    @Test
+    public void plansThatStartBeforeTheLimitDayNeverWaitForTheLimitEvening() {
+        Profile max = new Profile();
+        max.style = Profile.Style.MAX;
+        Profile evenings = new Profile();
+        evenings.tier[rules.link("devil").idx] = Profile.Tier.MUST;
+        evenings.tier[rules.link("tower").idx] = Profile.Tier.MUST;
+        evenings.order[rules.link("tower").idx] = 1;
+        int checked = 0;
+        StringBuilder days = new StringBuilder();
+        for (Rules.Rescue r : rules.rescues) {
+            Profile own = new Profile();
+            own.tier[r.link] = Profile.Tier.MUST;
+            Profile[] profiles = {new Profile(), max, own, evenings};
+            for (int day = r.toDay - 4; day < r.toDay; day++) {
+                for (int variant = 0; variant < 4; variant++) {
+                    boolean evening = (variant & 1) == 1;
+                    for (Profile profile : profiles) {
+                        SimState start = missingAt(r, day);
+                        start.slot = Rules.slot(day, evening);
+                        // Half the starts have the block's wanted visits done: the rescue is the only visit left.
+                        int block = rules.day(day).block;
+                        if (variant >= 2) start.towerVisits[block] = profile.visitsFor(rules.blocks[block].id);
+                        Plan plan = plan(profile, start);
+                        String broken = RescueMargin.broken(rules, profile, start, plan);
+                        String where = r.id + " from " + rules.day(day).md + (evening ? " evening" : "") + (variant >= 2 ? ", visits done" : "");
+                        assertTrue(where + ": " + broken, broken == null);
+                        for (RescueMargin.Landing l : RescueMargin.landings(rules, profile, start, plan)) {
+                            if (l.rescue != r) continue;
+                            assertTrue(where + ": " + l, l.earlier && l.matters && l.slot >= 0 && Rules.dayOf(l.slot) <= r.toDay - 1);
+                            days.append(' ').append(rules.day(Rules.dayOf(l.slot)).md);
+                        }
+                        for (String note : plan.summary.notesZh) assertFalse(where + ": " + note, note.contains(Labels.LIMIT_EVENING_CAVEAT));
+                        checked++;
+                    }
+                }
+            }
+        }
+        System.out.println("rescue margin: " + checked + " late starts, rescued on" + days);
+        assertEquals(rules.rescues.length * 4 * 4 * 4, checked);
     }
 
     // ------------------------------------------------------------------ helpers

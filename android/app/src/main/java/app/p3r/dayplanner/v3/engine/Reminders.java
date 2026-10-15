@@ -28,12 +28,19 @@ final class Reminders {
     static final String NURSE_LABEL = "保健室";
     static final String RESCUE_LABEL = "失踪者";
     /**
-     * The limit day's evening still counts (game data Start/Limit days, aqiu's tested Reload walkthrough rescues
-     * on limit days; rules/build/REPORT.md, tartarus "rescue deadline"), so the copy says so.
+     * The limit day's evening still counts by the evidence (game data Start/Limit days, aqiu's tested Reload
+     * walkthrough rescues on limit days; rules/build/REPORT.md, tartarus "rescue deadline"), but nobody has
+     * checked it in the game, so the copy never promises it without saying so ({@link Labels#LIMIT_EVENING_CAVEAT}).
      */
-    static final String RESCUE_DETAIL = "在塔尔塔罗斯里找到失踪的人就能救出，还能拿到奖励。期限当天晚上去也来得及，过了期限就救不出来了。";
+    static final String RESCUE_DETAIL = "在塔尔塔罗斯里找到失踪的人就能救出，还能拿到奖励。过了期限就救不出来了；期限当天的晚上"
+            + Labels.LIMIT_EVENING_CAVEAT + "。";
     static final String TOWER_DETAIL = "失踪的人在塔尔塔罗斯里，探索时找到就能救出，还能拿到奖励。";
-    static final String DEADLINE_DETAIL = "过了期限还没去塔尔塔罗斯的话就救不出来了；想救的话，最晚在期限当天晚上去一次塔尔塔罗斯。";
+    /** Added to {@link #TOWER_DETAIL} when the planned evening is the limit evening of a group it rescues. */
+    static final String TOWER_LIMIT_NOTE = "这是期限当天的晚上：" + Labels.LIMIT_EVENING_CAVEAT + "。";
+    static final String DEADLINE_DETAIL = "过了期限还没去塔尔塔罗斯的话就救不出来了。期限当天的晚上" + Labels.LIMIT_EVENING_CAVEAT
+            + "，想救的话能早一天就早一天去。";
+    /** {@link #DEADLINE_DETAIL} when the line is shown on the limit day itself (a plan that starts that day). */
+    static final String DEADLINE_TODAY_DETAIL = "过了今天就救不出来了。今晚是期限当天的晚上：" + Labels.LIMIT_EVENING_CAVEAT + "。";
     /** Visible stat level that is MAX. */
     private static final int MAX_LV = 6;
 
@@ -229,7 +236,8 @@ final class Reminders {
      * with the same limit who are still missing then), on the first planned Tartarus evening of the window (one
      * line per evening, all the people rescued that night), or, without one, the day before the limit. Groups
      * whose limit is before the plan, whose modelled people are already rescued or lost, or who were already
-     * missing on the latest recorded Tartarus evening get no line.
+     * missing on the latest recorded Tartarus evening get no line. Whatever speaks of the limit evening says
+     * that the evidence has it in time but nobody checked it in the game ({@link Labels#LIMIT_EVENING_CAVEAT}).
      */
     private static void rescue(Model m, Rules.Reminders data, Plan plan, SimState start, int lastTowerSlot,
                                List<Plan.Reminder> out) {
@@ -296,7 +304,8 @@ final class Reminders {
             Plan.Reminder x = rescueLine("tower", groups.get(0), e.getKey(), Plan.Reminder.DEADLINE, until);
             x.textZh = "今晚去塔尔塔罗斯时，顺便救出失踪者（" + count + " 人）";
             x.shortZh = "顺便救出失踪者";
-            x.detailZh = TOWER_DETAIL + String.join("", notes);
+            boolean limitNight = Rules.dayOf(e.getKey()) >= until;
+            x.detailZh = TOWER_DETAIL + (limitNight ? TOWER_LIMIT_NOTE : "") + String.join("", notes);
             out.add(x);
         }
         // No Tartarus evening planned before the limit: say so the day before it.
@@ -309,7 +318,7 @@ final class Reminders {
             String limit = date(rules, limitDay);
             x.textZh = RESCUE_LABEL + "：" + limit + "截止，这几天没安排去塔尔塔罗斯";
             x.shortZh = "失踪者 " + limit + "截止";
-            x.detailZh = DEADLINE_DETAIL + String.join("", notes);
+            x.detailZh = (Rules.dayOf(slot) >= limitDay ? DEADLINE_TODAY_DETAIL : DEADLINE_DETAIL) + String.join("", notes);
             out.add(x);
         }
     }

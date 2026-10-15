@@ -388,9 +388,9 @@ public class PlanBreadthRealPackTest {
      * on each pack rebuild since, with the steps unchanged ({@link PlanHash} adds the style only for
      * 「尽量都体验」, so a 「尽量多 MAX」 plan's id is computed as before it).
      */
-    private static final String GOLDEN_RULES_VERSION = "3.1.0|0dcc8212a56b";
+    private static final String GOLDEN_RULES_VERSION = "3.1.0|023bb3986e4d";
     /** Plan ids of the three golden 「尽量多 MAX」 plans on {@link #GOLDEN_RULES_VERSION}. */
-    private static final String[] GOLDEN_IDS = {"5690b14e2b82eee5", "93f91d953abeeed5", "371922069da82414"};
+    private static final String[] GOLDEN_IDS = {"62cb97c33e5c07dc", "83fc3132c077b8b4", "13502cbf978f3e55"};
 
     /** FNV-1a 64 over "slot|action|side…" per step: the plan's actions, independent of the pack version. */
     static String fingerprint(Plan plan) {
@@ -565,7 +565,11 @@ public class PlanBreadthRealPackTest {
         return out;
     }
 
-    /** One plan with default options: complete, validator-clean, within the time budget (recorded by {@link #both}). */
+    /**
+     * One plan with default options: complete, validator-clean, within the time budget, every rescue made and
+     * none that matters left to its limit evening while an earlier one was open ({@link RescueMargin});
+     * recorded by {@link #both}.
+     */
     private static PlanMetrics run(String title, Profile profile, SimState start, long maxMillis) {
         long t0 = System.nanoTime();
         Plan plan = Engine.plan(rules, profile, start, null, options());
@@ -580,6 +584,8 @@ public class PlanBreadthRealPackTest {
         assertTrue(what + " took " + ms + " ms", ms <= maxMillis);
         PlanMetrics pm = PlanMetrics.of(rules, profile, start, plan);
         assertEquals(what + " missed rescues", 0, pm.rescuesMissed());
+        String late = RescueMargin.broken(rules, profile, start, plan);
+        assertTrue(what + ": " + late, late == null);
         assertEquals(what + " unmet Tartarus visits", 0, pm.unmetTower);
         pm.plan = plan;
         pm.pending = () -> PlanMetrics.record(rules, title, profile, start, plan, pm, ms);

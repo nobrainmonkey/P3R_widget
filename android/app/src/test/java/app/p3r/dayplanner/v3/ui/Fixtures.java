@@ -235,7 +235,7 @@ final class Fixtures {
             day.noteZh = "周日，商店街和商城白天都开着";
         }
         if (date.equals(LocalDate.of(2009, 11, 2))) {
-            day.noteZh = "今天是救出舞子的最后期限，今晚去塔尔塔罗斯还来得及";
+            day.noteZh = "今天是救出舞子的最后期限：按游戏数据和攻略今晚去塔尔塔罗斯还来得及，但没在游戏里核对过";
         }
         return day;
     }
@@ -434,7 +434,7 @@ final class Fixtures {
         plan.summary.lastUsefulSlot = r.lastSlot() - 1;
         plan.summary.endCash = 64_000;
         plan.summary.endStatLv = new int[]{6, 6, 6};
-        plan.summary.notesZh.add("舞子最晚要在11月2日晚上救出，已安排10月24日晚上探索塔尔塔罗斯。");
+        plan.summary.notesZh.add("舞子的期限是11月2日，已安排10月24日晚上探索塔尔塔罗斯。");
         plan.summary.tradedFor[2] = 4;
         plan.summary.notesZh.add("女教皇：这次的安排里没排到 MAX（先保证了皇帝）。");
         return plan;
@@ -498,7 +498,7 @@ final class Fixtures {
             s.titleZh = "探索塔尔塔罗斯";
             s.subtitleZh = "提齐亚（69–117F）· 救出舞子";
             s.locationZh = "月光馆学园（影时间）";
-            s.whyZh = "舞子失踪了，最晚要在11月2日晚上救出，不然倒悬者社群就无法继续";
+            s.whyZh = "舞子失踪了，期限 11月2日，救不出来的话倒悬者社群就无法继续；安排不等到期限当天";
             s.assumptions.add("rescue_on_visit");
             return s;
         }

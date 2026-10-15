@@ -64,6 +64,11 @@ final class Labels {
      * when no plan reached the goal; null when unknown (then no goal is named).
      */
     private int[] tradedFor;
+    /**
+     * Rescues that matter which the labelled plan does on their limit evening ({@link #describeTower}), in
+     * plan order: the summary notes say so ({@link #notes}).
+     */
+    private final List<Integer> limitEveningRescues = new ArrayList<>();
 
     Labels(Model m, Heuristics h) {
         this.m = m;
@@ -571,6 +576,14 @@ final class Labels {
         return !blank(b.floorsZh) ? b.zh + "（" + b.floorsZh + "）" : b.zh;
     }
 
+    /**
+     * What every line that sends the player to Tartarus on a limit evening adds: the evidence says the
+     * limit evening still counts (Rules.Rescue#toDay), but nobody has checked it in the game.
+     */
+    static final String LIMIT_EVENING_CAVEAT = "按游戏数据和攻略还来得及，但没在游戏里核对过";
+    /** Who a summary note about a rescue without a link speaks of. */
+    private static final String RESCUE_WHO = "失踪者";
+
     private void describeTower(Plan.Step step, SimState st, int block, Kernel.Effect fx) {
         Rules.Block b = rules.blocks[block];
         step.kind = "tower";
@@ -580,11 +593,15 @@ final class Labels {
         if (fx.rescue >= 0) {
             Rules.Rescue r = rules.rescues[fx.rescue];
             step.subtitleZh = dot(blockName(b), "救出" + r.zh);
-            // The limit day's evening still counts (Rules.Rescue#toDay): say "最晚…晚上", never "…前".
-            if (r.link >= 0 && r.link < h.t.nLinks) {
-                step.whyZh = r.zh + "失踪了，最晚要在" + date(r.toDay) + "晚上救出，不然" + arcana(r.link) + "社群就无法继续";
+            if (st.slot >> 1 >= r.toDay) {
+                // The limit evening still counts by the evidence (Rules.Rescue#toDay), but nobody checked it in
+                // the game: the planner uses it only when no earlier evening was open (Heuristics#rescueBy).
+                step.whyZh = "今天是救出" + r.zh + "的最后期限：" + LIMIT_EVENING_CAVEAT;
+                if (h.rescueMatters[fx.rescue] && !limitEveningRescues.contains(fx.rescue)) limitEveningRescues.add(fx.rescue);
+            } else if (r.link >= 0 && r.link < h.t.nLinks) {
+                step.whyZh = r.zh + "失踪了，期限 " + date(r.toDay) + "，救不出来的话" + arcana(r.link) + "社群就无法继续；安排不等到期限当天";
             } else {
-                step.whyZh = r.zh + "失踪了，最晚要在" + date(r.toDay) + "晚上救出";
+                step.whyZh = r.zh + "失踪了，期限 " + date(r.toDay) + "，安排不等到期限当天";
             }
             return;
         }
@@ -719,6 +736,14 @@ final class Labels {
             if (want > 0 && open < want && h.t.towerRemain[b][start.slot] > 0) {
                 out.add(rules.blocks[b].zh + "：只剩 " + open + " 个晚上能去塔尔塔罗斯，不够想去的 " + want + " 次");
             }
+        }
+        for (int i : limitEveningRescues) {
+            // Only when no earlier evening was open (Heuristics#rescueBy); the other wording is a safeguard.
+            Rules.Rescue r = rules.rescues[i];
+            String who = r.link >= 0 && r.link < h.t.nLinks ? arcana(r.link) : RESCUE_WHO;
+            String when = "期限当天（" + date(r.toDay) + "）的晚上";
+            out.add(who + "：" + (h.rescueBy[i] >= r.toDay ? "只剩" + when + "能救出" + r.zh : "这次的安排在" + when + "才救出" + r.zh)
+                    + "，" + LIMIT_EVENING_CAVEAT);
         }
         if (paysUnlockFees(plan)) out.add(FEE_NOTE);
         int notesPlanned = 0;

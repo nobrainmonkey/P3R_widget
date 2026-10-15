@@ -752,8 +752,8 @@ final class StateSteps {
         card.addView(Ui.text(c, rescue.zh + "救出来了吗？", 16, Ui.col(c, R.color.p3r_white), true));
         String about = rescue.link >= 0 && rescue.link < draft.rules.links.length
             ? "关系到" + draft.rules.links[rescue.link].arcanaZh + "社群能不能继续。" : "";
-        // The limit day's evening still counts (Rules.Rescue#toDay).
-        String when = open ? "最晚要在" + Zh.date(rescue.toDay) + "晚上救出。" : "期限是" + Zh.date(rescue.toDay) + "。";
+        // The limit evening counts by the evidence but is unchecked in the game (DESIGN §10.3): the deadline only.
+        String when = "期限是" + Zh.date(rescue.toDay) + "。";
         card.addView(Ui.mixed(c, about + when, 13, Ui.col(c, R.color.p3r_ink_muted), false));
         if (!open && draft.recordSaysFailed(index)) {
             // The recorded 没救出 is preselected and kept unless the player changes it.

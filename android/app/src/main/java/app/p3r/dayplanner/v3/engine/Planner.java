@@ -204,11 +204,13 @@ final class Planner {
     private static final float SCREEN_SHARE = 0.1f;
 
     /**
-     * One complete plan of the portfolio. Plans are compared by their goals first
-     * ({@link Pool#compareGoals}), then by {@link #score}: the objective J of the whole profile minus
-     * the waste margin for every daytime slot that skips a wanted link which could be met there, so
-     * a plan that gives such a slot to training or a job wins only by a clear gain (the same rule
-     * the rollout applies slot by slot, see {@link #WASTE_MARGIN}).
+     * One complete plan of the portfolio. Plans are compared by their rescues left to the limit evening
+     * first ({@link #late}: fewer is better, so a plan that depends on that evening when an earlier one
+     * was open is never preferred), then by their goals ({@link Pool#compareGoals}), then by
+     * {@link #score}: the objective J of the whole profile minus the waste margin for every daytime
+     * slot that skips a wanted link which could be met there, so a plan that gives such a slot to
+     * training or a job wins only by a clear gain (the same rule the rollout applies slot by slot, see
+     * {@link #WASTE_MARGIN}).
      */
     static final class Candidate {
         final Heuristics h;
@@ -229,14 +231,26 @@ final class Planner {
         final int[] linkRanks;
         /** Wasted daytime slots ({@link #daytimeWaste}). */
         final int waste;
+        /**
+         * Rescues that matter done on the limit evening although the window had an earlier evening the
+         * plan could use ({@link Heuristics#lateRescues}; DESIGN §10.3). 0 for every plan the planner keeps
+         * whenever one of its plans manages that.
+         */
+        final int late;
         /** Links at RANK 1 or above, links at RANK 5 or above and the sum of end ranks: what 「尽量都体验」 promises. */
         final int unlocked;
         final int rank5;
         final int rankSum;
         boolean exhausted;
 
+        /** A plan that leaves no rescue to the limit evening ({@link #late} 0). */
         Candidate(Heuristics h, Heuristics.Tuning tuning, int[] goals, int[] codes, double j, double ownJ, double score, int variant,
                   boolean[] reached, int[] endRank, int[] linkRanks, int waste) {
+            this(h, tuning, goals, codes, j, ownJ, score, variant, reached, endRank, linkRanks, waste, 0);
+        }
+
+        Candidate(Heuristics h, Heuristics.Tuning tuning, int[] goals, int[] codes, double j, double ownJ, double score, int variant,
+                  boolean[] reached, int[] endRank, int[] linkRanks, int waste, int late) {
             this.h = h;
             this.tuning = tuning;
             this.goals = goals;
@@ -249,6 +263,7 @@ final class Planner {
             this.endRank = endRank;
             this.linkRanks = linkRanks;
             this.waste = waste;
+            this.late = late;
             int open = 0;
             int high = 0;
             int sum = 0;
@@ -348,7 +363,8 @@ final class Planner {
             }
             int[] linkRanks = Arrays.copyOf(st.rank, m.t.nLinks);
             double own = goalOrder == null ? j : new Search(m, h, options, deadline, 0f, 0f).objectiveOf(start, codes);
-            return new Candidate(h, tuning, goalOrder, codes, j, own, j - margin * waste, variant, reached, endRank, linkRanks, waste);
+            return new Candidate(h, tuning, goalOrder, codes, j, own, j - margin * waste, variant, reached, endRank, linkRanks, waste,
+                    ref.lateRescues(reachedAt));
         }
 
         /**
@@ -443,7 +459,7 @@ final class Planner {
             }
             Candidate best = best();
             for (int i = 1; i < n; i++) {
-                if (best.reached[i] || anyReaches(i)) continue;
+                if (best.reached[i] || anyReaches(i, best.late)) continue;
                 if (cancelled(options) || System.nanoTime() > deadline) return true;
                 int[] promoted = new int[n];
                 promoted[0] = goals[i];
@@ -455,8 +471,9 @@ final class Planner {
             return false;
         }
 
-        private boolean anyReaches(int goal) {
-            for (Candidate c : all) if (c.reached[goal]) return true;
+        /** Some plan with at most {@code late} rescues left to the limit evening reaches the goal. */
+        private boolean anyReaches(int goal, int late) {
+            for (Candidate c : all) if (c.reached[goal] && c.late <= late) return true;
             return false;
         }
 
@@ -487,13 +504,18 @@ final class Planner {
             return -1;
         }
 
+        /**
+         * {@code a} before {@code b}: fewer rescues left to the limit evening ({@link Candidate#late}), then
+         * strict goal priority ({@link #compareGoals}), then the score.
+         */
         private static boolean better(Candidate a, Candidate b) {
+            if (a.late != b.late) return a.late < b.late;
             int k = compareGoals(a, b);
             if (k != 0) return k > 0;
             return a.score > b.score + EPS;
         }
 
-        /** The best plan so far by goals, then score (the first one on ties). */
+        /** The best plan so far by rescues left to the limit evening, goals, then score (the first one on ties). */
         Candidate best() {
             Candidate best = null;
             for (Candidate c : all) if (best == null || better(c, best)) best = c;
@@ -501,7 +523,8 @@ final class Planner {
         }
 
         /**
-         * The plan to keep, among the plans whose goals tie with the best ({@link #compareGoals}):
+         * The plan to keep, among the plans whose goals tie with the best ({@link #compareGoals}) and
+         * that leave no more rescues to the limit evening than it ({@link Candidate#late}):
          * the one with the best score, or the best one that keeps the previous plan's next three
          * days when it scores within {@link #SWITCH_MARGIN}. Under 「尽量都体验」 only the plans that
          * keep its promises ({@link #keepsPromises}) take part, whenever one of them ties on the
@@ -512,7 +535,7 @@ final class Planner {
             boolean bounded = false;
             if (maxPlan != null) {
                 for (Candidate c : all) {
-                    if (compareGoals(c, top) == 0 && keepsPromises(c)) {
+                    if (c.late == top.late && compareGoals(c, top) == 0 && keepsPromises(c)) {
                         bounded = true;
                         break;
                     }
@@ -521,7 +544,7 @@ final class Planner {
             Candidate best = null;
             Candidate stable = null;
             for (Candidate c : all) {
-                if (compareGoals(c, top) != 0 || bounded && !keepsPromises(c)) continue;
+                if (c.late != top.late || compareGoals(c, top) != 0 || bounded && !keepsPromises(c)) continue;
                 if (best == null || c.score > best.score + EPS) best = c;
                 if (keepsPreviousWindow(ref, start.slot, c.codes) && (stable == null || c.score > stable.score + EPS)) stable = c;
             }
@@ -655,9 +678,10 @@ final class Planner {
 
         /**
          * For every goal {@code chosen} misses, the goal it gave way to: among the plans of the pool
-         * that reach that goal, the goal on which {@code chosen} beats them ({@link #decidingGoal}),
-         * provided {@code chosen} reaches it; the latest such goal (the closest trade). -1 when no
-         * plan of the pool reached the goal (nothing was traded for it) and for every other link.
+         * that reach that goal (and leave no more rescues to the limit evening than {@code chosen}),
+         * the goal on which {@code chosen} beats them ({@link #decidingGoal}), provided {@code chosen}
+         * reaches it; the latest such goal (the closest trade). -1 when no such plan reached the goal
+         * (nothing was traded for it) and for every other link.
          */
         int[] tradedFor(Candidate chosen) {
             int[] out = new int[m.t.nLinks];
@@ -666,7 +690,7 @@ final class Planner {
                 if (chosen.reached[i]) continue;
                 int traded = -1;
                 for (Candidate c : all) {
-                    if (!c.reached[i]) continue;
+                    if (!c.reached[i] || c.late > chosen.late) continue;
                     int d = decidingGoal(chosen, c);
                     if (d >= 0 && d < i && chosen.reached[d]) traded = Math.max(traded, d);
                 }

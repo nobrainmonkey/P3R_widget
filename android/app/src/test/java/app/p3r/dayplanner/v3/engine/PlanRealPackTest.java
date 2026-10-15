@@ -29,7 +29,8 @@ import java.util.List;
  * markdown table of every scenario (start, span, steps, useful actions, free slots, maxed links,
  * goal MAX dates, runtime) to {@code android/app/build/plan_metrics.md}. Asserts full
  * coverage, a clean independent validation, useful actions until the last two weeks of January,
- * every Tartarus requirement and rescue, runtime, and the plan-quality benchmarks below as lower
+ * every Tartarus requirement and rescue, the one-day rescue margin ({@link RescueMargin}: no rescue that
+ * matters on its limit evening while an earlier evening was open), runtime, and the plan-quality benchmarks below as lower
  * bounds (the numbers this planner reaches with default options; the CN walkthrough pinned in
  * rules/sources/cn_guides/data.json maxes all 22 links with matching Personas and is the feasibility witness):
  *
@@ -322,6 +323,8 @@ public class PlanRealPackTest {
             assertTrue(errors.toString(), errors.isEmpty());
             assertFalse("budget exhausted " + line, plan.budgetExhausted);
             assertTrue(line + " took " + ms + " ms", ms <= MAX_MILLIS);
+            String late = RescueMargin.broken(rules, profile, start, plan);
+            assertTrue(line + ": " + late, late == null);
             assertStrictPriority(plan, goals, options.trace);
             assertNotesNameOnlyKeptHigherGoals(plan, goals);
             // Spec §8.1: 尽量都体验 (the default) reaches what 尽量多 MAX reaches on the goals, and keeps its
@@ -329,6 +332,8 @@ public class PlanRealPackTest {
             Profile maxStyle = profile.copy();
             maxStyle.style = Profile.Style.MAX;
             Plan max = Engine.plan(rules, maxStyle, start, null, PlanBreadthRealPackTest.options());
+            String maxLate = RescueMargin.broken(rules, maxStyle, start, max);
+            assertTrue(line + " · 尽量多 MAX: " + maxLate, maxLate == null);
             for (int g : goals) {
                 if (plan.summary.endRanks[g] == max.summary.endRanks[g]) continue;
                 assertTrue(line + ": " + rules.links[g].id + " " + plan.summary.endRanks[g] + " against " + max.summary.endRanks[g]
@@ -696,6 +701,8 @@ public class PlanRealPackTest {
                 plan.summary.lastUsefulSlot >= lastTwoWeeks);
         assertEquals("unmet Tartarus visits " + pm.format(), 0, pm.unmetTower);
         assertEquals("missed rescues", 0, pm.rescuesMissed());
+        String late = RescueMargin.broken(rules, profile, start, plan);
+        assertTrue(title + ": " + late, late == null);
         assertTrue("daytimeWaste " + pm.daytimeWaste, pm.daytimeWaste <= maxWaste);
         assertTrue("cash on 12/1 " + cashDec1, start.slot >= dec1 || cashDec1 <= MODEST_CASH);
         assertTrue("took " + ms + " ms", ms <= MAX_MILLIS);

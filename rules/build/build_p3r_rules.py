@@ -840,8 +840,11 @@ def build_calendar(ledger: Ledger, day_cells: dict, night_cells: dict, tartarus_
     rescue_notes: dict[int, list[str]] = {}
     for _ident, zh, first, last, _link in RESCUES:
         deadline = cn_date(day_of_md(last))
-        rescue_notes.setdefault(day_of_md(first), []).append(f"{zh}失踪了，最晚要在{deadline}晚上到塔尔塔罗斯把人救出来")
-        rescue_notes.setdefault(day_of_md(last), []).append(f"今天是救出{zh}的最后期限，今晚去塔尔塔罗斯还来得及")
+        # The limit evening counts by the evidence ('rescue deadline') but nobody checked it in the game: the
+        # notes never promise it without saying so (the engine plans the rescue by the day before, DESIGN §10.3).
+        rescue_notes.setdefault(day_of_md(first), []).append(f"{zh}失踪了，期限 {deadline}，到塔尔塔罗斯把人救出来")
+        rescue_notes.setdefault(day_of_md(last), []).append(
+            f"今天是救出{zh}的最后期限：按游戏数据和攻略今晚去塔尔塔罗斯还来得及，但没在游戏里核对过")
 
     days = []
     for d in range(FIRST_DAY, LAST_DAY + 1):
@@ -1193,8 +1196,8 @@ LINK_NOTES = {
                  "具体日期看探索进度，这里按最晚的日期估计。",
     "emperor": "11月3日～11月29日小田桐秀利不在学生会，见不到面。",
     "empress": "考试前一周（12月7日～12月12日）她每天放学后都在。",
-    "hierophant": "9月12日北村文吉失踪，最晚要在10月3日晚上到塔尔塔罗斯救出他，否则教皇社群无法继续。",
-    "hanged_man": "10月21日舞子失踪，最晚要在11月2日晚上到塔尔塔罗斯救出她，否则倒悬者社群无法继续。",
+    "hierophant": "9月12日北村文吉失踪，期限 10月3日，要到塔尔塔罗斯救出他，否则教皇社群无法继续。",
+    "hanged_man": "10月21日舞子失踪，期限 11月2日，要到塔尔塔罗斯救出她，否则倒悬者社群无法继续。",
     "hermit": "只在星期日和节假日的白天上线。",
     "devil": "解锁之后每次见面都会升级，不用攒点数。",
     "sun": "只在星期日白天见面；解锁之后每次见面都会升级。",
@@ -2814,8 +2817,9 @@ def rescue_groups(ledger: Ledger) -> tuple[list[dict], list[tuple[int, int, str]
                   "(missing from, limit) groups; 北村文吉 and 舞子 are the modelled rescues (rescueIds). The engine "
                   "words them against the plan: when they go missing, on the first planned Tartarus evening in the "
                   "window (rescued on that visit), or the day before the limit when no Tartarus evening is planned. The "
-                  "limit evening still counts (tartarus 'rescue deadline'); the details say so. A group whose rescue a "
-                  "request needs says so (locksZh): "
+                  "limit evening still counts by the evidence (tartarus 'rescue deadline') but nobody has checked it in "
+                  "the game: the details say both, and a line for a planned visit on the limit evening says it is "
+                  "unchecked. A group whose rescue a request needs says so (locksZh): "
                   + "; ".join(f"{md} → #{n} ({bullet})" for md, (n, bullet) in RESCUE_LOCKS.items()) + ".")
     return out, people
 
@@ -2908,7 +2912,9 @@ def rescue_limit_witnesses(ledger: Ledger, people: list[tuple[int, int, str]]) -
                   "on either September 3rd or 4th.', and its other dates are loose too (November 27 for a person the "
                   "game has missing from 11/28, 'head in before November 2nd' for the group whose limit is 11/2). "
                   "The engine rescues on a Tartarus evening from fromDay through toDay and treats the person as lost "
-                  "from toDay + 1; the copy says the limit evening still counts. Not replayed by the owner.")
+                  "from toDay + 1. Not replayed by the owner, so the planner keeps a one-day margin (DESIGN §10.3): it "
+                  "rescues by toDay - 1 whenever an earlier evening is open, uses the limit evening only when it is the "
+                  "last one left, and then says that the evidence has it in time but nobody checked it in the game.")
     return on_limit
 
 
@@ -3101,8 +3107,8 @@ NOTES_ZH = (
     "【平安夜】12月24日默认按婉拒所有邀约来安排，白天和晚上都可以自由活动；选了平安夜赴约的对象后，这一天的白天和晚上"
     "都会留给平安夜约会。",
     "【塔尔塔罗斯】队友都去不了的晚上（考试前后、剧情前后等）不会安排探索塔尔塔罗斯。",
-    "【失踪者】北村文吉（9月12日～10月3日）和舞子（10月21日～11月2日）失踪期间见不到人。期限当天晚上去塔尔塔罗斯"
-    "也还来得及；过了期限还没救出，对应的社群就没法继续了。",
+    "【失踪者】北村文吉（9月12日～10月3日）和舞子（10月21日～11月2日）失踪期间见不到人。过了期限还没救出，对应的社群就"
+    "没法继续了。期限当天的晚上按游戏数据和攻略也还来得及，但没在游戏里核对过，所以安排不等到那天，除非只剩那天晚上。",
     "【女皇】解锁除了学力 MAX，还要至少有一次考试拿过第一名。名次没法预测，这里只按学力 MAX 来安排；如果一次第一都没拿过，"
     "请把女皇的目标改成「未选」。星期一、五能不能见面没有确认，只按星期二、三、四、六和考试前一周（12月7日～12日）安排。",
     "【教皇】解锁时要回学校调查柿子树，所以只安排在上学日的放学后。有玩家反映 RANK 4 → 5 前要先听到柿子树的传闻，"
@@ -3354,8 +3360,8 @@ def validate_reminders(pack: dict, check_src) -> None:
             raise BuildError(f"{where}: count >= 1, known rescueIds and fromDay <= toDay are required")
         if "locksZh" in group and not group["locksZh"]:
             raise BuildError(f"{where}: locksZh, when present, must not be empty")
-    # The copy promises that the limit evening still counts: it must be a Tartarus evening, and the night after
-    # it must not be one (the limit is the last chance, as the walkthrough and the game data have it).
+    # The engine takes the limit evening as the last chance: it must be a Tartarus evening, and the night after
+    # it must not be one (as the walkthrough and the game data have it).
     limits = [(f"reminders.rescueGroups[{g['id']}]", g["toDay"]) for g in rem["rescueGroups"]]
     limits += [(f"tartarus.rescues[{r['id']}]", r["toDay"]) for r in pack["tartarus"]["rescues"]]
     for where, last in limits:
@@ -3549,7 +3555,8 @@ KNOWN_GAPS = (
     "当日提醒 missing people: that the limit evening still counts rests on the game's Start/Limit table, aqiu's "
     "tested walkthrough (rescues on limit days) and no limit + 1 night being enterable (see the tartarus 'rescue "
     "deadline' decision), not on an ATLUS statement or a replay by the owner; Game8 JP, RPG Site and a Steam "
-    "thread agree with the windows but do not settle the limit evening. "
+    "thread agree with the windows but do not settle the limit evening. Plans do not depend on it when an earlier "
+    "evening is open (one-day margin), and the copy calls it unchecked wherever it sends the player there. "
     "Floors are unknown. Rescues follow the plan's Tartarus evenings and the latest recorded one, not nights the "
     "player improvises.",
     "Not modelled: Wakatsu seafood course, Hagakure bowl, weekend Wilduck set, burger challenge, shrine donations, "
