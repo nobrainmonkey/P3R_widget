@@ -1,62 +1,62 @@
 [
-  {
-    "section": "outcome_objective",
-    "items": [
-      {
-        "requirement": "Do not force romance just to advance an optional objective",
-        "label": "3.1.0 更新",
-        "gap": "No planner gap. There is no device (v301_*) screenshot of the 朋友/恋人 control itself, only Robolectric coverage. (The note about the 3.0.x guide widget showing the walkthrough's romance answers verbatim no longer applies: that widget was removed in 3.1.0, docs/DESIGN_v3.md §19.)"
-      }
+ {
+  "section": "outcome_objective",
+  "items": [
+   {
+    "requirement": "Do not force romance just to advance an optional objective",
+    "label": "3.1.0 更新",
+    "gap": "No planner gap. There is no device (v301_*) screenshot of the 朋友/恋人 control itself, only Robolectric coverage. (The note about the 3.0.x guide widget showing the walkthrough's romance answers verbatim no longer applies: that widget was removed in 3.1.0, docs/DESIGN_v3.md §19.)"
+   }
+  ]
+ },
+ {
+  "section": "visual_widget_sources",
+  "items": [
+   {
+    "requirement": "[59] P3R flat cyan daytime / deep-blue nighttime colors",
+    "label": "3.1.0 更新",
+    "evidence": "WidgetPalette.java defines DAY/NIGHT, and of(night) is at :85-87. The surfaces are p3r_widget_day #0FB1F5 and p3r_widget_night #034572 (res/values/p3r_colors.xml:23-24). Night is selected for evening slots by CardModel.night (CardModel.java:25-26), set from PlanView.night() (Rules.isEvening). CardChromeTest.theSurfaceIsFlatAndTheButtonsAre34dpInside40dpTargets checks both surface colours. Viewed renders: qa_out/v3/widget/plan/social-day-320x200-sdk26.png (cyan) and locked-night-250x160-sdk31.png (navy). On device, docs/screenshots/widget_home.png shows the 晚上 slot in navy. (3.1.0 removed the second, guide widget that also used these palettes.)"
+   },
+   {
+    "requirement": "[59] Paired right-biased line-art motifs and official-style/logo assets already present (art may now be redesigned)",
+    "label": "3.1.0 更新",
+    "evidence": "The 2.2 MB of unused character and logo art is gone, and 3.1.0 also removed the guide widget's picker preview with the guide (docs/DESIGN_v3.md §19). android/app/src/main/res/drawable-nodpi now holds only ui_art_protagonist.png (the 今天 header art, TodayPage) and widget_preview_plan.png (res/xml/plan_widget_info.xml). ShippedAssetsTest.everyNodpiBitmapIsUsedAndTheDeadArtIsGone asserts that every nodpi bitmap is referenced and that character_day, character_night, character_day_compact, official_p3r_logo_color and the guide preview stay absent and unreferenced. A release build with the guide removed is about 0.84 MB (839,496 B before the other 3.1.0 changes; 3.0.0: 3,192,908 B; 3.0.2: 1,028,444 B), and `unzip -l` lists no asset besides assets/p3r/p3r_rules.json."
+   },
+   {
+    "requirement": "[59] No character illustration redesign; existing day/night fade works and must not regress",
+    "label": "3.1.0 更新",
+    "evidence": "No character art was redrawn: the old illustrations are unused, and a separate silhouette (ui_art_protagonist.png) is used in the app. WidgetPaletteFadeTest went with the 3.0.x guide in 3.1.0 (docs/DESIGN_v3.md §19); its coverage of the shared fade code was ported to the plan widget: PaletteHostTest (both palette slots, the settled tree, a crossfade that survives attach and is drawn frame by frame into qa_out/v3/widget/fade; 3 methods × sdk {26,31}), PlanWidgetFadeTest (a resize cancels the running fade; a burst of taps fades once; 2 methods × sdk {26,31}), FadeGuardTest (tap throttle and settle generations, 4 tests) and PlanWidgetBehaviourTest.paletteChangeFadesThenSettles (sdk {26,31}). All of them pass in the 3.1.0 full test run."
+   },
+   {
+    "requirement": "[61] Existing fixed-guide widget and progress remain safe alongside adaptive planning",
+    "split": [
+     {
+      "requirement": "[61] Existing fixed-guide widget remains safe alongside adaptive planning (the widget half of 「Existing fixed-guide widget and progress must remain safe」)",
+      "status": "superseded",
+      "label": "所有者确认取代（2026-10-15）",
+      "evidence": "The owner asked to drop the old entry completely and cut ties with the old project (docs/DESIGN_v3.md §19; spec docs/specs/SPEC_3.1.0.md §1.3), which supersedes this half. 3.1.0 no longer carries the 3.0.x copy of the guide: its activity, its home-screen widget 「P3R 逐日攻略」 (PlannerWidget, planner_widget_info.xml), assets and tests are gone, and WidgetUpgradeReceiverTest.theManifestDeclaresOnlyThePlannersComponents asserts that the manifest declares only the planner's activities, the plan widget and the v3 upgrade receiver. The guide's data stays as pinned sources under rules/sources/cn_guides/. On 2026-10-15 the owner was asked directly, after the progress half was made safe, whether to keep the old guide widget deleted or restore it read-only, and answered 「对，彻底删掉」 (delete it completely).",
+      "gap": "An old 「P3R 逐日攻略」 widget on the home screen stops working after the update to 3.1.0; docs/RELEASE_NOTES_3.1.0.md and README.md (下载) tell players to remove it (「P3R 每日安排」 is not affected). The 2.0.0 app (app.p3r.dayplanner.test) is a separate package; its guide widget is untouched."
+     },
+     {
+      "requirement": "[61] Existing fixed-guide progress remains safe alongside adaptive planning (the progress half)",
+      "status": "met",
+      "label": "3.1.0 之后：旧攻略进度可导出",
+      "evidence": "3.1.0 keeps the 3.0.x guide's progress on the phone: the prefs p3r_native_progress_v1 are never written or deleted (owner decision O2). After 3.1.0, 我的 → 备份与恢复 exports them as the old page's file: a section 「旧版逐日攻略」 with the button 「导出打勾进度」, shown only when a task is ticked (BackupPage.showOldGuide, exportOldGuideTo; OldGuideProgress). OldGuideProgress.read uses getAll() only, never an editor, off the main thread. The button saves through ACTION_CREATE_DOCUMENT, application/json, default name P3R_打卡进度.json (result handled in HomeActivity.onActivityResult). The file is what the old page's exportProgress() wrote, JSON.stringify({format: 'p3r_hunterjia_checklist_v1', completed, completedSubsteps, schemaVersion: 2, exportedAt}, null, 2) (OldGuideProgress.toJson), with completed from the prefs' 'completed' and completedSubsteps from 'substeps'. The 2.0.0 app's guide imports that format: the handoff zip P3R_Planner_Handoff_20261013.zip holds its page, source/android/app/src/main/assets/index.html, whose sha256 aa0d1ad3… matches docs/handoff/SOURCE_SHA256.json; its importProgress (line 435) accepts an object whose completed is an object and whose format, if present, is p3r_hunterjia_checklist_v1; and the zip's data.json and the 3.0.x data.json (rules/sources/cn_guides/data.json) have the same 691 ids. (The zip's build files say 2.0.1 / code 11, while docs/handoff/RELEASE_2_0_0.md describes 2.0.0 / code 10; the page in the zip is dated before that checkpoint note.) OldGuideExportTest (all pass in the full run): withoutATickedTaskThereIsNoEntry (looking creates no prefs file either); tickedTasksShowTheEntryWithTheirCount (a card with a button; render qa_out/v3/ui/home_backup_old_guide.png); exportSavesTheOldPagesFileAndLeavesThePrefsAlone (the save intent; saved bytes equal the old page's output, generated by running that expression in Node over the same stored text; the prefs' keys, values and file bytes are unchanged); theFileIsWhatJsonStringifyWrites (key order, escapes, numbers); brokenStoredTextNeverCrashes; aFailedSaveSaysSoAndACancelWritesNothing; ticksGoneBeforeTheSaveSaySo; anEmptyDocumentLeftByAFailedSaveIsRemoved.",
+      "gap": "The published 3.1.0 APK does not have the export; it comes with the next update. Until then the ticks stay on the phone (O2), and a player still on 3.0.x can export them before updating from the guide's own menu (「设置」 → 「导出进度备份」). docs/RELEASE_NOTES_3.1.0.md (with a note added after the release), README.md (下载) and docs/DESIGN_v3.md §19 say so. Only the prefs are read, not the 3.0.x WebView storage; that page mirrored every tick into the prefs (syncState), and its widget wrote there directly. Numbers in the file match the old page's for what 3.0.x stored (booleans), not for every double. This check did not run the system file picker on a device, and it did not import into an installed 2.0.0 app; the format is checked against the old page's own export expression and its import function."
+     }
     ]
-  },
-  {
-    "section": "visual_widget_sources",
-    "items": [
-      {
-        "requirement": "[59] P3R flat cyan daytime / deep-blue nighttime colors",
-        "label": "3.1.0 更新",
-        "evidence": "WidgetPalette.java defines DAY/NIGHT, and of(night) is at :85-87. The surfaces are p3r_widget_day #0FB1F5 and p3r_widget_night #034572 (res/values/p3r_colors.xml:23-24). Night is selected for evening slots by CardModel.night (CardModel.java:25-26), set from PlanView.night() (Rules.isEvening). CardChromeTest.theSurfaceIsFlatAndTheButtonsAre34dpInside40dpTargets checks both surface colours. Viewed renders: qa_out/v3/widget/plan/social-day-320x200-sdk26.png (cyan) and locked-night-250x160-sdk31.png (navy). On device, docs/screenshots/widget_home.png shows the 晚上 slot in navy. (3.1.0 removed the second, guide widget that also used these palettes.)"
-      },
-      {
-        "requirement": "[59] Paired right-biased line-art motifs and official-style/logo assets already present (art may now be redesigned)",
-        "label": "3.1.0 更新",
-        "evidence": "The 2.2 MB of unused character and logo art is gone, and 3.1.0 also removed the guide widget's picker preview with the guide (docs/DESIGN_v3.md §19). android/app/src/main/res/drawable-nodpi now holds only ui_art_protagonist.png (the 今天 header art, TodayPage) and widget_preview_plan.png (res/xml/plan_widget_info.xml). ShippedAssetsTest.everyNodpiBitmapIsUsedAndTheDeadArtIsGone asserts that every nodpi bitmap is referenced and that character_day, character_night, character_day_compact, official_p3r_logo_color and the guide preview stay absent and unreferenced. A release build with the guide removed is about 0.84 MB (839,496 B before the other 3.1.0 changes; 3.0.0: 3,192,908 B; 3.0.2: 1,028,444 B), and `unzip -l` lists no asset besides assets/p3r/p3r_rules.json."
-      },
-      {
-        "requirement": "[59] No character illustration redesign; existing day/night fade works and must not regress",
-        "label": "3.1.0 更新",
-        "evidence": "No character art was redrawn: the old illustrations are unused, and a separate silhouette (ui_art_protagonist.png) is used in the app. WidgetPaletteFadeTest went with the 3.0.x guide in 3.1.0 (docs/DESIGN_v3.md §19); its coverage of the shared fade code was ported to the plan widget: PaletteHostTest (both palette slots, the settled tree, a crossfade that survives attach and is drawn frame by frame into qa_out/v3/widget/fade; 3 methods × sdk {26,31}), PlanWidgetFadeTest (a resize cancels the running fade; a burst of taps fades once; 2 methods × sdk {26,31}), FadeGuardTest (tap throttle and settle generations, 4 tests) and PlanWidgetBehaviourTest.paletteChangeFadesThenSettles (sdk {26,31}). All of them pass in the 3.1.0 full test run."
-      },
-      {
-        "requirement": "[61] Existing fixed-guide widget and progress remain safe alongside adaptive planning",
-        "split": [
-          {
-            "requirement": "[61] Existing fixed-guide widget remains safe alongside adaptive planning (the widget half of 「Existing fixed-guide widget and progress must remain safe」)",
-            "status": "superseded",
-            "label": "3.1.0 所有者要求",
-            "evidence": "The owner asked to drop the old entry completely and cut ties with the old project (docs/DESIGN_v3.md §19; spec docs/specs/SPEC_3.1.0.md §1.3), which supersedes this half. 3.1.0 no longer carries the 3.0.x copy of the guide: its activity, its home-screen widget 「P3R 逐日攻略」 (PlannerWidget, planner_widget_info.xml), assets and tests are gone, and WidgetUpgradeReceiverTest.theManifestDeclaresOnlyThePlannersComponents asserts that the manifest declares only the planner's activities, the plan widget and the v3 upgrade receiver. The guide's data stays as pinned sources under rules/sources/cn_guides/.",
-            "gap": "An old 「P3R 逐日攻略」 widget on the home screen stops working after the update to 3.1.0; docs/RELEASE_NOTES_3.1.0.md and README.md (下载) tell players to remove it (「P3R 每日安排」 is not affected). The 2.0.0 app (app.p3r.dayplanner.test) is a separate package; its guide widget is untouched."
-          },
-          {
-            "requirement": "[61] Existing fixed-guide progress remains safe alongside adaptive planning (the progress half)",
-            "status": "met",
-            "label": "3.1.0 之后：旧攻略进度可导出",
-            "evidence": "3.1.0 keeps the 3.0.x guide's progress on the phone: the prefs p3r_native_progress_v1 are never written or deleted (owner decision O2). After 3.1.0, 我的 → 备份与恢复 exports them as the old page's file: a section 「旧版逐日攻略」 with the button 「导出打勾进度」, shown only when a task is ticked (BackupPage.showOldGuide, exportOldGuideTo; OldGuideProgress). OldGuideProgress.read uses getAll() only, never an editor, off the main thread. The button saves through ACTION_CREATE_DOCUMENT, application/json, default name P3R_打卡进度.json (result handled in HomeActivity.onActivityResult). The file is what the old page's exportProgress() wrote, JSON.stringify({format: 'p3r_hunterjia_checklist_v1', completed, completedSubsteps, schemaVersion: 2, exportedAt}, null, 2) (OldGuideProgress.toJson), with completed from the prefs' 'completed' and completedSubsteps from 'substeps'. The 2.0.0 app's guide imports that format: the handoff zip P3R_Planner_Handoff_20261013.zip holds its page, source/android/app/src/main/assets/index.html, whose sha256 aa0d1ad3… matches docs/handoff/SOURCE_SHA256.json; its importProgress (line 435) accepts an object whose completed is an object and whose format, if present, is p3r_hunterjia_checklist_v1; and the zip's data.json and the 3.0.x data.json (rules/sources/cn_guides/data.json) have the same 691 ids. (The zip's build files say 2.0.1 / code 11, while docs/handoff/RELEASE_2_0_0.md describes 2.0.0 / code 10; the page in the zip is dated before that checkpoint note.) OldGuideExportTest (all pass in the full run): withoutATickedTaskThereIsNoEntry (looking creates no prefs file either); tickedTasksShowTheEntryWithTheirCount (a card with a button; render qa_out/v3/ui/home_backup_old_guide.png); exportSavesTheOldPagesFileAndLeavesThePrefsAlone (the save intent; saved bytes equal the old page's output, generated by running that expression in Node over the same stored text; the prefs' keys, values and file bytes are unchanged); theFileIsWhatJsonStringifyWrites (key order, escapes, numbers); brokenStoredTextNeverCrashes; aFailedSaveSaysSoAndACancelWritesNothing; ticksGoneBeforeTheSaveSaySo; anEmptyDocumentLeftByAFailedSaveIsRemoved.",
-            "gap": "The published 3.1.0 APK does not have the export; it comes with the next update. Until then the ticks stay on the phone (O2), and a player still on 3.0.x can export them before updating from the guide's own menu (「设置」 → 「导出进度备份」). docs/RELEASE_NOTES_3.1.0.md (with a note added after the release), README.md (下载) and docs/DESIGN_v3.md §19 say so. Only the prefs are read, not the 3.0.x WebView storage; that page mirrored every tick into the prefs (syncState), and its widget wrote there directly. Numbers in the file match the old page's for what 3.0.x stored (booleans), not for every double. This check did not run the system file picker on a device, and it did not import into an installed 2.0.0 app; the format is checked against the old page's own export expression and its import function."
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "section": "defects_engineering",
-    "items": [
-      {
-        "requirement": "Chinese UI (engineering deliverable; detailed terminology audit is a separate section)",
-        "label": "3.1.0 更新",
-        "evidence": "The WebView guide page the re-audit examined (assets/index.html) was removed in 3.1.0 (docs/DESIGN_v3.md §19), so the app is the native planner and its widget only. res/values/strings.xml holds three strings, all Chinese (「P3R 规划」, 「P3R 每日安排」 and the widget description). The planner screens (v301_today, v301_settings, schedule, sheets) were found Chinese apart from the game terms RANK, MAX and Lv; GlossarySourceTest checks the string literals of v3/ui and v3/widget against rules of docs/GLOSSARY_zh.md, and MePageTest checks the 我的 entries.",
-        "gap": "No label gap. Latin text left in the UI is the game's own terms (RANK, MAX, Lv) and the P3R and S.E.E.S. marks."
-      }
-    ]
-  }
+   }
+  ]
+ },
+ {
+  "section": "defects_engineering",
+  "items": [
+   {
+    "requirement": "Chinese UI (engineering deliverable; detailed terminology audit is a separate section)",
+    "label": "3.1.0 更新",
+    "evidence": "The WebView guide page the re-audit examined (assets/index.html) was removed in 3.1.0 (docs/DESIGN_v3.md §19), so the app is the native planner and its widget only. res/values/strings.xml holds three strings, all Chinese (「P3R 规划」, 「P3R 每日安排」 and the widget description). The planner screens (v301_today, v301_settings, schedule, sheets) were found Chinese apart from the game terms RANK, MAX and Lv; GlossarySourceTest checks the string literals of v3/ui and v3/widget against rules of docs/GLOSSARY_zh.md, and MePageTest checks the 我的 entries.",
+    "gap": "No label gap. Latin text left in the UI is the game's own terms (RANK, MAX, Lv) and the P3R and S.E.E.S. marks."
+   }
+  ]
+ }
 ]
