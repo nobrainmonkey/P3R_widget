@@ -367,13 +367,18 @@ public class AnswerRowRenderTest {
      * 「课堂：卡巴拉」 line; 10/22 战车 at 180x130 and 115% font), and 「答：…」 without who it is for confuses.
      * At 130dp high the title keeps one line beside one line of answers: a form of the row that fits, a
      * 课堂/考试 answer whole rather than a line with no choice in it, else the count (「答：共 2 项，点开看看」).
-     * Renders under answers/ as shortest-*.
+     * Each case is the first real card of that meeting on that day with its own line and a class line
+     * ({@link #ownAndClassLines}): 7/10 教皇 of the 7/1 plan (「答：我也去看看吧或我在这里等她 / 真担心啊」,
+     * 「课堂：卡巴拉」; the new game's 7/10 教皇 has only the class line). Since 「尽量都体验」 keeps the
+     * promises of 「尽量多 MAX」 (DESIGN §20) the 10/22 plan meets 战车 first on 10/29; the same 战车 card
+     * (「答：明年的选拔赛呢？ / 加油」 and a class answer) is the new game's 10/19. Renders under answers/ as
+     * shortest-*.
      */
     @Test
     public void theShortestCardsKeepTheirTitleBesideTheAnswers() throws Exception {
         Assume.assumeTrue("rule pack not available", pack != null);
         File dir = RenderSupport.outputDir("answers");
-        Object[][] wanted = {{"0710-hierophant", dayOf(7, 10), "meet:hierophant"}, {"1022-chariot", dayOf(10, 22), "meet:chariot"}};
+        Object[][] wanted = {{"0710-hierophant", dayOf(7, 10), "meet:hierophant"}, {"1019-chariot", dayOf(10, 19), "meet:chariot"}};
         List<Plan> plans = realPlans();
         List<String> issues = new ArrayList<>();
         for (Object[] w : wanted) {
@@ -381,18 +386,19 @@ public class AnswerRowRenderTest {
             int slot = -1;
             for (Plan plan : plans) {
                 for (Plan.Step step : plan.steps) {
-                    if (found == null && Rules.dayOf(step.slot) == (Integer) w[1] && w[2].equals(step.action)) {
+                    if (found == null && Rules.dayOf(step.slot) == (Integer) w[1] && w[2].equals(step.action)
+                            && ownAndClassLines(model(on(plan, step.slot)))) {
                         found = plan;
                         slot = step.slot;
                     }
                 }
             }
-            assertNotNull(w[0] + " is in a real plan", found);
+            assertNotNull(w[0] + " with its own line and a class line is in a real plan", found);
             for (float scale : new float[]{1f, 1.15f}) {
                 RuntimeEnvironment.setFontScale(scale);
                 FakePlannerApi fake = on(found, slot);
                 CardModel model = model(fake);
-                assertFalse(w[0] + " has answers", model.answers.isEmpty());
+                assertTrue(w[0] + " has its own line and a class line", ownAndClassLines(model));
                 for (int[] size : new int[][]{{180, 130}, {250, 130}, {180, 150}}) {
                     View root = render(fake, size[0], size[1]);
                     String tag = "shortest-" + w[0] + "-" + size[0] + "x" + size[1] + (scale > 1 ? "-font115" : "");
@@ -414,6 +420,13 @@ public class AnswerRowRenderTest {
         }
         RuntimeEnvironment.setFontScale(1f);
         assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
+    /** The card's answers row starts with the step's own line (not a class answer) and ends with a class answer. */
+    private static boolean ownAndClassLines(CardModel model) {
+        List<CardModel.AnswerLine> lines = model.answers;
+        return lines.size() >= 2 && !lines.get(0).label.startsWith("课堂")
+                && lines.get(lines.size() - 1).label.startsWith("课堂");
     }
 
     // ------------------------------------------------------------------ card scenes
