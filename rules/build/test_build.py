@@ -452,6 +452,22 @@ class BuildTest(unittest.TestCase):
         with mock.patch.object(builder, "walkthrough_rescues", return_value=wrong):
             with self.assertRaisesRegex(builder.BuildError, "rescues 2, but 3 people"):
                 builder.rescue_limit_witnesses(builder.Ledger(), people)
+        # The other pages are described as they read (review after 3.1.0): RPG Site gives the 9/3 group's
+        # deadline as 9/5 (the full moon) and its dates are loose; Game8 JP's ranges and the Steam remark do not
+        # settle whether the limit day counts, so none of them is cited as corroboration.
+        notes = {s["id"]: s["note"] for s in self.pack["sources"]}
+        self.assertIn("deadline 9/5", notes["rpgsite_missing"])
+        self.assertNotIn("(limit 9/4)", notes["rpgsite_missing"])
+        self.assertIn("not whether the limit day counts", notes["game8jp_missing"])
+        self.assertIn("does not say whether", notes["steam_thread_missing"])
+        decision = next(d for d in self.ledger.decisions if d[1] == "rescue deadline")
+        self.assertNotIn("Corroboration", decision[2])
+        self.assertIn("'Rescue Deadline: September 5', the full moon; the game's limit is 9/4", decision[2])
+        rpgsite = "web_guides/rpgsite_missing_people.html"
+        changed = (builder.RESCUE_LIMIT_QUOTES[rpgsite][0], ("Rescue Deadline: September 4",))
+        with mock.patch.dict(builder.RESCUE_LIMIT_QUOTES, {rpgsite: changed}):
+            with self.assertRaisesRegex(builder.BuildError, "no longer says 'Rescue Deadline: September 4'"):
+                builder.rescue_limit_witnesses(builder.Ledger(), people)
         # The limit must stay the last Tartarus evening of its window (the copy promises it).
         pack = json.loads(self.text)
         next(d for d in pack["days"] if d["md"] == "10-03")["tartarus"] = False

@@ -137,7 +137,7 @@ Only categories the adversarial check found safe ship. Rows marked "dynamic" are
 
 | kind | label | What | Dates and data | conf | Source of zh text |
 |---|---|---|---|---|---|
-| `class` | 课堂提问 | Class answer | aqiu 36 dates (`social-events.html` `#class-answers`). Ships where a pinned 3DM page has a zh answer for that date. Expected 35 (12/11 has no zh line, so it is withheld). 7/8 = 「马」（第 2 项）, 10/22 = 「朱诺」（第 3 项） | verified (aqiu date and position = 3DM date and position) | pinned 3DM schedule pages |
+| `class` | 课堂提问 | Class answer | aqiu 36 dates (`social-events.html` `#class-answers`). Ships where a pinned 3DM page has a zh answer for that date. Expected 35 (12/11 has no zh line, so it is withheld). (3.1.0 shipped 32, with 12/7, 12/9, 12/11 and 1/18 withheld; after 3.1.0: 36, those four from 游民星空's copy of the guide, pages p9/p10, which BWIKI writes alike; `WITHHELD_CLASS` is empty, DESIGN §17.1 Answers.) 7/8 = 「马」（第 2 项）, 10/22 = 「朱诺」（第 3 项） | verified (aqiu date and position = 3DM date and position) | pinned 3DM schedule pages |
 | `exam` | 考试 | Exam answer | aqiu 17 dates. Text from 3DM, e.g. 5/19 五月病, 7/15 没什么特别的理由, 10/14 摩西, 12/18 做好了拼命的心理准备. 7/17 `MADRID` and 12/16 `JUNE` ship verbatim with `estimate=true` | single (7/17 and 12/16: estimate) | 3DM |
 | `doze` | 上课犯困 | Stay awake or close eyes (dynamic choice) | ≈33 days from 3DM 「上课：不闭眼 / 闭不闭眼都行」, corroborated by the CN guide | single | engine copy |
 | `nurse` | 保健室 | Courage +2, no time cost (dynamic) | School day right after a planned or recorded tower night or a full-moon operation | single (aqiu rule) | engine copy |
@@ -250,7 +250,7 @@ public Reminders reminders = new Reminders();   // empty when the pack has none
    - 3DM per-date lines: `上课问答：X（n）`, `期中/期末考试：X`, `上课：不闭眼…/闭不闭眼都行`, `电视购物（…，N元）`, and the 黄昏的碎片 lines.
 4. **Cross-checks** (BuildError unless stated otherwise):
    - **class:**
-     - every aqiu date has a 3DM line or is in `WITHHELD_CLASS = {"12-11": reason}`;
+     - every aqiu date has a 3DM line or is in `WITHHELD_CLASS = {"12-11": reason}` (after 3.1.0: or a 游民星空 line that agrees with BWIKI; `WITHHELD_CLASS` is empty);
      - every 3DM ordinal equals aqiu's Choice N.
    - **exam:**
      - every aqiu date has a 3DM line or is withheld;
@@ -367,7 +367,7 @@ The research plan is adopted, with the ownership split below. All of it compiled
 9. **Not WP-A's (owned by WP-D):** guide-only code in `CardText`, `CardRenderer`, `CardModel`, `GuideWords.java`, the `CardTextTest` guide cases, the `GlossarySourceTest` `GUIDE_WORDS` skip, `RenderSupport` legacy helpers, and the layout comments in `widget_card_regular.xml:2-4` / `widget_card_compact.xml:2`.
 10. **User consequences, for the release notes:**
     - An old 「P3R 逐日攻略」 widget stops working. Copy: `如果桌面上还有「P3R 逐日攻略」小组件，更新后它会失效，长按把它移除就好；「P3R 每日安排」不受影响。`
-    - 逐日攻略 progress (`p3r_native_progress_v1`, WebView localStorage) is no longer readable. Copy (3.1.0 review: it names the real menu and button, and where the file can be used): `3.1.0 去掉了「我的 → 逐日攻略」，它的打勾进度更新后就看不到了。想保留的话，更新前先打开逐日攻略，点右上角的菜单按钮打开「设置」，再点「导出进度备份」；这个文件可以导入旧版 2.0.0「P3R」的固定攻略。`
+    - 逐日攻略 progress (`p3r_native_progress_v1`, WebView localStorage) is no longer readable. (After 3.1.0: the update after it reads the prefs again, read-only, and 备份与恢复 exports them as the old page's file; DESIGN §19 "Progress kept safe". The 3.1.0 notes carry this copy, slightly reworded, and a note added after the release.) Copy (3.1.0 review: it names the real menu and button, and where the file can be used): `3.1.0 去掉了「我的 → 逐日攻略」，它的打勾进度更新后就看不到了。想保留的话，更新前先打开逐日攻略，点右上角的菜单按钮打开「设置」，再点「导出进度备份」；这个文件可以导入旧版 2.0.0「P3R」的固定攻略。`
     - **Owner decision O2 (default: keep).** Do not delete on-device leftovers. If the owner opts in, the v3 upgrade receiver deletes them once with `goAsync()`, never calling `WebStorage`.
 11. **APK** goes from about 1.03 MB to about 0.83 MB.
 
@@ -548,7 +548,7 @@ cd $WT/android && ./gradlew --offline -q testDebugUnitTest            # full sui
 - **Acceptance:**
   - Full suite, lint and assemble pass.
   - `unzip -l app/build/outputs/apk/release/*.apk | grep -E 'assets/(index.html|data.json|display_metadata.json)|widget_preview_guide'` is empty. APK is ≤ 0.86 MB.
-  - `grep -rn -E 'PlannerStore|PlannerWidget|MainActivity|ordinalOfGuideDate|p3r_native_progress_v1|planner_widget_info|guide_widget_label|widget_preview_guide|逐日攻略' android docs README.md` hits only release-note history and DESIGN §19.
+  - `grep -rn -E 'PlannerStore|PlannerWidget|MainActivity|ordinalOfGuideDate|p3r_native_progress_v1|planner_widget_info|guide_widget_label|widget_preview_guide|逐日攻略' android docs README.md` hits only release-note history and DESIGN §19. (After 3.1.0 it also hits the export of the old ticks, DESIGN §19 "Progress kept safe": `ui/OldGuideProgress.java`, `ui/BackupPage.java`, `OldGuideExportTest.java`, `README.md` (下载), `docs/GLOSSARY_zh.md`, the compliance files and the notes of this spec.)
   - The upgrade receiver test (Robolectric: broadcast `MY_PACKAGE_REPLACED` → `PlanWidget.refreshAll` path runs) passes.
   - The builder check still passes.
 
@@ -601,7 +601,7 @@ cd $WT/android && ./gradlew --offline -q testDebugUnitTest            # full sui
   - DESIGN §17 (data and engine half).
 - **Must not touch:** `Labels.java`, `DialogueHint.java`, `ui/**`, `widget/**`, `service/**`, `RulesFixtures.java` (use the new fixture class).
 - **Builder self-tests** (`test_build.py`, new):
-  - counts per kind (class = 35 or as found with `WITHHELD_CLASS` exactly `{"12-11"}`, exam 17 with 2 estimate, tv 32, request 9 batches + 8 deadlines, rescueGroups 13 / 20 people, doze ≈33);
+  - counts per kind (class = 35 or as found with `WITHHELD_CLASS` exactly `{"12-11"}`; after 3.1.0: class 36, `WITHHELD_CLASS` empty, exam 17 with 2 estimate, tv 32, request 9 batches + 8 deadlines, rescueGroups 13 / 20 people, doze ≈33);
   - no `tv.01-03`;
   - `class.07-08` answer `马` option 2; `class.10-22` `朱诺` option 3; `exam.05-19` `五月病`; `exam.10-14` `摩西`;
   - `CN_GUIDE_DIVERGENT` equality;
@@ -701,7 +701,7 @@ cd $WT/android && ./gradlew --offline -q testDebugUnitTest            # full sui
 | ID | Decision | Default |
 |---|---|---|
 | O1 | Profile-change auto replans also drop the stability bias | No |
-| O2 | Delete the 逐日攻略 data left on the device (prefs and WebView dirs) on upgrade | No (keep; the notes tell players to export first) |
+| O2 | Delete the 逐日攻略 data left on the device (prefs and WebView dirs) on upgrade | No (keep; the notes tell players to export first). After 3.1.0 the kept prefs are what 备份与恢复 exports (DESIGN §19) |
 | O3 | Drop 「（n）」 from dialogue answers on the widget. Its meaning (option position versus ♪ count) is unverified; `sourceOptionOrderVerifiedAgainstChineseGame: false` | Yes on the widget, unchanged in the app |
 | O4 | Show the exam answers whose zh spelling is unverified (7/17 `MADRID`, 12/16 `JUNE`) | Show verbatim from 3DM, marked estimate in the day sheet |
 | O5 | A setting to hide reminder kinds | Not in 3.1.0 |

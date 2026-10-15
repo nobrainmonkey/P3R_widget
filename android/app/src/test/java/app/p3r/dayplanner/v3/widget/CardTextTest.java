@@ -203,11 +203,22 @@ public class CardTextTest {
         assertTrue(question.contains("意" + WJ + "思" + WJ + "？"));
         assertTrue(question.contains("对" + NBSP + "/ "));
         String longer = CardText.choicesLoose("不去看汉堡堆成的山并继续吃");
-        assertTrue("the last two characters stay together", longer.endsWith("继续" + WJ + "吃"));
+        assertTrue("the last two characters stay together", longer.endsWith("续" + WJ + "吃"));
+        assertTrue("the short piece after 「的」 stays whole", longer.contains("的山" + WJ + "并" + WJ + "继" + WJ + "续"));
         assertTrue("so do the first three (never 「… / 不」 then 「去看…」)", longer.startsWith("不" + WJ + "去" + WJ + "看"));
         assertFalse("but the rest may wrap", longer.contains("看" + WJ + "汉"));
         // A long choice before 「或者」: its first characters stay together too (隐者 RANK 5).
         assertTrue(CardText.choicesLoose("大~~蠢~~蛋~~！ / Ｙ子是教醉拳的代理师傅？或者Ｙ子是老师？").contains("Ｙ" + WJ + "子" + WJ + "是"));
+        // Review after 3.1.0: 「…/ Ｙ子是教醉」/「拳的代理师傅？或Ｙ子是老师？」 at 250x160 and 115%. A choice
+        // with natural break points wraps only there: after 「的」, after 「？或者」.
+        String hermit = CardText.choicesLoose("Ｙ子是教醉拳的代理师傅？或者Ｙ子是老师？");
+        assertTrue(hermit.contains("Ｙ" + WJ + "子" + WJ + "是" + WJ + "教" + WJ + "醉" + WJ + "拳" + WJ + "的代"));
+        assertTrue(hermit.contains("代" + WJ + "理" + WJ + "师" + WJ + "傅" + WJ + "？" + WJ + "或" + WJ + "者Ｙ"));
+        assertEquals("Ｙ子是教醉拳的代理师傅？或Ｙ子是老师？", CardText.plain(CardText.shortOr(hermit)));
+        String rule = CardText.choicesLoose("这样的规矩没有意义");
+        assertTrue(rule.contains("的规" + WJ + "矩" + WJ + "没" + WJ + "有" + WJ + "意" + WJ + "义"));
+        // A piece longer than a short phrase still may wrap (「不去看汉堡堆成的」 is eight).
+        assertFalse(longer.contains("看" + WJ + "汉"));
         // A class answer's position never breaks at its spaces.
         String position = CardText.choicesLoose("布拉瓦茨基夫人（第 2 项）");
         assertFalse(position, position.contains(" "));

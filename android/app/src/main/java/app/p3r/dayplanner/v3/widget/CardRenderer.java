@@ -92,8 +92,12 @@ public final class CardRenderer {
     /** Lines the answers row may take before the width ladder allows {@link #MORE_ANSWER_LINES}. */
     public static final int MAX_ANSWER_LINES = 2;
     public static final int MORE_ANSWER_LINES = 3;
-    /** Alpha of a muted answers line (a meeting that may not rank up): about 4:1 on the day surface. */
-    static final int MUTED_ANSWER_ALPHA = 0xD9;
+    /**
+     * Alpha of a muted answers line (a meeting that may not rank up) in the soft ink: 4.7:1 on the day
+     * surface, 7.6:1 on the night one, so small text still meets WCAG AA (until 3.1.0 0xD9, 4.0:1 on the
+     * day cyan). The label 「要是升级了，答：」 / 「升级时答：」 carries the meaning; the tint only sets it apart.
+     */
+    static final int MUTED_ANSWER_ALPHA = 0xF0;
 
     private CardRenderer() {}
 
@@ -436,9 +440,10 @@ public final class CardRenderer {
      * 「我也去看看吧或者我在这里等她」 → 「我也去看看吧」: an answer to every prompt); then the lines cut to
      * their first whole choices plus 「等 N 项」, a line only where that saves width ({@link Ladder#form}),
      * so that the 课堂/考试 answer keeps its line or the end of the one before it; then the side steps'
-     * picks go. Only then forms that lose a kind: lines go the least needed first ({@link #dropOrder}),
-     * each kept line whole before it is cut; a 朋友-route line's caution alone (「答：别选「…」」, then the
-     * shorter 「答：别选表白」); a 课堂/考试 answer alone and whole; the line that stays to the end with only
+     * picks go ({@link #fit} draws the picks only beside their side row, and that row only beside a whole
+     * answers row, so on a card they are gone before any of this). Only then forms that lose a kind:
+     * lines go the least needed first ({@link #dropOrder}), each kept line whole before it is cut; a
+     * 朋友-route line's caution alone (「答：别选「…」」, then the shorter 「答：别选表白」); a 课堂/考试 answer alone and whole; the line that stays to the end with only
      * its count (「答：共 2 项，点开看看」, {@link CardText#countOnly}). The forms up to the cut ones are
      * {@link AnswerForm#whole}. The guide's 「（1）」 counts are already left out
      * ({@link app.p3r.dayplanner.v3.engine.DialogueHint#widgetChoices}, decision O3), and no choice
@@ -804,6 +809,23 @@ public final class CardRenderer {
         return out;
     }
 
+    /** A side step's picks (「顺便选：有话想和你说」), which show only beside the side row. */
+    static boolean sidePick(CardModel.AnswerLine line) {
+        return DialogueHint.SIDE_PREFIX.equals(line.label);
+    }
+
+    private static boolean hasSidePicks(List<CardModel.AnswerLine> answers) {
+        for (CardModel.AnswerLine line : answers) if (sidePick(line)) return true;
+        return false;
+    }
+
+    /** {@code answers} without the side steps' picks ({@link #sidePick}). */
+    static List<CardModel.AnswerLine> withoutSidePicks(List<CardModel.AnswerLine> answers) {
+        List<CardModel.AnswerLine> out = new ArrayList<>(answers.size());
+        for (CardModel.AnswerLine line : answers) if (!sidePick(line)) out.add(line);
+        return out;
+    }
+
     /** A 课堂/考试 answer of the card's slots (a reminder: certain, and missed for good). */
     static boolean certain(CardModel.AnswerLine line) {
         return line.certain();
@@ -1013,7 +1035,8 @@ public final class CardRenderer {
      * cue line goes first (unless {@link CardModel#cueEssential}) when the title would otherwise drop
      * below a comfortable size. When the title would not fit even at its smallest size, the 当日提醒
      * row goes ({@link #fitReminder}: whole, short or not at all), then the 人格面具 reminder, then the
-     * side-step line; then the body's padding, then the tag/location row, then the answers take their
+     * side-step line, its picks first (「顺便选：…」 shows only beside its side row; after 3.1.0); then the
+     * body's padding, then the tag/location row, then the answers take their
      * whole shorter forms (a 课堂/考试 answer on the line before it, choices that wrap inside, 11sp);
      * then the title keeps one line, the longest of its forms that fits it whole ({@link #oneLineTitle});
      * then the row gives up the gap above it. Both kinds of answers stay, the step's own and the
@@ -1196,6 +1219,20 @@ public final class CardRenderer {
             fitted = edit(fitted, model);
             fitted.hint = null;
             hint = 0;
+        }
+        // The side steps' picks (「顺便选：有话想和你说」) belong to the side row (「顺便：和伏见千寻搭话」):
+        // they go before it, and never show without it, where they would read as the answers to the
+        // card's title (after 3.1.0; until then 10/27 命运 · 平贺庆介 below 320x200 showed only
+        // 「顺便选：有话想和你说」, and 5/2 力量 at 180x150 cut its own line to 「等 3 项」 beside a pick).
+        boolean picks = hasSidePicks(fitted.answers);
+        if (picks && (side == 0 || smallest + answers + meta + side + cue > body)) {
+            fitted = edit(fitted, model);
+            List<CardModel.AnswerLine> kept = withoutSidePicks(fitted.answers);
+            fitted.answers.clear();
+            fitted.answers.addAll(kept);
+            forms = answerForms(c, kept, innerWidth);
+            answersText = forms.isEmpty() ? null : forms.get(0).text;
+            answers = forms.isEmpty() ? 0 : forms.get(0).heightDp;
         }
         if (side > 0 && smallest + answers + meta + side + cue > body) {
             fitted = edit(fitted, model);

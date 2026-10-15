@@ -144,12 +144,18 @@ public class AnswerRowRenderTest {
      * choices) and every 课堂/考试 answer; only the side steps' picks may go, the least needed first
      * ({@link CardRenderer#dropOrder}), and a card taller than the shortest (130dp high: two lines of text
      * under the plate) keeps every line unless the row already fills {@link CardRenderer#MAX_ANSWER_LINES}
-     * lines. Returns whether the row shows.
+     * lines. The side steps' picks go with or before the side row and never show without it (after 3.1.0:
+     * 「顺便选：有话想和你说」 alone read as the answer to 「命运 · 平贺庆介」); a card whose only answers are picks
+     * may have no row. Returns whether the row shows.
      */
     private static boolean checkRow(View root, CardModel model, String tag, boolean shortest, List<String> issues) {
         checkTitle(root, model, tag, issues);
         TextView row = root.findViewById(R.id.widget_dialogue_choices);
+        boolean sideRow = root.findViewById(R.id.widget_side).getVisibility() == View.VISIBLE;
+        // The lines a card must keep: every line but the side steps' picks.
+        List<CardModel.AnswerLine> needed = CardRenderer.withoutSidePicks(model.answers);
         if (row.getVisibility() != View.VISIBLE) {
+            if (needed.isEmpty()) return false;
             issues.add(tag + " hides its answers " + model.answers + " (title '"
                     + text(root, R.id.widget_task) + "')");
             return false;
@@ -180,6 +186,10 @@ public class AnswerRowRenderTest {
         }
         List<CardModel.AnswerLine> kept = new ArrayList<>(shown);
         if (beside != null) kept.add(beside);
+        for (CardModel.AnswerLine line : shown) {
+            if (CardRenderer.sidePick(line) && !sideRow) issues.add(tag + " shows '" + line.text() + "' without its side row");
+        }
+        int keptNeeded = CardRenderer.withoutSidePicks(kept).size();
         for (int i = 0; i < drawn.size(); i++) {
             String why = needlessCut(row, shown.get(i), drawn.get(i));
             if (why != null) issues.add(tag + " " + why);
@@ -198,12 +208,12 @@ public class AnswerRowRenderTest {
                     issues.add(tag + " drops '" + line + "' beside " + kinds(drawn, beside));
                 }
             }
-            if (allLines && kept.size() < model.answers.size()) {
-                issues.add(tag + " keeps " + kept.size() + " of " + model.answers.size() + " lines in a row of "
+            if (allLines && keptNeeded < needed.size()) {
+                issues.add(tag + " keeps " + keptNeeded + " of " + needed.size() + " lines in a row of "
                         + row.getLineCount() + ": " + kinds(drawn, beside));
             }
-        } else if (allLines && kept.size() < model.answers.size()) {
-            issues.add(tag + " draws " + kept.size() + " of " + model.answers.size() + " lines: " + kinds(drawn, beside)
+        } else if (allLines && keptNeeded < needed.size()) {
+            issues.add(tag + " draws " + keptNeeded + " of " + needed.size() + " lines: " + kinds(drawn, beside)
                     + " (model " + model.answers + ")");
         }
         // Lines go the least needed first (CardRenderer.dropOrder): a 课堂/考试 line never goes while a
@@ -231,7 +241,8 @@ public class AnswerRowRenderTest {
         }
         if (!shown.isEmpty() && shown.get(0).conditional && !mutedFirst) issues.add(tag + " does not mute '" + drawn.get(0) + "'");
         if (beside != null) besides.add(tag);
-        if (!shortest && kept.size() < model.answers.size()) dropped.add(tag);
+        if (!shortest && keptNeeded < needed.size()) dropped.add(tag);
+        if (kept.size() < model.answers.size() && keptNeeded == needed.size()) picksLeftOut.add(tag + (sideRow ? " (side row shown)" : ""));
         return true;
     }
 
@@ -272,6 +283,8 @@ public class AnswerRowRenderTest {
 
     /** Taller cards (150dp or more) that left a line out, for the report. */
     private static final List<String> dropped = new ArrayList<>();
+    /** Cards that left only side picks out (they go with or before the side row), for the report. */
+    private static final List<String> picksLeftOut = new ArrayList<>();
     /** Cards that showed a short form of their title, for the report. */
     private static final List<String> shortened = new ArrayList<>();
 
@@ -448,6 +461,7 @@ public class AnswerRowRenderTest {
         System.out.println("cards with both kinds: " + bothCards + " (" + bothRenders + " renders), 课堂/考试 beside the title: "
                 + besides.size() + " " + besides);
         System.out.println("short titles shown: " + shortened.size() + " " + shortened);
+        System.out.println("side picks left out: " + picksLeftOut.size() + " " + picksLeftOut);
         System.out.println("count only: " + counted.size() + "\n" + String.join("\n", counted));
         if (!issues.isEmpty()) System.out.println("ISSUES\n" + String.join("\n", issues));
         assertTrue(String.join("\n", issues), issues.isEmpty());
@@ -623,6 +637,58 @@ public class AnswerRowRenderTest {
         View side = render(scene(meet), 320, 240);
         assertEquals("答：是你毅力不够\n顺便选：有话想和你说", text(side, R.id.widget_dialogue_choices).replace(CardText.WJ + "", ""));
         assertEquals("the side row keeps its own text", "顺便：和伏见千寻搭话（第 1 次）", text(side, R.id.widget_side));
+    }
+
+    /**
+     * After 3.1.0: a side step's pick belongs to its side row (「顺便：和伏见千寻搭话（第 1 次）」). It goes with
+     * or before that row and never shows without it, where it reads as the answer to the card's title: 10/27
+     * 命运 · 平贺庆介 (an unlock with no answers of its own) showed only 「顺便选：有话想和你说」 below 320x200,
+     * and 5/2 力量 at 180x150 cut its own line to 「答：发生什么了吗？ 等 3 项」 beside 「顺便选：一起出去玩吧」.
+     * Renders under answers/ as sidepick-*.
+     */
+    @Test
+    public void aSidePickNeverShowsWithoutItsSideRow() throws Exception {
+        Assume.assumeTrue("rule pack not available", pack != null);
+        File dir = RenderSupport.outputDir("answers");
+        String sideZh = "顺便：和伏见千寻搭话（第 1 次）";
+        String own = "答：发生什么了吗？ / 那也没办法 / 你说得对";
+        List<String> issues = new ArrayList<>();
+        int picksShown = 0;
+        for (float scale : new float[]{1f, 1.15f}) {
+            RuntimeEnvironment.setFontScale(scale);
+            for (int[] size : SIZES) {
+                Plan.Step strength = FakePlannerApi.side(meeting("strength", 1, 2, false), "unlock:justice:0", sideZh);
+                Plan.Step fortune = FakePlannerApi.side(FakePlannerApi.step(0, "unlock:fortune:0", "unlock", "命运 · 平贺庆介",
+                        "去美术教室加入美术社", "月光馆学园 · 美术教室", "完成后命运社群就解锁了"), "unlock:justice:0", sideZh);
+                for (Plan.Step step : new Plan.Step[]{strength, fortune}) {
+                    FakePlannerApi fake = scene(step);
+                    CardModel model = model(fake);
+                    assertEquals(step.action + " carries the pick", "顺便选：有话想和你说",
+                            model.answers.get(model.answers.size() - 1).text());
+                    View root = render(fake, size[0], size[1]);
+                    String tag = "sidepick-" + step.action.replace(':', '_') + "-" + size[0] + "x" + size[1]
+                            + (scale > 1 ? "-font115" : "");
+                    RenderSupport.save(root, dir, tag);
+                    checkRow(root, model, tag, size[1] < 150, issues);
+                    TextView row = root.findViewById(R.id.widget_dialogue_choices);
+                    String drawn = row.getVisibility() == View.VISIBLE ? text(root, R.id.widget_dialogue_choices) : "";
+                    boolean sideRow = root.findViewById(R.id.widget_side).getVisibility() == View.VISIBLE;
+                    if (drawn.contains(DialogueHint.SIDE_PREFIX)) {
+                        picksShown++;
+                        if (!sideRow) issues.add(tag + " shows its pick without the side row: " + drawn);
+                    }
+                    // The meeting's own line stays whole where it fits beside the title without the pick.
+                    if (step == strength && size[1] >= 150 && scale == 1f && !canon(drawn).startsWith(canon(own))) {
+                        issues.add(tag + " draws '" + drawn.replace("\n", " / ") + "', not its own line whole");
+                    }
+                    System.out.println(tag + ": " + RenderSupport.titleText(root.findViewById(R.id.widget_task))
+                            + (sideRow ? " [" + text(root, R.id.widget_side) + "]" : "") + " | " + drawn.replace("\n", " / "));
+                }
+            }
+        }
+        RuntimeEnvironment.setFontScale(1f);
+        assertTrue(String.join("\n", issues), issues.isEmpty());
+        assertTrue("the pick shows where its side row does", picksShown > 0);
     }
 
     /**

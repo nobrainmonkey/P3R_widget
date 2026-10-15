@@ -10,14 +10,23 @@ import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
 import android.app.Application;
+import android.content.ContentProvider;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.net.Uri;
+import android.os.Bundle;
+import android.provider.OpenableColumns;
+import android.view.View;
+import android.widget.TextView;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
@@ -37,7 +46,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 备份与恢复's 「导出旧逐日攻略的打勾进度」 (handoff P3R_HANDOFF_PROMPT.md:61, docs/DESIGN_v3.md §19): the
+ * 备份与恢复's 「旧版逐日攻略」 → 「导出打勾进度」 (handoff P3R_HANDOFF_PROMPT.md:61, docs/DESIGN_v3.md §19): the
  * 3.0.x guide's ticks in the prefs p3r_native_progress_v1 are shown only when there is a ticked task,
  * saved through ACTION_CREATE_DOCUMENT as the old page's exportProgress() file, byte for byte, and the
  * prefs are never changed. The expected files were produced by the old page's own expression
@@ -51,7 +60,7 @@ public class OldGuideExportTest extends UiTestBase {
     /** As 3.0.x stored them (PlannerStore.acceptWebState: JSONObject.toString of the page's state). */
     private static final String COMPLETED = "{\"t001_01\":true,\"t002_01\":false,\"t005_03\":true,\"t005_07\":true}";
     private static final String SUBSTEPS = "{\"t005_03::0\":true,\"t005_03::1\":true,\"t005_03::2\":false}";
-    private static final String SUBTITLE = "3.0.x 逐日攻略里打过勾的 3 项还在手机上，导出后可以在旧版 2.0.0「P3R」里导入";
+    private static final String SUBTITLE = "3.0.x 逐日攻略里打过勾的 3 项还在手机上，导出后可以在旧版 2.0.0「P3R」里导入。";
     private static final Uri DOC = Uri.parse(
         "content://com.android.externalstorage.documents/document/primary%3ADownload%2FP3R_%E6%89%93%E5%8D%A1.json");
     private static final Pattern EXPORTED_AT = Pattern.compile("\"exportedAt\": \"([^\"]+)\"");
@@ -99,7 +108,7 @@ public class OldGuideExportTest extends UiTestBase {
 
     /** Taps the entry and checks the save request: ACTION_CREATE_DOCUMENT, JSON, the old file name. */
     private static ShadowActivity.IntentForResult tapExport(HomeActivity a) {
-        Shots.click(a, BackupPage.OLD_GUIDE_TITLE);
+        Shots.click(a, BackupPage.OLD_GUIDE_BUTTON);
         ShadowActivity.IntentForResult request = shadowOf(a).getNextStartedActivityForResult();
         assertNotNull(request);
         assertEquals(BackupPage.REQUEST_EXPORT_OLD_GUIDE, request.requestCode);
@@ -139,7 +148,7 @@ public class OldGuideExportTest extends UiTestBase {
     @Test
     public void withoutATickedTaskThereIsNoEntry() {
         HomeActivity a = backupPage();
-        assertFalse(Shots.has(a, BackupPage.OLD_GUIDE_TITLE));
+        assertFalse(Shots.has(a, BackupPage.OLD_GUIDE_BUTTON));
         assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("逐日攻略"));
         // Looking did not create the prefs.
         assertTrue(oldPrefs().getAll().isEmpty());
@@ -148,7 +157,7 @@ public class OldGuideExportTest extends UiTestBase {
         // Unticked tasks and ticked substeps only: nothing to carry over either.
         store("{\"t001_01\":false}", "{\"t005_03::0\":true}");
         a = backupPage();
-        assertFalse(Shots.has(a, BackupPage.OLD_GUIDE_TITLE));
+        assertFalse(Shots.has(a, BackupPage.OLD_GUIDE_BUTTON));
         assertNull(OldGuideProgress.read(app()));
     }
 
@@ -157,9 +166,15 @@ public class OldGuideExportTest extends UiTestBase {
         store(COMPLETED, SUBSTEPS);
         HomeActivity a = backupPage();
         assertTrue(Shots.has(a, "旧版逐日攻略"));
-        assertTrue(Shots.has(a, BackupPage.OLD_GUIDE_TITLE));
+        assertTrue(Shots.has(a, BackupPage.OLD_GUIDE_BUTTON));
         assertTrue(Shots.allText(a.getWindow().getDecorView()), Shots.has(a, SUBTITLE));
-        assertTrue(Shots.has(a, BackupPage.OLD_GUIDE_TITLE + "，" + SUBTITLE));
+        assertEquals(SUBTITLE, BackupPage.oldGuideText(3));
+        // A card with a button like the page's other two sections, not a 我的-style row with a chevron
+        // (review after 3.1.0: the chevron promised a page, the tap opens the system save dialog).
+        View button = Shots.find(a, BackupPage.OLD_GUIDE_BUTTON);
+        assertTrue(button.isClickable());
+        assertTrue(button instanceof TextView);
+        assertEquals(BackupPage.OLD_GUIDE_BUTTON, Zh.plain(((TextView) button).getText()));
         Shots.shot(a, "home_backup_old_guide");
     }
 
@@ -190,7 +205,7 @@ public class OldGuideExportTest extends UiTestBase {
         // Read-only: same keys, values and file, so a second export writes the same ticks.
         assertEquals(before, oldPrefs().getAll());
         assertArrayEquals(fileBefore, Files.readAllBytes(oldPrefsFile().toPath()));
-        assertTrue(Shots.has(a, BackupPage.OLD_GUIDE_TITLE));
+        assertTrue(Shots.has(a, BackupPage.OLD_GUIDE_BUTTON));
     }
 
     @Test
@@ -254,13 +269,13 @@ public class OldGuideExportTest extends UiTestBase {
         assertTrue(oldPrefs().edit().clear().commit());
         store("{\"t001_01\":true", SUBSTEPS);
         HomeActivity a = backupPage();
-        assertFalse(Shots.has(a, BackupPage.OLD_GUIDE_TITLE));
+        assertFalse(Shots.has(a, BackupPage.OLD_GUIDE_BUTTON));
 
         // Broken substeps: the ticked tasks are still exported, with completedSubsteps {}.
         store("{\"t001_01\":true}", "{\"t005_03::0\":tr");
         Map<String, ?> before = new HashMap<>(oldPrefs().getAll());
         a = backupPage();
-        assertTrue(Shots.has(a, "3.0.x 逐日攻略里打过勾的 1 项还在手机上，导出后可以在旧版 2.0.0「P3R」里导入"));
+        assertTrue(Shots.has(a, BackupPage.oldGuideText(1)));
         ShadowActivity.IntentForResult request = tapExport(a);
         ByteArrayOutputStream saved = new ByteArrayOutputStream();
         shadowOf(app().getContentResolver()).registerOutputStream(DOC, saved);
@@ -302,7 +317,92 @@ public class OldGuideExportTest extends UiTestBase {
         });
         shadowOf(a).receiveResult(request.intent, Activity.RESULT_OK, new Intent().setData(DOC));
         Shots.idle();
-        assertEquals("导出失败，请换个位置再试。", a.undoBar().messageText().toString());
+        assertEquals(BackupPage.OLD_GUIDE_FAILED, a.undoBar().messageText().toString());
         assertEquals(before, oldPrefs().getAll());
+    }
+
+    /**
+     * Review after 3.1.0: ticks gone by the time the picker returns said 「导出失败，请换个位置再试。」, which
+     * another place cannot fix. Nothing is written and the message says the ticks are gone.
+     */
+    @Test
+    public void ticksGoneBeforeTheSaveSaySo() {
+        store(COMPLETED, SUBSTEPS);
+        HomeActivity a = backupPage();
+        ShadowActivity.IntentForResult request = tapExport(a);
+        assertTrue(oldPrefs().edit().clear().commit());
+        ByteArrayOutputStream saved = new ByteArrayOutputStream();
+        shadowOf(app().getContentResolver()).registerOutputStream(DOC, saved);
+        shadowOf(a).receiveResult(request.intent, Activity.RESULT_OK, new Intent().setData(DOC));
+        Shots.idle();
+        assertEquals(0, saved.size());
+        assertEquals(BackupPage.OLD_GUIDE_GONE, a.undoBar().messageText().toString());
+    }
+
+    /**
+     * Review after 3.1.0: a failed write left an empty P3R_打卡进度.json where the picker created it. The
+     * document goes when it is empty, and stays when it has bytes or its size is unknown (a file picked to
+     * overwrite that could not be opened keeps its contents).
+     */
+    @Test
+    public void anEmptyDocumentLeftByAFailedSaveIsRemoved() {
+        FakeDocuments docs = Robolectric.setupContentProvider(FakeDocuments.class, FakeDocuments.AUTHORITY);
+        Uri doc = Uri.parse("content://" + FakeDocuments.AUTHORITY + "/document/P3R");
+        docs.size = 0L;
+        assertTrue(BackupPage.discardIfEmpty(app().getContentResolver(), doc));
+        assertEquals("android:deleteDocument", docs.called);
+        for (Long size : new Long[]{12L, null}) {
+            docs.called = null;
+            docs.size = size;
+            assertFalse(String.valueOf(size), BackupPage.discardIfEmpty(app().getContentResolver(), doc));
+            assertNull(docs.called);
+        }
+        // No provider answers for the picker's usual authority here: nothing is deleted, nothing throws.
+        assertFalse(BackupPage.discardIfEmpty(app().getContentResolver(), DOC));
+    }
+
+    /** A documents provider that reports one document's size and records a delete. */
+    public static final class FakeDocuments extends ContentProvider {
+        static final String AUTHORITY = "app.p3r.planner.test.documents";
+        Long size;
+        String called;
+
+        @Override
+        public boolean onCreate() {
+            return true;
+        }
+
+        @Override
+        public Cursor query(Uri uri, String[] projection, String selection, String[] args, String order) {
+            MatrixCursor cursor = new MatrixCursor(new String[]{OpenableColumns.SIZE});
+            cursor.addRow(new Object[]{size});
+            return cursor;
+        }
+
+        @Override
+        public Bundle call(String method, String arg, Bundle extras) {
+            called = method;
+            return new Bundle();
+        }
+
+        @Override
+        public String getType(Uri uri) {
+            return "application/json";
+        }
+
+        @Override
+        public Uri insert(Uri uri, ContentValues values) {
+            return null;
+        }
+
+        @Override
+        public int delete(Uri uri, String selection, String[] args) {
+            return 0;
+        }
+
+        @Override
+        public int update(Uri uri, ContentValues values, String selection, String[] args) {
+            return 0;
+        }
     }
 }

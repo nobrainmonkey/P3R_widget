@@ -46,6 +46,13 @@ public final class CardText {
     private static final int LOOSE_WHOLE = 6;
     /** Longest title part (characters) still treated as one name. */
     static final int MAX_NAME = 12;
+    /**
+     * Where a choice that wraps inside breaks best: after 「的」, after 「？」「！」「，」「、」 (with a 「或者」 /
+     * 「或」 right after them) and after 「或者」 / 「或」. Between two of these a short piece stays whole.
+     */
+    private static final Pattern LOOSE_BREAK = Pattern.compile("的|[？！，、]+(?:或者|或)?|或者|或(?!者)");
+    /** Longest piece (characters) between two {@link #LOOSE_BREAK}s kept on one line. */
+    private static final int LOOSE_PIECE = 7;
 
     /** A line may start with these: a break stays allowed before them (「伊织顺平」/「（第 2 话）」). */
     private static final String OPENING = "（(「『【〔《〈“‘";
@@ -211,7 +218,9 @@ public final class CardText {
      * 「（1）」 or position 「（第 2 项）」 stays whole with the character before it (its spaces do not
      * break), neither its first two characters nor its last two ever split (「… / Ｙ」 then 「子是…」
      * would read as a choice of its own), a choice of two alternatives 「A或者B」 wraps after 「或者」
-     * (each side whole while short), and a line never starts with a slash.
+     * (each side whole while short), and a line never starts with a slash. A choice with a natural break
+     * point ({@link #LOOSE_BREAK}) keeps each short piece between them whole, so 隐者's
+     * 「Ｙ子是教醉拳的代理师傅？或Ｙ子是老师？」 wraps after 「的」 or 「或」, never 「…教醉」/「拳的…」 (after 3.1.0).
      */
     public static String choicesLoose(String text) {
         if (text == null) return null;
@@ -229,6 +238,17 @@ public final class CardText {
                 int cut = or + ALTERNATIVES.length();
                 if (visibleLength(part, 0, cut) <= MAX_NAME) joinName(part, join, 0, cut);
                 if (visibleLength(part, cut, part.length()) <= MAX_NAME) joinName(part, join, cut, part.length());
+            }
+            List<Integer> points = new ArrayList<>();
+            java.util.regex.Matcher m = LOOSE_BREAK.matcher(part);
+            while (m.find()) if (m.end() < part.length()) points.add(m.end());
+            if (!points.isEmpty()) {
+                points.add(part.length());
+                int from = 0;
+                for (int to : points) {
+                    if (to > from && visibleLength(part, from, to) <= LOOSE_PIECE) joinRange(part, join, from, to);
+                    from = to;
+                }
             }
             int open = part.lastIndexOf('（');
             if (open > 0 && part.endsWith("）")) {

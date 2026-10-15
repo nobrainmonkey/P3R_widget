@@ -169,7 +169,16 @@ public class PlanWidgetRealPackRenderTest {
                     boolean row = root.findViewById(R.id.widget_dialogue_choices).getVisibility() == View.VISIBLE;
                     if (row) answers++;
                     // The answers are essential: only a 130dp card may have no room for them beside the title.
-                    if (!row && !model.answers.isEmpty() && size[1] > 130) issues.add(tag + " hides its answers");
+                    // A side step's picks go with or before its side row (after 3.1.0), so a card whose only
+                    // answers are picks may have no row, and a pick never shows without the side row.
+                    if (!row && !CardRenderer.withoutSidePicks(model.answers).isEmpty() && size[1] > 130) {
+                        issues.add(tag + " hides its answers");
+                    }
+                    boolean sideRow = root.findViewById(R.id.widget_side).getVisibility() == View.VISIBLE;
+                    if (row && !sideRow && ((TextView) root.findViewById(R.id.widget_dialogue_choices)).getText().toString()
+                            .contains(DialogueHint.SIDE_PREFIX)) {
+                        issues.add(tag + " shows a side step's pick without its side row");
+                    }
                     String title = ((TextView) root.findViewById(R.id.widget_task)).getText().toString();
                     assertFalse(tag + " blank title", title.trim().isEmpty());
                     for (int id : new int[]{R.id.widget_task, R.id.widget_tag, R.id.widget_location, R.id.widget_hint,

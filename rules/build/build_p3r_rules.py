@@ -443,11 +443,15 @@ def build_sources() -> list[dict]:
              "aqiu 'All Voiced Events Walkthrough - Persona 3 Reload' (test-played, no reloads): the evenings it "
              "rescues missing people, three of them on the limit day"),
         snap("steam_thread_missing", "steam_schinese/d_7599331177366570924.html", "forum",
-             "Player advice to rescue on the last day of the countdown (limit-day corroboration)"),
+             "Player advice to wait until the countdown 'nears 0 aka the last day'; it does not say whether the "
+             "limit evening itself counts (context only)"),
         snap("game8jp_missing", "web_guides/game8jp_missing_people.html", "guide",
-             "Game8 JP Reload missing-person deadline list: the 13 windows as 'M/D ~ M/D' (救出期限)"),
+             "Game8 JP Reload missing-person deadline list: the 13 windows as 'M/D ~ M/D' (救出期限); it confirms "
+             "the windows, not whether the limit day counts"),
         snap("rpgsite_missing", "web_guides/rpgsite_missing_people.html", "guide",
-             "RPG Site Reload missing-person guide: the person missing from 9/3 is rescued on 9/3 or 9/4 (limit 9/4)"),
+             "RPG Site Reload missing-person guide: loose dates (deadline 9/5, the full moon, for the 9/3 group "
+             "whose game limit is 9/4, advising 9/3 or 9/4; 11/27 for a person missing from 11/28; 'head in "
+             "before November 2nd' for the 11/2 group); context only, it does not settle the limit evening"),
         snap("steam_sc_achievements", "steam_schinese/ach_schinese.txt", "official_text", "ATLUS zh-Hans achievement strings (社群, 个人能力值, 打工, 失踪者, 休息日的出游邀请短信…)"),
         snap("steam_sc_store", "steam_schinese/p3r_sc.txt", "official_text", "ATLUS zh-Hans Steam store description (主角, 月光馆学园, 塔尔塔罗斯…): terminology check"),
         snap("steam_thread_hierophant", "steam_schinese/d_4206993639701168068.html", "forum", "Player report of a Hierophant rank hold"),
@@ -2084,14 +2088,19 @@ RESCUE_EN = {"bunkichi": "Bunkichi Kitamura", "maiko": "Maiko Oohashi"}
 WALKTHROUGH_REL = "aqiu_pages/ave-walkthrough.md"
 WALKTHROUGH_HEAD = ("# All Voiced Events Walkthrough - Persona 3 Reload", "* Test-played on Merciless",
                     "* No reloads required")
-# Reload pages that corroborate the limit evening: snapshot -> (title fragment, sentence as the page writes it).
+# Reload pages REPORT quotes beside the limit-evening decision: snapshot -> (title fragment, sentences as the
+# page writes them). They agree with the windows but do not settle whether the limit evening counts: the
+# Steam remark is ambiguous, and RPG Site's dates are loose (its 9/3 group deadline is 9/5, the full moon).
 RESCUE_LIMIT_QUOTES = {
     "steam_schinese/d_7599331177366570924.html": (
         "Missing persons :: Persona 3 Reload General Discussions",
-        "Always save exploration until the countdown timer in the top right of the screen nears 0 aka the last day."),
+        ("Always save exploration until the countdown timer in the top right of the screen nears 0 aka the last day.",)),
     "web_guides/rpgsite_missing_people.html": (
         "Persona 3 Reload Missing Person quest",
-        "wait for the third missing person to pop - and then head into Tartarus on either September 3rd or 4th."),
+        ("Rescue Deadline: September 5",
+         "wait for the third missing person to pop - and then head into Tartarus on either September 3rd or 4th.",
+         "One gets marked as a missing person on November 27",
+         "head in before November 2nd")),
 }
 # Game8 JP's deadline page writes every window as 'M/D ~ M/D' (救出期限).
 GAME8_MISSING_REL = "web_guides/game8jp_missing_people.html"
@@ -2870,10 +2879,12 @@ def rescue_limit_witnesses(ledger: Ledger, people: list[tuple[int, int, str]]) -
         raise BuildError(f"{WALKTHROUGH_REL}: the route rescues {len(saved)} of {len(people)} missing people")
     if not on_limit:
         raise BuildError(f"{WALKTHROUGH_REL}: no rescue on a limit day; the limit-evening reading has lost its witness")
-    for rel, (title, quote) in RESCUE_LIMIT_QUOTES.items():
+    for rel, (title, quotes) in RESCUE_LIMIT_QUOTES.items():
         page = (SOURCES_DIR / rel).read_text(encoding="utf-8", errors="replace")
-        if title not in page or quote not in " ".join(html_to_text(page).split()):
-            raise BuildError(f"{rel}: the Reload page no longer says {quote!r}")
+        text = " ".join(html_to_text(page).split())
+        for quote in quotes:
+            if title not in page or quote not in text:
+                raise BuildError(f"{rel}: the Reload page no longer says {quote!r}")
     game8 = " ".join(html_to_text((SOURCES_DIR / GAME8_MISSING_REL).read_text(encoding="utf-8")).split())
     windows = sorted({(first, last) for first, last, _name in people})
     absent = [f"{md_of(a)}~{md_of(b)}" for a, b in windows if f"{md_slash_text(a)} ~ {md_slash_text(b)}" not in game8]
@@ -2886,14 +2897,18 @@ def rescue_limit_witnesses(ledger: Ledger, people: list[tuple[int, int, str]]) -
                   f"on {len(evenings)} evenings, on the limit day itself on "
                   + ", ".join(md_slash_text(d) for d in on_limit) + " and on the day someone went missing on "
                   + (", ".join(md_slash_text(d) for d in on_start) or "none")
-                  + ". Corroboration (Reload pages): the Steam thread 'Missing persons' ('"
-                  + RESCUE_LIMIT_QUOTES["steam_schinese/d_7599331177366570924.html"][1]
-                  + "'), RPG Site on the person missing from 9/3 with limit 9/4 ('… head into Tartarus on either "
-                  "September 3rd or 4th.') and Game8 JP's 救出期限 written as ranges ('9/12 ~ 10/3'). Every limit "
-                  "evening is enterable in this pack and the next night is not (full moon, closed night, story or the "
-                  "finale; checked in validate_pack). The engine rescues on a Tartarus evening from fromDay through "
-                  "toDay and treats the person as lost from toDay + 1; the copy says the limit evening still counts. "
-                  "Not replayed by the owner.")
+                  + ". Every limit evening is enterable in this pack and the next night is not (full moon, closed "
+                  "night, story or the finale; checked in validate_pack), so no limit + 1 night could rescue anyone. "
+                  "The decision rests on these three. Other Reload pages agree with the windows but do not settle "
+                  "whether the limit evening counts: Game8 JP writes 救出期限 as ranges ('9/12 ~ 10/3'); the Steam "
+                  "thread 'Missing persons' advises '"
+                  + RESCUE_LIMIT_QUOTES["steam_schinese/d_7599331177366570924.html"][1][0]
+                  + "'; RPG Site dates the deadline of the group missing from 8/19, 8/29 and 9/3 as 9/5 ('Rescue "
+                  "Deadline: September 5', the full moon; the game's limit is 9/4) and advises '… head into Tartarus "
+                  "on either September 3rd or 4th.', and its other dates are loose too (November 27 for a person the "
+                  "game has missing from 11/28, 'head in before November 2nd' for the group whose limit is 11/2). "
+                  "The engine rescues on a Tartarus evening from fromDay through toDay and treats the person as lost "
+                  "from toDay + 1; the copy says the limit evening still counts. Not replayed by the owner.")
     return on_limit
 
 
@@ -3531,9 +3546,10 @@ KNOWN_GAPS = (
     "12/16 (JUNE) come from the guide alone and are shown with conf=estimate; BWIKI's undated exam lists also write "
     "Madrid and june (not used). 上课犯困 days 12/12 and 1/15-1/28 rest on the CN guide alone (the 游民星空 copy also "
     "lists them; not used).",
-    "当日提醒 missing people: that the limit evening still counts rests on aqiu's tested walkthrough (rescues on "
-    "limit days, see the tartarus 'rescue deadline' decision) and three corroborating guides, not on an ATLUS "
-    "statement or a replay by the owner. "
+    "当日提醒 missing people: that the limit evening still counts rests on the game's Start/Limit table, aqiu's "
+    "tested walkthrough (rescues on limit days) and no limit + 1 night being enterable (see the tartarus 'rescue "
+    "deadline' decision), not on an ATLUS statement or a replay by the owner; Game8 JP, RPG Site and a Steam "
+    "thread agree with the windows but do not settle the limit evening. "
     "Floors are unknown. Rescues follow the plan's Tartarus evenings and the latest recorded one, not nights the "
     "player improvises.",
     "Not modelled: Wakatsu seafood course, Hagakure bowl, weekend Wilduck set, burger challenge, shrine donations, "

@@ -6,7 +6,9 @@ reaudit.json — re-check of the items that were partial
 final.json   — (optional) last verification of the items still partial after the re-audit
 overrides.json — (optional) owner decisions and later releases that change a row after the audits,
                matched by section and requirement text (status 'superseded' when the owner replaced
-               the requirement); each entry names its reason in `label`
+               the requirement); each entry names its reason in `label`. An entry with `split` replaces
+               the row with its parts, in place (a requirement with two halves the owner treated
+               differently, e.g. [61]: the widget superseded, the progress kept safe)
 Later files override earlier ones for the same requirement.
 """
 import json, os, re, sys
@@ -50,13 +52,30 @@ REVIEWS = (
 VERDICT = {'pass': '✅ 通过', 'pass_with_nits': '✅ 通过（只有小问题）', 'pass_with_notes': '✅ 通过（附说明）', 'fail': '❌ 不通过'}
 
 
-def apply_overrides(items):
-    """Applies overrides.json: a new status and/or evidence/gap text for one row each."""
+def apply_overrides(items, order):
+    """Applies overrides.json: a new status and/or evidence/gap text for one row each, or its parts.
+    Returns the requirement numbers of the rows split in parts."""
+    split = []
     for sec in load('overrides.json'):
         for it in sec['items']:
             k = (sec['section'], key(it['requirement']))
             if k not in items:
                 raise SystemExit(f"overrides.json: no row {it['requirement']!r} in {sec['section']}")
+            if 'split' in it:
+                parts = []
+                for part in it['split']:
+                    pk = (sec['section'], key(part['requirement']))
+                    if pk in items or pk in parts:
+                        raise SystemExit(f"overrides.json: part {part['requirement']!r} clashes with another row")
+                    if part.get('status') not in MARK:
+                        raise SystemExit(f"overrides.json: part {part['requirement']!r} needs a status")
+                    items[pk] = dict(part, section=sec['section'], round=part['label'])
+                    parts.append(pk)
+                del items[k]
+                at = order.index(k)
+                order[at:at + 1] = parts
+                split.append(it['requirement'].split(']')[0] + ']')
+                continue
             row = dict(items[k])
             for field in ('status', 'evidence', 'gap'):
                 if field in it:
@@ -64,6 +83,7 @@ def apply_overrides(items):
             # A new status is the owner's call; an update of the text keeps the audit round it amends.
             row['round'] = it['label'] if 'status' in it else row['round'] + '；' + it['label']
             items[k] = row
+    return split
 
 
 def reviews():
@@ -100,7 +120,7 @@ def main():
             pending = [k for k in order if k[0] == sec['section'] and items[k]['status'] != 'met']
             for k, it in zip(pending, sec['items']):
                 items[k] = dict(it, requirement=items[k]['requirement'], section=sec['section'], round=label)
-    apply_overrides(items)
+    split = apply_overrides(items, order)
     counts = {s: 0 for s in MARK}
     for v in items.values():
         counts[v['status']] += 1
@@ -109,9 +129,11 @@ def main():
            '每一条都由独立审查代理对照代码、测试、真机/模拟器截图核实（只读审查，证据含文件位置、测试名与运行结果、截图路径），'
            '未满足的地方如实写出。原始审查记录在 `docs/analysis/audit/`。', '',
            f"**统计**：已满足 {counts['met']} 条 · 部分满足 {counts['partial']} 条 · 未满足 {counts['not_met']} 条"
-           + (f" · 已被所有者要求取代 {counts['superseded']} 条" if counts['superseded'] else '') + f"（共 {len(items)} 条）。", '',
-           '3.1.0 按所有者要求移除了 3.0.x 里附带的旧攻略和它的小组件（`docs/DESIGN_v3.md` §19）。旧攻略的打勾进度没有删除，仍留在手机上，'
-           '随时可以在「我的 → 备份与恢复」里导出，所以 [61]「进度保持安全」那一条算已满足，证据里写明小组件本身已按所有者要求移除。'
+           + (f" · 已被所有者要求取代 {counts['superseded']} 条" if counts['superseded'] else '') + f"（共 {len(items)} 条" + (f"，其中 {'、'.join(split)} 按两半分成两条" if split else '') + "）。", '',
+           '3.1.0 按所有者要求移除了 3.0.x 里附带的旧攻略和它的小组件（`docs/DESIGN_v3.md` §19）。交接文档第 61 行要求'
+           '「旧的固定攻略小组件和进度都要保持安全」（Existing fixed-guide widget and progress must remain safe），'
+           '这一条按两半分成两条：小组件那一半已被所有者要求取代；进度那一半已满足——打勾进度没有删除，仍留在手机上，'
+           '3.1.0 之后的更新可以在「我的 → 备份与恢复」里导出（已发布的 3.1.0 安装包里还没有这一项）。'
            '引用已删除文件的证据已更新（`docs/analysis/audit/overrides.json`）；其余证据里提到旧攻略的，说的是当时审计的版本。', '',
            '相关文档：`docs/DESIGN_v3.md`（设计）、`docs/PLAN_METRICS.md`（各场景安排质量）、`rules/build/REPORT.md`（数据来源与 Reload 专用来源政策）、'
            '`docs/GLOSSARY_zh.md`（用语表）、`scripts/verify_selfcontained.sh`（证明构建只依赖项目目录）。', '']

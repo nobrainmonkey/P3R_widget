@@ -28,16 +28,21 @@ import app.p3r.dayplanner.R;
  * 备份与恢复: export everything (profile, checkpoints, records) as JSON through the share sheet,
  * and restore from pasted text or a picked file after an explicit confirmation.
  *
- * <p>When the 3.0.x 逐日攻略 left ticked tasks on this phone, a last section offers
- * 「导出旧逐日攻略的打勾进度」: the old page's progress file, saved through the system file picker
- * ({@link OldGuideProgress}; read-only, the prefs are never changed).
+ * <p>When the 3.0.x 逐日攻略 left ticked tasks on this phone, a last section 「旧版逐日攻略」 offers
+ * 「导出打勾进度」: the old page's progress file, saved through the system file picker
+ * ({@link OldGuideProgress}; read-only, the prefs are never changed). Like the other two sections it is
+ * a card with a button, not a row with a chevron (a chevron opens a page on 我的).
  */
 final class BackupPage {
     /** Request code for ACTION_OPEN_DOCUMENT, handled by {@link HomeActivity#onActivityResult}. */
     static final int REQUEST_IMPORT = 3101;
     /** Request code for the old guide's ACTION_CREATE_DOCUMENT, handled by {@link HomeActivity#onActivityResult}. */
     static final int REQUEST_EXPORT_OLD_GUIDE = 3102;
-    static final String OLD_GUIDE_TITLE = "导出旧逐日攻略的打勾进度";
+    static final String OLD_GUIDE_SECTION = "旧版逐日攻略";
+    static final String OLD_GUIDE_BUTTON = "导出打勾进度";
+    static final String OLD_GUIDE_DONE = "打勾进度已导出。";
+    static final String OLD_GUIDE_GONE = "手机上已经没有旧逐日攻略的打勾进度了。";
+    static final String OLD_GUIDE_FAILED = "导出失败，请换个位置再试。";
     private static final int MAX_BYTES = 4 * 1024 * 1024;
 
     private BackupPage() {}
@@ -82,11 +87,18 @@ final class BackupPage {
 
     private static void showOldGuide(HomeHost host, LinearLayout box, int ticked) {
         Context c = host.activity();
-        box.addView(Ui.sectionHeader(c, "旧版逐日攻略", null));
-        box.addView(MePage.entry(c, R.drawable.ui_ic_check, OLD_GUIDE_TITLE,
-            "3.0.x 逐日攻略里打过勾的 " + ticked + " 项还在手机上，导出后可以在旧版 2.0.0「P3R」里导入",
-            true, () -> pickOldGuideTarget(host)), top(c, 4));
+        box.addView(Ui.sectionHeader(c, OLD_GUIDE_SECTION, null));
+        LinearLayout card = card(c, oldGuideText(ticked));
+        TextView export = Ui.secondary(c, OLD_GUIDE_BUTTON);
+        export.setOnClickListener(v -> pickOldGuideTarget(host));
+        card.addView(export, top(c, 12));
+        box.addView(card, top(c, 4));
         box.setVisibility(View.VISIBLE);
+    }
+
+    /** The old guide section's text for {@code ticked} ticked tasks. */
+    static String oldGuideText(int ticked) {
+        return "3.0.x 逐日攻略里打过勾的 " + ticked + " 项还在手机上，导出后可以在旧版 2.0.0「P3R」里导入。";
     }
 
     /** Asks where to save the old guide's progress, under the old page's file name. */
@@ -104,23 +116,53 @@ final class BackupPage {
 
     /**
      * Writes the old guide's progress to the document picked for {@link #REQUEST_EXPORT_OLD_GUIDE}.
-     * The prefs are read again here, so this also works in an activity recreated meanwhile.
+     * The prefs are read again here, so this also works in an activity recreated meanwhile. When there
+     * is nothing to write any more, or the write fails, the document the picker created is removed if it
+     * is still empty ({@link #discardIfEmpty}), and the message says which it was (a new place does not
+     * help when the ticks are gone).
      */
     static void exportOldGuideTo(HomeHost host, Uri uri) {
         Activity activity = host.activity();
         Context app = activity.getApplicationContext();
+        ContentResolver resolver = app.getContentResolver();
         Async.run(activity, () -> {
             OldGuideProgress progress = OldGuideProgress.read(app);
             if (progress == null) {
-                throw new IOException("no ticked task");
+                discardIfEmpty(resolver, uri);
+                return Boolean.FALSE;
             }
             byte[] bytes = progress.toJson(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8);
-            try (OutputStream out = openForWrite(app.getContentResolver(), uri)) {
+            try (OutputStream out = openForWrite(resolver, uri)) {
                 out.write(bytes);
+            } catch (IOException | RuntimeException e) {
+                discardIfEmpty(resolver, uri);
+                throw e;
             }
             return Boolean.TRUE;
-        }, written -> host.showMessage("打勾进度已导出。"),
-            error -> host.showMessage("导出失败，请换个位置再试。"));
+        }, written -> host.showMessage(written ? OLD_GUIDE_DONE : OLD_GUIDE_GONE),
+            error -> host.showMessage(OLD_GUIDE_FAILED));
+    }
+
+    /**
+     * Best effort: deletes the document at {@code uri} when it holds no bytes (the empty file
+     * ACTION_CREATE_DOCUMENT made, or one a failed truncating write left empty). A document whose size
+     * is unknown or not zero stays, so a file picked to overwrite that could not even be opened keeps
+     * its contents. Returns whether it was deleted.
+     */
+    static boolean discardIfEmpty(ContentResolver resolver, Uri uri) {
+        try (android.database.Cursor cursor = resolver.query(uri, new String[]{android.provider.OpenableColumns.SIZE},
+                null, null, null)) {
+            if (cursor == null || !cursor.moveToFirst() || cursor.isNull(0) || cursor.getLong(0) != 0) {
+                return false;
+            }
+        } catch (RuntimeException e) {
+            return false;
+        }
+        try {
+            return android.provider.DocumentsContract.deleteDocument(resolver, uri);
+        } catch (FileNotFoundException | RuntimeException e) {
+            return false;
+        }
     }
 
     /** A truncating write ("wt": a file picked to overwrite loses its old tail), else plain "w". */

@@ -163,6 +163,52 @@ public class CardRendererTest {
     }
 
     /**
+     * Review after 3.1.0: the muted line (「要是升级了，答：…」) was 4.0:1 on the day cyan, under WCAG AA for
+     * small text. The soft ink at {@link CardRenderer#MUTED_ANSWER_ALPHA}, laid over each surface, keeps
+     * 4.5:1 on both palettes.
+     */
+    @Test
+    public void theMutedAnswersLineKeepsSmallTextContrast() {
+        Context c = RuntimeEnvironment.getApplication();
+        int[][] pairs = {{c.getColor(R.color.widget_day_ink_soft), c.getColor(R.color.p3r_widget_day)},
+                {c.getColor(R.color.widget_night_ink_soft), c.getColor(R.color.p3r_widget_night)}};
+        for (int[] pair : pairs) {
+            int muted = (pair[0] & 0x00FFFFFF) | (CardRenderer.MUTED_ANSWER_ALPHA << 24);
+            double ratio = contrast(over(muted, pair[1]), pair[1]);
+            assertTrue(String.format("muted #%08X on #%06X: %.2f:1", muted, pair[1] & 0xFFFFFF, ratio), ratio >= 4.5);
+        }
+    }
+
+    /** {@code argb} laid over the opaque {@code below}. */
+    private static int over(int argb, int below) {
+        float a = (argb >>> 24) / 255f;
+        int out = 0xFF000000;
+        for (int shift = 16; shift >= 0; shift -= 8) {
+            int top = (argb >> shift) & 0xFF;
+            int under = (below >> shift) & 0xFF;
+            out |= Math.round(top * a + under * (1 - a)) << shift;
+        }
+        return out;
+    }
+
+    /** WCAG 2 contrast ratio of two opaque colours. */
+    private static double contrast(int a, int b) {
+        double la = luminance(a);
+        double lb = luminance(b);
+        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+    }
+
+    private static double luminance(int rgb) {
+        double[] weights = {0.2126, 0.7152, 0.0722};
+        double sum = 0;
+        for (int i = 0; i < 3; i++) {
+            double ch = ((rgb >> (16 - 8 * i)) & 0xFF) / 255.0;
+            sum += weights[i] * (ch <= 0.03928 ? ch / 12.92 : Math.pow((ch + 0.055) / 1.055, 2.4));
+        }
+        return sum;
+    }
+
+    /**
      * The answers row (DESIGN §18): one paragraph per line, a meeting that may not rank up muted, and
      * the width ladder's forms best first, each shorter than the one before.
      */

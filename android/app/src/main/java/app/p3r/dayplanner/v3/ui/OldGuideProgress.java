@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * The ticks of the 3.0.x 逐日攻略, read-only, for 备份与恢复's 「导出旧逐日攻略的打勾进度」.
+ * The ticks of the 3.0.x 逐日攻略, read-only, for 备份与恢复's 「旧版逐日攻略」 → 「导出打勾进度」.
  *
  * <p>3.0.x kept the guide's checkboxes in the prefs {@value #PREFS}: {@code "completed"} ({@code
  * {taskId: true}}) and {@code "substeps"} ({@code {"taskId::n": true}}), both JSON strings. Its
@@ -26,9 +26,14 @@ import java.util.TreeMap;
  * <p>{@link #toJson} writes the file of the old page's {@code exportProgress()}: {@code
  * JSON.stringify({format, completed, completedSubsteps, schemaVersion: 2, exportedAt}, null, 2)}, the
  * keys in that order, two-space indent, UTF-8, no trailing newline. The 2.0.0 app's guide imports it.
- * Values are written as that call writes them (JavaScript key order, string escapes and numbers), so
- * the file is the one the old page would have saved. Stored text that is not valid JSON counts as
- * empty: no completed task hides the entry, broken substeps are exported as {@code {}}.
+ * Key order and string escapes are the ones that call writes. Numbers match it for what 3.0.x stored
+ * (booleans only) and for integers and short decimals; {@link #number} starts from
+ * {@code Double.toString}, which is not always the shortest round trip, so a long or extreme double
+ * (1e23, 5e-324) may print differently. Stored text is parsed strictly (RFC 8259) and text that is not
+ * valid JSON counts as empty: no completed task hides the entry, broken substeps are exported as
+ * {@code {}}. 3.0.x's own reader (Android's lenient org.json) also took text such as single-quoted
+ * keys, but 3.0.x only ever wrote {@code JSONObject.toString()} output, which is strict JSON, so
+ * nothing it stored is lost.
  */
 final class OldGuideProgress {
     static final String PREFS = "p3r_native_progress_v1";
@@ -220,7 +225,11 @@ final class OldGuideProgress {
         out.append('"');
     }
 
-    /** A number as JavaScript prints it: 1 not 1.0, 0.000001, 1e-7, 1e+21; not finite → null. */
+    /**
+     * A number in JavaScript's layout: 1 not 1.0, 0.000001, 1e-7, 1e+21; not finite → null. The digits
+     * come from {@code Double.toString}, which equals JavaScript's shortest form for integers and short
+     * decimals but not for every double (1e23 → 9.999999999999999e+22); 3.0.x stored no numbers.
+     */
     static String number(double d) {
         if (Double.isNaN(d) || Double.isInfinite(d)) {
             return "null";
