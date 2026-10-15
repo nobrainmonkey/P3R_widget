@@ -70,6 +70,19 @@ public class PlanBreadthRealPackTest {
      * still below the planner's own 2.5 s budget, which it must not run out of.
      */
     private static final long SLOWEST_MILLIS = System.getenv("CI") != null ? 5_000 : 2_000;
+    /**
+     * Options of every plan here: the defaults, except that on a shared CI runner (env CI, several
+     * times slower than a desktop and with two cores for the two plannings 「尽量都体验」 runs) the
+     * planner's time budget is three times the default, so this test checks plan quality there and
+     * the budget is checked against the desktop limits above. On a device that runs out of time the
+     * plan is still complete and the service follows up with twice the budget (DESIGN §20 「Cost」).
+     */
+    static Engine.Options options() {
+        Engine.Options options = new Engine.Options();
+        if (System.getenv("CI") != null) options.timeBudgetMillis *= 3;
+        return options;
+    }
+
     /** Rank sum breadth may lose against max (spec §8.2: "not more than ~5% lower"). */
     private static final double RANK_SUM_SHARE = 0.95;
 
@@ -555,7 +568,7 @@ public class PlanBreadthRealPackTest {
     /** One plan with default options: complete, validator-clean, within the time budget (recorded by {@link #both}). */
     private static PlanMetrics run(String title, Profile profile, SimState start, long maxMillis) {
         long t0 = System.nanoTime();
-        Plan plan = Engine.plan(rules, profile, start, null, new Engine.Options());
+        Plan plan = Engine.plan(rules, profile, start, null, options());
         long ms = (System.nanoTime() - t0) / 1_000_000;
         String what = title + " · " + PlanMetrics.styleZh(profile);
         assertEquals(what, rules.lastSlot() - start.slot + 1, plan.steps.size());

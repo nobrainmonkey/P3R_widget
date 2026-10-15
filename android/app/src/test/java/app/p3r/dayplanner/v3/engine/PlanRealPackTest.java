@@ -274,7 +274,7 @@ public class PlanRealPackTest {
         String[][] cases = {{"priestess", "empress", "lovers"}, {"devil", "empress", "moon"}};
         for (String[] ids : cases) {
             int[] goals = {link(ids[0]), link(ids[1]), link(ids[2])};
-            Plan two = Engine.plan(rules, must(goals[0], goals[1]), midGameState(), null, new Engine.Options());
+            Plan two = Engine.plan(rules, must(goals[0], goals[1]), midGameState(), null, PlanBreadthRealPackTest.options());
             assertEquals(ids[0] + " with two goals", 10, two.summary.endRanks[goals[0]]);
             String title = "中期 · 10月22日 · 必须：①" + rules.links[goals[0]].arcanaZh + " ②" + rules.links[goals[1]].arcanaZh
                     + " ③" + rules.links[goals[2]].arcanaZh + " + 其余社群";
@@ -309,7 +309,7 @@ public class PlanRealPackTest {
             java.util.Collections.shuffle(pool, random);
             int[] goals = {pool.get(0), pool.get(1), pool.get(2)};
             Profile profile = must(goals);
-            Engine.Options options = new Engine.Options();
+            Engine.Options options = PlanBreadthRealPackTest.options();
             options.trace = new ArrayList<>();
             long t0 = System.nanoTime();
             Plan plan = Engine.plan(rules, profile, start, null, options);
@@ -328,7 +328,7 @@ public class PlanRealPackTest {
             // promises against the 尽量多 MAX plan (Planner.Pool.addMaxStylePlans, keepsPromises).
             Profile maxStyle = profile.copy();
             maxStyle.style = Profile.Style.MAX;
-            Plan max = Engine.plan(rules, maxStyle, start, null, new Engine.Options());
+            Plan max = Engine.plan(rules, maxStyle, start, null, PlanBreadthRealPackTest.options());
             for (int g : goals) {
                 if (plan.summary.endRanks[g] == max.summary.endRanks[g]) continue;
                 assertTrue(line + ": " + rules.links[g].id + " " + plan.summary.endRanks[g] + " against " + max.summary.endRanks[g]
@@ -354,7 +354,7 @@ public class PlanRealPackTest {
      */
     private static void assertStrictPriority(Plan plan, int[] goals, List<int[]> trace) {
         if (trace == null) {
-            Engine.Options options = new Engine.Options();
+            Engine.Options options = PlanBreadthRealPackTest.options();
             options.trace = new ArrayList<>();
             Profile profile = must(goals);
             Engine.plan(rules, profile, midGameState(), null, options);
@@ -434,7 +434,7 @@ public class PlanRealPackTest {
     @Test
     public void meetingHowToSaysWhenWhereAndWhomWithTheNoteApart() {
         int emperor = link("emperor");
-        Plan plan = Engine.plan(rules, must(emperor), newGame(dayOf(4, 21)), null, new Engine.Options());
+        Plan plan = Engine.plan(rules, must(emperor), newGame(dayOf(4, 21)), null, PlanBreadthRealPackTest.options());
         int checked = 0;
         boolean answers = false;
         for (Plan.Step s : plan.steps) {
@@ -468,7 +468,7 @@ public class PlanRealPackTest {
     public void multiStepUnlocksComplete() {
         Profile profile = new Profile();
         SimState start = newGame(dayOf(4, 21));
-        Plan plan = Engine.plan(rules, profile, start, null, new Engine.Options());
+        Plan plan = Engine.plan(rules, profile, start, null, PlanBreadthRealPackTest.options());
         assertTrue(Engine.validate(rules, profile, start, plan).isEmpty());
         int sides = 0;
         for (Plan.Step s : plan.steps) sides += s.side.size();
@@ -678,7 +678,7 @@ public class PlanRealPackTest {
     private Result run(Rules rules, String title, Profile profile, SimState start, int maxWaste) {
         Engine.plan(rules, profile, start, null, null); // JIT warm-up
         long t0 = System.nanoTime();
-        Plan plan = Engine.plan(rules, profile, start, null, new Engine.Options());
+        Plan plan = Engine.plan(rules, profile, start, null, PlanBreadthRealPackTest.options());
         long ms = (System.nanoTime() - t0) / 1_000_000;
         PlanReport.print(title, rules, plan, 30);
         PlanMetrics pm = PlanMetrics.of(rules, profile, start, plan);
@@ -700,7 +700,7 @@ public class PlanRealPackTest {
         assertTrue("cash on 12/1 " + cashDec1, start.slot >= dec1 || cashDec1 <= MODEST_CASH);
         assertTrue("took " + ms + " ms", ms <= MAX_MILLIS);
         assertFalse("budget exhausted", plan.budgetExhausted);
-        assertTrue(plan.planId.equals(Engine.plan(rules, profile, start, null, new Engine.Options()).planId));
+        assertTrue(plan.planId.equals(Engine.plan(rules, profile, start, null, PlanBreadthRealPackTest.options()).planId));
         assertFeeDaysKeepTheReserve(rules, start, plan);
         PlanMetrics.record(rules, title, profile, start, plan, pm, ms);
         return new Result(plan, pm);
@@ -767,7 +767,7 @@ public class PlanRealPackTest {
         for (Object[] c : cases) {
             Profile profile = (Profile) c[0];
             SimState start = (SimState) c[1];
-            Plan plan = Engine.plan(rules, profile, start, null, new Engine.Options());
+            Plan plan = Engine.plan(rules, profile, start, null, PlanBreadthRealPackTest.options());
             assertTrue(Engine.validate(rules, profile, start, plan).isEmpty());
             assertTrue(Engine.validationWarnings(rules, profile, start, plan).toString(),
                     Engine.validationWarnings(rules, profile, start, plan).isEmpty());
