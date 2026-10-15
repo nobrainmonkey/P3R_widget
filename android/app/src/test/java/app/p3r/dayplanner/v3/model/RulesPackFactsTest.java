@@ -934,7 +934,7 @@ public class RulesPackFactsTest {
         assertEquals("伊莉莎白的委托 11月30日截止", reminder("request.11-30.deadline").shortZh);
         assertEquals(day(6, 3), first.day);
         assertEquals(day(6, 6), first.untilDay);
-        assertEquals("这个委托只能做到 12月25日，而且只有在 7月6日前救出了 6月18日失踪的学生才能完成；接委托和交东西都不会消耗时间。",
+        assertEquals("这个委托只能做到 12月25日，而且只有在 7月6日当天或更早救出了 6月18日失踪的学生才能完成；接委托和交东西都不会消耗时间。",
                 reminder("request.12-25.deadline").detailZh);
 
         assertEquals("今天城里能捡到黄昏的碎片（14 处）", reminder("fragment.04-21").zh);

@@ -20,7 +20,9 @@ import java.util.Map;
  * fees, and counted in the unlock progress), excluded or unavailable activities, dating-site
  * notes (evening, from their first day, allowed, affordable, an established non-MAX link; never a
  * rank-up), Link Episodes (opted-in track, slot kind, the day's cell, in order), spending
- * below zero, Tartarus caps per block ({@link Profile#capFor}), the 12/24 slots planned as
+ * below zero, Tartarus caps per block ({@link Profile#capFor}), a Tartarus step whose rescue claim
+ * ({@code rescue_on_visit}) disagrees with the rescue windows (fromDay through toDay, the limit evening
+ * included), the 12/24 slots planned as
  * anything but 「平安夜约会」 when the player accepted an invitation, ranks that skip, regress or exceed MAX, predicted ranks or cash that
  * disagree with the recount, and a summary whose end ranks disagree. Warnings: a FREE slot where a
  * productive action was verifiably legal. Messages are developer-facing English.
@@ -30,6 +32,8 @@ final class PlanValidator {
 
     /** Errors after the first ones usually cascade from them; keep the report readable. */
     private static final int MAX_MESSAGES = 40;
+    /** Assumption id of a Tartarus step that rescues a missing person (written out, not shared with Kernel). */
+    static final String RESCUE_ASSUMPTION = "rescue_on_visit";
 
     /** Errors and warnings of one validation run. */
     static final class Report {
@@ -453,12 +457,21 @@ final class PlanValidator {
             long income = s.predicted.cashDelta + sideCost;
             if (income < 0) error(slot, "Tartarus visit loses money in the forecast");
             cash += Math.max(0, income);
+            // A visit rescues everyone still missing whose window [fromDay, toDay] holds this evening (the limit
+            // evening included; from toDay + 1 they are lost). The step must claim exactly that.
             int dd = day();
+            String saved = null;
             for (int i = 0; i < rules.rescues.length; i++) {
                 long bit = 1L << i;
                 Rules.Rescue r = rules.rescues[i];
-                if (dd >= r.fromDay && dd <= r.toDay && ((rescued | failed) & bit) == 0) rescued |= bit;
+                if (dd >= r.fromDay && dd <= r.toDay && ((rescued | failed) & bit) == 0) {
+                    rescued |= bit;
+                    if (saved == null) saved = r.id;
+                }
             }
+            boolean claimed = s.assumptions != null && s.assumptions.contains(RESCUE_ASSUMPTION);
+            if (claimed && saved == null) error(slot, "Tartarus visit claims a rescue outside every open rescue window");
+            if (!claimed && saved != null) error(slot, "Tartarus visit rescues " + saved + " but does not claim it");
         }
 
         /**

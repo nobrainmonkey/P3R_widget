@@ -258,6 +258,7 @@ public final class Rules {
         public String zh;
     }
 
+    /** The link's person is missing from {@code fromDay} through {@code toDay} (both days count, see {@link Rescue}). */
     public static final class Missing {
         public int fromDay;
         public int toDay;
@@ -328,10 +329,16 @@ public final class Rules {
         public int top;
     }
 
+    /**
+     * A missing person whose rescue keeps a link going. Both ends of the window count: a Tartarus visit on any
+     * evening from {@link #fromDay} through {@link #toDay} (the limit evening included) rescues them; from
+     * {@code toDay + 1} they are lost (rules/build/REPORT.md, tartarus "rescue deadline").
+     */
     public static final class Rescue {
         public String id;
         public String zh;
         public int fromDay;
+        /** Limit day: its evening is the last chance (the pack checks it is a Tartarus evening). */
         public int toDay;
         /** Link that is lost if this rescue fails, or -1. */
         public int link = -1;
@@ -476,7 +483,7 @@ public final class Rules {
         /** "rescue.MM-DD" of {@link #fromDay}. */
         public String id;
         public int fromDay;
-        /** Last day they can be rescued (whether the day itself counts is not verified). */
+        /** Last day they can be rescued, its evening included (like {@link Rescue#toDay}). */
         public int toDay;
         /** Number of people in the group (≥ 1). */
         public int count;

@@ -1,5 +1,6 @@
 package app.p3r.dayplanner.v3.engine;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -131,6 +132,95 @@ public class PlanValidatorTest {
         s.action = "unlock:emperor:1";
         s.kind = "unlock";
         assertRejected(bad, "emperor");
+    }
+
+    // ------------------------------------------------------------------ rescue windows
+
+    /*
+     * The fixture's 北村文吉 is missing on days 40–45. Both ends count: the limit evening (day 45) still
+     * rescues him and from day 46 he is lost (REPORT, tartarus "rescue deadline").
+     */
+
+    private static final int LIMIT = 45;
+
+    /** 教皇 at RANK 2 with 北村文吉 missing and nothing recorded, at the daytime of {@code day}. */
+    private SimState bunkichiMissingAt(int day) {
+        SimState s = RulesFixtures.newGame(rules, Rules.slot(day, false));
+        s.cash = 20_000;
+        s.rank[RulesFixtures.S_HIEROPHANT] = 2;
+        return s;
+    }
+
+    private Plan plan(SimState from) {
+        Engine.Options o = new Engine.Options();
+        o.timeBudgetMillis = 60_000;
+        Plan p = Engine.plan(rules, profile, from, null, o);
+        List<String> errors = Engine.validate(rules, profile, from, p);
+        assertTrue(errors.toString(), errors.isEmpty());
+        return p;
+    }
+
+    private static Plan copy(Plan p) throws JSONException {
+        return Plan.fromJson(new JSONObject(p.toJson().toString()));
+    }
+
+    private void assertRejected(SimState from, Plan bad, String expectedFragment) {
+        List<String> errors = Engine.validate(rules, profile, from, bad);
+        boolean found = false;
+        for (String e : errors) found |= e.contains(expectedFragment);
+        assertTrue(expectedFragment + " not in " + errors, found);
+    }
+
+    /** Turns the step at {@code slot} into a Tartarus visit of block 1 that claims a rescue. */
+    private static void claimRescueAt(Plan p, int slot) {
+        Plan.Step s = p.at(slot);
+        s.action = "tower:1";
+        s.kind = "tower";
+        s.side.clear();
+        s.predicted.cashDelta = 0;
+        if (!s.assumptions.contains(PlanValidator.RESCUE_ASSUMPTION)) s.assumptions.add(PlanValidator.RESCUE_ASSUMPTION);
+    }
+
+    @Test
+    public void theLimitEveningStillRescues() {
+        SimState start = bunkichiMissingAt(LIMIT);
+        Plan p = plan(start);
+        Plan.Step limit = p.at(Rules.slot(LIMIT, true));
+        assertEquals("tower", limit.kind);
+        assertTrue(limit.assumptions.contains(PlanValidator.RESCUE_ASSUMPTION));
+        assertTrue(limit.subtitleZh, limit.subtitleZh.endsWith("救出北村文吉"));
+        assertTrue(limit.whyZh, limit.whyZh.startsWith("北村文吉失踪了，最晚要在") && limit.whyZh.contains("晚上救出"));
+        assertTrue("教皇 goes on after the rescue", p.summary.endRanks[RulesFixtures.S_HIEROPHANT] > 2);
+    }
+
+    @Test
+    public void aRescueClaimedAfterTheLimitIsRejected() throws JSONException {
+        SimState start = bunkichiMissingAt(LIMIT + 1);
+        Plan p = plan(start);
+        for (Plan.Step s : p.steps) assertFalse(s.action, s.assumptions.contains(PlanValidator.RESCUE_ASSUMPTION));
+        assertEquals("lost from the day after the limit", 2, p.summary.endRanks[RulesFixtures.S_HIEROPHANT]);
+        Plan bad = copy(p);
+        claimRescueAt(bad, Rules.slot(LIMIT + 1, true));
+        assertRejected(start, bad, "claims a rescue outside every open rescue window");
+    }
+
+    @Test
+    public void aRescueClaimedBeforeTheWindowIsRejected() throws JSONException {
+        Plan bad = copy();
+        claimRescueAt(bad, Rules.slot(39, true));
+        assertRejected(start, bad, "claims a rescue outside every open rescue window");
+    }
+
+    @Test
+    public void aRescueThePlanDoesNotClaimIsRejected() throws JSONException {
+        Plan bad = copy();
+        Plan.Step rescue = null;
+        for (Plan.Step s : bad.steps) if (s.assumptions.contains(PlanValidator.RESCUE_ASSUMPTION)) rescue = s;
+        assertTrue("the plan rescues 北村文吉", rescue != null);
+        int day = rescue.slot >> 1;
+        assertTrue("inside the window: " + day, day >= 40 && day <= LIMIT);
+        rescue.assumptions.remove(PlanValidator.RESCUE_ASSUMPTION);
+        assertRejected(start, bad, "rescues bunkichi but does not claim it");
     }
 
     @Test
