@@ -360,7 +360,16 @@ public class RemindersTest {
         assertEquals("马", horse.answerZh);
         assertEquals(2, horse.option);
         assertEquals(Rules.slot(dayOf(rules, 7, 8), false), horse.slot);
-        assertNull("withheld: 3DM has no zh answer", find(newGame, "class.12-11"));
+        // 3DM has no text on 12/11: the answer comes from 游民星空's copy of the same guide (BWIKI writes it alike).
+        Plan.Reminder gamble = find(newGame, "class.12-11");
+        assertNotNull("class.12-11 from the 游民星空 copy", gamble);
+        assertEquals("课堂提问：选「孤注一掷」（第 2 项）", gamble.textZh);
+        assertEquals("课堂：孤注一掷（第 2 项）", gamble.shortZh);
+        assertEquals(2, gamble.option);
+        assertEquals(Rules.slot(dayOf(rules, 12, 11), false), gamble.slot);
+        for (String late : new String[] {"class.12-07", "class.12-09", "class.01-18"}) {
+            assertNotNull(late, find(newGame, late));
+        }
         assertNull("1/3 is not in the game's TV table", find(newGame, "tv.01-03"));
         assertTrue(find(newGame, "exam.07-17").estimate);
         assertEquals(Rules.slot(dayOf(rules, 5, 25), true), find(newGame, "fragment.05-25").slot);

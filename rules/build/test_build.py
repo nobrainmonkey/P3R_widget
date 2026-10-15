@@ -239,9 +239,10 @@ class BuildTest(unittest.TestCase):
     def test_reminder_counts_per_kind(self) -> None:
         rem = self.pack["reminders"]
         # 36 aqiu class dates; 3DM has no zh line for 12/7, 12/9, 12/11 (its December text starts on 12.13) and
-        # 1/18 (its text ends on 1.13).
-        self.assertEqual(set(builder.WITHHELD_CLASS), {"12-07", "12-09", "12-11", "01-18"})
-        self.assertEqual(len(self.reminders("class")), 36 - len(builder.WITHHELD_CLASS))
+        # 1/18 (its text ends on 1.13): those four come from 游民星空's copy of the guide, so none is withheld.
+        self.assertEqual(builder.WITHHELD_CLASS, {})
+        self.assertEqual(len(self.reminders("class")), 36)
+        self.assertEqual(sum(1 for x in self.reminders("class") if x["conf"] == "verified"), 35)  # 4/27 「A」: no position
         exams = self.reminders("exam")
         self.assertEqual(len(exams), 17)
         self.assertEqual(sorted(x["id"] for x in exams if x["conf"] == "estimate"), ["exam.07-17", "exam.12-16"])
@@ -272,6 +273,116 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(self.reminder("class.07-08")["shortZh"], "课堂：马（第 2 项）")
         self.assertEqual(self.reminder("exam.05-19")["zh"], "考试：选「五月病」")
         self.assertEqual(self.reminder("class.11-07")["answerZh"], "奥义书")  # 3DM typo 肉义书, dated 11.6 by 3DM
+
+    # ---------------------------------------------------------------- the class dates 3DM has no text for
+
+    def test_class_answers_from_the_gamersky_copy(self) -> None:
+        # 游民星空's copy of the guide: answer and position (= aqiu's Choice N), BWIKI's zh text on the same date.
+        cases = (("12-07", "臭氧层", 1, "cn_gamersky_p9"), ("12-09", "鬼道", 2, "cn_gamersky_p9"),
+                 ("12-11", "孤注一掷", 2, "cn_gamersky_p9"), ("01-18", "喀耳刻", 2, "cn_gamersky_p10"))
+        for md, answer, option, page in cases:
+            x = self.reminder(f"class.{md}")
+            self.assertEqual((x["answerZh"], x["option"], x["conf"]), (answer, option, "verified"), md)
+            self.assertEqual(x["src"], ["aqiu_social_events", page, "cn_bwiki_class"], md)
+            self.assertEqual(x["zh"], f"课堂提问：选「{answer}」（第 {option} 项）", md)
+            self.assertEqual(x["shortZh"], f"课堂：{answer}（第 {option} 项）", md)
+            self.assertEqual((x["day"], x["slot"], x["gainZh"], x["priority"]), (builder.day_of_md(md), "day", "魅力 +2", 3))
+        # 12/11: the copy types an em dash for 一; the CN guide's English-localisation answer stays out.
+        self.assertIn("孤注—掷", (builder.SOURCES_DIR / "cn_guides" / "gamersky_p9.html").read_text(encoding="utf-8"))
+        self.assertNotIn("Lives", self.text)
+        conflict = next(c for c in self.ledger.conflicts if c["id"] == "answer.12-11")
+        self.assertEqual(conflict["chosen"], "游民星空 「孤注一掷」")
+        self.assertEqual(conflict["sources"], ["cn_gamersky_p9", "cn_bwiki_class", "cn_guide"])
+        sources = {s["id"]: s for s in self.pack["sources"]}
+        for ident in ("cn_gamersky_p9", "cn_gamersky_p10", "cn_bwiki_class"):
+            self.assertEqual(sources[ident]["edition"], "cn_guide_reload", ident)
+        report = builder.render_report(self.pack, self.ledger, self.text)
+        self.assertIn("- Withheld class answers: none.", report)
+        self.assertIn("On all 32 class dates that both copies answer, 游民星空's answer and position equal 3DM's", report)
+        self.assertIn("tieba.baidu.com/p/8883837821", report)
+
+    def test_gamersky_parser(self) -> None:
+        gsky = builder.ScheduleGamersky()
+        # Every aqiu class date has a line; the June page repeats 6/11-6/17 with the same answers.
+        classes = builder.aqiu_choices(builder.AqiuPage(builder.SOURCES_DIR / "aqiu_pages" / "social-events.html"),
+                                       "class-answers")
+        self.assertEqual({d for d in gsky.lines if gsky.class_answer(d)}, set(classes))
+        self.assertEqual(gsky.class_answer(builder.day_of_md("06-15")), ("慧眼独具", 1))
+        self.assertEqual(sum(1 for line in gsky.lines[builder.day_of_md("06-15")] if line.startswith("上课问答：")), 2)
+        # Half-width brackets, a missing position, the shifted 11.6 row (CN_3DM_ROW_FIXES), the June page's 7月1日.
+        self.assertEqual(gsky.class_answer(builder.day_of_md("04-08")), ("鲤鱼旗", 3))
+        self.assertEqual(gsky.class_answer(builder.day_of_md("05-15")), ("MAY BLUES", 2))
+        self.assertEqual(gsky.class_answer(builder.day_of_md("04-27")), ("A", 0))
+        self.assertIsNone(gsky.class_answer(builder.day_of_md("11-06")))
+        self.assertEqual(gsky.class_answer(builder.day_of_md("11-07")), ("奥义书", 1))
+        self.assertEqual(gsky.source(builder.day_of_md("07-01")), "cn_gamersky_p3")
+        self.assertEqual(max(gsky.lines), builder.LAST_DAY)  # 3月4日 (the epilogue) is skipped
+        bwiki = builder.bwiki_class_answers()
+        self.assertEqual(bwiki[builder.day_of_md("10-30")], "β-淀粉酶")
+        self.assertEqual(bwiki[builder.day_of_md("12-11")], "孤注一掷")
+        self.assertEqual(len(bwiki), 39)
+
+    def test_gamersky_and_bwiki_pages_are_pinned(self) -> None:
+        by_path = {e["path"]: e for e in builder.load_manifest()["files"]}
+        for n in builder.GAMERSKY_PAGES:
+            entry = by_path[f"cn_guides/gamersky_p{n}.html"]
+            suffix = "" if n == 1 else f"_{n}"
+            self.assertEqual(entry["url"], f"https://www.gamersky.com/handbook/202402/1706261{suffix}.shtml")
+            self.assertEqual(entry["edition"], "cn_guide_reload")
+        self.assertEqual(by_path["cn_guides/bwiki_p3r_class.html"]["url"], builder.BWIKI_CLASS_URL)
+        manifest = builder.load_manifest()
+        wrong = next(e for e in manifest["files"] if e["path"] == "cn_guides/gamersky_p9.html")
+        wrong["url"] = builder.gamersky_url(8)
+        with self.assertRaisesRegex(builder.BuildError, "expected the 游民星空 page"):
+            builder.check_manifest(manifest)
+        manifest = builder.load_manifest()
+        wrong = next(e for e in manifest["files"] if e["path"] == "cn_guides/bwiki_p3r_class.html")
+        wrong["url"] = "https://wiki.biligame.com/persona/P5R/%E8%AF%BE%E5%A0%82"
+        with self.assertRaisesRegex(builder.BuildError, "expected the BWIKI page"):
+            builder.check_manifest(manifest)
+
+    def test_a_gamersky_option_that_disagrees_with_aqiu_fails_the_build(self) -> None:
+        real = builder.aqiu_choices
+
+        def shifted(page, section):
+            choices = real(page, section)
+            if section == "class-answers":
+                choices[builder.day_of_md("12-11")] = 3
+            return choices
+
+        with mock.patch.object(builder, "aqiu_choices", shifted):
+            with self.assertRaisesRegex(builder.BuildError, r"class 12-11: 游民星空 option 2 != aqiu Choice 3"):
+                builder.build_pack()
+
+    def test_gamersky_must_agree_with_3dm_and_bwiki(self) -> None:
+        real = builder.ScheduleGamersky.class_answer
+
+        def moved(self, d):
+            found = real(self, d)
+            return (found[0], 3) if d == builder.day_of_md("07-08") else found
+
+        with mock.patch.object(builder.ScheduleGamersky, "class_answer", moved):
+            with self.assertRaisesRegex(builder.BuildError, r"class 07-08: 游民星空 「马」 option 3 != 3DM 「马」 option 2"):
+                builder.build_pack()
+        real_bwiki = builder.bwiki_class_answers
+
+        def other_text():
+            answers = real_bwiki()
+            answers[builder.day_of_md("12-09")] = "鬼神"
+            return answers
+
+        with mock.patch.object(builder, "bwiki_class_answers", other_text):
+            with self.assertRaisesRegex(builder.BuildError, r"class 12-09: 游民星空 「鬼道」 is not BWIKI's 「鬼神」"):
+                builder.build_pack()
+        with mock.patch.object(builder, "GAMERSKY_TYPO_FIXES", {}):
+            with self.assertRaisesRegex(builder.BuildError, r"class 12-11: 游民星空 「孤注—掷」 is not BWIKI's 「孤注一掷」"):
+                builder.build_pack()
+        with mock.patch.object(builder, "BWIKI_DIVERGENT", {}):
+            with self.assertRaisesRegex(builder.BuildError, "BWIKI class answers unlike the shipped text changed"):
+                builder.build_pack()
+        with mock.patch.object(builder, "WITHHELD_CLASS", {"12-07": "test"}):
+            with self.assertRaisesRegex(builder.BuildError, "class 12-07 is withheld but 游民星空 has a line for it"):
+                builder.build_pack()
 
     def test_request_trip_and_nurse_timing(self) -> None:
         # Request #44 is accepted before the trip: 3DM's 7/19 evening, the day before the Yakushima beach.

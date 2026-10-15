@@ -156,6 +156,83 @@
    "retrieved": "2026-10-14"
   },
   {
+   "path": "cn_guides/gamersky_p1.html",
+   "sha256": "f1d36164fd5b5689445079757c95e4d743b9f8f0c88301a1d2a287b79b355a68",
+   "url": "https://www.gamersky.com/handbook/202402/1706261.shtml",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/gamersky_p2.html",
+   "sha256": "f892c0c6d8c87afeb2ad903bafad9e07070a51f0170692c34008a84257e8712d",
+   "url": "https://www.gamersky.com/handbook/202402/1706261_2.shtml",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/gamersky_p3.html",
+   "sha256": "b14e2c49ee2c6acf8818249deb2923e72edbdd24ae0628d971197f3fb237efe0",
+   "url": "https://www.gamersky.com/handbook/202402/1706261_3.shtml",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/gamersky_p4.html",
+   "sha256": "5da75d438a9e7240d2f0c3446c8771eefc01964a8ec3c4a563242cd24f3a27c7",
+   "url": "https://www.gamersky.com/handbook/202402/1706261_4.shtml",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/gamersky_p5.html",
+   "sha256": "d89d7022c8836f767e38688fd651023420d0ff33411941178b30d5b5b0d27c3f",
+   "url": "https://www.gamersky.com/handbook/202402/1706261_5.shtml",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/gamersky_p6.html",
+   "sha256": "97c7b0916d2a3bdeefc25bf298c83506bd4a558317d9aee834407f16edd9e149",
+   "url": "https://www.gamersky.com/handbook/202402/1706261_6.shtml",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/gamersky_p7.html",
+   "sha256": "96702c528563c9efb7b507544a186272c7efc4abeeef2286e36845f60e79bb21",
+   "url": "https://www.gamersky.com/handbook/202402/1706261_7.shtml",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/gamersky_p8.html",
+   "sha256": "dd301222e4e352976bf77b773eba7d54a8d00e5f2713b6f24a81bf00776e95c4",
+   "url": "https://www.gamersky.com/handbook/202402/1706261_8.shtml",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/gamersky_p9.html",
+   "sha256": "38b70ec31ffe085b2333aafea7b4ebf98c3d2cb5aed9ea3a9e8ea191eddf5bb9",
+   "url": "https://www.gamersky.com/handbook/202402/1706261_9.shtml",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/gamersky_p10.html",
+   "sha256": "c37a4769f9bc696491c5f7edecdb9109f1586418b3c2ab4d6192180ccb2547c2",
+   "url": "https://www.gamersky.com/handbook/202402/1706261_10.shtml",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "cn_guides/bwiki_p3r_class.html",
+   "sha256": "c0ca8839940633449bee366f99e45ca055e13c910ff63b9403c1447bdf391205",
+   "url": "https://wiki.biligame.com/persona/P3R/%E8%AF%BE%E5%A0%82%E9%97%AE%E7%AD%94%E4%B8%8E%E8%80%83%E8%AF%95",
+   "edition": "cn_guide_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
    "path": "cn_guides/data.json",
    "sha256": "08719e728ab953852292b18dd49c40c5790302eac24dfb3962db4be4ab271e49",
    "derivedFrom": "assets/data.json of the retired 2.x 逐日攻略 (handoff zip sha ff93b765…); an edited reformat of the 3DM Reload walkthrough; class/exam answers on 9 dates carry English-localisation text, see REPORT §3",

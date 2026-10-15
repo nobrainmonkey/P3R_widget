@@ -375,9 +375,9 @@ public class PlanBreadthRealPackTest {
      * on each pack rebuild since, with the steps unchanged ({@link PlanHash} adds the style only for
      * 「尽量都体验」, so a 「尽量多 MAX」 plan's id is computed as before it).
      */
-    private static final String GOLDEN_RULES_VERSION = "3.1.0|731d1d87ba32";
+    private static final String GOLDEN_RULES_VERSION = "3.1.0|ac37070b36b4";
     /** Plan ids of the three golden 「尽量多 MAX」 plans on {@link #GOLDEN_RULES_VERSION}. */
-    private static final String[] GOLDEN_IDS = {"8949220466ef6aeb", "54f0bb50125cdc9b", "5d217d2b386211e6"};
+    private static final String[] GOLDEN_IDS = {"67d51756af60e57a", "1e97d87d7a05ac1a", "34d7c7bf4aec702f"};
 
     /** FNV-1a 64 over "slot|action|side…" per step: the plan's actions, independent of the pack version. */
     static String fingerprint(Plan plan) {
