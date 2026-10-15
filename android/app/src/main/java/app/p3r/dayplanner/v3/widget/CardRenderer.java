@@ -115,12 +115,16 @@ public final class CardRenderer {
         return size == WidgetSize.REGULAR ? 6 : 4;
     }
 
-    /** Horizontal padding of the body text in dp. Mirrors the layout XML. */
+    /**
+     * Horizontal padding of the body text in dp. Mirrors the layout XML. The narrow card's text lines up
+     * with its buttons (8dp), so a 180dp card at 115% font holds 「答：明年的选拔赛呢？ / 加油」 on the one
+     * line it has for answers beside 「课堂：印度」 on the title's (docs/DESIGN_v3.md §18; 10dp until 3.1.0).
+     */
     public static float bodyPaddingDp(WidgetSize size) {
         switch (size) {
             case REGULAR: return 14;
             case COMPACT: return 12;
-            default: return 10;
+            default: return 8;
         }
     }
 
@@ -356,7 +360,7 @@ public final class CardRenderer {
 
     /** One way to draw the answers row: a rung of the width ladder (spec 3.1.0 §1.4.3). */
     static final class AnswerForm {
-        /** Shaped text, one paragraph per answers line. */
+        /** Shaped text, one paragraph per answers line (a 课堂/考试 answer may share the line before it). */
         final String text;
         final float sp;
         /** Height including the row's top gap. */
@@ -365,18 +369,53 @@ public final class CardRenderer {
         final boolean whole;
         /** Lines drawn on a body as wide as the one it was made for. */
         final int lines;
+        /**
+         * Both kinds of answers stay (docs/DESIGN_v3.md §18): the step's own line with a choice in it (or
+         * its note, for a line without choices) and every 课堂/考试 answer of the card, in the row or
+         * beside the title. True for a card without one of the kinds when the other stays.
+         */
+        final boolean both;
+        /** [start, end) pairs of {@link #text} drawn muted (a meeting that may not rank up). */
+        final int[] muted;
+        /** The 课堂/考试 answer drawn beside the title ({@link CardModel#answersAside}), shaped; null for none. */
+        final String aside;
+        /** Width (dp) the aside takes from the title's line, its gap included; 0 without one. */
+        final float asideDp;
+        /** Height (dp) of the aside's line; 0 without one. */
+        final float asideHeightDp;
 
-        AnswerForm(String text, float sp, float heightDp, boolean whole, int lines) {
+        AnswerForm(String text, float sp, float heightDp, boolean whole, int lines, boolean both, int[] muted) {
+            this(text, sp, heightDp, whole, lines, both, muted, null, 0, 0);
+        }
+
+        private AnswerForm(String text, float sp, float heightDp, boolean whole, int lines, boolean both, int[] muted,
+                           String aside, float asideDp, float asideHeightDp) {
             this.text = text;
             this.sp = sp;
             this.heightDp = heightDp;
             this.whole = whole;
             this.lines = lines;
+            this.both = both;
+            this.muted = muted;
+            this.aside = aside;
+            this.asideDp = asideDp;
+            this.asideHeightDp = asideHeightDp;
+        }
+
+        AnswerForm asWhole() {
+            return new AnswerForm(text, sp, heightDp, true, lines, both, muted, aside, asideDp, asideHeightDp);
+        }
+
+        /** This form with {@code shapedAside} beside the title, {@code widthDp} wide and {@code lineDp} high. */
+        AnswerForm beside(String shapedAside, float widthDp, float lineDp) {
+            return new AnswerForm(text, sp, heightDp, whole, lines, both, muted, shapedAside, widthDp, lineDp);
         }
     }
 
-    /** {@link #answerForm}'s {@code shown} for a line kept whole. */
+    /** {@link Ladder#form}'s {@code shown} for a line kept whole. */
     private static final int ALL = Integer.MAX_VALUE;
+    /** Gap (dp) between the title and a 课堂/考试 answer beside it. Mirrors the layout XML. */
+    static final float ASIDE_GAP_DP = 8f;
 
     /**
      * The ways to draw {@code answers} on a body {@code widthDp} wide, best first, each shorter than
@@ -384,104 +423,335 @@ public final class CardRenderer {
      * whole on at most {@link #MAX_ANSWER_LINES} lines (or one per answers line); then 「升级时答：」; then
      * 「或」; then up to {@link #MORE_ANSWER_LINES} lines; then a class answer without its 「（第 n 项）」
      * ({@link CardModel.AnswerLine#withoutPosition}: the answer names the option, so the position goes
-     * before any choice wraps; it stays out of the forms after it); then choices that wrap inside
-     * ({@link CardText#choicesLoose}); then {@link #ANSWERS_SMALL_SP} with every choice whole, then
-     * wrapping inside. A choice wraps inside only where that saves a line over the same answers with
-     * every choice whole at the same size ({@link #looseForm}): 「答：我会帮你的 / 这样的规矩没有意义」
-     * never draws 「这样的规」/「矩没有意义」 where 「这样的规矩没有意义」 fits a line of its own and the
-     * row takes no more lines that way (3.1.0 re-check). For a card short of height:
-     * the lines cut to their first whole choices plus 「等 N 项」, a line only where that saves width
-     * ({@link #answerForm}); then lines go, the least needed first ({@link #dropOrder}), each kept line
-     * whole before it is cut; then a 朋友-route line's caution alone (「答：别选「…」」, then the
-     * shorter 「答：别选表白」); last, for a card with room for one short line beside its title, a 课堂/考试
-     * answer alone and whole, else the line that stays to the end with only its count
-     * (「答：共 2 项，点开看看」, {@link CardText#countOnly}). The forms up to the cut ones are
+     * before any choice wraps; it stays out of the forms after it); then a 课堂/考试 answer on the line
+     * before it (「答：好的 / 没那回事 · 课堂：变为零」, {@link CardText#MERGE_SEPARATOR}); then choices
+     * that wrap inside ({@link CardText#choicesLoose}); then {@link #ANSWERS_SMALL_SP}, every choice
+     * whole (also with the 课堂/考试 answer on the line before it: a line that shares one keeps its
+     * choices whole), then wrapping inside. A choice
+     * wraps inside only where that saves a line over the same answers with every choice whole at the
+     * same size ({@link Ladder#loose}): 「答：我会帮你的 / 这样的规矩没有意义」 never draws 「这样的规」/「矩没有意义」
+     * where 「这样的规矩没有意义」 fits a line of its own and the row takes no more lines that way (3.1.0
+     * re-check). For a card short of height, keeping both kinds of answers ({@link AnswerForm#both}): each
+     * choice of two alternatives written as its first ({@link CardModel.AnswerLine#firstAlternatives},
+     * 「我也去看看吧或者我在这里等她」 → 「我也去看看吧」: an answer to every prompt); then the lines cut to
+     * their first whole choices plus 「等 N 项」, a line only where that saves width ({@link Ladder#form}),
+     * so that the 课堂/考试 answer keeps its line or the end of the one before it; then the side steps'
+     * picks go. Only then forms that lose a kind: lines go the least needed first ({@link #dropOrder}),
+     * each kept line whole before it is cut; a 朋友-route line's caution alone (「答：别选「…」」, then the
+     * shorter 「答：别选表白」); a 课堂/考试 answer alone and whole; the line that stays to the end with only
+     * its count (「答：共 2 项，点开看看」, {@link CardText#countOnly}). The forms up to the cut ones are
      * {@link AnswerForm#whole}. The guide's 「（1）」 counts are already left out
      * ({@link app.p3r.dayplanner.v3.engine.DialogueHint#widgetChoices}, decision O3), and no choice
-     * is ever cut with "…" or skipped in the middle. Empty without answers.
+     * is ever cut with "…" or skipped in the middle. Empty without answers. {@link #asideForms} draws
+     * the 课堂/考试 answer beside the title instead.
      */
     static List<AnswerForm> answerForms(Context c, List<CardModel.AnswerLine> answers, float widthDp) {
-        List<AnswerForm> forms = new ArrayList<>();
-        if (answers.isEmpty()) return forms;
-        int few = Math.max(MAX_ANSWER_LINES, answers.size());
-        int more = Math.max(MORE_ANSWER_LINES, answers.size());
-        // {shortLabels, shortOr, lines}: the ladder's rungs on whole lines.
-        Object[][] ladder = {{false, false, few}, {true, false, few}, {true, true, few}, {true, true, more}};
-        AnswerForm[] rungs = new AnswerForm[ladder.length];
-        for (int i = 0; i < ladder.length; i++) {
-            rungs[i] = answerForm(c, answers, widthDp, (Boolean) ladder[i][0], (Boolean) ladder[i][1], false, (Integer) ladder[i][2],
-                    DIALOGUE_SP, ALL);
+        if (answers.isEmpty()) return new ArrayList<>();
+        return new Ladder(c, answers, widthDp, 0).forms(answers);
+    }
+
+    /**
+     * The ways to draw {@code answers} with their first 课堂/考试 answer beside the title
+     * ({@link CardModel#answersAside}, without its 「（第 n 项）」) and the others in the row, best first
+     * (the row's forms as {@link #answerForms} makes them, each with the aside at its text size): for a
+     * card whose step has answers of its own and whose row has no room for both kinds (130dp high, a
+     * 180x150 card at 115% font). Empty when the card has no 课堂/考试 answer after an answer of the
+     * step's own.
+     */
+    static List<AnswerForm> asideForms(Context c, List<CardModel.AnswerLine> answers, float widthDp) {
+        List<AnswerForm> out = new ArrayList<>();
+        int at = -1;
+        for (int i = 1; i < answers.size() && at < 0; i++) if (answers.get(i).certain()) at = i;
+        if (at < 0 || own(answers) == null) return out;
+        Ladder ladder = new Ladder(c, answers, widthDp, 1);
+        List<CardModel.AnswerLine> rest = new ArrayList<>(answers);
+        CardModel.AnswerLine aside = rest.remove(at).withoutPosition();
+        String shaped = CardText.keep(aside.text().replace(' ', CardText.NBSP));
+        DisplayMetrics metrics = c.getResources().getDisplayMetrics();
+        for (AnswerForm form : ladder.forms(rest)) {
+            // At the size the row's setter draws it (not rounded), in whole pixels, 1dp for rounding.
+            float sizeDp = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, form.sp, metrics) / metrics.density;
+            float textPx = (float) Math.ceil(lineWidthDp(c, shaped, sizeDp, Typeface.DEFAULT) * metrics.density);
+            float asideWidth = textPx / metrics.density + ASIDE_GAP_DP + 1;
+            float asideHeight = textHeightDp(c, shaped, form.sp, false, 9999, 1);
+            out.add(form.beside(shaped, asideWidth, asideHeight));
         }
-        for (int i = 0; i < rungs.length; i++) {
-            // A label alone on a line (「要是升级了，答：」 / 「别选表白的回答」) gives way to the next rung when
-            // that takes fewer lines (「升级时答：别选表白的回答」).
-            AnswerForm next = i + 1 < rungs.length ? rungs[i + 1] : null;
-            if (rungs[i] != null && next != null && next.lines < rungs[i].lines && strands(c, rungs[i], widthDp)) continue;
-            addWhole(forms, rungs[i]);
+        return out;
+    }
+
+    /** The step's own answers line (the first, unless it is a side step's picks or a 课堂/考试 answer), or null. */
+    static CardModel.AnswerLine own(List<CardModel.AnswerLine> answers) {
+        if (answers.isEmpty()) return null;
+        CardModel.AnswerLine first = answers.get(0);
+        boolean side = DialogueHint.SIDE_PREFIX.equals(first.label);
+        return first.certain() || side || first.label.isEmpty() ? null : first;
+    }
+
+    /**
+     * Builds the forms of one card's answers on a body {@code widthDp} wide, and says of each whether it
+     * keeps both kinds of answers ({@link AnswerForm#both}) of the card it was made for.
+     */
+    private static final class Ladder {
+        final Context c;
+        final float widthDp;
+        /** The card has an own line, and it has choices (a line of its own without choices is its note). */
+        final boolean hasOwn;
+        final boolean ownChoices;
+        /** 课堂/考试 answers of the card. */
+        final int certain;
+        /** 课堂/考试 answers drawn beside the title, not in the row. */
+        final int beside;
+
+        Ladder(Context c, List<CardModel.AnswerLine> card, float widthDp, int beside) {
+            this.c = c;
+            this.widthDp = widthDp;
+            this.beside = beside;
+            CardModel.AnswerLine own = own(card);
+            hasOwn = own != null;
+            ownChoices = own != null && !own.choices.isEmpty();
+            int n = 0;
+            for (CardModel.AnswerLine line : card) if (line.certain()) n++;
+            certain = n;
         }
-        // A class answer names its option itself: its position goes before any choice wraps or is cut.
-        List<CardModel.AnswerLine> bare = new ArrayList<>(answers.size());
-        for (CardModel.AnswerLine line : answers) bare.add(line.withoutPosition());
-        if (!bare.equals(answers)) {
-            answers = bare;
-            addWhole(forms, answerForm(c, answers, widthDp, true, true, false, more, DIALOGUE_SP, ALL));
-        }
-        addWhole(forms, looseForm(c, answers, widthDp, more, DIALOGUE_SP, ALL));
-        addWhole(forms, answerForm(c, answers, widthDp, true, true, false, more, ANSWERS_SMALL_SP, ALL));
-        addWhole(forms, looseForm(c, answers, widthDp, more, ANSWERS_SMALL_SP, ALL));
-        int most = mostChoices(answers);
-        for (int shown = most - 1; shown >= 1; shown--) {
-            AnswerForm big = answerForm(c, answers, widthDp, true, true, false, more, DIALOGUE_SP, shown);
-            AnswerForm small = answerForm(c, answers, widthDp, true, true, false, more, ANSWERS_SMALL_SP, shown);
-            // 「等 N 项」 alone on a line gives way to 11sp on fewer lines.
-            if (big == null || small == null || small.lines >= big.lines || !strands(c, big, widthDp)) add(forms, big);
-            add(forms, small);
-        }
-        // The shortest cards: lines go, the least needed first; a kept line stays whole where it can.
-        List<List<CardModel.AnswerLine>> drops = dropOrder(answers);
-        for (List<CardModel.AnswerLine> kept : drops) {
-            add(forms, answerForm(c, kept, widthDp, true, true, false, kept.size(), ANSWERS_SMALL_SP, ALL));
-            for (int shown = mostChoices(kept) - 1; shown >= 1; shown--) {
-                add(forms, answerForm(c, kept, widthDp, true, true, false, kept.size(), ANSWERS_SMALL_SP, shown));
+
+        /** The forms of {@code answers} (the card's lines, or all but the one beside the title), best first. */
+        List<AnswerForm> forms(List<CardModel.AnswerLine> answers) {
+            List<AnswerForm> forms = new ArrayList<>();
+            if (answers.isEmpty()) return forms;
+            int few = Math.max(MAX_ANSWER_LINES, answers.size());
+            int more = Math.max(MORE_ANSWER_LINES, answers.size());
+            // {shortLabels, shortOr, lines}: the ladder's rungs on whole lines.
+            Object[][] ladder = {{false, false, few}, {true, false, few}, {true, true, few}, {true, true, more}};
+            AnswerForm[] rungs = new AnswerForm[ladder.length];
+            for (int i = 0; i < ladder.length; i++) {
+                rungs[i] = form(answers, (Boolean) ladder[i][0], (Boolean) ladder[i][1], false, (Integer) ladder[i][2],
+                        DIALOGUE_SP, ALL, false);
             }
-            add(forms, looseForm(c, kept, widthDp, ALL, ANSWERS_SMALL_SP, ALL));
-            for (int shown = mostChoices(kept) - 1; shown >= 1; shown--) {
-                add(forms, looseForm(c, kept, widthDp, ALL, ANSWERS_SMALL_SP, shown));
+            for (int i = 0; i < rungs.length; i++) {
+                // A label alone on a line (「要是升级了，答：」 / 「别选表白的回答」) gives way to the next rung when
+                // that takes fewer lines (「升级时答：别选表白的回答」).
+                AnswerForm next = i + 1 < rungs.length ? rungs[i + 1] : null;
+                if (rungs[i] != null && next != null && next.lines < rungs[i].lines && strands(c, rungs[i], widthDp)) continue;
+                addWhole(forms, rungs[i]);
+            }
+            // A class answer names its option itself: its position goes before any choice wraps or is cut.
+            List<CardModel.AnswerLine> bare = new ArrayList<>(answers.size());
+            for (CardModel.AnswerLine line : answers) bare.add(line.withoutPosition());
+            if (!bare.equals(answers)) {
+                answers = bare;
+                addWhole(forms, form(answers, true, true, false, more, DIALOGUE_SP, ALL, false));
+            }
+            // Then a 课堂/考试 answer on the line before it, before any choice wraps inside. A line that
+            // shares a class answer keeps its choices whole: 「我很荣幸或」/「我不介意 · 课堂：奥义书」 reads
+            // worse than the class answer beside the title over whole choices.
+            boolean merges = merges(answers);
+            if (merges) addWhole(forms, unstranded(form(answers, true, true, false, more, DIALOGUE_SP, ALL, true)));
+            for (float sp : new float[]{DIALOGUE_SP, ANSWERS_SMALL_SP}) {
+                if (sp != DIALOGUE_SP) {
+                    addWhole(forms, form(answers, true, true, false, more, sp, ALL, false));
+                    if (merges) addWhole(forms, unstranded(form(answers, true, true, false, more, sp, ALL, true)));
+                }
+                addWhole(forms, loose(answers, more, sp, ALL));
+            }
+            // Short of height, both kinds stay: an answer to every prompt first (the first of two
+            // alternatives), then the lines cut to their first choices and 「等 N 项」.
+            List<CardModel.AnswerLine> first = new ArrayList<>(answers.size());
+            for (CardModel.AnswerLine line : answers) first.add(line.certain() ? line : line.firstAlternatives());
+            boolean alternatives = !first.equals(answers);
+            if (alternatives) {
+                for (float sp : new float[]{DIALOGUE_SP, ANSWERS_SMALL_SP}) {
+                    add(forms, unstranded(form(first, true, true, false, more, sp, ALL, false)));
+                    if (merges) add(forms, unstranded(form(first, true, true, false, more, sp, ALL, true)));
+                }
+                add(forms, unstranded(loose(first, more, ANSWERS_SMALL_SP, ALL)));
+            }
+            int most = mostChoices(answers);
+            for (int shown = most - 1; shown >= 1; shown--) {
+                AnswerForm big = form(answers, true, true, false, more, DIALOGUE_SP, shown, false);
+                AnswerForm small = form(answers, true, true, false, more, ANSWERS_SMALL_SP, shown, false);
+                // 「等 N 项」 alone on a line gives way to 11sp on fewer lines.
+                if (big == null || small == null || small.lines >= big.lines || !strands(c, big, widthDp)) add(forms, big);
+                add(forms, small);
+                if (merges) add(forms, unstranded(form(answers, true, true, false, more, ANSWERS_SMALL_SP, shown, true)));
+                if (alternatives) {
+                    add(forms, unstranded(form(first, true, true, false, more, ANSWERS_SMALL_SP, shown, false)));
+                    if (merges) add(forms, unstranded(form(first, true, true, false, more, ANSWERS_SMALL_SP, shown, true)));
+                }
+            }
+            // The shortest cards: lines go, the least needed first; a kept line stays whole where it can.
+            List<List<CardModel.AnswerLine>> drops = dropOrder(answers);
+            for (List<CardModel.AnswerLine> kept : drops) {
+                boolean mergesKept = merges(kept);
+                add(forms, form(kept, true, true, false, kept.size(), ANSWERS_SMALL_SP, ALL, false));
+                if (mergesKept) add(forms, unstranded(form(kept, true, true, false, kept.size(), ANSWERS_SMALL_SP, ALL, true)));
+                for (int shown = mostChoices(kept) - 1; shown >= 1; shown--) {
+                    add(forms, form(kept, true, true, false, kept.size(), ANSWERS_SMALL_SP, shown, false));
+                    if (mergesKept) add(forms, unstranded(form(kept, true, true, false, kept.size(), ANSWERS_SMALL_SP, shown, true)));
+                }
+                add(forms, loose(kept, ALL, ANSWERS_SMALL_SP, ALL));
+                for (int shown = mostChoices(kept) - 1; shown >= 1; shown--) {
+                    add(forms, loose(kept, ALL, ANSWERS_SMALL_SP, shown));
+                }
+            }
+            // Last, a 朋友-route line keeps its caution rather than its first choice (the confession picked by
+            // mistake costs more than a weaker answer), the named answer to avoid or else the shorter
+            // 「别选表白」 (the same warning).
+            CardModel.AnswerLine own = answers.get(0);
+            if (own.note != null && own.note.startsWith(DialogueHint.FRIEND_AVOID.substring(0, 2))) {
+                List<String> notes = new ArrayList<>();
+                if (!own.choices.isEmpty()) notes.add(own.note);
+                if (!own.note.equals(DialogueHint.FRIEND_AVOID)) notes.add(DialogueHint.FRIEND_AVOID);
+                for (String note : notes) {
+                    List<CardModel.AnswerLine> caution = Collections.singletonList(new CardModel.AnswerLine(own.label,
+                            own.shortLabel, Collections.emptyList(), note, own.conditional));
+                    add(forms, form(caution, true, true, false, 1, ANSWERS_SMALL_SP, ALL, false));
+                }
+            }
+            // Last, for a card with room for one short line beside its title (130dp high, a first choice wider
+            // than the line): a 课堂/考试 answer that fits whole (certain, and missed for good) rather than a line
+            // with no choice in it; else the line that stays to the end says how many choices it has,
+            // 「答：共 2 项，点开看看」 (「考试：点开看看」 for one, and so a long label: 「升级时答：点开看看」); the
+            // card's tap shows them.
+            CardModel.AnswerLine kept = drops.isEmpty() ? answers.get(0) : drops.get(drops.size() - 1).get(0);
+            for (CardModel.AnswerLine line : answers) {
+                if (line != kept && certain(line)) {
+                    add(forms, form(Collections.singletonList(line), true, true, false, 1, ANSWERS_SMALL_SP, ALL, false));
+                }
+            }
+            if (!kept.choices.isEmpty()) {
+                for (String note : new LinkedHashSet<>(Arrays.asList(CardText.countOnly(kept.choices.size()), CardText.TAP_TO_SEE))) {
+                    List<CardModel.AnswerLine> count = Collections.singletonList(new CardModel.AnswerLine(kept.label, kept.shortLabel,
+                            Collections.emptyList(), note, kept.conditional));
+                    add(forms, form(count, true, true, false, 1, ANSWERS_SMALL_SP, ALL, false));
+                }
+            }
+            return forms;
+        }
+
+        /** Null for a form with a drawn line that holds only a label or 「等 N 项」 ({@link #strands}). */
+        private AnswerForm unstranded(AnswerForm form) {
+            return form == null || strands(c, form, widthDp) ? null : form;
+        }
+
+        /**
+         * {@code answers} at {@code sp} within {@code maxLines}, a choice wrapping inside
+         * ({@link CardText#choicesLoose}) only where that takes fewer lines than every choice whole at the
+         * same size and the same {@code shown}, or where no whole form fits the width (a choice, label or
+         * note wider than a line); else every choice whole. Null when neither fits {@code maxLines}. Spec
+         * 3.1.0 §1.4.3 step 5: a choice wraps inside only when it has to.
+         */
+        private AnswerForm loose(List<CardModel.AnswerLine> answers, int maxLines, float sp, int shown) {
+            AnswerForm loose = form(answers, true, true, true, maxLines, sp, shown, false);
+            AnswerForm whole = form(answers, true, true, false, ALL, sp, shown, false);
+            if (whole == null || loose != null && loose.lines < whole.lines) return loose;
+            return whole.lines <= maxLines ? whole : null;
+        }
+
+        /**
+         * {@code answers} shaped for one rung, or null when it does not fit: more than {@code maxLines}
+         * lines, or (unless {@code loose}) a choice, note or label wider than a line, which the line
+         * breaker would cut wherever it likes. A line with more than {@code shown} choices keeps its first
+         * {@code shown} and ends 「等 N 项」, unless the choices it would leave out are no wider than
+         * 「等 N 项」 (then it stays whole); null when no line is cut at all for a {@code shown} below
+         * {@link #ALL} (the whole lines are a form of their own). With {@code merge} a 课堂/考试 answer
+         * goes on the line before it ({@link CardText#shape}).
+         */
+        AnswerForm form(List<CardModel.AnswerLine> answers, boolean shortLabels, boolean shortOr, boolean loose, int maxLines,
+                        float sp, int shown, boolean merge) {
+            int[] each = new int[answers.size()];
+            boolean cut = false;
+            float sizeDp = layoutTextDp(c, sp);
+            for (int i = 0; i < each.length; i++) {
+                CardModel.AnswerLine line = answers.get(i);
+                each[i] = ALL;
+                int n = line.choices.size();
+                if (shown >= n) continue;
+                List<String> left = new ArrayList<>();
+                for (String choice : line.choices.subList(shown, n)) left.add(shortOr ? CardText.shortOr(choice) : choice);
+                float leftDp = lineWidthDp(c, CardText.CHOICE_SEPARATOR + String.join(CardText.CHOICE_SEPARATOR, left), sizeDp, Typeface.DEFAULT);
+                float etcDp = lineWidthDp(c, " " + CardText.etc(n), sizeDp, Typeface.DEFAULT);
+                if (leftDp <= etcDp) continue;
+                each[i] = shown;
+                cut = true;
+            }
+            if (shown != ALL && !cut) return null;
+            CardText.Shaped shaped = CardText.shape(answers, shortLabels, shortOr, loose, each, merge);
+            String text = shaped.text;
+            int[] starts = shaped.starts.clone();
+            StaticLayout layout = layout(c, text, sp, Typeface.DEFAULT, widthDp, Integer.MAX_VALUE, DIALOGUE_SPACING_DP);
+            if (layout.getLineCount() > maxLines) return null;
+            // A note (or a 课堂/考试 answer) that starts a line goes there without its 「·」 (the lines stay as they are).
+            int[] lineStarts = new int[layout.getLineCount()];
+            for (int i = 0; i < lineStarts.length; i++) lineStarts[i] = layout.getLineStart(i);
+            String broken = CardText.breakBeforeNotes(text, lineStarts, starts);
+            if (!broken.equals(text)) {
+                text = broken;
+                layout = layout(c, text, sp, Typeface.DEFAULT, widthDp, Integer.MAX_VALUE, DIALOGUE_SPACING_DP);
+            }
+            if (!loose) {
+                for (int i = 0; i < answers.size(); i++) {
+                    CardModel.AnswerLine line = answers.get(i);
+                    List<String> pieces = new ArrayList<>();
+                    pieces.add(shortLabels && line.shortLabel != null ? line.shortLabel : line.label);
+                    int count = Math.min(line.choices.size(), Math.max(1, each[i]));
+                    for (String choice : line.choices.subList(0, count)) pieces.add(shortOr ? CardText.shortOr(choice) : choice);
+                    if (count < line.choices.size()) pieces.add(CardText.etc(line.choices.size()));
+                    if (line.note != null) pieces.add(line.note);
+                    for (String piece : pieces) {
+                        if (!isBlank(piece) && answerLines(c, piece, sp, widthDp) > 1) return null;
+                    }
+                }
+            }
+            float height = DIALOGUE_GAP_DP + layout.getHeight() / c.getResources().getDisplayMetrics().density;
+            return new AnswerForm(text, sp, height, false, layout.getLineCount(), keepsBoth(answers), muted(answers, text, starts));
+        }
+
+        /**
+         * Whether {@code lines} (a form's, every one in the row) keep both kinds of the card: a line of the
+         * step's own with a choice in it (its note, where the step's line has none) and every 课堂/考试
+         * answer; a kind the card does not have is kept.
+         */
+        private boolean keepsBoth(List<CardModel.AnswerLine> lines) {
+            boolean ownKept = !hasOwn;
+            int kept = beside;
+            for (CardModel.AnswerLine line : lines) {
+                if (line.certain()) kept++;
+                else if (own(Collections.singletonList(line)) != null && (!line.choices.isEmpty() || !ownChoices)) ownKept = true;
+            }
+            return ownKept && kept >= certain;
+        }
+    }
+
+    /**
+     * The muted parts of shaped answers {@code text}: each {@link CardModel.AnswerLine#conditional} line,
+     * from its label ({@code starts}) to the next line's, without the break or 「 · 」 between them.
+     */
+    private static int[] muted(List<CardModel.AnswerLine> lines, String text, int[] starts) {
+        List<Integer> out = new ArrayList<>();
+        for (int i = 0; i < lines.size(); i++) {
+            if (!lines.get(i).conditional) continue;
+            int start = starts[i];
+            int end = i + 1 < lines.size() ? starts[i + 1] : text.length();
+            while (end > start && between(text.charAt(end - 1))) end--;
+            if (end > start) {
+                out.add(start);
+                out.add(end);
             }
         }
-        // Last, a 朋友-route line keeps its caution rather than its first choice (the confession picked by
-        // mistake costs more than a weaker answer), the named answer to avoid or else the shorter
-        // 「别选表白」 (the same warning).
-        CardModel.AnswerLine own = answers.get(0);
-        if (own.note != null && own.note.startsWith(DialogueHint.FRIEND_AVOID.substring(0, 2))) {
-            List<String> notes = new ArrayList<>();
-            if (!own.choices.isEmpty()) notes.add(own.note);
-            if (!own.note.equals(DialogueHint.FRIEND_AVOID)) notes.add(DialogueHint.FRIEND_AVOID);
-            for (String note : notes) {
-                List<CardModel.AnswerLine> caution = Collections.singletonList(new CardModel.AnswerLine(own.label,
-                        own.shortLabel, Collections.emptyList(), note, own.conditional));
-                add(forms, answerForm(c, caution, widthDp, true, true, false, 1, ANSWERS_SMALL_SP, ALL));
-            }
-        }
-        // Last, for a card with room for one short line beside its title (130dp high, a first choice wider
-        // than the line): a 课堂/考试 answer that fits whole (certain, and missed for good) rather than a line
-        // with no choice in it; else the line that stays to the end says how many choices it has,
-        // 「答：共 2 项，点开看看」 (「考试：点开看看」 for one, and so a long label: 「升级时答：点开看看」); the
-        // card's tap shows them.
-        CardModel.AnswerLine kept = drops.isEmpty() ? answers.get(0) : drops.get(drops.size() - 1).get(0);
-        for (CardModel.AnswerLine line : answers) {
-            if (line != kept && certain(line)) {
-                add(forms, answerForm(c, Collections.singletonList(line), widthDp, true, true, false, 1, ANSWERS_SMALL_SP, ALL));
-            }
-        }
-        if (!kept.choices.isEmpty()) {
-            for (String note : new LinkedHashSet<>(Arrays.asList(CardText.countOnly(kept.choices.size()), CardText.TAP_TO_SEE))) {
-                List<CardModel.AnswerLine> count = Collections.singletonList(new CardModel.AnswerLine(kept.label, kept.shortLabel,
-                        Collections.emptyList(), note, kept.conditional));
-                add(forms, answerForm(c, count, widthDp, true, true, false, 1, ANSWERS_SMALL_SP, ALL));
-            }
-        }
-        return forms;
+        int[] pairs = new int[out.size()];
+        for (int i = 0; i < pairs.length; i++) pairs[i] = out.get(i);
+        return pairs;
+    }
+
+    /** Whether {@code ch} goes between two answers lines (a break, a joiner, the 「 · 」 of a merge). */
+    private static boolean between(char ch) {
+        return ch == ' ' || ch == '\n' || ch == '·' || ch == CardText.WJ || ch == CardText.NBSP;
+    }
+
+    /** Whether some 课堂/考试 answer of {@code lines} comes after another line (it can go on that line's end). */
+    private static boolean merges(List<CardModel.AnswerLine> lines) {
+        for (int i = 1; i < lines.size(); i++) if (lines.get(i).certain()) return true;
+        return false;
     }
 
     /**
@@ -504,22 +774,7 @@ public final class CardRenderer {
 
     /** As {@link #add} for a form that keeps every line and every choice ({@link AnswerForm#whole}). */
     private static void addWhole(List<AnswerForm> forms, AnswerForm form) {
-        add(forms, form == null ? null : new AnswerForm(form.text, form.sp, form.heightDp, true, form.lines));
-    }
-
-    /**
-     * {@code answers} at {@code sp} within {@code maxLines}, a choice wrapping inside
-     * ({@link CardText#choicesLoose}) only where that takes fewer lines than every choice whole at the
-     * same size and the same {@code shown}, or where no whole form fits the width (a choice, label or
-     * note wider than a line); else every choice whole. Null when neither fits {@code maxLines}. Spec
-     * 3.1.0 §1.4.3 step 5: a choice wraps inside only when it has to.
-     */
-    private static AnswerForm looseForm(Context c, List<CardModel.AnswerLine> answers, float widthDp, int maxLines, float sp,
-                                        int shown) {
-        AnswerForm loose = answerForm(c, answers, widthDp, true, true, true, maxLines, sp, shown);
-        AnswerForm whole = answerForm(c, answers, widthDp, true, true, false, ALL, sp, shown);
-        if (whole == null || loose != null && loose.lines < whole.lines) return loose;
-        return whole.lines <= maxLines ? whole : null;
+        add(forms, form == null ? null : form.asWhole());
     }
 
     private static int mostChoices(List<CardModel.AnswerLine> lines) {
@@ -533,6 +788,7 @@ public final class CardRenderer {
      * order, the last one line long): the side steps' picks from the last; then a meeting's own line
      * when it is only 「要是升级了」 (it may not rank up) and a 课堂/考试 answer is there (certain, and
      * missed for good); then the 课堂/考试 answers from the last. The step's own line otherwise stays.
+     * Only the side steps' picks go while both kinds stay ({@link AnswerForm#both}).
      */
     static List<List<CardModel.AnswerLine>> dropOrder(List<CardModel.AnswerLine> answers) {
         List<CardModel.AnswerLine> left = new ArrayList<>(answers);
@@ -550,63 +806,7 @@ public final class CardRenderer {
 
     /** A 课堂/考试 answer of the card's slots (a reminder: certain, and missed for good). */
     static boolean certain(CardModel.AnswerLine line) {
-        return line.label.startsWith(CardModel.CLASS_LABEL) || line.label.startsWith(CardModel.EXAM_LABEL);
-    }
-
-    /**
-     * {@code answers} shaped for one rung, or null when it does not fit: more than {@code maxLines}
-     * lines, or (unless {@code loose}) a choice, note or label wider than a line, which the line
-     * breaker would cut wherever it likes. A line with more than {@code shown} choices keeps its first
-     * {@code shown} and ends 「等 N 项」, unless the choices it would leave out are no wider than
-     * 「等 N 项」 (then it stays whole); null when no line is cut at all for a {@code shown} below
-     * {@link #ALL} (the whole lines are a form of their own).
-     */
-    private static AnswerForm answerForm(Context c, List<CardModel.AnswerLine> answers, float widthDp, boolean shortLabels,
-                                         boolean shortOr, boolean loose, int maxLines, float sp, int shown) {
-        int[] each = new int[answers.size()];
-        boolean cut = false;
-        float sizeDp = layoutTextDp(c, sp);
-        for (int i = 0; i < each.length; i++) {
-            CardModel.AnswerLine line = answers.get(i);
-            each[i] = ALL;
-            int n = line.choices.size();
-            if (shown >= n) continue;
-            List<String> left = new ArrayList<>();
-            for (String choice : line.choices.subList(shown, n)) left.add(shortOr ? CardText.shortOr(choice) : choice);
-            float leftDp = lineWidthDp(c, CardText.CHOICE_SEPARATOR + String.join(CardText.CHOICE_SEPARATOR, left), sizeDp, Typeface.DEFAULT);
-            float etcDp = lineWidthDp(c, " " + CardText.etc(n), sizeDp, Typeface.DEFAULT);
-            if (leftDp <= etcDp) continue;
-            each[i] = shown;
-            cut = true;
-        }
-        if (shown != ALL && !cut) return null;
-        String text = CardText.answers(answers, shortLabels, shortOr, loose, each);
-        StaticLayout layout = layout(c, text, sp, Typeface.DEFAULT, widthDp, Integer.MAX_VALUE, DIALOGUE_SPACING_DP);
-        if (layout.getLineCount() > maxLines) return null;
-        // A note that starts a line goes there without its 「·」 (the lines stay as they are).
-        int[] starts = new int[layout.getLineCount()];
-        for (int i = 0; i < starts.length; i++) starts[i] = layout.getLineStart(i);
-        String broken = CardText.breakBeforeNotes(text, starts);
-        if (!broken.equals(text)) {
-            text = broken;
-            layout = layout(c, text, sp, Typeface.DEFAULT, widthDp, Integer.MAX_VALUE, DIALOGUE_SPACING_DP);
-        }
-        if (!loose) {
-            for (int i = 0; i < answers.size(); i++) {
-                CardModel.AnswerLine line = answers.get(i);
-                List<String> pieces = new ArrayList<>();
-                pieces.add(shortLabels && line.shortLabel != null ? line.shortLabel : line.label);
-                int count = Math.min(line.choices.size(), Math.max(1, each[i]));
-                for (String choice : line.choices.subList(0, count)) pieces.add(shortOr ? CardText.shortOr(choice) : choice);
-                if (count < line.choices.size()) pieces.add(CardText.etc(line.choices.size()));
-                if (line.note != null) pieces.add(line.note);
-                for (String piece : pieces) {
-                    if (!isBlank(piece) && answerLines(c, piece, sp, widthDp) > 1) return null;
-                }
-            }
-        }
-        float height = DIALOGUE_GAP_DP + layout.getHeight() / c.getResources().getDisplayMetrics().density;
-        return new AnswerForm(text, sp, height, false, layout.getLineCount());
+        return line.certain();
     }
 
     /** Lines {@code text} wraps to in the answers row at {@code sp}. */
@@ -814,11 +1014,15 @@ public final class CardRenderer {
      * below a comfortable size. When the title would not fit even at its smallest size, the 当日提醒
      * row goes ({@link #fitReminder}: whole, short or not at all), then the 人格面具 reminder, then the
      * side-step line; then the body's padding, then the tag/location row, then the answers take their
-     * whole shorter forms (choices that wrap inside, 11sp); then the title keeps one line, the longest
-     * of its forms that fits it whole ({@link #oneLineTitle}); then the answers take the forms cut to
-     * 「等 N 项」 or with lines left out (giving up the gap above them rather than a choice); then the
-     * cue. On the shortest cards (130dp, two lines of text under the plate) that leaves one line for
-     * the title and one for the answers. The body's padding also goes before an essential
+     * whole shorter forms (a 课堂/考试 answer on the line before it, choices that wrap inside, 11sp);
+     * then the title keeps one line, the longest of its forms that fits it whole ({@link #oneLineTitle});
+     * then the row gives up the gap above it. Both kinds of answers stay, the step's own and the
+     * 课堂/考试 ones ({@link AnswerForm#both}): next the 课堂/考试 answer moves to the title's line
+     * ({@link #asideForms}, {@link CardModel#answersAside}) beside the longest title form that fits
+     * there ({@link #titleBeside}), the row keeping the step's answers whole or in their shorter forms;
+     * then the row's shorter forms that keep both; only then forms that lose one (lines left out, the
+     * count); then the cue. On the shortest cards (130dp, two lines of text under the plate) that
+     * leaves one line for the title and one for the answers. The body's padding also goes before an essential
      * instruction's second line. A title that would still end in "…" gives way to the first of its
      * {@link CardModel#shortTitles} that is whole, and a title that wraps at a 「 · 」 drops the dot
      * there ({@link #wrapAtSeparators}). The tag chip is never cut: the location beside
@@ -857,15 +1061,33 @@ public final class CardRenderer {
         return fitted == model ? model.copy() : fitted;
     }
 
+    /** Which forms {@link #firstFit} may take: every line and choice; both kinds of answers; any. */
+    private static final int WHOLE = 0;
+    private static final int BOTH = 1;
+    private static final int ANY = 2;
+
     /**
-     * Index of the first of {@code forms} (only its {@link AnswerForm#whole} ones when {@code wholeOnly})
-     * that, less {@code gapDp}, fits {@code limitDp} beside {@code otherDp} of other rows; -1 for none.
+     * The first of {@code forms} that {@code which} allows ({@link #WHOLE}: only the leading whole ones;
+     * {@link #BOTH}: those that keep both kinds of answers) and that, less {@code gapDp}, fits
+     * {@code limitDp} beside {@code otherDp} of other rows; null for none.
      */
-    private static int firstFit(List<AnswerForm> forms, float otherDp, float gapDp, float limitDp, boolean wholeOnly) {
-        for (int i = 0; i < forms.size() && (!wholeOnly || forms.get(i).whole); i++) {
-            if (otherDp + forms.get(i).heightDp - gapDp <= limitDp) return i;
+    private static AnswerForm firstFit(List<AnswerForm> forms, float otherDp, float gapDp, float limitDp, int which) {
+        for (int i = 0; i < forms.size() && (which != WHOLE || forms.get(i).whole); i++) {
+            AnswerForm form = forms.get(i);
+            if (which == BOTH && !form.both) continue;
+            if (otherDp + form.heightDp - gapDp <= limitDp) return form;
         }
-        return -1;
+        return null;
+    }
+
+    /**
+     * The title of {@code model} beside a 课堂/考试 answer ({@link CardModel#answersAside}): the longest of
+     * the title and its {@link CardModel#shortTitles} that fits one line whole at {@link #MIN_TITLE_SP}
+     * on a title {@code titleWidthDp} wide; null when none does.
+     */
+    static String titleBeside(Context c, CardModel model, float titleWidthDp) {
+        String title = oneLineTitle(c, model, titleWidthDp);
+        return fitsOneLine(c, title, titleWidthDp) ? title : null;
     }
 
     /**
@@ -879,7 +1101,7 @@ public final class CardRenderer {
         forms.add(model.title);
         forms.addAll(model.shortTitles);
         for (String form : forms) {
-            if (!isBlank(form) && titleNeedDp(c, form, MIN_TITLE_SP, titleWidthDp, 1) < Float.POSITIVE_INFINITY) return form;
+            if (fitsOneLine(c, form, titleWidthDp)) return form;
         }
         return forms.get(forms.size() - 1);
     }
@@ -894,7 +1116,6 @@ public final class CardRenderer {
         // The answers row is essential: the width ladder's first form that fits, shorter forms only
         // after every other row but the cue.
         List<AnswerForm> forms = answerForms(c, model.answers, innerWidth);
-        int form = 0;
         String answersText = forms.isEmpty() ? null : forms.get(0).text;
         float answers = forms.isEmpty() ? 0 : forms.get(0).heightDp;
         // The 当日提醒 row: the first one whole or short, never cut.
@@ -1001,33 +1222,62 @@ public final class CardRenderer {
         room = padding - reclaimed;
         // Then the answers, which are never hidden, and the title, which never goes either (spec 3.1.0
         // §1.4.4), in this order: the answers' whole forms, every line and every choice (「升级时答：」,
-        // 「或」, three lines, no 「（第 n 项）」, choices that wrap inside, 11sp); then the title keeps one
-        // line, the longest of its forms that fits that line whole (「教皇 · 北村文吉、光子」, 「北村文吉、光子」,
-        // 「北村文吉」, 「教皇」); last the answers' shorter forms (「等 N 项」, lines going the least needed
-        // first, a 朋友-route caution alone, the count). The row gives up the gap above it rather than a
-        // choice. The shortest cards (130dp high) hold two lines of text under the plate: one for the
-        // title, one for the answers.
+        // 「或」, three lines, no 「（第 n 项）」, a 课堂/考试 answer on the line before it, choices that wrap
+        // inside, 11sp); then the title keeps one line, the longest of its forms that fits that line whole
+        // (「教皇 · 北村文吉、光子」, 「北村文吉、光子」, 「北村文吉」, 「教皇」); then the row gives up the gap above
+        // it. Both kinds of answers stay (docs/DESIGN_v3.md §18): next the 课堂/考试 answer goes beside the
+        // title, which keeps the longest of its forms that fits beside it, and the row keeps the step's own
+        // answers whole, else in their shorter forms (the first of two alternatives, 「等 N 项」); then the
+        // row's shorter forms that keep both kinds; last any (lines going the least needed first, a
+        // 朋友-route caution alone, the count). The shortest cards (130dp high) hold two lines of text under
+        // the plate: one for the title, one for the answers.
         String titleLine = null;
         boolean tight = false;
+        AnswerForm chosen = forms.isEmpty() ? null : forms.get(0);
         if (deficit > 0 && !forms.isEmpty()) {
             float limit = body + room;
-            form = firstFit(forms, smallest + cue, 0, limit, true);
-            if (form < 0) {
+            chosen = firstFit(forms, smallest + cue, 0, limit, WHOLE);
+            if (chosen == null) {
                 titleLine = oneLineTitle(c, fitted, titleWidth);
                 smallest = titleHeightDp(c, titleLine, MIN_TITLE_SP, titleWidth, 1);
-                form = firstFit(forms, smallest + cue, 0, limit, true);
+                chosen = firstFit(forms, smallest + cue, 0, limit, WHOLE);
             }
-            if (form < 0) {
-                form = firstFit(forms, smallest + cue, DIALOGUE_GAP_DP, limit, true);
-                tight = form >= 0;
+            if (chosen == null) {
+                chosen = firstFit(forms, smallest + cue, DIALOGUE_GAP_DP, limit, WHOLE);
+                tight = chosen != null;
             }
-            if (form < 0) form = firstFit(forms, smallest + cue, 0, limit, false);
-            if (form < 0) {
+            if (chosen == null) {
+                List<AnswerForm> beside = asideForms(c, fitted.answers, innerWidth);
+                for (int step = 0; step < 4 && chosen == null; step++) {
+                    boolean gapless = step % 2 == 1;
+                    for (AnswerForm f : beside) {
+                        if (!(step < 2 ? f.whole : f.both)) continue;
+                        float width = titleWidth - f.asideDp;
+                        String title = titleBeside(c, fitted, width);
+                        if (title == null) continue;
+                        float row = Math.max(titleHeightDp(c, title, MIN_TITLE_SP, width, 1), f.asideHeightDp);
+                        if (row + cue + f.heightDp - (gapless ? DIALOGUE_GAP_DP : 0) > limit) continue;
+                        chosen = f;
+                        titleLine = title;
+                        smallest = row;
+                        titleWidth = width;
+                        tight = gapless;
+                        break;
+                    }
+                }
+            }
+            if (chosen == null) chosen = firstFit(forms, smallest + cue, 0, limit, BOTH);
+            if (chosen == null) {
+                chosen = firstFit(forms, smallest + cue, DIALOGUE_GAP_DP, limit, BOTH);
+                tight = chosen != null;
+            }
+            if (chosen == null) chosen = firstFit(forms, smallest + cue, 0, limit, ANY);
+            if (chosen == null) {
                 tight = true;
-                form = firstFit(forms, smallest + cue, DIALOGUE_GAP_DP, limit, false);
+                chosen = firstFit(forms, smallest + cue, DIALOGUE_GAP_DP, limit, ANY);
             }
-            if (form < 0) form = forms.size() - 1; // none fits: the last stays
-            answers = forms.get(form).heightDp - (tight ? DIALOGUE_GAP_DP : 0);
+            if (chosen == null) chosen = forms.get(forms.size() - 1); // none fits: the last stays
+            answers = chosen.heightDp - (tight ? DIALOGUE_GAP_DP : 0);
             deficit = smallest + answers + cue - body;
             if (deficit > 0) {
                 float taken = Math.min(deficit, room);
@@ -1035,20 +1285,26 @@ public final class CardRenderer {
                 body += taken;
             }
         }
-        if (!forms.isEmpty()) answersText = forms.get(form).text;
-        float answersSp = forms.isEmpty() || forms.get(form).sp == DIALOGUE_SP ? 0 : forms.get(form).sp;
+        if (chosen != null) answersText = chosen.text;
+        float answersSp = chosen == null || chosen.sp == DIALOGUE_SP ? 0 : chosen.sp;
+        int[] muted = chosen == null ? new int[0] : chosen.muted;
+        String aside = chosen == null ? null : chosen.aside;
+        float asideHeight = chosen == null ? 0 : chosen.asideHeightDp;
         if (cue > 0 && smallest + answers + cue > body) {
             fitted = edit(fitted, model);
             fitted.cue = null;
             cue = 0;
         }
         if (!Objects.equals(answersText, fitted.answersShown) || answersSp != fitted.answersTextSp
-                || tight != fitted.answersTight || !Objects.equals(reminderText, fitted.reminderShown)) {
+                || tight != fitted.answersTight || !Objects.equals(reminderText, fitted.reminderShown)
+                || !Arrays.equals(muted, fitted.answersMuted) || !Objects.equals(aside, fitted.answersAside)) {
             fitted = edit(fitted, model);
             fitted.answersShown = answersText;
             fitted.answersTextSp = answersSp;
             fitted.answersTight = tight;
             fitted.reminderShown = reminderText;
+            fitted.answersMuted = muted;
+            fitted.answersAside = aside;
         }
         if (titleLine != null && !titleLine.equals(fitted.title)) {
             fitted = edit(fitted, model);
@@ -1067,7 +1323,7 @@ public final class CardRenderer {
         // box shrinks to what the largest size needs (as the layout's autosize measures it, which may
         // be a little taller than the drawn text) and the text sits centred between plate and buttons.
         float sp = maxTitleSp(size);
-        float drawn = textHeightDp(c, fitted.title, sp, true, titleWidth, fitLines);
+        float drawn = Math.max(textHeightDp(c, fitted.title, sp, true, titleWidth, fitLines), asideHeight);
         float inBox = Math.max(0, titleNeedDp(c, fitted.title, sp, titleWidth, fitLines) + TITLE_SLACK_DP - drawn);
         float spare = body - rows - drawn - inBox;
         float under = spare > 0 ? Math.min(spare * UNDER_BUTTONS_SHARE, maxSpaceUnderButtonsDp(size)) : 0;
@@ -1134,11 +1390,28 @@ public final class CardRenderer {
      * The bold title at {@code sp} wrapped to {@code widthDp} as the layout's autosize lays it out: the
      * TextView's high-quality line breaking and, on P+, the taller CJK fallback line height.
      */
-    @SuppressLint("WrongConstant") // Layout's constant (API 23) is the value LineBreaker (API 29) names
     private static StaticLayout autosizeLayout(Context c, String title, float sp, float widthDp) {
         DisplayMetrics metrics = c.getResources().getDisplayMetrics();
+        return autosizeLayoutPx(c, title, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, metrics), widthDp);
+    }
+
+    /**
+     * Whether {@code title} keeps to one line on a title {@code widthDp} wide at the smallest size the
+     * layout's autosize draws: {@link #MIN_TITLE_SP} in whole pixels, as the autosize's sizes are (12sp
+     * at 115% on xhdpi is 28px, not 27.6, which a title beside a 课堂/考试 answer needed).
+     */
+    static boolean fitsOneLine(Context c, String title, float widthDp) {
+        if (isBlank(title) || widthDp <= 0) return false;
+        DisplayMetrics metrics = c.getResources().getDisplayMetrics();
+        float px = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, MIN_TITLE_SP, metrics));
+        return autosizeLayoutPx(c, title, px, widthDp).getLineCount() <= 1;
+    }
+
+    @SuppressLint("WrongConstant") // Layout's constant (API 23) is the value LineBreaker (API 29) names
+    private static StaticLayout autosizeLayoutPx(Context c, String title, float px, float widthDp) {
+        DisplayMetrics metrics = c.getResources().getDisplayMetrics();
         TextPaint paint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        paint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, metrics));
+        paint.setTextSize(px);
         paint.setTypeface(Typeface.DEFAULT_BOLD);
         int width = Math.max(1, Math.round(widthDp * metrics.density));
         StaticLayout.Builder builder = StaticLayout.Builder.obtain(title, 0, title.length(), paint, width).setIncludePad(false)
@@ -1348,10 +1621,14 @@ public final class CardRenderer {
         }
 
         // The answers in the primary ink; the lines of a meeting that may not rank up are muted.
+        float answersSp = model.answersTextSp > 0 ? model.answersTextSp : DIALOGUE_SP;
         setTextOrHide(views, R.id.widget_dialogue_choices, answersText(model, soft));
         views.setTextColor(R.id.widget_dialogue_choices, ink);
-        views.setTextViewTextSize(R.id.widget_dialogue_choices, TypedValue.COMPLEX_UNIT_SP,
-                model.answersTextSp > 0 ? model.answersTextSp : DIALOGUE_SP);
+        views.setTextViewTextSize(R.id.widget_dialogue_choices, TypedValue.COMPLEX_UNIT_SP, answersSp);
+        // A 课堂/考试 answer with no room left in the row sits on the title's line, at its right.
+        setTextOrHide(views, R.id.widget_title_aside, model.answersAside);
+        views.setTextColor(R.id.widget_title_aside, ink);
+        views.setTextViewTextSize(R.id.widget_title_aside, TypedValue.COMPLEX_UNIT_SP, answersSp);
         views.setViewPadding(R.id.widget_dialogue_choices, 0, model.answersTight ? 0 : Math.round(DIALOGUE_GAP_DP * density), 0, 0);
 
         setTextOrHide(views, R.id.widget_reminder, model.reminderShown);
@@ -1442,23 +1719,23 @@ public final class CardRenderer {
     }
 
     /**
-     * The answers row as drawn ({@link CardModel#answersShown}), an {@link CardModel.AnswerLine#conditional}
-     * line in {@code soft} at {@link #MUTED_ANSWER_ALPHA}; null when hidden.
+     * The answers row as drawn ({@link CardModel#answersShown}), its {@link CardModel#answersMuted} parts
+     * (the lines of a meeting that may not rank up) in {@code soft} at {@link #MUTED_ANSWER_ALPHA}; null
+     * when hidden.
      */
     static CharSequence answersText(CardModel model, int soft) {
         String text = model.answersShown;
         if (isBlank(text)) return text;
         android.text.SpannableString spanned = new android.text.SpannableString(text);
         int muted = (soft & 0x00FFFFFF) | (MUTED_ANSWER_ALPHA << 24);
-        int start = 0;
-        for (int i = 0; i < model.answers.size() && start <= text.length(); i++) {
-            int end = text.indexOf(CardText.ANSWER_LINE_BREAK, start);
-            if (end < 0) end = text.length();
-            if (model.answers.get(i).conditional && end > start) {
+        int[] parts = model.answersMuted == null ? new int[0] : model.answersMuted;
+        for (int i = 0; i + 1 < parts.length; i += 2) {
+            int start = Math.max(0, parts[i]);
+            int end = Math.min(text.length(), parts[i + 1]);
+            if (end > start) {
                 spanned.setSpan(new android.text.style.ForegroundColorSpan(muted), start, end,
                         android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
-            start = end + CardText.ANSWER_LINE_BREAK.length();
         }
         return spanned;
     }

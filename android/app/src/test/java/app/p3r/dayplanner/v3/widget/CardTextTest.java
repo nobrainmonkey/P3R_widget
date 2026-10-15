@@ -8,6 +8,7 @@ import java.util.Collections;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -109,6 +110,41 @@ public class CardTextTest {
         assertTrue("「真担心啊」 whole", loose.contains("真" + WJ + "担" + WJ + "心" + WJ + "啊"));
         assertEquals("或", CardText.shortOr("或" + WJ + "者"));
         assertEquals("A或B", CardText.shortOr("A或者B"));
+    }
+
+    /**
+     * DESIGN §18: a 课堂/考试 answer may go on the line before it after 「 · 」 (a line may break before the
+     * dot, never after it); where a drawn line starts there, the dot goes and the line starts with the
+     * label, and the lines' starts move with the text. A choice of two alternatives may be written as its
+     * first (either is a good answer).
+     */
+    @Test
+    public void aClassAnswerMayShareTheLineBeforeIt() {
+        CardModel.AnswerLine own = new CardModel.AnswerLine("答：", null, Arrays.asList("好的", "没那回事"), null, false);
+        CardModel.AnswerLine cls = new CardModel.AnswerLine("课堂：", null, Collections.singletonList("变为零"), null, false);
+        CardModel.AnswerLine side = new CardModel.AnswerLine("顺便选：", null, Collections.singletonList("有话想和你说"), null, false);
+        int[] all = {Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE};
+        CardText.Shaped merged = CardText.shape(Arrays.asList(own, side, cls), false, false, false, all, true);
+        assertEquals("答：好的 / 没那回事\n顺便选：有话想和你说 · 课堂：变为零", CardText.plain(merged.text));
+        assertTrue("breaks before the dot, not after it", merged.text.contains("说" + CardText.MERGE_SEPARATOR + "课"));
+        assertEquals(3, merged.starts.length);
+        assertTrue(merged.text.startsWith("课" + WJ + "堂", merged.starts[2]));
+        assertTrue(merged.text.startsWith("顺" + WJ + "便", merged.starts[1]));
+        assertEquals("unmerged, each its own line", "答：好的 / 没那回事\n顺便选：有话想和你说\n课堂：变为零",
+                CardText.plain(CardText.shape(Arrays.asList(own, side, cls), false, false, false, all, false).text));
+        int dot = merged.text.indexOf(CardText.MERGE_SEPARATOR) + 1;
+        int[] starts = merged.starts.clone();
+        String broken = CardText.breakBeforeNotes(merged.text, new int[]{0, merged.starts[1], dot}, starts);
+        assertEquals("答：好的 / 没那回事\n顺便选：有话想和你说\n课堂：变为零", CardText.plain(broken));
+        assertTrue("the class line's start moved with it", broken.startsWith("课" + WJ + "堂", starts[2]));
+        assertEquals(merged.starts[1], starts[1]);
+
+        CardModel.AnswerLine alternatives = new CardModel.AnswerLine("答：", null,
+                Arrays.asList("我也去看看吧或者我在这里等她", "真担心啊"), null, false);
+        assertEquals("答：我也去看看吧 / 真担心啊", alternatives.firstAlternatives().text());
+        assertSame("none: the line itself", own, own.firstAlternatives());
+        assertTrue(cls.certain());
+        assertFalse(own.certain());
     }
 
     /** A note that a drawn line starts with goes there without its 「·」. */

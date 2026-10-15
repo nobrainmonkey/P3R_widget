@@ -104,12 +104,13 @@ public class AnswerRowRenderTest {
     }
 
     /**
-     * Every way the ladder may draw {@code line}: label long or short, 「或者」 or 「或」, a class answer
-     * with or without its 「（第 n 项）」, cut to 「等 N 项」, caution only.
+     * Every way the ladder may draw {@code line}: label long or short, 「或者」 or 「或」, each choice of two
+     * alternatives as its first, a class answer with or without its 「（第 n 项）」, cut to 「等 N 项」,
+     * caution only.
      */
     private static Set<String> forms(CardModel.AnswerLine line) {
         Set<String> out = new LinkedHashSet<>();
-        for (CardModel.AnswerLine form : new LinkedHashSet<>(Arrays.asList(line, line.withoutPosition()))) {
+        for (CardModel.AnswerLine form : new LinkedHashSet<>(Arrays.asList(line, line.withoutPosition(), line.firstAlternatives()))) {
             List<String> labels = new ArrayList<>(Arrays.asList(form.label));
             if (form.shortLabel != null) labels.add(form.shortLabel);
             String note = form.note == null ? "" : form.note;
@@ -136,12 +137,14 @@ public class AnswerRowRenderTest {
     /**
      * The drawn answers row against the card model: visible at every size (spec §1.4.4: the answers are
      * never hidden), never 「…」, wrapping only where its shaping allows, each drawn line one of
-     * {@link #forms} of its model line, in order. A line is cut to 「等 N 项」 only where the choices it
-     * leaves out are wider than 「等 N 项」. Lines go the least needed first ({@link CardRenderer#dropOrder}:
-     * a 课堂/考试 answer, certain and missed for good, outlasts the side picks and a 「要是升级了」 line),
-     * and a card taller than the shortest (130dp high: two lines of text under the plate) keeps every
-     * line unless the row already fills {@link CardRenderer#MAX_ANSWER_LINES} lines or a 「要是升级了」
-     * line gave way. Returns whether the row shows.
+     * {@link #forms} of its model line, in order (a 课堂/考试 answer may share the line before it after
+     * 「 · 」, or sit on the title's line, {@link R.id#widget_title_aside}). A line is cut to 「等 N 项」 only
+     * where the choices it leaves out are wider than 「等 N 项」. Both kinds of answers stay at every size
+     * (docs/DESIGN_v3.md §18): the step's own line with a choice in it (its note, for a line without
+     * choices) and every 课堂/考试 answer; only the side steps' picks may go, the least needed first
+     * ({@link CardRenderer#dropOrder}), and a card taller than the shortest (130dp high: two lines of text
+     * under the plate) keeps every line unless the row already fills {@link CardRenderer#MAX_ANSWER_LINES}
+     * lines. Returns whether the row shows.
      */
     private static boolean checkRow(View root, CardModel model, String tag, boolean shortest, List<String> issues) {
         checkTitle(root, model, tag, issues);
@@ -153,38 +156,119 @@ public class AnswerRowRenderTest {
         }
         boolean allLines = !shortest && row.getLineCount() < CardRenderer.MAX_ANSWER_LINES;
         RenderSupport.collectAnswerSplits(row, tag, issues);
-        String[] drawn = row.getText().toString().split(CardText.ANSWER_LINE_BREAK, -1);
-        if (!shortest && drawn.length < model.answers.size()) {
-            System.out.println(tag + " keeps " + drawn.length + " of " + model.answers.size() + " lines in a full row: "
-                    + CardText.plain(row.getText().toString()));
-        }
+        List<String> drawn = segments(row.getText().toString());
         List<CardModel.AnswerLine> shown = matched(model.answers, drawn);
-        // (A 「要是升级了」 line that has given way to a 课堂/考试 answer is not counted: it needs more room
-        // than is left beside that line.)
-        boolean ownGaveWay = shown != null && !shown.contains(model.answers.get(0));
-        if (shown == null || (allLines && !ownGaveWay && drawn.length < model.answers.size())) {
-            issues.add(tag + " draws " + drawn.length + " of " + model.answers.size() + " lines: " + CardText.plain(row.getText().toString())
-                    + " (model " + model.answers + ")");
+        if (shown == null) {
+            issues.add(tag + " draws " + drawn + ", not the model's lines in order (model " + model.answers + ")");
             return true;
         }
-        for (int i = 0; i < drawn.length; i++) {
-            String why = needlessCut(row, shown.get(i), drawn[i]);
+        // A 课堂/考试 answer beside the title: one of the card's, whole, not in the row as well.
+        TextView asideView = root.findViewById(R.id.widget_title_aside);
+        CardModel.AnswerLine beside = null;
+        if (asideView.getVisibility() == View.VISIBLE) {
+            String aside = text(root, R.id.widget_title_aside);
+            for (CardModel.AnswerLine line : model.answers) {
+                if (beside == null && CardRenderer.certain(line) && !shown.contains(line)
+                        && canon(line.withoutPosition().text()).equals(canon(aside))) {
+                    beside = line;
+                }
+            }
+            if (beside == null) issues.add(tag + " shows '" + aside + "' beside its title, no 课堂/考试 answer of " + model.answers);
+            if (RenderSupport.ellipsized(asideView) || asideView.getLineCount() != 1) {
+                issues.add(tag + " cuts or wraps '" + aside + "' beside its title");
+            }
+        }
+        List<CardModel.AnswerLine> kept = new ArrayList<>(shown);
+        if (beside != null) kept.add(beside);
+        for (int i = 0; i < drawn.size(); i++) {
+            String why = needlessCut(row, shown.get(i), drawn.get(i));
             if (why != null) issues.add(tag + " " + why);
+        }
+        // Both kinds stay: the step's own answers with a choice in them, and every 课堂/考试 answer.
+        CardModel.AnswerLine own = CardRenderer.own(model.answers);
+        boolean anyCertain = false;
+        for (CardModel.AnswerLine line : model.answers) anyCertain |= CardRenderer.certain(line);
+        if (own != null && anyCertain) {
+            int at = shown.indexOf(own);
+            if (at < 0 || !showsAnAnswer(own, drawn.get(at))) {
+                issues.add(tag + " loses the step's own answers " + own + " beside " + kinds(drawn, beside));
+            }
+            for (CardModel.AnswerLine line : model.answers) {
+                if (CardRenderer.certain(line) && !kept.contains(line)) {
+                    issues.add(tag + " drops '" + line + "' beside " + kinds(drawn, beside));
+                }
+            }
+            if (allLines && kept.size() < model.answers.size()) {
+                issues.add(tag + " keeps " + kept.size() + " of " + model.answers.size() + " lines in a row of "
+                        + row.getLineCount() + ": " + kinds(drawn, beside));
+            }
+        } else if (allLines && kept.size() < model.answers.size()) {
+            issues.add(tag + " draws " + kept.size() + " of " + model.answers.size() + " lines: " + kinds(drawn, beside)
+                    + " (model " + model.answers + ")");
         }
         // Lines go the least needed first (CardRenderer.dropOrder): a 课堂/考试 line never goes while a
         // side pick or a 「要是升级了」 line (the meeting may not rank up) stays.
         for (CardModel.AnswerLine line : model.answers) {
-            if (!CardRenderer.certain(line) || shown.contains(line)) continue;
-            for (int i = 0; i < shown.size(); i++) {
-                CardModel.AnswerLine other = shown.get(i);
+            if (!CardRenderer.certain(line) || kept.contains(line)) continue;
+            for (CardModel.AnswerLine other : kept) {
                 if (!CardRenderer.certain(other) && (other.conditional || model.answers.indexOf(other) > 0)) {
                     issues.add(tag + " drops the " + line.label + " line but keeps '" + other.text() + "'");
                 }
             }
         }
-        if (!shortest && shown.size() < model.answers.size()) dropped.add(tag);
+        // Muted: a meeting that may not rank up, never a 课堂/考试 answer that shares its line.
+        CharSequence styled = row.getText();
+        boolean mutedFirst = false;
+        if (styled instanceof Spanned) {
+            Spanned spanned = (Spanned) styled;
+            for (ForegroundColorSpan span : spanned.getSpans(0, spanned.length(), ForegroundColorSpan.class)) {
+                String part = CardText.plain(spanned.subSequence(spanned.getSpanStart(span), spanned.getSpanEnd(span)).toString());
+                if (part.contains(CardModel.CLASS_LABEL) || part.contains(CardModel.EXAM_LABEL)) {
+                    issues.add(tag + " mutes '" + part + "'");
+                }
+                mutedFirst |= spanned.getSpanStart(span) == 0;
+            }
+        }
+        if (!shown.isEmpty() && shown.get(0).conditional && !mutedFirst) issues.add(tag + " does not mute '" + drawn.get(0) + "'");
+        if (beside != null) besides.add(tag);
+        if (!shortest && kept.size() < model.answers.size()) dropped.add(tag);
         return true;
     }
+
+    /**
+     * The drawn answers row in its model lines: a paragraph per line, a 课堂/考试 answer that shares the
+     * line before it (after 「 · 」, or after the line break that replaced it) split off.
+     */
+    private static List<String> segments(String shaped) {
+        List<String> out = new ArrayList<>();
+        for (String paragraph : shaped.split(CardText.ANSWER_LINE_BREAK, -1)) {
+            String plain = CardText.plain(paragraph);
+            for (String part : plain.split("(?<=.)(?=" + CardModel.CLASS_LABEL + "|" + CardModel.EXAM_LABEL + ")")) out.add(part);
+        }
+        return out;
+    }
+
+    /** The drawn row, with what sits beside the title, for reports. */
+    private static String kinds(List<String> drawn, CardModel.AnswerLine beside) {
+        return String.join(" | ", drawn).replace("\n", " ") + (beside == null ? "" : " [beside the title: " + beside + "]");
+    }
+
+    /**
+     * Whether a drawn form of the step's own line {@code line} gives an answer: one of its choices (whole,
+     * 「或」, or the first of two alternatives), or its note where it has no choices; not the count alone
+     * (「答：共 2 项，点开看看」) or a caution in place of its choices.
+     */
+    private static boolean showsAnAnswer(CardModel.AnswerLine line, String drawn) {
+        if (line.choices.isEmpty()) return true; // its note, whole or as the shorter 「别选表白」
+        String first = line.choices.get(0);
+        for (String form : new String[]{first, CardText.shortOr(first), line.firstAlternatives().choices.get(0)}) {
+            if (canon(drawn).contains(canon(form))) return true;
+        }
+        return false;
+    }
+
+    /** Cards that showed a 课堂/考试 answer beside their title, for the report. */
+    private static final List<String> besides = new ArrayList<>();
 
     /** Taller cards (150dp or more) that left a line out, for the report. */
     private static final List<String> dropped = new ArrayList<>();
@@ -212,7 +296,7 @@ public class AnswerRowRenderTest {
      * The model line each drawn line is a form of, in the model's order (later lines may be left out,
      * never reordered), or null when a drawn line is no form of any line after the previous one.
      */
-    private static List<CardModel.AnswerLine> matched(List<CardModel.AnswerLine> lines, String[] drawn) {
+    private static List<CardModel.AnswerLine> matched(List<CardModel.AnswerLine> lines, List<String> drawn) {
         List<CardModel.AnswerLine> out = new ArrayList<>();
         int next = 0;
         for (String d : drawn) {
@@ -301,7 +385,11 @@ public class AnswerRowRenderTest {
 
     /**
      * Spec test 1: the render matrix {180x130 … 320x240} × font {1.0, 1.15} × SDK {26, 31} over every
-     * card with a distinct answers row of two real plans (new game; 10/22 with every Persona).
+     * card with a distinct answers row of three real plans (new game; 10/22 with every Persona; 7/1
+     * with every link underway). Every card whose step has answers of its own and a 课堂/考试 answer keeps
+     * both kinds at every size ({@link #checkRow}; until 3.1.0 the row left 「课堂：…」 out where the
+     * meeting's answers filled two lines, and a 130dp card showed one kind only); renders of those cards
+     * at the four shorter sizes go to answers/both/.
      */
     @Test
     public void everyCardWithAnswersShowsThemWholeAtEverySize() throws Exception {
@@ -323,15 +411,27 @@ public class AnswerRowRenderTest {
         int hidden = 0;
         int rendered = 0;
         List<String> counted = new ArrayList<>();
+        File both = RenderSupport.outputDir("answers/both");
+        int bothCards = 0;
+        int bothRenders = 0;
         for (float scale : new float[]{1f, 1.15f}) {
             RuntimeEnvironment.setFontScale(scale);
             for (Object[] card : cards.values()) {
                 FakePlannerApi fake = on((Plan) card[0], (Integer) card[1]);
                 CardModel model = model(fake);
+                boolean bothKinds = bothKinds(model);
+                if (bothKinds && scale == 1f) bothCards++;
                 for (int[] size : SIZES) {
                     View root = render(fake, size[0], size[1]);
                     String tag = card[1] + "-" + size[0] + "x" + size[1] + "@" + scale;
                     if (!checkRow(root, model, tag, size[1] < 150, issues)) hidden++;
+                    if (bothKinds) {
+                        bothRenders++;
+                        // Named by plan and slot: two plans may have a card with both kinds on the same slot.
+                        String name = "plan" + plans.indexOf((Plan) card[0]) + "-" + card[1] + "-" + size[0] + "x" + size[1]
+                                + (scale > 1 ? "-font115" : "");
+                        if (size[1] < 200) RenderSupport.save(root, both, name);
+                    }
                     RenderSupport.collectTextIssues(root, tag, issues);
                     RenderSupport.collectCutText(root, tag, issues);
                     if (text(root, R.id.widget_dialogue_choices).contains("项") && !model.answers.toString().contains("项")) cut++;
@@ -345,10 +445,21 @@ public class AnswerRowRenderTest {
         }
         System.out.println("answers rows rendered: " + rendered + ", cut to 等 N 项: " + cut + ", hidden: " + hidden
                 + ", a line left out on a taller card: " + dropped.size() + " " + dropped);
+        System.out.println("cards with both kinds: " + bothCards + " (" + bothRenders + " renders), 课堂/考试 beside the title: "
+                + besides.size() + " " + besides);
         System.out.println("short titles shown: " + shortened.size() + " " + shortened);
         System.out.println("count only: " + counted.size() + "\n" + String.join("\n", counted));
         if (!issues.isEmpty()) System.out.println("ISSUES\n" + String.join("\n", issues));
         assertTrue(String.join("\n", issues), issues.isEmpty());
+        assertTrue("cards with both kinds: " + bothCards, bothCards >= 10);
+        assertTrue("no taller card leaves a line out: " + dropped, dropped.isEmpty());
+    }
+
+    /** The card's step has answers of its own and the card a 课堂/考试 answer. */
+    private static boolean bothKinds(CardModel model) {
+        boolean certain = false;
+        for (CardModel.AnswerLine line : model.answers) certain |= CardRenderer.certain(line);
+        return certain && CardRenderer.own(model.answers) != null;
     }
 
     /** The three real plans of the matrix: a new game, 10/22 with every Persona, 7/1 with every link underway. */
@@ -365,14 +476,17 @@ public class AnswerRowRenderTest {
     /**
      * Review: the shortest cards left their title out for the answers (7/10 教皇 at 180x130 also lost its
      * 「课堂：卡巴拉」 line; 10/22 战车 at 180x130 and 115% font), and 「答：…」 without who it is for confuses.
-     * At 130dp high the title keeps one line beside one line of answers: a form of the row that fits, a
-     * 课堂/考试 answer whole rather than a line with no choice in it, else the count (「答：共 2 项，点开看看」).
-     * Each case is the first real card of that meeting on that day with its own line and a class line
-     * ({@link #ownAndClassLines}): 7/10 教皇 of the 7/1 plan (「答：我也去看看吧或我在这里等她 / 真担心啊」,
-     * 「课堂：卡巴拉」; the new game's 7/10 教皇 has only the class line). Since 「尽量都体验」 keeps the
-     * promises of 「尽量多 MAX」 (DESIGN §20) the 10/22 plan meets 战车 first on 10/29; the same 战车 card
-     * (「答：明年的选拔赛呢？ / 加油」 and a class answer) is the new game's 10/19. Renders under answers/ as
-     * shortest-*.
+     * At 130dp high the title keeps one line beside one line of answers. The owner wants both kinds of
+     * answers on the card (after 3.1.0, which showed 「课堂：卡巴拉」 or the meeting's answers at 130dp and
+     * left the class answer out at 180x150 and 250x160 at 115% font): the class answer goes on the line of
+     * a short meeting answer (「答：好的 · 课堂：变为零」), else on the title's line beside the longest title
+     * form that fits there (「北村文吉」 「课堂：卡巴拉」), the meeting's answers whole or, short of room, the
+     * first of two alternatives and 「等 N 项」. Each case is the first real card of that meeting on that
+     * day with its own line and a class line ({@link #ownAndClassLines}): 7/10 教皇 of the 7/1 plan
+     * (「答：我也去看看吧或我在这里等她 / 真担心啊」, 「课堂：卡巴拉」; the new game's 7/10 教皇 has only the
+     * class line). Since 「尽量都体验」 keeps the promises of 「尽量多 MAX」 (DESIGN §20) the 10/22 plan meets
+     * 战车 first on 10/29; the same 战车 card (「答：明年的选拔赛呢？ / 加油」 and a class answer) is the new
+     * game's 10/19. Renders under answers/ as shortest-*.
      */
     @Test
     public void theShortestCardsKeepTheirTitleBesideTheAnswers() throws Exception {
@@ -399,7 +513,7 @@ public class AnswerRowRenderTest {
                 FakePlannerApi fake = on(found, slot);
                 CardModel model = model(fake);
                 assertTrue(w[0] + " has its own line and a class line", ownAndClassLines(model));
-                for (int[] size : new int[][]{{180, 130}, {250, 130}, {180, 150}}) {
+                for (int[] size : new int[][]{{180, 130}, {250, 130}, {180, 150}, {250, 160}}) {
                     View root = render(fake, size[0], size[1]);
                     String tag = "shortest-" + w[0] + "-" + size[0] + "x" + size[1] + (scale > 1 ? "-font115" : "");
                     RenderSupport.save(root, dir, tag);
@@ -413,8 +527,10 @@ public class AnswerRowRenderTest {
                     if (size[1] == 130 && (title.getLineCount() != 1 || row.getLineCount() != 1)) {
                         issues.add(tag + " shows " + title.getLineCount() + " title and " + row.getLineCount() + " answers lines");
                     }
-                    System.out.println(tag + ": " + RenderSupport.lines(title) + " | " + text(root, R.id.widget_dialogue_choices)
-                            .replace("\n", " / "));
+                    TextView aside = root.findViewById(R.id.widget_title_aside);
+                    String beside = aside.getVisibility() == View.VISIBLE ? " [" + text(root, R.id.widget_title_aside) + "]" : "";
+                    System.out.println(tag + ": " + RenderSupport.lines(title) + beside + " | "
+                            + text(root, R.id.widget_dialogue_choices).replace("\n", " / "));
                 }
             }
         }

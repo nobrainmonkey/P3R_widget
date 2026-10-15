@@ -204,9 +204,11 @@ public class CardRendererTest {
 
     /**
      * Spec §1.4.4 and the 3.1.0 review: neither the answers nor the title is ever hidden. On a 130dp card
-     * at 115% font, where a first choice wider than the card leaves no form of the row that fits beside
-     * the title, the title keeps one line and the row says how many choices there are; a taller card
-     * keeps both whole. A 课堂/考试 answer that fits whole goes before a line with no choice in it.
+     * at 115% font, where the first choice 「我也去看看吧或者我在这里等她」 is wider than the line, the title
+     * keeps one line and the row an answer to every prompt, the first of the two alternatives (「答：我也去看看吧
+     * / 真担心啊」; 3.1.0 said 「答：共 2 项，点开看看」); a taller card keeps both whole. With a 课堂 answer
+     * the card keeps both kinds (docs/DESIGN_v3.md §18; 3.1.0 showed 「课堂：卡巴拉」 alone): the class
+     * answer on the title's line beside the longest title form that fits there, the meeting's answers below.
      */
     @Test
     public void theTitleKeepsOneLineBesideAnswersThatNeedTheRoom() {
@@ -228,24 +230,77 @@ public class CardRendererTest {
             assertEquals(1, title.getLineCount());
             TextView row = small.findViewById(R.id.widget_dialogue_choices);
             assertEquals(View.VISIBLE, row.getVisibility());
-            assertEquals("答：" + CardText.countOnly(2), CardText.plain(row.getText().toString()));
+            assertEquals("答：我也去看看吧 / 真担心啊", CardText.plain(row.getText().toString()));
             assertEquals(View.GONE, small.findViewById(R.id.widget_meta_row).getVisibility());
-            // With a class answer that fits whole, the class answer shows instead of the count.
+            assertEquals(View.GONE, small.findViewById(R.id.widget_title_aside).getVisibility());
+            // With a class answer both kinds stay: the class answer beside the title, which takes the
+            // longest form that fits there, and the meeting's answers below.
             CardModel withClass = m.copy();
             withClass.answers.add(new CardModel.AnswerLine("课堂：", null,
                     java.util.Collections.singletonList("卡巴拉" + CardModel.AnswerLine.position(3)), null, false));
             View classCard = RenderSupport.layout(c, CardRenderer.render(c, withClass, 180, 130), 180, 130);
             RenderSupport.collectHiddenTitle(classCard, "class", issues);
             RenderSupport.collectTextIssues(classCard, "class", issues);
+            RenderSupport.collectCutText(classCard, "class", issues);
             assertTrue(String.join("\n", issues), issues.isEmpty());
-            assertTrue(CardText.plain(((TextView) classCard.findViewById(R.id.widget_dialogue_choices)).getText().toString())
-                    .startsWith("课堂：卡巴拉"));
+            TextView aside = classCard.findViewById(R.id.widget_title_aside);
+            assertEquals(View.VISIBLE, aside.getVisibility());
+            assertEquals("课堂：卡巴拉", CardText.plain(aside.getText().toString()));
+            assertEquals("北村文吉", RenderSupport.titleText(classCard.findViewById(R.id.widget_task)));
+            TextView classRow = classCard.findViewById(R.id.widget_dialogue_choices);
+            assertEquals(1, classRow.getLineCount());
+            assertTrue(CardText.plain(classRow.getText().toString()), CardText.plain(classRow.getText().toString()).startsWith("答：我也去看看吧"));
             View tall = RenderSupport.layout(c, CardRenderer.render(c, m, 180, 150), 180, 150);
             assertEquals(View.VISIBLE, tall.findViewById(R.id.widget_title_row).getVisibility());
             assertTrue(CardText.plain(((TextView) tall.findViewById(R.id.widget_dialogue_choices)).getText().toString())
                     .startsWith("答：我也去看看吧或"));
         } finally {
             RuntimeEnvironment.setFontScale(1f);
+        }
+    }
+
+    /**
+     * A class answer goes on the line of a short meeting answer before the row takes another line
+     * (「答：好的 / 没那回事 · 课堂：变为零」), and only the meeting's part of such a line is muted when the
+     * meeting may not rank up. Every form up to the ones that lose a kind keeps both kinds.
+     */
+    @Test
+    public void aClassAnswerSharesTheLineOfAShortMeetingAnswer() {
+        Context c = RuntimeEnvironment.getApplication();
+        List<CardModel.AnswerLine> lines = java.util.Arrays.asList(
+                new CardModel.AnswerLine("要是升级了，答：", "升级时答：", java.util.Arrays.asList("好的", "没那回事"), null, true),
+                new CardModel.AnswerLine("课堂：", null, java.util.Collections.singletonList("变为零" + CardModel.AnswerLine.position(2)),
+                        null, false));
+        List<CardRenderer.AnswerForm> forms = CardRenderer.answerForms(c, lines, 250 - 2 * CardRenderer.bodyPaddingDp(WidgetSize.COMPACT));
+        CardRenderer.AnswerForm merged = null;
+        for (CardRenderer.AnswerForm form : forms) {
+            if (merged == null && form.lines == 1 && CardText.plain(form.text).contains("课堂")) merged = form;
+        }
+        assertTrue("a one-line form with both", merged != null);
+        String text = merged.text;
+        assertEquals("升级时答：好的 / 没那回事 · 课堂：变为零", CardText.plain(text));
+        assertTrue(merged.whole);
+        assertTrue(merged.both);
+        assertEquals("the meeting's part is muted", 2, merged.muted.length);
+        assertEquals(0, merged.muted[0]);
+        assertEquals("升级时答：好的 / 没那回事", CardText.plain(text.substring(merged.muted[0], merged.muted[1])));
+        boolean lost = false;
+        for (CardRenderer.AnswerForm form : forms) {
+            if (!form.both) lost = true;
+            else assertTrue("no form that keeps both kinds after one that loses one: " + CardText.plain(form.text), !lost);
+        }
+        // Drawn: the muted span stops before the class answer.
+        CardModel m = sample(false);
+        m.keepWordsWhole = true;
+        m.answers.addAll(lines);
+        View root = RenderSupport.layout(c, CardRenderer.render(c, m, 250, 130), 250, 130);
+        TextView row = root.findViewById(R.id.widget_dialogue_choices);
+        String drawn = CardText.plain(row.getText().toString());
+        assertTrue(drawn, drawn.contains("课堂：变为零") && drawn.contains("没那回事"));
+        android.text.Spanned spanned = (android.text.Spanned) row.getText();
+        for (android.text.style.ForegroundColorSpan span : spanned.getSpans(0, spanned.length(), android.text.style.ForegroundColorSpan.class)) {
+            String part = CardText.plain(spanned.subSequence(spanned.getSpanStart(span), spanned.getSpanEnd(span)).toString());
+            assertTrue(part, !part.contains("课堂"));
         }
     }
 

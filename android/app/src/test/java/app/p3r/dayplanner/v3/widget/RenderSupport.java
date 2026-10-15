@@ -119,13 +119,14 @@ final class RenderSupport {
      * Key information is never cut short with "…" (review: 「魅力 +4 → Lv.…」, 「奢豪之…」,
      * 「结缘网站的字条 · 岳羽由…」, 「花费 1,000 日…」, 「赴约也算一次见…」): the tag chip, the location, the
      * note (cue) line, the answers and reminder rows, the side step (「顺便：…」) and the 人格面具 reminder
-     * (3.1.0 re-check: 「顺便：把 20,000 日元交给穿西装…」) and a title with a name in it (「 · 」 parts) are
-     * either whole or not shown.
+     * (3.1.0 re-check: 「顺便：把 20,000 日元交给穿西装…」), a 课堂/考试 answer beside the title and a title
+     * with a name in it (「 · 」 parts) are either whole or not shown.
      */
     static void collectCutText(View root, String tag, List<String> issues) {
         for (int id : new int[]{app.p3r.dayplanner.R.id.widget_tag, app.p3r.dayplanner.R.id.widget_location,
                 app.p3r.dayplanner.R.id.widget_detail_cue, app.p3r.dayplanner.R.id.widget_dialogue_choices,
-                app.p3r.dayplanner.R.id.widget_reminder, app.p3r.dayplanner.R.id.widget_side, app.p3r.dayplanner.R.id.widget_hint}) {
+                app.p3r.dayplanner.R.id.widget_reminder, app.p3r.dayplanner.R.id.widget_side, app.p3r.dayplanner.R.id.widget_hint,
+                app.p3r.dayplanner.R.id.widget_title_aside}) {
             TextView text = root.findViewById(id);
             if (text.getVisibility() == View.VISIBLE && ellipsized(text)) {
                 issues.add(tag + " cuts " + name(text) + ": '" + CardText.plain(text.getText().toString()) + "'");

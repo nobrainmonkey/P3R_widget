@@ -125,11 +125,24 @@ public final class CardModel {
      */
     public final List<ReminderLine> reminders = new ArrayList<>();
     /**
-     * The answers row as drawn: one paragraph per {@link #answers} line, shaped for line breaks;
-     * null hides the row. Set by {@link CardRenderer#fit}.
+     * The answers row as drawn: a paragraph per {@link #answers} line, a 课堂/考试 answer possibly on
+     * the line before it after 「 · 」 (「答：好的 · 课堂：变为零」), shaped for line breaks; null hides
+     * the row. Set by {@link CardRenderer#fit}.
      */
     public String answersShown;
-    /** Text size (sp) of the answers row; 0 for the layout's. Set by {@link CardRenderer#fit}. */
+    /**
+     * The parts of {@link #answersShown} drawn muted, as [start, end) offset pairs: the lines of a
+     * meeting that may not rank up ({@link AnswerLine#conditional}). Set by {@link CardRenderer#fit}.
+     */
+    public int[] answersMuted = new int[0];
+    /**
+     * A 课堂/考试 answer drawn on the title's line, at its right (「课堂：卡巴拉」), shaped to stay on one
+     * line, when the answers row has no room left for it beside the step's own answers; null for none.
+     * The title then keeps one line, the longest of its forms that fits beside it. Set by
+     * {@link CardRenderer#fit}.
+     */
+    public String answersAside;
+    /** Text size (sp) of the answers row and {@link #answersAside}; 0 for the layout's. Set by {@link CardRenderer#fit}. */
     public float answersTextSp;
     /** The answers row gives up its gap above (the shortest cards). Set by {@link CardRenderer#fit}. */
     public boolean answersTight;
@@ -221,6 +234,32 @@ public final class CardModel {
             return changed ? new AnswerLine(label, shortLabel, bare, note, conditional) : this;
         }
 
+        /** A 课堂/考试 answer of the card's slots (certain, and missed for good). */
+        public boolean certain() {
+            return label.startsWith(CLASS_LABEL) || label.startsWith(EXAM_LABEL);
+        }
+
+        /**
+         * This line with each choice of two alternatives 「A或者B」 written as its first, 「A」: either
+         * one is a good answer (「我也去看看吧或者我在这里等她」 → 「我也去看看吧」), so a card short of room
+         * keeps an answer to every prompt rather than cut the later ones to 「等 N 项」. The line itself
+         * when it has none.
+         */
+        public AnswerLine firstAlternatives() {
+            List<String> first = new ArrayList<>(choices.size());
+            boolean changed = false;
+            for (String choice : choices) {
+                int or = choice.indexOf(ALTERNATIVES);
+                boolean cut = or > 0;
+                changed |= cut;
+                first.add(cut ? choice.substring(0, or).trim() : choice);
+            }
+            return changed ? new AnswerLine(label, shortLabel, first, note, conditional) : this;
+        }
+
+        /** Between two alternatives of one choice (「我也去看看吧或者我在这里等她」). */
+        static final String ALTERNATIVES = "或者";
+
         /** The whole line on one line, as accessibility and tests read it. */
         public String text() {
             StringBuilder sb = new StringBuilder(label).append(String.join(" / ", choices));
@@ -288,6 +327,8 @@ public final class CardModel {
         m.answers.addAll(answers);
         m.reminders.addAll(reminders);
         m.answersShown = answersShown;
+        m.answersMuted = answersMuted;
+        m.answersAside = answersAside;
         m.answersTextSp = answersTextSp;
         m.answersTight = answersTight;
         m.reminderShown = reminderShown;
