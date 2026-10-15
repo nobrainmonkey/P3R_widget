@@ -4,7 +4,9 @@
 Inputs (never shipped in the APK):
   rules/sources/**           pinned third-party snapshots (aqiu game-data tables, aqiu calendar page,
                              Steam zh-Hans strings, 3DM CN guide pages: Tartarus names and the schedule
-                             pages 2-11 for the 当日提醒 answers); hashes in rules/sources/SOURCES.json
+                             pages 2-11 for the 当日提醒 answers; 游民星空's copy of the same schedule guide
+                             and the BWIKI class-answer page for the class dates 3DM has no text for);
+                             hashes in rules/sources/SOURCES.json
   rules/sources/cn_guides/data.json
                              the original Simplified Chinese walkthrough of the retired 2.x guide
                              (location names, wording, timing witnesses)
@@ -117,6 +119,17 @@ STEAM_THREAD_URL = "https://steamcommunity.com/app/2161700/discussions/0/{}/"
 STEAM_ACHIEVEMENTS_URL = "https://steamcommunity.com/stats/2161700/achievements/?l={}"
 STEAM_PAGE_LANG = {"english": "en", "japanese": "ja", "schinese": "zh-cn"}
 CN_3DM_URL = "https://www.3dmgame.com/gl/3928716_{}.html"
+# 游民星空's authorised repost (2024-02-06) of the same schedule guide by 猎猫人老贾: page 1 has no suffix.
+GAMERSKY_URL = "https://www.gamersky.com/handbook/202402/1706261{}.shtml"
+# BWIKI (bilibili's game wiki) page P3R/课堂问答与考试: class answers per date in zh text, no option positions.
+BWIKI_CLASS_URL = ("https://wiki.biligame.com/persona/P3R/"
+                   "%E8%AF%BE%E5%A0%82%E9%97%AE%E7%AD%94%E4%B8%8E%E8%80%83%E8%AF%95")
+BWIKI_CLASS_PAGE = "P3R/课堂问答与考试"
+BWIKI_CLASS_REVISION = 18269
+
+
+def gamersky_url(number: int) -> str:
+    return GAMERSKY_URL.format("" if number == 1 else f"_{number}")
 
 
 class BuildError(Exception):
@@ -371,6 +384,17 @@ def check_manifest(manifest: dict) -> dict[str, dict]:
             active = f'<li class="active"><a href="{CN_3DM_URL.format(number)}"'
             if url != CN_3DM_URL.format(number) or active not in page:
                 raise BuildError(f"SOURCES.json {rel}: expected the 3DM page {CN_3DM_URL.format(number)}")
+        elif rel.startswith("cn_guides/gamersky_p"):
+            number = int(stem.rsplit("_p", 1)[1])
+            expected = gamersky_url(number)
+            if url != expected or f'<link rel="canonical" href="{expected}" />' not in page \
+                    or f"var contentPageIndex = {number};" not in page:
+                raise BuildError(f"SOURCES.json {rel}: expected the 游民星空 page {expected} (canonical link, page index)")
+        elif rel.startswith("cn_guides/bwiki_"):
+            if url != BWIKI_CLASS_URL or f'"wgPageName":"{BWIKI_CLASS_PAGE}"' not in page \
+                    or f'"wgRevisionId":{BWIKI_CLASS_REVISION}' not in page:
+                raise BuildError(f"SOURCES.json {rel}: expected the BWIKI page {BWIKI_CLASS_PAGE} revision "
+                                 f"{BWIKI_CLASS_REVISION} at {BWIKI_CLASS_URL}")
         elif rel.startswith("aqiu_gamedata/") and rel.endswith(".tsv") and entry["edition"] != "game_data_reload":
             raise BuildError(f"SOURCES.json {rel}: game-data tables are edition game_data_reload")
         if rel.endswith(".txt") and entry.get("derivedFrom", "").split(" ")[0] != rel[:-4] + ".html":
@@ -420,6 +444,13 @@ def build_sources() -> list[dict]:
         *[snap(f"cn_3dm_p{n}", f"cn_guides/3dm_p{n}.html", "cn_guide",
                f"3DM SC guide, page {n}: {CN_3DM_MONTHS[n]} schedule (class and exam answers, 上课 lines, TV shopping, "
                "黄昏的碎片)") for n in CN_3DM_SCHEDULE_PAGES],
+        *[snap(f"cn_gamersky_p{n}", f"cn_guides/gamersky_p{n}.html", "cn_guide",
+               f"游民星空 repost (2024-02-06, authorised) of 猎猫人老贾's Reload schedule guide, the guide 3DM also "
+               f"carries; page {n}: {GAMERSKY_MONTHS[n]} (class answers with option positions where 3DM has no text)")
+          for n in GAMERSKY_SOURCE_PAGES],
+        snap("cn_bwiki_class", "cn_guides/bwiki_p3r_class.html", "cn_guide",
+             f"BWIKI page {BWIKI_CLASS_PAGE} (revision {BWIKI_CLASS_REVISION}, 2024-02-04): class answers per date in zh "
+             "text without option positions, partly from a 女神异闻录吧 post; corroborates the 游民星空 class answers"),
         snap("gd_mail_order", gd + "DT_FldMailOrderTable.tsv", "game_data", "TV shopping: buy dates, items, quantities, prices"),
         {"edition": "cn_guide_reload", "id": "cn_guide", "kind": "cn_guide",
          "note": "Original Simplified Chinese Reload walkthrough shipped with the legacy guide, an edited derivative of the "
@@ -1970,21 +2001,30 @@ def build_dating_note(ledger: Ledger, days: list[dict], guide_text: str) -> dict
 CN_3DM_SCHEDULE_PAGES = tuple(range(2, 12))
 CN_3DM_MONTHS = dict(zip(CN_3DM_SCHEDULE_PAGES, ("April", "May", "June", "July", "August", "September", "October",
                                                  "November", "December", "January")))
-# aqiu class dates without a zh answer line on the 3DM pages. They are never filled in from the CN guide, which is
-# an edited copy of 3DM with English-localisation answers on 9 dates (CN_GUIDE_DIVERGENT).
-WITHHELD_CLASS = {
-    "12-07": "3DM's December page has no text before 12.13; the CN guide's answer is not used",
-    "12-09": "3DM's December page has no text before 12.13; the CN guide's answer is not used",
-    "12-11": "no zh answer: 3DM has no text for the date and the CN guide has the English-localisation answer (Lives)",
-    "01-18": "3DM's schedule text ends on 1.13; the CN guide's answer is not used",
-}
+# 游民星空's copy of the same guide (pinned unmodified, pages 1-10 = April … January): its December and January pages
+# have the text 3DM lacks. Only the class answers of dates without a 3DM line are taken from it (GAMERSKY_SOURCE_PAGES
+# are the pages they are on); every other class line is a zh-vs-zh cross-check of 3DM (answer and option position).
+GAMERSKY_PAGES = tuple(range(1, 11))
+GAMERSKY_MONTHS = dict(zip(GAMERSKY_PAGES, ("April", "May", "June", "July", "August", "September", "October",
+                                            "November", "December", "January")))
+GAMERSKY_SOURCE_PAGES = (9, 10)
+# Obvious typos of the 游民星空 copy, each corrected to BWIKI's spelling of the same date (zh vs zh): the copy types an
+# em dash for 一 throughout (—起 for 一起), here inside the idiom 孤注一掷.
+GAMERSKY_TYPO_FIXES = {("12-11", "孤注—掷"): "孤注一掷"}
+# aqiu class dates without a zh answer line on the 3DM pages or the 游民星空 copy. They are never filled in from the CN
+# guide, which is an edited copy of 3DM with English-localisation answers on 9 dates (CN_GUIDE_DIVERGENT).
+WITHHELD_CLASS: dict[str, str] = {}
 WITHHELD_EXAM: dict[str, str] = {}
+# Class dates on which BWIKI's zh text is not the shipped answer, date -> BWIKI text (zh vs zh only; reported, the
+# 3DM/游民星空 text is kept).
+BWIKI_DIVERGENT = {"09-01": "变成零"}
+# Dates BWIKI lists under the class months that are not aqiu class dates, date -> BWIKI text (not shipped): 6/4 and
+# 1/14 have no class line on 3DM or 游民星空 either; 12/18 is the 12/18 exam answer.
+BWIKI_EXTRA = {"06-04": "晕轮效应", "12-18": "做好了拼命的心理准备", "01-14": "岩手县"}
 # Exam answers that only 3DM gives and that read like untranslated English (owner decision O4: shown, marked).
 ESTIMATE_ANSWERS = frozenset({"07-17", "12-16"})
 # Dates on which the CN guide's class/exam answer is not 3DM's: English-localisation text instead (zh vs zh only).
 CN_GUIDE_DIVERGENT = frozenset({"05-19", "07-08", "07-15", "07-17", "10-14", "10-22", "12-11", "12-16", "12-18"})
-# Dates on which only the CN guide has an answer (3DM has no text there): it cannot be checked, so it is withheld.
-CN_GUIDE_UNCHECKED = frozenset({"12-07", "12-09", "01-18"})
 # Obvious 3DM typos, each corrected to the CN guide's spelling on the same date (zh vs zh): (md, 3DM text) -> fix.
 ZH_TYPO_FIXES = {
     ("11-07", "肉义书"): "奥义书",
@@ -1992,6 +2032,7 @@ ZH_TYPO_FIXES = {
     ("12-22", "欣快悲"): "欣快感",
 }
 # 3DM rows whose line belongs to another date: (row md, line prefix) -> (md, why). Dates and option positions only.
+# 游民星空's copy of the guide has the same row and gets the same fix.
 CN_3DM_ROW_FIXES = {
     ("11-06", "上课问答："): ("11-07", "3DM's early-November rows are shifted (its 11.4 row has the 11/5 club note); aqiu "
                                     "and the CN guide date this class answer 11/7, and 3DM's option (1) is aqiu's Choice 1"),
@@ -2056,9 +2097,34 @@ def typo_fix(md: str, text: str) -> str:
     return text
 
 
+def gamersky_typo_fix(md: str, text: str) -> str:
+    for (fix_md, wrong), right in GAMERSKY_TYPO_FIXES.items():
+        if fix_md == md:
+            text = text.replace(wrong, right)
+    return text
+
+
 def norm_answer(text: str) -> str:
     """Answer text for zh-vs-zh comparisons: no spaces or quote marks."""
     return re.sub(r"[\s「」“”\"']", "", text)
+
+
+def class_line(rest: str) -> tuple[str, int]:
+    """「X（n），魅力+♪」 (the guide's class line after 上课问答：) -> (X, n); n = 0 without a position."""
+    rest = re.sub(r"[，。]?\s*魅力\+♪*$", "", rest).strip()
+    n = re.fullmatch(r"(.+?)\s*[（(](\d)[）)]", rest)
+    return (n.group(1).strip(), int(n.group(2))) if n else (rest, 0)
+
+
+def move_rows(lines: dict[int, list[str]], who: str) -> None:
+    """CN_3DM_ROW_FIXES on the lines of one copy of the guide (3DM or 游民星空)."""
+    for (row_md, prefix), (md, _why) in CN_3DM_ROW_FIXES.items():
+        row, target = day_of_md(row_md), day_of_md(md)
+        moved = [line for line in lines.get(row, []) if line.startswith(prefix)]
+        if len(moved) != 1 or any(line.startswith(prefix) for line in lines.get(target, [])):
+            raise BuildError(f"CN_3DM_ROW_FIXES {row_md} {prefix}: {who} no longer has exactly this line there")
+        lines[row].remove(moved[0])
+        lines.setdefault(target, []).append(moved[0])
 
 
 class Schedule3dm:
@@ -2109,13 +2175,7 @@ class Schedule3dm:
                 self.lines[d] = lines
                 self.page[d] = number
                 last = d
-        for (row_md, prefix), (md, _why) in CN_3DM_ROW_FIXES.items():
-            row, target = day_of_md(row_md), day_of_md(md)
-            moved = [line for line in self.lines[row] if line.startswith(prefix)]
-            if len(moved) != 1 or any(line.startswith(prefix) for line in self.lines[target]):
-                raise BuildError(f"CN_3DM_ROW_FIXES {row_md} {prefix}: 3DM no longer has exactly this line there")
-            self.lines[row].remove(moved[0])
-            self.lines[target].append(moved[0])
+        move_rows(self.lines, "3DM")
 
     @staticmethod
     def _cell(fragment: str) -> list[str]:
@@ -2148,6 +2208,91 @@ class Schedule3dm:
         """Answer of the 3DM exam line 「期中/期末考试：X」 of a date (a stray closing quote mark dropped)."""
         m = self.one(d, self.EXAM)
         return m.group(2).strip().strip("“”\"「」").strip() if m else None
+
+
+class ScheduleGamersky:
+    """游民星空's copy of the guide (cn_guides/gamersky_p1.html … gamersky_p10.html): the text lines of every date.
+
+    A page is one month (page 1 = April, page 10 = January): a 「M月D日」 heading per date (div.GsWeTxt2), then slot
+    headings and paragraphs. Range headings (the exam weeks) carry no class line; the June page repeats 6/11-6/17, so a
+    date may have two rows, whose class lines must agree."""
+
+    HEAD = re.compile(r'<div class="GsWeTxt2">(.*?)</div>', flags=re.S)
+    DATE = re.compile(r"(\d{1,2})月(\d{1,2})日")
+    CLASS = re.compile(r"上课问答：(.+)")
+
+    def __init__(self) -> None:
+        self.lines: dict[int, list[str]] = {}
+        self.page: dict[int, int] = {}
+        for number in GAMERSKY_PAGES:
+            text = (SOURCES_DIR / "cn_guides" / f"gamersky_p{number}.html").read_text(encoding="utf-8")
+            title = re.search(r"<title>[^<]*全社群MAX日程攻略[^<]*_(\d{1,2})月-游民星空", text)
+            start = text.find('<div class="Mid2L_con">')
+            end = text.find("<!--Mid2L_con end-->", start)
+            if not title or start < 0 or end < 0:
+                raise BuildError(f"游民星空 page {number} is not a page of the schedule guide")
+            month = int(title.group(1))
+            if month != (number + 2) % 12 + 1:
+                raise BuildError(f"游民星空 page {number} is {month}月, not {GAMERSKY_MONTHS[number]}")
+            parts = self.HEAD.split(text[start:end])
+            for head, body in zip(parts[1::2], parts[2::2]):
+                head = html.unescape(re.sub(r"<[^>]+>", "", head)).strip()
+                lines = self._lines(body)
+                m = self.DATE.fullmatch(head)
+                if m is None:
+                    if any(self.CLASS.search(line) for line in lines):
+                        raise BuildError(f"游民星空 page {number}: a class line under the heading {head!r}")
+                    continue
+                row_month = int(m.group(1))
+                d = day_of(row_month, int(m.group(2)))
+                if d > LAST_DAY and month == 1:  # the January page ends with the epilogue (3月4日)
+                    if any(self.CLASS.search(line) for line in lines):
+                        raise BuildError(f"游民星空 page {number}: a class line after the last day ({head})")
+                    continue
+                if row_month != month and (row_month != month % 12 + 1 or int(m.group(2)) != 1):
+                    raise BuildError(f"游民星空 page {number} ({month}月) has a row for {head}")  # June ends with 7月1日
+                if self.page.setdefault(d, number) != number:
+                    raise BuildError(f"游民星空 lists {md_of(d)} on pages {self.page[d]} and {number}")
+                self.lines.setdefault(d, []).extend(lines)
+        move_rows(self.lines, "游民星空")
+
+    @staticmethod
+    def _lines(fragment: str) -> list[str]:
+        text = re.sub(r"<br\s*/?>|</p>|</div>", "\n", fragment)
+        text = html.unescape(re.sub(r"<[^>]+>", "", text))
+        return [line.strip() for line in text.splitlines() if line.strip()]
+
+    def source(self, d: int) -> str:
+        return f"cn_gamersky_p{self.page[d]}"
+
+    def class_answer(self, d: int) -> tuple[str, int] | None:
+        """(answer, option 1..4 or 0) of the class line of a date; a repeated row must say the same."""
+        found = {class_line(m.group(1)) for line in self.lines.get(d, []) for m in [self.CLASS.search(line)] if m}
+        if len(found) > 1:
+            raise BuildError(f"游民星空 {md_of(d)}: its rows disagree on the class answer: {sorted(found)}")
+        return next(iter(found), None)
+
+
+def bwiki_class_answers() -> dict[int, str]:
+    """BWIKI P3R/课堂问答与考试: day ordinal -> zh answer of every 「M月D日 answer」 entry (the exam lists are undated)."""
+    text = (SOURCES_DIR / "cn_guides" / "bwiki_p3r_class.html").read_text(encoding="utf-8")
+    start = text.find('<div class="mw-parser-output">')
+    end = text.find("NewPP limit report", start)
+    if start < 0 or end < 0:
+        raise BuildError("the BWIKI class-answer page has no article body")
+    out: dict[int, str] = {}
+    for _tag, fragment in re.findall(r"<(li|p)>(.*?)</\1>", text[start:end], flags=re.S):
+        entry = " ".join(html.unescape(re.sub(r"<[^>]+>", "", fragment)).split())
+        m = re.fullmatch(r"(\d{1,2})月(\d{1,2})日 ?(.+)", entry)
+        if not m:
+            continue
+        d = day_of(int(m.group(1)), int(m.group(2)))
+        if d in out:
+            raise BuildError(f"BWIKI lists {md_of(d)} twice")
+        out[d] = m.group(3).strip()
+    if len(out) < 30:
+        raise BuildError(f"BWIKI class answers not found ({len(out)} dated entries)")
+    return out
 
 
 def cn_guide_days() -> dict[int, list[dict]]:
@@ -2246,7 +2391,8 @@ def reminder(ident: str, kind: str, d: int, slot: str, zh: str, short: str, *, c
 
 
 def answer_reminders(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, guide: dict[int, list[dict]]) -> list[dict]:
-    """课堂提问 and 考试: aqiu dates and option positions, zh text from the pinned 3DM pages only."""
+    """课堂提问 and 考试: aqiu dates and option positions, zh text from the pinned 3DM pages and, on the class dates 3DM
+    has no text for, from 游民星空's copy of the same guide corroborated by BWIKI (zh vs zh)."""
     general = page.subsection("class-answers")
     m = re.search(r"All correct answers give Charm \+(\d+)", general)
     if not m:
@@ -2254,30 +2400,54 @@ def answer_reminders(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, guide: 
     charm = int(m.group(1))
     classes = aqiu_choices(page, "class-answers")
     exams = aqiu_choices(page, "exam-answers")
+    gsky = ScheduleGamersky()
+    bwiki = bwiki_class_answers()
     out = []
     shipped: dict[int, str] = {}
+    zh_src: dict[int, list[str]] = {}  # the zh sources of each shipped answer
+    cross_checked: list[str] = []  # class dates on which 3DM and 游民星空 both answer (and agree)
     for d, choice in sorted(classes.items()):
         md = md_of(d)
         found = sched.class_answer(d)
-        if found is None:
+        copy = gsky.class_answer(d)
+        if copy is not None:
+            copy = (gamersky_typo_fix(md, copy[0]), copy[1])
+        if (found or copy) and md in WITHHELD_CLASS:
+            raise BuildError(f"class {md} is withheld but {'3DM' if found else '游民星空'} has a line for it")
+        if found is not None:
+            who, answer, option = "3DM", typo_fix(md, found[0]), found[1]
+            src = [sched.source(d)]
+            if copy is not None:
+                if norm_answer(copy[0]) != norm_answer(answer) or copy[1] != option:
+                    raise BuildError(f"class {md}: 游民星空 「{copy[0]}」 option {copy[1]} != 3DM 「{answer}」 "
+                                     f"option {option}")
+                cross_checked.append(md)
+        elif copy is not None:
+            who, (answer, option) = "游民星空", copy
+            if norm_answer(bwiki.get(d, "")) != norm_answer(answer):
+                raise BuildError(f"class {md}: 游民星空 「{answer}」 is not BWIKI's 「{bwiki.get(d)}」 on a date 3DM has "
+                                 "no text for")
+            src = [gsky.source(d), "cn_bwiki_class"]
+        else:
             if md not in WITHHELD_CLASS:
-                raise BuildError(f"class {md}: no 3DM line; withhold it explicitly (WITHHELD_CLASS) or fix the parser")
+                raise BuildError(f"class {md}: no 3DM or 游民星空 line; withhold it explicitly (WITHHELD_CLASS) or fix "
+                                 "the parser")
             continue
-        if md in WITHHELD_CLASS:
-            raise BuildError(f"class {md} is withheld but 3DM has a line for it")
-        answer, option = typo_fix(md, found[0]), found[1]
         if option and option != choice:
-            raise BuildError(f"class {md}: 3DM option {option} != aqiu Choice {choice}")
+            raise BuildError(f"class {md}: {who} option {option} != aqiu Choice {choice}")
         mark = f"（第 {option} 项）" if option else ""
         out.append(reminder(
             f"class.{md}", "class", d, "day", f"课堂提问：选「{answer}」{mark}",
             fit_short(f"class.{md}", f"课堂：{answer}{mark}", f"课堂：{answer}"),
             answer=answer, option=option, gain=f"魅力 +{charm}", priority=3,
             detail=f"上课被点名提问时选「{answer}」{mark}，答对了魅力 +{charm}。" + STAT_SENTENCE,
-            conf="verified" if option else "single", src=["aqiu_social_events", sched.source(d)]))
+            conf="verified" if option else "single", src=["aqiu_social_events"] + src))
         shipped[d] = answer
+        zh_src[d] = src
     for d in sorted(set(d for d in sched.lines if sched.class_answer(d)) - set(classes)):
         raise BuildError(f"3DM has a class answer on {md_of(d)}, which aqiu does not list")
+    for d in sorted(set(d for d in gsky.lines if gsky.class_answer(d)) - set(classes)):
+        raise BuildError(f"游民星空 has a class answer on {md_of(d)}, which aqiu does not list")
     for d in sorted(exams):
         md = md_of(d)
         found = sched.exam_answer(d)
@@ -2295,10 +2465,31 @@ def answer_reminders(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, guide: 
             answer=answer, detail=detail, priority=3, conf="estimate" if estimate else "single",
             src=["aqiu_social_events", sched.source(d)]))
         shipped[d] = answer
+        zh_src[d] = [sched.source(d)]
     if len([x for x in out if x["kind"] == "exam"]) != len(exams) - len(WITHHELD_EXAM):
         raise BuildError("exam answers missing")
+    from_copy = [md_of(d) for d in sorted(classes) if d in zh_src and zh_src[d][0].startswith("cn_gamersky_p")]
+    pages = {int(zh_src[day_of_md(md)][0][len("cn_gamersky_p"):]) for md in from_copy}
+    if pages != set(GAMERSKY_SOURCE_PAGES):
+        raise BuildError(f"游民星空 answers {from_copy} are on pages {sorted(pages)}, not GAMERSKY_SOURCE_PAGES "
+                         f"{GAMERSKY_SOURCE_PAGES}")
+    for (md, wrong), right in GAMERSKY_TYPO_FIXES.items():
+        d = day_of_md(md)
+        if not any(wrong in line for line in gsky.lines.get(d, [])):
+            raise BuildError(f"GAMERSKY_TYPO_FIXES {md}: 游民星空 does not write {wrong!r}")
+        if bwiki.get(d) != right:
+            raise BuildError(f"GAMERSKY_TYPO_FIXES {md}: BWIKI does not write {right!r} that day")
 
-    # CN guide drift (zh vs zh only): where its answer is not 3DM's, 3DM wins and the CN text is never shipped.
+    # BWIKI (zh text without positions, a lineage apart from the guide) against every shipped class answer.
+    bwiki_off = {md_of(d): bwiki.get(d) for d in classes
+                 if norm_answer(bwiki.get(d, "")).casefold() != norm_answer(shipped.get(d, "")).casefold()}
+    if bwiki_off != BWIKI_DIVERGENT:
+        raise BuildError(f"BWIKI class answers unlike the shipped text changed: {bwiki_off} != {BWIKI_DIVERGENT}")
+    extra = {md_of(d): text for d, text in bwiki.items() if d not in classes}
+    if extra != BWIKI_EXTRA or norm_answer(extra.get("12-18", "")) != norm_answer(shipped.get(day_of_md("12-18"), "")):
+        raise BuildError(f"BWIKI entries off the class dates changed: {extra} != {BWIKI_EXTRA} (12-18 = the exam answer)")
+
+    # CN guide drift (zh vs zh only): where its answer is not the shipped one, the CN text is never shipped.
     cn = cn_guide_answers(guide)
     for (md, wrong), right in ZH_TYPO_FIXES.items():
         d = day_of_md(md)
@@ -2309,25 +2500,39 @@ def answer_reminders(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, guide: 
             raise BuildError(f"ZH_TYPO_FIXES {md}: the CN guide does not write {right!r} that day")
     divergent = {md_of(d) for d, text in cn.items()
                  if d in classes or d in exams if norm_answer(text) != norm_answer(shipped.get(d, ""))}
-    if divergent != CN_GUIDE_DIVERGENT | CN_GUIDE_UNCHECKED:
-        raise BuildError(f"CN guide answer drift changed: {sorted(divergent)} != "
-                         f"{sorted(CN_GUIDE_DIVERGENT | CN_GUIDE_UNCHECKED)}")
+    if divergent != CN_GUIDE_DIVERGENT:
+        raise BuildError(f"CN guide answer drift changed: {sorted(divergent)} != {sorted(CN_GUIDE_DIVERGENT)}")
     for md in sorted(CN_GUIDE_DIVERGENT, key=day_of_md):
         d = day_of_md(md)
-        ours = shipped.get(d)
+        who = "游民星空" if zh_src[d][0].startswith("cn_gamersky_p") else "3DM"
         ledger.conflict(f"answer.{md}", f"{'exam' if d in exams else 'class'} answer on {md} (zh text)",
-                        f"3DM 「{ours}」" if ours else "withheld (no 3DM text)", [f"CN guide 「{cn[d]}」"],
-                        [f"cn_3dm_p{sched.month_page[int(md[:2])]}", "cn_guide"])
+                        f"{who} 「{shipped[d]}」", [f"CN guide 「{cn[d]}」"], zh_src[d] + ["cn_guide"])
+    copy_spells = [right for (md, _wrong), right in ZH_TYPO_FIXES.items()
+                   if any(right in line for line in gsky.lines.get(day_of_md(md), []))]
     ledger.decide("reminders", "answers", f"课堂提问 ({len(classes)} aqiu dates) and 考试 ({len(exams)}) take the date and the "
-                  "option position from aqiu and the zh answer text from the pinned 3DM schedule pages only; every 3DM "
-                  "position equals aqiu's Choice N (checked). Only dates, prices and option positions are compared with "
-                  "English sources, never answer text. The CN guide is an edited copy of 3DM: its answers differ from "
-                  f"3DM on {', '.join(sorted(CN_GUIDE_DIVERGENT, key=day_of_md))} (English-localisation text, §3) and it "
-                  f"alone answers {', '.join(sorted(CN_GUIDE_UNCHECKED, key=day_of_md))}, so it is never used for "
-                  "answers. Withheld class dates: " + "; ".join(f"{md} ({why})" for md, why in WITHHELD_CLASS.items())
+                  "option position from aqiu and the zh answer text from the pinned 3DM schedule pages. 3DM has no text "
+                  f"for 12/1-12/12 and after 1/13, so the class answers of {', '.join(from_copy)} come from 游民星空's "
+                  "authorised copy of the same guide (猎猫人老贾; pages "
+                  f"{', '.join(str(n) for n in GAMERSKY_SOURCE_PAGES)}), each with its option position and with the "
+                  "same zh text on BWIKI that date. Every shipped position equals aqiu's Choice N (checked). On all "
+                  f"{len(cross_checked)} class dates that both copies answer, 游民星空's answer and position equal 3DM's "
+                  "(checked, zh vs zh; it already spells " + "、".join(copy_spells) + " as the 3DM typo fixes below "
+                  "do). BWIKI (zh text without positions, partly from a 女神异闻录吧 post) agrees on "
+                  f"{len(classes) - len(BWIKI_DIVERGENT)} of {len(classes)} class dates; it writes "
+                  + "; ".join(f"{md} 「{text}」" for md, text in BWIKI_DIVERGENT.items())
+                  + " where 3DM and 游民星空 agree on the shipped text, and also lists "
+                  + ", ".join(f"{md} 「{text}」" for md, text in BWIKI_EXTRA.items())
+                  + ", which are not aqiu class dates (not shipped: 3DM and 游民星空 have no class line on 06-04 or "
+                  "01-14, and 12-18 is that day's exam answer). Only dates, prices and option positions are compared "
+                  "with English sources, never answer text. The CN guide is an edited copy of 3DM: its answers differ "
+                  f"from the shipped text on {', '.join(sorted(CN_GUIDE_DIVERGENT, key=day_of_md))} (English-localisation "
+                  "text, §3), so it is never used for answers. Withheld class dates: "
+                  + ("; ".join(f"{md} ({why})" for md, why in WITHHELD_CLASS.items()) or "none")
                   + f". Exam answers {', '.join(sorted(ESTIMATE_ANSWERS))} ship verbatim with conf=estimate (owner "
                   "decision O4). 3DM typos fixed to the CN guide's spelling of the same day: "
                   + "; ".join(f"{md} {wrong} → {right}" for (md, wrong), right in ZH_TYPO_FIXES.items())
+                  + "; 游民星空 typo fixed to BWIKI's spelling of the same day: "
+                  + "; ".join(f"{md} {wrong} → {right}" for (md, wrong), right in GAMERSKY_TYPO_FIXES.items())
                   + "; 12/14 drops a stray closing quote (数字0”).")
     return out
 
@@ -3174,10 +3379,14 @@ KNOWN_GAPS = (
     "going on sale, the exam first-place threshold, 'unlock becomes possible', request #75 (8 faculty-office visits) "
     "and the outings #77-81, Persona fusion names. Dropped: the CN guide's 1/3 TV entry (not in the game table), cat "
     "rescues, shrine fortunes, 4/29 山间补习班, 9/1 tutoring items, the 'slot-free' label on requests #38 and #10.",
-    "当日提醒 answers: 3DM's schedule text has nothing for 12/1-12/12 and nothing after 1/13, so the class answers of "
-    "12/7, 12/9 and 1/18 are withheld (the CN guide answers them, but its answers are never used), and 12/11 has no zh "
-    "answer at all. Exam answers 7/17 (MADRID) and 12/16 (JUNE) are single-sourced and shown with conf=estimate. "
-    "上课犯困 days 12/12 and 1/15-1/28 rest on the CN guide alone.",
+    "当日提醒 answers: 3DM's schedule text has nothing for 12/1-12/12 and nothing after 1/13. The class answers of "
+    "12/7, 12/9, 12/11 and 1/18 rest on 游民星空's copy of the same guide (one author, 猎猫人老贾; text and option "
+    "position) and BWIKI's zh text; nobody has seen them on SC game screens. Searched but not pinned: the "
+    "女神异闻录吧 post BWIKI cites (tieba.baidu.com/p/8883837821 answers with a 百度安全验证 page) and 游民星空's "
+    "answer table (handbook/202402/1704884, an image; it gives the same four answers). Exam answers 7/17 (MADRID) and "
+    "12/16 (JUNE) come from the guide alone and are shown with conf=estimate; BWIKI's undated exam lists also write "
+    "Madrid and june (not used). 上课犯困 days 12/12 and 1/15-1/28 rest on the CN guide alone (the 游民星空 copy also "
+    "lists them; not used).",
     "当日提醒 missing people: whether the limit day itself still counts is not verified; the reminders tell the "
     "player to go earlier. Floors are unknown. Rescues follow the plan's Tartarus evenings and the latest recorded "
     "one, not nights the player improvises.",
@@ -3494,8 +3703,9 @@ def render_reminders(pack: dict) -> list[str]:
         prios = ", ".join(f"{p}×{sum(1 for x in items if x['priority'] == p)}" for p in (1, 2, 3)
                           if any(x["priority"] == p for x in items))
         labels = "／".join(sorted({x["labelZh"] for x in items}))
+        paged = re.compile(r"(cn_3dm_p|cn_gamersky_p)(\d+)")
         sources = sorted({s for x in items for s in x["src"]},
-                         key=lambda s: (s[:len("cn_3dm_p")], int(s[len("cn_3dm_p"):])) if s.startswith("cn_3dm_p") else (s, 0))
+                         key=lambda s: (m.group(1), int(m.group(2))) if (m := paged.fullmatch(s)) else (s, 0))
         pages = sorted(int(s[len("cn_3dm_p"):]) for s in sources if s.startswith("cn_3dm_p"))
         if len(pages) > 2 and pages == list(range(pages[0], pages[-1] + 1)):
             sources = [f"cn_3dm_p{pages[0]}…p{pages[-1]}"] + [s for s in sources if not s.startswith("cn_3dm_p")]
@@ -3515,7 +3725,8 @@ def render_reminders(pack: dict) -> list[str]:
                + "; a request needs " + (", ".join(f"{g['id']} (「{g['locksZh']}」)" for g in groups if g.get("locksZh"))
                                         or "none")
                + f"; src: {', '.join(groups[0]['src'])}.")
-    out.append("- Withheld class answers: " + "; ".join(f"{md} ({why})" for md, why in WITHHELD_CLASS.items()) + ".")
+    out.append("- Withheld class answers: " + ("; ".join(f"{md} ({why})" for md, why in WITHHELD_CLASS.items()) or "none")
+               + ".")
     out.append("")
     return out
 
@@ -3541,7 +3752,8 @@ def render_sources(pack: dict) -> list[str]:
                "pages are used only for their Reload section and are marked `mixed`.")
     out.append("4. Snapshot URLs are checked against the snapshot itself: Steam threads point to "
                f"`{STEAM_THREAD_URL.format('<id>')}` and must be Reload General Discussions threads, the store page "
-               f"to `{STEAM_STORE_URL}`, achievement pages to their language, the 3DM page to its pager entry.")
+               f"to `{STEAM_STORE_URL}`, achievement pages to their language, the 3DM page to its pager entry, the 游民星空 "
+               "pages to their canonical link and page index, the BWIKI page to its page name and revision.")
     out.append("")
     edition = {s["id"]: s["edition"] for s in pack["sources"]}
     out.append("| value | rests on | Reload sources among them |")
@@ -3653,11 +3865,15 @@ def render_reminder_lines(pack: dict) -> list[str]:
     items = pack["reminders"]["items"]
     answers = [x for x in items if x["answerZh"]]
     latin = sorted({x["answerZh"] for x in answers if re.search(r"[A-Za-z]", x["answerZh"])})
-    out = [f"- **当日提醒 answers** — {sum(1 for x in answers if x['kind'] == 'class')} class and "
-           f"{sum(1 for x in answers if x['kind'] == 'exam')} exam answers are 3DM text (cn_3dm_p2…p11), dated and "
-           "positioned by aqiu; nobody has seen them on SC game screens. Latin as 3DM writes it (exempt from the Latin "
-           "check): " + "、".join(f"「{a}」" for a in latin) + ". Typos fixed to the CN guide's spelling of the same day: "
+    copied = [x for x in answers if any(s.startswith("cn_gamersky_p") for s in x["src"])]
+    out = [f"- **当日提醒 answers** — {sum(1 for x in answers if x['kind'] == 'class') - len(copied)} class and "
+           f"{sum(1 for x in answers if x['kind'] == 'exam')} exam answers are 3DM text (cn_3dm_p2…p11), "
+           f"{len(copied)} class answers are text of 游民星空's copy of the same guide that BWIKI writes alike ("
+           + "、".join(f"{md_of(x['day'])} 「{x['answerZh']}」" for x in copied) + "), dated and positioned by aqiu; "
+           "nobody has seen them on SC game screens. Latin as 3DM writes it (exempt from the Latin check): "
+           + "、".join(f"「{a}」" for a in latin) + ". Typos fixed to the CN guide's spelling of the same day: "
            + "、".join(f"{md} 「{wrong}」→「{right}」" for (md, wrong), right in ZH_TYPO_FIXES.items())
+           + "; to BWIKI's: " + "、".join(f"{md} 「{wrong}」→「{right}」" for (md, wrong), right in GAMERSKY_TYPO_FIXES.items())
            + "; 12/14 「数字0”」 loses the stray quote mark. Item names in 电视购物 lines are 3DM's or the CN guide's."]
     templates = {
         "class": "课堂提问：选「{answer}」（第 {n} 项） / 课堂：{answer}（第 {n} 项） / 上课被点名提问时选「{answer}」（第 {n} 项），"

@@ -13,6 +13,7 @@ import static org.junit.Assert.fail;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -845,12 +846,13 @@ public class RulesPackFactsTest {
     // ------------------------------------------------------------------ 3.1.0: 当日提醒
 
     /**
-     * Class and exam answers: aqiu dates, zh text from the pinned 3DM pages only (REPORT §4.8). The CN guide's
-     * English-localisation answers never reach the pack, and dates without a 3DM line are withheld.
+     * Class and exam answers: aqiu dates, zh text from the pinned 3DM pages (REPORT §4.8); the four class dates 3DM has
+     * no text for (12/7, 12/9, 12/11, 1/18) come from 游民星空's copy of the same guide, with BWIKI's zh text on the same
+     * date. The CN guide's English-localisation answers never reach the pack.
      */
     @Test
     public void classAndExamAnswersComeFromTheChineseScheduleOnly() {
-        assertEquals(32, kind("class"));
+        assertEquals(36, kind("class"));
         assertEquals(17, kind("exam"));
         assertAnswer("class.07-08", "马", 2, "课堂提问：选「马」（第 2 项）", "课堂：马（第 2 项）");
         assertAnswer("class.10-22", "朱诺", 3, "课堂提问：选「朱诺」（第 3 项）", "课堂：朱诺（第 3 项）");
@@ -859,8 +861,19 @@ public class RulesPackFactsTest {
         assertAnswer("exam.05-19", "五月病", 0, "考试：选「五月病」", "考试：五月病");
         assertAnswer("exam.10-14", "摩西", 0, "考试：选「摩西」", "考试：摩西");
         assertAnswer("exam.12-18", "做好了拼命的心理准备", 0, "考试：选「做好了拼命的心理准备」", "考试：做好了拼命的心理准备");
-        for (String withheld : new String[] {"class.12-07", "class.12-09", "class.12-11", "class.01-18"}) {
-            assertNull(withheld, reminder(withheld));
+        String[][] fromCopy = {
+            {"class.12-07", "臭氧层", "1", "cn_gamersky_p9"}, {"class.12-09", "鬼道", "2", "cn_gamersky_p9"},
+            {"class.12-11", "孤注一掷", "2", "cn_gamersky_p9"}, {"class.01-18", "喀耳刻", "2", "cn_gamersky_p10"},
+        };
+        for (String[] c : fromCopy) {
+            Rules.Reminder x = reminder(c[0]);
+            assertNotNull(c[0], x);
+            assertEquals(c[0], c[1], x.answerZh);
+            assertEquals(c[0], Integer.parseInt(c[2]), x.option);
+            assertEquals(c[0], "课堂提问：选「" + c[1] + "」（第 " + c[2] + " 项）", x.zh);
+            assertEquals(c[0], "课堂：" + c[1] + "（第 " + c[2] + " 项）", x.shortZh);
+            assertEquals(c[0], "verified", x.conf);
+            assertEquals(c[0], Arrays.asList("aqiu_social_events", c[3], "cn_bwiki_class"), x.src);
         }
         for (String estimate : new String[] {"exam.07-17", "exam.12-16"}) {
             assertEquals(estimate, "estimate", reminder(estimate).conf);
