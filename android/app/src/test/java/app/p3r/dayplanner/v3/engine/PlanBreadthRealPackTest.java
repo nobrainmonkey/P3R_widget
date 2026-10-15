@@ -25,17 +25,20 @@ import java.util.List;
  * from the same starts, and 「尽量多 MAX」 reproducing the plans of the engine before 3.1.0.
  * Skipped while the pack is not available in this checkout.
  *
- * <p>Acceptance (spec §8.2), every plan complete, validator-clean and within the time budget:
+ * <p>Every comparison, every plan complete, validator-clean and within the time budget, keeps the
+ * promises of {@link #brokenPromise} (Planner.Pool#keepsPromises): goals no worse in strict priority
+ * order; with the same goals, not beaten by the 尽量多 MAX plan on links unlocked, links at RANK 5 or
+ * above and the rank sum all at once; at most two more wasted daytimes; a 尽量都体验 score at least
+ * the 尽量多 MAX plan's. On top of that (spec §8.2):
  * <ul>
- *   <li>new game 4/21 (no Persona; also with every 羁绊剧情 track, the default of a new profile):
- *       breadth brings at most one link fewer to MAX than max;</li>
+ *   <li>new game 4/21 (no Persona; every 羁绊剧情 track, the default of a new profile; Persona for
+ *       the goals only): breadth unlocks the same links and brings at most one link fewer to MAX
+ *       than max ({@link #newGameKeepsTheMaxCount});</li>
  *   <li>mid game 10/22 with and without goals, 1/8 late start: breadth unlocks at least as many
  *       links, has a higher minimum rank, at least as many links at RANK 5 or above, and a rank sum
  *       at most 5% lower; its sorted ranks are higher at the first place they differ (leximin);</li>
  *   <li>goals end where they end under max (strict goal priority is unchanged), and over 22 goal
- *       profiles never lower ({@link #goalProfilesKeepTheGoalsAndStayBroad});</li>
- *   <li>the 尽量都体验 objective scores the breadth plan at least as high as the max plan in each of
- *       these scenarios ({@link #both}): the result is what the objective asks for.</li>
+ *       profiles never lower ({@link #goalProfilesKeepTheGoalsAndStayBroad}).</li>
  * </ul>
  * The minimum rank is taken over the non-story links that one of the two plans unlocks: from the
  * 10/22 state 女皇 needs Academics MAX from Lv.4 (130 points, about 40 evenings), which neither
@@ -43,12 +46,13 @@ import java.util.List;
  *
  * <p>Measured 2026-10-14 (pack 3.1.0, default options; max → breadth):
  * <table>
- *   <tr><th>scenario</th><th>MAX</th><th>unlocked</th><th>rank sum</th><th>RANK ≥ 5</th><th>min rank (opened)</th></tr>
- *   <tr><td>new game 4/21, no Persona</td><td>21 → 22</td><td>22 → 22</td><td>219 → 220</td><td>22 → 22</td><td>9 → 10</td></tr>
- *   <tr><td>new game 4/21, every 羁绊剧情 track</td><td>21 → 21</td><td>22 → 22</td><td>216 → 217</td><td>22 → 22</td><td>6 → 7</td></tr>
- *   <tr><td>mid game 10/22</td><td>13 → 6</td><td>20 → 21</td><td>152 → 151</td><td>14 → 21</td><td>0 → 5</td></tr>
- *   <tr><td>mid game 10/22, 皇帝 必须 + 女教皇 想要</td><td>10 → 7</td><td>21 → 21</td><td>137 → 135</td><td>12 → 13</td><td>1 → 3</td></tr>
- *   <tr><td>1/8 late start</td><td>8 → 4</td><td>22 → 22</td><td>135 → 141</td><td>15 → 18</td><td>1 → 3</td></tr>
+ *   <tr><th>scenario</th><th>MAX</th><th>unlocked</th><th>rank sum</th><th>RANK ≥ 5</th><th>min rank (opened)</th><th>wasted daytime</th></tr>
+ *   <tr><td>new game 4/21, no Persona</td><td>21 → 22</td><td>22 → 22</td><td>219 → 220</td><td>22 → 22</td><td>9 → 10</td><td>0 → 0</td></tr>
+ *   <tr><td>new game 4/21, every 羁绊剧情 track</td><td>21 → 21</td><td>22 → 22</td><td>216 → 217</td><td>22 → 22</td><td>6 → 7</td><td>1 → 1</td></tr>
+ *   <tr><td>new game 4/21, Persona for goals only, 皇帝 必须 + 恋爱、女皇 想要</td><td>21 → 20</td><td>22 → 22</td><td>213 → 216</td><td>21 → 22</td><td>3 → 8</td><td>1 → 1</td></tr>
+ *   <tr><td>mid game 10/22</td><td>13 → 8</td><td>20 → 21</td><td>152 → 151</td><td>14 → 18</td><td>0 → 4</td><td>1 → 1</td></tr>
+ *   <tr><td>mid game 10/22, 皇帝 必须 + 女教皇 想要</td><td>10 → 7</td><td>21 → 21</td><td>137 → 137</td><td>12 → 13</td><td>1 → 3</td><td>22 → 21</td></tr>
+ *   <tr><td>1/8 late start</td><td>8 → 5</td><td>22 → 22</td><td>135 → 140</td><td>15 → 16</td><td>1 → 3</td><td>0 → 1</td></tr>
  * </table>
  */
 public class PlanBreadthRealPackTest {
@@ -85,19 +89,42 @@ public class PlanBreadthRealPackTest {
 
     // ------------------------------------------------------------------ breadth against max
 
+    /**
+     * New game 4/21: when (nearly) every link can reach MAX, 「尽量都体验」 converges to it: the same
+     * links unlocked, at most one MAX fewer than 「尽量多 MAX」. With Persona for the goals only
+     * (必须 皇帝, 想要 恋爱、女皇) it stopped at 19 MAX against 21 before the MAX bonus was raised
+     * (Heuristics.BREADTH_MAX_BONUS_RANKS).
+     */
     @Test
     public void newGameKeepsTheMaxCount() {
         Pair none = both("对比 · 新游戏 · 不带人格面具", new Profile(), newGame(dayOf(4, 21)));
-        assertTrue(none.line(), none.breadth.maxed >= none.max.maxed - 1);
+        assertConverges(none);
         assertEquals(none.line(), rules.links.length, none.breadth.unlocked);
+
+        Profile carried = new Profile();
+        carried.personaMode = Profile.PersonaMode.GOALS;
+        carried.tier[link("emperor")] = Profile.Tier.MUST;
+        carried.tier[link("lovers")] = Profile.Tier.WANT;
+        carried.order[link("lovers")] = 1;
+        carried.tier[link("empress")] = Profile.Tier.WANT;
+        carried.order[link("empress")] = 2;
+        Pair goals = both("对比 · 新游戏 · 只给目标社群带人格面具 · 必须：皇帝 · 想要：恋爱、女皇", carried, newGame(dayOf(4, 21)));
+        assertConverges(goals);
+        for (int l : new int[]{link("emperor"), link("lovers"), link("empress")}) assertEquals(goals.line(), 10, goals.breadth.endRank[l]);
 
         Profile episodes = new Profile();
         episodes.episodeTracks = Profile.defaultEpisodeTracks(rules);
         Assume.assumeTrue("no Link Episode data", episodes.episodeTracks.length > 0);
         Pair all = both("对比 · 新游戏 · 不带人格面具 · 全部羁绊剧情", episodes, newGame(dayOf(4, 21)));
-        assertTrue(all.line(), all.breadth.maxed >= all.max.maxed - 1);
+        assertConverges(all);
         assertEquals(all.line(), rules.links.length, all.breadth.unlocked);
         assertTrue(all.line(), all.breadth.episodes >= all.max.episodes);
+    }
+
+    /** A new game: the same links unlocked and at most one MAX fewer than 「尽量多 MAX」. */
+    private static void assertConverges(Pair p) {
+        assertEquals("unlocked " + p.line(), p.max.unlocked, p.breadth.unlocked);
+        assertTrue("MAX " + p.line(), p.breadth.maxed >= p.max.maxed - 1);
     }
 
     @Test
@@ -134,11 +161,13 @@ public class PlanBreadthRealPackTest {
     /**
      * Goal profiles (the 3.1.0 review): the 1/8 pair of competing 必须 goals, the 10/22 sets the
      * review found worse on a goal or dominated under 「尽量都体验」, and 12 seeded 10/22 profiles (1 to 4
-     * goals, 必须 or 想要, some carrying their Persona). Spec §8.1: every one ends its goals no worse than
-     * 「尽量多 MAX」 (Planner.Pool.addMaxStylePlans; 10/22 ①女教皇 ②永劫 ③恋爱 left 恋爱 at RANK 9
-     * before). Breadth: at most one link fewer unlocked and at most 15 more wasted daytimes in any
-     * profile (the goals' dating-site notes are paid with daytime jobs in a few), and over the set at
-     * least as many links unlocked and at RANK 5 or above and no more wasted daytime.
+     * goals, 必须 or 想要, some carrying their Persona). Every one keeps the promises of
+     * {@link #brokenPromise} ({@link #compare}): before the 「尽量多 MAX」 plans joined every
+     * 「尽量都体验」 pool, 必须 ①星 ②正义 ③命运 was below 「尽量多 MAX」 on every breadth number (18 links
+     * unlocked against 19, rank sum 123 against 132, RANK ≥ 5 11 against 13), two profiles unlocked a
+     * link fewer and two wasted 11 and 13 more daytimes; 10/22 ①女教皇 ②永劫 ③恋爱 left 恋爱 at RANK 9
+     * before the goals got the 「尽量多 MAX」 plans. Over the set: at least as many links unlocked and
+     * at RANK 5 or above, and fewer wasted daytimes.
      */
     @Test
     public void goalProfilesKeepTheGoalsAndStayBroad() {
@@ -183,20 +212,18 @@ public class PlanBreadthRealPackTest {
             if (random.nextInt(4) == 3) p.personaMode = Profile.PersonaMode.GOALS;
             cases.add(new Object[]{title.toString(), p, midGameState()});
         }
-        int[] sum = new int[6];
+        int[] sum = new int[8];
         for (Object[] c : cases) {
             Pair p = compare((String) c[0], (Profile) c[1], (SimState) c[2]);
-            assertTrue("goals " + p.line(), compareGoals(p.profile, p.breadth.endRank, p.max.endRank) >= 0);
-            assertTrue("unlocked " + p.line(), p.breadth.unlocked >= p.max.unlocked - 1);
-            assertTrue("wasted daytime " + p.line(), p.breadth.daytimeWaste <= p.max.daytimeWaste + 15);
             int[] add = {p.breadth.unlocked, p.max.unlocked, p.breadth.atLeast5, p.max.atLeast5, p.breadth.daytimeWaste,
-                    p.max.daytimeWaste};
+                    p.max.daytimeWaste, p.breadth.rankSum, p.max.rankSum};
             for (int i = 0; i < sum.length; i++) sum[i] += add[i];
         }
         String totals = "unlocked " + sum[0] + " / " + sum[1] + " · RANK ≥ 5 " + sum[2] + " / " + sum[3]
-                + " · wasted daytime " + sum[4] + " / " + sum[5] + " (尽量都体验 / 尽量多 MAX, " + cases.size() + " profiles)";
+                + " · wasted daytime " + sum[4] + " / " + sum[5] + " · rank sum " + sum[6] + " / " + sum[7]
+                + " (尽量都体验 / 尽量多 MAX, " + cases.size() + " profiles)";
         System.out.println(totals);
-        assertTrue(totals, sum[0] >= sum[1] && sum[2] >= sum[3] && sum[4] <= sum[5]);
+        assertTrue(totals, sum[0] >= sum[1] && sum[2] >= sum[3] && sum[4] < sum[5]);
     }
 
     /**
@@ -204,7 +231,7 @@ public class PlanBreadthRealPackTest {
      * goals in order, 「必须」 then 「想要」; reaching the target beats missing it, between two misses the
      * higher RANK wins. Positive when {@code a} is better.
      */
-    private static int compareGoals(Profile profile, int[] a, int[] b) {
+    static int compareGoals(Profile profile, int[] a, int[] b) {
         Integer[] goals = new Integer[Profile.LINKS];
         int n = 0;
         for (int l = 0; l < Profile.LINKS; l++) if (profile.isGoal(l)) goals[n++] = l;
@@ -314,37 +341,44 @@ public class PlanBreadthRealPackTest {
 
     // ------------------------------------------------------------------ helpers
 
-    /** The same start planned in both styles, with metrics and the 尽量都体验 objective of each plan. */
+    /**
+     * The same start planned in both styles, with metrics and, for each plan, the 尽量都体验 score
+     * ({@link #breadthScore}, what the planner keeps the best of) and objective ({@link #breadthObjective}).
+     */
     private static final class Pair {
         final String title;
         final Profile profile;
         final PlanMetrics breadth;
         final PlanMetrics max;
+        final double breadthScore;
+        final double maxScore;
         final double breadthJ;
         final double maxJ;
 
-        Pair(String title, Profile profile, PlanMetrics breadth, PlanMetrics max, double breadthJ, double maxJ) {
+        Pair(String title, Profile profile, PlanMetrics breadth, PlanMetrics max, SimState start) {
             this.title = title;
             this.profile = profile;
             this.breadth = breadth;
             this.max = max;
-            this.breadthJ = breadthJ;
-            this.maxJ = maxJ;
+            Profile b = profile.copy();
+            b.style = Profile.Style.BREADTH;
+            this.breadthScore = breadthScore(rules, b, start, breadth.plan);
+            this.maxScore = breadthScore(rules, b, start, max.plan);
+            this.breadthJ = breadthObjective(rules, b, start, breadth.plan);
+            this.maxJ = breadthObjective(rules, b, start, max.plan);
         }
 
         String line() {
             return title + "\n  尽量多 MAX: MAX " + max.maxed + " · " + max.breadthLine() + " · 浪费 " + max.daytimeWaste
-                    + " · J " + Math.round(maxJ) + " · " + Arrays.toString(max.endRank)
+                    + " · 分 " + Math.round(maxScore) + "（J " + Math.round(maxJ) + "）· " + Arrays.toString(max.endRank)
                     + "\n  尽量都体验: MAX " + breadth.maxed + " · " + breadth.breadthLine() + " · 浪费 " + breadth.daytimeWaste
-                    + " · J " + Math.round(breadthJ) + " · " + Arrays.toString(breadth.endRank);
+                    + " · 分 " + Math.round(breadthScore) + "（J " + Math.round(breadthJ) + "）· " + Arrays.toString(breadth.endRank);
         }
     }
 
     /**
-     * Both styles from {@code start}, recorded in the metrics table (the lowest RANK over the non-story
-     * links either plan unlocks). Spec §8.2 / the 3.1.0 review: the 尽量都体验 objective scores its own
-     * plan at least as high as the 尽量多 MAX plan, so the breadth result is what the objective asks
-     * for, not an accident of the search.
+     * Both styles from {@code start} ({@link #compare}), recorded in the metrics table (the lowest
+     * RANK over the non-story links either plan unlocks).
      */
     private static Pair both(String title, Profile profile, SimState start) {
         Pair p = compare(title, profile, start);
@@ -354,11 +388,10 @@ public class PlanBreadthRealPackTest {
             pm.minOpened = pm.minRankOver(opened);
             pm.recordPending();
         }
-        assertTrue("the 尽量都体验 objective prefers the 尽量多 MAX plan: " + p.line(), p.breadthJ >= p.maxJ);
         return p;
     }
 
-    /** Both styles from {@code start}, each checked by {@link #run}; not recorded. */
+    /** Both styles from {@code start}, each checked by {@link #run}, keeping the promises of {@link #brokenPromise}; not recorded. */
     private static Pair compare(String title, Profile profile, SimState start) {
         Profile breadth = profile.copy();
         breadth.style = Profile.Style.BREADTH;
@@ -366,25 +399,78 @@ public class PlanBreadthRealPackTest {
         max.style = Profile.Style.MAX;
         PlanMetrics b = run(title, breadth, start);
         PlanMetrics m = run(title, max, start);
-        Pair p = new Pair(title, profile, b, m, breadthObjective(breadth, start, b.plan), breadthObjective(breadth, start, m.plan));
+        Pair p = new Pair(title, profile, b, m, start);
         System.out.println(p.line());
+        String broken = brokenPromise(rules, profile, start, b.plan, m.plan);
+        assertTrue(broken + " · " + p.line(), broken == null);
         return p;
     }
 
-    /** The 尽量都体验 objective of {@code plan} (as the planner compares complete plans: less the fragile-MAX penalty). */
-    static double breadthObjective(Profile breadth, SimState observed, Plan plan) {
+    /**
+     * What 「尽量都体验」 promises against 「尽量多 MAX」 from the same start (DESIGN §20,
+     * Planner.Pool#keepsPromises), or null when every promise holds: its goals end no worse in strict
+     * priority order and, when they end the same, the 尽量多 MAX plan does not beat it on links
+     * unlocked, links at RANK 5 or above and the rank sum all at once (at least one strictly), it
+     * wastes at most {@link Planner#BREADTH_WASTE_SLACK} more daytimes, and its 尽量都体验 score
+     * ({@link #breadthScore}) is at least the 尽量多 MAX plan's.
+     */
+    static String brokenPromise(Rules rules, Profile profile, SimState start, Plan breadthPlan, Plan maxPlan) {
+        Profile breadth = profile.copy();
+        breadth.style = Profile.Style.BREADTH;
+        Profile max = profile.copy();
+        max.style = Profile.Style.MAX;
+        PlanMetrics b = PlanMetrics.of(rules, breadth, start, breadthPlan);
+        PlanMetrics m = PlanMetrics.of(rules, max, start, maxPlan);
+        int goals = compareGoals(profile, b.endRank, m.endRank);
+        if (goals < 0) return "goals below 尽量多 MAX";
+        if (goals > 0) return null; // a goal ends higher: strict goal priority comes first
+        if (m.unlocked >= b.unlocked && m.atLeast5 >= b.atLeast5 && m.rankSum >= b.rankSum
+                && (m.unlocked > b.unlocked || m.atLeast5 > b.atLeast5 || m.rankSum > b.rankSum)) {
+            return "dominated by 尽量多 MAX";
+        }
+        if (b.daytimeWaste > m.daytimeWaste + Planner.BREADTH_WASTE_SLACK) {
+            return "wasted daytime " + b.daytimeWaste + " against " + m.daytimeWaste;
+        }
+        double sb = breadthScore(rules, breadth, start, breadthPlan);
+        double sm = breadthScore(rules, breadth, start, maxPlan);
+        if (sb < sm - 1e-6) return "尽量都体验 score " + Math.round(sb) + " below the 尽量多 MAX plan's " + Math.round(sm);
+        return null;
+    }
+
+    /** The 尽量都体验 objective of {@code plan}, less the fragile-MAX penalty (before the waste margin of {@link #breadthScore}). */
+    static double breadthObjective(Rules rules, Profile breadth, SimState observed, Plan plan) {
         Model m = new Model(rules, breadth, new Engine.Options());
         SimState st = Kernel.normalize(m, observed);
         Heuristics h = new Heuristics(m, st, null);
         int[] reached = h.initialReached(st);
-        for (Plan.Step step : plan.steps) {
+        for (int code : codes(rules, plan)) {
             int slot = st.slot;
-            Action a = Action.parse(rules, step.action);
-            int code = a != null && a.isProductive() ? Kernel.encode(a) : Kernel.FREE;
             Kernel.apply(m, st, m.t.open(slot) ? code : Kernel.FREE, null);
             h.track(st, slot, reached);
         }
         return h.objective(st, reached) - Heuristics.FRAGILE_MAX_PENALTY * h.fragileMaxes(st, reached);
+    }
+
+    /**
+     * The 尽量都体验 score of {@code plan}: the value the planner keeps the best of among plans whose
+     * goals tie (Planner.Candidate#score, since 3.0), the objective ({@link #breadthObjective}) less the
+     * waste margin (Planner#wasteMargin) for every wasted daytime (Planner#daytimeWaste).
+     */
+    static double breadthScore(Rules rules, Profile breadth, SimState observed, Plan plan) {
+        Model m = new Model(rules, breadth, new Engine.Options());
+        SimState st = Kernel.normalize(m, observed);
+        Heuristics h = new Heuristics(m, st, null);
+        return breadthObjective(rules, breadth, observed, plan) - Planner.wasteMargin(h) * Planner.daytimeWaste(m, st, codes(rules, plan));
+    }
+
+    /** The action code of every step of {@code plan} (FREE for a locked or free slot). */
+    private static int[] codes(Rules rules, Plan plan) {
+        int[] out = new int[plan.steps.size()];
+        for (int i = 0; i < out.length; i++) {
+            Action a = Action.parse(rules, plan.steps.get(i).action);
+            out[i] = a != null && a.isProductive() ? Kernel.encode(a) : Kernel.FREE;
+        }
+        return out;
     }
 
     /** One plan with default options: complete, validator-clean, within the time budget (recorded by {@link #both}). */

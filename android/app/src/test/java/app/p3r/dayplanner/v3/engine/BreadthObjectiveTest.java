@@ -4,6 +4,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import app.p3r.dayplanner.v3.model.Profile;
@@ -43,7 +44,7 @@ public class BreadthObjectiveTest {
 
     /**
      * 「尽量都体验」: each further RANK of a 「其余社群」 link is worth less than the one before, unlocking
-     * the most, and MAX adds one rank's worth; 「尽量多 MAX」 keeps one {@code W_OTHER} per RANK and
+     * the most, and MAX adds two ranks' worth; 「尽量多 MAX」 keeps one {@code W_OTHER} per RANK and
      * six for MAX.
      */
     @Test
@@ -72,14 +73,22 @@ public class BreadthObjectiveTest {
         assertTrue(2 * unlock * w > breadth.val[4][10] - breadth.val[4][5]);
         assertTrue("under max, the MAX of a RANK 5 link beats two unlocks", 2 * w < max.val[4][10] - max.val[4][5]);
         assertTrue(Heuristics.BREADTH_MAX_BONUS_RANKS < Heuristics.MAX_BONUS_RANKS);
+        // Once every link is open and high, finishing two links beats raising a third from RANK 3 to 8
+        // (a new game, Persona for goals only: 21 MAX with one link at RANK 3 over 19 with three at 7-8).
+        double finished = 2 * (breadth.val[4][10] - breadth.val[4][7]);
+        double raised = breadth.val[4][8] - breadth.val[4][3];
+        assertTrue(finished + " / " + raised, finished > raised + 2 * w);
+        // Raising two links from RANK 1 to 5 still beats finishing one from RANK 5.
+        assertTrue(2 * (breadth.val[4][5] - breadth.val[4][1]) > breadth.val[4][10] - breadth.val[4][5]);
     }
 
     /**
-     * The earlier MAX of a goal is worth half as much under 「尽量都体验」 (Heuristics.BREADTH_EARLY_SHARE):
-     * finishing a goal a few days earlier must not buy away meetings, unlocks and MAX links of 其余社群.
+     * The earlier MAX of a goal is worth a quarter as much under 「尽量都体验」
+     * (Heuristics.BREADTH_EARLY_SHARE): finishing a goal a few days earlier must not buy away meetings,
+     * unlocks and MAX links of 其余社群.
      */
     @Test
-    public void aGoalsEarlierMaxWeighsHalfUnderBreadth() {
+    public void aGoalsEarlierMaxWeighsAQuarterUnderBreadth() {
         Rules rules = RulesFixtures.fullYear();
         SimState start = RulesFixtures.newGame(rules, RulesFixtures.slot(4, 21, false));
         Profile profile = RulesFixtures.must(4);
@@ -96,6 +105,7 @@ public class BreadthObjectiveTest {
         }
         assertEquals(max.wGoal[4] * Heuristics.EARLY_PER_SLOT, perSlot[1], EPS);
         assertEquals(Heuristics.BREADTH_EARLY_SHARE * perSlot[1], perSlot[0], EPS);
+        assertEquals(0.25, Heuristics.BREADTH_EARLY_SHARE, EPS);
     }
 
     /** Goals keep their own weights per RANK under both styles; only the 「其余社群」 weights change. */
@@ -189,6 +199,67 @@ public class BreadthObjectiveTest {
         assertEquals(10, m.summary.endRanks[4]);
         assertEquals(m.summary.endRanks[4], b.summary.endRanks[4]);
         assertNotEquals(m.planId, b.planId);
+    }
+
+    /**
+     * Planner.Pool#choose under 「尽量都体验」: among plans whose goals tie, a plan the 「尽量多 MAX」
+     * plan beats on links unlocked, RANK ≥ 5 and the rank sum, or one that wastes more than
+     * Planner.BREADTH_WASTE_SLACK more daytimes, is not kept however well it scores; the
+     * 「尽量多 MAX」 plan itself always may be. Without a 「尽量多 MAX」 plan the best score wins.
+     */
+    @Test
+    public void choiceKeepsThePromisesAgainstTheMaxPlan() {
+        Rules rules = RulesFixtures.fullYear();
+        Profile profile = RulesFixtures.others();
+        Model m = new Model(rules, profile, new Engine.Options());
+        SimState start = Kernel.normalize(m, RulesFixtures.newGame(rules, RulesFixtures.slot(9, 1, false)));
+        Planner.Pool pool = new Planner.Pool(m, start, null, new Engine.Options(), Long.MAX_VALUE, Planner.PORTFOLIO);
+        int n = rules.links.length;
+        Planner.Candidate max = candidate(n, 10, 10, 1_000, 4);           // 10 links at MAX
+        Planner.Candidate fewer = candidate(n, 9, 10, 9_000, 0);          // fewer links at MAX: dominated
+        Planner.Candidate wasteful = candidate(n, 15, 5, 8_000, 4 + Planner.BREADTH_WASTE_SLACK + 1);
+        Planner.Candidate broad = candidate(n, 15, 5, 5_000, 4 + Planner.BREADTH_WASTE_SLACK);
+        pool.all.add(fewer);
+        pool.all.add(wasteful);
+        pool.all.add(max);
+        assertSame("no 尽量多 MAX plan: the best score", fewer, pool.choose());
+        pool.maxPlan = max;
+        assertFalse(pool.keepsPromises(fewer));
+        assertFalse(pool.keepsPromises(wasteful));
+        assertTrue(pool.keepsPromises(max));
+        assertSame("only the 尽量多 MAX plan keeps the promises", max, pool.choose());
+        pool.all.add(broad);
+        assertTrue(pool.keepsPromises(broad));
+        assertSame("the best score among the plans that keep them", broad, pool.choose());
+    }
+
+    /** A plan without goals: {@code count} links at {@code rank}, the rest unopened. */
+    private static Planner.Candidate candidate(int links, int count, int rank, double score, int waste) {
+        int[] ranks = new int[links];
+        for (int l = 0; l < count; l++) ranks[l] = rank;
+        return new Planner.Candidate(null, null, null, new int[0], score, score, score, 0, new boolean[0], new int[0], ranks, waste);
+    }
+
+    /**
+     * On the synthetic year, 「尽量都体验」 keeps its promises against the 「尽量多 MAX」 plan from the
+     * same start (PlanBreadthRealPackTest#brokenPromise): a new game, a 「必须」 goal, a 9/1 start.
+     */
+    @Test
+    public void breadthKeepsItsPromisesOnTheSyntheticYear() {
+        Rules rules = RulesFixtures.fullYear();
+        Object[][] cases = {
+                {RulesFixtures.others(), RulesFixtures.slot(4, 21, false)},
+                {RulesFixtures.must(4), RulesFixtures.slot(4, 21, false)},
+                {RulesFixtures.others(), RulesFixtures.slot(9, 1, false)}};
+        for (Object[] c : cases) {
+            Profile breadth = (Profile) c[0];
+            SimState start = RulesFixtures.newGame(rules, (int) c[1]);
+            Plan b = Engine.plan(rules, breadth, start, null, new Engine.Options());
+            Plan m = Engine.plan(rules, styled(breadth, Profile.Style.MAX), start, null, new Engine.Options());
+            assertValid(rules, breadth, start, b);
+            String broken = PlanBreadthRealPackTest.brokenPromise(rules, breadth, start, b, m);
+            assertTrue(broken, broken == null);
+        }
     }
 
     private static void assertValid(Rules rules, Profile profile, SimState start, Plan plan) {
