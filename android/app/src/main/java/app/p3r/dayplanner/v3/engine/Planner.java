@@ -531,16 +531,26 @@ final class Planner {
         /**
          * 「尽量都体验」 is never a worse plan than 「尽量多 MAX」 on what it promises (DESIGN §20): the
          * 「尽量多 MAX」 plan of the same start ({@link #maxPlan}) does not beat {@code c} on links
-         * unlocked, links at RANK 5 or above and the rank sum all at once (at least one strictly), and
-         * {@code c} wastes at most {@link #BREADTH_WASTE_SLACK} more daytimes than it. True for every
-         * plan when there is no such plan (「尽量多 MAX」 itself, or a zero time budget).
+         * unlocked, links at RANK 5 or above and the rank sum all at once (at least one strictly);
+         * {@code c} unlocks fewer links than it only when the 「尽量都体验」 objective itself (J, before
+         * the waste margin) scores {@code c} at least as high, since the style unlocks every link first
+         * (「先把每个社群都解锁」); and {@code c} wastes at most {@link #BREADTH_WASTE_SLACK} more daytimes
+         * than it. True for every plan when there is no such plan (「尽量多 MAX」 itself, or a zero time
+         * budget).
+         *
+         * <p>The unlock rule (3.1.0 re-check): the waste margin charges a goal profile's wasted
+         * daytime at 2.5 slots of the goals' earlier MAX ({@link #wasteMargin}) although 「尽量都体验」
+         * values that earlier MAX at a quarter, so the score could keep a plan that leaves 恶魔 locked
+         * where 「尽量多 MAX」 takes it to MAX (10/22, 想要 恋爱, 必须 永劫、倒悬者: 19 links unlocked
+         * against 20, J 3,724 lower), the daytimes that pay its fees and raise 魅力 counted as waste.
          */
         boolean keepsPromises(Candidate c) {
             Candidate x = maxPlan;
             if (x == null || c == x) return true;
             boolean dominated = x.unlocked >= c.unlocked && x.rank5 >= c.rank5 && x.rankSum >= c.rankSum
                     && (x.unlocked > c.unlocked || x.rank5 > c.rank5 || x.rankSum > c.rankSum);
-            return !dominated && c.waste <= x.waste + BREADTH_WASTE_SLACK;
+            boolean fewerUnlocked = c.unlocked < x.unlocked && c.j < x.j - EPS;
+            return !dominated && !fewerUnlocked && c.waste <= x.waste + BREADTH_WASTE_SLACK;
         }
 
         /**

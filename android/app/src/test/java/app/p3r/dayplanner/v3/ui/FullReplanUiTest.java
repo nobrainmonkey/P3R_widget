@@ -54,6 +54,13 @@ public class FullReplanUiTest extends UiTestBase {
         Shots.find(sheet, "从头重新安排？");
         Shots.find(sheet, "会重新读取你记下的进度和规划设置，不参考现在的安排，从头排到1月31日。"
             + "比平时多算一会儿，一般几秒，最多十来秒。接下来几天的安排可能会变。");
+        // The date is in the numeral face, as on 规划说明 and 我的.
+        android.widget.TextView body = (android.widget.TextView) Shots.find(sheet, "会重新读取你记下的进度和规划设置，不参考现在的安排，"
+            + "从头排到1月31日。比平时多算一会儿，一般几秒，最多十来秒。接下来几天的安排可能会变。");
+        CharSequence styled = body.getText();
+        int date = styled.toString().indexOf('3', styled.toString().indexOf("排到"));
+        assertTrue(styled.toString(), date > 0 && styled instanceof android.text.Spanned
+            && ((android.text.Spanned) styled).getSpans(date, date + 1, NumeralSpan.class).length > 0);
         Shots.find(sheet, "先不了");
         Shots.shot(a, "full_replan_sheet");
         assertEquals("nothing is asked before confirming", 0, api.fullReplanRequests);

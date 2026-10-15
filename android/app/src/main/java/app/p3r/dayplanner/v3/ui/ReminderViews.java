@@ -76,8 +76,9 @@ final class ReminderViews {
         LinearLayout card = Ui.column(c);
         card.setBackground(Ui.card(c).accent(Ui.col(c, R.color.ui_gold), Ui.dp(c, 4)));
         Ui.pad(card, 14, 6, 12, 6);
+        int chips = chipColumn(c, reminders);
         for (Plan.Reminder r : reminders) {
-            LinearLayout row = row(c, r, false);
+            LinearLayout row = row(c, r, false, chips);
             row.setClickable(true);
             row.setFocusable(true);
             row.setBackground(new SlantedPanelDrawable().fill(0).pressedFill(Ui.col(c, R.color.ui_cyan_faint)));
@@ -104,10 +105,11 @@ final class ReminderViews {
         }
         LinearLayout box = Ui.column(c);
         box.addView(Ui.sectionHeader(c, DAY_TITLE, null));
+        int chips = chipColumn(c, reminders);
         for (int i = 0; i < reminders.size(); i++) {
             LinearLayout.LayoutParams rp = Ui.matchWrap();
             rp.topMargin = Ui.dp(c, i == 0 ? 0 : 8);
-            box.addView(row(c, reminders.get(i), true), rp);
+            box.addView(row(c, reminders.get(i), true, chips), rp);
         }
         return box;
     }
@@ -122,11 +124,24 @@ final class ReminderViews {
      * the chip, so a quoted answer stays whole at a large font.
      */
     static LinearLayout row(Context c, Plan.Reminder r, boolean detail) {
+        return row(c, r, detail, 0);
+    }
+
+    /**
+     * As {@link #row(Context, Plan.Reminder, boolean)} with the chip at least {@code chipWidth} px wide,
+     * its label centred: the rows of one block share the width of their widest chip
+     * ({@link #chipColumn}), so their lines start on one column (保健室 is narrower than 课堂提问).
+     */
+    static LinearLayout row(Context c, Plan.Reminder r, boolean detail, int chipWidth) {
         LinearLayout row = Ui.row(c);
         row.setGravity(Gravity.TOP);
         row.setMinimumHeight(Ui.dp(c, 40));
         Ui.pad(row, 0, 6, 0, 6);
         TextView chip = labelChip(c, r.labelZh);
+        if (chipWidth > 0) {
+            chip.setMinWidth(chipWidth);
+            chip.setGravity(Gravity.CENTER);
+        }
         LinearLayout.LayoutParams chipParams = Ui.wrap();
         chipParams.topMargin = Ui.dp(c, 2);
         row.addView(chip, chipParams);
@@ -194,6 +209,17 @@ final class ReminderViews {
         return r.textZh != null && r.textZh.contains(gain) ? null : gain;
     }
 
+    /** Width (px) of the widest label chip of {@code reminders}, which every chip of their block takes. */
+    static int chipColumn(Context c, List<Plan.Reminder> reminders) {
+        int widest = 0;
+        for (Plan.Reminder r : reminders) {
+            TextView chip = labelChip(c, r.labelZh);
+            chip.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+            widest = Math.max(widest, chip.getMeasuredWidth());
+        }
+        return widest;
+    }
+
     /** The kind label (「课堂提问」) on a small gold chip. */
     static TextView labelChip(Context c, String label) {
         TextView chip = Ui.text(c, blank(label) ? "提醒" : label.trim(), 11, Ui.col(c, R.color.p3r_navy_950), true);
@@ -237,8 +263,13 @@ final class ReminderViews {
         tag.setBackground(new SlantedPanelDrawable().stroke(Ui.col(c, R.color.ui_gold), Ui.dp(c, 1)).skew(Ui.dp(c, 4)));
         Ui.pad(tag, 6, 1, 7, 1);
         tag.setMaxLines(1);
-        tag.setContentDescription(count + " 条当日提醒");
+        tag.setContentDescription(spokenCount(count));
         return tag;
+    }
+
+    /** What a 接下来 row with {@code count} reminders adds to what it reads out: 「提醒 2 条」. */
+    static String spokenCount(int count) {
+        return "提醒 " + count + " 条";
     }
 
     private static boolean blank(String s) {

@@ -550,11 +550,15 @@ final class TodayPage {
                 box.addView(dayCard, spaced(8));
             }
             LinearLayout line = SlotRows.line(c, d.rules, step, SlotRows.State.FUTURE, true);
-            TextView marker = ReminderViews.marker(c, ReminderViews.countAt(plan, slot));
+            int reminders = ReminderViews.countAt(plan, slot);
+            TextView marker = ReminderViews.marker(c, reminders);
             if (marker != null) {
                 LinearLayout.LayoutParams mp = Ui.wrap();
                 mp.leftMargin = Ui.dp(c, 6);
                 line.addView(marker, mp);
+                // The row reads out its own description, not its children's: the count goes into it.
+                CharSequence spoken = line.getContentDescription();
+                line.setContentDescription((spoken == null ? "" : spoken + "，") + ReminderViews.spokenCount(reminders));
             }
             line.setClickable(true);
             line.setFocusable(true);

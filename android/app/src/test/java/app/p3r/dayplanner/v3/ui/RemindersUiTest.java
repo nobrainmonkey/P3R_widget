@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Intent;
+import android.view.View;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -57,8 +58,17 @@ public class RemindersUiTest extends UiTestBase {
         android.widget.LinearLayout box = Ui.column(a);
         box.setBackgroundColor(Ui.col(a, app.p3r.dayplanner.R.color.p3r_navy_950));
         Ui.pad(box, 16 + 14, 6, 16 + 12, 6);
-        for (Plan.Reminder r : reminders) box.addView(ReminderViews.row(a, r, detail));
+        int chips = ReminderViews.chipColumn(a, Arrays.asList(reminders));
+        for (Plan.Reminder r : reminders) box.addView(ReminderViews.row(a, r, detail, chips));
         android.graphics.Bitmap bitmap = Shots.render(box);
+        // 3.1.0 re-check: the chips share the widest one's width, so every line starts on one column.
+        int column = -1;
+        for (int i = 0; i < box.getChildCount(); i++) {
+            View text = ((android.view.ViewGroup) box.getChildAt(i)).getChildAt(1);
+            int left = text.getLeft();
+            assertTrue(name + ": line " + i + " starts at " + left + ", not " + column, column < 0 || left == column);
+            column = left;
+        }
         Shots.checkTypography(box, name);
         Shots.save(bitmap, name);
     }
@@ -116,6 +126,16 @@ public class RemindersUiTest extends UiTestBase {
         assertEquals(1, ReminderViews.countAt(api.snap.plan, NOW + 1));
         assertEquals(0, ReminderViews.countAt(api.snap.plan, NOW + 3));
         assertNull(ReminderViews.marker(a, 0));
+        // Read out with the row (the row's own description is what TalkBack reads), never 「当日提醒」.
+        assertEquals("提醒 2 条", ReminderViews.marker(a, 2).getContentDescription().toString());
+        int counted = 0;
+        for (View v : Shots.findAll(a.getWindow().getDecorView(), "提醒 1")) {
+            View row = (View) v.getParent();
+            CharSequence spoken = row.getContentDescription();
+            assertTrue(String.valueOf(spoken), spoken != null && spoken.toString().endsWith("，提醒 1 条"));
+            counted++;
+        }
+        assertEquals(2, counted);
     }
 
     @Test
@@ -170,6 +190,12 @@ public class RemindersUiTest extends UiTestBase {
         assertEquals("魅力 +2", ReminderViews.gainOf(ReminderFixtures.classAnswer(OCT_22, "朱诺", 3)));
         assertEquals("选「朱诺」（第 3 项）", ReminderViews.lineOf(ReminderFixtures.classAnswer(OCT_22, "朱诺", 3)));
         assertEquals("今晚去塔尔塔罗斯时，顺便救出失踪者（3 人）", ReminderViews.lineOf(ReminderFixtures.rescueTonight(OCT_22)));
+        // The chip says the kind; the line after it never says it again (「失踪者｜失踪者 7月6日截止…」).
+        assertEquals("7月6日截止，这几天没安排去塔尔塔罗斯", ReminderViews.lineOf(ReminderFixtures.reminder("rescue.06-18.deadline",
+                Plan.Reminder.RESCUE, "失踪者", OCT_22, false, "失踪者：7月6日截止，这几天没安排去塔尔塔罗斯", "失踪者 7月6日截止",
+                Plan.Reminder.MISSABLE)));
+        assertEquals("有新商品，3,980 日元", ReminderViews.lineOf(ReminderFixtures.reminder("tv.07-05", Plan.Reminder.TV, "电视购物",
+                OCT_22, false, "电视购物：有新商品，3,980 日元", "电视购物 3,980 日元", Plan.Reminder.NICE)));
     }
 
     /**

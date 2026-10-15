@@ -96,6 +96,11 @@ public final class CardModel {
     public String hint;
     /** Side steps done in the same slot, e.g. "顺便：把 20,000 日元交给穿西装的男人"; null hides it. */
     public String side;
+    /**
+     * {@link #side} for a card too narrow for it, e.g. "顺便：恶魔社群解锁前的准备", or null; then
+     * {@link CardRenderer#fitSide} says 「顺便还有一件事，点开看看」, never cutting the line with "…".
+     */
+    public String sideShort;
     /** One extra line such as "✓ 已记录 · 再点撤销"; null hides it. */
     public String cue;
     /** Keep the cue even when space is short (it replaces information that did not fit). */
@@ -276,6 +281,7 @@ public final class CardModel {
         m.location = location;
         m.hint = hint;
         m.side = side;
+        m.sideShort = sideShort;
         m.cue = cue;
         m.cueEssential = cueEssential;
         m.cueMaxLines = cueMaxLines;

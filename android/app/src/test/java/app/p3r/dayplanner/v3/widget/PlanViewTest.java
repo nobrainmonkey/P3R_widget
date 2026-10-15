@@ -232,6 +232,21 @@ public class PlanViewTest {
     }
 
     /**
+     * 3.1.0 re-check: a side line too wide for its row is never cut with "…"; its short form names the
+     * link whose unlock the side steps prepare (the steps of one link only).
+     */
+    @Test
+    public void sideStepsHaveAShortFormNamingTheirLink() {
+        app.p3r.dayplanner.v3.model.Rules rules = FakePlannerApi.miniRules();
+        assertEquals("顺便：皇帝社群解锁前的准备", StepCopy.sideShort(List.of("unlock:emperor:0"), rules));
+        assertEquals("顺便：皇帝社群解锁前的准备", StepCopy.sideShort(List.of("unlock:emperor:0", "unlock:emperor:1"), rules));
+        assertEquals(null, StepCopy.sideShort(List.of("unlock:emperor:0", "unlock:priestess:0"), rules));
+        assertEquals(null, StepCopy.sideShort(List.of("unlock:devil:0"), rules));
+        assertEquals(null, StepCopy.sideShort(List.of("unlock:emperor:0"), null));
+        assertEquals(null, StepCopy.sideShort(List.of(), rules));
+    }
+
+    /**
      * Review: 「结缘网站的字条 · 岳羽由…」 on the smallest card; the short form keeps the name whole (the
      * note mark says what it is: the glossary never shortens the note's name to 「字条」).
      */

@@ -181,6 +181,9 @@ public class RemindersTest {
         assertEquals(day(ReminderFixtures.MISSING_FROM), first.slot);
         assertEquals("北村文吉失踪了，期限 5月16日", first.textZh);
         assertTrue(first.detailZh.contains("北村文吉没救出来的话，教皇社群就没法继续了。"));
+        // One person or many: the details never say 「他们」.
+        assertEquals("在塔尔塔罗斯里找到失踪的人就能救出，还能拿到奖励。期限当天再去不一定来得及，最好提前去。", Reminders.RESCUE_DETAIL);
+        assertTrue(first.detailZh.startsWith(Reminders.RESCUE_DETAIL) && !first.detailZh.contains("他们"));
         assertEquals(ReminderFixtures.MISSING_TO, first.untilDay);
         Plan.Reminder more = find(plan, "rescue.05-13.start");
         assertEquals("有 3 名失踪者（包括北村文吉），期限 5月16日", more.textZh);
@@ -194,6 +197,7 @@ public class RemindersTest {
         assertEquals("今晚去塔尔塔罗斯时，顺便救出失踪者（3 人）", tower.textZh);
         assertEquals("顺便救出失踪者", tower.shortZh);
         assertTrue(tower.detailZh.contains(ReminderFixtures.LOCKS));
+        assertTrue(tower.detailZh.startsWith("失踪的人在塔尔塔罗斯里，探索时找到就能救出，还能拿到奖励。"));
         assertNull("one line per evening", find(plan, "rescue.05-13.tower"));
         assertNull(find(plan, "rescue.05-11.deadline"));
         assertNull(find(plan, "rescue.05-13.deadline"));
@@ -204,7 +208,8 @@ public class RemindersTest {
         assertEquals("有 2 名失踪者，期限 5月16日", find(early, "rescue.05-13.start").textZh);
         Plan.Reminder late = find(early, "rescue.05-13.deadline");
         assertEquals(day(ReminderFixtures.MISSING_TO - 1), late.slot);
-        assertEquals("失踪者 5月16日截止：这几天没安排去塔尔塔罗斯", late.textZh);
+        assertEquals("失踪者：5月16日截止，这几天没安排去塔尔塔罗斯", late.textZh);
+        assertEquals("失踪者 5月16日截止", late.shortZh);
         assertTrue("what the 5/13 group locks", late.detailZh.endsWith(ReminderFixtures.LOCKS));
         assertEquals(Plan.Reminder.MISSABLE, late.priority);
     }

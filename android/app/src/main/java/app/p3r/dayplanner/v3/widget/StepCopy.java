@@ -54,6 +54,8 @@ final class StepCopy {
     String hint;
     /** Side steps joined into one line ("顺便：A；B"), or null. */
     String side;
+    /** {@link #side} for a card too narrow for it ({@link #sideShort}), or null. */
+    String sideShort;
 
     private StepCopy() {}
 
@@ -67,6 +69,7 @@ final class StepCopy {
         c.location = blankToNull(step.locationZh);
         c.hint = glossary(blankToNull(step.hintZh));
         c.side = glossary(sideLine(step.sideZh));
+        c.sideShort = c.side == null ? null : sideShort(step.side, rules);
         switch (kind) {
             case "note":
                 noteCopy(c, step, rules);
@@ -360,6 +363,24 @@ final class StepCopy {
     // ------------------------------------------------------------------ helpers
 
     /** "顺便：A", "顺便：B" → "顺便：A；B". */
+    /**
+     * The side line's short form for a card too narrow for it (CardRenderer.fitSide):
+     * 「顺便：恶魔社群解锁前的准备」 when every side step prepares the same link's unlock (they all do:
+     * paying 田中社长, the talks with 千寻, the rumours); null for steps of different links or without rules.
+     */
+    static String sideShort(List<String> side, Rules rules) {
+        if (side == null || side.isEmpty() || rules == null) return null;
+        String link = null;
+        for (String key : side) {
+            String[] parts = key == null ? new String[0] : key.split(":");
+            if (parts.length < 3 || !"unlock".equals(parts[0]) || link != null && !link.equals(parts[1])) return null;
+            link = parts[1];
+        }
+        Rules.Link l = rules.link(link);
+        String arcana = l == null ? null : blankToNull(l.arcanaZh);
+        return arcana == null ? null : "顺便：" + arcana + "社群解锁前的准备";
+    }
+
     static String sideLine(List<String> sideZh) {
         if (sideZh == null) return null;
         StringBuilder sb = new StringBuilder();

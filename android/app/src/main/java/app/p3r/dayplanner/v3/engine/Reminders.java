@@ -27,8 +27,8 @@ final class Reminders {
     static final String DOZE_LABEL = "上课犯困";
     static final String NURSE_LABEL = "保健室";
     static final String RESCUE_LABEL = "失踪者";
-    static final String RESCUE_DETAIL = "在塔尔塔罗斯里找到他们就能救出，还能拿到奖励。期限当天去还来不来得及不确定，最好提前去。";
-    static final String TOWER_DETAIL = "失踪的人在塔尔塔罗斯里，探索时找到他们就能救出，能拿到奖励。";
+    static final String RESCUE_DETAIL = "在塔尔塔罗斯里找到失踪的人就能救出，还能拿到奖励。期限当天再去不一定来得及，最好提前去。";
+    static final String TOWER_DETAIL = "失踪的人在塔尔塔罗斯里，探索时找到就能救出，还能拿到奖励。";
     static final String DEADLINE_DETAIL = "期限前没去塔尔塔罗斯的话就救不出来了；想救的话，在期限前找一个晚上去塔尔塔罗斯。";
     /** Visible stat level that is MAX. */
     private static final int MAX_LV = 6;
@@ -303,7 +303,7 @@ final class Reminders {
             for (Rules.RescueGroup g : e.getValue()) people(rules, g, new ArrayList<>(), notes);
             Plan.Reminder x = rescueLine("deadline", e.getValue().get(0), slot, Plan.Reminder.MISSABLE, limitDay);
             String limit = date(rules, limitDay);
-            x.textZh = "失踪者 " + limit + "截止：这几天没安排去塔尔塔罗斯";
+            x.textZh = RESCUE_LABEL + "：" + limit + "截止，这几天没安排去塔尔塔罗斯";
             x.shortZh = "失踪者 " + limit + "截止";
             x.detailZh = DEADLINE_DETAIL + String.join("", notes);
             out.add(x);

@@ -175,14 +175,14 @@ These are `textZh` / `shortZh` / `detailZh`. Static text comes from the builder,
 | exam | `考试：选「五月病」`; estimate detail: `这条答案只有一份攻略写过，游戏里的写法可能略有不同。` | `考试：五月病` | 3 | day (locked) |
 | doze | `上课犯困时别闭眼：学力 +2` (academics < MAX) / `上课犯困时闭上眼：勇气 +2` (academics MAX, courage < MAX) / omitted when both are MAX | `犯困别闭眼：学力 +2` / `犯困闭眼：勇气 +2` | 2 | day |
 | nurse | `放学后先去保健室：勇气 +2，不会消耗时间` (omitted at courage MAX) | `保健室：勇气 +2` | 2 | day |
-| tv | `电视购物：玫瑰花束、高级巧克力 ×2，2,980 日元`; without names: `电视购物有新商品：3,980 日元`. Detail `在自己房间看电视就能买，不会消耗时间；最好出门前先买。花的钱不在安排的预计里，买了以后记得在「同步现状」里更新现金。`; engine appends `按预计，这天的现金可能不够。` when price > forecast cash; request items add e.g. `超级安全靴是伊莉莎白第 40 号委托要的东西。` | `电视购物 2,980 日元` | 1 (2 for 7/12 and 11/29) | day |
+| tv | `电视购物：玫瑰花束、高级巧克力 ×2，2,980 日元`; without names: `电视购物：有新商品，3,980 日元` (3.1.0 re-check: the app line after the chip does not repeat it). Detail `在自己房间看电视就能买，不会消耗时间；最好出门前先买。花的钱不在安排的预计里，买了以后记得在「同步现状」里更新现金。`; engine appends `按预计，这天的现金可能不够。` when price > forecast cash; request items add e.g. `超级安全靴是伊莉莎白的第 40 号委托要的东西。` | `电视购物 2,980 日元` | 1 (2 for 7/12 and 11/29) | day |
 | request batch | `伊莉莎白有新的委托`; detail `去天鹅绒房间找伊莉莎白看看新委托；接委托和交东西都不会消耗时间。` (5/10 and 1/1 on the evening slot: 3DM's evening column, 3.1.0 review) | `伊莉莎白有新委托` | 1 | day |
-| request deadline | `伊莉莎白的第 12、13 号委托 6月6日截止` (shown from max(batch, deadline − 3), `untilDay` = deadline); #97's detail: `这个委托只能做到 12月25日，而且只有在 7月6日前救出了 6月18日失踪的学生才能完成；…` (past tense, shown from 12/22; the 6/18 rescue group says `救不出来的话，伊莉莎白的第 97 号委托就做不了。` in its own details, 3.1.0 review) | `委托 6月6日截止` | 2 | day |
-| rescue start | `有 3 名失踪者，期限 7月6日`; with a modelled person: `有 3 名失踪者（包括北村文吉），期限 10月3日`. Detail `在塔尔塔罗斯里找到他们就能救出，还能拿到奖励。期限当天去还来不来得及不确定，最好提前去。` (3.1.0 review wording) | `失踪者 3 人 · 期限 7月6日` | 2 | day of max(from, plan start) |
-| rescue planned | `今晚去塔尔塔罗斯时，顺便救出失踪者（3 人）` | `顺便救出失踪者` | 2 | eve of the planned tower night |
-| rescue unplanned | `失踪者 7月6日截止：这几天没安排去塔尔塔罗斯` (3.1.0 review wording) | `失踪者 7月6日截止` | 3 | day of max(start, to − 1) |
+| request deadline | `伊莉莎白的第 12、13 号委托 6月6日截止` (shown from max(batch, deadline − 3), `untilDay` = deadline); #97's detail: `这个委托只能做到 12月25日，而且只有在 7月6日前救出了 6月18日失踪的学生才能完成；…` (past tense, shown from 12/22; the 6/18 rescue group says `救不出来的话，伊莉莎白的第 97 号委托就做不了。` in its own details, 3.1.0 review) | `伊莉莎白的委托 6月6日截止` (3.1.0 re-check: the widget row has no chip) | 2 | day |
+| rescue start | `有 3 名失踪者，期限 7月6日`; with a modelled person: `有 3 名失踪者（包括北村文吉），期限 10月3日`. Detail `在塔尔塔罗斯里找到失踪的人就能救出，还能拿到奖励。期限当天再去不一定来得及，最好提前去。` (3.1.0 re-check wording: right for one person too) | `失踪者 3 人 · 期限 7月6日` | 2 | day of max(from, plan start) |
+| rescue planned | `今晚去塔尔塔罗斯时，顺便救出失踪者（3 人）`; detail `失踪的人在塔尔塔罗斯里，探索时找到就能救出，还能拿到奖励。` | `顺便救出失踪者` | 2 | eve of the planned tower night |
+| rescue unplanned | `失踪者：7月6日截止，这几天没安排去塔尔塔罗斯` (3.1.0 re-check wording: the app shows it after the chip without 「失踪者：」) | `失踪者 7月6日截止` | 3 | day of max(start, to − 1) |
 | fragment | `今天城里能捡到黄昏的碎片（14 处）` (detail lists the spots) / `宿舍 4 楼有一块黄昏的碎片` / `宿舍屋顶有一块黄昏的碎片` / `勇气到 Lv.2 了：晚上去放纵俱乐部，舞台旁有一块黄昏的碎片` / `满月作战的地图上有 2 块黄昏的碎片，错过就没了` (3.1.0 review wording) | `能捡黄昏的碎片` etc. | 1 (3 for 8/6) | per item |
-| trip | `屋久岛：在海边捡一样东西（{items}都行），伊莉莎白的第 44 号委托要用，错过就没了`, and the evening before (7/19, eve, priority 3, 3.1.0 review) `明天去屋久岛：出发前先在天鹅绒房间接下伊莉莎白的第 44 号委托` (short `出发前接第 44 号委托`); `修学旅行：把 2 楼自动贩卖机的 3 种饮料都买下，伊莉莎白的第 96 号委托要用` (detail: the oden is then bought from the student for 5,000 日元) | `海边捡东西（委托用）` | 3 | day |
+| trip | `屋久岛：在海边捡一样东西（{items}都行），伊莉莎白的第 44 号委托要用，错过就没了`, and the evening before (7/19, eve, priority 3, 3.1.0 review) `明天去屋久岛：出发前先在天鹅绒房间接下伊莉莎白的第 44 号委托` (short `出发前接伊莉莎白的委托`); `修学旅行：把 2 楼自动贩卖机的 3 种饮料都买下，伊莉莎白的第 96 号委托要用` (detail: the oden is then bought from the student for 5,000 日元) | `海边捡东西（伊莉莎白的委托）`, `买齐 3 种饮料（委托用）` | 3 | day |
 | feature | `真宵堂今天开张了` | `真宵堂开张` | 1 | day |
 
 The builder lists every editorial zh line in REPORT §7.

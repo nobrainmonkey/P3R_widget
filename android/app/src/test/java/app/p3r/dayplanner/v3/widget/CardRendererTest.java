@@ -68,6 +68,54 @@ public class CardRendererTest {
     }
 
     /**
+     * 3.1.0 re-check: the side step (「顺便：…」) and the 人格面具 reminder were cut with "…" in the middle
+     * of a word (「顺便：把 20,000 日元交给穿西装…」). Like the reminder row they show whole, else a short
+     * form (「顺便：恶魔社群解锁前的准备」, then 「顺便还有一件事，点开看看」), else no row, at every size,
+     * font scale and SDK.
+     */
+    @Test
+    public void sideAndHintRowsAreWholeOrShortOrGone() {
+        Context c = RuntimeEnvironment.getApplication();
+        String side = "顺便：在喷泉前把 20,000 日元交给田中社长";
+        String shortSide = "顺便：恶魔社群解锁前的准备";
+        String hint = "记得带上「皇帝」阿尔卡那的人格面具";
+        assertEquals(side, CardRenderer.fitSide(c, side, shortSide, WidgetSize.REGULAR, 300));
+        assertEquals(shortSide, CardRenderer.fitSide(c, side, shortSide, WidgetSize.TINY, 160));
+        assertEquals("顺便还有一件事，点开看看", CardRenderer.fitSide(c, side, null, WidgetSize.TINY, 160));
+        assertEquals("顺便还有 2 件事，点开看看", CardRenderer.fitSide(c, side + "；再交给田中社长 10,000 日元", null, WidgetSize.TINY, 160));
+        assertEquals(null, CardRenderer.fitSide(c, side, shortSide, WidgetSize.TINY, 60));
+        assertEquals(hint, CardRenderer.fitHint(c, hint, WidgetSize.REGULAR, 300));
+        assertEquals(null, CardRenderer.fitHint(c, hint, WidgetSize.TINY, 150));
+        List<String> issues = new ArrayList<>();
+        int[][] sizes = {{180, 150}, {180, 200}, {250, 160}, {250, 200}, {320, 200}};
+        for (float scale : new float[]{1f, 1.15f, 1.3f}) {
+            RuntimeEnvironment.setFontScale(scale);
+            for (int[] size : sizes) {
+                CardModel m = sample(false);
+                m.side = side;
+                m.sideShort = shortSide;
+                m.hint = hint;
+                View root = RenderSupport.layout(c, CardRenderer.render(c, m, size[0], size[1]), size[0], size[1]);
+                String tag = "side-hint-" + size[0] + "x" + size[1] + "@" + scale;
+                RenderSupport.collectCutText(root, tag, issues);
+                TextView shown = root.findViewById(R.id.widget_side);
+                if (shown.getVisibility() == View.VISIBLE) {
+                    String text = shown.getText().toString();
+                    if (!text.equals(side) && !text.equals(shortSide) && !text.equals("顺便还有一件事，点开看看")) {
+                        issues.add(tag + " side shows '" + text + "'");
+                    }
+                }
+                TextView reminder = root.findViewById(R.id.widget_hint);
+                if (reminder.getVisibility() == View.VISIBLE && !reminder.getText().toString().equals(hint)) {
+                    issues.add(tag + " hint shows '" + reminder.getText() + "'");
+                }
+            }
+        }
+        RuntimeEnvironment.setFontScale(1f);
+        assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
+    /**
      * With {@link CardModel#keepWordsWhole} (the plan widget) names and venues stay whole at every
      * size and font scale, while the drawn text reads the same (a 「 · 」 it wraps at becomes the line
      * break, and no line ends with the dot).

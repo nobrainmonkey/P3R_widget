@@ -118,12 +118,14 @@ final class RenderSupport {
     /**
      * Key information is never cut short with "…" (review: 「魅力 +4 → Lv.…」, 「奢豪之…」,
      * 「结缘网站的字条 · 岳羽由…」, 「花费 1,000 日…」, 「赴约也算一次见…」): the tag chip, the location, the
-     * note (cue) line and a title with a name in it (「 · 」 parts) are either whole or not shown.
+     * note (cue) line, the answers and reminder rows, the side step (「顺便：…」) and the 人格面具 reminder
+     * (3.1.0 re-check: 「顺便：把 20,000 日元交给穿西装…」) and a title with a name in it (「 · 」 parts) are
+     * either whole or not shown.
      */
     static void collectCutText(View root, String tag, List<String> issues) {
         for (int id : new int[]{app.p3r.dayplanner.R.id.widget_tag, app.p3r.dayplanner.R.id.widget_location,
                 app.p3r.dayplanner.R.id.widget_detail_cue, app.p3r.dayplanner.R.id.widget_dialogue_choices,
-                app.p3r.dayplanner.R.id.widget_reminder}) {
+                app.p3r.dayplanner.R.id.widget_reminder, app.p3r.dayplanner.R.id.widget_side, app.p3r.dayplanner.R.id.widget_hint}) {
             TextView text = root.findViewById(id);
             if (text.getVisibility() == View.VISIBLE && ellipsized(text)) {
                 issues.add(tag + " cuts " + name(text) + ": '" + CardText.plain(text.getText().toString()) + "'");
@@ -270,6 +272,86 @@ final class RenderSupport {
                         + CardText.plain(s.substring(end)) + "'");
             }
         }
+        collectNeedlessChoiceWraps(text, tag, issues);
+    }
+
+    /**
+     * 3.1.0 re-check (「答：我会帮你的 / 这样的规」/「矩没有意义」): a choice wraps inside only where it has to
+     * (spec §1.4.3 step 5). A line break inside a choice is a failure when that choice fits the row's
+     * width at the drawn size and the row, drawn with every choice whole (breaks only after 「 / 」, a
+     * label or a space), takes no more lines. Rows with a choice wider than the line are left alone:
+     * their choices may all wrap.
+     */
+    static void collectNeedlessChoiceWraps(TextView text, String tag, List<String> issues) {
+        android.text.Layout layout = text.getLayout();
+        String s = text.getText().toString();
+        android.text.TextPaint paint = text.getPaint();
+        int width = layout.getWidth();
+        List<int[]> choices = choiceSpans(s);
+        for (int[] c : choices) {
+            if (paint.measureText(CardText.plain(s.substring(c[0], c[1])).trim()) > width) return;
+        }
+        String whole = wholeChoices(s);
+        int wholeLines = android.text.StaticLayout.Builder.obtain(whole, 0, whole.length(), paint, width)
+                .setBreakStrategy(text.getBreakStrategy())
+                .setHyphenationFrequency(text.getHyphenationFrequency())
+                .setIncludePad(text.getIncludeFontPadding())
+                .setLineSpacing(text.getLineSpacingExtra(), text.getLineSpacingMultiplier())
+                .build().getLineCount();
+        if (wholeLines > layout.getLineCount()) return;
+        for (int line = 0; line < layout.getLineCount() - 1; line++) {
+            int end = layout.getLineEnd(line);
+            for (int[] c : choices) {
+                if (end <= c[0] || end >= c[1]) continue;
+                String choice = CardText.plain(s.substring(c[0], c[1])).trim();
+                if (CardText.plain(s.substring(c[0], end)).trim().isEmpty()) continue; // the break falls before it
+                issues.add(tag + " wraps inside 「" + choice + "」 although it fits a line and every choice whole takes "
+                        + wholeLines + " of " + layout.getLineCount() + " lines: '" + CardText.plain(s.substring(layout.getLineStart(line), end))
+                        + "' / '" + CardText.plain(s.substring(end)) + "'");
+            }
+        }
+    }
+
+    /**
+     * Offsets [start, end) of the choices of a shaped answers row: what follows a label's 「：」 or a
+     * 「 / 」, up to the next 「 / 」, 「 · 」 note, 「 等 N 项」 or line.
+     */
+    private static List<int[]> choiceSpans(String s) {
+        List<int[]> out = new java.util.ArrayList<>();
+        int i = 0;
+        while (i < s.length()) {
+            int from = -1;
+            if (s.charAt(i) == '：') from = i + 1;
+            else if (s.startsWith("/ ", i)) from = i + 2;
+            if (from < 0) {
+                i++;
+                continue;
+            }
+            int to = from;
+            while (to < s.length() && s.charAt(to) != '\n' && !s.startsWith(CardText.NBSP + "/ ", to) && !s.startsWith(" /", to)
+                    && !s.startsWith(" ·", to) && !s.startsWith(" 等", to)) {
+                to++;
+            }
+            if (!CardText.plain(s.substring(from, to)).trim().isEmpty()) out.add(new int[]{from, to});
+            i = Math.max(to, i + 1);
+        }
+        return out;
+    }
+
+    /** The shaped row with no break left inside a choice: only after a space, a label's 「：」 or a line break. */
+    private static String wholeChoices(String s) {
+        StringBuilder out = new StringBuilder();
+        for (int k = 0; k < s.length(); k++) {
+            char here = s.charAt(k);
+            if (k > 0) {
+                char before = s.charAt(k - 1);
+                boolean open = before == ' ' || before == '：' || before == '\n' || here == '\n' || here == ' '
+                        || before == CardText.WJ || here == CardText.WJ;
+                if (!open) out.append(CardText.WJ);
+            }
+            out.append(here);
+        }
+        return out.toString();
     }
 
     /** The visible lines of a title, joined with 「/」 (for reports). */

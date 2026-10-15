@@ -114,7 +114,7 @@ public class ReminderRowRenderTest {
         RenderSupport.save(two, dir, "two-320x200");
         assertEquals("伊莉莎白的第 12、13 号委托 6月6日截止 · 共 2 条", text(two, R.id.widget_reminder));
         View twoNarrow = render(180, 200);
-        assertEquals("委托 6月6日截止 · 共 2 条", text(twoNarrow, R.id.widget_reminder));
+        assertEquals("伊莉莎白的委托 6月6日截止", text(twoNarrow, R.id.widget_reminder));
         check(two, "two-320x200", issues);
         check(twoNarrow, "two-180x200", issues);
 

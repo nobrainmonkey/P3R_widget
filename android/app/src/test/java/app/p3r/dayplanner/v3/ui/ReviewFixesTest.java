@@ -645,6 +645,11 @@ public class ReviewFixesTest extends UiTestBase {
         List<String> global = Assumptions.global(Fixtures.profileMid());
         assertTrue(global.contains("12月24日按都婉拒了邀约安排，可在「规划设置 → 平安夜」里改。"));
         assertTrue(global.contains("1月21日放学后先空出来（送过顺平「白色切花」的话会有剧情）。"));
+        // 3.1.0 re-check: the glossary's 课堂提问 and 预计, and the 当天提醒 explained (GLOSSARY 「规划说明里写【当天提醒】」).
+        assertTrue(global.contains("课堂提问、上课犯困、保健室、考试名次等带来的能力值不在安排的预计里，回来时用「同步现状」更新就行。"));
+        assertTrue(global.contains("课堂提问和考试的答案、电视购物、伊莉莎白的委托、黄昏的碎片这些不会消耗时间的事，还有失踪者的期限，"
+                + "会在「今天别错过」和日程详情的「当天提醒」里提醒。"));
+        for (String line : global) assertFalse(line, line.contains("课堂答题") || line.contains("预测"));
         assertEquals("假定这次探索能顺利救出失踪者。", Assumptions.describe("rescue"));
         for (String line : global) {
             assertFalse(line, line.contains("进塔") || line.contains("1月21日白天"));

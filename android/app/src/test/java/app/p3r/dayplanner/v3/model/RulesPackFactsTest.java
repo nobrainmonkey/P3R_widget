@@ -887,7 +887,7 @@ public class RulesPackFactsTest {
         assertEquals("电视购物 2,980 日元", first.shortZh);
         assertEquals(2_980, first.costYen);
         assertEquals(1, first.priority);
-        assertEquals("电视购物有新商品：3,980 日元", reminder("tv.07-05").zh);
+        assertEquals("电视购物：有新商品，3,980 日元", reminder("tv.07-05").zh);
         Rules.Reminder shoes = reminder("tv.07-12");
         assertEquals("电视购物：超级安全靴、速食咖喱 ×2，9,800 日元", shoes.zh);
         assertEquals(2, shoes.priority);
@@ -917,7 +917,8 @@ public class RulesPackFactsTest {
         assertEquals(9, batches);
         Rules.Reminder first = reminder("request.06-06.deadline");
         assertEquals("伊莉莎白的第 12、13 号委托 6月6日截止", first.zh);
-        assertEquals("委托 6月6日截止", first.shortZh);
+        assertEquals("伊莉莎白的委托 6月6日截止", first.shortZh);
+        assertEquals("伊莉莎白的委托 11月30日截止", reminder("request.11-30.deadline").shortZh);
         assertEquals(day(6, 3), first.day);
         assertEquals(day(6, 6), first.untilDay);
         assertEquals("这个委托只能做到 12月25日，而且只有在 7月6日前救出了 6月18日失踪的学生才能完成；接委托和交东西都不会消耗时间。",
@@ -930,11 +931,11 @@ public class RulesPackFactsTest {
         Rules.Reminder trip = reminder("trip.07-20");
         assertEquals("屋久岛", trip.labelZh);
         assertEquals("屋久岛：在海边捡一样东西（贝壳、海藻、浮木或小螃蟹都行），伊莉莎白的第 44 号委托要用，错过就没了", trip.zh);
-        assertEquals("海边捡东西（委托用）", trip.shortZh);
+        assertEquals("海边捡东西（伊莉莎白的委托）", trip.shortZh);
         // #44 has to be accepted before the trip: the evening before, not on the beach day.
         Rules.Reminder accept = reminder("trip.07-19.accept");
         assertEquals("明天去屋久岛：出发前先在天鹅绒房间接下伊莉莎白的第 44 号委托", accept.zh);
-        assertEquals("出发前接第 44 号委托", accept.shortZh);
+        assertEquals("出发前接伊莉莎白的委托", accept.shortZh);
         assertEquals(day(7, 19), accept.day);
         assertTrue(accept.evening);
         assertEquals(3, accept.priority);

@@ -2448,7 +2448,7 @@ def tv_reminders(ledger: Ledger, sched: Schedule3dm, guide: dict[int, list[dict]
                 priority = 2
         else:
             src = []
-            zh = f"电视购物有新商品：{price}"
+            zh = f"电视购物：有新商品，{price}"
             if d in requests:
                 raise BuildError(f"TV shopping {md}: a request item without a zh name")
         out.append(reminder(f"tv.{md}", "tv", d, "day", zh, fit_short(f"tv.{md}", f"电视购物 {price}"), detail=detail,
@@ -2511,7 +2511,8 @@ def request_reminders(ledger: Ledger, people: list[tuple[int, int, str]], sched:
         detail = f"{these}委托只能做到 {cn_date(last)}{prereq.get(last, '')}；接委托和交东西都不会消耗时间。"
         out.append(reminder(
             f"request.{md_of(last)}.deadline", "request", max(first, last - 3), "day",
-            f"伊莉莎白的第 {'、'.join(map(str, numbers))} 号委托 {cn_date(last)}截止", f"委托 {cn_date(last)}截止",
+            f"伊莉莎白的第 {'、'.join(map(str, numbers))} 号委托 {cn_date(last)}截止",
+            fit_short(f"request.{md_of(last)}.deadline", f"伊莉莎白的委托 {cn_date(last)}截止", f"委托 {cn_date(last)}截止"),
             detail=detail, priority=2, until=last, conf="verified", src=["aqiu_overworld", "cn_guide"]))
     ledger.decide("reminders", "requests", "伊莉莎白的委托 (aqiu overworld): new requests appear on "
                   + ", ".join(md_of(d) for d in sorted(batches)) + "; the time-limited ones end on "
@@ -2630,13 +2631,13 @@ def collectible_reminders(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, gu
         raise BuildError(f"{md_of(eve_before)} evening is no longer free")
     out.append(reminder(
         f"trip.{md_of(eve_before)}.accept", "trip", eve_before, "eve", "明天去屋久岛：出发前先在天鹅绒房间接下伊莉莎白的第 44 号委托",
-        "出发前接第 44 号委托", label="屋久岛", priority=3,
+        fit_short(f"trip.{md_of(eve_before)}.accept", "出发前接伊莉莎白的委托"), label="屋久岛", priority=3,
         detail=f"伊莉莎白的第 44 号委托要在屋久岛的海边捡东西，出发前没接下的话，到了海边也捡不到。从 {cn_date(accept_from)}起"
                "就能接，接委托不会消耗时间。",
         conf="verified", src=["aqiu_overworld", sched.source(eve_before), "cn_guide"]))
     out.append(reminder(
         "trip.07-20", "trip", md_slash(right), "day", f"屋久岛：在海边捡一样东西（{things}都行），伊莉莎白的第 44 号委托要用，错过就没了",
-        "海边捡东西（委托用）", label="屋久岛", priority=3,
+        fit_short("trip.07-20", "海边捡东西（伊莉莎白的委托）", "海边捡东西（委托用）"), label="屋久岛", priority=3,
         detail="出发前要先在天鹅绒房间接下伊莉莎白的第 44 号委托。到了海边，下面任意一件都行：\n" + beach,
         conf="verified", src=["aqiu_overworld", "cn_guide", "cn_3dm_p5"]))
     # 修学旅行: request #96 needs all three drinks of the Kyoto vending machine.
@@ -2650,7 +2651,7 @@ def collectible_reminders(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, gu
     out.append(reminder(
         "trip.11-17", "trip", day_of_md("11-17"), "day", "修学旅行：把 2 楼自动贩卖机的 3 种饮料都买下，伊莉莎白的第 96 号委托要用",
         "买齐 3 种饮料（委托用）", label="修学旅行", priority=3,
-        detail="住的地方 2 楼有自动贩卖机，3 种饮料每种买一瓶。回学校后在连接走廊把饮料给那位女学生，再花 "
+        detail="住的地方 2 楼有自动贩卖机，3 种饮料每种买一瓶。回学校后在连接走廊把饮料交给一位女学生，再花 "
                f"{yen(int(oden.group(1)))}向她买关东煮，交给伊莉莎白就能完成第 96 号委托。这笔钱不在安排的预计里，"
                "买了以后记得在「同步现状」里更新现金。",
         conf="verified", src=["aqiu_overworld", "cn_guide"]))
@@ -3663,8 +3664,8 @@ def render_reminder_lines(pack: dict) -> list[str]:
                  "答对了魅力 +2。" + STAT_SENTENCE,
         "exam": "考试：选「{answer}」 / 考试：{answer} / 这天考试有一道题要自己选，选「{answer}」。（estimate: "
                 "这条答案只有一份攻略写过，游戏里的写法可能略有不同。）",
-        "tv": "电视购物：{item}、{item} ×{n}，{price} 日元 / 电视购物有新商品：{price} 日元 / 电视购物 {price} 日元 / " + TV_DETAIL
-              + "（+ {item}是伊莉莎白第 {n} 号委托要的东西。 / {item}在伊莉莎白第 {n} 号委托里很有用。）",
+        "tv": "电视购物：{item}、{item} ×{n}，{price} 日元 / 电视购物：有新商品，{price} 日元 / 电视购物 {price} 日元 / " + TV_DETAIL
+              + "（+ {item}是伊莉莎白的第 {n} 号委托要的东西。 / {item}在伊莉莎白的第 {n} 号委托里很有用。）",
     }
     lines: list[str] = []
     for item in items:
@@ -3674,8 +3675,14 @@ def render_reminder_lines(pack: dict) -> list[str]:
             if text and text not in lines:
                 lines.append(text)
     deadline = next(x for x in items if x["id"].endswith(".deadline"))
-    lines.append(f"{deadline['zh']} / {deadline['shortZh']} / {deadline['detailZh']}（模板；#97 前面加「要先救出 "
-                 "6月18日失踪的学生。」）")
+    # The deadline whose request needs a rescue first (#97) says so after its date, as the pack writes it.
+    gated = []
+    for x in items:
+        m = re.match(r"这个委托只能做到 (\d+月\d+日)(，而且[^；]+)；", x["detailZh"] or "") if x["id"].endswith(".deadline") else None
+        n = re.search(r"第 ([\d、]+) 号委托", x["zh"]) if m else None
+        if m and n:
+            gated.append(f"#{n.group(1)} 在「{m.group(1)}」后加「{m.group(2)}」")
+    lines.append(f"{deadline['zh']} / {deadline['shortZh']} / {deadline['detailZh']}（模板；{'；'.join(gated) or '无附加条件'}）")
     out.append("- **当日提醒 editorial lines** (builder copy, no game text): "
                + "；".join(f"{kind}: {text}" for kind, text in templates.items()) + "；"
                + "；".join(text.replace("\n", " / ") for text in lines)

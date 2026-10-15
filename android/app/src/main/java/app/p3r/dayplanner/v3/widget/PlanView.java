@@ -268,6 +268,7 @@ final class PlanView {
         m.location = copy.location;
         m.hint = copy.hint;
         m.side = copy.side;
+        m.sideShort = copy.sideShort;
         m.cue = cueFor(step, copy, rules);
         // What to answer: the step's own choices, the side steps' picks, then the class and exam
         // answers of the card's slots; never the app's generic hint. The full app line is read out.

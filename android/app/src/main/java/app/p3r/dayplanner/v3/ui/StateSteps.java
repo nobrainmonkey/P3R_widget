@@ -669,7 +669,7 @@ final class StateSteps {
     /** Watched episodes of every opted-in track, so episodes already seen are not planned again. */
     private View episodes() {
         // A first onboarding opts into every track (尽量都体验, Profile.applyNewProfileDefaults): nothing was ticked yet.
-        LinearLayout column = page("羁绊剧情已经看了几话？", "这些羁绊剧情会排进安排，不想看的可以在「社群」里取消勾选。看过的不会再排进安排里。");
+        LinearLayout column = page("羁绊剧情已经看了几话？", "这些羁绊剧情会排进安排，不想看的可以在「社群」里取消勾选；看过的就不会再排了。");
         for (int track : draft.episodeTracks()) {
             Rules.Episode e = draft.rules.episodes[track];
             LinearLayout card = Ui.column(c);

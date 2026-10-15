@@ -86,7 +86,7 @@ public final class ReminderFixtures {
 
     public static Plan.Reminder requestDeadline(int day) {
         Plan.Reminder r = reminder("request." + md(day) + ".deadline", Plan.Reminder.REQUEST, "委托", day, false,
-                "伊莉莎白的第 12、13 号委托 6月6日截止", "委托 6月6日截止", Plan.Reminder.DEADLINE);
+                "伊莉莎白的第 12、13 号委托 6月6日截止", "伊莉莎白的委托 6月6日截止", Plan.Reminder.DEADLINE);
         r.untilDay = day;
         return r;
     }

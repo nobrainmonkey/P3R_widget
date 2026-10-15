@@ -203,8 +203,9 @@ public class BreadthObjectiveTest {
 
     /**
      * Planner.Pool#choose under 「尽量都体验」: among plans whose goals tie, a plan the 「尽量多 MAX」
-     * plan beats on links unlocked, RANK ≥ 5 and the rank sum, or one that wastes more than
-     * Planner.BREADTH_WASTE_SLACK more daytimes, is not kept however well it scores; the
+     * plan beats on links unlocked, RANK ≥ 5 and the rank sum, one that unlocks fewer links with a
+     * lower objective J (3.1.0 re-check: 恶魔 left locked for fewer wasted daytimes), or one that wastes
+     * more than Planner.BREADTH_WASTE_SLACK more daytimes, is not kept however well it scores; the
      * 「尽量多 MAX」 plan itself always may be. Without a 「尽量多 MAX」 plan the best score wins.
      */
     @Test
@@ -231,6 +232,27 @@ public class BreadthObjectiveTest {
         pool.all.add(broad);
         assertTrue(pool.keepsPromises(broad));
         assertSame("the best score among the plans that keep them", broad, pool.choose());
+
+        // Fewer links unlocked but higher up (not dominated): kept only when J says it is worth it.
+        int[] wide = new int[n];
+        java.util.Arrays.fill(wide, 0, 12, 4);                                   // 12 unlocked, none at RANK 5
+        int[] high = new int[n];
+        java.util.Arrays.fill(high, 0, 11, 5);                                   // 11 unlocked, all at RANK 5
+        Planner.Candidate opener = new Planner.Candidate(null, null, null, new int[0], 2_000, 2_000, 2_000, 0, new boolean[0],
+                new int[0], wide, 0);
+        Planner.Candidate narrowLowJ = new Planner.Candidate(null, null, null, new int[0], 1_900, 1_900, 9_000, 0,
+                new boolean[0], new int[0], high, 0);
+        Planner.Candidate narrowHighJ = new Planner.Candidate(null, null, null, new int[0], 2_100, 2_100, 8_000, 0,
+                new boolean[0], new int[0], high, 0);
+        pool.all.clear();
+        pool.all.add(narrowLowJ);
+        pool.all.add(opener);
+        pool.maxPlan = opener;
+        assertFalse("fewer links unlocked, J lower: the score alone does not keep it", pool.keepsPromises(narrowLowJ));
+        assertSame(opener, pool.choose());
+        pool.all.add(narrowHighJ);
+        assertTrue("fewer links unlocked but J higher", pool.keepsPromises(narrowHighJ));
+        assertSame(narrowHighJ, pool.choose());
     }
 
     /** A plan without goals: {@code count} links at {@code rank}, the rest unopened. */

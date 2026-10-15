@@ -363,12 +363,15 @@ public final class CardRenderer {
         final float heightDp;
         /** Every line and every choice is there (no 「等 N 项」, no line left out). */
         final boolean whole;
+        /** Lines drawn on a body as wide as the one it was made for. */
+        final int lines;
 
-        AnswerForm(String text, float sp, float heightDp, boolean whole) {
+        AnswerForm(String text, float sp, float heightDp, boolean whole, int lines) {
             this.text = text;
             this.sp = sp;
             this.heightDp = heightDp;
             this.whole = whole;
+            this.lines = lines;
         }
     }
 
@@ -382,7 +385,11 @@ public final class CardRenderer {
      * 「或」; then up to {@link #MORE_ANSWER_LINES} lines; then a class answer without its 「（第 n 项）」
      * ({@link CardModel.AnswerLine#withoutPosition}: the answer names the option, so the position goes
      * before any choice wraps; it stays out of the forms after it); then choices that wrap inside
-     * ({@link CardText#choicesLoose}); then {@link #ANSWERS_SMALL_SP}. For a card short of height:
+     * ({@link CardText#choicesLoose}); then {@link #ANSWERS_SMALL_SP} with every choice whole, then
+     * wrapping inside. A choice wraps inside only where that saves a line over the same answers with
+     * every choice whole at the same size ({@link #looseForm}): 「答：我会帮你的 / 这样的规矩没有意义」
+     * never draws 「这样的规」/「矩没有意义」 where 「这样的规矩没有意义」 fits a line of its own and the
+     * row takes no more lines that way (3.1.0 re-check). For a card short of height:
      * the lines cut to their first whole choices plus 「等 N 项」, a line only where that saves width
      * ({@link #answerForm}); then lines go, the least needed first ({@link #dropOrder}), each kept line
      * whole before it is cut; then a 朋友-route line's caution alone (「答：别选「…」」, then the
@@ -400,9 +407,17 @@ public final class CardRenderer {
         int more = Math.max(MORE_ANSWER_LINES, answers.size());
         // {shortLabels, shortOr, lines}: the ladder's rungs on whole lines.
         Object[][] ladder = {{false, false, few}, {true, false, few}, {true, true, few}, {true, true, more}};
-        for (Object[] rung : ladder) {
-            addWhole(forms, answerForm(c, answers, widthDp, (Boolean) rung[0], (Boolean) rung[1], false, (Integer) rung[2],
-                    DIALOGUE_SP, ALL));
+        AnswerForm[] rungs = new AnswerForm[ladder.length];
+        for (int i = 0; i < ladder.length; i++) {
+            rungs[i] = answerForm(c, answers, widthDp, (Boolean) ladder[i][0], (Boolean) ladder[i][1], false, (Integer) ladder[i][2],
+                    DIALOGUE_SP, ALL);
+        }
+        for (int i = 0; i < rungs.length; i++) {
+            // A label alone on a line (「要是升级了，答：」 / 「别选表白的回答」) gives way to the next rung when
+            // that takes fewer lines (「升级时答：别选表白的回答」).
+            AnswerForm next = i + 1 < rungs.length ? rungs[i + 1] : null;
+            if (rungs[i] != null && next != null && next.lines < rungs[i].lines && strands(c, rungs[i], widthDp)) continue;
+            addWhole(forms, rungs[i]);
         }
         // A class answer names its option itself: its position goes before any choice wraps or is cut.
         List<CardModel.AnswerLine> bare = new ArrayList<>(answers.size());
@@ -411,14 +426,16 @@ public final class CardRenderer {
             answers = bare;
             addWhole(forms, answerForm(c, answers, widthDp, true, true, false, more, DIALOGUE_SP, ALL));
         }
-        for (float sp : new float[]{DIALOGUE_SP, ANSWERS_SMALL_SP}) {
-            addWhole(forms, answerForm(c, answers, widthDp, true, true, true, more, sp, ALL));
-        }
+        addWhole(forms, looseForm(c, answers, widthDp, more, DIALOGUE_SP, ALL));
+        addWhole(forms, answerForm(c, answers, widthDp, true, true, false, more, ANSWERS_SMALL_SP, ALL));
+        addWhole(forms, looseForm(c, answers, widthDp, more, ANSWERS_SMALL_SP, ALL));
         int most = mostChoices(answers);
         for (int shown = most - 1; shown >= 1; shown--) {
-            for (float sp : new float[]{DIALOGUE_SP, ANSWERS_SMALL_SP}) {
-                add(forms, answerForm(c, answers, widthDp, true, true, false, more, sp, shown));
-            }
+            AnswerForm big = answerForm(c, answers, widthDp, true, true, false, more, DIALOGUE_SP, shown);
+            AnswerForm small = answerForm(c, answers, widthDp, true, true, false, more, ANSWERS_SMALL_SP, shown);
+            // 「等 N 项」 alone on a line gives way to 11sp on fewer lines.
+            if (big == null || small == null || small.lines >= big.lines || !strands(c, big, widthDp)) add(forms, big);
+            add(forms, small);
         }
         // The shortest cards: lines go, the least needed first; a kept line stays whole where it can.
         List<List<CardModel.AnswerLine>> drops = dropOrder(answers);
@@ -427,9 +444,9 @@ public final class CardRenderer {
             for (int shown = mostChoices(kept) - 1; shown >= 1; shown--) {
                 add(forms, answerForm(c, kept, widthDp, true, true, false, kept.size(), ANSWERS_SMALL_SP, shown));
             }
-            add(forms, answerForm(c, kept, widthDp, true, true, true, ALL, ANSWERS_SMALL_SP, ALL));
+            add(forms, looseForm(c, kept, widthDp, ALL, ANSWERS_SMALL_SP, ALL));
             for (int shown = mostChoices(kept) - 1; shown >= 1; shown--) {
-                add(forms, answerForm(c, kept, widthDp, true, true, true, ALL, ANSWERS_SMALL_SP, shown));
+                add(forms, looseForm(c, kept, widthDp, ALL, ANSWERS_SMALL_SP, shown));
             }
         }
         // Last, a 朋友-route line keeps its caution rather than its first choice (the confession picked by
@@ -467,6 +484,19 @@ public final class CardRenderer {
         return forms;
     }
 
+    /**
+     * Whether a drawn line of {@code form} on a body {@code widthDp} wide holds only a label
+     * (「要是升级了，答：」) or only 「等 N 项」: a line spent on a fragment (3.1.0 re-check).
+     */
+    private static boolean strands(Context c, AnswerForm form, float widthDp) {
+        StaticLayout layout = layout(c, form.text, form.sp, Typeface.DEFAULT, widthDp, Integer.MAX_VALUE, DIALOGUE_SPACING_DP);
+        for (int i = 0; i < layout.getLineCount(); i++) {
+            String shown = CardText.plain(form.text.substring(layout.getLineStart(i), layout.getLineEnd(i))).trim();
+            if (shown.endsWith("：") || shown.matches("等 \\d+ 项")) return true;
+        }
+        return false;
+    }
+
     /** Adds {@code form} when there is one and it is shorter than the last form added. */
     private static void add(List<AnswerForm> forms, AnswerForm form) {
         if (form != null && (forms.isEmpty() || form.heightDp < forms.get(forms.size() - 1).heightDp)) forms.add(form);
@@ -474,7 +504,22 @@ public final class CardRenderer {
 
     /** As {@link #add} for a form that keeps every line and every choice ({@link AnswerForm#whole}). */
     private static void addWhole(List<AnswerForm> forms, AnswerForm form) {
-        add(forms, form == null ? null : new AnswerForm(form.text, form.sp, form.heightDp, true));
+        add(forms, form == null ? null : new AnswerForm(form.text, form.sp, form.heightDp, true, form.lines));
+    }
+
+    /**
+     * {@code answers} at {@code sp} within {@code maxLines}, a choice wrapping inside
+     * ({@link CardText#choicesLoose}) only where that takes fewer lines than every choice whole at the
+     * same size and the same {@code shown}, or where no whole form fits the width (a choice, label or
+     * note wider than a line); else every choice whole. Null when neither fits {@code maxLines}. Spec
+     * 3.1.0 §1.4.3 step 5: a choice wraps inside only when it has to.
+     */
+    private static AnswerForm looseForm(Context c, List<CardModel.AnswerLine> answers, float widthDp, int maxLines, float sp,
+                                        int shown) {
+        AnswerForm loose = answerForm(c, answers, widthDp, true, true, true, maxLines, sp, shown);
+        AnswerForm whole = answerForm(c, answers, widthDp, true, true, false, ALL, sp, shown);
+        if (whole == null || loose != null && loose.lines < whole.lines) return loose;
+        return whole.lines <= maxLines ? whole : null;
     }
 
     private static int mostChoices(List<CardModel.AnswerLine> lines) {
@@ -561,7 +606,7 @@ public final class CardRenderer {
             }
         }
         float height = DIALOGUE_GAP_DP + layout.getHeight() / c.getResources().getDisplayMetrics().density;
-        return new AnswerForm(text, sp, height, false);
+        return new AnswerForm(text, sp, height, false, layout.getLineCount());
     }
 
     /** Lines {@code text} wraps to in the answers row at {@code sp}. */
@@ -600,6 +645,37 @@ public final class CardRenderer {
             if (lineWidthDp(c, forms.get(i), sizeDp, Typeface.DEFAULT) <= innerWidthDp - 1) return i == 0 ? cue : forms.get(i); // 1dp for rounding
         }
         return null;
+    }
+
+    /** What a side-step line too wide for its row says instead: the card's tap shows the steps. */
+    static String sideCount(int steps) {
+        return steps > 1 ? "顺便还有 " + steps + " 件事，" + CardText.TAP_TO_SEE : "顺便还有一件事，" + CardText.TAP_TO_SEE;
+    }
+
+    /**
+     * The side-step line (「顺便：在喷泉前把 20,000 日元交给田中社长」) on a body {@code innerWidthDp} wide,
+     * never cut with "…" (3.1.0 re-check: 「顺便：把 20,000 日元交给穿西装…」): whole, else its short form
+     * ({@code sideShort}: 「顺便：恶魔社群解锁前的准备」), else {@link #sideCount} (「顺便还有一件事，点开看看」);
+     * null when none fits one line. The card reads the whole line out either way.
+     */
+    static String fitSide(Context c, String side, String sideShort, WidgetSize size, float innerWidthDp) {
+        if (isBlank(side)) return null;
+        float sizeDp = layoutTextDp(c, cueTextSp(size));
+        int steps = 1;
+        for (int i = 0; i < side.length(); i++) if (side.charAt(i) == '；') steps++; // StepCopy.sideLine joins them so
+        for (String form : new String[]{side, sideShort, sideCount(steps)}) {
+            if (!isBlank(form) && lineWidthDp(c, form, sizeDp, Typeface.DEFAULT) <= innerWidthDp - 1) return form; // 1dp for rounding
+        }
+        return null;
+    }
+
+    /**
+     * The 人格面具 reminder (「记得带上「皇帝」阿尔卡那的人格面具」) beside its mark on a body
+     * {@code innerWidthDp} wide, never cut with "…": whole, else its leading whole clauses
+     * ({@link #fitCue}); null when none fits one line.
+     */
+    static String fitHint(Context c, String hint, WidgetSize size, float innerWidthDp) {
+        return fitCue(c, hint, size, innerWidthDp - PIN_DP);
     }
 
     /**
@@ -840,6 +916,15 @@ public final class CardRenderer {
         if (!Objects.equals(location, model.location)) {
             fitted = edit(fitted, model);
             fitted.location = location;
+        }
+        // The 人格面具 reminder and the side step are never cut with "…" either (3.1.0 re-check): their
+        // longest form that fits one line whole, else no row.
+        String hintShown = fitHint(c, model.hint, size, innerWidth);
+        String sideShown = fitSide(c, model.side, model.sideShort, size, innerWidth);
+        if (!Objects.equals(hintShown, model.hint) || !Objects.equals(sideShown, model.side)) {
+            fitted = edit(fitted, model);
+            fitted.hint = hintShown;
+            fitted.side = sideShown;
         }
         float padding = bodyVerticalPaddingDp(size);
         float body = heightDp - chromeHeightDp(size);

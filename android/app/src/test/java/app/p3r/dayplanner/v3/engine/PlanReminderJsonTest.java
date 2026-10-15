@@ -66,7 +66,7 @@ public class PlanReminderJsonTest {
         r.textZh = "有 3 名失踪者，期限 7月6日";
         r.slot = Rules.slot(JUN_18, false);
         r.shortZh = "失踪者 3 人 · 期限 7月6日";
-        r.detailZh = "在塔尔塔罗斯里找到他们就能救出，能拿到奖励。期限当天还算不算没核对过，最好提前去。";
+        r.detailZh = "在塔尔塔罗斯里找到失踪的人就能救出，还能拿到奖励。期限当天再去不一定来得及，最好提前去。";
         r.priority = Plan.Reminder.DEADLINE;
         r.untilDay = JUL_6;
         return r;

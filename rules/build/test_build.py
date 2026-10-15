@@ -301,8 +301,20 @@ class BuildTest(unittest.TestCase):
             if "号委托" in x["zh"]:
                 self.assertIn("伊莉莎白的第", x["zh"], x["id"])
             self.assertNotIn("伊莉莎白第", x["detailZh"] or "", x["id"])
+            # The widget row has no chip: a short form never names a request by its number alone.
+            self.assertNotRegex(x["shortZh"], r"第 \d+ 号委托", x["id"])
+        self.assertEqual(accept["shortZh"], "出发前接伊莉莎白的委托")
+        self.assertEqual(self.reminder("trip.07-20")["shortZh"], "海边捡东西（伊莉莎白的委托）")
+        self.assertEqual(self.reminder("request.06-06.deadline")["shortZh"], "伊莉莎白的委托 6月6日截止")
+        self.assertEqual(self.reminder("request.11-30.deadline")["shortZh"], "伊莉莎白的委托 11月30日截止")
         self.assertIn("舞台旁", self.reminder("fragment.05-25.club")["zh"])
         self.assertIn("再花 5,000 日元向她买关东煮", self.reminder("trip.11-17")["detailZh"])
+        self.assertIn("把饮料交给一位女学生", self.reminder("trip.11-17")["detailZh"])
+        # An app reminder row's chip says the kind: the line after it does not say it again.
+        self.assertEqual(self.reminder("tv.07-05")["zh"], "电视购物：有新商品，3,980 日元")
+        report = (builder.REPORT_PATH).read_text(encoding="utf-8")
+        self.assertIn("{item}是伊莉莎白的第 {n} 号委托要的东西", report)
+        self.assertIn("#97 在「12月25日」后加「，而且只有在 7月6日前救出了 6月18日失踪的学生才能完成」", report)
 
     def test_cn_guide_drift_is_exactly_the_contaminated_dates(self) -> None:
         self.assertEqual(builder.CN_GUIDE_DIVERGENT, frozenset(
