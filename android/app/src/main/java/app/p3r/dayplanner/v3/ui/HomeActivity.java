@@ -187,9 +187,13 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     protected void onActivityResult(int requestCode, int resultCode, Intent result) {
         super.onActivityResult(requestCode, resultCode, result);
         // No UiData needed: after process death the result can arrive before the first load.
-        if (requestCode == BackupPage.REQUEST_IMPORT && resultCode == RESULT_OK && result != null
-            && result.getData() != null) {
+        if (resultCode != RESULT_OK || result == null || result.getData() == null) {
+            return;
+        }
+        if (requestCode == BackupPage.REQUEST_IMPORT) {
             BackupPage.importFromUri(this, result.getData());
+        } else if (requestCode == BackupPage.REQUEST_EXPORT_OLD_GUIDE) {
+            BackupPage.exportOldGuideTo(this, result.getData());
         }
     }
 
