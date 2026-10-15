@@ -13,8 +13,8 @@ import java.util.List;
  * {@link #W_OTHER}, MAX adds six ranks' worth, a 「必须」 goal weighs 100 000 per rank. That is
  * the 安排风格 「尽量多 MAX」; under 「尽量都体验」 (the default, DESIGN §20) the ranks of a
  * "其余社群" link have diminishing weights ({@link #BREADTH_RANK}: RANK 1 four ranks' worth, RANK 10
- * half a rank's) and MAX adds one, while goals weigh the same under both (only their earlier-MAX
- * bonus is halved, {@link #BREADTH_EARLY_SHARE}). The base
+ * half a rank's) and MAX adds two, while goals weigh the same under both (only a quarter of their
+ * earlier-MAX bonus is kept, {@link #BREADTH_EARLY_SHARE}). The base
  * policy is a greedy over H and must be a pure function of (state, slot): the fortified rollout
  * relies on "follow the base policy from here" reproducing the incumbent's tail exactly.
  *
@@ -67,28 +67,36 @@ final class Heuristics {
      * 「其余社群」 link, in units of {@link #W_OTHER}, with diminishing returns: unlocking a link
      * is worth the most, each further RANK a little less, so the plan unlocks and raises every
      * link before stacking a few. From RANK 6 on the weights fall off faster: with the flatter tail
-     * first tried (1.15 … 0.9, MAX bonus 2) the 「尽量多 MAX」 plan scored higher under this objective
-     * than the plan the breadth search returned (10/22 with 必须 皇帝 + 想要 女教皇; a new game with
-     * every 羁绊剧情 track), so a better search would have turned 「尽量都体验」 into 「尽量多 MAX」
+     * first tried (1.15 … 0.9) the 「尽量多 MAX」 plan scored higher under this objective than the
+     * plan the breadth search returned (10/22 with 必须 皇帝 + 想要 女教皇; a new game with every
+     * 羁绊剧情 track). The 「尽量多 MAX」 plans are always among the 「尽量都体验」 candidates
+     * ({@link Planner.Pool#addMaxStylePlans}), so with that tail 「尽量都体验」 would return them
      * (DESIGN §20). 「尽量多 MAX」 weighs every RANK 1.
      */
     static final double[] BREADTH_RANK = {0, 4, 2, 1.6, 1.4, 1.25, 0.9, 0.8, 0.7, 0.6, 0.5};
     /**
      * MAX bonus of a 「其余社群」 link under 「尽量都体验」, in ranks' worth (instead of
      * {@link #MAX_BONUS_RANKS}): the MAX scene and its reward are content too, but must not
-     * outweigh breadth.
+     * outweigh breadth. Two: two unlocks (8) still beat taking a link from RANK 5 to MAX (3.5 + 2),
+     * and once every link is open and high, finishing two links beats raising a third from RANK 3
+     * to 8 (2·(0.7 + 0.6 + 0.5 + 2) against 1.4 + 1.25 + 0.9 + 0.8 + 0.7: 2.55 ranks more). With one
+     * (0.55 ranks more, less than the plan's margin for a wasted daytime) a new game from 4/21 with
+     * Persona for goals only (必须 皇帝, 想要 恋爱、女皇) stopped at 19 MAX with three links at RANK
+     * 7–8 while 「尽量多 MAX」 reached 21.
      */
-    static final double BREADTH_MAX_BONUS_RANKS = 1;
+    static final double BREADTH_MAX_BONUS_RANKS = 2;
     static final double EARLY_PER_SLOT = 0.002;
     /**
      * Share of the earlier-MAX bonus of goals ({@link #EARLY_PER_SLOT}) kept in the objective under
      * 「尽量都体验」: with the whole bonus a goal finished a few days earlier outweighed meetings,
      * unlocks and MAX links of 「其余社群」 (10/22, 必须 ①星 ②正义 ③命运: daytime jobs on 21 days,
-     * where 「尽量多 MAX」 has 1, to pay for the goals' dating-site notes; 1 with half the bonus).
-     * Goals still reach what they reach (strict priority and {@link Planner.Pool#addMaxStylePlans});
-     * only how early is worth less against the other links.
+     * where 「尽量多 MAX」 has 1, to pay for the goals' dating-site notes). With half of it, the
+     * 「尽量多 MAX」 plan (now always a candidate, {@link Planner.Pool#addMaxStylePlans}) won from
+     * 10/22 with 必须 皇帝 + 想要 女教皇 by reaching the goals a little earlier, and the style lost its
+     * broader plan there. Goals still reach what they reach (strict priority); only how early is
+     * worth less against the other links.
      */
-    static final double BREADTH_EARLY_SHARE = 0.5;
+    static final double BREADTH_EARLY_SHARE = 0.25;
     /**
      * 「尽量都体验」 with goals first ({@link Tuning#goalFirst}): factor on the score of a required
      * Tartarus visit that is not yet mandatory. An early 其余社群 unlock weighs up to

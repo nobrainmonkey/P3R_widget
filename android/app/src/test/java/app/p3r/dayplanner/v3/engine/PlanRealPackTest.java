@@ -34,18 +34,18 @@ import java.util.List;
  * rules/sources/cn_guides/data.json maxes all 22 links with matching Personas and is the feasibility witness):
  *
  * <table>
- *   <tr><th>scenario</th><th>bound (reached 2026-10-13, pack with notes and episodes)</th><th>daytimeWaste</th></tr>
+ *   <tr><th>scenario</th><th>bound (reached 2026-10-14, pack with notes and episodes)</th><th>daytimeWaste</th></tr>
  *   <tr><td>new game, Persona for every link (ALL)</td><td>22/22 (22/22)</td><td>0</td></tr>
- *   <tr><td>new game, no Persona</td><td>≥ 21/22 (22/22 with 10 notes; 21/22 without notes)</td><td>≤ 1 (4/23)</td></tr>
+ *   <tr><td>new game, no Persona</td><td>≥ 21/22 (22/22 with 11 notes; 21/22 without notes)</td><td>0</td></tr>
  *   <tr><td>new game, 皇帝 MUST (MAX by 6/29, every Emperor day used)</td><td>≥ 20/22 (21/22)</td><td>0</td></tr>
- *   <tr><td>mid game 10/22 (¥1,000, Charm Lv3)</td><td>≥ 6/22, 21 unlocked (6/22, 21 links at RANK 5 or above; 尽量多 MAX 13/22, 14)</td><td>≤ 3</td></tr>
- *   <tr><td>new game, Persona for goals only (GOALS), 皇帝 MUST + 恋爱/女皇 WANT</td><td>≥ 19/22 (19/22, the rest RANK 7 or 8; 尽量多 MAX 21/22)</td><td>≤ 2</td></tr>
- *   <tr><td>new game, every Link Episode track</td><td>every completable track complete; ≥ 19/22 (21/22)</td><td>0</td></tr>
+ *   <tr><td>mid game 10/22 (¥1,000, Charm Lv3)</td><td>≥ 6/22, 21 unlocked, 17 at RANK 5 or above (8/22, 21 unlocked, 18 at RANK 5 or above; 尽量多 MAX 13/22, 20, 14)</td><td>≤ 3</td></tr>
+ *   <tr><td>new game, Persona for goals only (GOALS), 皇帝 MUST + 恋爱/女皇 WANT</td><td>≥ 20/22 (20/22, the other two RANK 8; 尽量多 MAX 21/22, one RANK 3)</td><td>≤ 2</td></tr>
+ *   <tr><td>new game, every Link Episode track</td><td>every completable track complete; ≥ 19/22 (21/22)</td><td>≤ 1</td></tr>
  *   <tr><td>mid game 10/22, 皇帝 必须 + 女教皇 想要</td><td>both MAX; ≥ 7/22 (7/22; 尽量多 MAX 10/22)</td><td>≤ 30 (jobs that pay the goals' notes)</td></tr>
  *   <tr><td>mid game 10/22, 必须 ① 力量 ② 正义 (either order)</td><td>both MAX (the audit found 力量 9)</td><td>≤ 30</td></tr>
  *   <tr><td>1/8, 力量 6 + 正义 6, both 必须</td><td>the first goal reaches MAX, the second does not; swapping swaps them</td><td>—</td></tr>
  *   <tr><td>mid game 10/22, 必须 ①女教皇 ②女皇 ③恋爱 / ①恶魔 ②女皇 ③月亮</td><td>① MAX (the audit found ① RANK 9 with ② MAX)</td><td>—</td></tr>
- *   <tr><td>mid game 10/22, 12 random 必须 triples</td><td>strict goal priority over every compared plan; the goals no worse than under 尽量多 MAX</td><td>—</td></tr>
+ *   <tr><td>mid game 10/22, 12 random 必须 triples</td><td>strict goal priority over every compared plan; the goals no worse than under 尽量多 MAX, and the promises of PlanBreadthRealPackTest#brokenPromise against it</td><td>—</td></tr>
  * </table>
  *
  * <p>Every scenario also checks the hard fee reserve: on a day the plan pays an unlock fee, no paid
@@ -118,8 +118,9 @@ public class PlanRealPackTest {
 
     @Test
     public void newGameNoPersona() {
-        // 尽量都体验 may give one early daytime (4/23) to a stat gate the later unlocks need.
-        Result r = run("新游戏 · 不带人格面具 · 全部社群", new Profile(), newGame(dayOf(4, 21)), 1);
+        // 尽量都体验 used to give one early daytime (4/23) to a stat gate where 尽量多 MAX gives none;
+        // with the 尽量多 MAX plans among its candidates it wastes none either (DESIGN §20).
+        Result r = run("新游戏 · 不带人格面具 · 全部社群", new Profile(), newGame(dayOf(4, 21)), 0);
         assertTrue("maxed " + r.metrics.maxed, r.metrics.maxed >= 21);
     }
 
@@ -323,7 +324,8 @@ public class PlanRealPackTest {
             assertTrue(line + " took " + ms + " ms", ms <= MAX_MILLIS);
             assertStrictPriority(plan, goals, options.trace);
             assertNotesNameOnlyKeptHigherGoals(plan, goals);
-            // Spec §8.1: 尽量都体验 (the default) reaches what 尽量多 MAX reaches on the goals (Planner.Pool.addMaxStylePlans).
+            // Spec §8.1: 尽量都体验 (the default) reaches what 尽量多 MAX reaches on the goals, and keeps its
+            // promises against the 尽量多 MAX plan (Planner.Pool.addMaxStylePlans, keepsPromises).
             Profile maxStyle = profile.copy();
             maxStyle.style = Profile.Style.MAX;
             Plan max = Engine.plan(rules, maxStyle, start, null, new Engine.Options());
@@ -333,6 +335,13 @@ public class PlanRealPackTest {
                         + " under 尽量多 MAX", plan.summary.endRanks[g] > max.summary.endRanks[g]);
                 break;
             }
+            PlanMetrics b = PlanMetrics.of(rules, profile, start, plan);
+            PlanMetrics m = PlanMetrics.of(rules, maxStyle, start, max);
+            String both = line + " · 尽量都体验 " + b.breadthLine() + " · 浪费 " + b.daytimeWaste + " / 尽量多 MAX " + m.breadthLine()
+                    + " · 浪费 " + m.daytimeWaste;
+            System.out.println(both);
+            String broken = PlanBreadthRealPackTest.brokenPromise(rules, profile, start, plan, max);
+            assertTrue(broken + " · " + both, broken == null);
             for (int g : goals) if (plan.summary.endRanks[g] < 10) missed++;
         }
         assertTrue("some triples compete for the same days", missed > 0);
@@ -531,9 +540,10 @@ public class PlanRealPackTest {
         }
         System.out.println("GOALS persona: maxed " + r.metrics.maxed + "/" + rules.links.length + " · steps with the Persona hint " + hints);
         assertTrue("hints " + hints, hints >= 20);
-        // Three goals bind more daytime than 皇帝 alone (22/22): 尽量都体验 brings the rest to RANK 7 or
-        // more rather than two of them to MAX (尽量多 MAX: 21/22).
-        assertTrue("maxed " + r.metrics.maxed, r.metrics.maxed >= 19);
+        // Three goals bind more daytime than 皇帝 alone (22/22): 尽量都体验 stays within one MAX of
+        // 尽量多 MAX (21/22, one link at RANK 3) and brings the two others to RANK 8 (19/22 with three
+        // links at RANK 7-8 before the MAX bonus was raised, DESIGN §20).
+        assertTrue("maxed " + r.metrics.maxed, r.metrics.maxed >= 20);
         assertEquals("unlocked", rules.links.length, r.metrics.unlocked);
     }
 

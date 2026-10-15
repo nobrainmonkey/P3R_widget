@@ -28,6 +28,12 @@ import java.util.List;
  * about one rollout each); the best {@link #FORTIFY} get the full fortified search while the budget
  * allows, and the plan with the best objective is kept (preferring, within {@link #SWITCH_MARGIN},
  * one that keeps the previous plan's next three days).
+ *
+ * <p>安排风格 「尽量都体验」 (DESIGN §20): the 「尽量多 MAX」 planning of the same start runs alongside
+ * on a second thread and every plan it makes joins the pool ({@link Pool#addMaxStylePlans}); the plan
+ * kept never does worse than the 「尽量多 MAX」 plan on the goals or on what the style promises
+ * ({@link Pool#keepsPromises}), and its score ({@link Candidate#score}) is at least that plan's
+ * (less {@link #SWITCH_MARGIN} at most when it keeps the previous plan's next three days).
  */
 final class Planner {
     private Planner() {}
@@ -55,6 +61,11 @@ final class Planner {
     static final double WASTE_MARGIN = Heuristics.W_OTHER;
     /** For goals: the waste margin is this share of the goal's weight (2.5 slots earlier MAX). */
     static final double WASTE_GOAL_SHARE = 2.5 * Heuristics.EARLY_PER_SLOT;
+    /**
+     * 「尽量都体验」 keeps a plan only if it wastes at most this many more daytime slots than the
+     * 「尽量多 MAX」 plan of the same start ({@link Pool#keepsPromises}).
+     */
+    static final int BREADTH_WASTE_SLACK = 2;
 
     static boolean social(int code) {
         int type = Kernel.type(code);
@@ -121,8 +132,10 @@ final class Planner {
      * {@link Pool#compareGoals} (goals in priority order: reached beats missed, a missed goal's
      * higher end rank beats a lower one), then by objective (less the waste margin per wasted
      * daytime slot, see {@link Candidate}), preferring within {@link #SWITCH_MARGIN} one that keeps
-     * the previous plan's next three days. With a zero time budget only the first tuning's base
-     * policy runs.
+     * the previous plan's next three days. Under 「尽量都体验」 the 「尽量多 MAX」 planning of the same
+     * start runs alongside and joins the pool, and only plans that keep the style's promises are
+     * kept ({@link Pool#addMaxStylePlans}, {@link Pool#choose}). With a zero time budget only the
+     * first tuning's base policy runs.
      */
     static Plan plan(Rules rules, Profile profile, SimState observed, Plan previous, Engine.Options options,
                      Heuristics.Tuning[] portfolio) {
@@ -132,6 +145,7 @@ final class Planner {
         long deadline = t0 + Math.max(0, options.timeBudgetMillis) * 1_000_000L;
         boolean search = options.timeBudgetMillis > 0;
         Pool pool = new Pool(m, start, previous, options, deadline, portfolio);
+        if (search) pool.startMaxStyleRun();
         boolean exhausted = pool.run(null, search, true);
         if (search) exhausted |= pool.prioritise();
         if (search) exhausted |= pool.addMaxStylePlans();
@@ -213,10 +227,16 @@ final class Planner {
         final int[] endRank;
         /** End rank of every link. */
         final int[] linkRanks;
+        /** Wasted daytime slots ({@link #daytimeWaste}). */
+        final int waste;
+        /** Links at RANK 1 or above, links at RANK 5 or above and the sum of end ranks: what 「尽量都体验」 promises. */
+        final int unlocked;
+        final int rank5;
+        final int rankSum;
         boolean exhausted;
 
         Candidate(Heuristics h, Heuristics.Tuning tuning, int[] goals, int[] codes, double j, double ownJ, double score, int variant,
-                  boolean[] reached, int[] endRank, int[] linkRanks) {
+                  boolean[] reached, int[] endRank, int[] linkRanks, int waste) {
             this.h = h;
             this.tuning = tuning;
             this.goals = goals;
@@ -228,6 +248,18 @@ final class Planner {
             this.reached = reached;
             this.endRank = endRank;
             this.linkRanks = linkRanks;
+            this.waste = waste;
+            int open = 0;
+            int high = 0;
+            int sum = 0;
+            for (int r : linkRanks) {
+                if (r >= 1) open++;
+                if (r >= 5) high++;
+                sum += r;
+            }
+            this.unlocked = open;
+            this.rank5 = high;
+            this.rankSum = sum;
         }
     }
 
@@ -253,6 +285,11 @@ final class Planner {
         private final boolean reports;
         private final double margin;
         final List<Candidate> all = new ArrayList<>();
+        /**
+         * Under 「尽量都体验」: the plan 「尽量多 MAX」 makes from the same start (the choice of its
+         * pool, measured with this pool's objective), once {@link #addMaxStylePlans} has run; else null.
+         */
+        Candidate maxPlan;
         private long fortifyNanos;
         private int fortified;
 
@@ -311,7 +348,7 @@ final class Planner {
             }
             int[] linkRanks = Arrays.copyOf(st.rank, m.t.nLinks);
             double own = goalOrder == null ? j : new Search(m, h, options, deadline, 0f, 0f).objectiveOf(start, codes);
-            return new Candidate(h, tuning, goalOrder, codes, j, own, j - margin * waste, variant, reached, endRank, linkRanks);
+            return new Candidate(h, tuning, goalOrder, codes, j, own, j - margin * waste, variant, reached, endRank, linkRanks, waste);
         }
 
         /**
@@ -464,18 +501,46 @@ final class Planner {
         }
 
         /**
-         * The plan to keep: the best ({@link #best}), or, among the plans whose goals tie with it,
-         * the best one that keeps the previous plan's next three days when it scores within
-         * {@link #SWITCH_MARGIN}.
+         * The plan to keep, among the plans whose goals tie with the best ({@link #compareGoals}):
+         * the one with the best score, or the best one that keeps the previous plan's next three
+         * days when it scores within {@link #SWITCH_MARGIN}. Under 「尽量都体验」 only the plans that
+         * keep its promises ({@link #keepsPromises}) take part, whenever one of them ties on the
+         * goals: always when the 「尽量多 MAX」 plan does, since it keeps them itself.
          */
         Candidate choose() {
-            Candidate best = best();
+            Candidate top = best();
+            boolean bounded = false;
+            if (maxPlan != null) {
+                for (Candidate c : all) {
+                    if (compareGoals(c, top) == 0 && keepsPromises(c)) {
+                        bounded = true;
+                        break;
+                    }
+                }
+            }
+            Candidate best = null;
             Candidate stable = null;
             for (Candidate c : all) {
-                if (compareGoals(c, best) != 0 || !keepsPreviousWindow(ref, start.slot, c.codes)) continue;
-                if (stable == null || c.score > stable.score + EPS) stable = c;
+                if (compareGoals(c, top) != 0 || bounded && !keepsPromises(c)) continue;
+                if (best == null || c.score > best.score + EPS) best = c;
+                if (keepsPreviousWindow(ref, start.slot, c.codes) && (stable == null || c.score > stable.score + EPS)) stable = c;
             }
             return stable != null && best.score <= stable.score + SWITCH_MARGIN ? stable : best;
+        }
+
+        /**
+         * 「尽量都体验」 is never a worse plan than 「尽量多 MAX」 on what it promises (DESIGN §20): the
+         * 「尽量多 MAX」 plan of the same start ({@link #maxPlan}) does not beat {@code c} on links
+         * unlocked, links at RANK 5 or above and the rank sum all at once (at least one strictly), and
+         * {@code c} wastes at most {@link #BREADTH_WASTE_SLACK} more daytimes than it. True for every
+         * plan when there is no such plan (「尽量多 MAX」 itself, or a zero time budget).
+         */
+        boolean keepsPromises(Candidate c) {
+            Candidate x = maxPlan;
+            if (x == null || c == x) return true;
+            boolean dominated = x.unlocked >= c.unlocked && x.rank5 >= c.rank5 && x.rankSum >= c.rankSum
+                    && (x.unlocked > c.unlocked || x.rank5 > c.rank5 || x.rankSum > c.rankSum);
+            return !dominated && c.waste <= x.waste + BREADTH_WASTE_SLACK;
         }
 
         /**
@@ -487,29 +552,95 @@ final class Planner {
             return c.goals == null && c.h.breadth == breadth ? c.h : heuristics(c.tuning, null);
         }
 
+        /** The 「尽量多 MAX」 run of {@link #addMaxStylePlans} on its own thread ({@link #startMaxStyleRun}), or null. */
+        private java.util.concurrent.FutureTask<Pool> maxRun;
+        /** Of a 「尽量多 MAX」 pool run by {@link #runMaxStyle}: its time budget ran out before it was complete. */
+        private boolean maxStyleExhausted;
+
         /**
-         * 「尽量都体验」 keeps every goal that 「尽量多 MAX」 reaches (spec §8.1: strict goal priority
-         * exactly as in 3.0). Its policy shares the days out differently, and its search can then miss
-         * a goal the 3.0 policy reaches (10/22, 必须 ①女教皇 ②永劫 ③恋爱: 恋爱 RANK 9 instead of
-         * MAX). So when the best plan of a 「尽量都体验」 pool misses a goal, the whole 「尽量多 MAX」
-         * run (the same screening, fortified searches and strict-priority runs as a profile with that
-         * style) joins the pool, every plan measured with this profile's objective:
-         * {@link #compareGoals} then sees every plan the 3.0 engine makes, and among plans whose
-         * goals tie the 「尽量都体验」 objective decides. Nothing runs under 「尽量多 MAX」, without
-         * goals, or when every goal is reached (no plan does better on the goals). Returns true when
-         * the time budget ran out before that run was complete.
+         * Under 「尽量都体验」, starts the planning of {@link #addMaxStylePlans} on a second thread, so
+         * that it runs while this pool plans with its own style (the same deadline and cancel flag;
+         * neither run reads the other's state). Without a thread it runs in
+         * {@link #addMaxStylePlans}, after this pool.
          */
-        boolean addMaxStylePlans() {
-            if (!breadth || goals.length == 0 || firstMissed(best()) < 0) return false;
-            Pool max = new Pool(m, start, previous, options, deadline, portfolio, false, false);
+        void startMaxStyleRun() {
+            if (!breadth || maxRun != null) return;
+            Pool max = new Pool(m, start, previous, quietCopy(options), deadline, portfolio, false, false);
+            java.util.concurrent.FutureTask<Pool> task = new java.util.concurrent.FutureTask<>(() -> runMaxStyle(max));
+            Thread thread = new Thread(task, "p3r-plan-max-style");
+            thread.setDaemon(true);
+            try {
+                thread.start();
+            } catch (OutOfMemoryError noThread) {
+                return; // no thread to be had: addMaxStylePlans runs it after this pool
+            }
+            maxRun = task;
+        }
+
+        /** The whole 「尽量多 MAX」 planning on {@code max}: screening, fortified searches, strict goal priority. */
+        private static Pool runMaxStyle(Pool max) {
             boolean exhausted = max.run(null, true, true);
             exhausted |= max.prioritise();
+            max.maxStyleExhausted = exhausted;
+            return max;
+        }
+
+        /**
+         * 「尽量都体验」 must never be a worse plan than 「尽量多 MAX」 on what it promises, and it
+         * keeps every goal that 「尽量多 MAX」 reaches (spec §8.1: strict goal priority exactly as in
+         * 3.0). Its own search can miss both: from 10/22 with 必须 ①星 ②正义 ③命运 its best plan
+         * unlocked 18 links where 「尽量多 MAX」 unlocks 19, with fewer links at RANK 5 or above and a
+         * lower rank sum, although its own objective scores the 「尽量多 MAX」 plan higher (3.1.0
+         * re-check); with 必须 ①女教皇 ②永劫 ③恋爱 it left 恋爱 at RANK 9. So under 「尽量都体验」
+         * the whole 「尽量多 MAX」 planning of the same start (the same screening, fortified searches
+         * and strict-priority runs as a profile with that style, started alongside by
+         * {@link #startMaxStyleRun}) joins the pool, every plan measured with this profile's objective,
+         * and {@link #maxPlan} is the plan that style keeps. {@link #compareGoals} then sees every plan
+         * the 3.0 engine makes, and among plans whose goals tie {@link #choose} keeps the best score
+         * among those that {@link #keepsPromises keep the promises}, the 「尽量多 MAX」 plan included.
+         * The screened 「尽量多 MAX」 tunings alone do not tell which of them would be worth a fortified
+         * search (their base plans score thousands below the plan their search makes), so the whole
+         * run is kept. Nothing runs under 「尽量多 MAX」. Returns true when the time budget ran out
+         * before that run was complete.
+         */
+        boolean addMaxStylePlans() {
+            if (!breadth) return false;
+            Pool max;
+            if (maxRun != null) {
+                max = awaitMaxRun();
+            } else {
+                max = runMaxStyle(new Pool(m, start, previous, quietCopy(options), deadline, portfolio, false, false));
+            }
+            Candidate kept = max.choose();
             for (Candidate c : max.all) {
                 Candidate mine = measure(c.h, c.tuning, c.goals, c.codes, c.variant);
                 mine.exhausted = c.exhausted;
+                if (options.trace != null) options.trace.add(mine.linkRanks.clone());
+                if (c == kept) maxPlan = mine;
                 add(mine);
             }
-            return exhausted;
+            return max.maxStyleExhausted;
+        }
+
+        /** The pool of {@link #maxRun} once it is done (it ends by the deadline, or on cancel). */
+        private Pool awaitMaxRun() {
+            boolean interrupted = false;
+            try {
+                while (true) {
+                    try {
+                        return maxRun.get();
+                    } catch (InterruptedException e) {
+                        interrupted = true;
+                    } catch (java.util.concurrent.ExecutionException e) {
+                        Throwable cause = e.getCause();
+                        if (cause instanceof RuntimeException) throw (RuntimeException) cause;
+                        if (cause instanceof Error) throw (Error) cause;
+                        throw new IllegalStateException(cause);
+                    }
+                }
+            } finally {
+                if (interrupted) Thread.currentThread().interrupt();
+            }
         }
 
         /**
@@ -533,6 +664,22 @@ final class Planner {
             }
             return out;
         }
+    }
+
+    /**
+     * The options of the 「尽量多 MAX」 run inside a 「尽量都体验」 plan: the same budget, candidates and
+     * cancel flag, no progress callback (it runs on another thread) and no trace (its plans are traced
+     * when they join the 「尽量都体验」 pool).
+     */
+    static Engine.Options quietCopy(Engine.Options o) {
+        Engine.Options q = new Engine.Options();
+        q.timeBudgetMillis = o.timeBudgetMillis;
+        q.candidates = o.candidates;
+        q.cancelled = o.cancelled;
+        q.towerIncomePerVisit = o.towerIncomePerVisit;
+        q.followUp = o.followUp;
+        q.lastTowerSlot = o.lastTowerSlot;
+        return q;
     }
 
     /** {@link #WASTE_MARGIN}, raised for goals whose earlier MAX is worth more per slot. */

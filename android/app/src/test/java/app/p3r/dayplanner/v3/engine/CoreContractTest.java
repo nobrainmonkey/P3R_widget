@@ -223,7 +223,7 @@ public class CoreContractTest {
     // ------------------------------------------------------------------ strict goal priority
 
     private static Planner.Candidate outcome(boolean[] reached, int[] endRank, double score) {
-        return new Planner.Candidate(null, null, null, new int[0], score, score, score, 0, reached, endRank, new int[22]);
+        return new Planner.Candidate(null, null, null, new int[0], score, score, score, 0, reached, endRank, new int[22], 0);
     }
 
     @Test
