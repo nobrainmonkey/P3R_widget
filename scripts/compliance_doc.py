@@ -45,6 +45,7 @@ REVIEWS = (
     ('wiki_sources.json', '数据来源（Reload 专用）'),
     ('design_review_1.json', '外观（第 1 轮）'),
     ('design_review_2.json', '外观（第 2 轮）'),
+    ('design_review_3.json', '外观（第 3 轮，3.1.0 新功能）'),
 )
 VERDICT = {'pass': '✅ 通过', 'pass_with_nits': '✅ 通过（只有小问题）', 'pass_with_notes': '✅ 通过（附说明）', 'fail': '❌ 不通过'}
 

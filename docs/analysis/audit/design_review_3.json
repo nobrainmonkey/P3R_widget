@@ -1,0 +1,34 @@
+{
+ "reviewer": "independent read-only visual design review (agent), round 3, 2026-10-14, at commit 84c0771 (3.1.0 features)",
+ "verdict": "pass_with_nits",
+ "images_reviewed": 675,
+ "summary": "pass_with_nits. I ran the full v3.ui.* and v3.widget.* test suites at 84c0771 in the scratch copy /private/tmp/claude-501/p3r-v3-visual. Gradle exited 0 and wrote 950 PNGs. I reviewed 675 of them by eye, using contact sheets and crops:\n- 17 app screens (ui/)\n- all 132 widget answer renders (answers/)\n- 26 reminder renders (reminders/)\n- 24 real-pack reminder renders (reminders-real/)\n- 216 plan states: day and night at 320x200, 250x160 and 180x150 on SDK 31, plus 180x150 on SDK 26 and the 130dp dialogue cards\n- 48 plan states at font 1.15 (plan-font115/)\n- all 212 real-pack cards (real/)\n\nOut of scope and not reviewed: chrome, fade, icon, preview and renderer.\n\nWhat holds:\n- Every card shows a title (shortened at 130dp, never missing). The answers row always shows, and the 130dp fallbacks (class answer alone, or the count) read correctly.\n- Reminder rows are one line, readable, use the short form or « · 共 N 条» as specified, and never end in «…».\n- The P3R navy/cyan palette is consistent across day/night and SDK 26/31.\n- On the app side: 今天别错过, the day sheet's 当天提醒 (including the estimate wording), the gold 日程 line and legend, the 安排风格 card, the 从头重新安排 footer link, sheet and status line, the 我的 entry, and the 130% font variants all render with no clipping or overlap.\n\nDefects found:\n- One minor defect: at the 11sp size (an answer-row fallback), answer choices wrap mid-word even when keeping them whole would take the same number of lines. I measured this over the whole real-pac",
+ "defects": [
+  {
+   "severity": "minor",
+   "what": "When a card needs 11sp (ANSWERS_SMALL_SP) for height, the only 11sp form is the one that wraps inside choices («loose»). There is no 11sp form that keeps each choice whole. So a choice that fits on its own line is split mid-word even though the whole form would use the same number of lines. SPEC §1.4.3 step 5 allows wrapping inside a choice only when that choice is wider than the line.",
+   "where": "android/app/src/main/java/app/p3r/dayplanner/v3/widget/CardRenderer.java:396-417 (answerForms ladder). Renders: qa_out/v3/widget/plan-font115/dialogue-180x150-sdk31.png"
+  },
+  {
+   "severity": "minor",
+   "what": "The side-step row (顺便：…) and the hint/instruction row are still cut with «…» in the middle of a word, while the reminder and answer rows never are. The behaviour also differs by SDK: at the same size SDK 31 drops the row, but SDK 26 shows it cut off.",
+   "where": "CardRenderer.java:257 (single-line side/hint rows ellipsize). Renders: qa_out/v3/widget/plan/hint-day-180x150-sdk26.png, job-side-day-180x150-sdk26.png, note-day-180x150-sdk26.png, plan-font115/job-si"
+  },
+  {
+   "severity": "nit",
+   "what": "The 从头重新安排？ sheet body sets the date «1月31日» in the plain sans face. Everywhere else in the app dates use the numeral face: 规划说明 «排到1月31日» and 我的 «10月22日».",
+   "where": "android/app/src/main/java/app/p3r/dayplanner/v3/ui/FullReplanSheet.java:45. Render: qa_out/v3/ui/full_replan_sheet.png"
+  },
+  {
+   "severity": "nit",
+   "what": "In 今天别错过 and 当天提醒 the label chips size to their text (课堂提问 / 电视购物 are wider than 保健室), so the reminder lines start at different x positions and the text column is ragged.",
+   "where": "android/app/src/main/java/app/p3r/dayplanner/v3/ui/ReminderViews.java:124-135 (row: chip at its own width, then the text). Renders: qa_out/v3/ui/reminder_rows.png, reminder_rows_font130.png, home_sche"
+  },
+  {
+   "severity": "nit",
+   "what": "Some 180x150 answer rows spend a whole line on a fragment, and in one case the taller card shows less certain information than the 130dp card. These follow the documented ladder and drop order (DESIGN §18) but look unpolished.",
+   "where": "Widget answer row at 180x150. Renders: qa_out/v3/widget/answers/shortest-1019-chariot-180x150-font115-sdk26.png / -sdk31.png, real/new-social-582-180x150-sdk31.png, real/new-social-78-180x150-sdk31.pn"
+  }
+ ],
+ "followUp": "All non-nit findings of this round and of the language audit (verdict: The Chinese is good enough to ship. Nothing blocks the release, but there are 5 minor fixes and 4 nits.\n\nMost of the new copy is natural and follows docs/GLOSSARY_zh.md. That covers:\n- 从头重新安排: the sheet, the running line, 「先不了」/「先不算了」 and every result line.\n- The 安排风格 card and its 规划说明 line.\n- 今天别错过) were fixed in f060df3."
+}
