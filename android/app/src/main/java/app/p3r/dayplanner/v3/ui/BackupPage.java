@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -15,8 +16,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 import app.p3r.dayplanner.R;
@@ -24,10 +27,17 @@ import app.p3r.dayplanner.R;
 /**
  * 备份与恢复: export everything (profile, checkpoints, records) as JSON through the share sheet,
  * and restore from pasted text or a picked file after an explicit confirmation.
+ *
+ * <p>When the 3.0.x 逐日攻略 left ticked tasks on this phone, a last section offers
+ * 「导出旧逐日攻略的打勾进度」: the old page's progress file, saved through the system file picker
+ * ({@link OldGuideProgress}; read-only, the prefs are never changed).
  */
 final class BackupPage {
     /** Request code for ACTION_OPEN_DOCUMENT, handled by {@link HomeActivity#onActivityResult}. */
     static final int REQUEST_IMPORT = 3101;
+    /** Request code for the old guide's ACTION_CREATE_DOCUMENT, handled by {@link HomeActivity#onActivityResult}. */
+    static final int REQUEST_EXPORT_OLD_GUIDE = 3102;
+    static final String OLD_GUIDE_TITLE = "导出旧逐日攻略的打勾进度";
     private static final int MAX_BYTES = 4 * 1024 * 1024;
 
     private BackupPage() {}
@@ -56,7 +66,78 @@ final class BackupPage {
         buttons.addView(pick, pp);
         restore.addView(buttons, top(c, 12));
         column.addView(restore, top(c, 4));
+
+        // Shown only once the prefs are read (off the main thread) and hold a ticked task.
+        LinearLayout oldGuide = Ui.column(c);
+        oldGuide.setVisibility(View.GONE);
+        column.addView(oldGuide, top(c, 20));
+        Context app = c.getApplicationContext();
+        Async.run(host.activity(), () -> OldGuideProgress.read(app), progress -> {
+            if (progress != null) {
+                showOldGuide(host, oldGuide, progress.ticked);
+            }
+        }, null);
         return column;
+    }
+
+    private static void showOldGuide(HomeHost host, LinearLayout box, int ticked) {
+        Context c = host.activity();
+        box.addView(Ui.sectionHeader(c, "旧版逐日攻略", null));
+        box.addView(MePage.entry(c, R.drawable.ui_ic_check, OLD_GUIDE_TITLE,
+            "3.0.x 逐日攻略里打过勾的 " + ticked + " 项还在手机上，导出后可以在旧版 2.0.0「P3R」里导入",
+            true, () -> pickOldGuideTarget(host)), top(c, 4));
+        box.setVisibility(View.VISIBLE);
+    }
+
+    /** Asks where to save the old guide's progress, under the old page's file name. */
+    private static void pickOldGuideTarget(HomeHost host) {
+        Intent save = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        save.addCategory(Intent.CATEGORY_OPENABLE);
+        save.setType("application/json");
+        save.putExtra(Intent.EXTRA_TITLE, OldGuideProgress.FILE_NAME);
+        try {
+            host.activity().startActivityForResult(save, REQUEST_EXPORT_OLD_GUIDE);
+        } catch (ActivityNotFoundException e) {
+            host.showMessage("没有可以保存文件的应用。");
+        }
+    }
+
+    /**
+     * Writes the old guide's progress to the document picked for {@link #REQUEST_EXPORT_OLD_GUIDE}.
+     * The prefs are read again here, so this also works in an activity recreated meanwhile.
+     */
+    static void exportOldGuideTo(HomeHost host, Uri uri) {
+        Activity activity = host.activity();
+        Context app = activity.getApplicationContext();
+        Async.run(activity, () -> {
+            OldGuideProgress progress = OldGuideProgress.read(app);
+            if (progress == null) {
+                throw new IOException("no ticked task");
+            }
+            byte[] bytes = progress.toJson(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8);
+            try (OutputStream out = openForWrite(app.getContentResolver(), uri)) {
+                out.write(bytes);
+            }
+            return Boolean.TRUE;
+        }, written -> host.showMessage("打勾进度已导出。"),
+            error -> host.showMessage("导出失败，请换个位置再试。"));
+    }
+
+    /** A truncating write ("wt": a file picked to overwrite loses its old tail), else plain "w". */
+    private static OutputStream openForWrite(ContentResolver resolver, Uri uri) throws IOException {
+        try {
+            OutputStream out = resolver.openOutputStream(uri, "wt");
+            if (out != null) {
+                return out;
+            }
+        } catch (IllegalArgumentException | UnsupportedOperationException | FileNotFoundException e) {
+            // A provider that knows only "w"; a document it has just created is empty anyway.
+        }
+        OutputStream out = resolver.openOutputStream(uri, "w");
+        if (out == null) {
+            throw new IOException("no stream");
+        }
+        return out;
     }
 
     private static LinearLayout card(Context c, String text) {

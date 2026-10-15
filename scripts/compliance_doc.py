@@ -110,7 +110,8 @@ def main():
            '未满足的地方如实写出。原始审查记录在 `docs/analysis/audit/`。', '',
            f"**统计**：已满足 {counts['met']} 条 · 部分满足 {counts['partial']} 条 · 未满足 {counts['not_met']} 条"
            + (f" · 已被所有者要求取代 {counts['superseded']} 条" if counts['superseded'] else '') + f"（共 {len(items)} 条）。", '',
-           '3.1.0 按所有者要求移除了 3.0.x 里附带的旧攻略和它的小组件（`docs/DESIGN_v3.md` §19）。依赖它的那一条标为「已被取代」，'
+           '3.1.0 按所有者要求移除了 3.0.x 里附带的旧攻略和它的小组件（`docs/DESIGN_v3.md` §19）。旧攻略的打勾进度没有删除，仍留在手机上，'
+           '随时可以在「我的 → 备份与恢复」里导出，所以 [61]「进度保持安全」那一条算已满足，证据里写明小组件本身已按所有者要求移除。'
            '引用已删除文件的证据已更新（`docs/analysis/audit/overrides.json`）；其余证据里提到旧攻略的，说的是当时审计的版本。', '',
            '相关文档：`docs/DESIGN_v3.md`（设计）、`docs/PLAN_METRICS.md`（各场景安排质量）、`rules/build/REPORT.md`（数据来源与 Reload 专用来源政策）、'
            '`docs/GLOSSARY_zh.md`（用语表）、`scripts/verify_selfcontained.sh`（证明构建只依赖项目目录）。', '']
