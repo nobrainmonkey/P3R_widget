@@ -104,7 +104,11 @@ public class GlossarySourceTest {
      * Words docs/GLOSSARY_zh.md keeps out of the UI: a plan is never a 「版」 (「上一版」「这一版」; a failed
      * replan says 「现在的安排先不变」, like 从头重新安排's 「现在的安排不变」).
      */
-    private static final String[] FORBIDDEN = {"上一版", "这一版"};
+    /**
+     * 「上一版」「这一版」 for plans; and a missing person's limit worded as 「…前要救出」 or as uncertain: the limit
+     * evening still counts (glossary 「失踪者的期限」), so the copy says 「最晚要在…晚上救出」.
+     */
+    private static final String[] FORBIDDEN = {"上一版", "这一版", "前要救出", "前没救出", "前救出", "不一定来得及"};
 
     @Test
     public void uiStringsAvoidTheGlossarysForbiddenWords() throws IOException {

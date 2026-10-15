@@ -182,7 +182,9 @@ public class RemindersTest {
         assertEquals("北村文吉失踪了，期限 5月16日", first.textZh);
         assertTrue(first.detailZh.contains("北村文吉没救出来的话，教皇社群就没法继续了。"));
         // One person or many: the details never say 「他们」.
-        assertEquals("在塔尔塔罗斯里找到失踪的人就能救出，还能拿到奖励。期限当天再去不一定来得及，最好提前去。", Reminders.RESCUE_DETAIL);
+        // The limit evening still counts (REPORT, tartarus "rescue deadline"): the copy says so.
+        assertEquals("在塔尔塔罗斯里找到失踪的人就能救出，还能拿到奖励。期限当天晚上去也来得及，过了期限就救不出来了。",
+                Reminders.RESCUE_DETAIL);
         assertTrue(first.detailZh.startsWith(Reminders.RESCUE_DETAIL) && !first.detailZh.contains("他们"));
         assertEquals(ReminderFixtures.MISSING_TO, first.untilDay);
         Plan.Reminder more = find(plan, "rescue.05-13.start");

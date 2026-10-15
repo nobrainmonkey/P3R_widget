@@ -67,6 +67,13 @@
    "edition": "reload"
   },
   {
+   "path": "steam_schinese/d_7599331177366570924.html",
+   "sha256": "69c2ada7c9b5134159c685bd8009aad62974b05bd42ef2d1c971be4800b40491",
+   "url": "https://steamcommunity.com/app/2161700/discussions/0/7599331177366570924/",
+   "edition": "reload",
+   "retrieved": "2026-10-14"
+  },
+  {
    "path": "steam_schinese/p3r_sc.html",
    "sha256": "fc69c7d3600d869256f33c10654a9dfed45a3e8fafb89de5866b92a6a7b341e8",
    "url": "https://store.steampowered.com/app/2161700/",
@@ -186,6 +193,13 @@
    "edition": "game_data_reload"
   },
   {
+   "path": "aqiu_gamedata/DisappearDataAsset.tsv",
+   "sha256": "3ffa5bb6ccaa0132ecd16a9203550213caa4d5de28a8d40165241e423352cfcb",
+   "url": "https://raw.githubusercontent.com/aqiu384/megaten-database/main/src/p3r/Content/Xrd777/UI/Tables/DisappearDataAsset.tsv",
+   "edition": "game_data_reload",
+   "retrieved": "2026-10-14"
+  },
+  {
    "path": "aqiu_gamedata/CommunityEventDataAsset.tsv",
    "sha256": "acb05e40ce04dfb0649c7e1d5f171407c3a2a3f0179eaf1b06d67de96e23a487",
    "url": "https://raw.githubusercontent.com/aqiu384/megaten-database/master/src/p3r/Content/Xrd777/Community/Event/CommunityEventDataAsset.tsv",
@@ -292,6 +306,27 @@
    "sha256": "75f6f2db1e3108ef5a317a0f82a22e6a2755a2fce6721582a0b8151bada68041",
    "derivedFrom": "aqiu_pages/social-events.html (parsed day calendar)",
    "edition": "reload"
+  },
+  {
+   "path": "aqiu_pages/ave-walkthrough.md",
+   "sha256": "c05dfe2820696ab26ffdcda17e5103b645c60320b99f29a57db73d5897250fac",
+   "url": "https://raw.githubusercontent.com/aqiu384/megaten-database/main/docs/p3r/ave-walkthrough.md",
+   "edition": "reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "web_guides/game8jp_missing_people.html",
+   "sha256": "fc6dd5c0b449acd69fed9e168788af3ab57b6bc959ec2c282215b919711ea9f7",
+   "url": "https://game8.jp/p3re/721428",
+   "edition": "reload",
+   "retrieved": "2026-10-14"
+  },
+  {
+   "path": "web_guides/rpgsite_missing_people.html",
+   "sha256": "67df4d62edb24f2eff4a80295041fe5a34904be91f830f5e18762fd372c0d4a1",
+   "url": "https://www.rpgsite.net/guide/15390-persona-3-reload-missing-person-quest-missing-people-list-locations-deadlines-rewards",
+   "edition": "reload",
+   "retrieved": "2026-10-14"
   }
  ]
 }

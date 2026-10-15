@@ -285,7 +285,7 @@ class BuildTest(unittest.TestCase):
         self.assertEqual({i for i, slot in batches.items() if slot == "eve"}, {"request.05-10", "request.01-01"})
         # #97 is shown from 12/22: its rescue condition is in the past by then, and the rescue group warns in June.
         deadline = self.reminder("request.12-25.deadline")["detailZh"]
-        self.assertIn("只有在 7月6日前救出了 6月18日失踪的学生才能完成", deadline)
+        self.assertIn("只有在 7月6日当天或更早救出了 6月18日失踪的学生才能完成", deadline)
         self.assertIn("只能做到 12月25日", deadline)
         groups = {g["id"]: g for g in self.pack["reminders"]["rescueGroups"]}
         self.assertEqual(groups["rescue.06-18"]["locksZh"], "救不出来的话，伊莉莎白的第 97 号委托就做不了。")
@@ -314,7 +314,38 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(self.reminder("tv.07-05")["zh"], "电视购物：有新商品，3,980 日元")
         report = (builder.REPORT_PATH).read_text(encoding="utf-8")
         self.assertIn("{item}是伊莉莎白的第 {n} 号委托要的东西", report)
-        self.assertIn("#97 在「12月25日」后加「，而且只有在 7月6日前救出了 6月18日失踪的学生才能完成」", report)
+        self.assertIn("#97 在「12月25日」后加「，而且只有在 7月6日当天或更早救出了 6月18日失踪的学生才能完成」", report)
+
+    def test_missing_person_limit_evening_counts(self) -> None:
+        # Game data and aqiu agree on every window; aqiu's tested route rescues on three limit days.
+        groups, people = builder.rescue_groups(builder.Ledger())
+        self.assertEqual([(a, b) for a, b, _n in people], builder.disappear_windows())
+        limits = [builder.day_of_md(md) for md in ("09-04", "12-01", "12-30")]
+        self.assertEqual(builder.rescue_limit_witnesses(builder.Ledger(), people), limits)
+        self.assertEqual(sum(n for _d, n in builder.walkthrough_rescues()), 20)
+        for record in self.pack["tartarus"]["rescues"] + self.pack["reminders"]["rescueGroups"]:
+            self.assertEqual(record["src"], list(builder.RESCUE_SRC), record["id"])
+        # The copy says the limit evening still counts and never words the limit as 「…前」.
+        days = {d["md"]: d for d in self.pack["days"]}
+        self.assertEqual(days["10-03"]["noteZh"], "今天是救出北村文吉的最后期限，今晚去塔尔塔罗斯还来得及")
+        self.assertEqual(days["09-12"]["noteZh"], "北村文吉失踪了，最晚要在10月3日晚上到塔尔塔罗斯把人救出来")
+        for where, text in builder.player_texts(self.pack):
+            self.assertNotRegex(text, r"不一定来得及|\d+日前(?:没)?(?:救出|到塔尔塔罗斯)", where)
+        # Moving the limit-day rescues one evening earlier leaves the reading without its witness.
+        earlier = [(d - 1 if d in limits else d, n) for d, n in builder.walkthrough_rescues()]
+        with mock.patch.object(builder, "walkthrough_rescues", return_value=earlier):
+            with self.assertRaisesRegex(builder.BuildError, "no rescue on a limit day"):
+                builder.rescue_limit_witnesses(builder.Ledger(), people)
+        # A walkthrough evening must rescue exactly the people missing then.
+        wrong = [(builder.day_of_md("09-04"), 2)]
+        with mock.patch.object(builder, "walkthrough_rescues", return_value=wrong):
+            with self.assertRaisesRegex(builder.BuildError, "rescues 2, but 3 people"):
+                builder.rescue_limit_witnesses(builder.Ledger(), people)
+        # The limit must stay the last Tartarus evening of its window (the copy promises it).
+        pack = json.loads(self.text)
+        next(d for d in pack["days"] if d["md"] == "10-03")["tartarus"] = False
+        with self.assertRaisesRegex(builder.BuildError, "last Tartarus evening"):
+            builder.validate_pack(pack)
 
     def test_cn_guide_drift_is_exactly_the_contaminated_dates(self) -> None:
         self.assertEqual(builder.CN_GUIDE_DIVERGENT, frozenset(

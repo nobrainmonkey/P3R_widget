@@ -580,10 +580,11 @@ final class Labels {
         if (fx.rescue >= 0) {
             Rules.Rescue r = rules.rescues[fx.rescue];
             step.subtitleZh = dot(blockName(b), "救出" + r.zh);
+            // The limit day's evening still counts (Rules.Rescue#toDay): say "最晚…晚上", never "…前".
             if (r.link >= 0 && r.link < h.t.nLinks) {
-                step.whyZh = r.zh + "失踪了，" + date(r.toDay) + "前没救出的话，" + arcana(r.link) + "社群就无法继续";
+                step.whyZh = r.zh + "失踪了，最晚要在" + date(r.toDay) + "晚上救出，不然" + arcana(r.link) + "社群就无法继续";
             } else {
-                step.whyZh = r.zh + "失踪了，要在" + date(r.toDay) + "前救出";
+                step.whyZh = r.zh + "失踪了，最晚要在" + date(r.toDay) + "晚上救出";
             }
             return;
         }

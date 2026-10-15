@@ -4,7 +4,9 @@
 Inputs (never shipped in the APK):
   rules/sources/**           pinned third-party snapshots (aqiu game-data tables, aqiu calendar page,
                              Steam zh-Hans strings, 3DM CN guide pages: Tartarus names and the schedule
-                             pages 2-11 for the 当日提醒 answers); hashes in rules/sources/SOURCES.json
+                             pages 2-11 for the 当日提醒 answers; aqiu's Reload walkthrough, a Steam thread and
+                             two guide pages for the missing-person limit evening); hashes in
+                             rules/sources/SOURCES.json
   rules/sources/cn_guides/data.json
                              the original Simplified Chinese walkthrough of the retired 2.x guide
                              (location names, wording, timing witnesses)
@@ -402,6 +404,8 @@ def build_sources() -> list[dict]:
         snap("gd_arbeit_help", gd + "BMD_ArbeitHelp.tsv", "game_data", "Part-time job help text: slot and minimum pay"),
         snap("gd_community_event", gd + "CommunityEventDataAsset.tsv", "game_data", "Social Link points needed per rank"),
         snap("gd_disappear_help", gd + "BMD_DisappearHelp.tsv", "game_data", "Missing-person board text"),
+        snap("gd_disappear_data", gd + "DisappearDataAsset.tsv", "game_data",
+             "Missing-person table: StartMonth/StartDays and LimitMonth/LimitDays of each of the 20 people"),
         snap("gd_general_coefficient", gd + "DT_GeneralCoefficient.tsv", "game_data", "Social Link bonus multipliers"),
         snap("gd_hero_parameter", gd + "HeroParameterDataAsset.tsv", "game_data", "Social stat level thresholds"),
         snap("gd_holiday_schedule", gd + "HolidayScheduleDataAsset.tsv", "game_data", "Sunday/holiday invitation dates"),
@@ -412,6 +416,15 @@ def build_sources() -> list[dict]:
         snap("aqiu_day_calendar", "aqiu_pages/social_events_day_calendar.json", "community_db", "Parsed daytime calendar (cross-checked against the HTML)"),
         snap("aqiu_overworld", gd + "overworld.md", "community_db", "aqiu overworld notes: missing people windows"),
         snap("aqiu_tartarus", gd + "tartarus.md", "community_db", "aqiu Tartarus block list"),
+        snap("aqiu_walkthrough", WALKTHROUGH_REL, "walkthrough",
+             "aqiu 'All Voiced Events Walkthrough - Persona 3 Reload' (test-played, no reloads): the evenings it "
+             "rescues missing people, three of them on the limit day"),
+        snap("steam_thread_missing", "steam_schinese/d_7599331177366570924.html", "forum",
+             "Player advice to rescue on the last day of the countdown (limit-day corroboration)"),
+        snap("game8jp_missing", "web_guides/game8jp_missing_people.html", "guide",
+             "Game8 JP Reload missing-person deadline list: the 13 windows as 'M/D ~ M/D' (救出期限)"),
+        snap("rpgsite_missing", "web_guides/rpgsite_missing_people.html", "guide",
+             "RPG Site Reload missing-person guide: the person missing from 9/3 is rescued on 9/3 or 9/4 (limit 9/4)"),
         snap("steam_sc_achievements", "steam_schinese/ach_schinese.txt", "official_text", "ATLUS zh-Hans achievement strings (社群, 个人能力值, 打工, 失踪者, 休息日的出游邀请短信…)"),
         snap("steam_sc_store", "steam_schinese/p3r_sc.txt", "official_text", "ATLUS zh-Hans Steam store description (主角, 月光馆学园, 塔尔塔罗斯…): terminology check"),
         snap("steam_thread_hierophant", "steam_schinese/d_4206993639701168068.html", "forum", "Player report of a Hierophant rank hold"),
@@ -594,10 +607,13 @@ BLOCK_NAMES = (
 )
 
 RESCUES = (
-    # id, zh, missing from, deadline, link
+    # id, zh, missing from, deadline (its evening still counts, see rescue_limit_witnesses), link
     ("bunkichi", "北村文吉", "09-12", "10-03", "hierophant"),
     ("maiko", "舞子", "10-21", "11-02", "hanged_man"),
 )
+# What every missing-person window (rescues, links[].missing, reminders.rescueGroups) rests on: the game's
+# missing-person table and board, aqiu's table of them, and aqiu's tested walkthrough for the limit evening.
+RESCUE_SRC = ("aqiu_overworld", "aqiu_walkthrough", "gd_disappear_data", "gd_disappear_help")
 
 
 class Lock:
@@ -790,8 +806,8 @@ def build_calendar(ledger: Ledger, day_cells: dict, night_cells: dict, tartarus_
     rescue_notes: dict[int, list[str]] = {}
     for _ident, zh, first, last, _link in RESCUES:
         deadline = cn_date(day_of_md(last))
-        rescue_notes.setdefault(day_of_md(first), []).append(f"{zh}失踪了，要在{deadline}前到塔尔塔罗斯把人救出来")
-        rescue_notes.setdefault(day_of_md(last), []).append(f"今天是救出{zh}的最后期限")
+        rescue_notes.setdefault(day_of_md(first), []).append(f"{zh}失踪了，最晚要在{deadline}晚上到塔尔塔罗斯把人救出来")
+        rescue_notes.setdefault(day_of_md(last), []).append(f"今天是救出{zh}的最后期限，今晚去塔尔塔罗斯还来得及")
 
     days = []
     for d in range(FIRST_DAY, LAST_DAY + 1):
@@ -861,11 +877,13 @@ def build_calendar(ledger: Ledger, day_cells: dict, night_cells: dict, tartarus_
     rescues = []
     for ident, zh, first, last, link in RESCUES:
         rescues.append({"conf": "verified", "fromDay": day_of_md(first), "id": ident, "link": link,
-                        "src": ["aqiu_overworld", "gd_disappear_help"], "toDay": day_of_md(last), "zh": zh})
+                        "src": list(RESCUE_SRC), "toDay": day_of_md(last), "zh": zh})
     ledger.decide("tartarus", "rescues", "Only the two missing people that gate a Social Link are rescues: 北村文吉 "
-                  "9/12–10/3 (教皇) and 舞子 10/21–11/2 (倒悬者) (aqiu overworld; the game board text says Bunkichi was "
-                  "reported missing on 9/11, but the aqiu calendar still has a Hierophant cell that day). The other 19 "
-                  "missing people only reward items and are left out.")
+                  "9/12–10/3 (教皇) and 舞子 10/21–11/2 (倒悬者) (DisappearDataAsset Start/Limit = aqiu overworld; the "
+                  "game board text says Bunkichi was reported missing on 9/11, but the aqiu calendar still has a "
+                  "Hierophant cell that day). Both days count: a Tartarus evening from fromDay through toDay rescues "
+                  "them (see 'rescue deadline'). The other 18 missing people only reward items (Ayako also gates "
+                  "request #97) and are left out.")
     by_day = {x["d"]: x for x in days}
     # Every GameFAQs date, plus the aqiu-only closures that actually remove a plannable Tartarus evening.
     closed_nights = sorted(closed | {d for d in aqiu_closed if by_day[d]["block"] >= 0 and by_day[d]["eveLock"] is None})
@@ -1141,8 +1159,8 @@ LINK_NOTES = {
                  "具体日期看探索进度，这里按最晚的日期估计。",
     "emperor": "11月3日～11月29日小田桐秀利不在学生会，见不到面。",
     "empress": "考试前一周（12月7日～12月12日）她每天放学后都在。",
-    "hierophant": "9月12日北村文吉失踪，要在10月3日前到塔尔塔罗斯救出他，否则教皇社群无法继续。",
-    "hanged_man": "10月21日舞子失踪，要在11月2日前到塔尔塔罗斯救出她，否则倒悬者社群无法继续。",
+    "hierophant": "9月12日北村文吉失踪，最晚要在10月3日晚上到塔尔塔罗斯救出他，否则教皇社群无法继续。",
+    "hanged_man": "10月21日舞子失踪，最晚要在11月2日晚上到塔尔塔罗斯救出她，否则倒悬者社群无法继续。",
     "hermit": "只在星期日和节假日的白天上线。",
     "devil": "解锁之后每次见面都会升级，不用攒点数。",
     "sun": "只在星期日白天见面；解锁之后每次见面都会升级。",
@@ -1355,7 +1373,7 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
         if link in rescue_of:
             ident, first, last = rescue_of[link]
             missing = {"conf": "verified", "fromDay": day_of_md(first), "rescueId": ident,
-                       "src": ["aqiu_overworld", "gd_disappear_help"], "toDay": day_of_md(last)}
+                       "src": list(RESCUE_SRC), "toDay": day_of_md(last)}
 
         src = ["gd_community_event", "gd_race", "aqiu_social_events"]
         src.append("gd_social_link" if link == "fool" else "ev_identity_labels" if link == "judgement" else "gd_player_name")
@@ -2022,6 +2040,22 @@ STAT_SENTENCE = "这份加成不在安排的预计里，能力值升级后去「
 TV_DETAIL = "在自己房间看电视就能买，不会消耗时间；最好出门前先买。花的钱不在安排的预计里，买了以后记得在「同步现状」里更新现金。"
 # The missing people the engine models as rescues (RESCUES), by their name in the aqiu table.
 RESCUE_EN = {"bunkichi": "Bunkichi Kitamura", "maiko": "Maiko Oohashi"}
+# aqiu's tested Reload route: it rescues every missing person, some of them on their limit day.
+WALKTHROUGH_REL = "aqiu_pages/ave-walkthrough.md"
+WALKTHROUGH_HEAD = ("# All Voiced Events Walkthrough - Persona 3 Reload", "* Test-played on Merciless",
+                    "* No reloads required")
+# Reload pages that corroborate the limit evening: snapshot -> (title fragment, sentence as the page writes it).
+RESCUE_LIMIT_QUOTES = {
+    "steam_schinese/d_7599331177366570924.html": (
+        "Missing persons :: Persona 3 Reload General Discussions",
+        "Always save exploration until the countdown timer in the top right of the screen nears 0 aka the last day."),
+    "web_guides/rpgsite_missing_people.html": (
+        "Persona 3 Reload Missing Person quest",
+        "wait for the third missing person to pop - and then head into Tartarus on either September 3rd or 4th."),
+}
+# Game8 JP's deadline page writes every window as 'M/D ~ M/D' (救出期限).
+GAME8_MISSING_REL = "web_guides/game8jp_missing_people.html"
+GAME8_MISSING_TITLE = "【ペルソナ3リロード】失踪者の期限一覧"
 # CN guide items (cn_guides/data.json ids) the collectible, trip and shop reminders rest on.
 CN_ITEMS = {
     "fragment.city": "t005_03", "fragment.dorm": "t005_07", "fragment.roof": "t035_06", "fragment.operation": "t103_01",
@@ -2492,7 +2526,8 @@ def request_reminders(ledger: Ledger, people: list[tuple[int, int, str]], sched:
                 who = [p for p in people if p[2].split(" ")[0] == rescued.group(1)]
                 if len(who) != 1:
                     raise BuildError(f"request #{number}: missing person {rescued.group(1)} not found")
-                prereq[last] = f"，而且只有在 {cn_date(who[0][1])}前救出了 {cn_date(who[0][0])}失踪的学生才能完成"
+                prereq[last] = (f"，而且只有在 {cn_date(who[0][1])}当天或更早救出了 {cn_date(who[0][0])}失踪的学生"
+                                "才能完成")
     if len(batches) != 9 or len(windows) != 8:
         raise BuildError(f"Elizabeth requests: {len(batches)} batch dates / {len(windows)} deadlines, expected 9 / 8")
     out = []
@@ -2528,10 +2563,12 @@ def rescue_groups(ledger: Ledger) -> tuple[list[dict], list[tuple[int, int, str]
     """失踪者: the 20 missing people of aqiu overworld in (missing from, limit) groups; the engine words the reminders."""
     bullets, rows = overworld_section("Missing People")
     people = [(md_slash(r[0]), md_slash(r[1]), r[2]) for r in rows]
-    board = {line.split("\t")[1].split("\\n")[0] for line in
-             (SOURCES_DIR / "aqiu_gamedata" / "BMD_DisappearHelp.tsv").read_text(encoding="utf-8").splitlines()[2:]}
-    if len(people) != 20 or {p[2] for p in people} != board:
-        raise BuildError("aqiu missing people disagree with the game's missing-person board (20 names)")
+    board = [line.split("\t")[1].split("\\n")[0] for line in
+             (SOURCES_DIR / "aqiu_gamedata" / "BMD_DisappearHelp.tsv").read_text(encoding="utf-8").splitlines()[2:]]
+    if len(people) != 20 or [p[2] for p in people] != board:
+        raise BuildError("aqiu missing people disagree with the game's missing-person board (20 names, in order)")
+    if [(first, last) for first, last, _name in people] != disappear_windows():
+        raise BuildError("aqiu missing-people windows disagree with DisappearDataAsset (Start/Limit per person)")
     groups: dict[tuple[int, int], list[str]] = {}
     for first, last, name in people:
         groups.setdefault((first, last), []).append(name)
@@ -2546,7 +2583,7 @@ def rescue_groups(ledger: Ledger) -> tuple[list[dict], list[tuple[int, int, str]
                     raise BuildError(f"rescue {ident}: window {md_of(m_first)}-{md_of(m_last)} is not its aqiu group")
                 ids.append(ident)
         group = {"conf": "verified", "count": len(names), "fromDay": first, "id": f"rescue.{md_of(first)}",
-                 "rescueIds": ids, "src": ["aqiu_overworld", "gd_disappear_help"], "toDay": last}
+                 "rescueIds": ids, "src": list(RESCUE_SRC), "toDay": last}
         if md_of(first) in RESCUE_LOCKS:
             number, bullet = RESCUE_LOCKS[md_of(first)]
             who = bullet.split(" ")[3]
@@ -2558,14 +2595,108 @@ def rescue_groups(ledger: Ledger) -> tuple[list[dict], list[tuple[int, int, str]
         raise BuildError(f"modelled rescues not in the aqiu table: {sorted(modelled)}")
     if len(out) != 13 or len({g["id"] for g in out}) != 13:
         raise BuildError(f"expected 13 missing-person groups, found {len(out)}")
-    ledger.decide("reminders", "rescue", "失踪者: the 20 people of aqiu overworld (the same names as the game's "
-                  "missing-person board) in 13 (missing from, limit) groups; 北村文吉 and 舞子 are the modelled rescues "
-                  "(rescueIds). The engine words them against the plan: when they go missing, on the first planned "
-                  "Tartarus evening in the window (rescued on that visit), or the day before the limit when no Tartarus "
-                  "evening is planned. Whether the limit day itself still counts is not verified (the reminders say so). "
-                  "A group whose rescue a request needs says so (locksZh): "
+    rescue_limit_witnesses(ledger, people)
+    ledger.decide("reminders", "rescue", "失踪者: the 20 people of aqiu overworld (the same names, in the same order, "
+                  "as the game's missing-person board; the same (missing, limit) days as DisappearDataAsset) in 13 "
+                  "(missing from, limit) groups; 北村文吉 and 舞子 are the modelled rescues (rescueIds). The engine "
+                  "words them against the plan: when they go missing, on the first planned Tartarus evening in the "
+                  "window (rescued on that visit), or the day before the limit when no Tartarus evening is planned. The "
+                  "limit evening still counts (tartarus 'rescue deadline'); the details say so. A group whose rescue a "
+                  "request needs says so (locksZh): "
                   + "; ".join(f"{md} → #{n} ({bullet})" for md, (n, bullet) in RESCUE_LOCKS.items()) + ".")
     return out, people
+
+
+def disappear_windows() -> list[tuple[int, int]]:
+    """(missing from, limit) of the 20 rows of the game's missing-person table, in table order."""
+    rows = read_tsv("DisappearDataAsset")
+    head = rows[0]
+    if head[:4] != ["StartMonth", "StartDays", "LimitMonth", "LimitDays"] or len(rows) != 21:
+        raise BuildError("DisappearDataAsset: expected StartMonth/StartDays/LimitMonth/LimitDays and 20 rows")
+    return [(day_of(int(r[0]), int(r[1])), day_of(int(r[2]), int(r[3]))) for r in rows[1:]]
+
+
+def walkthrough_rescues() -> list[tuple[int, int]]:
+    """(day, people) of every evening aqiu's tested Reload walkthrough rescues missing people, in order."""
+    lines = (SOURCES_DIR / WALKTHROUGH_REL).read_text(encoding="utf-8").splitlines()
+    if [line.strip() for line in lines[:11] if line.strip() in WALKTHROUGH_HEAD] != list(WALKTHROUGH_HEAD):
+        raise BuildError(f"{WALKTHROUGH_REL}: not the test-played, no-reload Persona 3 Reload walkthrough")
+    out: list[tuple[int, int]] = []
+    day = section = None
+    tower = False
+    for line in lines:
+        s = line.strip()
+        head = re.fullmatch(r"#### (\w{3}) (\d{1,2})/(\d{1,2})", s)
+        if head:
+            day = day_of(int(head.group(2)), int(head.group(3)))
+            if WEEKDAY_ABBR.get(head.group(1)) != weekday_of(day):
+                raise BuildError(f"{WALKTHROUGH_REL}: {s} is not a {head.group(1)} in 2009-10")
+            section, tower = None, False
+        elif s.startswith("##### "):
+            section, tower = s[6:], False
+        elif line.startswith("* "):
+            tower = s == "* Tartarus"
+        rescue = re.fullmatch(r"\* Rescue (\d+) missing (?:people|person)", s)
+        if rescue:
+            if day is None or section != "Evening" or not tower:
+                raise BuildError(f"{WALKTHROUGH_REL}: a rescue outside an evening Tartarus visit ({s})")
+            out.append((day, int(rescue.group(1))))
+    return out
+
+
+def rescue_limit_witnesses(ledger: Ledger, people: list[tuple[int, int, str]]) -> list[int]:
+    """Days on which aqiu's tested walkthrough rescues someone on their limit day (the limit evening counts).
+
+    Every walkthrough rescue must save exactly the people missing that evening (inside their window, not yet
+    saved), and the route must save all 20; the corroborating Reload pages must still say what REPORT quotes."""
+    saved: set[int] = set()
+    on_limit: list[int] = []
+    on_start: list[int] = []
+    evenings = walkthrough_rescues()
+    for day, count in evenings:
+        gone = [i for i, (first, last, _name) in enumerate(people) if first <= day <= last and i not in saved]
+        if len(gone) != count:
+            raise BuildError(f"{WALKTHROUGH_REL}: {md_of(day)} rescues {count}, but {len(gone)} people are missing then")
+        saved.update(gone)
+        if any(people[i][1] == day for i in gone):
+            on_limit.append(day)
+        if any(people[i][0] == day for i in gone):
+            on_start.append(day)
+    if len(saved) != len(people):
+        raise BuildError(f"{WALKTHROUGH_REL}: the route rescues {len(saved)} of {len(people)} missing people")
+    if not on_limit:
+        raise BuildError(f"{WALKTHROUGH_REL}: no rescue on a limit day; the limit-evening reading has lost its witness")
+    for rel, (title, quote) in RESCUE_LIMIT_QUOTES.items():
+        page = (SOURCES_DIR / rel).read_text(encoding="utf-8", errors="replace")
+        if title not in page or quote not in " ".join(html_to_text(page).split()):
+            raise BuildError(f"{rel}: the Reload page no longer says {quote!r}")
+    game8 = " ".join(html_to_text((SOURCES_DIR / GAME8_MISSING_REL).read_text(encoding="utf-8")).split())
+    windows = sorted({(first, last) for first, last, _name in people})
+    absent = [f"{md_of(a)}~{md_of(b)}" for a, b in windows if f"{md_slash_text(a)} ~ {md_slash_text(b)}" not in game8]
+    if GAME8_MISSING_TITLE not in game8 or absent:
+        raise BuildError(f"{GAME8_MISSING_REL}: Game8 JP no longer lists the windows {absent}")
+    ledger.decide("tartarus", "rescue deadline", "A missing person can still be rescued on the evening of the limit "
+                  "day; both ends of a window count. DisappearDataAsset (game data) has StartMonth/StartDays and "
+                  "LimitMonth/LimitDays per person, the same days as the aqiu table. aqiu's 'All Voiced Events "
+                  "Walkthrough - Persona 3 Reload' ('Test-played on Merciless', 'No reloads required') rescues all 20 "
+                  f"on {len(evenings)} evenings, on the limit day itself on "
+                  + ", ".join(md_slash_text(d) for d in on_limit) + " and on the day someone went missing on "
+                  + (", ".join(md_slash_text(d) for d in on_start) or "none")
+                  + ". Corroboration (Reload pages): the Steam thread 'Missing persons' ('"
+                  + RESCUE_LIMIT_QUOTES["steam_schinese/d_7599331177366570924.html"][1]
+                  + "'), RPG Site on the person missing from 9/3 with limit 9/4 ('… head into Tartarus on either "
+                  "September 3rd or 4th.') and Game8 JP's 救出期限 written as ranges ('9/12 ~ 10/3'). Every limit "
+                  "evening is enterable in this pack and the next night is not (full moon, closed night, story or the "
+                  "finale; checked in validate_pack). The engine rescues on a Tartarus evening from fromDay through "
+                  "toDay and treats the person as lost from toDay + 1; the copy says the limit evening still counts. "
+                  "Not replayed by the owner.")
+    return on_limit
+
+
+def md_slash_text(d: int) -> str:
+    """'9/12' for a day ordinal (Game8 and aqiu write dates this way)."""
+    month, dom = md_of(d).split("-")
+    return f"{int(month)}/{int(dom)}"
 
 
 def collectible_reminders(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, guide: dict[int, list[dict]],
@@ -2751,8 +2882,8 @@ NOTES_ZH = (
     "【平安夜】12月24日默认按婉拒所有邀约来安排，白天和晚上都可以自由活动；选了平安夜赴约的对象后，这一天的白天和晚上"
     "都会留给平安夜约会。",
     "【塔尔塔罗斯】队友都去不了的晚上（考试前后、剧情前后等）不会安排探索塔尔塔罗斯。",
-    "【失踪者】北村文吉（9月12日～10月3日）和舞子（10月21日～11月2日）失踪期间见不到人，期限前没有在塔尔塔罗斯救出，"
-    "对应的社群就没法继续了。",
+    "【失踪者】北村文吉（9月12日～10月3日）和舞子（10月21日～11月2日）失踪期间见不到人。期限当天晚上去塔尔塔罗斯"
+    "也还来得及；过了期限还没救出，对应的社群就没法继续了。",
     "【女皇】解锁除了学力 MAX，还要至少有一次考试拿过第一名。名次没法预测，这里只按学力 MAX 来安排；如果一次第一都没拿过，"
     "请把女皇的目标改成「未选」。星期一、五能不能见面没有确认，只按星期二、三、四、六和考试前一周（12月7日～12日）安排。",
     "【教皇】解锁时要回学校调查柿子树，所以只安排在上学日的放学后。有玩家反映 RANK 4 → 5 前要先听到柿子树的传闻，"
@@ -3004,6 +3135,14 @@ def validate_reminders(pack: dict, check_src) -> None:
             raise BuildError(f"{where}: count >= 1, known rescueIds and fromDay <= toDay are required")
         if "locksZh" in group and not group["locksZh"]:
             raise BuildError(f"{where}: locksZh, when present, must not be empty")
+    # The copy promises that the limit evening still counts: it must be a Tartarus evening, and the night after
+    # it must not be one (the limit is the last chance, as the walkthrough and the game data have it).
+    limits = [(f"reminders.rescueGroups[{g['id']}]", g["toDay"]) for g in rem["rescueGroups"]]
+    limits += [(f"tartarus.rescues[{r['id']}]", r["toDay"]) for r in pack["tartarus"]["rescues"]]
+    for where, last in limits:
+        after = by_day.get(last + 1)
+        if not by_day[last]["tartarus"] or (after is not None and after["tartarus"]):
+            raise BuildError(f"{where}: the limit {md_of(last)} must be the last Tartarus evening of the window")
 
 
 # Words docs/GLOSSARY_zh.md tells us not to use in player-facing text (解锁, 见面, 安排, MAX, 羁绊剧情 …),
@@ -3036,7 +3175,13 @@ VALUE_SOURCES = (
     ("links[].dialogue", lambda p: [x for x in p["links"] if x["dialogue"]], ("ev_dialogue", "cn_guide")),
     ("tartarus.blocks[] dates and floors", lambda p: p["tartarus"]["blocks"], ("gd_activity",)),
     ("tartarus.blocks[].zh", lambda p: p["tartarus"]["blocks"], ("cn_3dm",)),
-    ("tartarus.rescues[] windows", lambda p: p["tartarus"]["rescues"], ("aqiu_overworld", "gd_disappear_help")),
+    ("tartarus.rescues[] windows", lambda p: p["tartarus"]["rescues"],
+     ("aqiu_overworld", "gd_disappear_data", "gd_disappear_help")),
+    ("reminders.rescueGroups[] windows", lambda p: p["reminders"]["rescueGroups"],
+     ("aqiu_overworld", "gd_disappear_data", "gd_disappear_help")),
+    ("missing-person limit evening still counts (rescues, links[].missing, rescueGroups)",
+     lambda p: p["tartarus"]["rescues"] + [x["missing"] for x in p["links"] if x["missing"]]
+     + p["reminders"]["rescueGroups"], ("aqiu_walkthrough",)),
     ("activities job_chagall pay", lambda p: _records(p, "activities", "job_chagall"),
      ("gd_arbeit_help", "ev_jobs", "megatenwiki_chagall_cafe", "wiki469")),
     ("activities job_accessory pay", lambda p: _records(p, "activities", "job_accessory"),
@@ -3178,9 +3323,11 @@ KNOWN_GAPS = (
     "12/7, 12/9 and 1/18 are withheld (the CN guide answers them, but its answers are never used), and 12/11 has no zh "
     "answer at all. Exam answers 7/17 (MADRID) and 12/16 (JUNE) are single-sourced and shown with conf=estimate. "
     "上课犯困 days 12/12 and 1/15-1/28 rest on the CN guide alone.",
-    "当日提醒 missing people: whether the limit day itself still counts is not verified; the reminders tell the "
-    "player to go earlier. Floors are unknown. Rescues follow the plan's Tartarus evenings and the latest recorded "
-    "one, not nights the player improvises.",
+    "当日提醒 missing people: that the limit evening still counts rests on aqiu's tested walkthrough (rescues on "
+    "limit days, see the tartarus 'rescue deadline' decision) and three corroborating guides, not on an ATLUS "
+    "statement or a replay by the owner. "
+    "Floors are unknown. Rescues follow the plan's Tartarus evenings and the latest recorded one, not nights the "
+    "player improvises.",
     "Not modelled: Wakatsu seafood course, Hagakure bowl, weekend Wilduck set, burger challenge, shrine donations, "
     "shrine fortunes, gifts, film-festival hangouts, Koromaru walks, Ryoji's and Takaya's Link Episodes. All of them "
     "can only add points/stats, so plans stay conservative.",
@@ -3242,7 +3389,9 @@ FIELD_SEMANTICS = (
     "longer emits avail. The last step (`establishes`) sets rank 1. No steps = automatic: rank 1 once `earliestDay` "
     "is reached and the requirements hold (Magician on 4/22; Strength when Chariot reaches R2; story links by date).",
     "`missing`: the person is gone from `fromDay` to `toDay` unless the matching rescue (`tartarus.rescues`) "
-    "happened earlier; without a rescue by `toDay` the link is lost for the rest of the game.",
+    "happened earlier. Both ends count: a Tartarus evening from `fromDay` through `toDay` (the limit evening "
+    "included) rescues them; without a rescue by the `toDay` evening the link is lost from `toDay + 1` for the rest "
+    "of the game. Every `toDay` evening is a Tartarus evening and the next night is not.",
     "`storyRanks` (story links) list dated rank events; the loader turns them into `storyRankDay[r]` = first day "
     "with rank >= r (skipped ranks share the next event's day).",
     "`activities`: `slots`, `weekdays`, `dayTypes` (empty = all), `fromDay..toDay`, `cost` (yen), `gain` "
@@ -3259,8 +3408,8 @@ FIELD_SEMANTICS = (
     "class and exam answers, `requires` stat Lv with `firstEligible` = shown on the first slot of that kind from "
     "`day` on where the forecast meets it), sorted by (day, slot, id). `doze.days` (上课犯困, school days; "
     "`academics`/`courage` = points for staying awake / closing the eyes), `nurse` "
-    "(保健室 Courage after a Tartarus or full-moon night) and `rescueGroups` (missing people per (from, limit), "
-    "`rescueIds` = modelled rescues) are worded by the engine against the plan.",
+    "(保健室 Courage after a Tartarus or full-moon night) and `rescueGroups` (missing people per (from, limit), both "
+    "days included like `missing`; `rescueIds` = modelled rescues) are worded by the engine against the plan.",
     "`conf`: game_data > verified > single > estimate; conflict = strictest claim chosen, alternatives in `alt` "
     "(activities) or in this report.",
 )

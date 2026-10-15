@@ -27,9 +27,13 @@ final class Reminders {
     static final String DOZE_LABEL = "上课犯困";
     static final String NURSE_LABEL = "保健室";
     static final String RESCUE_LABEL = "失踪者";
-    static final String RESCUE_DETAIL = "在塔尔塔罗斯里找到失踪的人就能救出，还能拿到奖励。期限当天再去不一定来得及，最好提前去。";
+    /**
+     * The limit day's evening still counts (game data Start/Limit days, aqiu's tested Reload walkthrough rescues
+     * on limit days; rules/build/REPORT.md, tartarus "rescue deadline"), so the copy says so.
+     */
+    static final String RESCUE_DETAIL = "在塔尔塔罗斯里找到失踪的人就能救出，还能拿到奖励。期限当天晚上去也来得及，过了期限就救不出来了。";
     static final String TOWER_DETAIL = "失踪的人在塔尔塔罗斯里，探索时找到就能救出，还能拿到奖励。";
-    static final String DEADLINE_DETAIL = "期限前没去塔尔塔罗斯的话就救不出来了；想救的话，在期限前找一个晚上去塔尔塔罗斯。";
+    static final String DEADLINE_DETAIL = "过了期限还没去塔尔塔罗斯的话就救不出来了；想救的话，最晚在期限当天晚上去一次塔尔塔罗斯。";
     /** Visible stat level that is MAX. */
     private static final int MAX_LV = 6;
 
