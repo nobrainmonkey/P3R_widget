@@ -134,31 +134,30 @@ public class DialogueHintTest {
 
     // ------------------------------------------------------------------ routes
 
-    /** Spec test 4: 朋友 route names the romance answer to avoid; 恋人 shows the answers; unmarked R ≥ 8 → 别选表白的回答. */
+    /** Completed guidance selects the intended relationship; prior eligibility belongs in details. */
     @Test
     public void friendAndRomanceRoutes() {
         int priestess = link("priestess");
         DialogueHint.Answers friend = DialogueHint.forScene(pack, new Profile(), priestess, 9, false);
-        assertEquals("答：别选「我喜欢风花」", DialogueHint.widgetLine(friend));
-        assertTrue("reviewed app guidance names the same forbidden answer",
-                DialogueHint.appLine(friend).startsWith("参考回答：别选「我喜欢风花」"));
-        assertTrue("full details retain the limit of the known guidance", DialogueHint.appLine(friend).contains("待核对"));
+        assertTrue(friend.reviewed);
+        assertFalse("friendship now has concrete answers", friend.choices.isEmpty());
+        assertFalse("the confession is not a friendship recommendation", friend.choices.contains("我喜欢风花"));
         DialogueHint.Answers love = DialogueHint.forScene(pack, romance("priestess"), priestess, 9, false);
-        assertEquals("参考回答：我喜欢风花", DialogueHint.appLine(love));
-        assertEquals("答：我喜欢风花", DialogueHint.widgetLine(love));
+        assertTrue(love.choices.contains("我喜欢风花"));
+        assertTrue(DialogueHint.widgetLine(love).contains("我喜欢风花"));
 
         DialogueHint.Answers strength = DialogueHint.forScene(pack, new Profile(), link("strength"), 8, false);
-        assertTrue("reviewed safe prompts are no longer withheld by rank alone", strength.reviewed);
-        assertTrue(DialogueHint.widgetLine(strength).contains("男孩"));
-        assertTrue(DialogueHint.widgetLine(strength).contains("女孩"));
+        assertTrue("reviewed high-rank friendship is no longer withheld by rank alone", strength.reviewed);
+        assertFalse(strength.choices.isEmpty());
 
         int justice = link("justice");
         DialogueHint.Answers five = DialogueHint.forScene(pack, new Profile(), justice, 5, false);
-        assertEquals("答：随便问吧 / 随时欢迎千寻找我倾诉 / 握住她的手 · 别选「产生恋爱感情了」", DialogueHint.widgetLine(five));
-        assertEquals("参考回答：随便问吧（1） / 随时欢迎千寻找我倾诉（1） / 握住她的手（1）；" + DialogueHint.FRIEND_CAUTION,
-                DialogueHint.appLine(five));
+        assertEquals(Arrays.asList("随便问吧", "产生恋爱感情了", "随时欢迎千寻找我倾诉", "握住她的手"), five.choices);
+        assertTrue("discussing the novel is not a confession", five.avoid.isEmpty());
+        assertEquals("all four normal-flow prompts survive shortening", 4, DialogueHint.widgetChoices(five).size());
         DialogueHint.Answers nine = DialogueHint.forScene(pack, new Profile(), justice, 9, false);
-        assertEquals("答：突然这是怎么了？ · 别选表白", DialogueHint.widgetLine(nine));
+        assertTrue(nine.choices.contains("千寻是我重要的学妹"));
+        assertFalse(nine.choices.contains("我的心意和千寻一样"));
         // A link that cannot be romanced has no caution.
         assertEquals("答：是你毅力不够", DialogueHint.widgetLine(DialogueHint.forScene(pack, new Profile(), link("chariot"), 2, false)));
     }
@@ -166,7 +165,12 @@ public class DialogueHintTest {
     /** Spec test 5: no data → no widget row (never the generic hint); every choice free → 怎么回答都可以. */
     @Test
     public void noDataShowsNothingAndFreeChoicesSaySo() {
-        DialogueHint.Answers none = DialogueHint.forScene(pack, new Profile(), link("devil"), 10, false);
+        Rules empty = new Rules();
+        Rules.Link unknown = new Rules.Link();
+        unknown.idx = 0;
+        unknown.id = "unreviewed";
+        empty.links = new Rules.Link[]{unknown};
+        DialogueHint.Answers none = DialogueHint.forScene(empty, new Profile(), 0, 10, false);
         assertTrue(none.isEmpty());
         assertNull(DialogueHint.widgetLine(none));
         assertEquals(DialogueHint.FALLBACK, DialogueHint.appLine(none));

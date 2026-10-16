@@ -487,6 +487,8 @@ def build_sources() -> list[dict]:
         evidence("ev_dialogue", "guide_dialogue_reference_map.json", "cn_guide_reload", "CN guide dialogue fragments bound to target ranks"),
         evidence("ev_dialogue_approved", "dialogue_guidance_approved.json", "cn_guide_reload",
                  "User-approved Chinese guide dialogue additions and repairs, with ordered questions, route limits and source hashes"),
+        evidence("ev_dialogue_completion", "dialogue_guidance_completion.json", "reload",
+                 "Authorized dialogue completion: Chinese guide quotations, labelled editorial translations and per-route sequences"),
         evidence("ev_social_links", "social_links.json", reload, "Link catalogue: weekdays, unlock claims, conflicts"),
         evidence("ev_identity_labels", "social_goal_identity_labels.json", reload, "Selector labels and gender (Reload translation and identity tables)"),
         evidence("ev_affinity", "affinity_model_evidence.json", "mixed",
@@ -519,6 +521,11 @@ def build_sources() -> list[dict]:
         evidence("ev_dating_note", "affinity_actions_candidate.json", reload, "Dating-site note: evening, +10 points, 3,000 yen, never a rank-up"),
         evidence("ev_hangout_rules", "ordinary_hangout_rules_candidate.json", reload, "Dating-site note sources (aqiu, game8, atwiki 455, Steam guide)"),
     ]
+    completion = load_dialogue_completion()
+    for source in completion["sources"]:
+        sources.append({"edition": source["edition"], "id": source["id"], "kind": "web_rendered_excerpt",
+                        "note": source["note"], "path": "rules/p3r/dialogue_guidance_completion.json",
+                        "sha256": sha256_file(EVIDENCE_DIR / "dialogue_guidance_completion.json"), "url": source["url"]})
     snapped = {s["path"][len("rules/sources/"):] for s in sources if s["path"] and s["path"].startswith("rules/sources/")}
     if not snapped <= pinned.keys():
         raise BuildError(f"pack sources not pinned in SOURCES.json: {sorted(snapped - pinned.keys())}")
@@ -1319,7 +1326,125 @@ def approved_dialogue_hints(approved: dict) -> dict[str, dict[str, dict]]:
     return out
 
 
-def dialogue_map(approved: dict | None = None) -> dict[str, dict[str, list[str]]]:
+COMPLETION_VARIANT_FIELDS = frozenset({"choices", "shortChoices", "any", "avoid", "noteZh", "shortNoteZh", "sequence"})
+WORDING_ORIGINS = frozenset({"existing_zh_guide", "editorial_translation", "official_zh_cn_seen"})
+TRANSLATION_NOTE_ZH = "部分选项为译意，按含义对应。"
+
+
+def load_dialogue_completion() -> dict:
+    """Read durable quotations/translations; no live web or disposable QA files are build inputs."""
+    completion = read_evidence("dialogue_guidance_completion.json")
+    if completion.get("schema") != "p3r.dialogue_guidance_completion.v1":
+        raise BuildError("dialogue completion: unknown evidence schema")
+    for guard in completion["localSourceGuards"]:
+        path = guard["path"]
+        if not path.startswith("rules/") or ".." in Path(path).parts:
+            raise BuildError(f"dialogue completion: invalid guarded source {path}")
+        if sha256_file(ROOT / path) != guard["sha256"]:
+            raise BuildError(f"dialogue completion: guarded source changed: {path}")
+    sources = {}
+    for source in completion["sources"]:
+        ident = source["id"]
+        if ident in sources or not re.fullmatch(r"completion_[a-z0-9_]+", ident):
+            raise BuildError(f"dialogue completion: duplicate or invalid source {ident}")
+        if source.get("edition") not in RELOAD_EDITIONS or not source.get("url", "").startswith("https://"):
+            raise BuildError(f"dialogue completion: non-Reload or missing source URL {ident}")
+        if source.get("captureKind") != "web_tool_rendered_excerpt" or not source.get("excerpts"):
+            raise BuildError(f"dialogue completion: {ident} needs an explicitly rendered source excerpt")
+        if not source.get("note"):
+            raise BuildError(f"dialogue completion: {ident} needs a source-scope note")
+        sources[ident] = source
+    seen = set()
+    for scene in completion["scenes"]:
+        key = (scene["link"], scene["rank"])
+        if scene["link"] not in LINK_IDS or scene["link"] in STORY_LINKS or not 2 <= scene["rank"] <= 10 or key in seen:
+            raise BuildError(f"dialogue completion: invalid or duplicated scene {key}")
+        seen.add(key)
+        if not scene.get("sourceIds") or not set(scene["sourceIds"]) <= sources.keys():
+            raise BuildError(f"dialogue completion {key}: unknown source IDs")
+        source_urls = {sources[ident]["url"] for ident in scene["sourceIds"]}
+        if not scene.get("variants") or not set(scene["variants"]) <= {"common", "friend", "romance"}:
+            raise BuildError(f"dialogue completion {key}: missing or invalid variants")
+        for route, variant in scene["variants"].items():
+            where = f"dialogue completion {key}.{route}"
+            if not isinstance(variant.get("choices"), list) or not isinstance(variant.get("sequence"), list):
+                raise BuildError(f"{where}: ordered choices and sequence required")
+            if not variant["choices"] and not (variant.get("any") or variant.get("avoid") or variant.get("noteZh")):
+                raise BuildError(f"{where}: empty guidance")
+            if any(choice.startswith("任意") or choice == "之后任意" for choice in variant["choices"]):
+                raise BuildError(f"{where}: arbitrary prompts belong in sequence")
+            if "shortChoices" in variant and len(variant["shortChoices"]) != len(variant["choices"]):
+                raise BuildError(f"{where}: shortChoices changes question count")
+            for item in [variant] + variant.get("alternatives", []):
+                origins = item.get("choiceOrigins", [])
+                if len(origins) != len(item.get("choices", [])):
+                    raise BuildError(f"{where}: every concrete choice needs wording provenance")
+                for choice, origin in zip(item.get("choices", []), origins):
+                    if origin.get("text") != choice or origin.get("origin") not in WORDING_ORIGINS:
+                        raise BuildError(f"{where}: invalid choice origin")
+                    if not origin.get("sourceUrl", "").startswith("https://") or not origin.get("sourceText"):
+                        raise BuildError(f"{where}: choice origin needs source wording and URL")
+                    if origin["sourceUrl"] not in source_urls:
+                        raise BuildError(f"{where}: wording source is not registered for this scene")
+                    if origin["origin"] == "official_zh_cn_seen" and not origin.get("officialObservation"):
+                        raise BuildError(f"{where}: official wording requires an inspected in-game observation")
+                if item is not variant and (not item.get("whenZh") or not isinstance(item.get("sequence"), list)):
+                    raise BuildError(f"{where}: alternate route needs condition and full sequence")
+    return completion
+
+
+def _contains_translation(node) -> bool:
+    if isinstance(node, dict):
+        return node.get("origin") == "editorial_translation" or any(_contains_translation(value) for value in node.values())
+    if isinstance(node, list):
+        return any(_contains_translation(value) for value in node)
+    return False
+
+
+def completion_display_text(value):
+    """Apply the app's Chinese vocabulary only to compiled display text, never source quotations."""
+    if isinstance(value, str):
+        value = re.sub(r"(?<![A-Za-z])R\s*(\d+)", r"RANK \1", value)
+        return fix_names(value.replace("Reload", "本作"))
+    if isinstance(value, list):
+        return [completion_display_text(item) for item in value]
+    if isinstance(value, dict):
+        return {key: completion_display_text(item) for key, item in value.items()}
+    return value
+
+
+def compile_completion_variant(variant: dict, route: str) -> dict:
+    """Keep provenance in evidence; flatten alternate scenes only into the detail sequence."""
+    out = {key: json.loads(json.dumps(value, ensure_ascii=False))
+           for key, value in variant.items() if key in COMPLETION_VARIANT_FIELDS}
+    alternatives = variant.get("alternatives", [])
+    if alternatives:
+        heading = variant.get("whenZh", "按友情目标的推荐流程" if route == "friend" else "按恋爱目标的推荐流程")
+        sequence = [f"【{heading}】"] + list(out["sequence"])
+        for alternative in alternatives:
+            sequence += [f"【{alternative['whenZh']}】"] + alternative["sequence"]
+            if alternative.get("noteZh"):
+                sequence.append(alternative["noteZh"])
+        out["sequence"] = sequence
+    if _contains_translation(variant):
+        note = out.get("noteZh", "")
+        if TRANSLATION_NOTE_ZH.rstrip("。") not in note:
+            out["noteZh"] = (note.rstrip("。；") + "。" if note else "") + TRANSLATION_NOTE_ZH
+        # A provenance explanation belongs in the detail sheet, not every compact answer row.
+        out.setdefault("shortNoteZh", "")
+    return completion_display_text(out)
+
+
+def completed_dialogue_hints(completion: dict) -> dict[str, dict[str, dict]]:
+    out: dict[str, dict[str, dict]] = {}
+    for scene in completion["scenes"]:
+        entry = {"conf": "single", "src": sorted({"ev_dialogue_completion", *scene["sourceIds"]})}
+        entry.update({route: compile_completion_variant(variant, route) for route, variant in scene["variants"].items()})
+        out.setdefault(scene["link"], {})[str(scene["rank"])] = entry
+    return out
+
+
+def dialogue_map(approved: dict | None = None, completion: dict | None = None) -> dict[str, dict[str, list[str]]]:
     out: dict[str, dict[str, list[str]]] = {}
     seen_references: dict[str, dict] = {}
     for ref in read_evidence("guide_dialogue_reference_map.json")["references"]:
@@ -1343,6 +1468,18 @@ def dialogue_map(approved: dict | None = None) -> dict[str, dict[str, list[str]]
         approved = load_approved_dialogue()
     for scene in approved["scenes"]:
         out.setdefault(scene["link"], {})[str(scene["rank"])] = [fix_names(text) for text in scene["sequence"]]
+    if completion is None:
+        completion = load_dialogue_completion()
+    for scene in completion["scenes"]:
+        # The typed entry is authoritative. This legacy array remains an ordered archive of one
+        # available scene, never a fallback that can override another route's typed sequence.
+        if scene.get("legacySequence") is not None:
+            sequence = scene["legacySequence"]
+        else:
+            variants = scene["variants"]
+            route = next(route for route in ("common", "romance", "friend") if route in variants)
+            sequence = compile_completion_variant(variants[route], route)["sequence"]
+        out.setdefault(scene["link"], {})[str(scene["rank"])] = [fix_names(text) for text in sequence]
     return out
 
 
@@ -1395,8 +1532,14 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
     thresholds = load_thresholds()
     gains, romance = event_gains(ledger)
     approved_dialogue = load_approved_dialogue()
-    dialogue = dialogue_map(approved_dialogue)
+    completed_dialogue = load_dialogue_completion()
+    dialogue = dialogue_map(approved_dialogue, completed_dialogue)
     dialogue_hints = approved_dialogue_hints(approved_dialogue)
+    completion_hints = completed_dialogue_hints(completed_dialogue)
+    for link, ranks in completion_hints.items():
+        # Replacing a scene, rather than merging route fields, is deliberate: an old common
+        # answer must not survive when new branch research restricts it to a particular route.
+        dialogue_hints.setdefault(link, {}).update(ranks)
     stories = story_ranks(page, ledger)
     day_cells = page.day_cells()
     night_cells = page.night_cells()
@@ -1497,8 +1640,10 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
             src += ["ev_rank_points", "ev_manual_models", "cn_guide"]
         if link in dialogue:
             src.append("ev_dialogue")
-        if link in dialogue_hints:
+        if any(scene["link"] == link for scene in approved_dialogue["scenes"]):
             src.append("ev_dialogue_approved")
+        if link in completion_hints:
+            src.append("ev_dialogue_completion")
         if link == "aeon":
             src += ["game8_social_links", "pcinvasion_aeon"]
         record = {
@@ -1542,7 +1687,10 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
                   "Optional dialogueHints are authoritative when present: common or the selected friend/romance "
                   "variant supplies concrete choices and complete sequence; an absent applicable variant means "
                   "unknown guidance, never a reason to reinterpret a different route's legacy answers. "
-                  "Eight held candidates and the remaining unbound scenes are not filled. Display-only changes "
+                  f"A later authorized completion overlays {len(completed_dialogue['scenes'])} scenes from "
+                  "dialogue_guidance_completion.json; it preserves source quotations, all-option comparisons "
+                  "where arbitrary answers are claimed, editorial-translation provenance and complete route "
+                  "alternatives in the detail sequence. The historical 115-scene approval is unchanged. Display-only changes "
                   "do not alter thresholds, event gains or planning scores.")
     ledger.decide("links", "names", "Arcana and person names come from the zh-Hans game tables (DatRaceDataAsset, "
                   "DatPlayerNameDataAsset): 女皇, 倒悬者, 月亮, 贝培, Ｙ子, 舞子 (no surname in-game), 北村文吉、光子. "
@@ -3669,7 +3817,10 @@ VALUE_SOURCES = (
      ("ev_rank_points", "ev_manual_models")),
     ("links[].invite", lambda p: [x for x in p["links"] if x["invite"]], ("gd_holiday_schedule",)),
     ("links[].dialogue", lambda p: [x for x in p["links"] if x["dialogue"]], ("ev_dialogue", "cn_guide")),
-    ("links[].dialogueHints", lambda p: [x for x in p["links"] if x.get("dialogueHints")], ("ev_dialogue_approved",)),
+    ("links[].dialogueHints (original approval)",
+     lambda p: [x for x in p["links"] if "ev_dialogue_approved" in x["src"]], ("ev_dialogue_approved",)),
+    ("links[].dialogueHints (authorized completion)",
+     lambda p: [x for x in p["links"] if "ev_dialogue_completion" in x["src"]], ("ev_dialogue_completion",)),
     ("tartarus.blocks[] dates and floors", lambda p: p["tartarus"]["blocks"], ("gd_activity",)),
     ("tartarus.blocks[].zh", lambda p: p["tartarus"]["blocks"], ("cn_3dm",)),
     ("tartarus.rescues[] windows", lambda p: p["tartarus"]["rescues"],
@@ -3804,13 +3955,13 @@ def dump_pack(pack: dict) -> str:
 
 
 KNOWN_GAPS = (
-    "Dialogue: 163/171 manual R2-R10 scenes have a bound guide reference after 115 approved additions/repairs. "
-    "This is reference coverage, not complete optimal dialogue or branch coverage. Eight scenes remain unbound "
-    "(Priestess R2, Empress R6, Hierophant R9, Fortune R5, Devil R10, Tower R9, Star R3, Sun R3). "
-    "Held existing repairs (Hierophant R7, Justice R9, Strength R7) and Priestess R8 remain legacy evidence; "
-    "they receive no new typed best-answer claim. Friendship answers at several late romance scenes remain "
-    "unknown: avoid-only hints state only the approved confession to avoid. Original guide brackets are not "
-    "verified option ordinals or affinity points. The original guide and its authorised repost are one source lineage.",
+    "Dialogue: the historical 115-scene Chinese-guide approval is retained unchanged; later authorized completion "
+    "adds branch-specific research and explicitly labelled editorial translations. Reference coverage does not "
+    "prove every source's numeric affinity figures or reconstruct the player's previous romance-eligibility "
+    "flags. The current Profile selects the intended relationship; detail sequences retain alternatives for "
+    "earlier choices. Guide quotations and editorial translations are not verified Simplified Chinese game text. "
+    "Original guide brackets are not verified option ordinals or affinity points; displayed musical notes are "
+    "not planner raw points. The original Chinese guide and its authorised repost are one source lineage.",
     "Ordinary (non-rank-up) hangout gain +10 rests on one playthrough report (the Reload subsection of a multi-edition "
     "post, edition mixed) and its Reload-scoped evidence file (conf=estimate). The rank-up cue "
     "the game shows on the map is the reliable signal; the engine/UI should prefer it over the estimate.",
@@ -4292,8 +4443,10 @@ def render_unverified(pack: dict) -> list[str]:
     quoted -= set(APP_LABELS) | block_names
     fragments = [(link["id"], rank, frag) for link in pack["links"] for rank, frags in link["dialogue"].items() for frag in frags]
     approved = load_approved_dialogue()
+    completion = load_dialogue_completion()
     approved_keys = {(scene["link"], str(scene["rank"])) for scene in approved["scenes"]}
-    legacy_fragments = [x for x in fragments if (x[0], x[1]) not in approved_keys]
+    completion_keys = {(scene["link"], str(scene["rank"])) for scene in completion["scenes"]}
+    legacy_fragments = [x for x in fragments if (x[0], x[1]) not in approved_keys | completion_keys]
     rewritten = [x for x in legacy_fragments if x[2] not in guide_text]
     dialogue_links = sorted({x[0] for x in fragments}, key=LINK_IDS.index)
     covered_ranks = sum(sum(str(rank) in link["dialogue"] for rank in range(2, 11))
@@ -4312,9 +4465,16 @@ def render_unverified(pack: dict) -> list[str]:
                "shortening and existing corrections. Ordered duplicate answers and arbitrary-prompt positions are "
                "retained. `dialogueHints` marks these single-source recommendations and separates common, friend "
                "and romance guidance; avoid-only friendship guidance is not an optimum answer. The two websites "
-               "carry one guide lineage, not independent confirmation. Eight held candidates remain excluded. "
+               "carry one guide lineage, not independent confirmation. The original approval remains unchanged; "
+               f"{len(completion_keys)} later authorized scene overlays come from `dialogue_guidance_completion.json`, "
+               "which preserves rendered source excerpts, per-choice wording provenance, route alternatives and "
+               "complete option comparisons where equal-best arbitrary answers are claimed. These are rendered "
+               "web excerpts, not raw-HTML captures or game-text extraction. Editorial translations are labelled "
+               "in details with 「部分选项为译意，按含义对应。」; existing Chinese walkthrough text is not relabelled "
+               "as official localization. Current Profile friend/romance selects the primary guidance; detail "
+               "sequences retain earlier-eligibility alternatives, without new player state or numeric mechanics. "
                "Remaining legacy scenes come through `guide_dialogue_reference_map.json`, whose provenance paths "
-               "are retired scratch locations. Neither evidence set verifies SC game screens, option ordinals or "
+               "are retired scratch locations. None of these guide evidence sets verifies SC game screens, option ordinals or "
                f"numeric affinity bindings. Of {len(legacy_fragments)} unchanged legacy fragments, "
                f"{len(rewritten)} differ from the derivative `cn_guides/data.json`: "
                + "; ".join(f"{link} R{rank} 「{frag}」" for link, rank, frag in rewritten) + ". The answers quoted "

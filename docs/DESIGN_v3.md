@@ -599,3 +599,28 @@ Owner directive (spec §8): plan for a player who wants to see as much of the ga
   this overlay. A mapped scene can still have an unverified branch or incomplete optimum
   evidence. The before-change audit remains historical; final runtime coverage is recorded
   separately after the implementation and must not be described as complete game coverage.
+
+## 23. 3.2.0: Complete rank-scene guidance and route variants
+
+- The owner authorized completing the remaining guidance, using the existing profile's
+  friendship/romance preference, and translating options when sourced Chinese was unavailable.
+  `rules/p3r/dialogue_guidance_completion.json` overlays 35 scenes while preserving the earlier
+  115-scene approval and its hashes. It stores Reload source URLs, short quotations, question
+  order, conditions and per-choice wording origins. Existing Chinese guides and editorial
+  translations remain distinct; neither is labelled an inspected official game-text dump.
+- All 171 manual R2–R10 scenes have source-bound guidance for both preferences. This means
+  actionable choices, verified equal-choice prompts or a scene-specific story instruction;
+  it does not mean all game dialogue was extracted or replayed. Hierophant R9, Tower R9 and
+  Star R3 retain arbitrary answers after checking every option's equal points. Devil R10
+  has a story-only instruction rather than invented dialogue choices.
+- Normal cards select the existing `Profile.Route`. Earlier recommendations preserve that
+  target's prerequisites. Details include alternative sequences for a different earlier
+  history; the builder never merges those alternatives into the card's primary choices.
+  Justice's friendship recommendation keeps the higher-yield R5 eligibility sequence and
+  declines at R9, preserving the planner's existing 50-point R5 witness. Other early-friend
+  branches were cross-checked for equal maximum displayed musical-note totals; their raw
+  game-script points were not independently extracted.
+- Full question sequences preserve repeated choices and arbitrary positions. Compact choices
+  use recognizable keywords; Priestess R2 marks the first and last prompts explicitly.
+  Details label editorial translations as meaning-based wording. This overlay changes no
+  affinity numbers, thresholds, availability, saved-progress schema or planning algorithm.

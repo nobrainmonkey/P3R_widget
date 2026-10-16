@@ -226,7 +226,7 @@ class BuildTest(unittest.TestCase):
             self.assertIn(f"| `{source['id']}` | {source['edition']} |", report)
         section = report.split("## 7. Not verified against SC game screens", 1)[1]
         for term in ("Dialogue options", "夏卡尔咖啡店", "「结缘网站的字条」", "世俗之庭 台伯勒",
-                     "163/171 manual R2-R10 scenes", "115 user-approved scenes (88 new, 27 repaired)",
+                     "171/171 manual R2-R10 scenes", "115 user-approved scenes (88 new, 27 repaired)",
                      "one guide lineage", "avoid-only friendship guidance is not an optimum answer"):
             self.assertIn(term, section)
         self.assertNotIn("editorial rewrites", section)

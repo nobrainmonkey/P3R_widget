@@ -385,11 +385,13 @@ public class PlanBreadthRealPackTest {
     /**
      * {@link Rules#version} of the pack the golden plan ids ({@link #GOLDEN_IDS}) were recorded on. They
      * were refreshed for 3.2.0 after validating all rescue waves, one-day margins, menu discovery
-     * prerequisites and all existing goal/coverage/cash invariants. MAX-style ids still omit style.
+     * prerequisites and all existing goal/coverage/cash invariants. The dialogue-only completion
+     * changes the pack identity and plan ids, while all three action fingerprints stay identical.
+     * MAX-style ids still omit style.
      */
-    private static final String GOLDEN_RULES_VERSION = "3.2.0|bf3afaa44f15";
+    private static final String GOLDEN_RULES_VERSION = "3.2.0|50f6e869ddd3";
     /** Plan ids of the three golden 「尽量多 MAX」 plans on {@link #GOLDEN_RULES_VERSION}. */
-    private static final String[] GOLDEN_IDS = {"2721b23c75192507", "a9b50c93dc12cbcc", "88505112ec5bb311"};
+    private static final String[] GOLDEN_IDS = {"b666459807a6ff0b", "b79b10cf63b74d40", "4563975dbdf48805"};
 
     /** FNV-1a 64 over "slot|action|side…" per step: the plan's actions, independent of the pack version. */
     static String fingerprint(Plan plan) {

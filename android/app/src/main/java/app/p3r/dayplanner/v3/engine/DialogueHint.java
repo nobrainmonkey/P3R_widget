@@ -16,9 +16,11 @@ import java.util.regex.Pattern;
  * Dialogue choices of a meeting or an unlock step as one structured {@link Answers}, and the two
  * ways to write them (docs/GLOSSARY_zh.md, docs/DESIGN_v3.md §18): the app's 「参考回答：A / B」
  * ({@link #appLine}; also the line in a meeting's 「怎么做」, see {@link Labels}) and the widget's
- * 「答：A / B」 ({@link #widgetLine}). A meeting's answers come from the rule pack's verbatim CN
- * guide fragments ({@code links[].dialogue}); an unlock step's from the 「…」 its how-to says to
- * pick. Foreign option ordinals are never shown (docs/DESIGN_v3.md §10.7).
+ * 「答：A / B」 ({@link #widgetLine}). A meeting uses reviewed route variants when present,
+ * otherwise the legacy Chinese guide fragments ({@code links[].dialogue}). Reviewed details
+ * identify meaning-based translations and alternative histories; compact choices keep the
+ * selected route's recognizable keywords. An unlock step uses the 「…」 its how-to says to pick.
+ * Foreign option ordinals are never shown (docs/DESIGN_v3.md §10.7).
  *
  * <p>Scene ({@link #forMeeting}): a rank-up shows the scene it ranks up into; a meeting that cannot
  * rank up (a story hold) or certainly will not shows nothing; one that may rank up after all shows

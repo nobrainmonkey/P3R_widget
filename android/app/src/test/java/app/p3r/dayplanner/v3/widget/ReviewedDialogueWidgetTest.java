@@ -158,12 +158,16 @@ public class ReviewedDialogueWidgetTest {
     }
 
     @Test
-    public void fuukaFriendRouteKeepsTheKnownConfessionAvoidance() throws Exception {
+    public void fuukaFriendRouteShowsTheCompleteFriendshipAnswers() throws Exception {
         PlanView view = scene("priestess", 9, Profile.Route.FRIEND);
-        assertEquals("答：别选「我喜欢风花」", plain(card(view).answers.get(0).text()));
+        String model = plain(card(view).answers.get(0).text());
+        inOrder(model, "当然", "好啊");
+        assertFalse(model, model.contains("我喜欢风花"));
         for (int[] size : SIZES) {
             String text = render(view, "fuuka-r9-friend", size);
-            assertEquals("答：别选「我喜欢风花」", text);
+            assertTrue(text, text.contains("当然"));
+            assertFalse(text, text.contains("我喜欢风花"));
+            if (size[0] == 320) inOrder(text, "当然", "好啊");
         }
     }
 
@@ -181,4 +185,31 @@ public class ReviewedDialogueWidgetTest {
             }
         }
     }
+
+    @Test
+    public void completedRoutesKeepRecognizableAnswersAtSmallSizes() throws Exception {
+        Object[][] cases = {
+                {"priestess", 2, Profile.Route.FRIEND, "没问题", "首问"},
+                {"strength", 8, Profile.Route.FRIEND, "时髦风格", null},
+                {"aeon", 9, Profile.Route.FRIEND, "是啊", "早就是挚友了"},
+                {"justice", 9, Profile.Route.FRIEND, "她会帮你的", "重要的学妹"},
+                {"justice", 9, Profile.Route.ROMANCE, "她会帮你的", "心意和你一样"},
+                {"empress", 8, Profile.Route.FRIEND, "欢迎你来倾诉", null}
+        };
+        for (Object[] item : cases) {
+            String id = (String) item[0];
+            PlanView view = scene(id, (Integer) item[1], (Profile.Route) item[2]);
+            String model = plain(card(view).answers.get(0).text());
+            assertTrue(model, model.contains((String) item[3]));
+            if (item[4] != null) assertTrue(model, model.contains((String) item[4]));
+            for (float scale : new float[]{1f, 1.15f}) {
+                RuntimeEnvironment.setFontScale(scale);
+                String text = render(view, id + "-r" + item[1] + "-" + item[2] + "-" + scale,
+                        new int[]{180, 130});
+                assertTrue(text, text.contains((String) item[3]));
+                assertFalse(text, text.contains("译意"));
+            }
+        }
+    }
+
 }

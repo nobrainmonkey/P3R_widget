@@ -278,6 +278,29 @@ public class AnswerRowRenderTest {
         return false;
     }
 
+
+    /** Regression: SDK 26 wrapped compact route notes to a lone final character on these cards. */
+    @Test
+    public void compactFriendshipNotesFromRealPlansStayWhole() throws Exception {
+        RuntimeEnvironment.setFontScale(1f);
+        List<Plan> plans = realPlans();
+        List<String> issues = new ArrayList<>();
+        for (int index = 0; index < plans.size(); index++) {
+            for (int slot : new int[]{494, 568, 594}) {
+                FakePlannerApi fake = on(plans.get(index), slot);
+                CardModel model = model(fake);
+                View root = render(fake, 180, 150);
+                String tag = "friend-note-plan" + index + "-" + slot;
+                RenderSupport.save(root, RenderSupport.outputDir("reviewed"), tag);
+                System.out.println(tag + " " + model.answers);
+                RenderSupport.collectTextIssues(root, tag, issues);
+                RenderSupport.collectCutText(root, tag, issues);
+                RenderSupport.collectAnswerSplits(root.findViewById(R.id.widget_dialogue_choices), tag, issues);
+            }
+        }
+        assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
     /** Cards that showed a 课堂/考试 answer beside their title, for the report. */
     private static final List<String> besides = new ArrayList<>();
 
@@ -610,20 +633,23 @@ public class AnswerRowRenderTest {
         assertEquals("答：我们结婚吧", text(render(scene(meeting("hermit", 3, 4, false)), 320, 200), R.id.widget_dialogue_choices));
     }
 
-    /** Spec test 4 and 5: 朋友 and 恋人 routes; no data → no row; every choice free → 怎么回答都可以. */
+    /** Actual friendship answers replace old avoidance-only rows and the last unmapped scenes. */
     @Test
     public void routesNoDataAndFreeChoices() {
         Assume.assumeTrue("rule pack not available", pack != null);
-        assertEquals("答：别选「我喜欢风花」", text(render(scene(meeting("priestess", 8, 9, false)), 320, 200), R.id.widget_dialogue_choices));
-        assertEquals("答：男孩或女孩", text(render(scene(meeting("strength", 7, 8, false)), 320, 200), R.id.widget_dialogue_choices));
-        assertEquals("答：别选表白的回答", text(render(scene(meeting("aeon", 8, 9, false)), 320, 200), R.id.widget_dialogue_choices));
+        String fuuka = text(render(scene(meeting("priestess", 8, 9, false)), 320, 200), R.id.widget_dialogue_choices);
+        assertTrue(fuuka, fuuka.contains("当然 / 好啊"));
+        assertFalse(fuuka, fuuka.contains("我喜欢风花"));
+        assertEquals("答：时髦风格", text(render(scene(meeting("strength", 7, 8, false)), 320, 200), R.id.widget_dialogue_choices));
+        assertEquals("答：是啊 / 早就是挚友了", text(render(scene(meeting("aeon", 8, 9, false)), 320, 200), R.id.widget_dialogue_choices));
         assertEquals("答：你很努力啊", text(render(scene(meeting("emperor", 3, 4, false)), 320, 200), R.id.widget_dialogue_choices));
-        assertEquals(View.GONE, render(scene(meeting("priestess", 1, 2, false)), 320, 200).findViewById(R.id.widget_dialogue_choices).getVisibility());
+        assertEquals("答：没问题（首问） / 没问题（末问）", text(render(scene(meeting("priestess", 1, 2, false)), 320, 200), R.id.widget_dialogue_choices));
         assertEquals("答：怎么回答都可以", text(render(scene(meeting("moon", 9, 10, false)), 320, 200), R.id.widget_dialogue_choices));
         // The full app line is read out.
         CardModel justice = model(scene(meeting("justice", 4, 5, false)));
         assertTrue(justice.taskDescription, justice.taskDescription.contains(
-                "参考回答：随便问吧（1） / 随时欢迎千寻找我倾诉（1） / 握住她的手（1）；" + DialogueHint.FRIEND_CAUTION));
+                "参考回答：随便问吧 / 产生恋爱感情了 / 随时欢迎千寻找我倾诉 / 握住她的手"));
+        assertTrue(justice.taskDescription, justice.taskDescription.contains("亲上去"));
     }
 
     /** Spec test 6: the moon's unlock card shows its three answers; a justice talk done 顺便 shows its pick. */

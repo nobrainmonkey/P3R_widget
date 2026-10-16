@@ -168,23 +168,29 @@ public class ReviewedDialogueHintTest {
     }
 
     @Test
-    public void approvedPackRestoresQuestionsAndKeepsHeldAndUnknownBranchesOut() throws Exception {
+    public void completedPackRestoresThePreviouslyHeldScenesAndBothRoutes() throws Exception {
         Rules r = pack();
         Rules.Link priestess = r.link("priestess");
         DialogueHint.Answers three = DialogueHint.forScene(r, null, priestess.idx, 3, false);
         assertTrue(three.reviewed);
         assertEquals(List.of("就啪的一撒", "不用心急"), three.choices);
         assertEquals(List.of("就啪的一撒", "不用心急", "任意"), three.sequence);
-        for (String[] held : new String[][]{{"hierophant", "9"}, {"star", "3"}, {"fortune", "5"}, {"tower", "9"},
+        for (String[] completed : new String[][]{{"hierophant", "9"}, {"star", "3"}, {"fortune", "5"}, {"tower", "9"},
                 {"empress", "6"}, {"hierophant", "7"}, {"justice", "9"}, {"strength", "7"}}) {
-            assertFalse(Arrays.toString(held), r.link(held[0]).dialogueHints.containsKey(Integer.parseInt(held[1])));
+            Rules.Link link = r.link(completed[0]);
+            int rank = Integer.parseInt(completed[1]);
+            assertTrue(Arrays.toString(completed), link.dialogueHints.containsKey(rank));
+            DialogueHint.Answers a = DialogueHint.forScene(r, new Profile(), link.idx, rank, false);
+            assertTrue(Arrays.toString(completed), a.reviewed);
+            assertFalse(Arrays.toString(completed), a.isEmpty());
+            assertNotNull(Arrays.toString(completed), DialogueHint.widgetLine(a));
         }
-        for (String[] unknown : new String[][]{{"empress", "8"}, {"aeon", "9"}}) {
-            Rules.Link link = r.link(unknown[0]);
-            DialogueHint.Answers a = DialogueHint.forScene(r, new Profile(), link.idx, Integer.parseInt(unknown[1]), false);
+        for (String[] completed : new String[][]{{"empress", "8"}, {"aeon", "9"}}) {
+            Rules.Link link = r.link(completed[0]);
+            DialogueHint.Answers a = DialogueHint.forScene(r, new Profile(), link.idx, Integer.parseInt(completed[1]), false);
             assertTrue(a.reviewed);
-            assertTrue(a.choices.isEmpty());
-            assertTrue(a.sequence.isEmpty());
+            assertFalse(a.choices.isEmpty());
+            assertFalse(a.sequence.isEmpty());
         }
     }
 
@@ -202,7 +208,7 @@ public class ReviewedDialogueHintTest {
         effect.rankTo = 5;
         Rules.Link lovers = r.link("lovers");
         String detail = labels.meetHow(start.slot, lovers.idx, effect);
-        assertTrue(detail, detail.contains("任意 / 任意 / 任意 / 任意 / 抱歉"));
+        assertTrue(detail, detail.contains("任意 / 任意 / 任意 / 我是她朋友 / 抱歉"));
         DialogueHint.Answers a = DialogueHint.forScene(r, p, lovers.idx, 5, false);
         assertTrue(DialogueHint.widgetLine(a), DialogueHint.widgetLine(a).contains("最后一问"));
         assertFalse(DialogueHint.widgetLine(a), DialogueHint.widgetLine(a).contains("任意"));

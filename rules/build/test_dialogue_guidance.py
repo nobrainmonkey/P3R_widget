@@ -1,4 +1,4 @@
-"""Approved source recovery must preserve questions and keep relationship routes separate."""
+"""Historic approvals and later completion preserve questions, routes and wording provenance."""
 
 from __future__ import annotations
 
@@ -18,11 +18,13 @@ class ApprovedDialogueTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.approved = builder.load_approved_dialogue()
+        cls.base_hints = builder.approved_dialogue_hints(cls.approved)
+        cls.base_dialogue = builder.dialogue_map(cls.approved, {"scenes": []})
         cls.pack, cls.ledger = builder.build_pack()
         cls.links = {link["id"]: link for link in cls.pack["links"]}
 
     def hint(self, link: str, rank: int) -> dict:
-        return self.links[link]["dialogueHints"][str(rank)]
+        return self.base_hints[link][str(rank)]
 
     def test_approval_scope_is_115_scenes_88_new_and_27_repaired(self) -> None:
         scenes = self.approved["scenes"]
@@ -30,12 +32,14 @@ class ApprovedDialogueTest(unittest.TestCase):
         self.assertEqual(sum(scene["new"] for scene in scenes), 88)
         self.assertEqual(sum(not scene["new"] for scene in scenes), 27)
         expected = {(scene["link"], str(scene["rank"])) for scene in scenes}
-        actual = {(link["id"], rank) for link in self.pack["links"] for rank in link.get("dialogueHints", {})}
+        actual = {(link, rank) for link, ranks in self.base_hints.items() for rank in ranks}
         self.assertEqual(actual, expected)
+        final = {(link["id"], rank) for link in self.pack["links"] for rank in link.get("dialogueHints", {})}
+        self.assertTrue(expected <= final)
 
     def test_bound_reference_coverage_163_of_171_is_not_a_branch_completeness_claim(self) -> None:
         absent = {(link["id"], rank) for link in self.pack["links"] if link["kind"] == "manual"
-                  for rank in range(2, 11) if str(rank) not in link["dialogue"]}
+                  for rank in range(2, 11) if str(rank) not in self.base_dialogue.get(link["id"], {})}
         self.assertEqual(absent, {("priestess", 2), ("empress", 6), ("hierophant", 9), ("fortune", 5),
                                   ("devil", 10), ("tower", 9), ("star", 3), ("sun", 3)})
         self.assertEqual(19 * 9 - len(absent), 163)
@@ -43,23 +47,23 @@ class ApprovedDialogueTest(unittest.TestCase):
     def test_held_candidates_and_pending_legacy_scenes_receive_no_new_typed_claim(self) -> None:
         for scene in self.approved["heldCandidates"]:
             with self.subTest(scene=scene):
-                link = self.links[scene["link"]]
-                self.assertNotIn(str(scene["rank"]), link.get("dialogueHints", {}))
+                link = scene["link"]
+                self.assertNotIn(str(scene["rank"]), self.base_hints.get(link, {}))
                 if scene["new"]:
-                    self.assertNotIn(str(scene["rank"]), link["dialogue"])
+                    self.assertNotIn(str(scene["rank"]), self.base_dialogue.get(link, {}))
         for link, rank in (("priestess", 2), ("priestess", 8), ("sun", 3), ("devil", 10)):
-            self.assertNotIn(str(rank), self.links[link].get("dialogueHints", {}))
+            self.assertNotIn(str(rank), self.base_hints.get(link, {}))
 
     def test_repeated_answers_are_distinct_prompts_not_duplicate_labels(self) -> None:
         ref = {"referenceId": "r1", "entityId": "p3r.social_link.justice", "targetRank": 3,
                "dialogueChoices": ["同一个回答", "同一个回答", "任意", "任意"]}
         next_ref = {**ref, "referenceId": "r2", "dialogueChoices": ["同一个回答"]}
         with mock.patch.object(builder, "read_evidence", return_value={"references": [ref, copy.deepcopy(ref), next_ref]}):
-            result = builder.dialogue_map({"scenes": []})
+            result = builder.dialogue_map({"scenes": []}, {"scenes": []})
         self.assertEqual(result["justice"]["3"], ["同一个回答", "同一个回答", "任意", "任意", "同一个回答"])
-        self.assertEqual(self.links["hierophant"]["dialogue"]["2"], ["我叫XXX", "谢谢", "任意", "任意", "任意"])
+        self.assertEqual(self.base_dialogue["hierophant"]["2"], ["我叫XXX", "谢谢", "任意", "任意", "任意"])
         self.assertEqual(self.hint("justice", 7)["common"]["sequence"], ["感觉有什么误会", "得想想办法才行"])
-        self.assertEqual(self.links["lovers"]["dialogue"]["5"], ["任意"] * 4 + ["抱歉"])
+        self.assertEqual(self.base_dialogue["lovers"]["5"], ["任意"] * 4 + ["抱歉"])
 
     def test_conflicting_duplicate_reference_id_fails(self) -> None:
         ref = {"referenceId": "same", "entityId": "p3r.social_link.justice", "targetRank": 3,
@@ -67,7 +71,7 @@ class ApprovedDialogueTest(unittest.TestCase):
         changed = {**ref, "dialogueChoices": ["不同回答"]}
         with mock.patch.object(builder, "read_evidence", return_value={"references": [ref, changed]}):
             with self.assertRaisesRegex(builder.BuildError, "conflicting duplicate"):
-                builder.dialogue_map({"scenes": []})
+                builder.dialogue_map({"scenes": []}, {"scenes": []})
 
     def test_priestess_early_dialogue_recovers_original_concrete_words(self) -> None:
         self.assertEqual(self.hint("priestess", 3)["common"]["choices"], ["就啪的一撒", "不用心急"])
@@ -114,8 +118,8 @@ class ApprovedDialogueTest(unittest.TestCase):
         self.assertEqual(self.hint("lovers", 5)["common"]["shortChoices"], ["抱歉（最后一问）"])
         self.assertEqual(self.hint("chariot", 8)["common"]["choices"], ["……"])
         self.assertEqual(self.hint("chariot", 8)["common"]["shortChoices"], ["选「……」（保持沉默）"])
-        all_any = {(link["id"], int(rank)) for link in self.pack["links"]
-                   for rank, hint in link.get("dialogueHints", {}).items()
+        all_any = {(link, int(rank)) for link, ranks in self.base_hints.items()
+                   for rank, hint in ranks.items()
                    if hint.get("common", {}).get("any")}
         self.assertEqual(all_any, {("lovers", 3), ("fortune", 2), ("hanged_man", 7), ("moon", 9)})
 
@@ -134,8 +138,8 @@ class ApprovedDialogueTest(unittest.TestCase):
     def test_each_hint_has_pinned_single_source_provenance(self) -> None:
         sources = {source["id"]: source for source in self.pack["sources"]}
         self.assertEqual(sources["ev_dialogue_approved"]["path"], "rules/p3r/dialogue_guidance_approved.json")
-        for link in self.pack["links"]:
-            for hint in link.get("dialogueHints", {}).values():
+        for ranks in self.base_hints.values():
+            for hint in ranks.values():
                 self.assertEqual(hint["conf"], "single")
                 self.assertIn("ev_dialogue_approved", hint["src"])
                 self.assertTrue(any(ident.startswith(("cn_3dm_p", "cn_gamersky_p")) for ident in hint["src"]))
@@ -152,10 +156,189 @@ class ApprovedDialogueTest(unittest.TestCase):
 
     def test_report_distinguishes_approved_original_guide_from_derivative_omissions(self) -> None:
         report = "\n".join(builder.render_unverified(self.pack))
-        self.assertIn("163/171", report)
+        self.assertIn("171/171", report)
         self.assertIn("115 user-approved scenes (88 new, 27 repaired)", report)
         self.assertIn("one guide lineage", report)
         self.assertNotIn("editorial rewrites", report)
+
+class CompletedDialogueTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.completion = builder.load_dialogue_completion()
+        cls.hints = builder.completed_dialogue_hints(cls.completion)
+        cls.pack, cls.ledger = builder.build_pack()
+        cls.links = {link['id']: link for link in cls.pack['links']}
+        cls.scenes = {(scene['link'], scene['rank']): scene for scene in cls.completion['scenes']}
+
+    def variant(self, link: str, rank: int, route: str) -> dict:
+        return self.hints[link][str(rank)][route]
+
+    def test_completion_overlays_exact_durable_evidence_keys(self) -> None:
+        approved = builder.load_approved_dialogue()
+        original = {(scene['link'], str(scene['rank'])) for scene in approved['scenes']}
+        completed = {(scene['link'], str(scene['rank'])) for scene in self.completion['scenes']}
+        actual = {(link['id'], rank) for link in self.pack['links'] for rank in link.get('dialogueHints', {})}
+        self.assertEqual(actual, original | completed)
+        for link, ranks in self.hints.items():
+            for rank, expected in ranks.items():
+                self.assertEqual(self.links[link]['dialogueHints'][rank], expected)
+        self.assertTrue(all(str(rank) in link['dialogue'] for link in self.pack['links']
+                            if link['kind'] == 'manual' for rank in range(2, 11)))
+
+    def test_all_historically_held_scenes_have_new_evidence_not_silent_approval(self) -> None:
+        approved = builder.load_approved_dialogue()
+        historical = {(scene['link'], scene['rank']) for scene in approved['scenes']}
+        for scene in approved['heldCandidates']:
+            key = scene['link'], scene['rank']
+            self.assertNotIn(key, historical)
+            self.assertIn(key, self.scenes)
+            self.assertIn('ev_dialogue_completion', self.hints[key[0]][str(key[1])]['src'])
+
+    def test_each_source_is_a_persistent_rendered_excerpt_not_claimed_raw_html(self) -> None:
+        self.assertFalse(self.completion['capturePolicy']['rawHtmlCaptured'])
+        self.assertFalse(self.completion['capturePolicy']['gameTextExtraction'])
+        sources = {source['id']: source for source in self.pack['sources']}
+        for source in self.completion['sources']:
+            emitted = sources[source['id']]
+            self.assertEqual(source['captureKind'], 'web_tool_rendered_excerpt')
+            self.assertTrue(source['excerpts'])
+            self.assertEqual(emitted['path'], 'rules/p3r/dialogue_guidance_completion.json')
+            self.assertEqual(emitted['sha256'], builder.sha256_file(builder.EVIDENCE_DIR / 'dialogue_guidance_completion.json'))
+            self.assertEqual(emitted['url'], source['url'])
+        for ranks in self.hints.values():
+            for hint in ranks.values():
+                self.assertEqual(hint['conf'], 'single')
+                self.assertIn('ev_dialogue_completion', hint['src'])
+                self.assertTrue(set(hint['src']) <= sources.keys())
+
+    def test_source_guard_drift_is_rejected(self) -> None:
+        evidence = copy.deepcopy(self.completion)
+        evidence['localSourceGuards'][0]['sha256'] = '0' * 64
+        with mock.patch.object(builder, 'read_evidence', return_value=evidence):
+            with self.assertRaisesRegex(builder.BuildError, 'guarded source changed'):
+                builder.load_dialogue_completion()
+
+    def test_guide_or_translation_cannot_claim_unseen_official_localization(self) -> None:
+        evidence = copy.deepcopy(self.completion)
+        variant = next(v for scene in evidence['scenes'] for v in scene['variants'].values() if v['choices'])
+        variant['choiceOrigins'][0]['origin'] = 'official_zh_cn_seen'
+        variant['choiceOrigins'][0].pop('officialObservation', None)
+        with mock.patch.object(builder, 'read_evidence', return_value=evidence):
+            with self.assertRaisesRegex(builder.BuildError, 'official wording requires an inspected'):
+                builder.load_dialogue_completion()
+
+    def test_translations_are_marked_in_details_and_never_lose_question_order(self) -> None:
+        for scene in self.completion['scenes']:
+            for route, raw in scene['variants'].items():
+                with self.subTest(link=scene['link'], rank=scene['rank'], route=route):
+                    emitted = self.variant(scene['link'], scene['rank'], route)
+                    self.assertEqual(emitted['choices'], [builder.fix_names(text) for text in raw['choices']])
+                    if builder._contains_translation(raw):
+                        self.assertIn(builder.TRANSLATION_NOTE_ZH, emitted['noteZh'])
+                        self.assertEqual(emitted.get('shortNoteZh'), raw.get('shortNoteZh', ''))
+                    self.assertTrue(set(emitted) <= builder.COMPLETION_VARIANT_FIELDS)
+                    for alternative in raw.get('alternatives', []):
+                        heading = builder.completion_display_text(f"【{alternative['whenZh']}】")
+                        self.assertIn(heading, emitted['sequence'])
+                        start = emitted['sequence'].index(heading) + 1
+                        self.assertEqual(emitted['sequence'][start:start + len(alternative['sequence'])],
+                                         builder.completion_display_text(alternative['sequence']))
+                    if 'shortChoices' in emitted:
+                        self.assertEqual(len(emitted['shortChoices']), len(emitted['choices']))
+
+    def test_arbitrary_answers_rely_on_complete_option_comparison(self) -> None:
+        for key, prompts in ((('hierophant', 9), 2), (('tower', 9), 3), (('star', 3), 2)):
+            scene = self.scenes[key]
+            variant = self.variant(*key, 'common')
+            self.assertTrue(scene['allOptionsEqualBest'])
+            self.assertTrue(variant['any'])
+            self.assertEqual(variant['choices'], [])
+            self.assertEqual(variant['sequence'], ['任意'] * prompts)
+            all_option_sources = [source for source in scene['evidence'] if source.get('allOptionEvidence')]
+            self.assertGreaterEqual(len(all_option_sources), 2)
+        self.assertEqual(self.variant('fortune', 5, 'common')['choices'], ['赶紧向你父亲报告'])
+
+    def test_terminal_scenes_keep_both_routes_and_no_menu_is_invented(self) -> None:
+        for link in ('priestess', 'empress', 'lovers', 'justice', 'strength', 'aeon'):
+            hint = self.hints[link]['10']
+            self.assertEqual(set(hint) & {'common', 'friend', 'romance'}, {'friend', 'romance'})
+            for route in ('friend', 'romance'):
+                self.assertTrue(hint[route]['sequence'])
+        self.assertEqual(self.variant('lovers', 10, 'romance')['choices'], ['我正在想'])
+        self.assertEqual(self.variant('empress', 10, 'romance')['choices'], ['我会试试看的'])
+        self.assertEqual(self.variant('aeon', 10, 'friend')['sequence'], ['任意'] * 4)
+        self.assertEqual(self.variant('aeon', 10, 'romance')['sequence'], ['任意'] * 2)
+        devil = self.variant('devil', 10, 'common')
+        self.assertFalse(devil.get('any', False))
+        self.assertEqual(devil['choices'], [])
+        self.assertEqual(devil['shortNoteZh'], '观看剧情即可')
+
+    def test_aeon_four_names_the_condition_instead_of_an_unverified_ordinal(self) -> None:
+        variant = self.variant('aeon', 4, 'common')
+        self.assertEqual(variant['choices'], ['好'])
+        self.assertEqual(variant['shortChoices'], ['好'])
+        self.assertEqual(variant['sequence'], ['任意（是否见过白色花猫）',
+                                               '任意（若答「好像见过」，再问猫在哪里）', '好', '任意'])
+        self.assertIn('没见过', variant['noteZh'])
+        self.assertIn('跳过追问', variant['noteZh'])
+        self.assertIn(builder.TRANSLATION_NOTE_ZH, variant['noteZh'])
+        displayed = ' / '.join(variant['sequence']) + variant['noteZh']
+        self.assertNotIn('第1项', displayed)
+        self.assertNotIn('待核对', displayed)
+        self.assertEqual(variant['shortNoteZh'], '')
+
+    def test_justice_friend_preserves_gain_path_then_rejects_at_rank_nine(self) -> None:
+        rank5 = self.variant('justice', 5, 'friend')
+        self.assertEqual(rank5['choices'], self.variant('justice', 5, 'romance')['choices'])
+        self.assertIn('握住她的手', rank5['choices'])
+        rank9 = self.variant('justice', 9, 'friend')
+        self.assertIn('千寻是我重要的学妹', rank9['choices'])
+        self.assertNotIn('我的心意和千寻一样', rank9['choices'])
+        self.assertTrue(self.scenes['justice', 5]['variants']['friend']['alternatives'])
+        self.assertTrue(self.scenes['justice', 9]['variants']['friend']['alternatives'])
+
+    def test_friend_primary_never_includes_romance_acceptance(self) -> None:
+        for link, rank, confession in (('priestess', 9, '我喜欢风花'), ('empress', 9, '我也喜欢美鹤'),
+                                      ('lovers', 9, '我喜欢你'), ('strength', 9, '因为我喜欢你'),
+                                      ('justice', 9, '我的心意和千寻一样'), ('aeon', 8, '是恋情'),
+                                      ('aeon', 9, '我也喜欢你')):
+            with self.subTest(link=link, rank=rank):
+                hint = self.hints[link][str(rank)]
+                self.assertNotIn('common', hint)
+                self.assertNotIn(confession, hint['friend']['choices'])
+                self.assertIn(confession, hint['romance']['choices'])
+        self.assertNotIn('common', self.hints['strength']['8'])
+        self.assertEqual(self.variant('strength', 8, 'romance')['choices'], ['男孩或女孩'])
+        # Compact notes must not wrap a final lone word on Android 26 answer cards.
+        self.assertEqual(self.variant('priestess', 7, 'friend')['shortNoteZh'], '')
+        self.assertEqual(self.variant('lovers', 9, 'friend')['shortNoteZh'], '先保持沉默')
+
+    def test_completion_changes_no_numeric_or_calendar_mechanics(self) -> None:
+        empty = {'sources': [], 'scenes': []}
+        old_value_sources = tuple(row for row in builder.VALUE_SOURCES if 'authorized completion' not in row[0])
+        with mock.patch.object(builder, 'load_dialogue_completion', return_value=empty), \
+                mock.patch.object(builder, 'VALUE_SOURCES', old_value_sources):
+            original, _ledger = builder.build_pack()
+        current = copy.deepcopy(self.pack)
+        for pack in (original, current):
+            pack.pop('sources')
+            for link in pack['links']:
+                for field in ('dialogue', 'dialogueHints', 'src'):
+                    link.pop(field, None)
+        self.assertEqual(current, original)
+
+    def test_flattening_preserves_alternative_without_putting_it_in_primary_choices(self) -> None:
+        raw = {'choices': ['主回答'], 'sequence': ['任意', '主回答'],
+               'choiceOrigins': [], 'alternatives': [
+                   {'whenZh': '此前另一路线', 'choices': ['另一回答'], 'sequence': ['另一回答', '任意'],
+                    'choiceOrigins': [{'origin': 'editorial_translation'}]}]}
+        result = builder.compile_completion_variant(raw, 'friend')
+        self.assertEqual(result['choices'], ['主回答'])
+        self.assertNotIn('另一回答', result['choices'])
+        self.assertEqual(result['sequence'], ['【按友情目标的推荐流程】', '任意', '主回答',
+                                              '【此前另一路线】', '另一回答', '任意'])
+        self.assertIn(builder.TRANSLATION_NOTE_ZH, result['noteZh'])
+        self.assertNotIn('alternatives', result)
 
 
 if __name__ == "__main__":

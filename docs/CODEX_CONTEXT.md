@@ -1,7 +1,7 @@
 # P3R planner repository context
 
-Reference for continuing the owner's existing project with Claude. Updated on 2026-10-15
-(America/New_York), for the 3.2.0 changes on branch `work` (cleanup baseline `75500ad`).
+Reference for continuing the owner's existing project with Claude. Updated on 2026-10-16
+(UTC), for the 3.2.0 changes and dialogue completion on branch `work`.
 This is an orientation snapshot; check newer code and owner decisions before implementing changes.
 
 ## Product and current baseline
@@ -189,13 +189,13 @@ installation → app and widget. Results return through the service into the eve
 
 The shipped [rule asset](../android/app/src/main/assets/p3r/p3r_rules.json) is generated
 from `rules/sources/` snapshots, their `SOURCES.json` manifest, and `rules/p3r/` evidence.
-At this revision it is 267,159 bytes, schema `p3r.rules.v3`, pack version `3.2.0`, runtime
-identity **`3.2.0|bf3afaa44f15`**. App and pack version numbers are separate.
+At this revision it is 317,972 bytes, schema `p3r.rules.v3`, pack version `3.2.0`, runtime
+identity **`3.2.0|50f6e869ddd3`**. App and pack version numbers are separate.
 `RulesLoader` appends the first 12 SHA-256 hex digits of the actual JSON text.
 
 Coverage: 22 Social Links (three story links), 22 activities, 10 Tartarus blocks,
 five Link Episode tracks, two link-specific rescues, 120 static reminder items and
-13 missing-person reminder groups. The pack lists 77 source records.
+13 missing-person reminder groups. The pack lists 128 source records.
 
 Change builder inputs/logic and regenerate both the asset and `rules/build/REPORT.md`;
 the report is not a hand-edited document. Keep Reload-specific provenance and confidence
@@ -270,7 +270,7 @@ tests and ledger regressions for checkpoint/restart/rewind of the actual last to
 See the 3.2.0 release notes and current plan metrics for final validation results.
 
 
-3.2.0 verification: all 57 Python tests passed. Android validation ran the full 946-case suite,
+Initial 3.2.0 verification (before the final dialogue completion): all 57 Python tests passed. Android validation ran the full 946-case suite,
 which passed its 717 non-widget cases and identified four widget failures. After updating stale
 coverage assertions and fixing the tiny-card layout boundary, all 233 widget cases passed,
 including four new boundary tests. Thus the latest results cover 950 tests with zero remaining
@@ -299,21 +299,62 @@ and best-gain assumptions unsupported by actionable hints. Production dialogue d
 renderer remain unchanged by this audit. Its 342 route/scene combinations were run against
 compiled production code; the prior 927-test build does not establish factual completeness.
 
-## Approved dialogue expansion (2026-10-16)
+## Initial approved dialogue expansion (2026-10-16; historical)
 
 The owner approved [this immutable short-wording preview](analysis/DIALOGUE_ADDITION_PREVIEW.md).
 The persistent input is `rules/p3r/dialogue_guidance_approved.json`: 115 reviewed scenes,
 88 additions and 27 repairs, with pinned original-source hashes and eight excluded candidates.
-The generated pack now binds 163/171 manual R2–R10 scenes and supplies 115 typed
+That stage bound 163/171 manual R2–R10 scenes and supplied 115 typed
 `dialogueHints` entries. Common/friend/romance variants are authoritative; missing variants
 retain uncertainty instead of reparsing another route's raw fragments. Full details preserve
 arbitrary prompts, repeated answers and conditions; compact choices follow the approved preview.
 Explicit empty `shortNoteZh` keeps a detail-only condition off the widget. Affinity mechanics,
 thresholds and meeting calendars are unchanged by this dialogue expansion.
 
-This is not complete best-answer coverage. No usable binding remains for Priestess R2,
+That stage was not complete best-answer coverage. No usable binding was available for Priestess R2,
 Empress R6, Hierophant R9, Fortune R5, Devil R10, Tower R9, Star R3 and Sun R3. Existing
-Priestess R8, Hierophant R7, Justice R9 and Strength R7 still need source/wording resolution;
-several friendship branches remain unverified. Coverage counts are about scene bindings,
+Priestess R8, Hierophant R7, Justice R9 and Strength R7 needed source/wording resolution;
+several friendship branches were unverified. Coverage counts are about scene bindings,
 not every branch or optimal response. See the [after-change coverage record](analysis/DIALOGUE_COVERAGE_AFTER_2026-10-16.md) for
 actual runtime classifications, rather than applying the historical audit counts to this pack.
+
+
+## Completed dialogue guidance (2026-10-16; current)
+
+The owner authorized completing the remaining choices, using existing friendship/romance
+preferences and translating when no sourced Chinese was found, then committing and pushing.
+`rules/p3r/dialogue_guidance_completion.json` records 35 scene repairs, 50 rendered source
+URLs, 61 route variants and 15 alternative-history sequences. The original 115-scene
+approval remains byte-for-byte unchanged. Chinese-guide quotations and editorial translations
+have per-choice provenance; the latter are disclosed in details, without lengthening widgets.
+No source is relabelled an inspected official game-text dump.
+
+The shipped asset binds all 171 manual R2–R10 scenes, with 135 typed scene entries.
+Runtime checks enumerate both profile routes: 156 specific-answer scenes, 14 free-choice
+scenes and one story-only instruction per route; generic fallback is zero. All 342 combinations
+also pass rank-up, possible-rank-up, certain-no-rank-up and hold checks. Independent review
+covers the 109 positive-gain R3–R9 scenes and all new primary/alternative sequences.
+See [the final coverage record](analysis/DIALOGUE_COVERAGE_COMPLETED_2026-10-16.md).
+
+Justice's normal friendship guidance keeps the model's four-answer, 50-point R5 witness and
+refuses at R9; earlier locked friendship remains a detail alternative. Other early-friend
+paths were checked for equal maximum displayed notes; raw script values were not independently
+extracted. All non-dialogue/source fields of the final pack equal the prior pack, and three MAX
+action fingerprints are unchanged. Profile choices guide the intended path; imported history
+can differ, so details retain explicit conditions. This is source-guidance coverage, not a
+complete official localization extraction or an in-game replay of every scene.
+
+
+Final completion validation: 70 Python tests passed. The complete 959-case Android run
+passed all 725 non-widget cases and found one SDK 26 matrix failure (three singleton note
+wraps). Two compact annotations were shortened without changing full answers or question
+sequences. All 236 widget cases then passed, including two SDK variants of the targeted
+real-plan regression; dialogue tests and the three updated-identity MAX checks also passed.
+The latest-result union is 961 tests, with zero failures, errors or skips, recorded in
+`qa_out/dialogue_completion/final_validation.json`. Release lint passed with zero errors
+and 176 warnings; debug assembly, APK signature/alignment and exact embedded-asset checks
+passed. The final APK is 1,180,956 bytes, SHA-256
+`948499d0e334f96600a57934590cbd71f121bed11792bfa8883906285046db43`.
+The full 32 benchmark rows matched the committed metrics except for elapsed machine time;
+focused golden reruns may replace the generated metrics file with a partial table, so the
+committed complete table remains unchanged. No live-device/gameplay verification is claimed.
