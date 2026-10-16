@@ -10,7 +10,8 @@ export P3R_QA_DIR="$ROOT/qa_out"
 cd "$ROOT/android"
 
 if [[ ! -f "$ROOT/.signing/keystore.properties" ]]; then
-  echo "warning: .signing/keystore.properties missing — the release APK will be signed with the debug key" >&2
+  echo "error: .signing/keystore.properties is required for a release; restore the private signing backup first" >&2
+  exit 1
 fi
 
 ./gradlew --no-daemon :app:testDebugUnitTest :app:lintRelease :app:assembleRelease

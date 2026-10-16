@@ -1,0 +1,271 @@
+name: Signed Android release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish (for example, v3.2.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      EXPECTED_CERT_SHA256: 7123294095e29e1458eb01a3f3331a025e7dd1a5d7877b25c56fe0d8291beb2f
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check release request and required signing secrets
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          from pathlib import Path
+
+          required = ('ANDROID_KEYSTORE_BASE64', 'ANDROID_KEYSTORE_PASSWORD',
+                      'ANDROID_KEY_ALIAS', 'ANDROID_KEY_PASSWORD')
+          missing = [key for key in required if not os.environ.get(key)]
+          if missing:
+              raise SystemExit('Missing release signing secrets: ' + ', '.join(missing)
+                               + '. A debug-signed release will not be published.')
+
+          tag = os.environ['RELEASE_TAG']
+          if not re.fullmatch(r'v\d+\.\d+\.\d+', tag):
+              raise SystemExit('A stable version tag such as v3.2.0 is required.')
+          gradle = Path('android/app/build.gradle').read_text()
+          version = re.search(r"(?m)^\s*versionName\s+'([^']+)'", gradle).group(1)
+          code = re.search(r'(?m)^\s*versionCode\s+(\d+)', gradle).group(1)
+          package = re.search(r"(?m)^\s*applicationId\s+'([^']+)'", gradle).group(1)
+          if tag != 'v' + version or package != 'app.p3r.planner':
+              raise SystemExit('Tag, Gradle version or release application ID does not match.')
+          tagged_commit = subprocess.check_output(
+              ['git', 'rev-parse', '--verify', f'refs/tags/{tag}^{{commit}}'], text=True).strip()
+          head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          if tagged_commit != head:
+              raise SystemExit('The checkout is not the requested tag commit.')
+          notes = Path(f'docs/RELEASE_NOTES_{version}.md')
+          if not notes.is_file() or not notes.read_text().strip():
+              raise SystemExit('Versioned user-facing release notes are required.')
+
+          url = (os.environ['GITHUB_API_URL'] + '/repos/' + os.environ['GITHUB_REPOSITORY']
+                 + '/releases/tags/' + urllib.parse.quote(tag, safe=''))
+          request = urllib.request.Request(url, headers={
+              'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+          })
+          try:
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  json.load(response)
+          except urllib.error.HTTPError as error:
+              if error.code != 404:
+                  raise SystemExit(f'Release lookup failed (HTTP {error.code}); refusing to publish.')
+          else:
+              raise SystemExit('A release already exists for this tag; no assets will be replaced.')
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'version={version}\ncode={code}\nnotes={notes.as_posix()}\n')
+          PY
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Import the configured release signing identity
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import base64
+          import hashlib
+          import os
+          import subprocess
+          from pathlib import Path
+
+          directory = Path('.signing')
+          directory.mkdir(mode=0o700, exist_ok=True)
+          directory.chmod(0o700)
+          keystore = directory / 'release-keystore.jks'
+          try:
+              encoded = ''.join(os.environ['ANDROID_KEYSTORE_BASE64'].split())
+              decoded = base64.b64decode(encoded, validate=True)
+          except ValueError:
+              raise SystemExit('ANDROID_KEYSTORE_BASE64 is not a valid base64 keystore.')
+          if not decoded:
+              raise SystemExit('The release keystore is empty.')
+          keystore.write_bytes(decoded)
+          keystore.chmod(0o600)
+
+          exported = subprocess.run([
+              'keytool', '-exportcert', '-keystore', str(keystore),
+              '-alias', os.environ['ANDROID_KEY_ALIAS'],
+              '-storepass:env', 'ANDROID_KEYSTORE_PASSWORD',
+          ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+          if exported.returncode != 0:
+              raise SystemExit('Cannot read the release signing certificate; check the signing secrets.')
+          digest = hashlib.sha256(exported.stdout).hexdigest()
+          if digest != os.environ['EXPECTED_CERT_SHA256']:
+              raise SystemExit('Release certificate does not match the signing identity introduced in 3.2.0: ' + digest)
+
+          def property_value(value):
+              # Java Properties.load(InputStream) uses ISO-8859-1 and backslash escapes.
+              escaped = []
+              for char in value:
+                  if char in '\\ :=#!':
+                      escaped.append('\\' + char)
+                  elif char in '\t\n\r\f':
+                      escaped.append({'\t': r'\t', '\n': r'\n', '\r': r'\r', '\f': r'\f'}[char])
+                  elif not 0x20 <= ord(char) <= 0x7e:
+                      units = char.encode('utf-16-be')
+                      escaped.extend('\\u' + units[i:i + 2].hex() for i in range(0, len(units), 2))
+                  else:
+                      escaped.append(char)
+              return ''.join(escaped)
+
+          properties = directory / 'keystore.properties'
+          values = {
+              'storeFile': keystore.name,
+              'storePassword': os.environ['ANDROID_KEYSTORE_PASSWORD'],
+              'keyAlias': os.environ['ANDROID_KEY_ALIAS'],
+              'keyPassword': os.environ['ANDROID_KEY_PASSWORD'],
+          }
+          properties.write_text(''.join(key + '=' + property_value(value) + '\n'
+                                        for key, value in values.items()), encoding='ascii')
+          properties.chmod(0o600)
+          print('Release certificate verified; signing material is ready.')
+          PY
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install Android 35 build tools
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+
+      - name: Cache Robolectric SDK jars
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/p3r-toolchain/test-home/.m2/repository/org/robolectric
+          key: robolectric-4.14.1-i7-${{ hashFiles('scripts/fetch_robolectric_jars.sh') }}
+
+      - name: Fetch Robolectric SDK jars
+        env:
+          P3R_TOOLCHAIN: ${{ runner.temp }}/p3r-toolchain
+        run: scripts/fetch_robolectric_jars.sh "$P3R_TOOLCHAIN"
+
+      - name: Check generated rules and run Python tests
+        run: |
+          python3 rules/build/build_p3r_rules.py --check
+          python3 -m unittest discover -s rules/build -p 'test_*.py'
+
+      - name: Test, lint and assemble the signed release
+        working-directory: android
+        env:
+          P3R_TOOLCHAIN: ${{ runner.temp }}/p3r-toolchain
+          P3R_QA_DIR: ${{ runner.temp }}/qa_out
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintRelease :app:assembleRelease
+
+      - name: Verify and package the release APK
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          RELEASE_CODE: ${{ steps.release.outputs.code }}
+          RELEASE_NOTES: ${{ steps.release.outputs.notes }}
+        run: |
+          export PATH="$ANDROID_HOME/build-tools/35.0.0:$PATH"
+          zipalign -c -P 16 -v 4 android/app/build/outputs/apk/release/app-release.apk
+          python3 - <<'PY'
+          import hashlib
+          import os
+          import re
+          import shutil
+          import subprocess
+          import zipfile
+          from pathlib import Path
+
+          apk = Path('android/app/build/outputs/apk/release/app-release.apk')
+          signed = subprocess.check_output(
+              ['apksigner', 'verify', '--verbose', '--print-certs', str(apk)], text=True)
+          certificates = re.findall(r'^Signer #\d+ certificate SHA-256 digest: ([0-9a-f]+)$',
+                                    signed, re.MULTILINE)
+          if certificates != [os.environ['EXPECTED_CERT_SHA256']]:
+              raise SystemExit('The APK is not signed solely by the configured release identity.')
+          badging = subprocess.check_output(['aapt2', 'dump', 'badging', str(apk)], text=True)
+          package = re.search(r"^package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'",
+                              badging, re.MULTILINE)
+          expected = ('app.p3r.planner', os.environ['RELEASE_CODE'], os.environ['RELEASE_VERSION'])
+          if package is None or package.groups() != expected or 'application-debuggable' in badging:
+              raise SystemExit('APK package/version or non-debuggable release status does not match.')
+          with zipfile.ZipFile(apk) as archive:
+              embedded = archive.read('assets/p3r/p3r_rules.json')
+          if embedded != Path('android/app/src/main/assets/p3r/p3r_rules.json').read_bytes():
+              raise SystemExit('APK contains a different rules asset from the tested source.')
+
+          dist = Path('dist')
+          dist.mkdir(exist_ok=True)
+          output = dist / f'P3R-Planner-{os.environ["RELEASE_VERSION"]}.apk'
+          shutil.copyfile(apk, output)
+          digest = hashlib.sha256(output.read_bytes()).hexdigest()
+          output.with_suffix('.apk.sha256').write_text(digest + '  ' + output.name + '\n')
+          notes = Path(os.environ['RELEASE_NOTES']).read_text().split('## 本次验证与测试包', 1)[0].rstrip()
+          notes = notes.replace('(RELEASE_SIGNING.md)', '(https://github.com/' + os.environ['GITHUB_REPOSITORY'] + '/blob/main/docs/RELEASE_SIGNING.md)')
+          notes = notes.replace('(analysis/', '(https://github.com/' + os.environ['GITHUB_REPOSITORY'] + '/blob/main/docs/analysis/')
+          notes += ('\n\n## 正式安装包\n\n'
+                    + f'- 下载 `{output.name}` 后打开安装。\n'
+                    + '- 本版更换签名，旧签名的 3.1.2 及更早版本需先导出备份后重新安装；以后使用本次新签名的版本可直接覆盖更新。\n'
+                    + f'- 包名：`{expected[0]}`；版本：`{expected[2]}`（版本码 `{expected[1]}`）。\n'
+                    + f'- APK SHA-256：`{digest}`。\n'
+                    + f'- 签名证书 SHA-256：`{os.environ["EXPECTED_CERT_SHA256"]}`。\n')
+          (dist / 'release-notes.md').write_text(notes)
+          print(f'Verified release APK: {output.name}; SHA-256: {digest}')
+          PY
+
+      - name: Publish the verified APK and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            "dist/P3R-Planner-$RELEASE_VERSION.apk" \
+            "dist/P3R-Planner-$RELEASE_VERSION.apk.sha256" \
+            --verify-tag --draft \
+            --title "P3R 规划 $RELEASE_VERSION" \
+            --notes-file dist/release-notes.md
+          gh release edit "$RELEASE_TAG" --draft=false --latest
+
+      - name: Remove signing material
+        if: always()
+        run: |
+          rm -f -- .signing/keystore.properties .signing/release-keystore.jks
+          if [[ -d .signing ]]; then rmdir .signing; fi

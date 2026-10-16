@@ -214,8 +214,8 @@ report's known gaps before treating a model assumption as a mechanic.
 
 Dependencies belong inside the repository's `.toolchain/`; outputs go to `dist/` and
 `qa_out/`. Use [setup_toolchain.sh](../scripts/setup_toolchain.sh) to provision them when
-needed. Release signing material lives in ignored `.signing/`; without it, the release
-script falls back to a debug key. Never assume that build can update an installed release.
+needed. Release signing material lives in ignored `.signing/`; the release script requires it. Direct Gradle release assembly still has a development
+debug-key fallback, but publishing must verify the configured certificate. See RELEASE_SIGNING.md.
 
 From the repository root, with the local toolchain already provisioned:
 
@@ -358,3 +358,15 @@ passed. The final APK is 1,180,956 bytes, SHA-256
 The full 32 benchmark rows matched the committed metrics except for elapsed machine time;
 focused golden reruns may replace the generated metrics file with a partial table, so the
 committed complete table remains unchanged. No live-device/gameplay verification is claimed.
+
+
+3.2.0 publication uses a new formal RSA4096 signing identity after the owner confirmed that
+the old Mac and its key were unavailable and explicitly accepted an incompatible update.
+Certificate SHA-256: `7123294095e29e1458eb01a3f3331a025e7dd1a5d7877b25c56fe0d8291beb2f`.
+The formal APK is 905,984 bytes, SHA-256
+`9512cb85c6b78c30c8fb25067952172a27aebeed1242b632c92a7ebd6a9431d9`.
+Old-signature 3.x installs must export a backup before uninstalling; current backup format is
+compatible and preserves profile/checkpoints/events. The new private key and private backup
+remain ignored; never upload them with the APK. The signed-release workflow requires four
+ANDROID_* secrets and checks this new identity; configure those from the private backup for
+future tag-triggered builds. CI on main remains a test/debug build and does not itself publish.
