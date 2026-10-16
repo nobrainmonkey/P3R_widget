@@ -1276,11 +1276,31 @@ final class Heuristics {
             if (!eve && linkMeetable) money *= DAY_JOB_WITH_MEETING;
             h += money + 0.25;
         }
+        // Prefer discovering a menu over an otherwise identical regular meal. Its later +4 meals
+        // save time, but the small bonus does not assume that every future evening uses the menu.
+        if (m.unlockedActivities[act].length > 0 && st.used[act] == 0 && st.slot < t.lastSlot - 1) {
+            for (int unlockedAct : m.unlockedActivities[act]) {
+                Rules.Activity unlocked = rules.activities[unlockedAct];
+                for (int s = 0; s < Math.min(ns, unlocked.gain.length); s++) {
+                    int room = Math.max(0, t.statCap[s] - st.statPts[s] - a.gain[s]);
+                    int extra = Math.min(room, Math.max(0, unlocked.gain[s] - a.gain[s]));
+                    h += 0.25 * (0.2 + pv[s]) * extra;
+                }
+            }
+        }
         return h;
     }
 
     private double towerScore(SimState st, int block) {
         int day = st.slot >> 1;
+        int remaining = towerTarget[block] - st.towerVisits[block];
+        int open = Math.max(1, t.towerRemain[block][st.slot]);
+        double batchUrgency = m.batches == null ? 0 : m.batches.urgency(st, block);
+        if (batchUrgency >= MANDATORY) return batchUrgency;
+        boolean wait = m.batches != null && m.batches.waitForLaterArrivals(st, block);
+        // A trip before the rest of this rescue batch appears needlessly spends an evening.
+        // Keep explicit visit requirements when every remaining enterable evening is needed.
+        if (wait && remaining < open) return VETO;
         for (int i = 0; i < t.nRescues; i++) {
             long bit = 1L << i;
             if (rescueMatters[i] && day >= t.rescueFrom[i] && day <= t.rescueTo[i]
@@ -1291,11 +1311,11 @@ final class Heuristics {
                 return rescueDueSlot[i][block] <= st.slot ? MANDATORY : 200_000;
             }
         }
-        if (st.towerVisits[block] + 1 > m.towerCap[block] - pendingRescues(st, block)) return VETO;
+        int pending = m.batches == null ? pendingRescues(st, block) : m.batches.pendingTripsAfterVisit(st, block);
+        if (st.towerVisits[block] + 1 > m.towerCap[block] - pending) return VETO;
+        if (batchUrgency > 0) return batchUrgency;
         double income = m.towerIncome > 0 ? moneyValue(st.cash, m.towerIncome) : 0;
-        int remaining = towerTarget[block] - st.towerVisits[block];
         if (remaining > 0) {
-            int open = Math.max(1, t.towerRemain[block][st.slot]);
             if (remaining >= open) return MANDATORY; // every evening left in the block is needed
             double ratio = remaining / (double) open;
             if (ratio >= 0.5) return 50_000 * ratio;
@@ -1459,6 +1479,7 @@ final class Heuristics {
             if (rescueMatters[i] && (end.rescued & (1L << i)) == 0) unmet++;
         }
         unmet += lateRescues(reached);
+        if (m.batches != null) unmet += m.batches.missed(end) + m.batches.late(end);
         return j - PENALTY * unmet;
     }
 

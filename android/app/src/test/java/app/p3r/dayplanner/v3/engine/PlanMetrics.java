@@ -318,7 +318,9 @@ final class PlanMetrics {
         StringBuilder md = new StringBuilder();
         md.append("# 安排质量（真实规则包）\n\n");
         md.append("由 `PlanRealPackTest` 和 `PlanBreadthRealPackTest` 生成：规则包 ").append(rules.packVersion)
-                .append("，默认选项（时间预算 2.5 秒），桌面 JVM，用时随机器而变。")
+                .append(System.getenv("CI") != null
+                        ? "，共享构建环境的 CI 选项（时间预算 7.5 秒；应用默认 2.5 秒），桌面 JVM，用时随机器而变。"
+                        : "，默认选项（时间预算 2.5 秒），桌面 JVM，用时随机器而变。")
                 .append("每个场景都排到 1月31日，并通过独立校验（PlanValidator）。")
                 .append("「解锁」是 RANK 1 以上的社群，「最低 RANK」只看非剧情社群；「最低 RANK（解锁的）」只看解锁了的非剧情社群，")
                 .append("「对比」两行看两种风格任一解锁的（10月22日起女皇要学力从 Lv.4 练到 MAX，两种风格都不练，")

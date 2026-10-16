@@ -45,7 +45,7 @@ PACK_PATH = ROOT / "android" / "app" / "src" / "main" / "assets" / "p3r" / "p3r_
 REPORT_PATH = ROOT / "rules" / "build" / "REPORT.md"
 
 SCHEMA = "p3r.rules.v3"
-PACK_VERSION = "3.1.0"
+PACK_VERSION = "3.2.0"
 GAME = "Persona 3 Reload (Xrd777, base game; excludes Episode Aigis/Astrea)"
 
 EPOCH = datetime.date(2009, 4, 1)
@@ -462,8 +462,8 @@ def build_sources() -> list[dict]:
                "黄昏的碎片)") for n in CN_3DM_SCHEDULE_PAGES],
         *[snap(f"cn_gamersky_p{n}", f"cn_guides/gamersky_p{n}.html", "cn_guide",
                f"游民星空 repost (2024-02-06, authorised) of 猎猫人老贾's Reload schedule guide, the guide 3DM also "
-               f"carries; page {n}: {GAMERSKY_MONTHS[n]} (class answers with option positions where 3DM has no text)")
-          for n in GAMERSKY_SOURCE_PAGES],
+               f"carries; page {n}: {GAMERSKY_MONTHS[n]} (approved Social Link dialogue and class answers)")
+          for n in sorted(set(GAMERSKY_SOURCE_PAGES) | set(GAMERSKY_DIALOGUE_SOURCE_PAGES))],
         snap("cn_bwiki_class", "cn_guides/bwiki_p3r_class.html", "cn_guide",
              f"BWIKI page {BWIKI_CLASS_PAGE} (revision {BWIKI_CLASS_REVISION}, 2024-02-04): class answers per date in zh "
              "text without option positions, partly from a 女神异闻录吧 post; corroborates the 游民星空 class answers"),
@@ -485,6 +485,8 @@ def build_sources() -> list[dict]:
                  "Multi-step link openings (Justice, Devil, Hanged Man, Tower, Moon, Sun, Strength); a mixed MegaTen Wiki page appears only as a conflict alternative"),
         evidence("ev_story_links", "story_link_transitions_candidate.json", reload, "Fool/Death/Judgement transitions"),
         evidence("ev_dialogue", "guide_dialogue_reference_map.json", "cn_guide_reload", "CN guide dialogue fragments bound to target ranks"),
+        evidence("ev_dialogue_approved", "dialogue_guidance_approved.json", "cn_guide_reload",
+                 "User-approved Chinese guide dialogue additions and repairs, with ordered questions, route limits and source hashes"),
         evidence("ev_social_links", "social_links.json", reload, "Link catalogue: weekdays, unlock claims, conflicts"),
         evidence("ev_identity_labels", "social_goal_identity_labels.json", reload, "Selector labels and gender (Reload translation and identity tables)"),
         evidence("ev_affinity", "affinity_model_evidence.json", "mixed",
@@ -1257,9 +1259,76 @@ def event_gains(ledger: Ledger) -> tuple[dict[str, list[int]], dict[str, list[in
     return gains, romance
 
 
-def dialogue_map() -> dict[str, dict[str, list[str]]]:
+def load_approved_dialogue() -> dict:
+    """Persistent, approved wording only; source drift must fail rather than silently change advice."""
+    approved = read_evidence("dialogue_guidance_approved.json")
+    if approved.get("schema") != "p3r.dialogue_guidance_approved.v1":
+        raise BuildError("approved dialogue: unknown evidence schema")
+    sources = {}
+    for source in approved["sources"]:
+        path = source["path"]
+        if not path.startswith("rules/sources/") or ".." in Path(path).parts:
+            raise BuildError(f"approved dialogue: invalid source path {path}")
+        if source["id"] in sources or source.get("edition") != "cn_guide_reload":
+            raise BuildError(f"approved dialogue: duplicated or non-Reload source {source['id']}")
+        if sha256_file(ROOT / path) != source["sha256"]:
+            raise BuildError(f"approved dialogue: source changed: {path}")
+        sources[source["id"]] = source
+    scenes = approved["scenes"]
+    if len(scenes) != 115 or sum(scene["new"] for scene in scenes) != 88:
+        raise BuildError("approved dialogue: expected 115 approved scenes (88 new, 27 repaired)")
+    held = {(scene["link"], scene["rank"]) for scene in approved["heldCandidates"]}
+    if len(held) != 8:
+        raise BuildError("approved dialogue: expected eight held candidates")
+    seen = set()
+    for scene in scenes:
+        key = (scene["link"], scene["rank"])
+        if scene["link"] not in LINK_IDS or scene["link"] in STORY_LINKS or not 2 <= scene["rank"] <= 10:
+            raise BuildError(f"approved dialogue: invalid scene {key}")
+        if key in seen or key in held:
+            raise BuildError(f"approved dialogue: duplicated or held scene {key}")
+        seen.add(key)
+        for source in [scene["source"], scene["source"].get("correction")]:
+            if source and (source["id"] not in sources or sources[source["id"]]["path"] != source["path"]):
+                raise BuildError(f"approved dialogue {key}: unregistered source {source}")
+        if not scene["sequence"] or not scene["variants"] or not set(scene["variants"]) <= {"common", "friend", "romance"}:
+            raise BuildError(f"approved dialogue {key}: missing sequence or invalid route variants")
+        for route, variant in scene["variants"].items():
+            where = f"approved dialogue {key}.{route}"
+            if not isinstance(variant.get("choices"), list) or not isinstance(variant.get("sequence"), list):
+                raise BuildError(f"{where}: ordered choices and sequence arrays required")
+            if not variant["choices"] and not (variant.get("any") or variant.get("avoid") or variant.get("noteZh")):
+                raise BuildError(f"{where}: empty guidance")
+            if any(choice.startswith("任意") or choice == "之后任意" for choice in variant["choices"]):
+                raise BuildError(f"{where}: arbitrary prompts belong in sequence, not compact choices")
+            if "shortChoices" in variant and len(variant["shortChoices"]) != len(variant["choices"]):
+                raise BuildError(f"{where}: shortChoices must preserve question count")
+    return approved
+
+
+def approved_dialogue_hints(approved: dict) -> dict[str, dict[str, dict]]:
+    out: dict[str, dict[str, dict]] = {}
+    for scene in approved["scenes"]:
+        src = ["ev_dialogue_approved", scene["source"]["id"]]
+        if scene["source"].get("correction"):
+            src.append(scene["source"]["correction"]["id"])
+        entry = {"conf": "single", "src": sorted(set(src))}
+        # Round-trip the evidence values so later pack edits cannot mutate the approved source object.
+        entry.update(json.loads(fix_names(json.dumps(scene["variants"], ensure_ascii=False))))
+        out.setdefault(scene["link"], {})[str(scene["rank"])] = entry
+    return out
+
+
+def dialogue_map(approved: dict | None = None) -> dict[str, dict[str, list[str]]]:
     out: dict[str, dict[str, list[str]]] = {}
+    seen_references: dict[str, dict] = {}
     for ref in read_evidence("guide_dialogue_reference_map.json")["references"]:
+        ident = ref["referenceId"]
+        if ident in seen_references:
+            if seen_references[ident] != ref:
+                raise BuildError(f"dialogue reference {ident}: conflicting duplicate")
+            continue
+        seen_references[ident] = ref
         link = ref["entityId"].split(".")[-1]
         rank = ref["targetRank"]
         frags = ref.get("dialogueChoices") or [f["text"] for f in ref.get("displayFragments", [])]
@@ -1267,9 +1336,13 @@ def dialogue_map() -> dict[str, dict[str, list[str]]]:
         if not frags:
             continue
         bucket = out.setdefault(link, {}).setdefault(str(rank), [])
-        for frag in frags:
-            if frag not in bucket:
-                bucket.append(frag)
+        # These are successive questions, not a set of labels: 任意/任意 and 选2/选2
+        # each represent two prompts. Only an entire identical reference ID is deduplicated.
+        bucket.extend(frags)
+    if approved is None:
+        approved = load_approved_dialogue()
+    for scene in approved["scenes"]:
+        out.setdefault(scene["link"], {})[str(scene["rank"])] = [fix_names(text) for text in scene["sequence"]]
     return out
 
 
@@ -1321,7 +1394,9 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
     names = load_names()
     thresholds = load_thresholds()
     gains, romance = event_gains(ledger)
-    dialogue = dialogue_map()
+    approved_dialogue = load_approved_dialogue()
+    dialogue = dialogue_map(approved_dialogue)
+    dialogue_hints = approved_dialogue_hints(approved_dialogue)
     stories = story_ranks(page, ledger)
     day_cells = page.day_cells()
     night_cells = page.night_cells()
@@ -1422,6 +1497,8 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
             src += ["ev_rank_points", "ev_manual_models", "cn_guide"]
         if link in dialogue:
             src.append("ev_dialogue")
+        if link in dialogue_hints:
+            src.append("ev_dialogue_approved")
         if link == "aeon":
             src += ["game8_social_links", "pcinvasion_aeon"]
         record = {
@@ -1450,6 +1527,8 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
             "threshold": thresholds[link],
             "unlock": unlock,
         }
+        if link in dialogue_hints:
+            record["dialogueHints"] = dialogue_hints[link]
         places = [record["locationZh"] or ""] + [s["locationZh"] for s in unlock["steps"]]
         bad = [part for place in places for part in location_tokens_ok(place, guide_text)]
         if bad:
@@ -1457,6 +1536,14 @@ def build_links(ledger: Ledger, page: AqiuPage, day_records: list[dict], guide_t
         ledger.dropped[link] = dropped
         out.append(record)
 
+    ledger.decide("links", "dialogue", "115 user-approved Chinese-guide scenes (88 new, 27 repairs) are compiled "
+                  "from persistent dialogue_guidance_approved.json, guarded by hashes of the original 3DM/游民星空 "
+                  "pages and existing corrections. Legacy dialogue arrays preserve ordered and repeated answers. "
+                  "Optional dialogueHints are authoritative when present: common or the selected friend/romance "
+                  "variant supplies concrete choices and complete sequence; an absent applicable variant means "
+                  "unknown guidance, never a reason to reinterpret a different route's legacy answers. "
+                  "Eight held candidates and the remaining unbound scenes are not filled. Display-only changes "
+                  "do not alter thresholds, event gains or planning scores.")
     ledger.decide("links", "names", "Arcana and person names come from the zh-Hans game tables (DatRaceDataAsset, "
                   "DatPlayerNameDataAsset): 女皇, 倒悬者, 月亮, 贝培, Ｙ子, 舞子 (no surname in-game), 北村文吉、光子. "
                   "Judgement shows the spoiler-safe 伙伴们 instead of the official label 倪克斯讨伐队; Fool uses the "
@@ -1568,16 +1655,20 @@ def activity(ident: str, zh: str, kind: str, slots: list[str], weekdays: list[in
              cost: int = 0, gain: dict | None = None, day_types: list[str] | None = None, from_md: str = "04-21",
              pay: list[list[int]] | None = None, requires: dict | None = None, conf: str = "verified",
              src: list[str], note: str | None = None, alt: list[str] | None = None, aqiu: str | None = None,
-             evidence: tuple[str, str] | None = None) -> dict:
-    return {
+             evidence: tuple[str, str] | None = None, once: bool = False,
+             requires_activity: str | None = None) -> dict:
+    entry = {
         "spec": {"aqiu": aqiu, "evidence": evidence},
         "record": {
             "alt": alt or [], "conf": conf, "cost": cost, "dayTypes": day_types or [], "fromDay": day_of_md(from_md),
-            "gain": gain or {}, "id": ident, "kind": kind, "locationZh": location, "noteZh": note, "once": False,
+            "gain": gain or {}, "id": ident, "kind": kind, "locationZh": location, "noteZh": note, "once": once,
             "pay": pay or [], "requires": requires or {}, "slots": slots, "src": src, "toDay": LAST_DAY,
             "weekdays": weekdays, "zh": zh,
         },
     }
+    if requires_activity is not None:
+        entry["record"]["requiresActivity"] = requires_activity
+    return entry
 
 
 ACTIVITIES = (
@@ -1600,6 +1691,24 @@ ACTIVITIES = (
     activity("meal_wilduck", "在怀老鸭汉堡吃汉堡", "stat", ["day", "eve"], [1, 2, 3, 5, 6, 7], "严户台商店街 · 怀老鸭汉堡",
              cost=1000, gain={"courage": 3}, src=["aqiu_social_events", "ev_stat_expansion", "cn_guide"],
              aqiu="Wilduck: Mystery Burger", evidence=("stat_activity_expansion_candidate.json", "meal_wilduck_regular")),
+    activity("meal_wakatsu_menu", "在定食若津用餐，了解限定菜单", "stat", ["eve"], [1, 4, 5, 7], "严户台商店街 · 定食若津",
+             cost=680, gain={"academics": 3}, once=True, src=["aqiu_social_events", "ev_stat_expansion", "cn_guide"],
+             note="星期一、四、五、日晚上先吃一次普通餐，留意店里关于限定菜单的对话。之后魅力达到 Lv.3，就能点「水产全席套餐」。如果存档里早已了解菜单，这里会保守地多安排一次普通餐。",
+             aqiu="Wakatsu: Prodigy Platter", evidence=("stat_activity_expansion_candidate.json", "meal_wakatsu_regular")),
+    activity("meal_wakatsu_special", "在定食若津吃「水产全席套餐」", "stat", ["eve"], [1, 4, 5, 7], "严户台商店街 · 定食若津",
+             cost=900, gain={"academics": 4}, requires={"charm": 3}, requires_activity="meal_wakatsu_menu",
+             src=["aqiu_social_events", "ev_stat_expansion", "cn_guide"],
+             note="魅力 Lv.3，且已经在限定菜单供应的晚上吃过普通餐、了解菜单以后，星期一、四、五、日晚上可点。学力 +4，花费 900 日元。",
+             aqiu="Wakatsu: Seafood Full Course*", evidence=("stat_activity_expansion_candidate.json", "meal_wakatsu_secret")),
+    activity("meal_hagakure_menu", "在叶隐拉面用餐，了解限定菜单", "stat", ["eve"], [2, 3, 5], "严户台商店街 · 叶隐拉面",
+             cost=900, gain={"charm": 3}, once=True, src=["aqiu_social_events", "ev_stat_expansion", "cn_guide"],
+             note="星期二、三、五晚上先吃一次普通拉面，留意店里关于限定菜单的对话。之后勇气达到 Lv.3，就能点限定餐。如果存档里早已了解菜单，这里会保守地多安排一次普通餐。",
+             aqiu="Hagakure: Pork Ramen", evidence=("stat_activity_expansion_candidate.json", "meal_hagakure_regular")),
+    activity("meal_hagakure_special", "在叶隐拉面点限定餐", "stat", ["eve"], [2, 3, 5], "严户台商店街 · 叶隐拉面",
+             cost=1200, gain={"charm": 4}, requires={"courage": 3}, requires_activity="meal_hagakure_menu",
+             src=["aqiu_social_events", "ev_stat_expansion", "cn_guide"],
+             note="勇气 Lv.3，且已经在限定菜单供应的晚上吃过普通拉面、了解菜单以后，星期二、三、五晚上可点。魅力 +4，花费 1,200 日元。",
+             aqiu="Hagakure: Hagakure Bowl*", evidence=("stat_activity_expansion_candidate.json", "meal_hagakure_secret")),
     activity("karaoke", "到卡拉OK唱歌", "stat", ["day", "eve"], [1, 2, 3, 4, 5, 6], "桐叶购物中心 · 卡拉OK",
              cost=800, gain={"courage": 2}, src=["aqiu_social_events", "ev_stat_expansion"],
              aqiu="Karaoke", evidence=("stat_activity_expansion_candidate.json", "karaoke_mall")),
@@ -1696,6 +1805,25 @@ def audit_fallbacks(activities: list[dict], days: list[dict]) -> None:
         raise BuildError("free slots without a zero-cost activity: " + ", ".join(missing))
 
 
+def audit_activity_prerequisites(activities: list[dict]) -> None:
+    """Activity prerequisites are prior recorded uses; reject missing identities and cycles."""
+    by_id = {a["id"]: a for a in activities}
+    for activity in activities:
+        seen = set()
+        current = activity
+        while current is not None:
+            ident = current["id"]
+            if ident in seen:
+                raise BuildError(f"activity {activity['id']}: requiresActivity contains a cycle")
+            seen.add(ident)
+            prerequisite = current.get("requiresActivity")
+            if prerequisite is None:
+                break
+            if prerequisite not in by_id:
+                raise BuildError(f"activity {ident}: requiresActivity references unknown activity {prerequisite}")
+            current = by_id[prerequisite]
+
+
 def build_activities(ledger: Ledger, page: AqiuPage, guide_text: str, days: list[dict]) -> list[dict]:
     aqiu = parse_aqiu_activities(page)
     help_text = load_pay_help()
@@ -1740,13 +1868,23 @@ def build_activities(ledger: Ledger, page: AqiuPage, guide_text: str, days: list
         if bad:
             raise BuildError(f"{rec['id']}: location fragments {bad} not found in the CN guide")
         out.append(rec)
+    audit_activity_prerequisites(out)
     ledger.decide("activities", "selection", "Planned activities: desk study (evening; daytime on days without school), "
-                  "library (school days, +2 lower bound), Wakatsu/Hagakure/Wilduck regular meals, karaoke, the three arcade "
+                  "library (school days, +2 lower bound), Wakatsu/Hagakure/Wilduck regular meals, Wakatsu/Hagakure "
+                  "special menus after their stat gate and a recorded discovery meal, karaoke, the three arcade "
                   "games (evening only, the stricter reading), the three weekday movie programmes, Chagall coffee, and the "
                   "three jobs. Every row is checked against the aqiu table (gains never above aqiu, same price, slots a "
                   "subset) and, where present, the evidence files and the game's job help text.")
-    ledger.decide("activities", "excluded", "Not planned: Wakatsu seafood course, Hagakure bowl and the weekend Wilduck set "
-                  "(their unlock needs an observed menu event or Request #11 that the model cannot express), the one-off "
+    ledger.decide("activities", "special menus", "Wakatsu Seafood Full Course (Charm Lv3, 900 yen, Academics +4, "
+                  "Mon/Thu/Fri/Sun evening) and Hagakure Bowl (Courage Lv3, 1200 yen, Charm +4, Tue/Wed/Fri evening) "
+                  "require a prior regular meal on an evening when the special menu is offered (aqiu Reload). "
+                  "Each restaurant has a once-only discovery meal with the regular cost/gain and those evening weekdays; "
+                  "the special meal requires its recorded activity use. The discovery need not meet the stat gate: "
+                  "aqiu's walkthrough eats Wakatsu regular on 5/3 before reaching Charm Lv3 on 5/7. Unknown imported "
+                  "menu history conservatively repeats that meal. 水产全席套餐 is CN-guide wording; Hagakure's exact "
+                  "SC menu name is unverified, so the UI says 限定餐.")
+    ledger.decide("activities", "excluded", "Not planned: the weekend Wilduck set "
+                  "(its unlock needs completed Request #11 that the model cannot express), the one-off "
                   "burger challenge (needs Requests #1/#9/#11), shrine donations (single source, unclear Reload value), "
                   "dorm hangouts (DESIGN §10.10), film-festival hangouts and shrine fortunes. Link Episodes are opt-in tracks "
                   "(`episodes`) and the dating-site note is `datingNote`, both outside `activities`.")
@@ -2032,6 +2170,9 @@ GAMERSKY_PAGES = tuple(range(1, 11))
 GAMERSKY_MONTHS = dict(zip(GAMERSKY_PAGES, ("April", "May", "June", "July", "August", "September", "October",
                                             "November", "December", "January")))
 GAMERSKY_SOURCE_PAGES = (9, 10)
+# Additional pinned pages quoted by the approved dialogue evidence. This does not broaden the
+# class-answer import policy above: the two sets have separate purposes and validation.
+GAMERSKY_DIALOGUE_SOURCE_PAGES = (6, 7, 8, 9, 10)
 # Obvious typos of the 游民星空 copy, each corrected to BWIKI's spelling of the same date (zh vs zh): the copy types an
 # em dash for 一 throughout (—起 for 一起), here inside the idiom 孤注一掷.
 GAMERSKY_TYPO_FIXES = {("12-11", "孤注—掷"): "孤注一掷"}
@@ -2716,10 +2857,116 @@ def tv_reminders(ledger: Ledger, sched: Schedule3dm, guide: dict[int, list[dict]
     return out
 
 
+def request_work_tips(rows: list[list[str]]) -> dict[int, str]:
+    """Editorial how-to text, guarded by the pinned Reload request's hint and prerequisite.
+
+    These are reminders, not completed-request state or extra simulated actions. In particular a request that
+    needs a meal, computer session or cooking must not be described as entirely slot-free just because accepting
+    it and handing over its item take no time.
+    """
+    specs = {
+        9: ("Buy 12 different drinks from the Dorms 2F + Dorms 3F + Iwatodai 3F + Port Island Station Vending Machines (Y1320)", "1",
+            "先完成第 1 号，再接第 9 号：到宿舍 2、3 楼、严户台商店街 3 楼和港湾人工岛站的自动贩卖机，"
+            "各买不同种类的饮料，凑齐 12 种后交付。"),
+        11: ("Wilduck Burger > Big Eater Challenge (Y1800) > Choice 2: Look away from the burgers. > Choice 1: Eat without stopping. > Choice 2: Imagine something sour.", "9",
+             "交付第 9 号后才有第 11 号大胃王挑战。挑战要花 1,800 日元，并用掉一个晚上；"
+             "接到委托后再单独安排，不能和当晚的主要活动同时做。"),
+        12: ("Talk to Yukari", "-", "先接第 12 号，晚上回宿舍 1 楼找岳羽由加莉拿物品，再交给伊莉莎白。"),
+        13: ("Talk to Junpei", "12", "交付第 12 号后再接第 13 号，回宿舍找伊织顺平拿物品并交付。两件都要在 6月6日或更早交完。"),
+        19: ("Crane Game x3 (Y2400)", "18", "交付第 18 号后，第 19 号要到桐叶购物中心的娃娃机凑齐 3 个玩偶，只有 1 个还不够。"),
+        20: ("Nurse's Office", "-", "第 20 号：先接委托，上学日到学校 1 楼保健室领取物品，再回去交付。"),
+        27: ("Talk to Mitsuru", "-", "先接第 27 号，晚上回宿舍找桐条美鹤拿物品并交付。"),
+        28: ("Talk to Akihiko", "27", "交付第 27 号后再接第 28 号，回宿舍找真田明彦拿物品并交付。"),
+        29: ("Club Escapade Vendor > Black Quartz + (Y10000)", "-", "第 29 号：先到放纵俱乐部找店员询问，再回去找伊莉莎白；"
+             "准备黑水晶和 10,000 日元，到店员处取得物品后交付。"),
+        42: ("Pharmacy > Super Cat Food x4 (Y2800) > Port Island Outskirts > Feed over 4 days", "-",
+             "第 42 号：先接委托，在蓝胡子药房买 4 份猫罐头，共 2,800 日元；到港湾人工岛站前广场角落找猫，分 4 天喂食。"),
+        43: ("Talk to Fuuka", "-", "第 43 号：先接委托，晚上回宿舍找山岸风花拿物品，8月4日或更早交付。"),
+        44: ("Accept > 6/20: Collect Pretty Seashell + Strange Seaweed + Yakushima Wood + Small Crab", "-",
+             "第 44 号要在去屋久岛之前接下；7月20日到海边时至少捡一件委托物品，没先接就捡不到。"),
+        54: ("Try praying at the shrine over 3 days", "-", "第 54 号：先接委托，再分 3 天到长鸣神社调查神社尝试参拜，"
+             "这几次尝试不会消耗时间。"),
+        58: ("Port Island Outskirts > Port Island Station > Iwatodai 1F", "-", "第 58 号：先接委托，到港湾人工岛站前广场角落找小混混，"
+             "接着找车站咖啡店门口的学生，再找严户台商店街喜欢猫的少年，依次交换物品后交付；8月31日截止。"),
+        68: ("Talk to Shinjiro", "-", "先接第 68 号，晚上回宿舍找荒垣真次郎拿物品并交付。"),
+        69: ("Talk to Aigis", "68", "交付第 68 号后再接第 69 号，回宿舍找埃癸斯拿物品并交付；两件都要在 10月2日或更早交完。"),
+        74: ("Naganaki Shrine > Inari Sushi", "-", "第 74 号：先接委托，再到长鸣神社调查神社，取得物品后交付。"),
+        75: ("Visit the Faculty Office over 8 days", "-", "第 75 号：先接委托，从上学日的放学后开始，到学校 1 楼教职员室分 8 天触发对话；"
+             "最后拿到物品再交付，不是进门一次就完成。"),
+        76: ("Talk to Ikutsuki", "-", "第 76 号：先接委托，晚上回宿舍找几月修司拿眼镜布，11月1日或更早交付。"),
+        92: ("Port Island Station > Bathroom > Choice 1: Scrub harder. > Choice 1: Scrub harder.", "67",
+             "先完成第 67 号，接下第 92 号后到港湾人工岛站的厕所调查清扫，再回去交付。"),
+        93: ("School Roof > Second planter from right", "-", "第 93 号：先接委托，再到学校天台，给从右数第 2 个花坛浇水后交付。"),
+        94: ("Talk to Koromaru", "-", "先接第 94 号，晚上回宿舍找虎狼丸拿物品并交付。"),
+        95: ("Talk to Ken", "94", "交付第 94 号后再接第 95 号，回宿舍找天田乾拿物品并交付；两件都要在 11月30日或更早交完。"),
+        96: ("Bought all 3 drinks from Kyoto vending machine > School Outdoor Corridor > Drink Maniac > Oden Juice (Y5000)", "-",
+             "第 96 号：修学旅行时先买齐旅馆自动贩卖机的 3 种饮料；回来后在学校连接走廊交给女学生，"
+             "再花 5,000 日元买关东煮并交付。旅行时没买齐就会错过。"),
+        97: ("Rescued Ayako > Iwatodai 2F > Eccentric Man", "-", "第 97 号：只有先前救出了 6月18日失踪的学生才可完成；"
+             "接委托后到严户台商店街 2 楼找古怪的男子拿物品，12月25日或更早交付。"),
+    }
+    by_no = {int(r[1]): r for r in rows if r[1].isdigit()}
+    for number, (hint, prereq, _text) in specs.items():
+        row = by_no.get(number)
+        if row is None or (row[4], row[2]) != (hint, prereq):
+            raise BuildError(f"request #{number}: how-to source or prerequisite changed")
+    return {number: text for number, (_hint, _prereq, text) in specs.items()}
+
+
+def request_extra_reminders(ledger: Ledger, rows: list[list[str]], sched: Schedule3dm) -> list[dict]:
+    """The source's eight faculty-office visits and a conditional reminder of the outing chain."""
+    page = AqiuPage(SOURCES_DIR / "aqiu_pages" / "social-events.html")
+    if "Completing Request #75: Bring me a Sengoku-era helm. over 8 days will grant a total of Academics +16 without taking up any time" not in page.subsection("general"):
+        raise BuildError("request #75: eight slot-free faculty visits / Academics +16 source changed")
+    faculty = [d for d in sorted(sched.lines) if sched.matches(d, re.compile(r"教职员室.*（支线75）|教职员室触发剧情（支线75）"))]
+    if len(faculty) != 8 or md_of(faculty[0]) != "10-06":
+        raise BuildError("request #75: expected eight faculty-office visits from 10/6 in 3DM")
+    out = []
+    for d in faculty:
+        out.append(reminder(
+            f"request.{md_of(d)}.faculty", "request", d, "day", "伊莉莎白的第 75 号委托：放学后顺路去教职员室",
+            "顺路去教职员室（委托用）", priority=2, conf="single",
+            src=["aqiu_overworld", "aqiu_social_events", "cn_guide", sched.source(d)],
+            detail="如果还没完成第 75 号，先到天鹅绒房间接下委托，再到学校 1 楼教职员室触发对话。"
+                   "要分 8 天去，最后拿到物品后交付；这几次对话不会消耗时间，累计学力 +16。"
+                   "这里提醒的是可顺路去的日子，不代表已经替你记下访问次数；做完后可以跳过。" + STAT_SENTENCE))
+    by_no = {int(r[1]): r for r in rows if r[1].isdigit()}
+    thresholds = (15, 30, 45, 60, 80)
+    places = ("桐叶购物中心", "严户台站", "长鸣神社", "月光馆学园", "自己的房间")
+    for number, count in zip(range(77, 82), thresholds):
+        row = by_no.get(number)
+        if row is None or row[4] != f"Completed {count} requests" or row[2] != ("-" if number == 77 else str(number - 1)):
+            raise BuildError(f"request #{number}: outing threshold or predecessor changed")
+    d = day_of_md("05-29")
+    if not sched.matches(d, re.compile(r"接取77号任务.*没时间限制")):
+        raise BuildError("request #77: 3DM's conditional outing reminder changed")
+    # The Chinese guide explicitly calls #77 slot-free. The tested Reload route places all five outings outside
+    # its productive daytime/evening actions; only #77's explicit time statement is included in the UI copy.
+    detail = "外出邀请按完成委托的数量解锁，不会到了某个日期就自动出现；接不到时继续完成其他委托，之后再回来。\n"
+    detail += "\n".join(f"第 {number} 号：累计完成 {count} 个委托，去{place}。"
+                          for number, count, place in zip(range(77, 82), thresholds, places))
+    detail += "\n第 78～81 号还要先完成前一次外出。到天鹅绒房间接下已解锁的邀请，再和伊莉莎白对话出发。"
+    detail += "第 77 号外出不会消耗时间；这些邀请没有委托期限，不必照攻略的固定日期硬做。"
+    out.append(reminder("request.05-29.outings", "request", d, "day", "伊莉莎白的外出邀请：先看完成了多少委托",
+                        "伊莉莎白的外出邀请", detail=detail, conf="single",
+                        src=["aqiu_overworld", "cn_guide", sched.source(d)]))
+    ledger.decide("reminders", "request-tips", "Request tips give item sources, prerequisite hand-ins, multi-day steps "
+                  "and missable travel preparation in each release batch and relevant deadline. #11 explicitly consumes "
+                  "an evening; accepting/handing in a request does not make its other steps slot-free. #75 reminders use "
+                  "3DM's eight school visits (10/6-10/20), conditional on still unfinished; aqiu social-events explicitly "
+                  "gives eight slot-free visits and total Academics +16 (not forecast). #77-81 list 15/30/45/60/80 completed "
+                  "requests plus the preceding outing, not fixed unlock dates. Only #77 is explicitly called slot-free in "
+                  "the player text, as the Chinese guide says; timing of later outings is not asserted. Request completion "
+                  "and faculty visit counts are not tracked, so reminders say to skip completed work.")
+    return out
+
+
 def request_reminders(ledger: Ledger, people: list[tuple[int, int, str]], sched: Schedule3dm) -> list[dict]:
-    """伊莉莎白的委托: the days new requests appear and the last days of the time-limited ones (aqiu)."""
+    """伊莉莎白的委托: releases/deadlines with practical steps, multi-day visits and conditional outings."""
     _bullets, rows = overworld_section("Elizabeth Requests")
+    tips = request_work_tips(rows)
     batches: set[int] = set()
+    batch_tips: dict[int, list[str]] = {}
     windows: dict[int, tuple[int, list[int]]] = {}
     prereq: dict[int, str] = {}
     for row in rows:
@@ -2731,6 +2978,8 @@ def request_reminders(ledger: Ledger, people: list[tuple[int, int, str]], sched:
             raise BuildError(f"request #{number}: availability {avail!r}")
         first = md_slash(m.group(1))
         batches.add(first)
+        if int(number) in tips:
+            batch_tips.setdefault(first, []).append(tips[int(number)])
         if m.group(2):
             last = md_slash(m.group(2))
             start, numbers = windows.setdefault(last, (first, []))
@@ -2753,25 +3002,32 @@ def request_reminders(ledger: Ledger, people: list[tuple[int, int, str]], sched:
             raise BuildError(f"REQUEST_BATCH_EVENING {md}: no batch that day, or 3DM has no line matching {pattern}")
     for d in sorted(batches):
         evening = md_of(d) in REQUEST_BATCH_EVENING
-        src = ["aqiu_overworld", "cn_guide"] + ([sched.source(d)] if evening else [])
+        src = ["aqiu_overworld", "cn_guide", "aqiu_walkthrough"] + ([sched.source(d)] if evening else [])
+        detail = "去桐叶购物中心的天鹅绒房间找伊莉莎白查看新委托；接委托和交东西都不会消耗时间。"
+        if batch_tips.get(d):
+            detail += "已完成的可以跳过，不必今天全部清空。\n" + "\n".join(batch_tips[d])
+        detail += "\n累计完成 15、30、45、60、80 个委托时，分别查看第 77～81 号外出邀请；后一次还要先完成前一次外出。"
+        detail += "额外花费不在安排的预计里，花过钱后记得在「同步现状」更新现金。"
         out.append(reminder(f"request.{md_of(d)}", "request", d, "eve" if evening else "day", "伊莉莎白有新的委托",
-                            "伊莉莎白有新委托", detail="去天鹅绒房间找伊莉莎白看看新委托；接委托和交东西都不会消耗时间。",
+                            "伊莉莎白有新委托", detail=detail,
                             conf="verified", src=src))
     for last, (first, numbers) in sorted(windows.items()):
         these = "这些" if len(numbers) > 1 else "这个"
         detail = f"{these}委托只能做到 {cn_date(last)}{prereq.get(last, '')}；接委托和交东西都不会消耗时间。"
+        detail += "\n" + "\n".join(tips[n] for n in numbers if n in tips)
         out.append(reminder(
             f"request.{md_of(last)}.deadline", "request", max(first, last - 3), "day",
             f"伊莉莎白的第 {'、'.join(map(str, numbers))} 号委托 {cn_date(last)}截止",
             fit_short(f"request.{md_of(last)}.deadline", f"伊莉莎白的委托 {cn_date(last)}截止", f"委托 {cn_date(last)}截止"),
-            detail=detail, priority=2, until=last, conf="verified", src=["aqiu_overworld", "cn_guide"]))
+            detail=detail, priority=2, until=last, conf="verified", src=["aqiu_overworld", "cn_guide", "aqiu_walkthrough"]))
     ledger.decide("reminders", "requests", "伊莉莎白的委托 (aqiu overworld): new requests appear on "
                   + ", ".join(md_of(d) for d in sorted(batches)) + "; the time-limited ones end on "
                   + ", ".join(f"{md_of(last)} (#{'/'.join(map(str, n))})" for last, (_f, n) in sorted(windows.items()))
                   + ", each shown from 3 days before its end (not before its batch). #97 needs the student missing from "
                   "6/18 rescued (by 7/6; the rescue group carries the warning). Batches in the evening: "
                   + "; ".join(f"{md} ({why})" for md, (_p, why) in REQUEST_BATCH_EVENING.items())
-                  + ". Not shipped: request #75 (8 faculty-office visits, Academics +16) and the outings #77-81.")
+                  + ". Practical how-to details are included; #75 and the conditional #77-81 outing chain have separate reminders.")
+    out += request_extra_reminders(ledger, rows, sched)
     return out
 
 
@@ -3027,8 +3283,8 @@ def collectible_reminders(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, gu
                   f"({AQIU_FIXES['request.44'][2]}); 修学旅行 11/17: the three Kyoto vending-machine drinks for request "
                   "#96 (aqiu lists exactly three). 真宵堂 opens on 7/18 (aqiu tartarus notes, CN guide and 3DM on that "
                   "evening; the daytime is a story lock). Not shipped: Mitsuru's results-day reward, shop restocks, URL "
-                  "notes going on sale, the exam first-place threshold, 'unlock becomes possible', request #75, outings "
-                  "#77-81, Persona fusion names; dropped: the CN 1/3 TV entry, cat rescues, shrine fortunes, 4/29 山间补习班, "
+                  "notes going on sale, the exam first-place threshold, 'unlock becomes possible', Persona fusion names; "
+                  "dropped: the CN 1/3 TV entry, cat rescues, shrine fortunes, 4/29 山间补习班, "
                   "9/1 tutoring items, the 'slot-free' label on requests #38 and #10.")
     return out
 
@@ -3234,6 +3490,21 @@ def validate_pack(pack: dict) -> None:
     for link in pack["links"]:
         check_src(f"link {link['id']}", link)
         check_src(f"link {link['id']}.unlock", link["unlock"])
+        for rank, hint in link.get("dialogueHints", {}).items():
+            where = f"link {link['id']}.dialogueHints[{rank}]"
+            check_src(where, hint)
+            if not rank.isdigit() or not 2 <= int(rank) <= 10 or hint["conf"] != "single":
+                raise BuildError(f"{where}: rank or confidence invalid")
+            if not set(hint) <= {"common", "friend", "romance", "conf", "src"}:
+                raise BuildError(f"{where}: unknown fields")
+            for route in ("common", "friend", "romance"):
+                if route not in hint:
+                    continue
+                variant = hint[route]
+                if not isinstance(variant.get("choices"), list) or not isinstance(variant.get("sequence"), list):
+                    raise BuildError(f"{where}.{route}: ordered choices and sequence arrays required")
+                if "shortChoices" in variant and len(variant["shortChoices"]) != len(variant["choices"]):
+                    raise BuildError(f"{where}.{route}: shortChoices must preserve question count")
         if len(link["threshold"]) != 11 or len(link["eventGain"]) != 11:
             raise BuildError(f"link {link['id']}: arrays must have 11 entries")
         slot_key = "eveLock" if link["slot"] == "eve" else "dayLock"
@@ -3398,6 +3669,7 @@ VALUE_SOURCES = (
      ("ev_rank_points", "ev_manual_models")),
     ("links[].invite", lambda p: [x for x in p["links"] if x["invite"]], ("gd_holiday_schedule",)),
     ("links[].dialogue", lambda p: [x for x in p["links"] if x["dialogue"]], ("ev_dialogue", "cn_guide")),
+    ("links[].dialogueHints", lambda p: [x for x in p["links"] if x.get("dialogueHints")], ("ev_dialogue_approved",)),
     ("tartarus.blocks[] dates and floors", lambda p: p["tartarus"]["blocks"], ("gd_activity",)),
     ("tartarus.blocks[].zh", lambda p: p["tartarus"]["blocks"], ("cn_3dm",)),
     ("tartarus.rescues[] windows", lambda p: p["tartarus"]["rescues"],
@@ -3532,6 +3804,13 @@ def dump_pack(pack: dict) -> str:
 
 
 KNOWN_GAPS = (
+    "Dialogue: 163/171 manual R2-R10 scenes have a bound guide reference after 115 approved additions/repairs. "
+    "This is reference coverage, not complete optimal dialogue or branch coverage. Eight scenes remain unbound "
+    "(Priestess R2, Empress R6, Hierophant R9, Fortune R5, Devil R10, Tower R9, Star R3, Sun R3). "
+    "Held existing repairs (Hierophant R7, Justice R9, Strength R7) and Priestess R8 remain legacy evidence; "
+    "they receive no new typed best-answer claim. Friendship answers at several late romance scenes remain "
+    "unknown: avoid-only hints state only the approved confession to avoid. Original guide brackets are not "
+    "verified option ordinals or affinity points. The original guide and its authorised repost are one source lineage.",
     "Ordinary (non-rank-up) hangout gain +10 rests on one playthrough report (the Reload subsection of a multi-edition "
     "post, edition mixed) and its Reload-scoped evidence file (conf=estimate). The rank-up cue "
     "the game shows on the map is the reliable signal; the engine/UI should prefer it over the estimate.",
@@ -3541,8 +3820,10 @@ KNOWN_GAPS = (
     "Episodes, dorm hangouts, nurse's office) are not forecast (DESIGN §10.9); the player syncs stats. 当日提醒 "
     "only reminds of them.",
     "当日提醒 not shipped yet (P2, same schema later): Mitsuru's reward on results days, shop restocks, URL notes "
-    "going on sale, the exam first-place threshold, 'unlock becomes possible', request #75 (8 faculty-office visits) "
-    "and the outings #77-81, Persona fusion names. Dropped: the CN guide's 1/3 TV entry (not in the game table), cat "
+    "going on sale, the exam first-place threshold, 'unlock becomes possible', Persona fusion names. Request tips "
+    "do not track completed requests, #75 faculty visit counts, or the #77-81 outing chain; their conditions remain "
+    "for the player to check. Faculty reminders use 3DM's first eight visit dates, not later catch-up dates. Dropped: "
+    "the CN guide's 1/3 TV entry (not in the game table), cat "
     "rescues, shrine fortunes, 4/29 山间补习班, 9/1 tutoring items, the 'slot-free' label on requests #38 and #10.",
     "当日提醒 answers: 3DM's schedule text has nothing for 12/1-12/12 and nothing after 1/13. The class answers of "
     "12/7, 12/9, 12/11 and 1/18 rest on 游民星空's copy of the same guide (one author, 猎猫人老贾; text and option "
@@ -3559,7 +3840,10 @@ KNOWN_GAPS = (
     "evening is open (one-day margin), and the copy calls it unchecked wherever it sends the player there. "
     "Floors are unknown. Rescues follow the plan's Tartarus evenings and the latest recorded one, not nights the "
     "player improvises.",
-    "Not modelled: Wakatsu seafood course, Hagakure bowl, weekend Wilduck set, burger challenge, shrine donations, "
+    "Restaurant special menus require a preceding discovery meal on an eligible evening and the sourced stat "
+    "level. Imported saves without recorded discovery conservatively repeat that regular meal once. "
+    "Hagakure's special dish has no verified Simplified Chinese item name, so the UI calls it 限定餐.",
+    "Not modelled: weekend Wilduck set, burger challenge, shrine donations, "
     "shrine fortunes, gifts, film-festival hangouts, Koromaru walks, Ryoji's and Takaya's Link Episodes. All of them "
     "can only add points/stats, so plans stay conservative.",
     "Dating-site note: +10 points is the reported base; whether the Persona/Charm multipliers apply is unknown "
@@ -3612,6 +3896,14 @@ FIELD_SEMANTICS = (
     "established (rank >= 1) and the person not to be missing.",
     "`threshold[r]` = points needed while at rank r-1 to reach rank r (0 means the next meeting ranks up). "
     "`eventGain[r]` = best-answer points of the rank-r scene, counted toward rank r+1.",
+    "`links[].dialogue` is a legacy ordered guide sequence; duplicate answers represent separate questions and "
+    "must be retained. Optional `dialogueHints[rank]` is authoritative display guidance, conf=single, with its "
+    "own source IDs. Select `romance` or `friend` for the planned relationship, otherwise `common`. If an entry "
+    "exists but neither the selected variant nor common exists, keep the unknown-answer fallback rather than "
+    "reparsing another route's legacy text. `choices` omits arbitrary prompts; optional `shortChoices` preserves "
+    "the same cardinality for the existing compact display. `sequence` retains full ordered prompts and conditions. "
+    "`any` is an explicitly reviewed all-arbitrary scene; `avoid` only names an unsafe confession, not a friendship "
+    "optimum. `noteZh` and optional `shortNoteZh` carry question conditions or optional romance prerequisites.",
     "`unlock`: `stat`/`link` requirements apply to every step. Steps run in order; `minGapDays` is measured from "
     "the previous step's day (0 = same day allowed). `consumesSlot=false` steps need a free slot of their kind on "
     "an allowed day but leave that slot usable for another action; they must still respect `minGapDays`. "
@@ -3626,7 +3918,9 @@ FIELD_SEMANTICS = (
     "`storyRanks` (story links) list dated rank events; the loader turns them into `storyRankDay[r]` = first day "
     "with rank >= r (skipped ranks share the next event's day).",
     "`activities`: `slots`, `weekdays`, `dayTypes` (empty = all), `fromDay..toDay`, `cost` (yen), `gain` "
-    "(hidden stat points), `requires` (stat Lv). Jobs pay `pay` = [[minShiftNumber, minimum pay], …] for the "
+    "(hidden stat points), `requires` (stat Lv), optional `requiresActivity` (a previously completed activity id), "
+    "and `once` (a one-off discovery or training). Restaurant discovery is an ordinary meal at its normal "
+    "cost/gain on the eligible evenings. Jobs pay `pay` = [[minShiftNumber, minimum pay], …] for the "
     "N-th completed shift.",
     "`episodes` (Link Episodes, 羁绊剧情): opt-in tracks. `parts[n-1].days` = days on which episode n can be watched "
     "(slot kind = `evening`), in order, one slot each; `gain` = Academics/Charm/Courage points of that episode; no "
@@ -3997,8 +4291,13 @@ def render_unverified(pack: dict) -> list[str]:
         quoted.update(re.findall(r"「([^」]+)」", value))
     quoted -= set(APP_LABELS) | block_names
     fragments = [(link["id"], rank, frag) for link in pack["links"] for rank, frags in link["dialogue"].items() for frag in frags]
-    rewritten = [x for x in fragments if x[2] not in guide_text]
+    approved = load_approved_dialogue()
+    approved_keys = {(scene["link"], str(scene["rank"])) for scene in approved["scenes"]}
+    legacy_fragments = [x for x in fragments if (x[0], x[1]) not in approved_keys]
+    rewritten = [x for x in legacy_fragments if x[2] not in guide_text]
     dialogue_links = sorted({x[0] for x in fragments}, key=LINK_IDS.index)
+    covered_ranks = sum(sum(str(rank) in link["dialogue"] for rank in range(2, 11))
+                        for link in pack["links"] if link["kind"] == "manual")
 
     out = ["## 7. Not verified against SC game screens", ""]
     out.append("Checked against official zh-Hans text: arcana and person names and the SEES label (game tables "
@@ -4008,10 +4307,16 @@ def render_unverified(pack: dict) -> list[str]:
                "or a plain description, and it stays guide wording until someone checks it in the game.")
     out.append("")
     out.append(f"- **Dialogue options** — {len(fragments)} fragments for {len(dialogue_links)} links (`links[].dialogue`), "
-               "quoted from the CN guide through `guide_dialogue_reference_map.json`, which itself records "
-               "sourceOptionOrderVerifiedAgainstChineseGame = false; its own provenance files are scratch paths that "
-               f"are not in this repository. {len(fragments) - len(rewritten)} of {len(fragments)} occur verbatim in "
-               f"`cn_guides/data.json`; {len(rewritten)} are editorial rewrites: "
+               f"covering {covered_ranks}/171 manual R2-R10 scenes. 115 user-approved scenes (88 new, 27 repaired) "
+               "come from `dialogue_guidance_approved.json`: pinned 3DM and 游民星空 guide wording, approved compact "
+               "shortening and existing corrections. Ordered duplicate answers and arbitrary-prompt positions are "
+               "retained. `dialogueHints` marks these single-source recommendations and separates common, friend "
+               "and romance guidance; avoid-only friendship guidance is not an optimum answer. The two websites "
+               "carry one guide lineage, not independent confirmation. Eight held candidates remain excluded. "
+               "Remaining legacy scenes come through `guide_dialogue_reference_map.json`, whose provenance paths "
+               "are retired scratch locations. Neither evidence set verifies SC game screens, option ordinals or "
+               f"numeric affinity bindings. Of {len(legacy_fragments)} unchanged legacy fragments, "
+               f"{len(rewritten)} differ from the derivative `cn_guides/data.json`: "
                + "; ".join(f"{link} R{rank} 「{frag}」" for link, rank, frag in rewritten) + ". The answers quoted "
                "in unlock how-to texts come from the same guide.")
     found = sorted(p for p in places if p in official)
@@ -4056,7 +4361,7 @@ def render_reminder_lines(pack: dict) -> list[str]:
     }
     lines: list[str] = []
     for item in items:
-        if item["kind"] in templates or item["kind"] == "request" and item["id"].endswith(".deadline"):
+        if item["kind"] in templates:
             continue
         for text in (item["labelZh"], item["zh"], item["shortZh"], item["detailZh"]):
             if text and text not in lines:

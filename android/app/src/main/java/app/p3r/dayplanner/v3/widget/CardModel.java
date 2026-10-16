@@ -164,6 +164,8 @@ public final class CardModel {
     public float spaceAboveDp;
     public float spaceBelowDp;
     public float spaceUnderButtonsDp;
+    /** Negative keeps the layout's side padding; a tight card may reclaim it to retain both answer kinds. */
+    public float bodySidePaddingDp = -1;
 
     // ---- actions
     public boolean currentVisible = true;
@@ -338,6 +340,7 @@ public final class CardModel {
         m.spaceAboveDp = spaceAboveDp;
         m.spaceBelowDp = spaceBelowDp;
         m.spaceUnderButtonsDp = spaceUnderButtonsDp;
+        m.bodySidePaddingDp = bodySidePaddingDp;
         m.currentVisible = currentVisible;
         m.currentEnabled = currentEnabled;
         m.currentLabel = currentLabel;

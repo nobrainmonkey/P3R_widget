@@ -225,8 +225,11 @@ class BuildTest(unittest.TestCase):
         for source in self.pack["sources"]:
             self.assertIn(f"| `{source['id']}` | {source['edition']} |", report)
         section = report.split("## 7. Not verified against SC game screens", 1)[1]
-        for term in ("Dialogue options", "夏卡尔咖啡店", "「结缘网站的字条」", "世俗之庭 台伯勒", "134 of 140"):
+        for term in ("Dialogue options", "夏卡尔咖啡店", "「结缘网站的字条」", "世俗之庭 台伯勒",
+                     "163/171 manual R2-R10 scenes", "115 user-approved scenes (88 new, 27 repaired)",
+                     "one guide lineage", "avoid-only friendship guidance is not an optimum answer"):
             self.assertIn(term, section)
+        self.assertNotIn("editorial rewrites", section)
 
     # ---------------------------------------------------------------- 当日提醒 (reminders)
 
@@ -248,7 +251,7 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(sorted(x["id"] for x in exams if x["conf"] == "estimate"), ["exam.07-17", "exam.12-16"])
         self.assertEqual(len(self.reminders("tv")), 32)
         requests = self.reminders("request")
-        self.assertEqual(sum(1 for x in requests if not x["id"].endswith(".deadline")), 9)
+        self.assertEqual(sum(1 for x in requests if x["id"].count(".") == 1), 9)
         self.assertEqual(sum(1 for x in requests if x["id"].endswith(".deadline")), 8)
         self.assertEqual(len(rem["rescueGroups"]), 13)
         self.assertEqual(sum(g["count"] for g in rem["rescueGroups"]), 20)

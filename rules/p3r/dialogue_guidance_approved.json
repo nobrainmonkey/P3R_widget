@@ -1,0 +1,3695 @@
+{
+  "schema": "p3r.dialogue_guidance_approved.v1",
+  "approval": {
+    "date": "2026-10-16",
+    "document": "docs/analysis/DIALOGUE_ADDITION_PREVIEW.md",
+    "documentSha256": "b616fd53b00b82fdaa602545d79259cb54ed67ea75a6095b7e9dab9a6e355f0d",
+    "scope": "User approved 115 proposal scenes, comprising 88 new and 27 repairs; eight held candidates remain excluded. Approval is recorded here so builds do not depend on ephemeral QA drafts."
+  },
+  "sourceOptionOrderVerifiedAgainstChineseGame": false,
+  "pointBindingEnabled": false,
+  "scope": "Source-grounded Chinese Reload guide recommendations only. No claim of game text extraction, verified option ordinal, numerical affinity binding, or complete friendship/romance branching. choices omit arbitrary prompts for compact existing-style display; sequence preserves ordered prompts and conditions.",
+  "sources": [
+    {
+      "id": "cn_3dm_p2",
+      "path": "rules/sources/cn_guides/3dm_p2.html",
+      "sha256": "04149c43bd5b92b89a055f965034f878f4e83bf5992c4e8e0cd0567e26f80840",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_3dm_p3",
+      "path": "rules/sources/cn_guides/3dm_p3.html",
+      "sha256": "1b6439b909617401496ba8abe6fbf748b1b8e5ceddbc525926c2a575f2ba9a73",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_3dm_p4",
+      "path": "rules/sources/cn_guides/3dm_p4.html",
+      "sha256": "6ae8b0275b081aee7ad77d2769667349c1b4fa239cb842b7c398a4f9ddc4794e",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_3dm_p5",
+      "path": "rules/sources/cn_guides/3dm_p5.html",
+      "sha256": "ee642535c3af0705455ddc782802a2c577a0b425121ee322b9c3dd9584f65fa1",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_3dm_p6",
+      "path": "rules/sources/cn_guides/3dm_p6.html",
+      "sha256": "ca662a47178abc16eee49f4a7562bf2bcab83b55844d5f6458bf3e4dfc4b8dd6",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_gamersky_p10",
+      "path": "rules/sources/cn_guides/gamersky_p10.html",
+      "sha256": "c37a4769f9bc696491c5f7edecdb9109f1586418b3c2ab4d6192180ccb2547c2",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_gamersky_p6",
+      "path": "rules/sources/cn_guides/gamersky_p6.html",
+      "sha256": "97c7b0916d2a3bdeefc25bf298c83506bd4a558317d9aee834407f16edd9e149",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_gamersky_p7",
+      "path": "rules/sources/cn_guides/gamersky_p7.html",
+      "sha256": "96702c528563c9efb7b507544a186272c7efc4abeeef2286e36845f60e79bb21",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_gamersky_p8",
+      "path": "rules/sources/cn_guides/gamersky_p8.html",
+      "sha256": "dd301222e4e352976bf77b773eba7d54a8d00e5f2713b6f24a81bf00776e95c4",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_gamersky_p9",
+      "path": "rules/sources/cn_guides/gamersky_p9.html",
+      "sha256": "38b70ec31ffe085b2333aafea7b4ebf98c3d2cb5aed9ea3a9e8ea191eddf5bb9",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_guide",
+      "path": "rules/sources/cn_guides/data.json",
+      "sha256": "08719e728ab953852292b18dd49c40c5790302eac24dfb3962db4be4ab271e49",
+      "edition": "cn_guide_reload"
+    }
+  ],
+  "scenes": [
+    {
+      "link": "magician",
+      "rank": 4,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：加油",
+      "source": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 275,
+        "quote": "任意/加油（1）"
+      },
+      "sequence": [
+        "任意",
+        "加油"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "加油"
+          ],
+          "sequence": [
+            "任意",
+            "加油"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "magician",
+      "rank": 5,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：大概吧",
+      "source": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 442,
+        "quote": "大概吧（2）"
+      },
+      "sequence": [
+        "大概吧"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "大概吧"
+          ],
+          "sequence": [
+            "大概吧"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "magician",
+      "rank": 7,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：发生什么了吗？ / 结婚情报杂志 / 恭喜",
+      "source": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 640,
+        "quote": "发生什么了吗？（1）/结婚情报杂志（3）/\n恭喜（1）"
+      },
+      "sequence": [
+        "发生什么了吗？",
+        "结婚情报杂志",
+        "恭喜"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "发生什么了吗？",
+            "结婚情报杂志",
+            "恭喜"
+          ],
+          "sequence": [
+            "发生什么了吗？",
+            "结婚情报杂志",
+            "恭喜"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "magician",
+      "rank": 8,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：你有烦恼？ / 你也跟去或你们好好谈谈",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 330,
+        "quote": "对话选择：你有烦恼?（2）/你也跟去或者你们好好谈谈"
+      },
+      "sequence": [
+        "你有烦恼？",
+        "你也跟去或者你们好好谈谈"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "你有烦恼？",
+            "你也跟去或者你们好好谈谈"
+          ],
+          "sequence": [
+            "你有烦恼？",
+            "你也跟去或者你们好好谈谈"
+          ],
+          "shortChoices": [
+            "你有烦恼？",
+            "你也跟去或你们好好谈谈"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "magician",
+      "rank": 9,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：我去讨个说法",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 372,
+        "quote": "对话选择：我去讨个说法（2）"
+      },
+      "sequence": [
+        "我去讨个说法"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "我去讨个说法"
+          ],
+          "sequence": [
+            "我去讨个说法"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "magician",
+      "rank": 10,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：加油啊或我帮你介绍",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 418,
+        "quote": "和友近对话，对话选择：任意/加油啊或者我帮你介绍/任意"
+      },
+      "sequence": [
+        "任意",
+        "加油啊或者我帮你介绍",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "加油啊或者我帮你介绍"
+          ],
+          "sequence": [
+            "任意",
+            "加油啊或者我帮你介绍",
+            "任意"
+          ],
+          "shortChoices": [
+            "加油啊或我帮你介绍"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "priestess",
+      "rank": 3,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：就啪的一撒 / 不用心急",
+      "source": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 249,
+        "quote": "就啪的一撒（1）/不用心急（1）/任意"
+      },
+      "sequence": [
+        "就啪的一撒",
+        "不用心急",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "就啪的一撒",
+            "不用心急"
+          ],
+          "sequence": [
+            "就啪的一撒",
+            "不用心急",
+            "任意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "priestess",
+      "rank": 4,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：风花很擅长努力 / 没那回事",
+      "source": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 315,
+        "quote": "任意/风花很擅长努力（3）/没那回事（1）"
+      },
+      "sequence": [
+        "任意",
+        "风花很擅长努力",
+        "没那回事"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "风花很擅长努力",
+            "没那回事"
+          ],
+          "sequence": [
+            "任意",
+            "风花很擅长努力",
+            "没那回事"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "priestess",
+      "rank": 5,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：下功夫了啊 / 我很高兴能帮上忙 / 再做给我吃吧",
+      "source": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 718,
+        "quote": "下功夫了啊（2）/我很高兴能帮上忙（1）/\n再做给我吃吧（3）"
+      },
+      "sequence": [
+        "下功夫了啊",
+        "我很高兴能帮上忙",
+        "再做给我吃吧"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "下功夫了啊",
+            "我很高兴能帮上忙",
+            "再做给我吃吧"
+          ],
+          "sequence": [
+            "下功夫了啊",
+            "我很高兴能帮上忙",
+            "再做给我吃吧"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "priestess",
+      "rank": 6,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：没问题 / 就是这股气势",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 275,
+        "quote": "对话选择：没问题（1）/就是这股气势（1）"
+      },
+      "sequence": [
+        "没问题",
+        "就是这股气势"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "没问题",
+            "就是这股气势"
+          ],
+          "sequence": [
+            "没问题",
+            "就是这股气势"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "priestess",
+      "rank": 7,
+      "new": true,
+      "approvalStatusZh": "有条件拟加入",
+      "approvedShortPreview": "答：太过分了；想保留恋爱分支，再答「真的是这样吗」",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 350,
+        "quote": "对话选择：任意/任意/太过分了（3）/任意",
+        "correction": {
+          "id": "cn_guide",
+          "path": "rules/sources/cn_guides/data.json",
+          "line": 4037
+        }
+      },
+      "sequence": [
+        "任意",
+        "任意",
+        "太过分了",
+        "真的是这样吗"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "太过分了"
+          ],
+          "sequence": [
+            "任意",
+            "任意",
+            "太过分了",
+            "想保留恋爱分支时：真的是这样吗；友情路线的末问具体回答待核对。"
+          ],
+          "noteZh": "想保留恋爱分支，再答「真的是这样吗」；末句是恋爱前置，不等于确定恋爱关系，友情路线同样可以达到 MAX。",
+          "shortNoteZh": "想保留恋爱分支，再答「真的是这样吗」"
+        },
+        "romance": {
+          "choices": [
+            "太过分了",
+            "真的是这样吗"
+          ],
+          "sequence": [
+            "任意",
+            "任意",
+            "太过分了",
+            "真的是这样吗"
+          ],
+          "noteZh": "末句用于保留恋爱分支，不等于现在确定恋爱关系。",
+          "shortNoteZh": ""
+        }
+      },
+      "guardNoteZh": "原文＋现有修订。保留现有修订。末句是恋爱前置，不等于确定恋爱关系；不会把它当作友情MAX的必要条件。"
+    },
+    {
+      "link": "priestess",
+      "rank": 9,
+      "new": false,
+      "approvalStatusZh": "按路线拟修正",
+      "approvedShortPreview": "恋人：答：我喜欢风花；朋友：别选「我喜欢风花」",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 270,
+        "quote": "对话选择：任意/任意/我喜欢风花（1），恋人线/任意"
+      },
+      "sequence": [
+        "任意",
+        "任意",
+        "我喜欢风花",
+        "任意"
+      ],
+      "variants": {
+        "romance": {
+          "choices": [
+            "我喜欢风花"
+          ],
+          "sequence": [
+            "任意",
+            "任意",
+            "我喜欢风花",
+            "任意"
+          ]
+        },
+        "friend": {
+          "choices": [],
+          "avoid": [
+            "我喜欢风花"
+          ],
+          "sequence": [
+            "朋友路线不要选择「我喜欢风花」；该路线其余具体回答待核对。"
+          ],
+          "noteZh": "友情路线的其余具体问答待核对。",
+          "shortNoteZh": ""
+        }
+      },
+      "guardNoteZh": "恋人显示这组具体回答；朋友只明确提示已知应避开的告白，不补造友情最佳选项。"
+    },
+    {
+      "link": "empress",
+      "rank": 3,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：要不要尝尝看？ / 高兴吗？ / 我会忘记的",
+      "source": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 251,
+        "quote": "对话选择：要不要尝尝看?（1）/高兴吗?（2）/任意/我会忘记的（2）"
+      },
+      "sequence": [
+        "要不要尝尝看？",
+        "高兴吗？",
+        "任意",
+        "我会忘记的"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "要不要尝尝看？",
+            "高兴吗？",
+            "我会忘记的"
+          ],
+          "sequence": [
+            "要不要尝尝看？",
+            "高兴吗？",
+            "任意",
+            "我会忘记的"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "empress",
+      "rank": 4,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：发生什么了吗？ / 是爱的结果",
+      "source": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 278,
+        "quote": "对话选择：发生什么了吗?（2）/是爱的结果（1）/任意"
+      },
+      "sequence": [
+        "发生什么了吗？",
+        "是爱的结果",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "发生什么了吗？",
+            "是爱的结果"
+          ],
+          "sequence": [
+            "发生什么了吗？",
+            "是爱的结果",
+            "任意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "empress",
+      "rank": 5,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：你能开心就好 / 摩托车？ / 希望有机会和你一起出行",
+      "source": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 295,
+        "quote": "对话选择：你能开心就好（2）/摩托车?（1）/希望有机会和你—起出行（2）"
+      },
+      "sequence": [
+        "你能开心就好",
+        "摩托车？",
+        "希望有机会和你一起出行"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "你能开心就好",
+            "摩托车？",
+            "希望有机会和你一起出行"
+          ],
+          "sequence": [
+            "你能开心就好",
+            "摩托车？",
+            "希望有机会和你一起出行"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "empress",
+      "rank": 8,
+      "new": false,
+      "approvalStatusZh": "有条件拟修正",
+      "approvedShortPreview": "答：这是美鹤的自由 / 这话可不能当没听见 / 这样言听计从好吗？",
+      "source": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 328,
+        "quote": "对话选择：任意/任意/任意/这话可不能当没听见（2） /这样言听计从好吗?（1，这里应该是恋人线条件之一，选第二个就不会进入恋人线）",
+        "correction": {
+          "id": "cn_guide",
+          "path": "rules/sources/cn_guides/data.json",
+          "line": 6423
+        }
+      },
+      "sequence": [
+        "任意",
+        "任意",
+        "这是美鹤的自由",
+        "这话可不能当没听见",
+        "这样言听计从好吗？"
+      ],
+      "variants": {
+        "romance": {
+          "choices": [
+            "这是美鹤的自由",
+            "这话可不能当没听见",
+            "这样言听计从好吗？"
+          ],
+          "sequence": [
+            "任意",
+            "任意",
+            "这是美鹤的自由",
+            "这话可不能当没听见",
+            "这样言听计从好吗？"
+          ],
+          "noteZh": "想保留恋爱分支时参考这组回答；这是恋爱前置，不代表现在确定恋爱关系。",
+          "shortNoteZh": ""
+        }
+      },
+      "guardNoteZh": "原文＋现有修订。本组仅作为保留恋爱分支的答法预览，保留现有修订；不当作通用友情最佳回答。"
+    },
+    {
+      "link": "empress",
+      "rank": 9,
+      "new": true,
+      "approvalStatusZh": "按路线拟加入",
+      "approvedShortPreview": "恋人：答：我很高兴 / 我也喜欢美鹤；朋友：别选「我也喜欢美鹤」",
+      "source": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 337,
+        "quote": "对话选择：我很高兴（3）/任意/我也喜欢美鹤（1）/任意"
+      },
+      "sequence": [
+        "我很高兴",
+        "任意",
+        "我也喜欢美鹤",
+        "任意"
+      ],
+      "variants": {
+        "romance": {
+          "choices": [
+            "我很高兴",
+            "我也喜欢美鹤"
+          ],
+          "sequence": [
+            "我很高兴",
+            "任意",
+            "我也喜欢美鹤",
+            "任意"
+          ]
+        },
+        "friend": {
+          "choices": [],
+          "avoid": [
+            "我也喜欢美鹤"
+          ],
+          "sequence": [
+            "朋友路线不要选择「我也喜欢美鹤」；该路线其余具体回答待核对。"
+          ],
+          "noteZh": "友情路线的其余具体问答待核对。",
+          "shortNoteZh": ""
+        }
+      },
+      "guardNoteZh": "恋人显示这组具体回答；朋友只明确提示已知应避开的告白，不补造友情最佳选项。"
+    },
+    {
+      "link": "emperor",
+      "rank": 3,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：发生什么了？",
+      "source": {
+        "id": "cn_3dm_p3",
+        "path": "rules/sources/cn_guides/3dm_p3.html",
+        "line": 870,
+        "quote": "发生什么了？（1）"
+      },
+      "sequence": [
+        "发生什么了？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "发生什么了？"
+          ],
+          "sequence": [
+            "发生什么了？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "emperor",
+      "rank": 4,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：你很努力啊",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 311,
+        "quote": "对话选择：任意/你很努力啊（2）"
+      },
+      "sequence": [
+        "任意",
+        "你很努力啊"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "你很努力啊"
+          ],
+          "sequence": [
+            "任意",
+            "你很努力啊"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "emperor",
+      "rank": 5,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：他们太过分了",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 472,
+        "quote": "对话选择：他们太过分了（1）"
+      },
+      "sequence": [
+        "他们太过分了"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "他们太过分了"
+          ],
+          "sequence": [
+            "他们太过分了"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "emperor",
+      "rank": 6,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：反正我才刚来",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 260,
+        "quote": "对话选择：任意/反正我才刚来（1）"
+      },
+      "sequence": [
+        "任意",
+        "反正我才刚来"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "反正我才刚来"
+          ],
+          "sequence": [
+            "任意",
+            "反正我才刚来"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "emperor",
+      "rank": 7,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：是过于严苛的处分",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 431,
+        "quote": "对话选择：是过于严苛的处分（2）"
+      },
+      "sequence": [
+        "是过于严苛的处分"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "是过于严苛的处分"
+          ],
+          "sequence": [
+            "是过于严苛的处分"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "emperor",
+      "rank": 8,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：我不是犯人",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 464,
+        "quote": "确保身上有“皇帝”面具,到学生会对话选择：任意/我不是犯人（1）"
+      },
+      "sequence": [
+        "任意",
+        "我不是犯人"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "我不是犯人"
+          ],
+          "sequence": [
+            "任意",
+            "我不是犯人"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "emperor",
+      "rank": 9,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：不要责备自己",
+      "source": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 259,
+        "quote": "对话选择：不要责备自己（1）"
+      },
+      "sequence": [
+        "不要责备自己"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "不要责备自己"
+          ],
+          "sequence": [
+            "不要责备自己"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "hierophant",
+      "rank": 2,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：我叫XXX / 谢谢",
+      "source": {
+        "id": "cn_3dm_p2",
+        "path": "rules/sources/cn_guides/3dm_p2.html",
+        "line": 575,
+        "quote": "我叫XXX（1）/谢谢（1）/任意/任意/任意"
+      },
+      "sequence": [
+        "我叫XXX",
+        "谢谢",
+        "任意",
+        "任意",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "我叫XXX",
+            "谢谢"
+          ],
+          "sequence": [
+            "我叫XXX",
+            "谢谢",
+            "任意",
+            "任意",
+            "任意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "hierophant",
+      "rank": 3,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：在找东西吗？ / 我来帮忙",
+      "source": {
+        "id": "cn_3dm_p3",
+        "path": "rules/sources/cn_guides/3dm_p3.html",
+        "line": 290,
+        "quote": "在找东西吗？（1）/我来帮忙（2）/剩下的任意"
+      },
+      "sequence": [
+        "在找东西吗？",
+        "我来帮忙",
+        "之后任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "在找东西吗？",
+            "我来帮忙"
+          ],
+          "sequence": [
+            "在找东西吗？",
+            "我来帮忙",
+            "之后任意"
+          ],
+          "noteZh": "后续问题随意。",
+          "shortNoteZh": ""
+        }
+      },
+      "guardNoteZh": "后续问题随意；短版只列前两问的具体回答。"
+    },
+    {
+      "link": "hierophant",
+      "rank": 6,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：不要吵架",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 340,
+        "quote": "不要吵架（2）/任意"
+      },
+      "sequence": [
+        "不要吵架",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "不要吵架"
+          ],
+          "sequence": [
+            "不要吵架",
+            "任意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "hierophant",
+      "rank": 8,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：是搞签名活动的人 / 走吧",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 621,
+        "quote": "是搞签名活动的人（1）/任意/\n走吧（1）"
+      },
+      "sequence": [
+        "是搞签名活动的人",
+        "任意",
+        "走吧"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "是搞签名活动的人",
+            "走吧"
+          ],
+          "sequence": [
+            "是搞签名活动的人",
+            "任意",
+            "走吧"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "hierophant",
+      "rank": 10,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：为什么",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 400,
+        "quote": "到严户台旧书店，对话选择：任意/任意/为什么（1）/任意"
+      },
+      "sequence": [
+        "任意",
+        "任意",
+        "为什么",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "为什么"
+          ],
+          "sequence": [
+            "任意",
+            "任意",
+            "为什么",
+            "任意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "lovers",
+      "rank": 2,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：可爱的粉色 / 这话扎心了啊",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 265,
+        "quote": "对话选择：可爱的粉色（1）/这话扎心了啊（1）"
+      },
+      "sequence": [
+        "可爱的粉色",
+        "这话扎心了啊"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "可爱的粉色",
+            "这话扎心了啊"
+          ],
+          "sequence": [
+            "可爱的粉色",
+            "这话扎心了啊"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "lovers",
+      "rank": 3,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：怎么回答都可以",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 294,
+        "quote": "对话选择：任意"
+      },
+      "sequence": [
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [],
+          "sequence": [
+            "任意"
+          ],
+          "any": true
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "lovers",
+      "rank": 4,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：没事吧？",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 379,
+        "quote": "确保身上持有“恋爱”面具，和教室的岳羽由加莉对话对话选择：没事吧?（3）"
+      },
+      "sequence": [
+        "没事吧？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "没事吧？"
+          ],
+          "sequence": [
+            "没事吧？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "lovers",
+      "rank": 5,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：抱歉（最后一问）",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 386,
+        "quote": "对话选择：任意/任意/任意/任意/抱歉（1），把最后一个选项不要选第三个关系会破裂"
+      },
+      "sequence": [
+        "任意",
+        "任意",
+        "任意",
+        "任意",
+        "抱歉"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "抱歉"
+          ],
+          "sequence": [
+            "任意",
+            "任意",
+            "任意",
+            "任意",
+            "抱歉"
+          ],
+          "shortChoices": [
+            "抱歉（最后一问）"
+          ]
+        }
+      },
+      "guardNoteZh": "前四问随意。详情保留完整五问顺序，短版不连续堆四次“任意”。"
+    },
+    {
+      "link": "lovers",
+      "rank": 6,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：小事一桩 / 我不介意",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 458,
+        "quote": "对话选择：小事一桩（2）/我不介意（1）"
+      },
+      "sequence": [
+        "小事一桩",
+        "我不介意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "小事一桩",
+            "我不介意"
+          ],
+          "sequence": [
+            "小事一桩",
+            "我不介意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "lovers",
+      "rank": 7,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：好像不错啊",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 375,
+        "quote": "对话选择：好像不错啊（1）"
+      },
+      "sequence": [
+        "好像不错啊"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "好像不错啊"
+          ],
+          "sequence": [
+            "好像不错啊"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "lovers",
+      "rank": 8,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：好啊",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 416,
+        "quote": "对话选择：好啊（1）/任意"
+      },
+      "sequence": [
+        "好啊",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "好啊"
+          ],
+          "sequence": [
+            "好啊",
+            "任意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "lovers",
+      "rank": 9,
+      "new": true,
+      "approvalStatusZh": "按路线拟加入",
+      "approvedShortPreview": "恋人：答：…… / 我喜欢你；朋友：别选「我喜欢你」",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 471,
+        "quote": "对话选择：。。。。。（2）/我喜欢你（恋人线）"
+      },
+      "sequence": [
+        "……",
+        "我喜欢你"
+      ],
+      "variants": {
+        "romance": {
+          "choices": [
+            "……",
+            "我喜欢你"
+          ],
+          "sequence": [
+            "……",
+            "我喜欢你"
+          ]
+        },
+        "friend": {
+          "choices": [],
+          "avoid": [
+            "我喜欢你"
+          ],
+          "sequence": [
+            "朋友路线不要选择「我喜欢你」；该路线其余具体回答待核对。"
+          ],
+          "noteZh": "友情路线的其余具体问答待核对。",
+          "shortNoteZh": ""
+        }
+      },
+      "guardNoteZh": "恋人显示这组具体回答；朋友只明确提示已知应避开的告白，不补造友情最佳选项。"
+    },
+    {
+      "link": "chariot",
+      "rank": 4,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：那你真是受罪了",
+      "source": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 200,
+        "quote": "任意/那你真是受罪了（2）"
+      },
+      "sequence": [
+        "任意",
+        "那你真是受罪了"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "那你真是受罪了"
+          ],
+          "sequence": [
+            "任意",
+            "那你真是受罪了"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "chariot",
+      "rank": 5,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：刚从医院回来？ / 我扶你起来吧",
+      "source": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 391,
+        "quote": "刚从医院回来？（1）/我扶你起来吧（1）"
+      },
+      "sequence": [
+        "刚从医院回来？",
+        "我扶你起来吧"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "刚从医院回来？",
+            "我扶你起来吧"
+          ],
+          "sequence": [
+            "刚从医院回来？",
+            "我扶你起来吧"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "chariot",
+      "rank": 6,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：拿出毅力来 / 为什么要做到这个地步？ / 那你的膝盖怎么办？",
+      "source": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 543,
+        "quote": "拿出毅力来（2）/为什么要做到这个地步？（2）/\n那你的膝盖怎么办？（2）"
+      },
+      "sequence": [
+        "拿出毅力来",
+        "为什么要做到这个地步？",
+        "那你的膝盖怎么办？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "拿出毅力来",
+            "为什么要做到这个地步？",
+            "那你的膝盖怎么办？"
+          ],
+          "sequence": [
+            "拿出毅力来",
+            "为什么要做到这个地步？",
+            "那你的膝盖怎么办？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "chariot",
+      "rank": 7,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：状态怎么样？ / 拿出毅力来",
+      "source": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 709,
+        "quote": "状态怎么样？（1）/拿出毅力来（1）"
+      },
+      "sequence": [
+        "状态怎么样？",
+        "拿出毅力来"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "状态怎么样？",
+            "拿出毅力来"
+          ],
+          "sequence": [
+            "状态怎么样？",
+            "拿出毅力来"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "chariot",
+      "rank": 8,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：选「……」（保持沉默）",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 465,
+        "quote": "和言本对话对话选择：。。。。。（2）"
+      },
+      "sequence": [
+        "……"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "……"
+          ],
+          "sequence": [
+            "……"
+          ],
+          "shortChoices": [
+            "选「……」（保持沉默）"
+          ],
+          "noteZh": "这里的省略号是保持沉默的选项，不是文字被截断。",
+          "shortNoteZh": ""
+        }
+      },
+      "guardNoteZh": "这里的省略号是游戏中的沉默选项，不是把文本截断。"
+    },
+    {
+      "link": "chariot",
+      "rank": 9,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：没问题",
+      "source": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 425,
+        "quote": "对话选择：没问题（1）"
+      },
+      "sequence": [
+        "没问题"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "没问题"
+          ],
+          "sequence": [
+            "没问题"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "justice",
+      "rank": 2,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：不用放在心上 / 文学小说或漫画 / 很开心",
+      "source": {
+        "id": "cn_3dm_p3",
+        "path": "rules/sources/cn_guides/3dm_p3.html",
+        "line": 708,
+        "quote": "不用放在心上（1）/文学小说或者漫画/很开心（1）/任意/任意"
+      },
+      "sequence": [
+        "不用放在心上",
+        "文学小说或漫画",
+        "很开心",
+        "任意",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "不用放在心上",
+            "文学小说或漫画",
+            "很开心"
+          ],
+          "sequence": [
+            "不用放在心上",
+            "文学小说或漫画",
+            "很开心",
+            "任意",
+            "任意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "justice",
+      "rank": 4,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：我在你身边",
+      "source": {
+        "id": "cn_3dm_p3",
+        "path": "rules/sources/cn_guides/3dm_p3.html",
+        "line": 894,
+        "quote": "任意/我在你身边（2）"
+      },
+      "sequence": [
+        "任意",
+        "我在你身边"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "我在你身边"
+          ],
+          "sequence": [
+            "任意",
+            "我在你身边"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "justice",
+      "rank": 6,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：很有趣吗？ / 什么意思？",
+      "source": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 320,
+        "quote": "很有趣吗？（1）/什么意思？（2）"
+      },
+      "sequence": [
+        "很有趣吗？",
+        "什么意思？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "很有趣吗？",
+            "什么意思？"
+          ],
+          "sequence": [
+            "很有趣吗？",
+            "什么意思？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "justice",
+      "rank": 7,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：感觉有什么误会 / 得想想办法才行",
+      "source": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 566,
+        "quote": "感觉有什么误会（2）/得想想办法才行（2）"
+      },
+      "sequence": [
+        "感觉有什么误会",
+        "得想想办法才行"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "感觉有什么误会",
+            "得想想办法才行"
+          ],
+          "sequence": [
+            "感觉有什么误会",
+            "得想想办法才行"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "justice",
+      "rank": 8,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：我知道你是清白的",
+      "source": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 732,
+        "quote": "任意/我知道你是清白的（2）"
+      },
+      "sequence": [
+        "任意",
+        "我知道你是清白的"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "我知道你是清白的"
+          ],
+          "sequence": [
+            "任意",
+            "我知道你是清白的"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "hermit",
+      "rank": 7,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：必须年轻",
+      "source": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 618,
+        "quote": "必须年轻（3）/任意"
+      },
+      "sequence": [
+        "必须年轻",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "必须年轻"
+          ],
+          "sequence": [
+            "必须年轻",
+            "任意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "hermit",
+      "rank": 8,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：你还打算说吗？ / 是怎样的一个人？",
+      "source": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 767,
+        "quote": "你还打算说吗？（2）/是怎样的一个人？（1）"
+      },
+      "sequence": [
+        "你还打算说吗？",
+        "是怎样的一个人？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "你还打算说吗？",
+            "是怎样的一个人？"
+          ],
+          "sequence": [
+            "你还打算说吗？",
+            "是怎样的一个人？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "hermit",
+      "rank": 9,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：开什么玩笑 / 你打算做什么？",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 699,
+        "quote": "开什么玩笑（2）/任意/你打算做什么？（1）"
+      },
+      "sequence": [
+        "开什么玩笑",
+        "任意",
+        "你打算做什么？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "开什么玩笑",
+            "你打算做什么？"
+          ],
+          "sequence": [
+            "开什么玩笑",
+            "任意",
+            "你打算做什么？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "fortune",
+      "rank": 2,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：怎么回答都可以",
+      "source": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 223,
+        "quote": "任意/任意"
+      },
+      "sequence": [
+        "任意",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [],
+          "sequence": [
+            "任意",
+            "任意"
+          ],
+          "any": true
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "fortune",
+      "rank": 3,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：这是平贺的实力",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 254,
+        "quote": "对话选择：这是平贺的实力（1）/任意"
+      },
+      "sequence": [
+        "这是平贺的实力",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "这是平贺的实力"
+          ],
+          "sequence": [
+            "这是平贺的实力",
+            "任意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "fortune",
+      "rank": 4,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：在这里闹腾也没有意义",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 391,
+        "quote": "对话选择：任意/在这里闹腾也没有意义（1）"
+      },
+      "sequence": [
+        "任意",
+        "在这里闹腾也没有意义"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "在这里闹腾也没有意义"
+          ],
+          "sequence": [
+            "任意",
+            "在这里闹腾也没有意义"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "fortune",
+      "rank": 6,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：随你喜欢就行",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 438,
+        "quote": "对话选择：任意/随你喜欢就行（2）"
+      },
+      "sequence": [
+        "任意",
+        "随你喜欢就行"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "随你喜欢就行"
+          ],
+          "sequence": [
+            "任意",
+            "随你喜欢就行"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "fortune",
+      "rank": 7,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：你要当医生吗？",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 446,
+        "quote": "对话选择：你要当医生吗?（1）"
+      },
+      "sequence": [
+        "你要当医生吗？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "你要当医生吗？"
+          ],
+          "sequence": [
+            "你要当医生吗？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "fortune",
+      "rank": 8,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：没问题",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 456,
+        "quote": "对话选择：没问题（1）/任意/任意"
+      },
+      "sequence": [
+        "没问题",
+        "任意",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "没问题"
+          ],
+          "sequence": [
+            "没问题",
+            "任意",
+            "任意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "fortune",
+      "rank": 9,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：你不能走",
+      "source": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 320,
+        "quote": "对话选择：你不能走（1）/任意/任意/任意/任意"
+      },
+      "sequence": [
+        "你不能走",
+        "任意",
+        "任意",
+        "任意",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "你不能走"
+          ],
+          "sequence": [
+            "你不能走",
+            "任意",
+            "任意",
+            "任意",
+            "任意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "strength",
+      "rank": 4,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：当然可以",
+      "source": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 252,
+        "quote": "任意/当然可以（1）"
+      },
+      "sequence": [
+        "任意",
+        "当然可以"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "当然可以"
+          ],
+          "sequence": [
+            "任意",
+            "当然可以"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "strength",
+      "rank": 5,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：因为教得好 / 我相信结子",
+      "source": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 418,
+        "quote": "因为教得好（3）/我相信结子（3）"
+      },
+      "sequence": [
+        "因为教得好",
+        "我相信结子"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "因为教得好",
+            "我相信结子"
+          ],
+          "sequence": [
+            "因为教得好",
+            "我相信结子"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "strength",
+      "rank": 6,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：相信他们吧",
+      "source": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 490,
+        "quote": "任意/相信他们吧（2）"
+      },
+      "sequence": [
+        "任意",
+        "相信他们吧"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "相信他们吧"
+          ],
+          "sequence": [
+            "任意",
+            "相信他们吧"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "strength",
+      "rank": 8,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：男孩或女孩",
+      "source": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 764,
+        "quote": "任意/任意/男孩或者女孩"
+      },
+      "sequence": [
+        "任意",
+        "任意",
+        "男孩或女孩"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "男孩或女孩"
+          ],
+          "sequence": [
+            "任意",
+            "任意",
+            "男孩或女孩"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "strength",
+      "rank": 9,
+      "new": false,
+      "approvalStatusZh": "按路线拟修正",
+      "approvedShortPreview": "恋人：答：教练员？ / 因为我喜欢你；朋友：别选「因为我喜欢你」",
+      "source": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 346,
+        "quote": "对话选择：任意/教练员?（2）/任意/因为我喜欢你（1，进入恋人线）/任意"
+      },
+      "sequence": [
+        "任意",
+        "教练员？",
+        "任意",
+        "因为我喜欢你",
+        "任意"
+      ],
+      "variants": {
+        "romance": {
+          "choices": [
+            "教练员？",
+            "因为我喜欢你"
+          ],
+          "sequence": [
+            "任意",
+            "教练员？",
+            "任意",
+            "因为我喜欢你",
+            "任意"
+          ]
+        },
+        "friend": {
+          "choices": [],
+          "avoid": [
+            "因为我喜欢你"
+          ],
+          "sequence": [
+            "朋友路线不要选择「因为我喜欢你」；该路线其余具体回答待核对。"
+          ],
+          "noteZh": "友情路线的其余具体问答待核对。",
+          "shortNoteZh": ""
+        }
+      },
+      "guardNoteZh": "恋人显示这组具体回答；朋友只明确提示已知应避开的告白，不补造友情最佳选项。"
+    },
+    {
+      "link": "hanged_man",
+      "rank": 2,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：走吧！",
+      "source": {
+        "id": "cn_3dm_p3",
+        "path": "rules/sources/cn_guides/3dm_p3.html",
+        "line": 493,
+        "quote": "走吧！（1）/任意/任意"
+      },
+      "sequence": [
+        "走吧！",
+        "任意",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "走吧！"
+          ],
+          "sequence": [
+            "走吧！",
+            "任意",
+            "任意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "hanged_man",
+      "rank": 4,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：那太好了",
+      "source": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 368,
+        "quote": "那太好了（1）"
+      },
+      "sequence": [
+        "那太好了"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "那太好了"
+          ],
+          "sequence": [
+            "那太好了"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "hanged_man",
+      "rank": 5,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：太过分了 / 没那回事",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 242,
+        "quote": "太过分了（1）/没那回事（2）"
+      },
+      "sequence": [
+        "太过分了",
+        "没那回事"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "太过分了",
+            "没那回事"
+          ],
+          "sequence": [
+            "太过分了",
+            "没那回事"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "hanged_man",
+      "rank": 6,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：冷静点或随你喜欢 / 有那些就足够了",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 368,
+        "quote": "冷静点或者随你喜欢/有那些就足够了（1）"
+      },
+      "sequence": [
+        "冷静点或随你喜欢",
+        "有那些就足够了"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "冷静点或随你喜欢",
+            "有那些就足够了"
+          ],
+          "sequence": [
+            "冷静点或随你喜欢",
+            "有那些就足够了"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "hanged_man",
+      "rank": 7,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：怎么回答都可以",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 598,
+        "quote": "任意/任意"
+      },
+      "sequence": [
+        "任意",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [],
+          "sequence": [
+            "任意",
+            "任意"
+          ],
+          "any": true
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "hanged_man",
+      "rank": 8,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：想吃汉堡 / 很乖 / 爸爸",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 725,
+        "quote": "想吃汉堡（1）/很乖（1）/爸爸（1）"
+      },
+      "sequence": [
+        "想吃汉堡",
+        "很乖",
+        "爸爸"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "想吃汉堡",
+            "很乖",
+            "爸爸"
+          ],
+          "sequence": [
+            "想吃汉堡",
+            "很乖",
+            "爸爸"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "hanged_man",
+      "rank": 9,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：我们永远是朋友",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 771,
+        "quote": "我们永远是朋友（1）"
+      },
+      "sequence": [
+        "我们永远是朋友"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "我们永远是朋友"
+          ],
+          "sequence": [
+            "我们永远是朋友"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "temperance",
+      "rank": 2,
+      "new": false,
+      "approvalStatusZh": "拟修正",
+      "approvedShortPreview": "答：我也这么想",
+      "source": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 464,
+        "quote": "任意/我也这么想（1）"
+      },
+      "sequence": [
+        "任意",
+        "我也这么想"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "我也这么想"
+          ],
+          "sequence": [
+            "任意",
+            "我也这么想"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "temperance",
+      "rank": 3,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：和服怎么样？",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 301,
+        "quote": "对话选择：任意/和服怎么样?（3）"
+      },
+      "sequence": [
+        "任意",
+        "和服怎么样？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "和服怎么样？"
+          ],
+          "sequence": [
+            "任意",
+            "和服怎么样？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "temperance",
+      "rank": 4,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：你看起来没精神啊",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 428,
+        "quote": "对话选择：你看起来没精神啊（3）/任意"
+      },
+      "sequence": [
+        "你看起来没精神啊",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "你看起来没精神啊"
+          ],
+          "sequence": [
+            "你看起来没精神啊",
+            "任意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "temperance",
+      "rank": 5,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：走吧 / 留在日本吧",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 384,
+        "quote": "对话选择：走吧（1）/留在日本吧（2）"
+      },
+      "sequence": [
+        "走吧",
+        "留在日本吧"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "走吧",
+            "留在日本吧"
+          ],
+          "sequence": [
+            "走吧",
+            "留在日本吧"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "temperance",
+      "rank": 6,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：休息一下吧 / 我支持你",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 409,
+        "quote": "对话选择：休息一下吧（2）/任意/我支持你（1）"
+      },
+      "sequence": [
+        "休息一下吧",
+        "任意",
+        "我支持你"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "休息一下吧",
+            "我支持你"
+          ],
+          "sequence": [
+            "休息一下吧",
+            "任意",
+            "我支持你"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "temperance",
+      "rank": 7,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：我觉得是个好办法",
+      "source": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 283,
+        "quote": "对话选择：我觉得是个好办法（2）"
+      },
+      "sequence": [
+        "我觉得是个好办法"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "我觉得是个好办法"
+          ],
+          "sequence": [
+            "我觉得是个好办法"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "temperance",
+      "rank": 8,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：应该会承认的",
+      "source": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 313,
+        "quote": "对话选择：应该会承认的（2）"
+      },
+      "sequence": [
+        "应该会承认的"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "应该会承认的"
+          ],
+          "sequence": [
+            "应该会承认的"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "temperance",
+      "rank": 9,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：你不怀念祖国吗？",
+      "source": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 337,
+        "quote": "对话选择：你不怀念祖国吗?（2）"
+      },
+      "sequence": [
+        "你不怀念祖国吗？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "你不怀念祖国吗？"
+          ],
+          "sequence": [
+            "你不怀念祖国吗？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "devil",
+      "rank": 3,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：可能有些兴趣",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 756,
+        "quote": "可能有些兴趣（1）"
+      },
+      "sequence": [
+        "可能有些兴趣"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "可能有些兴趣"
+          ],
+          "sequence": [
+            "可能有些兴趣"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "devil",
+      "rank": 4,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：有！",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 257,
+        "quote": "确保身上持有\"恶魔\"面具,和西装男对话对话选择：有!（1）"
+      },
+      "sequence": [
+        "有！"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "有！"
+          ],
+          "sequence": [
+            "有！"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "devil",
+      "rank": 5,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：「那家伙」是？ / 说来说去都是钱",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 306,
+        "quote": "对话选择：∵\"那家伙\"是?（2）/任意/说来说去都是钱（1）"
+      },
+      "sequence": [
+        "「那家伙」是？",
+        "任意",
+        "说来说去都是钱"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "「那家伙」是？",
+            "说来说去都是钱"
+          ],
+          "sequence": [
+            "「那家伙」是？",
+            "任意",
+            "说来说去都是钱"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "devil",
+      "rank": 6,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：好像很有趣",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 375,
+        "quote": "确保身上持有“恶魔”面具，和西装男对话对话选择：好像很有趣（1）"
+      },
+      "sequence": [
+        "好像很有趣"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "好像很有趣"
+          ],
+          "sequence": [
+            "好像很有趣"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "devil",
+      "rank": 7,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：好像是有 / 歪歪扭扭的黄瓜",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 405,
+        "quote": "对话选择：好像是有（1）/歪歪扭扭的黄瓜（1）"
+      },
+      "sequence": [
+        "好像是有",
+        "歪歪扭扭的黄瓜"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "好像是有",
+            "歪歪扭扭的黄瓜"
+          ],
+          "sequence": [
+            "好像是有",
+            "歪歪扭扭的黄瓜"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "devil",
+      "rank": 8,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：你知道是怎么回事吗？",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 441,
+        "quote": "对话选择：你知道是怎么回事吗?（2）"
+      },
+      "sequence": [
+        "你知道是怎么回事吗？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "你知道是怎么回事吗？"
+          ],
+          "sequence": [
+            "你知道是怎么回事吗？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "devil",
+      "rank": 9,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：你要捐款吗？",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 274,
+        "quote": "对话选择：你要捐款吗?（1）"
+      },
+      "sequence": [
+        "你要捐款吗？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "你要捐款吗？"
+          ],
+          "sequence": [
+            "你要捐款吗？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "tower",
+      "rank": 3,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：我没有朋友",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 401,
+        "quote": "我没有朋友（2）"
+      },
+      "sequence": [
+        "我没有朋友"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "我没有朋友"
+          ],
+          "sequence": [
+            "我没有朋友"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "tower",
+      "rank": 4,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：剃光或许也不错",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 709,
+        "quote": "剃光或许也不错（1）"
+      },
+      "sequence": [
+        "剃光或许也不错"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "剃光或许也不错"
+          ],
+          "sequence": [
+            "剃光或许也不错"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "tower",
+      "rank": 5,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：还是没什么问题的 / 没有",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 824,
+        "quote": "还是没什么问题的（1）/没有（2）"
+      },
+      "sequence": [
+        "还是没什么问题的",
+        "没有"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "还是没什么问题的",
+            "没有"
+          ],
+          "sequence": [
+            "还是没什么问题的",
+            "没有"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "tower",
+      "rank": 6,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：最好回去休息 / 寺庙里没有工作人员吗？",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 873,
+        "quote": "最好回去休息（2）/寺庙里没有工作人员吗？（2）"
+      },
+      "sequence": [
+        "最好回去休息",
+        "寺庙里没有工作人员吗？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "最好回去休息",
+            "寺庙里没有工作人员吗？"
+          ],
+          "sequence": [
+            "最好回去休息",
+            "寺庙里没有工作人员吗？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "tower",
+      "rank": 7,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：还是算了吧",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 269,
+        "quote": "对话选择：还是算了吧（2）"
+      },
+      "sequence": [
+        "还是算了吧"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "还是算了吧"
+          ],
+          "sequence": [
+            "还是算了吧"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "tower",
+      "rank": 8,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：爸爸？ / 和朋友玩去了 / 你在逃避？",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 279,
+        "quote": "对话选择：爸爸?（2）/和朋友玩去了（1）/任意/你在逃避?（2）"
+      },
+      "sequence": [
+        "爸爸？",
+        "和朋友玩去了",
+        "任意",
+        "你在逃避？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "爸爸？",
+            "和朋友玩去了",
+            "你在逃避？"
+          ],
+          "sequence": [
+            "爸爸？",
+            "和朋友玩去了",
+            "任意",
+            "你在逃避？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "star",
+      "rank": 2,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：不会有压力吗？ / 自己才是对手",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 653,
+        "quote": "不会有压力吗？（2）/自己才是对手（2）"
+      },
+      "sequence": [
+        "不会有压力吗？",
+        "自己才是对手"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "不会有压力吗？",
+            "自己才是对手"
+          ],
+          "sequence": [
+            "不会有压力吗？",
+            "自己才是对手"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "star",
+      "rank": 4,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：是一个好机会 / 肯定能",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 410,
+        "quote": "对话选择：任意/是一个好机会（1）/肯定能（2）"
+      },
+      "sequence": [
+        "任意",
+        "是一个好机会",
+        "肯定能"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "是一个好机会",
+            "肯定能"
+          ],
+          "sequence": [
+            "任意",
+            "是一个好机会",
+            "肯定能"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "star",
+      "rank": 6,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：没关系",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 323,
+        "quote": "2.任意/任意/任意/没关系"
+      },
+      "sequence": [
+        "任意",
+        "任意",
+        "任意",
+        "没关系"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "没关系"
+          ],
+          "sequence": [
+            "任意",
+            "任意",
+            "任意",
+            "没关系"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "star",
+      "rank": 7,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：没关系 / 不要放弃",
+      "source": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 252,
+        "quote": "对话选择：没关系（2）/任意/任意/不要放弃（2）"
+      },
+      "sequence": [
+        "没关系",
+        "任意",
+        "任意",
+        "不要放弃"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "没关系",
+            "不要放弃"
+          ],
+          "sequence": [
+            "没关系",
+            "任意",
+            "任意",
+            "不要放弃"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "star",
+      "rank": 8,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：应该带些回去",
+      "source": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 354,
+        "quote": "对话选择：应该带些回去（1）/任意"
+      },
+      "sequence": [
+        "应该带些回去",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "应该带些回去"
+          ],
+          "sequence": [
+            "应该带些回去",
+            "任意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "star",
+      "rank": 9,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：赢了吗？ / 恭喜 / 谢谢",
+      "source": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 286,
+        "quote": "对话选择：嬴了吗?（1）/恭喜（2）/任意/谢谢（1）"
+      },
+      "sequence": [
+        "赢了吗？",
+        "恭喜",
+        "任意",
+        "谢谢"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "赢了吗？",
+            "恭喜",
+            "谢谢"
+          ],
+          "sequence": [
+            "赢了吗？",
+            "恭喜",
+            "任意",
+            "谢谢"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "moon",
+      "rank": 2,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：是的",
+      "source": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 449,
+        "quote": "是的（1）"
+      },
+      "sequence": [
+        "是的"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "是的"
+          ],
+          "sequence": [
+            "是的"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "moon",
+      "rank": 3,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：美食大王",
+      "source": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 505,
+        "quote": "美食大王（2）"
+      },
+      "sequence": [
+        "美食大王"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "美食大王"
+          ],
+          "sequence": [
+            "美食大王"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "moon",
+      "rank": 4,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：身体不舒服？",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 266,
+        "quote": "身体不舒服？（2）"
+      },
+      "sequence": [
+        "身体不舒服？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "身体不舒服？"
+          ],
+          "sequence": [
+            "身体不舒服？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "moon",
+      "rank": 5,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：说得没错",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 292,
+        "quote": "说得没错（1）"
+      },
+      "sequence": [
+        "说得没错"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "说得没错"
+          ],
+          "sequence": [
+            "说得没错"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "moon",
+      "rank": 6,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：生病了？",
+      "source": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 748,
+        "quote": "生病了？（3）"
+      },
+      "sequence": [
+        "生病了？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "生病了？"
+          ],
+          "sequence": [
+            "生病了？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "moon",
+      "rank": 7,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：毁灭？",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 286,
+        "quote": "对话选择：毁灭?（3）/任意"
+      },
+      "sequence": [
+        "毁灭？",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "毁灭？"
+          ],
+          "sequence": [
+            "毁灭？",
+            "任意"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "moon",
+      "rank": 8,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：没那回事",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 307,
+        "quote": "对话选择：没那回事（2）"
+      },
+      "sequence": [
+        "没那回事"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "没那回事"
+          ],
+          "sequence": [
+            "没那回事"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "moon",
+      "rank": 9,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：怎么回答都可以",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 332,
+        "quote": "2.确保身上持有“月亮\"面具，到桐叶购物中心和末光望美对话对话选择：任意"
+      },
+      "sequence": [
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [],
+          "sequence": [
+            "任意"
+          ],
+          "any": true
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "sun",
+      "rank": 2,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：是吗？ / 有点道理",
+      "source": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 448,
+        "quote": "对话选择：是吗?（2）/有点道理（1）"
+      },
+      "sequence": [
+        "是吗？",
+        "有点道理"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "是吗？",
+            "有点道理"
+          ],
+          "sequence": [
+            "是吗？",
+            "有点道理"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "sun",
+      "rank": 4,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：喜欢 / 无聊的话就会中途放弃",
+      "source": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 364,
+        "quote": "对话选择：喜欢（1）/无聊的话就会中途放弃（2）"
+      },
+      "sequence": [
+        "喜欢",
+        "无聊的话就会中途放弃"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "喜欢",
+            "无聊的话就会中途放弃"
+          ],
+          "sequence": [
+            "喜欢",
+            "无聊的话就会中途放弃"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "sun",
+      "rank": 5,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：你缺乏自觉",
+      "source": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 389,
+        "quote": "对话选择：你缺乏自觉（1）"
+      },
+      "sequence": [
+        "你缺乏自觉"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "你缺乏自觉"
+          ],
+          "sequence": [
+            "你缺乏自觉"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "sun",
+      "rank": 6,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：我觉得不错 / 好像很有意思",
+      "source": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 416,
+        "quote": "对话选择：我觉得不错（1）/好像很有意思（1）"
+      },
+      "sequence": [
+        "我觉得不错",
+        "好像很有意思"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "我觉得不错",
+            "好像很有意思"
+          ],
+          "sequence": [
+            "我觉得不错",
+            "好像很有意思"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "sun",
+      "rank": 7,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：这个故事好阴暗",
+      "source": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 345,
+        "quote": "对话选择：这个故事好阴暗（2）"
+      },
+      "sequence": [
+        "这个故事好阴暗"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "这个故事好阴暗"
+          ],
+          "sequence": [
+            "这个故事好阴暗"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "sun",
+      "rank": 8,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：我等你 / 为什么要停药？",
+      "source": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 370,
+        "quote": "对话选择：我等你（1） /为什么要停药?（2）"
+      },
+      "sequence": [
+        "我等你",
+        "为什么要停药？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "我等你",
+            "为什么要停药？"
+          ],
+          "sequence": [
+            "我等你",
+            "为什么要停药？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "sun",
+      "rank": 9,
+      "new": true,
+      "approvalStatusZh": "拟加入",
+      "approvedShortPreview": "答：故事写完了？",
+      "source": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 422,
+        "quote": "对话选择：故事写完了?（2）"
+      },
+      "sequence": [
+        "故事写完了？"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "故事写完了？"
+          ],
+          "sequence": [
+            "故事写完了？"
+          ]
+        }
+      },
+      "guardNoteZh": ""
+    },
+    {
+      "link": "aeon",
+      "rank": 4,
+      "new": false,
+      "approvalStatusZh": "有条件拟修正",
+      "approvedShortPreview": "答：好",
+      "source": {
+        "id": "cn_gamersky_p10",
+        "path": "rules/sources/cn_guides/gamersky_p10.html",
+        "line": 330,
+        "quote": "和埃葵斯对话，对话选择：任意/任意/好（1）/任意",
+        "correction": {
+          "id": "cn_guide",
+          "path": "rules/sources/cn_guides/data.json",
+          "line": 7312
+        }
+      },
+      "sequence": [
+        "任意",
+        "任意（仅在前一问选择第1项时出现）",
+        "好",
+        "任意"
+      ],
+      "variants": {
+        "common": {
+          "choices": [
+            "好"
+          ],
+          "sequence": [
+            "任意",
+            "任意（仅在前一问选择第1项时出现）",
+            "好",
+            "任意"
+          ],
+          "noteZh": "第二问仅在前一问选择第1项时出现；其他已出现的问题随意。该首问选项的中文原文待核对。",
+          "shortNoteZh": ""
+        }
+      },
+      "guardNoteZh": "原文＋现有修订。其他已出现的问题随意；分支问题可能不出现。完整条件保留在详情，不伪造缺失的首问中文选项。"
+    },
+    {
+      "link": "aeon",
+      "rank": 8,
+      "new": false,
+      "approvalStatusZh": "按路线拟修正",
+      "approvedShortPreview": "恋人：答：现在就是啊 / 是恋情；朋友：别选「是恋情」",
+      "source": {
+        "id": "cn_gamersky_p10",
+        "path": "rules/sources/cn_guides/gamersky_p10.html",
+        "line": 367,
+        "quote": "和埃葵斯对话，对话选择：现在就是啊（2）/任意/是恋情（1，恋人线）"
+      },
+      "sequence": [
+        "现在就是啊",
+        "任意",
+        "是恋情"
+      ],
+      "variants": {
+        "romance": {
+          "choices": [
+            "现在就是啊",
+            "是恋情"
+          ],
+          "sequence": [
+            "现在就是啊",
+            "任意",
+            "是恋情"
+          ],
+          "noteZh": "本句用于保留恋爱分支，不等于现在确定恋爱关系。",
+          "shortNoteZh": ""
+        },
+        "friend": {
+          "choices": [],
+          "avoid": [
+            "是恋情"
+          ],
+          "sequence": [
+            "朋友路线不要选择「是恋情」；该路线其余具体回答待核对。"
+          ],
+          "noteZh": "友情路线的其余具体问答待核对。",
+          "shortNoteZh": ""
+        }
+      },
+      "guardNoteZh": "恋人目标显示这组具体回答；「是恋情」用于保留恋爱分支，不等于现在确定关系。朋友只明确提示应避开的前置选项，不补造友情最佳回答。"
+    },
+    {
+      "link": "aeon",
+      "rank": 9,
+      "new": false,
+      "approvalStatusZh": "按路线拟修正",
+      "approvedShortPreview": "恋人：答：是啊 / 我也喜欢你；朋友：友情路线具体问答待核对，暂不新增",
+      "source": {
+        "id": "cn_gamersky_p10",
+        "path": "rules/sources/cn_guides/gamersky_p10.html",
+        "line": 375,
+        "quote": "和埃葵斯对话,对话选择：是啊（1）/我也喜欢你（1）"
+      },
+      "sequence": [
+        "是啊",
+        "我也喜欢你"
+      ],
+      "variants": {
+        "romance": {
+          "choices": [
+            "是啊",
+            "我也喜欢你"
+          ],
+          "sequence": [
+            "是啊",
+            "我也喜欢你"
+          ]
+        }
+      },
+      "guardNoteZh": "本组原文仅作为恋人路线预览；不推断友情路线有相同问题或选项。"
+    }
+  ],
+  "heldCandidates": [
+    {
+      "link": "empress",
+      "rank": 6,
+      "new": true,
+      "reasonZh": "原文首问“需要找帮忙吗？”疑似缺字，先不发布整条。"
+    },
+    {
+      "link": "hierophant",
+      "rank": 7,
+      "new": false,
+      "reasonZh": "原文第二问“那天好了”疑似错字，先不把猜测写进推荐。"
+    },
+    {
+      "link": "hierophant",
+      "rank": 9,
+      "new": true,
+      "reasonZh": "固定攻略写任意，但Reload加点资料列有具体加分回答；需先找到匹配中文推荐。"
+    },
+    {
+      "link": "justice",
+      "rank": 9,
+      "new": false,
+      "reasonZh": "末问只有恋人／朋友的编号，缺核实后的中文选项；先不发布整条替换。"
+    },
+    {
+      "link": "fortune",
+      "rank": 5,
+      "new": true,
+      "reasonZh": "固定攻略写任意，但Reload加点资料列有具体加分回答；需先找到匹配中文推荐。"
+    },
+    {
+      "link": "strength",
+      "rank": 7,
+      "new": false,
+      "reasonZh": "首问仅有避开编号的说明，末问数字与旧资料冲突；核实后再给整场推荐。"
+    },
+    {
+      "link": "tower",
+      "rank": 9,
+      "new": true,
+      "reasonZh": "固定攻略写任意，但Reload加点资料列有具体加分回答；需先找到匹配中文推荐。"
+    },
+    {
+      "link": "star",
+      "rank": 3,
+      "new": true,
+      "reasonZh": "固定攻略写任意，但Reload加点资料列有具体加分回答；需先找到匹配中文推荐。"
+    }
+  ],
+  "pendingOutsideApproval": [
+    {
+      "label": "女教皇 R2",
+      "preview": "没问题 / 没问题（中间一问随意）",
+      "reason": "中文原文没有明示目标等级，确认归属前不加入。"
+    },
+    {
+      "label": "太阳 R3",
+      "preview": "我不知道 / 别说话了",
+      "reason": "原文把两场不同对话都标为R2，确认真实等级前不加入。"
+    },
+    {
+      "label": "恶魔 R10",
+      "preview": "不拟造答案",
+      "reason": "尚未找到明确推荐中文原文。"
+    },
+    {
+      "label": "女教皇 R8",
+      "preview": "暂不沿用“任意”作为通用最优指导",
+      "reason": "其他资料有具体加点推荐，需要匹配中文原文；不直接填译文。"
+    }
+  ]
+}

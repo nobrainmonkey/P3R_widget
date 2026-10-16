@@ -32,6 +32,7 @@ final class Simulator {
         Model m = new Model(rules, profile, options);
         SimState st = Kernel.normalize(m, state);
         checkTarget(m, action);
+        if (action.type == Action.Type.TARTARUS) m.initializeBatches(st);
         Kernel.Effect fx = new Kernel.Effect();
         Kernel.apply(m, st, Kernel.encode(action), fx);
         Engine.Applied out = new Engine.Applied();

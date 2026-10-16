@@ -615,8 +615,10 @@ public class AnswerRowRenderTest {
     public void routesNoDataAndFreeChoices() {
         Assume.assumeTrue("rule pack not available", pack != null);
         assertEquals("答：别选「我喜欢风花」", text(render(scene(meeting("priestess", 8, 9, false)), 320, 200), R.id.widget_dialogue_choices));
-        assertEquals("答：别选表白的回答", text(render(scene(meeting("strength", 7, 8, false)), 320, 200), R.id.widget_dialogue_choices));
-        assertEquals(View.GONE, render(scene(meeting("emperor", 3, 4, false)), 320, 200).findViewById(R.id.widget_dialogue_choices).getVisibility());
+        assertEquals("答：男孩或女孩", text(render(scene(meeting("strength", 7, 8, false)), 320, 200), R.id.widget_dialogue_choices));
+        assertEquals("答：别选表白的回答", text(render(scene(meeting("aeon", 8, 9, false)), 320, 200), R.id.widget_dialogue_choices));
+        assertEquals("答：你很努力啊", text(render(scene(meeting("emperor", 3, 4, false)), 320, 200), R.id.widget_dialogue_choices));
+        assertEquals(View.GONE, render(scene(meeting("priestess", 1, 2, false)), 320, 200).findViewById(R.id.widget_dialogue_choices).getVisibility());
         assertEquals("答：怎么回答都可以", text(render(scene(meeting("moon", 9, 10, false)), 320, 200), R.id.widget_dialogue_choices));
         // The full app line is read out.
         CardModel justice = model(scene(meeting("justice", 4, 5, false)));

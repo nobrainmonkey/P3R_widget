@@ -275,6 +275,39 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
     }
 
     @Test
+    public void aProgressCheckpointRetainsTheRecordedRescueTripContextAfterRestart() {
+        onboard(MAY12_EVE);
+        assertTrue(tower(MAY12_EVE, 27, true, 14_750).ok);
+        assertEquals(MAY12_EVE, observed().lastTowerSlot);
+
+        // Sync while the same missing-person window is still open. The latest checkpoint's
+        // event chain will now contain no tower row, so its saved observation must carry it.
+        SimState synced = observed().copy();
+        synced.cash = 15_000;
+        assertTrue(service.saveCheckpoint(id(), rev(), synced, null).ok);
+        assertEquals(0, service.snapshot().eventsSinceCheckpoint);
+        restart();
+        settle();
+
+        assertEquals(MAY12_EVE, observed().lastTowerSlot);
+        assertEquals(MAY12_EVE, planner.options.get(planner.options.size() - 1).lastTowerSlot);
+        assertEquals("restoring the context does not count another visit", 1, observed().towerVisits[1]);
+    }
+
+    @Test
+    public void rewindingACheckpointDoesNotTreatAFutureRecordedTripAsAlreadyCompleted() {
+        onboard(MAY12_EVE);
+        assertTrue(tower(MAY12_EVE, 27, true, 14_750).ok);
+        SimState earlier = observed().copy();
+        earlier.slot = MAY12_EVE;
+        assertTrue(service.saveCheckpoint(id(), rev(), earlier, null).ok);
+        settle();
+
+        assertEquals("the trip is no longer before the chosen observed slot", -1,
+                planner.options.get(planner.options.size() - 1).lastTowerSlot);
+    }
+
+    @Test
     public void historyLinesReadNaturally() {
         onboard(MAY12_DAY);
         assertTrue(record(MAY12_DAY, "meet:emperor", Outcome.Code.AS_PREDICTED).ok);

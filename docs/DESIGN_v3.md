@@ -522,3 +522,80 @@ Owner directive (spec §8): plan for a player who wants to see as much of the ga
 | 1/8 late start (every link but 恶魔 open) | 8 → 5 | 22 → 22 | 135 → 140 | 15 → 16 | 1 → 3 | 0 → 1 |
 
 (「尽量多 MAX」 → 「尽量都体验」; the lowest RANK is over the non-story links either plan unlocks, as `docs/PLAN_METRICS.md` writes it in 「最低 RANK（解锁的）」: from the 10/22 state 女皇 needs Academics MAX from Lv.4, about 40 evenings, which neither style buys, so the plain lowest RANK is 0 under both.) Against 10355be (breadth before → after): the new game with Persona for the goals only went from 19 to 20 MAX (rank sum 212 → 216, lowest RANK 7 → 8), the new game without Persona from one wasted daytime (4/23) to none; from 10/22 without goals the plan trades three links at RANK 5 or above for two more MAX (6 → 8 MAX, RANK ≥ 5 21 → 18). Goal profiles (`goalProfilesKeepTheGoalsAndStayBroad`: the 1/8 pair, the review's seven 10/22 sets and 12 seeded 10/22 profiles): every one keeps the promises (before: 必须 ①星 ②正义 ③命运 dominated, four profiles with 4–13 more wasted daytimes, five with a score below the 「尽量多 MAX」 plan's); over the set 421 links unlocked (before 428, 「尽量多 MAX」 414), rank sum 2,792 (2,771; 2,746), 274 at RANK 5 or above (294; 246), 236 wasted daytimes (280; 280). The 12 random triples of `PlanRealPackTest`: 233 unlocked (235; 228), rank sum 1,559 (1,555; 1,554), RANK ≥ 5 167 (177; 142), 132 wasted daytimes (136; 191). With the unlock promise (3.1.0 re-check) the same 22 profiles: 423 unlocked, rank sum 2,795, 274 at RANK 5 or above, 266 wasted daytimes (with 必须 女教皇 and every 羁绊剧情 track as a 23rd: 444, 2,930, 287, 290; 「尽量多 MAX」 435, 2,872, 257, 303); the random triples 238 unlocked, rank sum 1,568, RANK ≥ 5 163, 180 wasted daytimes: the links that stayed locked are open, paid with the daytimes their fees and stat gates take, still fewer than 「尽量多 MAX」 wastes. Not every profile is broader than its 10355be plan: 10/22 必须 女皇 (seed 7, profile 9) went from rank sum 122 and RANK ≥ 5 14 to 107 and 10, with 19 links unlocked (「尽量多 MAX」: 107, 8 and 18): the search finds a narrower plan under the new weights, although it would score the old one higher. `docs/PLAN_METRICS.md` lists every scenario with both styles' breadth columns.
+
+
+## 21. 3.2.0: Rescue batches, special menus and request tips
+
+- **Rescue scheduling.** The 13 `reminders.rescueGroups` are now gameplay inputs, not only
+  display data. `RescueBatches` covers their arrival/deadline intervals with enterable tower
+  evenings, grouping overlapping arrivals into the fewest trips where caps/locks permit.
+  Waiting is preferred while another arrival can share a safe trip. Candidate comparison
+  prioritizes missed groups and then late rescues before the existing strict goal order.
+  The existing one-day safety margin remains; actual game windows still include the limit.
+- **State boundary.** Two transient copied masks track forecast group coverage and lateness;
+  the original two serialized Social Link rescue bits retain their old meaning. Actual tower
+  recording stores optional `lastTowerSlot` (default -1 for old saves) in SimState so checkpoint
+  sync/restart retains the last actual trip. LedgerView ignores timestamps at/after the selected
+  observed slot when rewinding. Forecast visits do not write that actual timestamp. A trip in
+  an active group's window implies generic rescue coverage, as with existing reminders;
+  link-person rescue still needs explicit confirmation. A Maiko bit alone never confirms her
+  companion. Alternatives receive the same recorded visit context as normal planning.
+- **Independent validation.** PlanValidator separately checks activity prerequisites and
+  recognizes idle evenings that preserve a later combined rescue. It does not call the new
+  helper for transitions or productive-action checks. RescueBatches caches repeated decisions
+  by component/slot/coverage/visits; thread-local values are static and retain no Model.
+- **Menus.** Optional `Activity.requiresActivity` resolves another stable activity ID and is
+  rejected on unknown/cyclic references. A once-only ordinary discovery meal precedes each
+  repeatable special. Discovery uses the normal meal's cost/gain and the menu's evenings;
+  it need not wait for the stat gate. Wakatsu: Charm Lv.3, Sun/Mon/Thu/Fri evenings, ¥900,
+  Academics +4. Hagakure: Courage Lv.3, Tue/Wed/Fri evenings, ¥1,200, Charm +4. Existing
+  `used[]` persistence/remapping tracks discovery; unknown imported history re-learns once.
+  Weekend Wilduck remains excluded because Request 11 completion is not tracked. The
+  Hagakure Chinese dish name is generic until a Simplified Chinese source establishes it.
+- **Request detail.** Existing release/deadline reminders include 25 sourced how-to tips;
+  eight faculty-office reminders cover Request 75's repeated visits and one conditional
+  item explains Requests 77–81 outings. Completion/visit counts, inventory and request cash
+  effects are player-confirmed, not forecast. Taking/handing in a request is slot-free, while
+  the Request 11 burger challenge consumes an evening and ¥1,800. Display reminders do not
+  change plan identity; rescue windows now deliberately do affect scheduled actions.
+- **Breadth safeguard.** `keepsPromises` explicitly rejects leaving a link at RANK 0 when
+  the MAX-style reference completes it, including when another newly opened link keeps the
+  total unlock count equal. The existing score/unlock/rank/waste safeguards still apply.
+- **Regression baselines.** Real-pack MAX step fingerprints intentionally change for rescue
+  batching and menu choices; their reviewed 3.2.0 values replace the previous pack baseline.
+  Synthetic legacy MAX identity checks remain. Current scenario metrics are generated in
+  `docs/PLAN_METRICS.md`; historical numbers in earlier sections describe earlier versions.
+
+## 22. 3.2.0: Reviewed dialogue guidance
+
+- **Approved scope.** The immutable `docs/analysis/DIALOGUE_ADDITION_PREVIEW.md` is the
+  owner's approved wording snapshot. `rules/p3r/dialogue_guidance_approved.json` binds 115
+  scenes (88 new, 27 repairs) to that snapshot and pinned Chinese source files. Eight held
+  candidates remain outside the overlay. Build checks validate source hashes, scene sets,
+  citations, route variants and compact question counts; independent QA compares the wording
+  with the approved preview. Source identity is not an in-game accuracy claim.
+- **Data boundary.** Optional `links[].dialogueHints` stores reviewed common/friend/romance
+  variants with full ordered sequences, concrete choices, optional compact choices, named
+  answers to avoid and condition notes. Legacy `dialogue` arrays retain source sequences;
+  the builder no longer removes repeated fragments. The typed entry is authoritative:
+  if neither the selected route nor a common variant exists, the runtime shows uncertainty
+  instead of interpreting another route's raw array. Packs without this field keep the
+  existing parser and high-rank friendship guard.
+- **Readable wording.** The widget keeps recognizable Chinese answers in order, without
+  unverified numeric annotations. Slash separates successive prompts; 「或」 joins alternatives
+  within one prompt. Repeated answers survive. A sole final answer such as Lovers R5's
+  「抱歉」 carries 「最后一问」. Full details retain arbitrary prompts and route conditions.
+  Priestess R7's romance variant includes both required answers; friendship-only avoidance
+  names the known confession without inventing a best friendship answer. Aeon R8's detail
+  distinguishes a romance prerequisite from actually establishing the relationship.
+- **Small-card boundary.** The expanded real-plan matrix exposed three conditional answer
+  rows at 180×130dp and 115% font where the existing ladder kept only the class answer.
+  Before taking that fallback, TINY cards with both kinds try progressively smaller body
+  side padding and accept a candidate only when both kinds fit. Measuring, title fitting,
+  watermark reach and actual RemoteViews padding use the same value. Answer wording,
+  condition labels and minimum font sizes stay the same; ordinary cards keep their padding.
+- **Scope of the change.** Dialogue guidance changes presentation and provenance only;
+  affinity gains, thresholds, meeting availability and search priorities are unchanged by
+  this overlay. A mapped scene can still have an unverified branch or incomplete optimum
+  evidence. The before-change audit remains historical; final runtime coverage is recorded
+  separately after the implementation and must not be described as complete game coverage.

@@ -115,11 +115,13 @@ final class LedgerView {
         return block == null ? -1 : block.idx;
     }
 
-    /** Slot of the latest Tartarus evening recorded since the latest checkpoint (voided rows skipped), -1 if none. */
+    /** Latest recorded Tartarus evening, including context carried by a checkpoint; -1 if none before now. */
     int lastTowerSlot() {
-        int last = -1;
+        if (observed == null) return -1;
+        int last = observed.lastTowerSlot >= 0 && observed.lastTowerSlot < observed.slot
+                ? observed.lastTowerSlot : -1;
         for (EventRow row : chain) {
-            if (!row.voided && EventKind.TOWER.equals(row.kind)) {
+            if (!row.voided && EventKind.TOWER.equals(row.kind) && row.slot() < observed.slot) {
                 last = Math.max(last, row.slot());
             }
         }

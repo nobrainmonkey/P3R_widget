@@ -1,0 +1,5335 @@
+{
+  "schema": "p3r.dialogue_coverage.after.v1",
+  "date": "2026-10-16",
+  "generatedAtUtc": "2026-10-16T08:46:50.101944278Z",
+  "scopeZh": "19个手动社群RANK2–10的场景库存；朋友/恋人共342组合。数字不是单份计划中的提示频率，也不是完整最佳答案比例。剧情社群、RANK1解锁、普通邀约和羁绊剧情不在171中。",
+  "packIdentity": "3.2.0|bf3afaa44f15",
+  "packSha256": "bf3afaa44f156eb5177d2f11d73135025c3cfeb8a37793549e293fc8fb20be92",
+  "baselinePackIdentity": "3.2.0|2d37701105fe",
+  "baselinePackSha256": "2d37701105fe74cd38639de782c42d0778512dd1df5a8f17dd0a184296c4b31e",
+  "summary": {
+    "manualLinks": 19,
+    "targetRanks": [
+      2,
+      10
+    ],
+    "scenes": 171,
+    "routeSceneCombinations": 342,
+    "sourceBoundBefore": 75,
+    "sourceBoundAfter": 163,
+    "unmappedAfter": 8,
+    "approvedSceneEntries": 115,
+    "newSceneEntries": 88,
+    "repairedSceneEntries": 27,
+    "reviewedSourceFiles": 11,
+    "defaultFriendGenericFallbackBefore": 119,
+    "defaultFriendGenericFallbackAfter": 18,
+    "romanceGenericFallbackBefore": 107,
+    "romanceGenericFallbackAfter": 9,
+    "positivePointRank3Through9SourceScenes": 109,
+    "positivePointSourceScenesUnmappedAfter": 5,
+    "legacyPositivePointSourceScenesWithOnlyAnyAfter": 1
+  },
+  "approval": {
+    "date": "2026-10-16",
+    "document": "docs/analysis/DIALOGUE_ADDITION_PREVIEW.md",
+    "documentSha256": "b616fd53b00b82fdaa602545d79259cb54ed67ea75a6095b7e9dab9a6e355f0d",
+    "scope": "User approved 115 proposal scenes, comprising 88 new and 27 repairs; eight held candidates remain excluded. Approval is recorded here so builds do not depend on ephemeral QA drafts."
+  },
+  "behaviorChecks": {
+    "certainNonRankUpReturnsNone": 342,
+    "conditionalKeepsSameScenePayload": 342,
+    "reportedHoldReturnsNone": 342,
+    "routeSceneVariants": 342,
+    "rankUpMatchesSceneOutput": 342
+  },
+  "exactGenericFallbacksByContext": {
+    "romance.rankUp": 9,
+    "romance.scene": 9,
+    "defaultFriend.rankUp": 18,
+    "defaultFriend.scene": 18,
+    "romance.conditionalNonRankUp": 9,
+    "defaultFriend.conditionalNonRankUp": 18
+  },
+  "runtimeCategories": {
+    "definitionsZh": {
+      "reviewedChoices": "已审批的具体参考回答；不表示整场已证明最优",
+      "reviewedArbitraryAny": "已审批且没有已知正加点冲突的全段任意参考",
+      "reviewedAvoidOnly": "仅明确应避开的恋爱答案，未补造友情最佳回答",
+      "reviewedRouteMissing": "存在typed条目，但所选路线没有对应variant/common，保留中性提醒",
+      "legacyChoices": "仍使用旧片段解析的具体参考，未在本轮typed修订",
+      "legacyArbitraryAny": "旧解析器认为全段任意，未必已证明所有答案等价",
+      "legacyRouteSuppressed": "旧高阶友情策略隐藏片段",
+      "legacyOrdinalFiltered": "旧序号提示过滤后无可显示回答",
+      "legacyMissingFragments": "没有可绑定的参考片段"
+    },
+    "defaultFriend": {
+      "reviewedArbitraryAny": 4,
+      "legacyRouteSuppressed": 7,
+      "reviewedAvoidOnly": 5,
+      "legacyArbitraryAny": 6,
+      "legacyChoices": 34,
+      "reviewedChoices": 104,
+      "reviewedRouteMissing": 2,
+      "legacyOrdinalFiltered": 1,
+      "legacyMissingFragments": 8
+    },
+    "romance": {
+      "legacyArbitraryAny": 9,
+      "legacyChoices": 38,
+      "reviewedChoices": 111,
+      "reviewedArbitraryAny": 4,
+      "legacyOrdinalFiltered": 1,
+      "legacyMissingFragments": 8
+    }
+  },
+  "selectedVariants": {
+    "defaultFriend": {
+      "friend": 5,
+      "common": 108,
+      "legacyParser": 56,
+      "typedRouteMissing": 2
+    },
+    "romance": {
+      "common": 107,
+      "legacyParser": 56,
+      "romance": 8
+    }
+  },
+  "mechanicsComparison": {
+    "unchanged": true,
+    "baselineProjectionSha256": "ce822d1c64ccdc8fdf20624accfc4ec57117390c458b1a01048f4f6a006fce60",
+    "newProjectionSha256": "ce822d1c64ccdc8fdf20624accfc4ec57117390c458b1a01048f4f6a006fce60",
+    "excludedFields": [
+      "packVersion",
+      "sources",
+      "notes",
+      "links[].dialogue",
+      "links[].dialogueHints",
+      "links[].src"
+    ],
+    "includedZh": "其他字段全部相同，包含社群threshold/eventGain/eventGainRomance、解锁/可用日/剧情锁、活动收益与前置、日期、三维、塔尔塔罗斯和提醒等规则。此结论比较本轮对话改动前后工作包，不是将本轮与3.1.2比较。"
+  },
+  "runtimeVerification": {
+    "runtimeVerified": true,
+    "dialogueHintSourceSha256": "a10a45e4fc43248d791c49ab23df2b274a1dc82a991bdcd6b0fc4e0a9645e4d8",
+    "dialogueHintClassSha256": "560483963a9476733ef3b5136c5eba7f51fc19e83c19454d99365caf5e01eaf8",
+    "methodZh": "独立Java审计直接调用已编译生产DialogueHint和RulesLoader。每个组合检查直接场景、升级、可能升级、确定不升级及玩家报告hold；未进行游戏内实测。",
+    "throwawayAuditPath": "qa_out/dialogue_audit/DialogueCoverageAfter.java",
+    "throwawayReportPath": "qa_out/dialogue_audit/runtime-coverage-after.json",
+    "throwawayReportSha256": "576f4afed8bcedce97e9f1c2678d924d17b7ea1046203c35f343a0fd899e9529",
+    "productionSource": "android/app/src/main/java/app/p3r/dayplanner/v3/engine/DialogueHint.java"
+  },
+  "sourceFiles": [
+    {
+      "id": "cn_3dm_p2",
+      "path": "rules/sources/cn_guides/3dm_p2.html",
+      "sha256": "04149c43bd5b92b89a055f965034f878f4e83bf5992c4e8e0cd0567e26f80840",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_3dm_p3",
+      "path": "rules/sources/cn_guides/3dm_p3.html",
+      "sha256": "1b6439b909617401496ba8abe6fbf748b1b8e5ceddbc525926c2a575f2ba9a73",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_3dm_p4",
+      "path": "rules/sources/cn_guides/3dm_p4.html",
+      "sha256": "6ae8b0275b081aee7ad77d2769667349c1b4fa239cb842b7c398a4f9ddc4794e",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_3dm_p5",
+      "path": "rules/sources/cn_guides/3dm_p5.html",
+      "sha256": "ee642535c3af0705455ddc782802a2c577a0b425121ee322b9c3dd9584f65fa1",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_3dm_p6",
+      "path": "rules/sources/cn_guides/3dm_p6.html",
+      "sha256": "ca662a47178abc16eee49f4a7562bf2bcab83b55844d5f6458bf3e4dfc4b8dd6",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_gamersky_p10",
+      "path": "rules/sources/cn_guides/gamersky_p10.html",
+      "sha256": "c37a4769f9bc696491c5f7edecdb9109f1586418b3c2ab4d6192180ccb2547c2",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_gamersky_p6",
+      "path": "rules/sources/cn_guides/gamersky_p6.html",
+      "sha256": "97c7b0916d2a3bdeefc25bf298c83506bd4a558317d9aee834407f16edd9e149",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_gamersky_p7",
+      "path": "rules/sources/cn_guides/gamersky_p7.html",
+      "sha256": "96702c528563c9efb7b507544a186272c7efc4abeeef2286e36845f60e79bb21",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_gamersky_p8",
+      "path": "rules/sources/cn_guides/gamersky_p8.html",
+      "sha256": "dd301222e4e352976bf77b773eba7d54a8d00e5f2713b6f24a81bf00776e95c4",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_gamersky_p9",
+      "path": "rules/sources/cn_guides/gamersky_p9.html",
+      "sha256": "38b70ec31ffe085b2333aafea7b4ebf98c3d2cb5aed9ea3a9e8ea191eddf5bb9",
+      "edition": "cn_guide_reload"
+    },
+    {
+      "id": "cn_guide",
+      "path": "rules/sources/cn_guides/data.json",
+      "sha256": "08719e728ab953852292b18dd49c40c5790302eac24dfb3962db4be4ab271e49",
+      "edition": "cn_guide_reload"
+    }
+  ],
+  "inputs": [
+    {
+      "kind": "approvalEvidence",
+      "path": "rules/p3r/dialogue_guidance_approved.json",
+      "sha256": "ec96d7b6586fa1be8eee62695e7a23af395dd16a3bf265f9c74503316235128c"
+    },
+    {
+      "kind": "approvalPreview",
+      "path": "docs/analysis/DIALOGUE_ADDITION_PREVIEW.md",
+      "sha256": "b616fd53b00b82fdaa602545d79259cb54ed67ea75a6095b7e9dab9a6e355f0d"
+    },
+    {
+      "kind": "originalAudit",
+      "path": "docs/analysis/DIALOGUE_COVERAGE_2026-10-16.md",
+      "sha256": "0d4a7595c506462e059fd85fc47eaac9c25c4527be016ec696175a25475927c3"
+    },
+    {
+      "kind": "originalAuditJson",
+      "path": "docs/analysis/dialogue_coverage_2026-10-16.json",
+      "sha256": "2fd3373553ae5f839021b72559557a455ca9a92d949eee3875fa656fa4a8c30d"
+    },
+    {
+      "kind": "legacyEvidence",
+      "path": "rules/p3r/guide_dialogue_reference_map.json",
+      "sha256": "3d0469c5a85c0beafbf3523118822b00d1278eb259df223a343dec205d0697ab"
+    },
+    {
+      "kind": "reportedPoints",
+      "path": "rules/p3r/reported_rank_points.json",
+      "sha256": "0073c5a5ab5943a8b342ba35f666e111915e1bdaaf52c23db8e325210baca6c6"
+    },
+    {
+      "kind": "romanceEvidence",
+      "path": "rules/p3r/romance_rank_rules_candidate.json",
+      "sha256": "9e2b16cda534d78c62cde274bd69629c8995a1a04821333438c842a907cdc6e5"
+    }
+  ],
+  "unmappedScenes": [
+    {
+      "link": "priestess",
+      "rank": 2,
+      "labelZh": "女教皇",
+      "reasonZh": "中文片段未明示目标等级，不能按拜访次数绑定。",
+      "progressionNoteZh": "该场景为R3准备好感，R3门槛为0；无该门槛风险。"
+    },
+    {
+      "link": "empress",
+      "rank": 6,
+      "labelZh": "女皇",
+      "reasonZh": "原文首问“需要找帮忙吗？”疑似缺字，按审批暂缓。",
+      "progressionNoteZh": "存在正向加点记录，仍需核实中文选项。"
+    },
+    {
+      "link": "hierophant",
+      "rank": 9,
+      "labelZh": "教皇",
+      "reasonZh": "中文攻略写任意；aqiu有具体正向加点回答，暂不发布通用任意。",
+      "progressionNoteZh": "aqiu最佳场景收益5，后续门槛30。"
+    },
+    {
+      "link": "fortune",
+      "rank": 5,
+      "labelZh": "命运",
+      "reasonZh": "中文攻略写任意；aqiu有具体正向加点回答，暂不发布通用任意。",
+      "progressionNoteZh": "aqiu最佳场景收益15，后续门槛15。"
+    },
+    {
+      "link": "devil",
+      "rank": 10,
+      "labelZh": "恶魔",
+      "reasonZh": "尚未找到明确推荐中文原文。",
+      "progressionNoteZh": "已达终级，无后续好感门槛。"
+    },
+    {
+      "link": "tower",
+      "rank": 9,
+      "labelZh": "塔",
+      "reasonZh": "中文攻略写任意；aqiu有具体正向加点回答，暂不发布通用任意。",
+      "progressionNoteZh": "aqiu最佳场景收益15，后续门槛40。"
+    },
+    {
+      "link": "star",
+      "rank": 3,
+      "labelZh": "星",
+      "reasonZh": "中文攻略写任意；aqiu有具体正向加点回答，暂不发布通用任意。",
+      "progressionNoteZh": "aqiu最佳场景收益10，后续门槛20。"
+    },
+    {
+      "link": "sun",
+      "rank": 3,
+      "labelZh": "太阳",
+      "reasonZh": "中文原文将两场不同对话均标R2，真实等级待核实。",
+      "progressionNoteZh": "太阳解锁后固定升级，无好感门槛风险。"
+    }
+  ],
+  "deferredLegacyIssues": [
+    {
+      "link": "priestess",
+      "rank": 8,
+      "issueZh": "旧来源仅任意，但aqiu列+10具体回答；朋友模式被旧高阶策略隐藏，恋人模式仍显示怎么回答都可以。"
+    },
+    {
+      "link": "hierophant",
+      "rank": 7,
+      "issueZh": "原文第二问“那天好了”疑似错字；本轮不擅自修成猜测文字，旧参考仍不完整。"
+    },
+    {
+      "link": "justice",
+      "rank": 9,
+      "issueZh": "友情/恋人末问缺已核实中文选项；原编号与分支提示保留，本轮未发布拟替换版本。"
+    },
+    {
+      "link": "strength",
+      "rank": 7,
+      "issueZh": "首问缺具体中文选项，末问旧编号与原文注记冲突；两条路线仍回退通用提示。"
+    }
+  ],
+  "friendshipBranchLimits": {
+    "avoidOnlyScenes": [
+      {
+        "link": "priestess",
+        "rank": 9
+      },
+      {
+        "link": "empress",
+        "rank": 9
+      },
+      {
+        "link": "lovers",
+        "rank": 9
+      },
+      {
+        "link": "strength",
+        "rank": 9
+      },
+      {
+        "link": "aeon",
+        "rank": 8
+      }
+    ],
+    "typedRouteMissingScenes": [
+      {
+        "link": "empress",
+        "rank": 8
+      },
+      {
+        "link": "aeon",
+        "rank": 9
+      }
+    ],
+    "legacySuppressedScenes": [
+      {
+        "link": "priestess",
+        "rank": 8
+      },
+      {
+        "link": "priestess",
+        "rank": 10
+      },
+      {
+        "link": "empress",
+        "rank": 10
+      },
+      {
+        "link": "lovers",
+        "rank": 10
+      },
+      {
+        "link": "justice",
+        "rank": 10
+      },
+      {
+        "link": "strength",
+        "rank": 10
+      },
+      {
+        "link": "aeon",
+        "rank": 10
+      }
+    ],
+    "limitsZh": "五个typed友情条目只有避选提示；女皇8/永劫9缺友情variant。旧高阶策略另隐藏七场，其中六场为R10。类别可与其他待核清单重叠，不能相加成独立缺口总数。"
+  },
+  "limitsZh": [
+    "163/171仅表示有来源绑定片段，不代表全部问题、路线及最佳收益均完整。已审批115条仍只按单一中文攻略来源标single，未升级为游戏内验证。",
+    "3DM与游民星空为同攻略及转载；未把两份镜像当独立游戏验证。没有翻译补造中文选项，没有把括号数字当已核实选项编号或好感值。",
+    "模型仍按最佳回答收益推演；中文固定路线中的任意可能依赖先前好感余量。部分混合场景仍不能保证取得模型采用的整场最佳收益，如教皇5、力量6/9、女皇8。",
+    "aqiu给出一种最优见证，未穷举同分选项；中文不同不能仅凭措辞判错。女教皇7末问零加点的恋爱资格条件保留，女皇8和永劫8也注明资格不等于关系确立。",
+    "短卡可以省略任意占位，完整顺序和条件在sequence/详情；显式空shortNoteZh保持说明仅在详情显示，不改变批准短版。"
+  ],
+  "sceneOutputs": [
+    {
+      "link": "magician",
+      "rank": 2,
+      "labelZh": "魔术师",
+      "personZh": "友近健二",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t014_03.magician.rank2"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：不能进或者保密 / 成熟的好或者无所谓",
+        "widgetLine": "答：不能进或者保密 / 成熟的好或者无所谓",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：不能进或者保密 / 成熟的好或者无所谓",
+        "widgetLine": "答：不能进或者保密 / 成熟的好或者无所谓",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "magician",
+      "rank": 3,
+      "labelZh": "魔术师",
+      "personZh": "友近健二",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t022_01.magician.rank3"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：对人生？（3） / 加油（2）",
+        "widgetLine": "答：对人生？ / 加油",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：对人生？（3） / 加油（2）",
+        "widgetLine": "答：对人生？ / 加油",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "magician",
+      "rank": 4,
+      "labelZh": "魔术师",
+      "personZh": "友近健二",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 275,
+        "quote": "任意/加油（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：加油",
+        "widgetLine": "答：加油",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：加油",
+        "widgetLine": "答：加油",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "magician",
+      "rank": 5,
+      "labelZh": "魔术师",
+      "personZh": "友近健二",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 442,
+        "quote": "大概吧（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：大概吧",
+        "widgetLine": "答：大概吧",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：大概吧",
+        "widgetLine": "答：大概吧",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "magician",
+      "rank": 6,
+      "labelZh": "魔术师",
+      "personZh": "友近健二",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t059_01.magician.rank6"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：已经定下来了（1）",
+        "widgetLine": "答：已经定下来了",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：已经定下来了（1）",
+        "widgetLine": "答：已经定下来了",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "magician",
+      "rank": 7,
+      "labelZh": "魔术师",
+      "personZh": "友近健二",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 640,
+        "quote": "发生什么了吗？（1）/结婚情报杂志（3）/\n恭喜（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：发生什么了吗？ / 结婚情报杂志 / 恭喜",
+        "widgetLine": "答：发生什么了吗？ / 结婚情报杂志 / 恭喜",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：发生什么了吗？ / 结婚情报杂志 / 恭喜",
+        "widgetLine": "答：发生什么了吗？ / 结婚情报杂志 / 恭喜",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "magician",
+      "rank": 8,
+      "labelZh": "魔术师",
+      "personZh": "友近健二",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 330,
+        "quote": "对话选择：你有烦恼?（2）/你也跟去或者你们好好谈谈"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你有烦恼？ / 你也跟去或者你们好好谈谈",
+        "widgetLine": "答：你有烦恼？ / 你也跟去或你们好好谈谈",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你有烦恼？ / 你也跟去或者你们好好谈谈",
+        "widgetLine": "答：你有烦恼？ / 你也跟去或你们好好谈谈",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "magician",
+      "rank": 9,
+      "labelZh": "魔术师",
+      "personZh": "友近健二",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 372,
+        "quote": "对话选择：我去讨个说法（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我去讨个说法",
+        "widgetLine": "答：我去讨个说法",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我去讨个说法",
+        "widgetLine": "答：我去讨个说法",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "magician",
+      "rank": 10,
+      "labelZh": "魔术师",
+      "personZh": "友近健二",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 418,
+        "quote": "和友近对话，对话选择：任意/加油啊或者我帮你介绍/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：加油啊或者我帮你介绍",
+        "widgetLine": "答：加油啊或我帮你介绍",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：加油啊或者我帮你介绍",
+        "widgetLine": "答：加油啊或我帮你介绍",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "priestess",
+      "rank": 2,
+      "labelZh": "女教皇",
+      "personZh": "山岸风花",
+      "sourceBound": false,
+      "typedEntryPresent": false,
+      "defaultFriend": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      }
+    },
+    {
+      "link": "priestess",
+      "rank": 3,
+      "labelZh": "女教皇",
+      "personZh": "山岸风花",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 249,
+        "quote": "就啪的一撒（1）/不用心急（1）/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：就啪的一撒 / 不用心急",
+        "widgetLine": "答：就啪的一撒 / 不用心急",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：就啪的一撒 / 不用心急",
+        "widgetLine": "答：就啪的一撒 / 不用心急",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "priestess",
+      "rank": 4,
+      "labelZh": "女教皇",
+      "personZh": "山岸风花",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 315,
+        "quote": "任意/风花很擅长努力（3）/没那回事（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：风花很擅长努力 / 没那回事",
+        "widgetLine": "答：风花很擅长努力 / 没那回事",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：风花很擅长努力 / 没那回事",
+        "widgetLine": "答：风花很擅长努力 / 没那回事",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "priestess",
+      "rank": 5,
+      "labelZh": "女教皇",
+      "personZh": "山岸风花",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 718,
+        "quote": "下功夫了啊（2）/我很高兴能帮上忙（1）/\n再做给我吃吧（3）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：下功夫了啊 / 我很高兴能帮上忙 / 再做给我吃吧",
+        "widgetLine": "答：下功夫了啊 / 我很高兴能帮上忙 / 再做给我吃吧",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：下功夫了啊 / 我很高兴能帮上忙 / 再做给我吃吧",
+        "widgetLine": "答：下功夫了啊 / 我很高兴能帮上忙 / 再做给我吃吧",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "priestess",
+      "rank": 6,
+      "labelZh": "女教皇",
+      "personZh": "山岸风花",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 275,
+        "quote": "对话选择：没问题（1）/就是这股气势（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：没问题 / 就是这股气势",
+        "widgetLine": "答：没问题 / 就是这股气势",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：没问题 / 就是这股气势",
+        "widgetLine": "答：没问题 / 就是这股气势",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "priestess",
+      "rank": 7,
+      "labelZh": "女教皇",
+      "personZh": "山岸风花",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 350,
+        "quote": "对话选择：任意/任意/太过分了（3）/任意",
+        "correction": {
+          "id": "cn_guide",
+          "path": "rules/sources/cn_guides/data.json",
+          "line": 4037
+        }
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：太过分了；想保留恋爱分支，再答「真的是这样吗」；末句是恋爱前置，不等于确定恋爱关系，友情路线同样可以达到 MAX。",
+        "widgetLine": "答：太过分了 · 想保留恋爱分支，再答「真的是这样吗」",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "romance",
+        "appLine": "参考回答：太过分了 / 真的是这样吗；末句用于保留恋爱分支，不等于现在确定恋爱关系。",
+        "widgetLine": "答：太过分了 / 真的是这样吗",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "priestess",
+      "rank": 8,
+      "labelZh": "女教皇",
+      "personZh": "山岸风花",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t147_03.priestess.rank8"
+      ],
+      "defaultFriend": {
+        "classification": "legacyRouteSuppressed",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）；只想做朋友的话，别选表白的回答",
+        "widgetLine": "答：别选表白的回答",
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyArbitraryAny",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "priestess",
+      "rank": 9,
+      "labelZh": "女教皇",
+      "personZh": "山岸风花",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 270,
+        "quote": "对话选择：任意/任意/我喜欢风花（1），恋人线/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedAvoidOnly",
+        "reviewed": true,
+        "selectedVariant": "friend",
+        "appLine": "参考回答：别选「我喜欢风花」；友情路线的其余具体问答待核对。",
+        "widgetLine": "答：别选「我喜欢风花」",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "romance",
+        "appLine": "参考回答：我喜欢风花",
+        "widgetLine": "答：我喜欢风花",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "priestess",
+      "rank": 10,
+      "labelZh": "女教皇",
+      "personZh": "山岸风花",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t257_02.priestess.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyRouteSuppressed",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）；只想做朋友的话，别选表白的回答",
+        "widgetLine": "答：别选表白的回答",
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：我会一直在你身边（2） / 我很喜欢（1）",
+        "widgetLine": "答：我会一直在你身边 / 我很喜欢",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "empress",
+      "rank": 2,
+      "labelZh": "女皇",
+      "personZh": "桐条美鹤",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t203_01.empress.rank2"
+      ],
+      "defaultFriend": {
+        "classification": "legacyArbitraryAny",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyArbitraryAny",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "empress",
+      "rank": 3,
+      "labelZh": "女皇",
+      "personZh": "桐条美鹤",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 251,
+        "quote": "对话选择：要不要尝尝看?（1）/高兴吗?（2）/任意/我会忘记的（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：要不要尝尝看？ / 高兴吗？ / 我会忘记的",
+        "widgetLine": "答：要不要尝尝看？ / 高兴吗？ / 我会忘记的",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：要不要尝尝看？ / 高兴吗？ / 我会忘记的",
+        "widgetLine": "答：要不要尝尝看？ / 高兴吗？ / 我会忘记的",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "empress",
+      "rank": 4,
+      "labelZh": "女皇",
+      "personZh": "桐条美鹤",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 278,
+        "quote": "对话选择：发生什么了吗?（2）/是爱的结果（1）/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：发生什么了吗？ / 是爱的结果",
+        "widgetLine": "答：发生什么了吗？ / 是爱的结果",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：发生什么了吗？ / 是爱的结果",
+        "widgetLine": "答：发生什么了吗？ / 是爱的结果",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "empress",
+      "rank": 5,
+      "labelZh": "女皇",
+      "personZh": "桐条美鹤",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 295,
+        "quote": "对话选择：你能开心就好（2）/摩托车?（1）/希望有机会和你—起出行（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你能开心就好 / 摩托车？ / 希望有机会和你一起出行",
+        "widgetLine": "答：你能开心就好 / 摩托车？ / 希望有机会和你一起出行",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你能开心就好 / 摩托车？ / 希望有机会和你一起出行",
+        "widgetLine": "答：你能开心就好 / 摩托车？ / 希望有机会和你一起出行",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "empress",
+      "rank": 6,
+      "labelZh": "女皇",
+      "personZh": "桐条美鹤",
+      "sourceBound": false,
+      "typedEntryPresent": false,
+      "defaultFriend": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      }
+    },
+    {
+      "link": "empress",
+      "rank": 7,
+      "labelZh": "女皇",
+      "personZh": "桐条美鹤",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t216_02.empress.rank7"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：好的（1）",
+        "widgetLine": "答：好的",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：好的（1）",
+        "widgetLine": "答：好的",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "empress",
+      "rank": 8,
+      "labelZh": "女皇",
+      "personZh": "桐条美鹤",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 328,
+        "quote": "对话选择：任意/任意/任意/这话可不能当没听见（2） /这样言听计从好吗?（1，这里应该是恋人线条件之一，选第二个就不会进入恋人线）",
+        "correction": {
+          "id": "cn_guide",
+          "path": "rules/sources/cn_guides/data.json",
+          "line": 6423
+        }
+      },
+      "defaultFriend": {
+        "classification": "reviewedRouteMissing",
+        "reviewed": true,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）；只想做朋友的话，别选表白的回答",
+        "widgetLine": "答：别选表白的回答",
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "romance",
+        "appLine": "参考回答：这是美鹤的自由 / 这话可不能当没听见 / 这样言听计从好吗？；想保留恋爱分支时参考这组回答；这是恋爱前置，不代表现在确定恋爱关系。",
+        "widgetLine": "答：这是美鹤的自由 / 这话可不能当没听见 / 这样言听计从好吗？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "empress",
+      "rank": 9,
+      "labelZh": "女皇",
+      "personZh": "桐条美鹤",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 337,
+        "quote": "对话选择：我很高兴（3）/任意/我也喜欢美鹤（1）/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedAvoidOnly",
+        "reviewed": true,
+        "selectedVariant": "friend",
+        "appLine": "参考回答：别选「我也喜欢美鹤」；友情路线的其余具体问答待核对。",
+        "widgetLine": "答：别选「我也喜欢美鹤」",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "romance",
+        "appLine": "参考回答：我很高兴 / 我也喜欢美鹤",
+        "widgetLine": "答：我很高兴 / 我也喜欢美鹤",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "empress",
+      "rank": 10,
+      "labelZh": "女皇",
+      "personZh": "桐条美鹤",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t227_02.empress.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyRouteSuppressed",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）；只想做朋友的话，别选表白的回答",
+        "widgetLine": "答：别选表白的回答",
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：我会试试看的（1）",
+        "widgetLine": "答：我会试试看的",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "emperor",
+      "rank": 2,
+      "labelZh": "皇帝",
+      "personZh": "小田桐秀利",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t035_04.emperor.rank2"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：无聊透顶（2）",
+        "widgetLine": "答：无聊透顶",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：无聊透顶（2）",
+        "widgetLine": "答：无聊透顶",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "emperor",
+      "rank": 3,
+      "labelZh": "皇帝",
+      "personZh": "小田桐秀利",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p3",
+        "path": "rules/sources/cn_guides/3dm_p3.html",
+        "line": 870,
+        "quote": "发生什么了？（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：发生什么了？",
+        "widgetLine": "答：发生什么了？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：发生什么了？",
+        "widgetLine": "答：发生什么了？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "emperor",
+      "rank": 4,
+      "labelZh": "皇帝",
+      "personZh": "小田桐秀利",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 311,
+        "quote": "对话选择：任意/你很努力啊（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你很努力啊",
+        "widgetLine": "答：你很努力啊",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你很努力啊",
+        "widgetLine": "答：你很努力啊",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "emperor",
+      "rank": 5,
+      "labelZh": "皇帝",
+      "personZh": "小田桐秀利",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 472,
+        "quote": "对话选择：他们太过分了（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：他们太过分了",
+        "widgetLine": "答：他们太过分了",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：他们太过分了",
+        "widgetLine": "答：他们太过分了",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "emperor",
+      "rank": 6,
+      "labelZh": "皇帝",
+      "personZh": "小田桐秀利",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 260,
+        "quote": "对话选择：任意/反正我才刚来（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：反正我才刚来",
+        "widgetLine": "答：反正我才刚来",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：反正我才刚来",
+        "widgetLine": "答：反正我才刚来",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "emperor",
+      "rank": 7,
+      "labelZh": "皇帝",
+      "personZh": "小田桐秀利",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 431,
+        "quote": "对话选择：是过于严苛的处分（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：是过于严苛的处分",
+        "widgetLine": "答：是过于严苛的处分",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：是过于严苛的处分",
+        "widgetLine": "答：是过于严苛的处分",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "emperor",
+      "rank": 8,
+      "labelZh": "皇帝",
+      "personZh": "小田桐秀利",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 464,
+        "quote": "确保身上有“皇帝”面具,到学生会对话选择：任意/我不是犯人（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我不是犯人",
+        "widgetLine": "答：我不是犯人",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我不是犯人",
+        "widgetLine": "答：我不是犯人",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "emperor",
+      "rank": 9,
+      "labelZh": "皇帝",
+      "personZh": "小田桐秀利",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 259,
+        "quote": "对话选择：不要责备自己（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：不要责备自己",
+        "widgetLine": "答：不要责备自己",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：不要责备自己",
+        "widgetLine": "答：不要责备自己",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "emperor",
+      "rank": 10,
+      "labelZh": "皇帝",
+      "personZh": "小田桐秀利",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t226_01.emperor.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：还好吧（1）",
+        "widgetLine": "答：还好吧",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：还好吧（1）",
+        "widgetLine": "答：还好吧",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hierophant",
+      "rank": 2,
+      "labelZh": "教皇",
+      "personZh": "北村文吉、光子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p2",
+        "path": "rules/sources/cn_guides/3dm_p2.html",
+        "line": 575,
+        "quote": "我叫XXX（1）/谢谢（1）/任意/任意/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我叫XXX / 谢谢",
+        "widgetLine": "答：我叫XXX / 谢谢",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我叫XXX / 谢谢",
+        "widgetLine": "答：我叫XXX / 谢谢",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hierophant",
+      "rank": 3,
+      "labelZh": "教皇",
+      "personZh": "北村文吉、光子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p3",
+        "path": "rules/sources/cn_guides/3dm_p3.html",
+        "line": 290,
+        "quote": "在找东西吗？（1）/我来帮忙（2）/剩下的任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：在找东西吗？ / 我来帮忙；后续问题随意。",
+        "widgetLine": "答：在找东西吗？ / 我来帮忙",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：在找东西吗？ / 我来帮忙；后续问题随意。",
+        "widgetLine": "答：在找东西吗？ / 我来帮忙",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hierophant",
+      "rank": 4,
+      "labelZh": "教皇",
+      "personZh": "北村文吉、光子",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t028_01.hierophant.rank4"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：我也去看看吧或者我在这里等她 / 真担心啊（3）",
+        "widgetLine": "答：我也去看看吧或者我在这里等她 / 真担心啊",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：我也去看看吧或者我在这里等她 / 真担心啊（3）",
+        "widgetLine": "答：我也去看看吧或者我在这里等她 / 真担心啊",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hierophant",
+      "rank": 5,
+      "labelZh": "教皇",
+      "personZh": "北村文吉、光子",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t029_02.hierophant.rank5"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：没事的（1）",
+        "widgetLine": "答：没事的",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：没事的（1）",
+        "widgetLine": "答：没事的",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hierophant",
+      "rank": 6,
+      "labelZh": "教皇",
+      "personZh": "北村文吉、光子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 340,
+        "quote": "不要吵架（2）/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：不要吵架",
+        "widgetLine": "答：不要吵架",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：不要吵架",
+        "widgetLine": "答：不要吵架",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hierophant",
+      "rank": 7,
+      "labelZh": "教皇",
+      "personZh": "北村文吉、光子",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t110_01.hierophant.rank7"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：不是或者什么意思？",
+        "widgetLine": "答：不是或者什么意思？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：不是或者什么意思？",
+        "widgetLine": "答：不是或者什么意思？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hierophant",
+      "rank": 8,
+      "labelZh": "教皇",
+      "personZh": "北村文吉、光子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 621,
+        "quote": "是搞签名活动的人（1）/任意/\n走吧（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：是搞签名活动的人 / 走吧",
+        "widgetLine": "答：是搞签名活动的人 / 走吧",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：是搞签名活动的人 / 走吧",
+        "widgetLine": "答：是搞签名活动的人 / 走吧",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hierophant",
+      "rank": 9,
+      "labelZh": "教皇",
+      "personZh": "北村文吉、光子",
+      "sourceBound": false,
+      "typedEntryPresent": false,
+      "defaultFriend": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      }
+    },
+    {
+      "link": "hierophant",
+      "rank": 10,
+      "labelZh": "教皇",
+      "personZh": "北村文吉、光子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 400,
+        "quote": "到严户台旧书店，对话选择：任意/任意/为什么（1）/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：为什么",
+        "widgetLine": "答：为什么",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：为什么",
+        "widgetLine": "答：为什么",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "lovers",
+      "rank": 2,
+      "labelZh": "恋爱",
+      "personZh": "岳羽由加莉",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 265,
+        "quote": "对话选择：可爱的粉色（1）/这话扎心了啊（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：可爱的粉色 / 这话扎心了啊",
+        "widgetLine": "答：可爱的粉色 / 这话扎心了啊",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：可爱的粉色 / 这话扎心了啊",
+        "widgetLine": "答：可爱的粉色 / 这话扎心了啊",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "lovers",
+      "rank": 3,
+      "labelZh": "恋爱",
+      "personZh": "岳羽由加莉",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 294,
+        "quote": "对话选择：任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedArbitraryAny",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedArbitraryAny",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "lovers",
+      "rank": 4,
+      "labelZh": "恋爱",
+      "personZh": "岳羽由加莉",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 379,
+        "quote": "确保身上持有“恋爱”面具，和教室的岳羽由加莉对话对话选择：没事吧?（3）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：没事吧？",
+        "widgetLine": "答：没事吧？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：没事吧？",
+        "widgetLine": "答：没事吧？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "lovers",
+      "rank": 5,
+      "labelZh": "恋爱",
+      "personZh": "岳羽由加莉",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 386,
+        "quote": "对话选择：任意/任意/任意/任意/抱歉（1），把最后一个选项不要选第三个关系会破裂"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：抱歉",
+        "widgetLine": "答：抱歉（最后一问）",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：抱歉",
+        "widgetLine": "答：抱歉（最后一问）",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "lovers",
+      "rank": 6,
+      "labelZh": "恋爱",
+      "personZh": "岳羽由加莉",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 458,
+        "quote": "对话选择：小事一桩（2）/我不介意（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：小事一桩 / 我不介意",
+        "widgetLine": "答：小事一桩 / 我不介意",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：小事一桩 / 我不介意",
+        "widgetLine": "答：小事一桩 / 我不介意",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "lovers",
+      "rank": 7,
+      "labelZh": "恋爱",
+      "personZh": "岳羽由加莉",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 375,
+        "quote": "对话选择：好像不错啊（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：好像不错啊",
+        "widgetLine": "答：好像不错啊",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：好像不错啊",
+        "widgetLine": "答：好像不错啊",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "lovers",
+      "rank": 8,
+      "labelZh": "恋爱",
+      "personZh": "岳羽由加莉",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 416,
+        "quote": "对话选择：好啊（1）/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：好啊",
+        "widgetLine": "答：好啊",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：好啊",
+        "widgetLine": "答：好啊",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "lovers",
+      "rank": 9,
+      "labelZh": "恋爱",
+      "personZh": "岳羽由加莉",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 471,
+        "quote": "对话选择：。。。。。（2）/我喜欢你（恋人线）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedAvoidOnly",
+        "reviewed": true,
+        "selectedVariant": "friend",
+        "appLine": "参考回答：别选「我喜欢你」；友情路线的其余具体问答待核对。",
+        "widgetLine": "答：别选「我喜欢你」",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "romance",
+        "appLine": "参考回答：…… / 我喜欢你",
+        "widgetLine": "答：…… / 我喜欢你",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "lovers",
+      "rank": 10,
+      "labelZh": "恋爱",
+      "personZh": "岳羽由加莉",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t194_02.lovers.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyRouteSuppressed",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）；只想做朋友的话，别选表白的回答",
+        "widgetLine": "答：别选表白的回答",
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：我正在想（1）",
+        "widgetLine": "答：我正在想",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "chariot",
+      "rank": 2,
+      "labelZh": "战车",
+      "personZh": "宫本一志",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t008_01.chariot.rank2"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：是你毅力不够（2）",
+        "widgetLine": "答：是你毅力不够",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：是你毅力不够（2）",
+        "widgetLine": "答：是你毅力不够",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "chariot",
+      "rank": 3,
+      "labelZh": "战车",
+      "personZh": "宫本一志",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t012_02.chariot.rank3"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：真的没事？（2） / 治得好吗？（1）",
+        "widgetLine": "答：真的没事？ / 治得好吗？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：真的没事？（2） / 治得好吗？（1）",
+        "widgetLine": "答：真的没事？ / 治得好吗？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "chariot",
+      "rank": 4,
+      "labelZh": "战车",
+      "personZh": "宫本一志",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 200,
+        "quote": "任意/那你真是受罪了（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：那你真是受罪了",
+        "widgetLine": "答：那你真是受罪了",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：那你真是受罪了",
+        "widgetLine": "答：那你真是受罪了",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "chariot",
+      "rank": 5,
+      "labelZh": "战车",
+      "personZh": "宫本一志",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 391,
+        "quote": "刚从医院回来？（1）/我扶你起来吧（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：刚从医院回来？ / 我扶你起来吧",
+        "widgetLine": "答：刚从医院回来？ / 我扶你起来吧",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：刚从医院回来？ / 我扶你起来吧",
+        "widgetLine": "答：刚从医院回来？ / 我扶你起来吧",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "chariot",
+      "rank": 6,
+      "labelZh": "战车",
+      "personZh": "宫本一志",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 543,
+        "quote": "拿出毅力来（2）/为什么要做到这个地步？（2）/\n那你的膝盖怎么办？（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：拿出毅力来 / 为什么要做到这个地步？ / 那你的膝盖怎么办？",
+        "widgetLine": "答：拿出毅力来 / 为什么要做到这个地步？ / 那你的膝盖怎么办？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：拿出毅力来 / 为什么要做到这个地步？ / 那你的膝盖怎么办？",
+        "widgetLine": "答：拿出毅力来 / 为什么要做到这个地步？ / 那你的膝盖怎么办？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "chariot",
+      "rank": 7,
+      "labelZh": "战车",
+      "personZh": "宫本一志",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 709,
+        "quote": "状态怎么样？（1）/拿出毅力来（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：状态怎么样？ / 拿出毅力来",
+        "widgetLine": "答：状态怎么样？ / 拿出毅力来",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：状态怎么样？ / 拿出毅力来",
+        "widgetLine": "答：状态怎么样？ / 拿出毅力来",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "chariot",
+      "rank": 8,
+      "labelZh": "战车",
+      "personZh": "宫本一志",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 465,
+        "quote": "和言本对话对话选择：。。。。。（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：……；这里的省略号是保持沉默的选项，不是文字被截断。",
+        "widgetLine": "答：选「……」（保持沉默）",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：……；这里的省略号是保持沉默的选项，不是文字被截断。",
+        "widgetLine": "答：选「……」（保持沉默）",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "chariot",
+      "rank": 9,
+      "labelZh": "战车",
+      "personZh": "宫本一志",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 425,
+        "quote": "对话选择：没问题（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：没问题",
+        "widgetLine": "答：没问题",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：没问题",
+        "widgetLine": "答：没问题",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "chariot",
+      "rank": 10,
+      "labelZh": "战车",
+      "personZh": "宫本一志",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t222_03.chariot.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：明年的选拔赛呢？（1） / 加油（1）",
+        "widgetLine": "答：明年的选拔赛呢？ / 加油",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：明年的选拔赛呢？（1） / 加油（1）",
+        "widgetLine": "答：明年的选拔赛呢？ / 加油",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "justice",
+      "rank": 2,
+      "labelZh": "正义",
+      "personZh": "伏见千寻",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p3",
+        "path": "rules/sources/cn_guides/3dm_p3.html",
+        "line": 708,
+        "quote": "不用放在心上（1）/文学小说或者漫画/很开心（1）/任意/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：不用放在心上 / 文学小说或漫画 / 很开心",
+        "widgetLine": "答：不用放在心上 / 文学小说或漫画 / 很开心",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：不用放在心上 / 文学小说或漫画 / 很开心",
+        "widgetLine": "答：不用放在心上 / 文学小说或漫画 / 很开心",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "justice",
+      "rank": 3,
+      "labelZh": "正义",
+      "personZh": "伏见千寻",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t036_01.justice.rank3"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：太放肆了（1） / 赞成（1）",
+        "widgetLine": "答：太放肆了 / 赞成",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：太放肆了（1） / 赞成（1）",
+        "widgetLine": "答：太放肆了 / 赞成",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "justice",
+      "rank": 4,
+      "labelZh": "正义",
+      "personZh": "伏见千寻",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p3",
+        "path": "rules/sources/cn_guides/3dm_p3.html",
+        "line": 894,
+        "quote": "任意/我在你身边（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我在你身边",
+        "widgetLine": "答：我在你身边",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我在你身边",
+        "widgetLine": "答：我在你身边",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "justice",
+      "rank": 5,
+      "labelZh": "正义",
+      "personZh": "伏见千寻",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t043_02.justice.rank5"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：随便问吧（1） / 随时欢迎千寻找我倾诉（1） / 握住她的手（1）；只想做朋友的话，别选表白的回答",
+        "widgetLine": "答：随便问吧 / 随时欢迎千寻找我倾诉 / 握住她的手 · 别选「产生恋爱感情了」",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：随便问吧（1） / 产生恋爱感情了（1） / 随时欢迎千寻找我倾诉（1） / 握住她的手（1）",
+        "widgetLine": "答：随便问吧 / 产生恋爱感情了 / 随时欢迎千寻找我倾诉 / 握住她的手",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "justice",
+      "rank": 6,
+      "labelZh": "正义",
+      "personZh": "伏见千寻",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 320,
+        "quote": "很有趣吗？（1）/什么意思？（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：很有趣吗？ / 什么意思？",
+        "widgetLine": "答：很有趣吗？ / 什么意思？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：很有趣吗？ / 什么意思？",
+        "widgetLine": "答：很有趣吗？ / 什么意思？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "justice",
+      "rank": 7,
+      "labelZh": "正义",
+      "personZh": "伏见千寻",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 566,
+        "quote": "感觉有什么误会（2）/得想想办法才行（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：感觉有什么误会 / 得想想办法才行",
+        "widgetLine": "答：感觉有什么误会 / 得想想办法才行",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：感觉有什么误会 / 得想想办法才行",
+        "widgetLine": "答：感觉有什么误会 / 得想想办法才行",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "justice",
+      "rank": 8,
+      "labelZh": "正义",
+      "personZh": "伏见千寻",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 732,
+        "quote": "任意/我知道你是清白的（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我知道你是清白的",
+        "widgetLine": "答：我知道你是清白的",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我知道你是清白的",
+        "widgetLine": "答：我知道你是清白的",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "justice",
+      "rank": 9,
+      "labelZh": "正义",
+      "personZh": "伏见千寻",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t071_01.justice.rank9"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：突然这是怎么了？（1）；只想做朋友的话，别选表白的回答",
+        "widgetLine": "答：突然这是怎么了？ · 别选表白",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：突然这是怎么了？（1）",
+        "widgetLine": "答：突然这是怎么了？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "justice",
+      "rank": 10,
+      "labelZh": "正义",
+      "personZh": "伏见千寻",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t152_02.justice.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyRouteSuppressed",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）；只想做朋友的话，别选表白的回答",
+        "widgetLine": "答：别选表白的回答",
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：谢谢（1）",
+        "widgetLine": "答：谢谢",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hermit",
+      "rank": 2,
+      "labelZh": "隐者",
+      "personZh": "Ｙ子",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t017_02.hermit.rank2"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：记得（1） / 你是宅家党？（2）",
+        "widgetLine": "答：记得 / 你是宅家党？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：记得（1） / 你是宅家党？（2）",
+        "widgetLine": "答：记得 / 你是宅家党？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hermit",
+      "rank": 3,
+      "labelZh": "隐者",
+      "personZh": "Ｙ子",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t024_02.hermit.rank3"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：遇到什么事了吗？（1） / 讨厌工作了？（1）",
+        "widgetLine": "答：遇到什么事了吗？ / 讨厌工作了？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：遇到什么事了吗？（1） / 讨厌工作了？（1）",
+        "widgetLine": "答：遇到什么事了吗？ / 讨厌工作了？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hermit",
+      "rank": 4,
+      "labelZh": "隐者",
+      "personZh": "Ｙ子",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t031_02.hermit.rank4"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：我们结婚吧（3）",
+        "widgetLine": "答：我们结婚吧",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：我们结婚吧（3）",
+        "widgetLine": "答：我们结婚吧",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hermit",
+      "rank": 5,
+      "labelZh": "隐者",
+      "personZh": "Ｙ子",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t034_02.hermit.rank5"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：大~~蠢~~蛋~~！（3） / Ｙ子是教醉拳的代理师傅？或者Ｙ子是老师？",
+        "widgetLine": "答：大~~蠢~~蛋~~！ / Ｙ子是教醉拳的代理师傅？或者Ｙ子是老师？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：大~~蠢~~蛋~~！（3） / Ｙ子是教醉拳的代理师傅？或者Ｙ子是老师？",
+        "widgetLine": "答：大~~蠢~~蛋~~！ / Ｙ子是教醉拳的代理师傅？或者Ｙ子是老师？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hermit",
+      "rank": 6,
+      "labelZh": "隐者",
+      "personZh": "Ｙ子",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t083_03.hermit.rank6"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：那“混蛋”是？（2）",
+        "widgetLine": "答：那“混蛋”是？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：那“混蛋”是？（2）",
+        "widgetLine": "答：那“混蛋”是？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hermit",
+      "rank": 7,
+      "labelZh": "隐者",
+      "personZh": "Ｙ子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 618,
+        "quote": "必须年轻（3）/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：必须年轻",
+        "widgetLine": "答：必须年轻",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：必须年轻",
+        "widgetLine": "答：必须年轻",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hermit",
+      "rank": 8,
+      "labelZh": "隐者",
+      "personZh": "Ｙ子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 767,
+        "quote": "你还打算说吗？（2）/是怎样的一个人？（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你还打算说吗？ / 是怎样的一个人？",
+        "widgetLine": "答：你还打算说吗？ / 是怎样的一个人？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你还打算说吗？ / 是怎样的一个人？",
+        "widgetLine": "答：你还打算说吗？ / 是怎样的一个人？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hermit",
+      "rank": 9,
+      "labelZh": "隐者",
+      "personZh": "Ｙ子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 699,
+        "quote": "开什么玩笑（2）/任意/你打算做什么？（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：开什么玩笑 / 你打算做什么？",
+        "widgetLine": "答：开什么玩笑 / 你打算做什么？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：开什么玩笑 / 你打算做什么？",
+        "widgetLine": "答：开什么玩笑 / 你打算做什么？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hermit",
+      "rank": 10,
+      "labelZh": "隐者",
+      "personZh": "Ｙ子",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t122_02.hermit.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：别放在心上（2） / 我会寂寞的（2）",
+        "widgetLine": "答：别放在心上 / 我会寂寞的",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：别放在心上（2） / 我会寂寞的（2）",
+        "widgetLine": "答：别放在心上 / 我会寂寞的",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "fortune",
+      "rank": 2,
+      "labelZh": "命运",
+      "personZh": "平贺庆介",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 223,
+        "quote": "任意/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedArbitraryAny",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedArbitraryAny",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "fortune",
+      "rank": 3,
+      "labelZh": "命运",
+      "personZh": "平贺庆介",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 254,
+        "quote": "对话选择：这是平贺的实力（1）/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：这是平贺的实力",
+        "widgetLine": "答：这是平贺的实力",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：这是平贺的实力",
+        "widgetLine": "答：这是平贺的实力",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "fortune",
+      "rank": 4,
+      "labelZh": "命运",
+      "personZh": "平贺庆介",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 391,
+        "quote": "对话选择：任意/在这里闹腾也没有意义（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：在这里闹腾也没有意义",
+        "widgetLine": "答：在这里闹腾也没有意义",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：在这里闹腾也没有意义",
+        "widgetLine": "答：在这里闹腾也没有意义",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "fortune",
+      "rank": 5,
+      "labelZh": "命运",
+      "personZh": "平贺庆介",
+      "sourceBound": false,
+      "typedEntryPresent": false,
+      "defaultFriend": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      }
+    },
+    {
+      "link": "fortune",
+      "rank": 6,
+      "labelZh": "命运",
+      "personZh": "平贺庆介",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 438,
+        "quote": "对话选择：任意/随你喜欢就行（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：随你喜欢就行",
+        "widgetLine": "答：随你喜欢就行",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：随你喜欢就行",
+        "widgetLine": "答：随你喜欢就行",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "fortune",
+      "rank": 7,
+      "labelZh": "命运",
+      "personZh": "平贺庆介",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 446,
+        "quote": "对话选择：你要当医生吗?（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你要当医生吗？",
+        "widgetLine": "答：你要当医生吗？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你要当医生吗？",
+        "widgetLine": "答：你要当医生吗？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "fortune",
+      "rank": 8,
+      "labelZh": "命运",
+      "personZh": "平贺庆介",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 456,
+        "quote": "对话选择：没问题（1）/任意/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：没问题",
+        "widgetLine": "答：没问题",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：没问题",
+        "widgetLine": "答：没问题",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "fortune",
+      "rank": 9,
+      "labelZh": "命运",
+      "personZh": "平贺庆介",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 320,
+        "quote": "对话选择：你不能走（1）/任意/任意/任意/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你不能走",
+        "widgetLine": "答：你不能走",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你不能走",
+        "widgetLine": "答：你不能走",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "fortune",
+      "rank": 10,
+      "labelZh": "命运",
+      "personZh": "平贺庆介",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t244_02.fortune.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：好的（1） / 没那回事（1）",
+        "widgetLine": "答：好的 / 没那回事",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：好的（1） / 没那回事（1）",
+        "widgetLine": "答：好的 / 没那回事",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "strength",
+      "rank": 2,
+      "labelZh": "力量",
+      "personZh": "西胁结子",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t016_02.strength.rank2"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：发生什么了吗？（1） / 那也没办法（2） / 你说得对（1）",
+        "widgetLine": "答：发生什么了吗？ / 那也没办法 / 你说得对",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：发生什么了吗？（1） / 那也没办法（2） / 你说得对（1）",
+        "widgetLine": "答：发生什么了吗？ / 那也没办法 / 你说得对",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "strength",
+      "rank": 3,
+      "labelZh": "力量",
+      "personZh": "西胁结子",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t020_03.strength.rank3"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：不用在意（2） / 我很荣幸或者我不介意",
+        "widgetLine": "答：不用在意 / 我很荣幸或者我不介意",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：不用在意（2） / 我很荣幸或者我不介意",
+        "widgetLine": "答：不用在意 / 我很荣幸或者我不介意",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "strength",
+      "rank": 4,
+      "labelZh": "力量",
+      "personZh": "西胁结子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 252,
+        "quote": "任意/当然可以（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：当然可以",
+        "widgetLine": "答：当然可以",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：当然可以",
+        "widgetLine": "答：当然可以",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "strength",
+      "rank": 5,
+      "labelZh": "力量",
+      "personZh": "西胁结子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 418,
+        "quote": "因为教得好（3）/我相信结子（3）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：因为教得好 / 我相信结子",
+        "widgetLine": "答：因为教得好 / 我相信结子",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：因为教得好 / 我相信结子",
+        "widgetLine": "答：因为教得好 / 我相信结子",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "strength",
+      "rank": 6,
+      "labelZh": "力量",
+      "personZh": "西胁结子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 490,
+        "quote": "任意/相信他们吧（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：相信他们吧",
+        "widgetLine": "答：相信他们吧",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：相信他们吧",
+        "widgetLine": "答：相信他们吧",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "strength",
+      "rank": 7,
+      "labelZh": "力量",
+      "personZh": "西胁结子",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t058_02.strength.rank7"
+      ],
+      "defaultFriend": {
+        "classification": "legacyOrdinalFiltered",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyOrdinalFiltered",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      }
+    },
+    {
+      "link": "strength",
+      "rank": 8,
+      "labelZh": "力量",
+      "personZh": "西胁结子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 764,
+        "quote": "任意/任意/男孩或者女孩"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：男孩或女孩",
+        "widgetLine": "答：男孩或女孩",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：男孩或女孩",
+        "widgetLine": "答：男孩或女孩",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "strength",
+      "rank": 9,
+      "labelZh": "力量",
+      "personZh": "西胁结子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 346,
+        "quote": "对话选择：任意/教练员?（2）/任意/因为我喜欢你（1，进入恋人线）/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedAvoidOnly",
+        "reviewed": true,
+        "selectedVariant": "friend",
+        "appLine": "参考回答：别选「因为我喜欢你」；友情路线的其余具体问答待核对。",
+        "widgetLine": "答：别选「因为我喜欢你」",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "romance",
+        "appLine": "参考回答：教练员？ / 因为我喜欢你",
+        "widgetLine": "答：教练员？ / 因为我喜欢你",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "strength",
+      "rank": 10,
+      "labelZh": "力量",
+      "personZh": "西胁结子",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t207_01.strength.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyRouteSuppressed",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）；只想做朋友的话，别选表白的回答",
+        "widgetLine": "答：别选表白的回答",
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyArbitraryAny",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hanged_man",
+      "rank": 2,
+      "labelZh": "倒悬者",
+      "personZh": "舞子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p3",
+        "path": "rules/sources/cn_guides/3dm_p3.html",
+        "line": 493,
+        "quote": "走吧！（1）/任意/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：走吧！",
+        "widgetLine": "答：走吧！",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：走吧！",
+        "widgetLine": "答：走吧！",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hanged_man",
+      "rank": 3,
+      "labelZh": "倒悬者",
+      "personZh": "舞子",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t030_02.hanged_man.rank3"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：一定会回来的（3）",
+        "widgetLine": "答：一定会回来的",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：一定会回来的（3）",
+        "widgetLine": "答：一定会回来的",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hanged_man",
+      "rank": 4,
+      "labelZh": "倒悬者",
+      "personZh": "舞子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 368,
+        "quote": "那太好了（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：那太好了",
+        "widgetLine": "答：那太好了",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：那太好了",
+        "widgetLine": "答：那太好了",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hanged_man",
+      "rank": 5,
+      "labelZh": "倒悬者",
+      "personZh": "舞子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 242,
+        "quote": "太过分了（1）/没那回事（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：太过分了 / 没那回事",
+        "widgetLine": "答：太过分了 / 没那回事",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：太过分了 / 没那回事",
+        "widgetLine": "答：太过分了 / 没那回事",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hanged_man",
+      "rank": 6,
+      "labelZh": "倒悬者",
+      "personZh": "舞子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 368,
+        "quote": "冷静点或者随你喜欢/有那些就足够了（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：冷静点或随你喜欢 / 有那些就足够了",
+        "widgetLine": "答：冷静点或随你喜欢 / 有那些就足够了",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：冷静点或随你喜欢 / 有那些就足够了",
+        "widgetLine": "答：冷静点或随你喜欢 / 有那些就足够了",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hanged_man",
+      "rank": 7,
+      "labelZh": "倒悬者",
+      "personZh": "舞子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 598,
+        "quote": "任意/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedArbitraryAny",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedArbitraryAny",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hanged_man",
+      "rank": 8,
+      "labelZh": "倒悬者",
+      "personZh": "舞子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 725,
+        "quote": "想吃汉堡（1）/很乖（1）/爸爸（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：想吃汉堡 / 很乖 / 爸爸",
+        "widgetLine": "答：想吃汉堡 / 很乖 / 爸爸",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：想吃汉堡 / 很乖 / 爸爸",
+        "widgetLine": "答：想吃汉堡 / 很乖 / 爸爸",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hanged_man",
+      "rank": 9,
+      "labelZh": "倒悬者",
+      "personZh": "舞子",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 771,
+        "quote": "我们永远是朋友（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我们永远是朋友",
+        "widgetLine": "答：我们永远是朋友",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我们永远是朋友",
+        "widgetLine": "答：我们永远是朋友",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "hanged_man",
+      "rank": 10,
+      "labelZh": "倒悬者",
+      "personZh": "舞子",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t121_01.hanged_man.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：一定会有的（1） / 好啊（1）",
+        "widgetLine": "答：一定会有的 / 好啊",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：一定会有的（1） / 好啊（1）",
+        "widgetLine": "答：一定会有的 / 好啊",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "temperance",
+      "rank": 2,
+      "labelZh": "节制",
+      "personZh": "贝培",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p4",
+        "path": "rules/sources/cn_guides/3dm_p4.html",
+        "line": 464,
+        "quote": "任意/我也这么想（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我也这么想",
+        "widgetLine": "答：我也这么想",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我也这么想",
+        "widgetLine": "答：我也这么想",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "temperance",
+      "rank": 3,
+      "labelZh": "节制",
+      "personZh": "贝培",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 301,
+        "quote": "对话选择：任意/和服怎么样?（3）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：和服怎么样？",
+        "widgetLine": "答：和服怎么样？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：和服怎么样？",
+        "widgetLine": "答：和服怎么样？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "temperance",
+      "rank": 4,
+      "labelZh": "节制",
+      "personZh": "贝培",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 428,
+        "quote": "对话选择：你看起来没精神啊（3）/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你看起来没精神啊",
+        "widgetLine": "答：你看起来没精神啊",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你看起来没精神啊",
+        "widgetLine": "答：你看起来没精神啊",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "temperance",
+      "rank": 5,
+      "labelZh": "节制",
+      "personZh": "贝培",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 384,
+        "quote": "对话选择：走吧（1）/留在日本吧（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：走吧 / 留在日本吧",
+        "widgetLine": "答：走吧 / 留在日本吧",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：走吧 / 留在日本吧",
+        "widgetLine": "答：走吧 / 留在日本吧",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "temperance",
+      "rank": 6,
+      "labelZh": "节制",
+      "personZh": "贝培",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 409,
+        "quote": "对话选择：休息一下吧（2）/任意/我支持你（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：休息一下吧 / 我支持你",
+        "widgetLine": "答：休息一下吧 / 我支持你",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：休息一下吧 / 我支持你",
+        "widgetLine": "答：休息一下吧 / 我支持你",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "temperance",
+      "rank": 7,
+      "labelZh": "节制",
+      "personZh": "贝培",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 283,
+        "quote": "对话选择：我觉得是个好办法（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我觉得是个好办法",
+        "widgetLine": "答：我觉得是个好办法",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我觉得是个好办法",
+        "widgetLine": "答：我觉得是个好办法",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "temperance",
+      "rank": 8,
+      "labelZh": "节制",
+      "personZh": "贝培",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 313,
+        "quote": "对话选择：应该会承认的（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：应该会承认的",
+        "widgetLine": "答：应该会承认的",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：应该会承认的",
+        "widgetLine": "答：应该会承认的",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "temperance",
+      "rank": 9,
+      "labelZh": "节制",
+      "personZh": "贝培",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 337,
+        "quote": "对话选择：你不怀念祖国吗?（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你不怀念祖国吗？",
+        "widgetLine": "答：你不怀念祖国吗？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你不怀念祖国吗？",
+        "widgetLine": "答：你不怀念祖国吗？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "temperance",
+      "rank": 10,
+      "labelZh": "节制",
+      "personZh": "贝培",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t209_01.temperance.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyArbitraryAny",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyArbitraryAny",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "devil",
+      "rank": 2,
+      "labelZh": "恶魔",
+      "personZh": "田中社长",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t110_02.devil.rank2"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：PLACEBO（1）",
+        "widgetLine": "答：PLACEBO",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：PLACEBO（1）",
+        "widgetLine": "答：PLACEBO",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "devil",
+      "rank": 3,
+      "labelZh": "恶魔",
+      "personZh": "田中社长",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 756,
+        "quote": "可能有些兴趣（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：可能有些兴趣",
+        "widgetLine": "答：可能有些兴趣",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：可能有些兴趣",
+        "widgetLine": "答：可能有些兴趣",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "devil",
+      "rank": 4,
+      "labelZh": "恶魔",
+      "personZh": "田中社长",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 257,
+        "quote": "确保身上持有\"恶魔\"面具,和西装男对话对话选择：有!（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：有！",
+        "widgetLine": "答：有！",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：有！",
+        "widgetLine": "答：有！",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "devil",
+      "rank": 5,
+      "labelZh": "恶魔",
+      "personZh": "田中社长",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 306,
+        "quote": "对话选择：∵\"那家伙\"是?（2）/任意/说来说去都是钱（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：「那家伙」是？ / 说来说去都是钱",
+        "widgetLine": "答：「那家伙」是？ / 说来说去都是钱",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：「那家伙」是？ / 说来说去都是钱",
+        "widgetLine": "答：「那家伙」是？ / 说来说去都是钱",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "devil",
+      "rank": 6,
+      "labelZh": "恶魔",
+      "personZh": "田中社长",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 375,
+        "quote": "确保身上持有“恶魔”面具，和西装男对话对话选择：好像很有趣（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：好像很有趣",
+        "widgetLine": "答：好像很有趣",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：好像很有趣",
+        "widgetLine": "答：好像很有趣",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "devil",
+      "rank": 7,
+      "labelZh": "恶魔",
+      "personZh": "田中社长",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 405,
+        "quote": "对话选择：好像是有（1）/歪歪扭扭的黄瓜（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：好像是有 / 歪歪扭扭的黄瓜",
+        "widgetLine": "答：好像是有 / 歪歪扭扭的黄瓜",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：好像是有 / 歪歪扭扭的黄瓜",
+        "widgetLine": "答：好像是有 / 歪歪扭扭的黄瓜",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "devil",
+      "rank": 8,
+      "labelZh": "恶魔",
+      "personZh": "田中社长",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 441,
+        "quote": "对话选择：你知道是怎么回事吗?（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你知道是怎么回事吗？",
+        "widgetLine": "答：你知道是怎么回事吗？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你知道是怎么回事吗？",
+        "widgetLine": "答：你知道是怎么回事吗？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "devil",
+      "rank": 9,
+      "labelZh": "恶魔",
+      "personZh": "田中社长",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 274,
+        "quote": "对话选择：你要捐款吗?（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你要捐款吗？",
+        "widgetLine": "答：你要捐款吗？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你要捐款吗？",
+        "widgetLine": "答：你要捐款吗？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "devil",
+      "rank": 10,
+      "labelZh": "恶魔",
+      "personZh": "田中社长",
+      "sourceBound": false,
+      "typedEntryPresent": false,
+      "defaultFriend": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      }
+    },
+    {
+      "link": "tower",
+      "rank": 2,
+      "labelZh": "塔",
+      "personZh": "无达",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t106_05.tower.rank2"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：和你没关系（2） / 请问怎么称呼？（1）",
+        "widgetLine": "答：和你没关系 / 请问怎么称呼？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：和你没关系（2） / 请问怎么称呼？（1）",
+        "widgetLine": "答：和你没关系 / 请问怎么称呼？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "tower",
+      "rank": 3,
+      "labelZh": "塔",
+      "personZh": "无达",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 401,
+        "quote": "我没有朋友（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我没有朋友",
+        "widgetLine": "答：我没有朋友",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我没有朋友",
+        "widgetLine": "答：我没有朋友",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "tower",
+      "rank": 4,
+      "labelZh": "塔",
+      "personZh": "无达",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 709,
+        "quote": "剃光或许也不错（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：剃光或许也不错",
+        "widgetLine": "答：剃光或许也不错",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：剃光或许也不错",
+        "widgetLine": "答：剃光或许也不错",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "tower",
+      "rank": 5,
+      "labelZh": "塔",
+      "personZh": "无达",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 824,
+        "quote": "还是没什么问题的（1）/没有（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：还是没什么问题的 / 没有",
+        "widgetLine": "答：还是没什么问题的 / 没有",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：还是没什么问题的 / 没有",
+        "widgetLine": "答：还是没什么问题的 / 没有",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "tower",
+      "rank": 6,
+      "labelZh": "塔",
+      "personZh": "无达",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 873,
+        "quote": "最好回去休息（2）/寺庙里没有工作人员吗？（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：最好回去休息 / 寺庙里没有工作人员吗？",
+        "widgetLine": "答：最好回去休息 / 寺庙里没有工作人员吗？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：最好回去休息 / 寺庙里没有工作人员吗？",
+        "widgetLine": "答：最好回去休息 / 寺庙里没有工作人员吗？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "tower",
+      "rank": 7,
+      "labelZh": "塔",
+      "personZh": "无达",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 269,
+        "quote": "对话选择：还是算了吧（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：还是算了吧",
+        "widgetLine": "答：还是算了吧",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：还是算了吧",
+        "widgetLine": "答：还是算了吧",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "tower",
+      "rank": 8,
+      "labelZh": "塔",
+      "personZh": "无达",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 279,
+        "quote": "对话选择：爸爸?（2）/和朋友玩去了（1）/任意/你在逃避?（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：爸爸？ / 和朋友玩去了 / 你在逃避？",
+        "widgetLine": "答：爸爸？ / 和朋友玩去了 / 你在逃避？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：爸爸？ / 和朋友玩去了 / 你在逃避？",
+        "widgetLine": "答：爸爸？ / 和朋友玩去了 / 你在逃避？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "tower",
+      "rank": 9,
+      "labelZh": "塔",
+      "personZh": "无达",
+      "sourceBound": false,
+      "typedEntryPresent": false,
+      "defaultFriend": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      }
+    },
+    {
+      "link": "tower",
+      "rank": 10,
+      "labelZh": "塔",
+      "personZh": "无达",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t136_03.tower.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyArbitraryAny",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyArbitraryAny",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "star",
+      "rank": 2,
+      "labelZh": "星",
+      "personZh": "早濑护",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 653,
+        "quote": "不会有压力吗？（2）/自己才是对手（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：不会有压力吗？ / 自己才是对手",
+        "widgetLine": "答：不会有压力吗？ / 自己才是对手",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：不会有压力吗？ / 自己才是对手",
+        "widgetLine": "答：不会有压力吗？ / 自己才是对手",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "star",
+      "rank": 3,
+      "labelZh": "星",
+      "personZh": "早濑护",
+      "sourceBound": false,
+      "typedEntryPresent": false,
+      "defaultFriend": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      }
+    },
+    {
+      "link": "star",
+      "rank": 4,
+      "labelZh": "星",
+      "personZh": "早濑护",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 410,
+        "quote": "对话选择：任意/是一个好机会（1）/肯定能（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：是一个好机会 / 肯定能",
+        "widgetLine": "答：是一个好机会 / 肯定能",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：是一个好机会 / 肯定能",
+        "widgetLine": "答：是一个好机会 / 肯定能",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "star",
+      "rank": 5,
+      "labelZh": "星",
+      "personZh": "早濑护",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t160_02.star.rank5"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：没事吧？（2） / 我们下次再来吃吧（2）",
+        "widgetLine": "答：没事吧？ / 我们下次再来吃吧",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：没事吧？（2） / 我们下次再来吃吧（2）",
+        "widgetLine": "答：没事吧？ / 我们下次再来吃吧",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "star",
+      "rank": 6,
+      "labelZh": "星",
+      "personZh": "早濑护",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 323,
+        "quote": "2.任意/任意/任意/没关系"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：没关系",
+        "widgetLine": "答：没关系",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：没关系",
+        "widgetLine": "答：没关系",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "star",
+      "rank": 7,
+      "labelZh": "星",
+      "personZh": "早濑护",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 252,
+        "quote": "对话选择：没关系（2）/任意/任意/不要放弃（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：没关系 / 不要放弃",
+        "widgetLine": "答：没关系 / 不要放弃",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：没关系 / 不要放弃",
+        "widgetLine": "答：没关系 / 不要放弃",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "star",
+      "rank": 8,
+      "labelZh": "星",
+      "personZh": "早濑护",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 354,
+        "quote": "对话选择：应该带些回去（1）/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：应该带些回去",
+        "widgetLine": "答：应该带些回去",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：应该带些回去",
+        "widgetLine": "答：应该带些回去",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "star",
+      "rank": 9,
+      "labelZh": "星",
+      "personZh": "早濑护",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 286,
+        "quote": "对话选择：嬴了吗?（1）/恭喜（2）/任意/谢谢（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：赢了吗？ / 恭喜 / 谢谢",
+        "widgetLine": "答：赢了吗？ / 恭喜 / 谢谢",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：赢了吗？ / 恭喜 / 谢谢",
+        "widgetLine": "答：赢了吗？ / 恭喜 / 谢谢",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "star",
+      "rank": 10,
+      "labelZh": "星",
+      "personZh": "早濑护",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t224_01.star.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：今天出发？（2）",
+        "widgetLine": "答：今天出发？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：今天出发？（2）",
+        "widgetLine": "答：今天出发？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "moon",
+      "rank": 2,
+      "labelZh": "月亮",
+      "personZh": "末光望美",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 449,
+        "quote": "是的（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：是的",
+        "widgetLine": "答：是的",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：是的",
+        "widgetLine": "答：是的",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "moon",
+      "rank": 3,
+      "labelZh": "月亮",
+      "personZh": "末光望美",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p5",
+        "path": "rules/sources/cn_guides/3dm_p5.html",
+        "line": 505,
+        "quote": "美食大王（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：美食大王",
+        "widgetLine": "答：美食大王",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：美食大王",
+        "widgetLine": "答：美食大王",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "moon",
+      "rank": 4,
+      "labelZh": "月亮",
+      "personZh": "末光望美",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 266,
+        "quote": "身体不舒服？（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：身体不舒服？",
+        "widgetLine": "答：身体不舒服？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：身体不舒服？",
+        "widgetLine": "答：身体不舒服？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "moon",
+      "rank": 5,
+      "labelZh": "月亮",
+      "personZh": "末光望美",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 292,
+        "quote": "说得没错（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：说得没错",
+        "widgetLine": "答：说得没错",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：说得没错",
+        "widgetLine": "答：说得没错",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "moon",
+      "rank": 6,
+      "labelZh": "月亮",
+      "personZh": "末光望美",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_3dm_p6",
+        "path": "rules/sources/cn_guides/3dm_p6.html",
+        "line": 748,
+        "quote": "生病了？（3）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：生病了？",
+        "widgetLine": "答：生病了？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：生病了？",
+        "widgetLine": "答：生病了？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "moon",
+      "rank": 7,
+      "labelZh": "月亮",
+      "personZh": "末光望美",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 286,
+        "quote": "对话选择：毁灭?（3）/任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：毁灭？",
+        "widgetLine": "答：毁灭？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：毁灭？",
+        "widgetLine": "答：毁灭？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "moon",
+      "rank": 8,
+      "labelZh": "月亮",
+      "personZh": "末光望美",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 307,
+        "quote": "对话选择：没那回事（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：没那回事",
+        "widgetLine": "答：没那回事",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：没那回事",
+        "widgetLine": "答：没那回事",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "moon",
+      "rank": 9,
+      "labelZh": "月亮",
+      "personZh": "末光望美",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 332,
+        "quote": "2.确保身上持有“月亮\"面具，到桐叶购物中心和末光望美对话对话选择：任意"
+      },
+      "defaultFriend": {
+        "classification": "reviewedArbitraryAny",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedArbitraryAny",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "moon",
+      "rank": 10,
+      "labelZh": "月亮",
+      "personZh": "末光望美",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t201_01.moon.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyArbitraryAny",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyArbitraryAny",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "sun",
+      "rank": 2,
+      "labelZh": "太阳",
+      "personZh": "神木秋成",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p6",
+        "path": "rules/sources/cn_guides/gamersky_p6.html",
+        "line": 448,
+        "quote": "对话选择：是吗?（2）/有点道理（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：是吗？ / 有点道理",
+        "widgetLine": "答：是吗？ / 有点道理",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：是吗？ / 有点道理",
+        "widgetLine": "答：是吗？ / 有点道理",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "sun",
+      "rank": 3,
+      "labelZh": "太阳",
+      "personZh": "神木秋成",
+      "sourceBound": false,
+      "typedEntryPresent": false,
+      "defaultFriend": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyMissingFragments",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）",
+        "widgetLine": null,
+        "genericFallback": true
+      }
+    },
+    {
+      "link": "sun",
+      "rank": 4,
+      "labelZh": "太阳",
+      "personZh": "神木秋成",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p7",
+        "path": "rules/sources/cn_guides/gamersky_p7.html",
+        "line": 364,
+        "quote": "对话选择：喜欢（1）/无聊的话就会中途放弃（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：喜欢 / 无聊的话就会中途放弃",
+        "widgetLine": "答：喜欢 / 无聊的话就会中途放弃",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：喜欢 / 无聊的话就会中途放弃",
+        "widgetLine": "答：喜欢 / 无聊的话就会中途放弃",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "sun",
+      "rank": 5,
+      "labelZh": "太阳",
+      "personZh": "神木秋成",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 389,
+        "quote": "对话选择：你缺乏自觉（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你缺乏自觉",
+        "widgetLine": "答：你缺乏自觉",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：你缺乏自觉",
+        "widgetLine": "答：你缺乏自觉",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "sun",
+      "rank": 6,
+      "labelZh": "太阳",
+      "personZh": "神木秋成",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p8",
+        "path": "rules/sources/cn_guides/gamersky_p8.html",
+        "line": 416,
+        "quote": "对话选择：我觉得不错（1）/好像很有意思（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我觉得不错 / 好像很有意思",
+        "widgetLine": "答：我觉得不错 / 好像很有意思",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我觉得不错 / 好像很有意思",
+        "widgetLine": "答：我觉得不错 / 好像很有意思",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "sun",
+      "rank": 7,
+      "labelZh": "太阳",
+      "personZh": "神木秋成",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 345,
+        "quote": "对话选择：这个故事好阴暗（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：这个故事好阴暗",
+        "widgetLine": "答：这个故事好阴暗",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：这个故事好阴暗",
+        "widgetLine": "答：这个故事好阴暗",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "sun",
+      "rank": 8,
+      "labelZh": "太阳",
+      "personZh": "神木秋成",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 370,
+        "quote": "对话选择：我等你（1） /为什么要停药?（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我等你 / 为什么要停药？",
+        "widgetLine": "答：我等你 / 为什么要停药？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：我等你 / 为什么要停药？",
+        "widgetLine": "答：我等你 / 为什么要停药？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "sun",
+      "rank": 9,
+      "labelZh": "太阳",
+      "personZh": "神木秋成",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p9",
+        "path": "rules/sources/cn_guides/gamersky_p9.html",
+        "line": 422,
+        "quote": "对话选择：故事写完了?（2）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：故事写完了？",
+        "widgetLine": "答：故事写完了？",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：故事写完了？",
+        "widgetLine": "答：故事写完了？",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "sun",
+      "rank": 10,
+      "labelZh": "太阳",
+      "personZh": "神木秋成",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t235_02.sun.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyArbitraryAny",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyArbitraryAny",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "aeon",
+      "rank": 2,
+      "labelZh": "永劫",
+      "personZh": "埃癸斯",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t241_01.aeon.rank2"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：喜欢（1）",
+        "widgetLine": "答：喜欢",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：喜欢（1）",
+        "widgetLine": "答：喜欢",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "aeon",
+      "rank": 3,
+      "labelZh": "永劫",
+      "personZh": "埃癸斯",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t248_01.aeon.rank3"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：没那回事（2）",
+        "widgetLine": "答：没那回事",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：没那回事（2）",
+        "widgetLine": "答：没那回事",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "aeon",
+      "rank": 4,
+      "labelZh": "永劫",
+      "personZh": "埃癸斯",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p10",
+        "path": "rules/sources/cn_guides/gamersky_p10.html",
+        "line": 330,
+        "quote": "和埃葵斯对话，对话选择：任意/任意/好（1）/任意",
+        "correction": {
+          "id": "cn_guide",
+          "path": "rules/sources/cn_guides/data.json",
+          "line": 7312
+        }
+      },
+      "defaultFriend": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：好；第二问仅在前一问选择第1项时出现；其他已出现的问题随意。该首问选项的中文原文待核对。",
+        "widgetLine": "答：好",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "common",
+        "appLine": "参考回答：好；第二问仅在前一问选择第1项时出现；其他已出现的问题随意。该首问选项的中文原文待核对。",
+        "widgetLine": "答：好",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "aeon",
+      "rank": 5,
+      "labelZh": "永劫",
+      "personZh": "埃癸斯",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t252_01.aeon.rank5"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：也许吧（1）",
+        "widgetLine": "答：也许吧",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：也许吧（1）",
+        "widgetLine": "答：也许吧",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "aeon",
+      "rank": 6,
+      "labelZh": "永劫",
+      "personZh": "埃癸斯",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t254_02.aeon.rank6"
+      ],
+      "defaultFriend": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：你什么都没做错或者他以为你有男朋友了",
+        "widgetLine": "答：你什么都没做错或者他以为你有男朋友了",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyChoices",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：你什么都没做错或者他以为你有男朋友了",
+        "widgetLine": "答：你什么都没做错或者他以为你有男朋友了",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "aeon",
+      "rank": 7,
+      "labelZh": "永劫",
+      "personZh": "埃癸斯",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t255_01.aeon.rank7"
+      ],
+      "defaultFriend": {
+        "classification": "legacyArbitraryAny",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "legacyArbitraryAny",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "aeon",
+      "rank": 8,
+      "labelZh": "永劫",
+      "personZh": "埃癸斯",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p10",
+        "path": "rules/sources/cn_guides/gamersky_p10.html",
+        "line": 367,
+        "quote": "和埃葵斯对话，对话选择：现在就是啊（2）/任意/是恋情（1，恋人线）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedAvoidOnly",
+        "reviewed": true,
+        "selectedVariant": "friend",
+        "appLine": "参考回答：别选「是恋情」；友情路线的其余具体问答待核对。",
+        "widgetLine": "答：别选「是恋情」",
+        "genericFallback": false
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "romance",
+        "appLine": "参考回答：现在就是啊 / 是恋情；本句用于保留恋爱分支，不等于现在确定恋爱关系。",
+        "widgetLine": "答：现在就是啊 / 是恋情",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "aeon",
+      "rank": 9,
+      "labelZh": "永劫",
+      "personZh": "埃癸斯",
+      "sourceBound": true,
+      "typedEntryPresent": true,
+      "approvedSource": {
+        "id": "cn_gamersky_p10",
+        "path": "rules/sources/cn_guides/gamersky_p10.html",
+        "line": 375,
+        "quote": "和埃葵斯对话,对话选择：是啊（1）/我也喜欢你（1）"
+      },
+      "defaultFriend": {
+        "classification": "reviewedRouteMissing",
+        "reviewed": true,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）；只想做朋友的话，别选表白的回答",
+        "widgetLine": "答：别选表白的回答",
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "reviewedChoices",
+        "reviewed": true,
+        "selectedVariant": "romance",
+        "appLine": "参考回答：是啊 / 我也喜欢你",
+        "widgetLine": "答：是啊 / 我也喜欢你",
+        "genericFallback": false
+      }
+    },
+    {
+      "link": "aeon",
+      "rank": 10,
+      "labelZh": "永劫",
+      "personZh": "埃癸斯",
+      "sourceBound": true,
+      "typedEntryPresent": false,
+      "legacyReferenceIds": [
+        "p3r.guide_dialogue.t260_02.aeon.rank10"
+      ],
+      "defaultFriend": {
+        "classification": "legacyRouteSuppressed",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "选能让对方高兴的回答（♪ 越多越好）；只想做朋友的话，别选表白的回答",
+        "widgetLine": "答：别选表白的回答",
+        "genericFallback": true
+      },
+      "romance": {
+        "classification": "legacyArbitraryAny",
+        "reviewed": false,
+        "selectedVariant": null,
+        "appLine": "参考回答：怎么回答都可以",
+        "widgetLine": "答：怎么回答都可以",
+        "genericFallback": false
+      }
+    }
+  ]
+}

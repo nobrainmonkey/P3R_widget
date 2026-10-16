@@ -13,6 +13,11 @@ import java.util.List;
  * Production uses {@link #ENGINE}.
  */
 public interface Forecaster {
+    /** Label alternatives using recorded tower context; custom forecasters may keep the original behavior. */
+    default List<app.p3r.dayplanner.v3.engine.Plan.Step> alternatives(Rules rules, Profile profile,
+                                                                  SimState state, Engine.Options options) {
+        return alternatives(rules, profile, state);
+    }
     /** Legal productive actions at {@code state.slot}. */
     List<Action> legalActions(Rules rules, Profile profile, SimState state);
 
@@ -58,6 +63,12 @@ public interface Forecaster {
         @Override
         public List<app.p3r.dayplanner.v3.engine.Plan.Step> alternatives(Rules rules, Profile profile, SimState state) {
             return Engine.alternatives(rules, profile, state);
+        }
+
+        @Override
+        public List<app.p3r.dayplanner.v3.engine.Plan.Step> alternatives(Rules rules, Profile profile,
+                                                                     SimState state, Engine.Options options) {
+            return Engine.alternatives(rules, profile, state, options);
         }
     };
 }

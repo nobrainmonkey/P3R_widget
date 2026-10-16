@@ -325,7 +325,7 @@ final class Reminders {
 
     /** All the group's modelled people are already rescued or lost in the start state. */
     private static boolean done(Rules rules, Rules.RescueGroup g, SimState start) {
-        if (g.rescueIds.isEmpty()) return false;
+        if (g.rescueIds.isEmpty() || g.count > g.rescueIds.size()) return false;
         for (String id : g.rescueIds) {
             int i = rescueIndex(rules, id);
             if (i < 0 || ((start.rescued | start.rescueFailed) & (1L << i)) == 0) return false;

@@ -319,6 +319,11 @@ final class Labels {
             answers = DialogueHint.forScene(rules, m.profile, l, fx.rankFrom + 1, true);
         }
         if (!answers.isEmpty()) lines.add(DialogueHint.appLine(answers));
+        if (answers.reviewed && !answers.sequence.isEmpty() && !answers.sequence.equals(answers.choices)) {
+            // The compact card can omit arbitrary prompts; details retain their positions and repeats.
+            // This is the selected reviewed variant's sequence, never the other route's raw guide.
+            lines.add(NOTE_PREFIX + "完整问答顺序：" + String.join(" / ", answers.sequence));
+        }
         if (!blank(link.noteZh)) lines.add(NOTE_PREFIX + link.noteZh.trim());
         return String.join("\n", lines);
     }
@@ -590,6 +595,18 @@ final class Labels {
         step.entity = b.id;
         step.titleZh = TOWER_TITLE;
         step.locationZh = TOWER_PLACE;
+        int people = 0;
+        int groupLimit = Integer.MAX_VALUE;
+        if (m.batches != null) {
+            long groups = m.batches.coveredOn(st.slot) & ~st.plannedRescueGroups;
+            for (int i = 0; i < rules.reminders.rescueGroups.size(); i++) {
+                if ((groups & (1L << i)) == 0) continue;
+                Rules.RescueGroup group = rules.reminders.rescueGroups.get(i);
+                people += group.count;
+                groupLimit = Math.min(groupLimit, group.toDay);
+            }
+            if (people > 0) step.detailZh = "这次进塔一起救出目前失踪的 " + people + " 人。先去警察局查看失踪者名单，进塔时留意风花的提示；出塔后确认救援结果。";
+        }
         if (fx.rescue >= 0) {
             Rules.Rescue r = rules.rescues[fx.rescue];
             step.subtitleZh = dot(blockName(b), "救出" + r.zh);
@@ -603,6 +620,13 @@ final class Labels {
             } else {
                 step.whyZh = r.zh + "失踪了，期限 " + date(r.toDay) + "，安排不等到期限当天";
             }
+            return;
+        }
+        if (people > 0) {
+            step.subtitleZh = dot(blockName(b), "救出失踪者（" + people + " 人）");
+            step.whyZh = (st.slot >> 1) >= groupLimit
+                    ? "今天是这一批失踪者的最后期限：" + LIMIT_EVENING_CAVEAT
+                    : "把目前能救的 " + people + " 名失踪者合在这次处理；期限 " + date(groupLimit) + "，安排不等到期限当天";
             return;
         }
         step.subtitleZh = dot(blockName(b), "本区块第 " + fx.towerVisit + " 次");
@@ -730,6 +754,9 @@ final class Labels {
             out.add(goals.length > 0 ? "其余社群：预计另有 " + maxed + " 个升到 MAX" : "预计有 " + maxed + " 个社群升到 MAX");
         }
         episodeNotes(plan, start, end, out);
+        if (m.batches != null && m.batches.missed(end) > 0) {
+            out.add("失踪者：有 " + m.batches.missed(end) + " 批救援没排上，检查对应区块的进塔次数上限；如已救出，可以记录进塔结果后重新安排");
+        }
         for (int b = 0; b < h.t.nBlocks; b++) {
             int want = m.towerWant[b];
             int open = h.t.towerRemain[b][start.slot] + start.towerVisits[b];

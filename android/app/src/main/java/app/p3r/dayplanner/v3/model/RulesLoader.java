@@ -554,6 +554,87 @@ public final class RulesLoader {
                 }
                 l.dialogue.put(rank, Collections.unmodifiableList(texts));
             }
+            parseDialogueHints(o, l, where);
+        }
+
+        /** Optional reviewed guidance; older packs continue to use their verbatim dialogue fragments. */
+        private void parseDialogueHints(JSONObject o, Rules.Link l, String where) throws JSONException {
+            if (o.isNull("dialogueHints")) return;
+            JSONObject hints = reqObject(o, "dialogueHints", where);
+            Iterator<String> keys = hints.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                String w = where + ".dialogueHints." + key;
+                final int rank;
+                try {
+                    rank = Integer.parseInt(key);
+                } catch (NumberFormatException e) {
+                    throw fail(where + ".dialogueHints key '" + key + "' is not a rank number");
+                }
+                if (rank < 1 || rank > 10) throw fail(w + " rank is out of range 1..10");
+                if (l.dialogueHints.containsKey(rank)) throw fail(w + " duplicates rank " + rank);
+                JSONObject entry = reqObject(hints, key, where + ".dialogueHints");
+                Rules.DialogueHintEntry h = new Rules.DialogueHintEntry();
+                if (!entry.isNull("common")) h.common = parseDialogueVariant(reqObject(entry, "common", w), w + ".common");
+                if (!entry.isNull("friend")) h.friend = parseDialogueVariant(reqObject(entry, "friend", w), w + ".friend");
+                if (!entry.isNull("romance")) h.romance = parseDialogueVariant(reqObject(entry, "romance", w), w + ".romance");
+                if (h.common == null && h.friend == null && h.romance == null) throw fail(w + " must have at least one dialogue variant");
+                if (!l.romanceable && (h.friend != null || h.romance != null)) {
+                    throw fail(w + " route variants require a romanceable link");
+                }
+                h.conf = checkConf(entry, w);
+                h.src = sources(entry, w);
+                l.dialogueHints.put(rank, h);
+            }
+        }
+
+        private Rules.DialogueVariant parseDialogueVariant(JSONObject o, String where) throws JSONException {
+            Rules.DialogueVariant v = new Rules.DialogueVariant();
+            v.choices = dialogueStrings(o, "choices", where, true);
+            v.sequence = dialogueStrings(o, "sequence", where, true);
+            v.avoid = dialogueStrings(o, "avoid", where, false);
+            if (!o.isNull("shortChoices")) {
+                v.shortChoices = dialogueStrings(o, "shortChoices", where, true);
+                if (v.shortChoices.size() != v.choices.size()) {
+                    throw fail(where + ".shortChoices must have one entry per choice");
+                }
+            }
+            v.any = !o.isNull("any") && reqBool(o, "any", where);
+            if (v.any && !v.choices.isEmpty()) throw fail(where + ".any cannot accompany explicit choices");
+            v.noteZh = dialogueNote(o, "noteZh", where);
+            // Explicit empty compact text suppresses a detail-only note; absence inherits noteZh.
+            v.shortNoteZh = o.isNull("shortNoteZh") ? null : reqStringAllowEmpty(o, "shortNoteZh", where);
+            if (v.choices.isEmpty() && !v.any && v.avoid.isEmpty() && v.noteZh == null) {
+                throw fail(where + " must have choices, any, avoid or noteZh");
+            }
+            return v;
+        }
+
+        private List<String> dialogueStrings(JSONObject o, String key, String where, boolean required) throws JSONException {
+            if (!required && o.isNull(key)) return Collections.emptyList();
+            JSONArray arr = reqArray(o, key, where);
+            List<String> out = new ArrayList<>();
+            for (int i = 0; i < arr.length(); i++) {
+                Object value = arr.get(i);
+                if (!(value instanceof String) || ((String) value).trim().isEmpty()) {
+                    throw fail(where + "." + key + "[" + i + "] must be a non-empty string");
+                }
+                out.add((String) value);
+            }
+            return Collections.unmodifiableList(out);
+        }
+
+        private String dialogueNote(JSONObject o, String key, String where) throws JSONException {
+            if (o.isNull(key)) return null;
+            String text = reqString(o, key, where);
+            if (text.trim().isEmpty()) throw fail(where + "." + key + " must be a non-empty string");
+            return text;
+        }
+
+        private String reqStringAllowEmpty(JSONObject o, String key, String where) throws JSONException {
+            Object value = o.get(key);
+            if (!(value instanceof String)) throw fail(where + "." + key + " must be a string");
+            return (String) value;
         }
 
         private void parseStoryRanks(JSONObject o, Rules.Link l, String where) throws JSONException {
@@ -590,6 +671,7 @@ public final class RulesLoader {
         private void parseActivities() throws JSONException {
             JSONArray arr = reqArray(root, "activities", "root");
             rules.activities = new Rules.Activity[arr.length()];
+            String[] prerequisites = new String[arr.length()];
             Set<String> ids = new HashSet<>();
             for (int i = 0; i < arr.length(); i++) {
                 String where = "activities[" + i + "]";
@@ -639,6 +721,7 @@ public final class RulesLoader {
                     if (idx == null) throw fail(where + ".requires references unknown stat '" + id + "'");
                     a.requiresLv.put(idx, intInRange(requires, id, where + ".requires", 1, 6));
                 }
+                if (!o.isNull("requiresActivity")) prerequisites[i] = reqString(o, "requiresActivity", where);
                 a.pay = payTiers(o, where);
                 if (a.kind == Rules.ActivityKind.JOB && a.pay.length == 0) throw fail(where + ".pay must not be empty for a job");
                 a.once = reqBool(o, "once", where);
@@ -646,6 +729,21 @@ public final class RulesLoader {
                 a.conf = checkConf(o, where);
                 a.src = sources(o, where);
                 rules.activities[i] = a;
+            }
+            // Resolve after every activity has an identity; pack order must not affect prerequisites.
+            for (int i = 0; i < prerequisites.length; i++) {
+                if (prerequisites[i] == null) continue;
+                int idx = rules.activityIndex(prerequisites[i]);
+                if (idx < 0) throw fail("activities[" + i + "].requiresActivity references unknown activity '" + prerequisites[i] + "'");
+                rules.activities[i].requiresActivity = idx;
+            }
+            for (int i = 0; i < rules.activities.length; i++) {
+                Set<Integer> seen = new HashSet<>();
+                int idx = i;
+                while (idx >= 0) {
+                    if (!seen.add(idx)) throw fail("activities[" + i + "].requiresActivity contains a cycle");
+                    idx = rules.activities[idx].requiresActivity;
+                }
             }
         }
 

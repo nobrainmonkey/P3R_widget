@@ -73,6 +73,8 @@ final class PlanValidator {
         final int[] heldInto = new int[22];
         long rescued;
         long failed;
+        /** Independent replay of forecast rescue groups, separate from Social Link observations. */
+        long rescuedGroups;
         final int[] visits;
         final int[] shifts;
         final int[] used;
@@ -110,6 +112,7 @@ final class PlanValidator {
             notesUsed = Math.max(0, o.notesUsed);
             rescued = o.rescued;
             failed = o.rescueFailed;
+            rescuedGroups = o.plannedRescueGroups;
             for (int i = 0; i < 22; i++) rank[i] = Math.max(0, Math.min(10, rank[i]));
         }
 
@@ -392,6 +395,9 @@ final class PlanValidator {
             if (!activityOnCalendar(a)) error(slot, "activity " + a.id + " not available in this slot");
             if (profile.excluded(a.id)) error(slot, "activity " + a.id + " is excluded by the player");
             if (a.once && used[idx] > 0) error(slot, "once-only activity " + a.id + " repeated");
+            if (a.requiresActivity >= 0 && used[a.requiresActivity] <= 0) {
+                error(slot, a.id + " needs prior activity " + rules.activities[a.requiresActivity].id);
+            }
             for (Map.Entry<Integer, Integer> e : a.requiresLv.entrySet()) {
                 if (statLevel(e.getKey()) < e.getValue()) error(slot, a.id + " needs stat " + e.getKey() + " Lv" + e.getValue());
             }
@@ -453,6 +459,10 @@ final class PlanValidator {
             if (b < 0 || b >= nBlocks) return;
             if (visits[b] >= capOf(b)) error(slot, "Tartarus cap " + capOf(b) + " exceeded in block " + b);
             visits[b]++;
+            for (int i = 0; i < rules.reminders.rescueGroups.size(); i++) {
+                Rules.RescueGroup g = rules.reminders.rescueGroups.get(i);
+                if (day() >= g.fromDay && day() <= g.toDay) rescuedGroups |= 1L << i;
+            }
             // The step's cash delta also carries the side steps' fees, which were paid already.
             long income = s.predicted.cashDelta + sideCost;
             if (income < 0) error(slot, "Tartarus visit loses money in the forecast");
@@ -550,6 +560,7 @@ final class PlanValidator {
             }
             for (Rules.Activity a : rules.activities) {
                 if (a.cost != 0 || profile.excluded(a.id) || (a.once && used[a.idx] > 0) || !activityOnCalendar(a)) continue;
+                if (a.requiresActivity >= 0 && used[a.requiresActivity] <= 0) continue;
                 boolean reqs = true;
                 for (Map.Entry<Integer, Integer> e : a.requiresLv.entrySet()) reqs &= statLevel(e.getKey()) >= e.getValue();
                 if (!reqs) continue;
@@ -566,6 +577,9 @@ final class PlanValidator {
             if (noteUseful(d)) return true;
             Rules.Day day = rules.day(d);
             if (!evening() || day == null || !day.tartarus || day.block < 0 || day.block >= nBlocks) return false;
+            // Waiting for people still to appear can be the productive use of this allowance.
+            // This check is derived from the windows/calendar here, without the planner's helper.
+            if (canWaitForBatch(day.block)) return false;
             // A visit that would use the cap a pending rescue later in this block needs is not counted.
             return visits[day.block] + 1 + pendingRescues(day.block) <= capOf(day.block);
         }
@@ -588,6 +602,28 @@ final class PlanValidator {
                 int thr = link.threshold[r + 1];
                 int need = thr + (isGoal(l) && profile.goalBuffer && thr > 0 ? ordinaryGain() : 0);
                 if (thr > 0 && pts[l] < need) return true;
+            }
+            return false;
+        }
+
+        private boolean canWaitForBatch(int block) {
+            if (visits[block] >= capOf(block)) return false;
+            List<Rules.RescueGroup> groups = rules.reminders.rescueGroups;
+            for (int i = 0; i < groups.size(); i++) {
+                Rules.RescueGroup future = groups.get(i);
+                if ((rescuedGroups & (1L << i)) != 0 || future.fromDay <= day()) continue;
+                int last = Math.min(rules.lastSlot(), Rules.slot(future.toDay - 1, true));
+                for (int night = Rules.slot(future.fromDay, true); night <= last; night += 2) {
+                    Rules.Day date = rules.day(Rules.dayOf(night));
+                    if (date == null || date.block != block || !date.tartarus || lockAt(night) != null) continue;
+                    boolean shared = true;
+                    for (int j = 0; j < groups.size(); j++) {
+                        Rules.RescueGroup current = groups.get(j);
+                        if ((rescuedGroups & (1L << j)) != 0 || current.fromDay > day() || current.toDay < day()) continue;
+                        if (Rules.dayOf(night) >= current.toDay) { shared = false; break; }
+                    }
+                    if (shared) return true;
+                }
             }
             return false;
         }

@@ -142,6 +142,7 @@ final class Planner {
         long t0 = System.nanoTime();
         Model m = new Model(rules, profile, options);
         SimState start = Kernel.normalize(m, observed);
+        m.initializeBatches(start);
         long deadline = t0 + Math.max(0, options.timeBudgetMillis) * 1_000_000L;
         boolean search = options.timeBudgetMillis > 0;
         Pool pool = new Pool(m, start, previous, options, deadline, portfolio);
@@ -237,6 +238,8 @@ final class Planner {
          * whenever one of its plans manages that.
          */
         final int late;
+        /** Missing-person groups that this plan could still rescue but leaves without a visit. */
+        final int missed;
         /** Links at RANK 1 or above, links at RANK 5 or above and the sum of end ranks: what 「尽量都体验」 promises. */
         final int unlocked;
         final int rank5;
@@ -251,6 +254,11 @@ final class Planner {
 
         Candidate(Heuristics h, Heuristics.Tuning tuning, int[] goals, int[] codes, double j, double ownJ, double score, int variant,
                   boolean[] reached, int[] endRank, int[] linkRanks, int waste, int late) {
+            this(h, tuning, goals, codes, j, ownJ, score, variant, reached, endRank, linkRanks, waste, late, 0);
+        }
+
+        Candidate(Heuristics h, Heuristics.Tuning tuning, int[] goals, int[] codes, double j, double ownJ, double score, int variant,
+                  boolean[] reached, int[] endRank, int[] linkRanks, int waste, int late, int missed) {
             this.h = h;
             this.tuning = tuning;
             this.goals = goals;
@@ -264,6 +272,7 @@ final class Planner {
             this.linkRanks = linkRanks;
             this.waste = waste;
             this.late = late;
+            this.missed = missed;
             int open = 0;
             int high = 0;
             int sum = 0;
@@ -364,7 +373,8 @@ final class Planner {
             int[] linkRanks = Arrays.copyOf(st.rank, m.t.nLinks);
             double own = goalOrder == null ? j : new Search(m, h, options, deadline, 0f, 0f).objectiveOf(start, codes);
             return new Candidate(h, tuning, goalOrder, codes, j, own, j - margin * waste, variant, reached, endRank, linkRanks, waste,
-                    ref.lateRescues(reachedAt));
+                    ref.lateRescues(reachedAt) + (m.batches == null ? 0 : m.batches.late(st)),
+                    m.batches == null ? 0 : m.batches.missed(st));
         }
 
         /**
@@ -459,7 +469,7 @@ final class Planner {
             }
             Candidate best = best();
             for (int i = 1; i < n; i++) {
-                if (best.reached[i] || anyReaches(i, best.late)) continue;
+                if (best.reached[i] || anyReaches(i, best.missed, best.late)) continue;
                 if (cancelled(options) || System.nanoTime() > deadline) return true;
                 int[] promoted = new int[n];
                 promoted[0] = goals[i];
@@ -472,8 +482,8 @@ final class Planner {
         }
 
         /** Some plan with at most {@code late} rescues left to the limit evening reaches the goal. */
-        private boolean anyReaches(int goal, int late) {
-            for (Candidate c : all) if (c.reached[goal] && c.late <= late) return true;
+        private boolean anyReaches(int goal, int missed, int late) {
+            for (Candidate c : all) if (c.reached[goal] && c.missed <= missed && c.late <= late) return true;
             return false;
         }
 
@@ -509,6 +519,7 @@ final class Planner {
          * strict goal priority ({@link #compareGoals}), then the score.
          */
         private static boolean better(Candidate a, Candidate b) {
+            if (a.missed != b.missed) return a.missed < b.missed;
             if (a.late != b.late) return a.late < b.late;
             int k = compareGoals(a, b);
             if (k != 0) return k > 0;
@@ -535,7 +546,7 @@ final class Planner {
             boolean bounded = false;
             if (maxPlan != null) {
                 for (Candidate c : all) {
-                    if (c.late == top.late && compareGoals(c, top) == 0 && keepsPromises(c)) {
+                    if (c.missed == top.missed && c.late == top.late && compareGoals(c, top) == 0 && keepsPromises(c)) {
                         bounded = true;
                         break;
                     }
@@ -544,7 +555,7 @@ final class Planner {
             Candidate best = null;
             Candidate stable = null;
             for (Candidate c : all) {
-                if (c.late != top.late || compareGoals(c, top) != 0 || bounded && !keepsPromises(c)) continue;
+                if (c.missed != top.missed || c.late != top.late || compareGoals(c, top) != 0 || bounded && !keepsPromises(c)) continue;
                 if (best == null || c.score > best.score + EPS) best = c;
                 if (keepsPreviousWindow(ref, start.slot, c.codes) && (stable == null || c.score > stable.score + EPS)) stable = c;
             }
@@ -570,6 +581,11 @@ final class Planner {
         boolean keepsPromises(Candidate c) {
             Candidate x = maxPlan;
             if (x == null || c == x) return true;
+            // Breadth must include the links that a MAX-style route can complete, rather than
+            // replacing a difficult unlock with another already-open link of the same count.
+            for (int l = 0; l < c.linkRanks.length; l++) {
+                if (x.linkRanks[l] >= 10 && c.linkRanks[l] == 0) return false;
+            }
             boolean dominated = x.unlocked >= c.unlocked && x.rank5 >= c.rank5 && x.rankSum >= c.rankSum
                     && (x.unlocked > c.unlocked || x.rank5 > c.rank5 || x.rankSum > c.rankSum);
             boolean fewerUnlocked = c.unlocked < x.unlocked && c.j < x.j - EPS;
@@ -690,7 +706,7 @@ final class Planner {
                 if (chosen.reached[i]) continue;
                 int traded = -1;
                 for (Candidate c : all) {
-                    if (!c.reached[i] || c.late > chosen.late) continue;
+                    if (!c.reached[i] || c.missed > chosen.missed || c.late > chosen.late) continue;
                     int d = decidingGoal(chosen, c);
                     if (d >= 0 && d < i && chosen.reached[d]) traded = Math.max(traded, d);
                 }
@@ -1031,8 +1047,14 @@ final class Planner {
      * as plan steps; the caller marks the planned one.
      */
     static List<Plan.Step> alternatives(Rules rules, Profile profile, SimState observed) {
-        Model m = new Model(rules, profile, null);
+        return alternatives(rules, profile, observed, new Engine.Options());
+    }
+
+    static List<Plan.Step> alternatives(Rules rules, Profile profile, SimState observed, Engine.Options options) {
+        if (options == null) options = new Engine.Options();
+        Model m = new Model(rules, profile, options);
         SimState st = Kernel.normalize(m, observed);
+        m.initializeBatches(st);
         Heuristics h = new Heuristics(m, st, null);
         Labels labels = new Labels(m, h);
         int[] codes = new int[Kernel.maxLegal(m)];
@@ -1041,7 +1063,6 @@ final class Planner {
         double[] value = new double[n];
         h.prepare(st);
         for (int i = 0; i < n; i++) scores[i] = h.score(st, codes[i]);
-        Engine.Options options = new Engine.Options();
         Search search = new Search(m, h, options, Long.MAX_VALUE, 0f, 0f);
         int[] reached = h.initialReached(st);
         search.prepareRollouts(reached.length);

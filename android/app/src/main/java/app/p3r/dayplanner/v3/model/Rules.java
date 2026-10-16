@@ -192,6 +192,8 @@ public final class Rules {
         public List<Hold> holds = new ArrayList<>();
         /** CN guide dialogue fragments per target rank (verbatim; display only). */
         public Map<Integer, List<String>> dialogue = new HashMap<>();
+        /** Reviewed display guidance per target rank; an entry is authoritative for its route variants. */
+        public Map<Integer, DialogueHintEntry> dialogueHints = new HashMap<>();
         /**
          * Story links only (null otherwise): storyRankDay[r] = first day on which the story has granted
          * rank r or higher (skipped ranks share the next event's day), -1 if never. Length 11; [0] = -1.
@@ -203,6 +205,29 @@ public final class Rules {
 
         /** True if a meeting is possible on this day (O or D cell). */
         public boolean meetsOn(int day) { return avail.get(day) || invite.get(day); }
+    }
+
+    /** Source-bound dialogue guidance; common applies only where a selected route has no override. */
+    public static final class DialogueHintEntry {
+        public DialogueVariant common;
+        public DialogueVariant friend;
+        public DialogueVariant romance;
+        public String conf;
+        public List<String> src = new ArrayList<>();
+    }
+
+    /** One reviewed route's ordered recommendations, compact wording and complete question sequence. */
+    public static final class DialogueVariant {
+        public List<String> choices = new ArrayList<>();
+        /** Null means use choices on the widget; when present, one compact wording per recommendation. */
+        public List<String> shortChoices;
+        public boolean any;
+        public List<String> avoid = new ArrayList<>();
+        public String noteZh;
+        /** Null inherits noteZh; an explicit empty string keeps a detail-only note off the compact card. */
+        public String shortNoteZh;
+        /** Full ordered questions, including arbitrary answers and route-appropriate conditions. */
+        public List<String> sequence = new ArrayList<>();
     }
 
     public static final class Unlock {
@@ -286,6 +311,8 @@ public final class Rules {
         public int[] gain = new int[3];
         /** Stat index → minimum Lv required to use the activity. */
         public Map<Integer, Integer> requiresLv = new HashMap<>();
+        /** Activity that must already have been completed, or -1 (e.g. discovering a special menu). */
+        public int requiresActivity = -1;
         /** Jobs: pay tiers as {minShiftNumber, pay} pairs, ascending. */
         public int[][] pay = new int[0][];
         /** Use at most once in the whole game (e.g. a challenge menu). */

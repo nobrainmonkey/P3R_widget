@@ -145,7 +145,9 @@ public class PlanRealPackTest {
         // more (PlanBreadthRealPackTest): every link but 女皇 (Academics MAX from Lv.4) is unlocked.
         assertTrue("maxed " + r.metrics.maxed, r.metrics.maxed >= 6);
         assertTrue("unlocked " + r.metrics.unlocked, r.metrics.unlocked >= 21);
-        assertTrue("RANK ≥ 5 " + r.metrics.atLeast5, r.metrics.atLeast5 >= 17);
+        // 3.2 schedules every rescue wave and discovers stat-gated menus: this start trades
+        // some middle ranks for one more MAX (9 MAX, 15 links at RANK 5+, rank sum 148).
+        assertTrue("RANK ≥ 5 " + r.metrics.atLeast5, r.metrics.atLeast5 >= 15);
         // Every chain that can still complete does: the Justice talks, the Devil payments (Charm Lv4 and
         // ¥40,000 from ¥1,000), the Tower and Moon rumours; Temperance, Star and Aeon open too.
         for (String id : new String[]{"justice", "devil", "tower", "moon", "temperance", "star", "aeon"}) {

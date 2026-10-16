@@ -107,20 +107,42 @@ public final class DialogueHint {
         public final boolean conditional;
         /** RANK of the meeting scene these answers are for; 0 for an unlock step, -1 for {@link #NONE}. */
         public final int scene;
+        /** Reviewed guidance is authoritative; absent route variants never reparse the raw fragments. */
+        public final boolean reviewed;
+        /** Explicit compact wording; null means the widget uses choices without the guide's counts. */
+        public final List<String> shortChoices;
+        /** Full and compact route/condition notes, separate from the answer strings. */
+        public final String noteZh;
+        public final String shortNoteZh;
+        /** Complete ordered, route-appropriate question sequence for the app's details. */
+        public final List<String> sequence;
 
         Answers(List<String> choices, boolean any, List<String> avoid, boolean friendCaution, boolean conditional,
                 int scene) {
+            this(choices, any, avoid, friendCaution, conditional, scene, false, null, null, null,
+                    Collections.emptyList());
+        }
+
+        Answers(List<String> choices, boolean any, List<String> avoid, boolean friendCaution, boolean conditional,
+                int scene, boolean reviewed, List<String> shortChoices, String noteZh, String shortNoteZh,
+                List<String> sequence) {
             this.choices = Collections.unmodifiableList(new ArrayList<>(choices));
             this.any = any;
             this.avoid = Collections.unmodifiableList(new ArrayList<>(avoid));
             this.friendCaution = friendCaution;
             this.conditional = conditional;
             this.scene = scene;
+            this.reviewed = reviewed;
+            this.shortChoices = shortChoices == null ? null : Collections.unmodifiableList(new ArrayList<>(shortChoices));
+            this.noteZh = noteZh;
+            this.shortNoteZh = shortNoteZh;
+            this.sequence = Collections.unmodifiableList(new ArrayList<>(sequence));
         }
 
         /** Nothing to say: no answers, no free choice and no caution (the app shows {@link #FALLBACK}). */
         public boolean isEmpty() {
-            return choices.isEmpty() && !any && !friendCaution && avoid.isEmpty();
+            return choices.isEmpty() && !any && !friendCaution && avoid.isEmpty()
+                    && (noteZh == null || noteZh.isEmpty());
         }
     }
 
@@ -162,6 +184,21 @@ public final class DialogueHint {
      */
     static Answers forScene(Rules r, Profile p, int link, int scene, boolean conditional) {
         Rules.Link l = r.links[link];
+        Rules.DialogueHintEntry hint = l.dialogueHints.get(scene);
+        if (hint != null) {
+            boolean romance = romanceRoute(p, link);
+            Rules.DialogueVariant variant = romance ? hint.romance : hint.friend;
+            if (variant == null) variant = hint.common;
+            if (variant != null) {
+                return new Answers(variant.choices, variant.any, variant.avoid, false, conditional, scene,
+                        true, variant.shortChoices, variant.noteZh, variant.shortNoteZh, variant.sequence);
+            }
+            // The scene is known, but this route has not been reviewed. Raw guide arrays may be a
+            // different route: retain a neutral caution instead of exposing its confession answers.
+            return new Answers(Collections.emptyList(), false, Collections.emptyList(),
+                    l.romanceable && !romance, conditional, scene, true, null, null, null,
+                    Collections.emptyList());
+        }
         List<String> fragments = l.dialogue == null ? null : l.dialogue.get(scene);
         if (l.romanceable && !romanceRoute(p, link)) return friendAnswers(fragments, scene, conditional);
         return answers(fragments, scene, conditional);
@@ -210,6 +247,13 @@ public final class DialogueHint {
     public static String appLine(Answers a) {
         if (a == null || a.isEmpty()) return FALLBACK;
         String prefix = a.conditional ? CONDITIONAL_PREFIX : PREFIX;
+        if (a.reviewed) {
+            String notes = reviewedNotes(a, false);
+            String body = !a.choices.isEmpty() ? String.join(" / ", a.choices) : a.any ? ANY_ZH : "";
+            if (!body.isEmpty()) return prefix + body + (notes == null ? "" : "；" + notes);
+            if (notes != null) return prefix + notes;
+            return a.friendCaution ? FRIEND_FALLBACK : FALLBACK;
+        }
         if (!a.choices.isEmpty()) {
             return prefix + String.join(" / ", a.choices) + (a.friendCaution ? "；" + FRIEND_CAUTION : "");
         }
@@ -262,7 +306,7 @@ public final class DialogueHint {
     public static List<String> widgetChoices(Answers a) {
         List<String> out = new ArrayList<>();
         if (a == null) return out;
-        for (String choice : a.choices) {
+        for (String choice : a.shortChoices == null ? a.choices : a.shortChoices) {
             String shown = withoutCounts(choice);
             if (!shown.isEmpty()) out.add(shown);
         }
@@ -282,6 +326,10 @@ public final class DialogueHint {
      */
     public static String widgetNote(Answers a) {
         if (a == null) return null;
+        if (a.reviewed) {
+            String note = reviewedNotes(a, true);
+            if (note != null) return note;
+        }
         if (!a.avoid.isEmpty()) {
             Set<String> names = new LinkedHashSet<>();
             for (String answer : a.avoid) {
@@ -292,6 +340,22 @@ public final class DialogueHint {
         }
         if (!a.friendCaution) return null;
         return widgetChoices(a).isEmpty() ? FRIEND_AVOID_ALONE : FRIEND_AVOID;
+    }
+
+    /** Named prohibited answers and authored route/condition guidance, never inferred from wording. */
+    private static String reviewedNotes(Answers a, boolean compact) {
+        List<String> notes = new ArrayList<>();
+        if (!a.avoid.isEmpty()) {
+            Set<String> names = new LinkedHashSet<>();
+            for (String answer : a.avoid) {
+                String shown = withoutCounts(answer);
+                if (!shown.isEmpty()) names.add(shown);
+            }
+            if (!names.isEmpty()) notes.add("别选「" + String.join("」「", names) + "」");
+        }
+        String authored = compact && a.shortNoteZh != null ? a.shortNoteZh : a.noteZh;
+        if (authored != null && !authored.isEmpty() && !notes.contains(authored)) notes.add(authored);
+        return notes.isEmpty() ? null : String.join("；", notes);
     }
 
     /** {@code text} without the guide's 「（1）」 counts. */

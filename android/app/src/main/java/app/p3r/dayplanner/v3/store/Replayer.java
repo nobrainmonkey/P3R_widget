@@ -339,6 +339,7 @@ public final class Replayer {
             s = StateShape.fit(applier.applySideSteps(rules, profile, before, visit), rules);
         }
         s.slot = before.slot;
+        s.lastTowerSlot = before.slot;
         long cashBefore = s.cash;
         boolean exactBefore = s.cashExact;
         if (rec.block >= 0 && rec.block < s.towerVisits.length) {

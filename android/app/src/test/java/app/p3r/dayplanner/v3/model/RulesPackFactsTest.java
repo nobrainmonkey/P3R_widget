@@ -916,10 +916,10 @@ public class RulesPackFactsTest {
 
     @Test
     public void requestsCollectiblesTripsAndShops() {
-        assertEquals(17, kind("request"));
+        assertEquals(26, kind("request"));
         int batches = 0;
         for (Rules.Reminder x : r.reminders.items) {
-            if ("request".equals(x.kind) && !x.id.endsWith(".deadline")) {
+            if ("request".equals(x.kind) && x.id.matches("request\\.\\d{2}-\\d{2}")) {
                 batches++;
                 assertEquals("伊莉莎白有新的委托", x.zh);
                 // The request system opens on 5/10 evening; 1/1's daytime is the shrine visit (3DM: evening).
@@ -934,8 +934,12 @@ public class RulesPackFactsTest {
         assertEquals("伊莉莎白的委托 11月30日截止", reminder("request.11-30.deadline").shortZh);
         assertEquals(day(6, 3), first.day);
         assertEquals(day(6, 6), first.untilDay);
-        assertEquals("这个委托只能做到 12月25日，而且只有在 7月6日当天或更早救出了 6月18日失踪的学生才能完成；接委托和交东西都不会消耗时间。",
-                reminder("request.12-25.deadline").detailZh);
+        assertTrue(reminder("request.12-25.deadline").detailZh.startsWith(
+                "这个委托只能做到 12月25日，而且只有在 7月6日当天或更早救出了 6月18日失踪的学生才能完成；接委托和交东西都不会消耗时间。"));
+        assertTrue(reminder("request.12-25.deadline").detailZh.contains("严户台商店街 2 楼"));
+        assertTrue(reminder("request.05-10").detailZh.contains("用掉一个晚上"));
+        assertTrue(reminder("request.10-06.faculty").detailZh.contains("分 8 天"));
+        assertTrue(reminder("request.05-29.outings").detailZh.contains("不会到了某个日期就自动出现"));
 
         assertEquals("今天城里能捡到黄昏的碎片（14 处）", reminder("fragment.04-21").zh);
         assertEquals(15, reminder("fragment.04-21").detailZh.split("\n").length);

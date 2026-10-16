@@ -411,7 +411,7 @@ public final class PlannerService implements PlannerApi {
         try {
             SimState state = forecastUntil(rules, profile, v.observed.copy(), m.plan, slot);
             // The engine labels its alternatives exactly like plan steps and orders them by value.
-            List<Plan.Step> labelled = wiring.forecaster.alternatives(rules, profile, state);
+            List<Plan.Step> labelled = wiring.forecaster.alternatives(rules, profile, state, options(v));
             if (labelled != null) {
                 return labelled;
             }

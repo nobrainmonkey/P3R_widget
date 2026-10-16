@@ -37,8 +37,14 @@ public final class SimState {
     public long rescued;
     /** Bit i set → rescue i failed (deadline passed / player confirmed). */
     public long rescueFailed;
+    /** Forecast-only missing-person groups covered by planned tower visits; never saved as observations. */
+    public long plannedRescueGroups;
+    /** Forecast groups saved only on their limit evening despite an earlier safe evening. */
+    public long plannedRescueGroupsLate;
     /** Visits per Tartarus block index. */
     public int[] towerVisits = new int[0];
+    /** Latest actually recorded Tartarus evening, preserved through checkpoints; forecasts never update it. */
+    public int lastTowerSlot = -1;
     public int floor;
     /** Completed shifts per activity index (jobs). */
     public int[] shifts = new int[0];
@@ -80,7 +86,10 @@ public final class SimState {
         s.lastStepDay = lastStepDay.clone();
         s.rescued = rescued;
         s.rescueFailed = rescueFailed;
+        s.plannedRescueGroups = plannedRescueGroups;
+        s.plannedRescueGroupsLate = plannedRescueGroupsLate;
         s.towerVisits = towerVisits.clone();
+        s.lastTowerSlot = lastTowerSlot;
         s.floor = floor;
         s.shifts = shifts.clone();
         s.used = used.clone();
@@ -106,6 +115,7 @@ public final class SimState {
         o.put("rescued", rescued);
         o.put("rescueFailed", rescueFailed);
         o.put("towerVisits", arr(towerVisits));
+        if (lastTowerSlot >= 0) o.put("lastTowerSlot", lastTowerSlot);
         o.put("floor", floor);
         o.put("shifts", arr(shifts));
         o.put("used", arr(used));
@@ -131,6 +141,7 @@ public final class SimState {
         s.rescueFailed = o.optLong("rescueFailed", 0);
         JSONArray tv = o.optJSONArray("towerVisits");
         s.towerVisits = ints(tv, tv == null ? 0 : tv.length());
+        s.lastTowerSlot = o.optInt("lastTowerSlot", -1);
         s.floor = o.optInt("floor", 0);
         JSONArray sh = o.optJSONArray("shifts");
         s.shifts = ints(sh, sh == null ? 0 : sh.length());

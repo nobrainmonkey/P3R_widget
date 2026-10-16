@@ -32,6 +32,8 @@ final class Model {
     /** Event gains per link, romance route aware. */
     final int[][] eventGain;
     final boolean[] excluded;
+    /** Per activity: allowed activities unlocked by its recorded use (usually empty). */
+    final int[][] unlockedActivities;
     /** Most points one allowed activity gives each stat (an unlock gate this close is "about to open"). */
     final int[] maxGain;
     /** Per activity: bit s set when it raises stat s. */
@@ -42,6 +44,10 @@ final class Model {
     final int[] towerWant;
     final int cashBuffer;
     final int towerIncome;
+    /** Latest observed tower evening, used when grouping missing-person rescues. */
+    final int lastTowerSlot;
+    /** Forecast-only rescue policy; initialized with a copied plan start. */
+    RescueBatches batches;
 
     /** The pack's dating-site note when the player allows notes, else null. */
     final Rules.DatingNote note;
@@ -78,6 +84,7 @@ final class Model {
         }
         this.cashBuffer = Math.max(0, profile.cashBuffer);
         this.towerIncome = options == null ? 0 : Math.max(0, options.towerIncomePerVisit);
+        this.lastTowerSlot = options == null ? -1 : options.lastTowerSlot;
         Rules.DatingNote n = rules.datingNote;
         this.note = profile.datingNotes && n != null && n.gain > 0 ? n : null;
         this.noteMaxUses = note == null ? 0 : Math.max(1, note.maxUses);
@@ -106,6 +113,19 @@ final class Model {
         }
         excluded = new boolean[t.nActs];
         for (Rules.Activity a : rules.activities) excluded[a.idx] = profile.excluded(a.id);
+        int[] unlockCounts = new int[t.nActs];
+        for (Rules.Activity a : rules.activities) {
+            if (a.requiresActivity >= 0 && !excluded[a.idx]) unlockCounts[a.requiresActivity]++;
+        }
+        unlockedActivities = new int[t.nActs][];
+        for (int a = 0; a < t.nActs; a++) unlockedActivities[a] = new int[unlockCounts[a]];
+        java.util.Arrays.fill(unlockCounts, 0);
+        for (Rules.Activity a : rules.activities) {
+            if (a.requiresActivity >= 0 && !excluded[a.idx]) {
+                int prerequisite = a.requiresActivity;
+                unlockedActivities[prerequisite][unlockCounts[prerequisite]++] = a.idx;
+            }
+        }
         gainMask = new int[t.nActs];
         for (Rules.Activity a : rules.activities) {
             for (int s = 0; s < Math.min(Math.min(a.gain.length, t.nStats), 31); s++) if (a.gain[s] > 0) gainMask[a.idx] |= 1 << s;
@@ -120,6 +140,15 @@ final class Model {
             Rules.Episode ep = rules.episodes[e];
             episodeWanted[e] = ep.id != null && ep.count > 0 && profile.wantsEpisodes(ep.id);
         }
+    }
+
+    void initializeBatches(SimState start) {
+        batches = new RescueBatches(this, start, lastTowerSlot);
+        if (!batches.hasGroups()) {
+            batches = null;
+            return;
+        }
+        start.plannedRescueGroups |= batches.initialMask();
     }
 
     /** Target rank for a link: the profile target for goals, MAX otherwise. */

@@ -315,9 +315,11 @@ public class RemindersTest {
     }
 
     @Test
-    public void planIdAndStepsDoNotDependOnReminders() throws Exception {
+    public void planIdAndStepsDoNotDependOnDisplayReminders() throws Exception {
         Rules with = ReminderFixtures.rules();
         Rules without = ReminderFixtures.rules();
+        // Rescue windows now inform trip batching; isolate the purely display-only reminder data.
+        with.reminders.rescueGroups.clear();
         without.reminders = new Rules.Reminders();
         assertEquals(with.version, without.version);
         SimState start = ReminderFixtures.start(with, 20, 1, 1, 1);

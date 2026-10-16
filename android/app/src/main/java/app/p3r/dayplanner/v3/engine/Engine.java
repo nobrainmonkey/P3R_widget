@@ -146,6 +146,11 @@ public final class Engine {
         return Planner.alternatives(rules, profile, state);
     }
 
+    /** Alternatives with the same recorded tower history and income assumptions as normal planning. */
+    public static List<Plan.Step> alternatives(Rules rules, Profile profile, SimState state, Options options) {
+        return Planner.alternatives(rules, profile, state, options);
+    }
+
     /** Plan every slot from {@code observed.slot} to the end of the calendar. */
     public static Plan plan(Rules rules, Profile profile, SimState observed, Plan previous, Options options) {
         return Planner.plan(rules, profile, observed, previous, options == null ? new Options() : options);

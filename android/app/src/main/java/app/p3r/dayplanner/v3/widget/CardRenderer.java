@@ -132,6 +132,11 @@ public final class CardRenderer {
         }
     }
 
+    /** The fitted override is shared by measuring and RemoteViews padding. */
+    private static float bodyPaddingDp(CardModel model, WidgetSize size) {
+        return model.bodySidePaddingDp >= 0 ? model.bodySidePaddingDp : bodyPaddingDp(size);
+    }
+
     /** Top plus bottom padding of the body in dp. Mirrors the layout XML. */
     public static float bodyVerticalPaddingDp(WidgetSize size) {
         return size == WidgetSize.REGULAR ? 6 + 6 : 3 + 3;
@@ -1075,7 +1080,7 @@ public final class CardRenderer {
     /** Whether the fitted title needs more lines than it keeps even at its smallest size (it ends in "…"). */
     static boolean titleCut(Context c, CardModel fitted, WidgetSize size, float widthDp) {
         if (isBlank(fitted.title)) return false;
-        float titleWidth = titleWidthDp(fitted, size, widthDp - 2 * bodyPaddingDp(size));
+        float titleWidth = titleWidthDp(fitted, size, widthDp - 2 * bodyPaddingDp(fitted, size));
         StaticLayout layout = layout(c, fitted.title, MIN_TITLE_SP, Typeface.DEFAULT_BOLD, titleWidth, Integer.MAX_VALUE, 0f);
         return layout.getLineCount() > Math.max(1, fitted.titleMaxLines);
     }
@@ -1130,7 +1135,14 @@ public final class CardRenderer {
     }
 
     private static CardModel fitRows(Context c, CardModel model, WidgetSize size, float widthDp, float heightDp) {
-        float innerWidth = widthDp - 2 * bodyPaddingDp(size);
+        return fitRows(c, model, size, widthDp, heightDp, false);
+    }
+
+    /** A width-recovery probe may not fall back to losing one of the card's answer kinds. */
+    private static CardModel fitRows(Context c, CardModel model, WidgetSize size, float widthDp, float heightDp,
+            boolean requireBoth) {
+        float sidePadding = bodyPaddingDp(model, size);
+        float innerWidth = widthDp - 2 * sidePadding;
         float titleWidth = titleWidthDp(model, size, innerWidth);
         int lines = Math.max(1, model.titleMaxLines);
         float comfortable = textHeightDp(c, model.title, comfortableTitleSp(size), true, titleWidth, lines);
@@ -1308,6 +1320,23 @@ public final class CardRenderer {
                 chosen = firstFit(forms, smallest + cue, DIALOGUE_GAP_DP, limit, BOTH);
                 tight = chosen != null;
             }
+            if (chosen == null) {
+                if (requireBoth) return null;
+                // At 180x130 and a large font, a conditional label plus the first whole answer and
+                // "等 N 项" can be a few pixels too wide. Before dropping it for a class answer,
+                // recover only as much side padding as needed, keeping the text and font unchanged.
+                boolean certain = false;
+                for (CardModel.AnswerLine line : fitted.answers) certain |= line.certain();
+                if (size == WidgetSize.TINY && own(fitted.answers) != null && certain) {
+                    for (float pad : new float[]{6, 4, 2, 1, 0}) {
+                        if (pad >= sidePadding) continue;
+                        CardModel wider = fitted.copy();
+                        wider.bodySidePaddingDp = pad;
+                        CardModel candidate = fitRows(c, wider, size, widthDp, heightDp, true);
+                        if (candidate != null) return candidate;
+                    }
+                }
+            }
             if (chosen == null) chosen = firstFit(forms, smallest + cue, 0, limit, ANY);
             if (chosen == null) {
                 tight = true;
@@ -1322,6 +1351,7 @@ public final class CardRenderer {
                 body += taken;
             }
         }
+        if (requireBoth && (chosen == null || !chosen.both)) return null;
         if (chosen != null) answersText = chosen.text;
         float answersSp = chosen == null || chosen.sp == DIALOGUE_SP ? 0 : chosen.sp;
         int[] muted = chosen == null ? new int[0] : chosen.muted;
@@ -1488,7 +1518,7 @@ public final class CardRenderer {
     static boolean textReachesWatermark(Context c, CardModel m, WidgetSize size, float widthDp) {
         if (m.watermarkDay < 1 || m.watermarkDay > 31) return false;
         float scale = c.getResources().getConfiguration().fontScale;
-        float pad = bodyPaddingDp(size);
+        float pad = bodyPaddingDp(m, size);
         float inner = widthDp - 2 * pad;
         float titleWidth = titleWidthDp(m, size, inner);
         float reach = (inner - titleWidth) + widestLineDp(c, m.title, maxTitleSp(size), Typeface.DEFAULT_BOLD, titleWidth,
@@ -1630,7 +1660,7 @@ public final class CardRenderer {
         // Body padding (none when tight) plus the spare height fit() shared out on a tall card, less
         // what it gave up for an instruction on a short one.
         float density = c.getResources().getDisplayMetrics().density;
-        int side = Math.round(bodyPaddingDp(size) * density);
+        int side = Math.round(bodyPaddingDp(model, size) * density);
         float padding = bodyVerticalPaddingDp(size) / 2;
         views.setViewPadding(R.id.widget_task_area, side, Math.round(Math.max(0, padding + model.spaceAboveDp) * density),
                 side, Math.round(Math.max(0, padding + model.spaceBelowDp) * density));

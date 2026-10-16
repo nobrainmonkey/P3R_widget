@@ -721,6 +721,7 @@ final class Kernel {
         if (m.excluded[act]) return false;
         Rules.Activity a = m.rules.activities[act];
         if (a.once && st.used[act] > 0) return false;
+        if (a.requiresActivity >= 0 && st.used[a.requiresActivity] <= 0) return false;
         for (java.util.Map.Entry<Integer, Integer> e : a.requiresLv.entrySet()) {
             if (e.getKey() < m.t.nStats && statLv(m, st, e.getKey()) < e.getValue()) return false;
         }
@@ -938,6 +939,7 @@ final class Kernel {
     private static void tower(Model m, SimState st, int block, int day, Effect fx) {
         if (block < 0 || block >= st.towerVisits.length) return;
         st.towerVisits[block]++;
+        if (m.batches != null) m.batches.recordVisit(st, st.slot);
         if (m.towerIncome > 0) {
             st.cash += m.towerIncome;
             st.cashExact = false;
