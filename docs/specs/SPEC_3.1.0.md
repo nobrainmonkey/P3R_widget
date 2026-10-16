@@ -360,10 +360,10 @@ The research plan is adopted, with the ownership split below. All of it compiled
      - a "resize cancels fade" case in a **new** `PlanWidgetFadeTest` (do not edit `PlanWidgetBehaviourTest` beyond the import).
 8. **Docs:**
    - `README.md:31-34,88`.
-   - `docs/DESIGN_v3.md`: lines 23, 271-272, 320, 325-326, 334, 392-393, 400, plus §19 (owner override of `P3R_HANDOFF_PROMPT.md:61`).
+   - `docs/DESIGN_v3.md`: lines 23, 271-272, 320, 325-326, 334, 392-393, 400, plus §19 (owner override of the original guide-widget preservation requirement).
    - `scripts/compliance_doc.py`: add `superseded` to `MARK` (`:19`), plus `docs/analysis/audit/overrides.json` for rows `[61]` and `:104`, then regenerate `HANDOFF_COMPLIANCE.md`.
    - Delete `docs/screenshots/legacy_guide.png`, `android/README.md`, `android/README_original_v1_2.md`, `android/NATIVE_WIP_CHECKPOINT_2026-10-12.md`, `prototype/`.
-   - Keep the handoff zip, `P3R_HANDOFF_PROMPT.md`, `docs/handoff/`, `docs/analysis/`, `android/SEES_ASSET_SOURCE.txt`.
+   - Keep `docs/analysis/` and `android/SEES_ASSET_SOURCE.txt`. The original requirement to retain the v2 handoff prompt, snapshot ZIP and handoff directory was superseded by the owner's cleanup request on 2026-10-15; those files remain in Git history.
 9. **Not WP-A's (owned by WP-D):** guide-only code in `CardText`, `CardRenderer`, `CardModel`, `GuideWords.java`, the `CardTextTest` guide cases, the `GlossarySourceTest` `GUIDE_WORDS` skip, `RenderSupport` legacy helpers, and the layout comments in `widget_card_regular.xml:2-4` / `widget_card_compact.xml:2`.
 10. **User consequences, for the release notes:**
     - An old 「P3R 逐日攻略」 widget stops working. Copy: `如果桌面上还有「P3R 逐日攻略」小组件，更新后它会失效，长按把它移除就好；「P3R 每日安排」不受影响。`

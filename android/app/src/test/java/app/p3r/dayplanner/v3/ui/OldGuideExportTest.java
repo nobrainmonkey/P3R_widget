@@ -46,7 +46,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 备份与恢复's 「旧版逐日攻略」 → 「导出打勾进度」 (handoff P3R_HANDOFF_PROMPT.md:61, docs/DESIGN_v3.md §19): the
+ * 备份与恢复's 「旧版逐日攻略」 → 「导出打勾进度」 (docs/DESIGN_v3.md §19): the
  * 3.0.x guide's ticks in the prefs p3r_native_progress_v1 are shown only when there is a ticked task,
  * saved through ACTION_CREATE_DOCUMENT as the old page's exportProgress() file, byte for byte, and the
  * prefs are never changed. The expected files were produced by the old page's own expression

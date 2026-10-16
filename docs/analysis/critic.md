@@ -1,5 +1,9 @@
 # Completeness critique: contradictions, resolved facts, open questions
 
+Historical v2 analysis. File paths and line numbers below refer to the source snapshot examined
+at the time; the old handoff files were removed on 2026-10-15 and remain in Git history.
+For current implementation requirements, see [the v3 design](../DESIGN_v3.md).
+
 I resolved several gaps by reading project files, the game-data TSVs the sources reader downloaded into `scratchpad/dl_gh/`, and the downloaded Steam threads in `scratchpad/dl_steam/`. No project files were modified. Gradle was not run.
 
 ---

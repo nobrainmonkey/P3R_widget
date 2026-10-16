@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Builds docs/HANDOFF_COMPLIANCE.md from the independent audit JSON files in docs/analysis/audit/.
 
-audit.json   — first full audit of P3R_HANDOFF_PROMPT.md + owner directives (per section, per requirement)
+audit.json   — first full audit of the original product requirements + owner directives
+               (per section, per requirement; the old handoff is retained in Git history)
 reaudit.json — re-check of the items that were partial
 final.json   — (optional) last verification of the items still partial after the re-audit
 overrides.json — (optional) owner decisions and later releases that change a row after the audits,
@@ -125,8 +126,10 @@ def main():
     counts = {s: 0 for s in MARK}
     for v in items.values():
         counts[v['status']] += 1
-    out = ['# 交接文档完成情况', '',
-           f'本文件逐条对照 `P3R_HANDOFF_PROMPT.md`（交接/设计文档）以及所有者在开发过程中补充的要求，列出 {version()} 的完成情况和证据。',
+    out = ['# 项目要求与复核记录', '',
+           f'本文件汇总原始产品要求以及所有者在开发过程中补充的要求，列出 {version()} 的完成情况和证据；当前设计以 `docs/DESIGN_v3.md` 为准。',
+           '旧 v2 交接提示、快照压缩包和交接目录已按所有者要求于 2026-10-15 删除，可从 Git 历史查阅。'
+           '审计中的旧文件路径和交接文档行号保留为历史定位信息，不是当前开发入口。',
            '每一条都由独立审查代理对照代码、测试、真机/模拟器截图核实（只读审查，证据含文件位置、测试名与运行结果、截图路径），'
            '未满足的地方如实写出。原始审查记录在 `docs/analysis/audit/`。', '',
            f"**统计**：已满足 {counts['met']} 条 · 部分满足 {counts['partial']} 条 · 未满足 {counts['not_met']} 条"

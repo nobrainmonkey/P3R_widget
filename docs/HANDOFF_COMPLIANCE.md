@@ -1,9 +1,10 @@
-# 交接文档完成情况
+# 项目要求与复核记录
 
-本文件逐条对照 `P3R_HANDOFF_PROMPT.md`（交接/设计文档）以及所有者在开发过程中补充的要求，列出 3.1.2 的完成情况和证据。
+本文件汇总原始产品要求以及所有者在开发过程中补充的要求，列出 3.1.2 的完成情况和证据；当前设计以 `docs/DESIGN_v3.md` 为准。
+旧 v2 交接提示、快照压缩包和交接目录已按所有者要求于 2026-10-15 删除，可从 Git 历史查阅。审计中的旧文件路径和交接文档行号保留为历史定位信息，不是当前开发入口。
 每一条都由独立审查代理对照代码、测试、真机/模拟器截图核实（只读审查，证据含文件位置、测试名与运行结果、截图路径），未满足的地方如实写出。原始审查记录在 `docs/analysis/audit/`。
 
-**统计**：已满足 76 条 · 部分满足 0 条 · 未满足 0 条 · 已被所有者要求取代 1 条（共 77 条，其中 [61] 按两半分成两条）。
+**统计**：已满足 75 条 · 部分满足 0 条 · 未满足 0 条 · 已被所有者要求取代 2 条（共 77 条，其中 [61] 按两半分成两条）。
 
 3.1.0 按所有者要求移除了 3.0.x 里附带的旧攻略和它的小组件（`docs/DESIGN_v3.md` §19）。交接文档第 61 行要求「旧的固定攻略小组件和进度都要保持安全」（Existing fixed-guide widget and progress must remain safe），这一条按两半分成两条：小组件那一半已被所有者要求取代；进度那一半已满足——打勾进度没有删除，仍留在手机上，3.1.0 之后的更新可以在「我的 → 备份与恢复」里导出（已发布的 3.1.0 安装包里还没有这一项）。引用已删除文件的证据已更新（`docs/analysis/audit/overrides.json`）；其余证据里提到旧攻略的，说的是当时审计的版本。
 
@@ -103,7 +104,7 @@
 | Plan span and useful action counts reported (not only unit-test totals) | ✅ 已满足（复查） | docs/PLAN_METRICS.md is committed (e1b6e4f) and linked from README.md:93. It has one row per scenario (16 scenarios, early game, mid game, 1/8) with columns 开始, 安排范围 (dated span), 步数, 要做的事 (useful actions), 自由活动, MAX 社群, 目标升到 MAX and 用时. PlanRealPackTest generates the table (record() :493-515, writeMetrics() :534-562). After re-running the test, android/app/build/plan_metrics.md matches the committed doc row for row… | Nothing open. The table does not show the last-useful-action date, but the test asserts it is within the last two weeks of January (:474-476) and prints it in the test output. |
 | APK delivered on GitHub release v3.0.0 | ✅ 已满足（首次审计） | `gh release view v3.0.0`: name 'P3R 规划 3.0.0', isDraft false, isPrerelease false, published 2026-10-13T12:22:17Z. Asset P3R-Planner-3.0.0.apk is 3,192,908 bytes with digest sha256:f2433092…8f87, which matches `shasum` of dist/P3R-Planner-3.0.0.apk and android/app/build/outputs/apk/release/app-release.apk. There is also a .sha256 asset. aapt2 badging: package app.p3r.planner, versionCode 30, versionName 3.0.0, label '… |  |
 | All build dependencies inside the project directory (verify_selfcontained.sh output) | ✅ 已满足（首次审计） | The prior gap (compile likely UP-TO-DATE) is now closed. (1) I ran the full test suite with --offline into a brand-new build dir outside the repo (init script layout.buildDirectory): compileDebugJavaWithJavac and compileDebugUnitTestJavaWithJavac executed ('24 actionable tasks: 24 executed'), 574 tests passed, and `find ~/.gradle ~/.m2 ~/.android -newer <start marker>` found nothing. (2) I ran `env -i HOME=<empty scr… | .toolchain/ is git-ignored, so a fresh clone needs scripts/setup_toolchain.sh with network access once (by design). I did not re-run scripts/verify_selfcontained.sh itself, because it writes to the shared android/app/build. My equivalent runs used isolated build dirs. |
-| Repository contains the handoff prompt and the handoff zip | ✅ 已满足（首次审计） | `git ls-files` lists P3R_HANDOFF_PROMPT.md and P3R_Planner_Handoff_20261013.zip. `gh api repos/nobrainmonkey/P3R_widget/contents/...` returns sizes 7,983,142 and 10,374, identical to `stat` of the local files. The prompt ends with the owner's added lines on the APK, keeping all dependencies in the directory, and Simplified Chinese. HEAD == origin/main == b1cfe60. |  |
+| Repository contains the handoff prompt and the handoff zip | ⚪ 已被取代（所有者要求清理旧交接材料（2026-10-15）） | The owner requested removal of obsolete handoff material. The original v2 handoff prompt, snapshot ZIP and docs/handoff directory were removed from the working tree; they remain available in Git history. Current design, rule sources, research and audit records are retained, and current documentation points to docs/DESIGN_v3.md and docs/CODEX_CONTEXT.md. |  |
 | Chinese UI (engineering deliverable; detailed terminology audit is a separate section) | ✅ 已满足（复查；3.1.0 更新） | The WebView guide page the re-audit examined (assets/index.html) was removed in 3.1.0 (docs/DESIGN_v3.md §19), so the app is the native planner and its widget only. res/values/strings.xml holds three strings, all Chinese (「P3R 规划」, 「P3R 每日安排」 and the widget description). The planner screens (v301_today, v301_settings, schedule, sheets) were found Chinese apart from the game terms RANK, MAX and Lv; GlossarySourceTest… | No label gap. Latin text left in the UI is the game's own terms (RANK, MAX, Lv) and the P3R and S.E.E.S. marks. |
 
 ## 独立复核

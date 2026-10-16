@@ -52,6 +52,13 @@
   "section": "defects_engineering",
   "items": [
    {
+    "requirement": "Repository contains the handoff prompt and the handoff zip",
+    "status": "superseded",
+    "label": "所有者要求清理旧交接材料（2026-10-15）",
+    "evidence": "The owner requested removal of obsolete handoff material. The original v2 handoff prompt, snapshot ZIP and docs/handoff directory were removed from the working tree; they remain available in Git history. Current design, rule sources, research and audit records are retained, and current documentation points to docs/DESIGN_v3.md and docs/CODEX_CONTEXT.md.",
+    "gap": ""
+   },
+   {
     "requirement": "Chinese UI (engineering deliverable; detailed terminology audit is a separate section)",
     "label": "3.1.0 更新",
     "evidence": "The WebView guide page the re-audit examined (assets/index.html) was removed in 3.1.0 (docs/DESIGN_v3.md §19), so the app is the native planner and its widget only. res/values/strings.xml holds three strings, all Chinese (「P3R 规划」, 「P3R 每日安排」 and the widget description). The planner screens (v301_today, v301_settings, schedule, sheets) were found Chinese apart from the game terms RANK, MAX and Lv; GlossarySourceTest checks the string literals of v3/ui and v3/widget against rules of docs/GLOSSARY_zh.md, and MePageTest checks the 我的 entries.",

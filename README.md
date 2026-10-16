@@ -101,10 +101,10 @@ scripts/verify_selfcontained.sh
 | `rules/build/` | 规则包编译脚本，生成 `android/app/src/main/assets/p3r/p3r_rules.json` |
 | `rules/p3r/`, `rules/sources/` | 规则证据与来源快照（不打包进 APK） |
 | `docs/DESIGN_v3.md` | v3 设计文档 |
-| `docs/HANDOFF_COMPLIANCE.md` | 交接文档每条要求的完成情况与证据 |
+| `docs/HANDOFF_COMPLIANCE.md` | 项目要求的完成情况、复核证据与所有者决定 |
 | `docs/PLAN_METRICS.md` | 各场景的安排质量（真实规则包） |
 | `docs/analysis/` | 重写前对旧代码、数据、来源和交互的分析报告 |
-| `P3R_HANDOFF_PROMPT.md`, `P3R_Planner_Handoff_20261013.zip` | 交接文档与原始交接包 |
+| `docs/CODEX_CONTEXT.md` | 当前架构、规则边界与开发入口 |
 
 ## 说明
 
