@@ -515,3 +515,10 @@ can use the repository's existing ANDROID_* secrets if configured. A local forma
 3.2.0 private backup restored to keep the certificate listed above and allow an in-place
 3.2.0 update. Do not create a replacement key and describe it as compatible. The published
 stable release at this point is 3.2.0; leave its tag, APK and recorded hashes intact.
+
+Owner's permanent signing instruction (2026-10-17): always retain the 3.2.0 certificate;
+never create another replacement release key. The lost Mac's pre-3.2 key is irrelevant.
+If the 3.2 private backup is unavailable, finish source/CI work and leave formal publication
+blocked until that same key is restored. Run 39016487230 confirmed that all four ANDROID_*
+secrets are absent; restoring signing and rerunning that release is sufficient, without
+replacing the source tag or relaxing certificate verification.
