@@ -615,6 +615,9 @@ public final class ResultActivity extends Activity {
             case EPISODE:
                 episodePanel(step);
                 break;
+            case DORM:
+                dormPanel(step);
+                break;
             case STAT:
             case JOB:
                 statJobPanel(step);
@@ -875,6 +878,20 @@ public final class ResultActivity extends Activity {
         save.setOnClickListener(v -> submit(step, Outcomes.different(chosen, balance[0])));
         more.addView(save, top(16));
         body.addView(more, top(4));
+    }
+
+    private void dormPanel(Plan.Step step) {
+        if (hasAnyStatDelta(step)) {
+            statJobPanel(step);
+            return;
+        }
+        body.addView(question("宿舍活动完成了吗？"), top(14));
+        stepExtras(step, true, true);
+        TextView done = Ui.primary(this, "完成了");
+        done.setOnClickListener(v -> submit(step, Outcomes.asPredicted(step, predictionCurrent())));
+        TextView notDone = Ui.secondary(this, "没完成");
+        notDone.setOnClickListener(v -> submit(step, Outcomes.notDone()));
+        body.addView(pair(notDone, done), top(16));
     }
 
     private static boolean hasAnyStatDelta(Plan.Step step) {
@@ -1149,6 +1166,8 @@ public final class ResultActivity extends Activity {
                 return "探索塔尔塔罗斯";
             case EPISODE:
                 return "羁绊剧情";
+            case DORM:
+                return "宿舍活动";
             default:
                 return "其他";
         }

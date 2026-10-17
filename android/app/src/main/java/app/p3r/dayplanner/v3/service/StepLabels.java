@@ -50,7 +50,7 @@ final class StepLabels {
                 labelUnlock(rules, action, step);
                 break;
             case ACTIVITY:
-                labelActivity(rules, action, step, applied != null && applied.predicted != null);
+                labelActivity(rules, before, action, step, applied != null && applied.predicted != null);
                 break;
             case TARTARUS:
                 labelTower(rules, before, action, step);
@@ -115,10 +115,11 @@ final class StepLabels {
     }
 
     /** {@code forecast}: use the forecast deltas; otherwise the activity's nominal gain and cost. */
-    private static void labelActivity(Rules rules, Action action, Plan.Step step, boolean forecast) {
+    private static void labelActivity(Rules rules, SimState before, Action action, Plan.Step step, boolean forecast) {
         Rules.Activity activity = rules.activities[action.target];
         boolean job = activity.kind == Rules.ActivityKind.JOB;
-        step.kind = job ? "job" : "stat";
+        boolean dorm = activity.dormPartnerZh != null && !activity.dormPartnerZh.isEmpty();
+        step.kind = dorm ? "dorm" : job ? "job" : "stat";
         step.entity = activity.id;
         step.titleZh = activity.zh;
         step.locationZh = activity.locationZh;
@@ -136,6 +137,11 @@ final class StepLabels {
         }
         if (cashDelta < 0) {
             parts.add("花费 " + ZhText.yen(-cashDelta));
+        }
+        if (dorm) {
+            int count = before != null && activity.idx < before.used.length ? before.used[activity.idx] : 0;
+            parts.add("特性进度 " + Math.min(3, count + 1) + "/3");
+            step.detailZh = activity.noteZh;
         }
         step.subtitleZh = ZhText.join(parts.toArray(new String[0]));
     }

@@ -79,6 +79,14 @@ public final class DraftStore {
         for (Rules.Episode track : rules.episodes) {
             draft.episodes[track.idx] = getInt(p + "episode." + track.id);
         }
+        for (Rules.Activity activity : rules.activities) {
+            if (!StateDraft.isDorm(activity)) continue;
+            Integer count = getInt(p + "dorm." + activity.id);
+            if (count != null) draft.setDormCount(activity.idx, count);
+        }
+        if (prefs.contains(p + "dorm.gardening")) {
+            draft.setDormGardening(prefs.getBoolean(p + "dorm.gardening", false));
+        }
         String persona = prefs.getString(p + "persona.mode", null);
         if (persona != null) {
             try {
@@ -140,6 +148,13 @@ public final class DraftStore {
         for (Rules.Episode track : rules.episodes) {
             putInt(e, p + "episode." + track.id, draft.episodes[track.idx]);
         }
+        for (Rules.Activity activity : rules.activities) {
+            if (StateDraft.isDorm(activity)) {
+                putInt(e, p + "dorm." + activity.id, draft.dormCounts[activity.idx]);
+            }
+        }
+        if (draft.dormGardening == null) e.remove(p + "dorm.gardening");
+        else e.putBoolean(p + "dorm.gardening", draft.dormGardening);
         if (draft.mode == StateDraft.Mode.ONBOARDING) {
             e.putString(p + "persona.mode", draft.profile.effectivePersonaMode().name());
             e.putBoolean(p + "others", draft.profile.otherLinks);

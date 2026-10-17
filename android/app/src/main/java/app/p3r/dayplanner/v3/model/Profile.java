@@ -68,6 +68,8 @@ public final class Profile {
     public PersonaMode personaMode = PersonaMode.NONE;
     /** Allow evening dating-site notes for established links (from mid-November). */
     public boolean datingNotes = true;
+    /** Allow dorm gardening when the player will plant crops beforehand (seeds are not budgeted). */
+    public boolean planDormGardening = false;
     /** Link Episode track ids the player wants scheduled (opt-in). */
     public String[] episodeTracks = new String[0];
     /** Apply the Charm Lv6 ×1.51 bonus once (forecast) Charm reaches Lv6. */
@@ -217,6 +219,7 @@ public final class Profile {
         o.put("personaBonus", effectivePersonaMode() == PersonaMode.ALL);
         o.put("personaMode", effectivePersonaMode().name());
         o.put("datingNotes", datingNotes);
+        o.put("planDormGardening", planDormGardening);
         JSONArray eps = new JSONArray();
         for (String s : episodeTracks) eps.put(s);
         o.put("episodeTracks", eps);
@@ -253,6 +256,7 @@ public final class Profile {
         p.personaMode = PersonaMode.valueOf(o.optString("personaMode", p.personaBonus ? "ALL" : "NONE"));
         p.personaBonus = p.personaMode == PersonaMode.ALL;
         p.datingNotes = o.optBoolean("datingNotes", true);
+        p.planDormGardening = o.optBoolean("planDormGardening", false);
         JSONArray eps = o.optJSONArray("episodeTracks");
         if (eps != null) {
             p.episodeTracks = new String[eps.length()];

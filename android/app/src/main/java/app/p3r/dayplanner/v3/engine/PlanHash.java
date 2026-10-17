@@ -54,6 +54,8 @@ final class PlanHash {
         }
         // Added in 3.1.0; 「尽量多 MAX」 is left out so its plan ids stay the same as before.
         if (p.style != Profile.Style.MAX) str("style").str(p.style.json);
+        // Added in 3.3.0; the default false preserves hashes for profiles without this option.
+        if (p.planDormGardening) str("planDormGardening").bool(true);
         return this;
     }
 

@@ -32,7 +32,7 @@ import app.p3r.dayplanner.v3.service.PlannerApi;
 import app.p3r.dayplanner.v3.widget.PlanWidget;
 
 /**
- * Launcher screen with four tabs — 今天 / 日程 / 社群 / 我的 — on a slanted P3R tab bar, an in-app
+ * Launcher screen with five tabs — 今天 / 日程 / 社群 / 提示 / 我的 — on a slanted P3R tab bar, an in-app
  * bottom-sheet layer, full-screen sub-pages for 我的, and the undo bar.
  *
  * <p>Intents: {@link Intents#EXTRA_TAB} selects a tab; {@link Intents#EXTRA_OPEN_SLOT} opens the
@@ -46,8 +46,9 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     static final int TAB_TODAY = 0;
     static final int TAB_SCHEDULE = 1;
     static final int TAB_LINKS = 2;
-    static final int TAB_ME = 3;
-    static final String[] TAB_KEYS = {"today", "schedule", "links", "me"};
+    static final int TAB_TIPS = 3;
+    static final int TAB_ME = 4;
+    static final String[] TAB_KEYS = {"today", "schedule", "links", "tips", "me"};
     /** Height of a sub-page's top bar (back button + title). */
     private static final int PAGE_BAR_DP = 60;
     /** Extra on result-sheet intents launched from inside the app (enables the undo bar). */
@@ -84,6 +85,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     private TodayPage today;
     private SchedulePage schedule;
     private LinksPage links;
+    private TipsPage tips;
     private MePage me;
     private int tab = TAB_TODAY;
     private int pendingOpenSlot = -1;
@@ -326,6 +328,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         today.bind(data);
         schedule.bind(data);
         links.bind(data);
+        tips.bind(data);
         me.bind(data);
         if (undo.isShowing()) {
             // The hero card may have moved: re-check that the bar does not cover its buttons.
@@ -377,8 +380,9 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         today = new TodayPage(this);
         schedule = new SchedulePage(this);
         links = new LinksPage(this);
+        tips = new TipsPage(this);
         me = new MePage(this, meActions());
-        tabViews = new View[]{today.view(), schedule.view(), links.view(), me.view()};
+        tabViews = new View[]{today.view(), schedule.view(), links.view(), tips.view(), me.view()};
         for (View v : tabViews) {
             contentFrame.addView(v, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
@@ -405,8 +409,9 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         contentFrame.addView(errorView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
         column.addView(contentFrame, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
-        tabBar = new SlantTabBar(this, new String[]{"今天", "日程", "社群", "我的"}, new int[]{
-            R.drawable.ui_ic_tab_today, R.drawable.ui_ic_tab_schedule, R.drawable.ui_ic_tab_links, R.drawable.ui_ic_tab_me});
+        tabBar = new SlantTabBar(this, new String[]{"今天", "日程", "社群", "提示", "我的"}, new int[]{
+            R.drawable.ui_ic_tab_today, R.drawable.ui_ic_tab_schedule, R.drawable.ui_ic_tab_links,
+            R.drawable.ui_ic_tab_tips, R.drawable.ui_ic_tab_me});
         tabBar.setListener(this::selectTab);
         column.addView(tabBar, Ui.matchWrap());
         root.addView(column, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,

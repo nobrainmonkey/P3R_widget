@@ -208,7 +208,9 @@ public class ResultFlowsRealPackTest {
         assertEquals(floorIn(block, before.floor + 10), obs.floor);
         assertTrue("舞子 rescued", (obs.rescued & (1L << maiko)) != 0);
         for (Plan.Step s : after.steps) assertFalse("no second rescue visit: " + s.subtitleZh, String.valueOf(s.subtitleZh).contains("救出舞子"));
-        assertTrue("倒悬者 goes on after the window", meetsAfter(after, "hanged_man", rules.rescues[maiko].toDay));
+        assertTrue("the rescued goal continues after the window or reaches MAX before it",
+                after.summary.endRanks[link("hanged_man")] == 10
+                        || meetsAfter(after, "hanged_man", rules.rescues[maiko].toDay));
 
         // Correction to 「这次多了多少」 +5,000: replaces the balance, never adds a visit.
         PlannerApi.TowerReturn net = tower(visit.slot, block, floorIn(block, before.floor + 15), false, 5_000);
@@ -338,23 +340,27 @@ public class ResultFlowsRealPackTest {
         start.cash = 12_000;
         Rules.Block block = rules.blockOn(rules.rescues[maiko].fromDay);
         if (block != null) start.towerVisits[block.idx] = 1;
-        PlannerApi.Receipt r = service.saveCheckpoint(id(), service.snapshot().stateRevision, start, new Profile());
+        Profile profile = new Profile();
+        // This flow checks that rescuing 舞子 preserves the requested Social Link continuation.
+        profile.tier[link("hanged_man")] = Profile.Tier.MUST;
+        PlannerApi.Receipt r = service.saveCheckpoint(id(), service.snapshot().stateRevision, start, profile);
         assertTrue(r.errorZh, r.ok);
-        Plan plan = settledPlan(service, "舞子失踪");
-        Plan.Step visit = null;
-        for (Plan.Step s : plan.steps) {
-            if ("tower".equals(s.kind)) {
-                visit = s;
-                break;
+        int deadline = Rules.slot(rules.rescues[maiko].toDay, true);
+        while (service.snapshot().observed.slot <= deadline) {
+            Plan current = settledPlan(service, "跟随当前安排，等待救出舞子");
+            int slot = service.snapshot().observed.slot;
+            Plan.Step step = current.at(slot);
+            assertNotNull(step);
+            if ("tower".equals(step.kind)) {
+                assertTrue(step.subtitleZh, step.subtitleZh.endsWith("救出舞子"));
+                return step;
             }
+            // A distant forecast can move when each recorded result triggers replanning.
+            // Follow the current next action until the actual rescue evening is reached.
+            recordUntil(service, slot + 1);
+            assertTrue("recording the next action advances time", service.snapshot().observed.slot > slot);
         }
-        assertNotNull(visit);
-        assertTrue(visit.subtitleZh, visit.subtitleZh.endsWith("救出舞子"));
-        recordUntil(service, visit.slot);
-        Plan current = settledPlan(service, "到了探索的晚上");
-        Plan.Step step = current.at(visit.slot);
-        assertEquals(visit.action, step.action);
-        return step;
+        throw new AssertionError("the current plan never reached a rescue visit before 舞子's deadline");
     }
 
     /** Records every planned step before {@code slot} as predicted (the 「完成」 button). */

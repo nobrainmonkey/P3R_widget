@@ -77,6 +77,11 @@ final class StepCopy {
             case "episode":
                 episodeCopy(c, step, rules, observed, plan);
                 break;
+            case "dorm":
+                c.icon = CardModel.TitleIcon.EPISODE;
+                c.title = titleOf(step.titleZh, kind);
+                c.tag = tag(kind, step.subtitleZh, step.predicted);
+                break;
             case "free":
                 c.title = FREE_TITLE;
                 break;
@@ -306,6 +311,8 @@ final class StepCopy {
                 return socialTag(s, predicted);
             case "stat":
                 return s == null ? null : statTag(s);
+            case "dorm":
+                return s == null ? null : LEVEL_UP.matcher(s).replaceAll("").replace("特性进度", "特性");
             case "job":
                 return s == null ? null : jobTag(s);
             default:
@@ -417,6 +424,7 @@ final class StepCopy {
             case "social": return "社群";
             case "unlock": return "解锁社群";
             case "stat": return "提升个人能力值";
+            case "dorm": return "宿舍活动";
             case "job": return "打工";
             case "tower": return "探索塔尔塔罗斯";
             case "locked": return "剧情时段";

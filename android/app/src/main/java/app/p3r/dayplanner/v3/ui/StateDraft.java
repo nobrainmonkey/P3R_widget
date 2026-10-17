@@ -94,6 +94,10 @@ public final class StateDraft {
     final Integer[] rescue;
     /** 羁绊剧情 watched per track (index into {@code rules.episodes}), null = untouched. */
     final Integer[] episodes;
+    /** Actual dorm activity counts per stable activity (null = keep the record / confirmed sync prefill). */
+    final Integer[] dormCounts;
+    /** Explicit gardening planning choice; independent of the counts already completed. */
+    Boolean dormGardening;
     /** 平安夜 answer: null = untouched, "" = 都婉拒了, else the id of the link whose invitation was accepted. */
     String christmas;
     String step;
@@ -113,6 +117,7 @@ public final class StateDraft {
         this.base = observed != null ? observed.copy() : newGame(rules);
         this.rescue = new Integer[rules.rescues.length];
         this.episodes = new Integer[rules.episodes.length];
+        this.dormCounts = new Integer[rules.activities.length];
     }
 
     /** A new-game state at the first free slot: everything at the bottom, cash unknown. */
@@ -331,6 +336,64 @@ public final class StateDraft {
         return watched >= track.count ? "全部看完" : "已看 " + watched + " 话";
     }
 
+    // ------------------------------------------------------------------ 宿舍活动
+
+    /** Dorm activity types introduced by the chosen game date, including those already completed. */
+    public List<Rules.Activity> dormActivities() {
+        List<Rules.Activity> out = new ArrayList<>();
+        int day = Rules.dayOf(slot());
+        for (Rules.Activity activity : rules.activities) {
+            if (isDorm(activity) && activity.fromDay <= day) {
+                out.add(activity);
+            }
+        }
+        return out;
+    }
+
+    static boolean isDorm(Rules.Activity activity) {
+        return activity.dormPartnerZh != null && !activity.dormPartnerZh.isEmpty();
+    }
+
+    /** Counts are capped for display at the three completions needed for this activity's milestone. */
+    public int dormCount(int activity) {
+        return dormCounts[activity] != null ? dormCounts[activity] : dormCount(prefill(), activity);
+    }
+
+    public void setDormCount(int activity, int count) {
+        if (activity >= 0 && activity < rules.activities.length && isDorm(rules.activities[activity])) {
+            dormCounts[activity] = Math.max(0, Math.min(3, count));
+        }
+    }
+
+    static int dormCount(SimState state, int activity) {
+        return state == null || activity < 0 || activity >= state.used.length
+            ? 0 : Math.max(0, Math.min(3, state.used[activity]));
+    }
+
+    public boolean isForecastDormCount(int activity) {
+        return dormCounts[activity] == null && dormCount(prefill(), activity) != dormCount(base, activity);
+    }
+
+    /** A milestone inferred from the displayed counts; the UI labels counts projected during confirmed sync. */
+    public String dormMilestone(String partner) {
+        int tracks = 0;
+        int completed = 0;
+        for (Rules.Activity activity : rules.activities) {
+            if (partner.equals(activity.dormPartnerZh)) {
+                tracks++;
+                if (dormCount(activity.idx) >= 3) completed++;
+            }
+        }
+        if (tracks >= 2 && completed == tracks) return "已达特性强化次数";
+        if (completed > 0) return "已达特性解锁次数";
+        return "每种活动做满 3 次可解锁特性";
+    }
+
+    public void setDormGardening(boolean enabled) {
+        dormGardening = enabled;
+        profile.planDormGardening = enabled;
+    }
+
     public void setRescue(int index, int answer) {
         rescue[index] = Math.max(RESCUE_UNSURE, Math.min(RESCUE_FAILED, answer));
     }
@@ -533,6 +596,15 @@ public final class StateDraft {
                 }
             }
         }
+        for (Rules.Activity activity : rules.activities) {
+            if (isDorm(activity) && dormCounts[activity.idx] != null) {
+                if (s.used.length < rules.activities.length) {
+                    s.used = java.util.Arrays.copyOf(s.used, rules.activities.length);
+                }
+                // Correcting past activity counts does not grant past social-stat points again.
+                s.used[activity.idx] = dormCounts[activity.idx];
+            }
+        }
         return s;
     }
 
@@ -592,6 +664,18 @@ public final class StateDraft {
             if (a != e) {
                 out.add(new Change(Outcomes.episodeName(track), episodesText(track, a), episodesText(track, e)));
             }
+        }
+        for (Rules.Activity activity : rules.activities) {
+            if (!isDorm(activity)) continue;
+            int a = dormCount(before, activity.idx);
+            int c = dormCount(after, activity.idx);
+            if (a != c) {
+                out.add(new Change(activity.zh, a + " / 3 次", c + " / 3 次"));
+            }
+        }
+        if (originalProfile.planDormGardening != profile.planDormGardening) {
+            out.add(new Change("安排园艺", originalProfile.planDormGardening ? "开启" : "关闭",
+                profile.planDormGardening ? "开启（提前种好作物）" : "关闭"));
         }
         Rules.Block b = block();
         if (b != null && b.idx < before.towerVisits.length && before.towerVisits[b.idx] != after.towerVisits[b.idx]) {
@@ -653,6 +737,11 @@ public final class StateDraft {
             Rules.Episode e = rules.episodes[track];
             out.add(new Change(Outcomes.episodeName(e), null, episodesText(e, watched(rules, after, track))));
         }
+        for (Rules.Activity activity : dormActivities()) {
+            int count = dormCount(after, activity.idx);
+            if (count > 0) out.add(new Change(activity.zh, null, count + " / 3 次"));
+        }
+        if (profile.planDormGardening) out.add(new Change("安排园艺", null, "开启（提前种好作物）"));
         if (asksChristmas()) {
             out.add(new Change("平安夜", null, ChristmasChoice.answerText(rules, christmasLink())));
         }
@@ -717,6 +806,8 @@ public final class StateDraft {
         towerVisits = other.towerVisits;
         System.arraycopy(other.rescue, 0, rescue, 0, Math.min(rescue.length, other.rescue.length));
         System.arraycopy(other.episodes, 0, episodes, 0, Math.min(episodes.length, other.episodes.length));
+        System.arraycopy(other.dormCounts, 0, dormCounts, 0, Math.min(dormCounts.length, other.dormCounts.length));
+        if (other.dormGardening != null) setDormGardening(other.dormGardening);
         if (other.christmas != null) {
             setChristmasLink(other.christmas.isEmpty() ? null : other.christmas);
         }

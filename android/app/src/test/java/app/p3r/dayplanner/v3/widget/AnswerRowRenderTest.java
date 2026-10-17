@@ -301,6 +301,62 @@ public class AnswerRowRenderTest {
         assertTrue(String.join("\n", issues), issues.isEmpty());
     }
 
+    /** Short friendship annotations keep the real scene answer beside a sourced classroom answer. */
+    @Test
+    @Config(sdk = {26, 34})
+    public void friendshipNotesKeepTheirOwnAnswerBesideClassWithoutPlanning() throws Exception {
+        assertNotNull("the shipped pack is required", pack);
+        Object[][] scenes = {{"lovers", 7, "class.11-30", "好像不错啊", "", Profile.Route.FRIEND},
+                {"empress", 9, "class.12-11", "放心了", "婉拒告白", Profile.Route.FRIEND},
+                {"lovers", 5, "class.11-12", "我是她朋友", "", Profile.Route.FRIEND},
+                {"lovers", 5, "class.11-12", "她男朋友", "", Profile.Route.ROMANCE}};
+        List<String> issues = new ArrayList<>();
+        for (Object[] scene : scenes) {
+            String link = (String) scene[0];
+            int rank = (Integer) scene[1];
+            Rules.Reminder classroom = null;
+            for (Rules.Reminder reminder : pack.reminders.items) {
+                if (scene[2].equals(reminder.id)) classroom = reminder;
+            }
+            assertNotNull(scene[2].toString(), classroom);
+            FakePlannerApi fake = scene(meeting(link, rank - 1, rank, true));
+            int slot = Rules.slot(classroom.day, false);
+            fake.observed.slot = slot;
+            fake.observed.rank[pack.link(link).idx] = rank - 1;
+            fake.observed.pts[pack.link(link).idx] = 0;
+            fake.observed.ready[pack.link(link).idx] = true;
+            fake.plan.fromSlot = slot;
+            fake.plan.toSlot = slot;
+            fake.plan.steps.get(0).slot = slot;
+            ReminderFixtures.with(fake.plan, ReminderFixtures.classAnswer(classroom.day, classroom.answerZh, classroom.option));
+            app.p3r.dayplanner.v3.service.PlannerApi.Snapshot snapshot = fake.snapshot();
+            snapshot.profile.route[pack.link(link).idx] = (Profile.Route) scene[5];
+            PlanView plan = PlanView.resolve(snapshot, -1, null, 0L);
+            CardModel beforeFit = plan.toCard(pack);
+            assertTrue(link, ownAndClassLines(beforeFit));
+            CardModel.AnswerLine own = CardRenderer.own(beforeFit.answers);
+            assertNotNull(own);
+            assertTrue(own.text(), own.choices.contains(scene[3]));
+            assertEquals(scene[4], own.note == null ? "" : own.note);
+            for (float scale : new float[]{1f, 1.15f}) {
+                RuntimeEnvironment.setFontScale(scale);
+                for (int[] size : new int[][]{{250, 140}, {320, 160}, {360, 180}, {400, 180}}) {
+                    CardModel model = plan.toCard(pack);
+                    View root = RenderSupport.layout(app,
+                            PlanWidget.card(app, ID, plan, model, size[0], size[1]), size[0], size[1]);
+                    String tag = "friend-class-" + link + "-r" + rank + "-" + scene[5]
+                            + "-" + size[0] + "x" + size[1] + "-font" + scale;
+                    RenderSupport.collectTextIssues(root, tag, issues);
+                    RenderSupport.collectCutText(root, tag, issues);
+                    RenderSupport.collectWordSplits(root, tag, issues);
+                    checkRow(root, model, tag, size[1] < 150, issues);
+                    if (scale == 1f) RenderSupport.save(root, RenderSupport.outputDir("reviewed"), tag);
+                }
+            }
+        }
+        assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
     /** Cards that showed a 课堂/考试 answer beside their title, for the report. */
     private static final List<String> besides = new ArrayList<>();
 

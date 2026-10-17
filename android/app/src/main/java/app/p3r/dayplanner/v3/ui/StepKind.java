@@ -24,6 +24,8 @@ public enum StepKind {
     TOWER("塔尔塔罗斯", R.drawable.ui_ic_tower),
     /** The next 羁绊剧情 of an opted-in track (items and characteristics, no link points). */
     EPISODE("羁绊剧情", R.drawable.ui_ic_episode),
+    /** Dorm hangouts that grant social stats/items and progress toward teammate characteristics. */
+    DORM("宿舍活动", R.drawable.ui_ic_episode),
     /** Story or calendar lock; nothing to choose. */
     LOCKED("剧情", R.drawable.ui_ic_locked),
     /** Nothing productive is possible. */
@@ -56,6 +58,8 @@ public enum StepKind {
                 return NOTE;
             case "episode":
                 return EPISODE;
+            case "dorm":
+                return DORM;
             case "unlock":
                 return UNLOCK;
             case "stat":
@@ -77,7 +81,7 @@ public enum StepKind {
      * question whether they were done too: use {@link #oneTap(Plan.Step)} for a concrete step.
      */
     public boolean directCommit() {
-        return this == STAT || this == JOB || this == LOCKED || this == FREE;
+        return this == STAT || this == JOB || this == DORM || this == LOCKED || this == FREE;
     }
 
     /**

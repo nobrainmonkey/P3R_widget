@@ -9,6 +9,8 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.engine.SimState;
@@ -21,7 +23,7 @@ import app.p3r.dayplanner.v3.model.Rules;
  */
 final class StateSteps {
     /** Wizard pages. */
-    enum Page { GOALS, PERSONA, SYNC_INTRO, DATE, CASH, STATS, LINKS, UNLOCK, EPISODES, TOWER, CONFIRM }
+    enum Page { GOALS, PERSONA, SYNC_INTRO, DATE, CASH, STATS, LINKS, UNLOCK, EPISODES, DORM, TOWER, CONFIRM }
 
     /** What a page needs from the wizard. */
     interface Callbacks {
@@ -91,6 +93,12 @@ final class StateSteps {
         if (!draft.episodeTracks().isEmpty()) {
             pages.add(Page.EPISODES);
         }
+        for (Rules.Activity activity : draft.rules.activities) {
+            if (StateDraft.isDorm(activity)) {
+                pages.add(Page.DORM);
+                break;
+            }
+        }
         pages.add(Page.TOWER);
         pages.add(Page.CONFIRM);
         return pages;
@@ -103,6 +111,8 @@ final class StateSteps {
                 return !draft.unlockLinks().isEmpty();
             case EPISODES:
                 return !draft.episodeTracks().isEmpty();
+            case DORM:
+                return !draft.dormActivities().isEmpty();
             default:
                 return true;
         }
@@ -142,6 +152,8 @@ final class StateSteps {
                 return "解锁进度";
             case EPISODES:
                 return "羁绊剧情";
+            case DORM:
+                return "宿舍活动";
             case TOWER:
                 return "塔尔塔罗斯";
             default:
@@ -169,6 +181,8 @@ final class StateSteps {
                 return unlock();
             case EPISODES:
                 return episodes();
+            case DORM:
+                return dorm();
             case TOWER:
                 return tower();
             default:
@@ -687,6 +701,53 @@ final class StateSteps {
                 callbacks.changed();
                 callbacks.refresh();
             }), top(10));
+            column.addView(card, top(14));
+        }
+        return column;
+    }
+
+    // ------------------------------------------------------------------ 宿舍活动
+
+    private View dorm() {
+        LinearLayout column = page("宿舍活动各做过几次？",
+            "每种活动满 3 次可解锁特性，两种都完成可强化。填实际次数，超过 3 次填 3；没记录过的先按 0 次安排，补填不会重复增加能力值。");
+        ToggleRow gardening = new ToggleRow(c, "允许安排园艺（我会提前种好作物）",
+            "园艺不收费；种苗费用和作物状态不计入安排。开启后，请提前种好作物。", draft.profile.planDormGardening);
+        gardening.setListener(enabled -> {
+            draft.setDormGardening(enabled);
+            callbacks.changed();
+        });
+        column.addView(gardening, top(14));
+        Map<String, List<Rules.Activity>> partners = new LinkedHashMap<>();
+        for (Rules.Activity activity : draft.dormActivities()) {
+            partners.computeIfAbsent(activity.dormPartnerZh, ignored -> new ArrayList<>()).add(activity);
+        }
+        for (Map.Entry<String, List<Rules.Activity>> partner : partners.entrySet()) {
+            LinearLayout card = Ui.column(c);
+            card.setBackground(Ui.card(c));
+            Ui.pad(card, 16, 12, 16, 14);
+            card.addView(Ui.text(c, partner.getKey(), 18, Ui.col(c, R.color.p3r_white), true));
+            boolean projected = false;
+            for (Rules.Activity activity : partner.getValue()) projected |= draft.isForecastDormCount(activity.idx);
+            card.addView(Ui.muted(c, (projected ? "预计 · " : "") + draft.dormMilestone(partner.getKey())), top(3));
+            for (Rules.Activity activity : partner.getValue()) {
+                LinearLayout head = Ui.row(c);
+                head.addView(Ui.text(c, activity.zh + " · " + draft.dormCount(activity.idx) + " / 3 次",
+                    14, Ui.col(c, R.color.p3r_white), true), Ui.weight(1));
+                if (draft.isForecastDormCount(activity.idx)) head.addView(forecastTag(), Ui.wrap());
+                card.addView(head, top(12));
+                SegmentedControl count = new SegmentedControl(c, Arrays.asList("0", "1", "2", "3"));
+                count.setSelected(draft.dormCount(activity.idx));
+                for (int n = 0; n <= 3; n++) {
+                    count.segment(n).setContentDescription(activity.zh + "：" + n + " 次");
+                }
+                count.setListener(value -> {
+                    draft.setDormCount(activity.idx, value);
+                    callbacks.changed();
+                    callbacks.refresh();
+                });
+                card.addView(count, top(6));
+            }
             column.addView(card, top(14));
         }
         return column;

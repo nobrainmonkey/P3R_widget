@@ -378,7 +378,7 @@ the new wizard. Release signing key lives in `.signing/` (git-ignored, never pub
    "选能让对方高兴的回答（♪越多越好）". Never show foreign option ordinals.
 8. **Holiday invitations** (D cells) consume the daytime slot and count as a meeting.
 9. **Free story gains** (class answers, exams, summer school) are not forecast; the player syncs stats.
-10. **Link Episodes** (羁绊剧情) are opt-in tracks in the pack's `episodes` section (Profile.episodeTracks); the dating-site note (结缘网站的字条) is `datingNote` (evening, ¥3,000, +10 estimate, from 11/11, repeatable). Dorm activities are never planned. `days[].tartarus` is also false on nights the aqiu calendar marks 'Everyone' (no party member available) and on the GameFAQs closure dates.
+10. **Link Episodes** (羁绊剧情) are opt-in tracks in the pack's `episodes` section (Profile.episodeTracks); the dating-site note (结缘网站的字条) is `datingNote` (evening, ¥3,000, +10 estimate, from 11/11, repeatable). Since 3.3.0, dated dorm activities and exam group study are planned as activities; characteristic milestones are separate from Link Episodes and Social Link affinity (§24). `days[].tartarus` is also false on nights the aqiu calendar marks 'Everyone' (no party member available) and on the GameFAQs closure dates.
 11. Date pickers offer months 4–12 and 1 only; the horizon ends Jan 31 (daytime).
 12. **Engine option** `towerIncomePerVisit` and `previous plan` stability bonus are part of
     `Engine.Options`/`Engine.plan` (engine module adds the field).
@@ -624,3 +624,129 @@ Owner directive (spec §8): plan for a player who wants to see as much of the ga
   use recognizable keywords; Priestess R2 marks the first and last prompts explicitly.
   Details label editorial translations as meaning-based wording. This overlay changes no
   affinity numbers, thresholds, availability, saved-progress schema or planning algorithm.
+
+## 24. 3.3.0: Study, dorm characteristics, period tips and widget sizing
+
+- **Dated activities.** The existing activity family now includes 14 exam-study sessions and
+  18 dorm projects for nine teammates; total activity count is 54. Optional
+  `Activity.fixedDays` is a nonempty, sorted, unique list inside `fromDay..toDay`. It narrows
+  ordinary slot/weekday/day-type checks and never overrides a story lock. `Tables.actsAt`
+  compiles these dates, with `actRemain[activity][slot]` counting the remaining calendar
+  opportunities. The independent validator checks the same rule directly. Old activities
+  without this field retain their original calendar behavior.
+- **Study evidence.** `rules/p3r/group_study_evidence.json` binds the 14 dates to the pinned
+  Reload walkthrough and corroborating monthly calendars: May 15/16/17, July 9/10/13,
+  October 8/9/11/12 and December 9/11/12/13. Normal sessions give Academics +4; the four
+  exam-eve whole-team sessions conservatively give +5. A separate guide's +6 claim remains
+  an explicit conflict rather than being inferred from note icons. Each session consumes
+  an evening and costs no yen. It grants no assumed Social Link affinity, dorm-project
+  completion or episode progress. These dated gains compete with paid training through
+  their actual cost and useful stat gain. `Model.maxGain` and the heuristic's ordinary
+  evening-capacity estimate exclude `fixedDays` actions so rare bonuses do not imply that
+  every future evening can train at that rate.
+- **Dorm mechanics.** `Activity.dormPartnerZh` groups a teammate's two projects. Each
+  completion uses the existing activity transition, adding its sourced social-stat gain
+  where present and incrementing `SimState.used[activity]`. Completing either project
+  three times unlocks that teammate's characteristic; completing both three times
+  strengthens it. A project remains productive below three completions even when social
+  stats are capped or its gain array is empty. Once it reaches three, it can only be
+  planned again for useful uncapped social-stat gain. The forecast adds no Social Link
+  affinity or episode rank; possible actual affinity effects are not modeled. Cooking,
+  tea, coffee, gardening and brushing may give items, but inventory
+  and those items' effects are not forecast. Koromaru's walks remain separate and do not
+  increment brushing progress.
+- **Priority.** `Heuristics.dormScore` adds finite per-project progress value, first-unlock
+  value and both-project upgrade value to the local H score. The urgency factor uses the
+  actual remaining dates and completions needed; an upgrade bonus requires enough
+  opportunities in both allowed projects. `dormValue` adds the corresponding finite
+  milestones to the complete-plan J objective, capping counts at three to prevent
+  repetition from earning characteristic value indefinitely. `Planner.diverse` treats
+  dorm projects as a separate rollout category from ordinary training/jobs. Existing
+  missed-rescue/late-rescue comparison and strict ordered Social Link goals remain ahead
+  of the weighted objective. A higher priority is not a promise to schedule every dorm
+  project when dates or higher-priority goals conflict.
+- **Gardening preparation.** `Activity.requiresPlantedCrop` marks the four gardening
+  projects. `Profile.planDormGardening` defaults to false, including when loading older
+  profiles; enabling it is the player's commitment to plant crops before the activity.
+  The model excludes these actions while disabled, and the validator rejects them in
+  forecasts. Seed costs, crop growth and harvest state are not modeled. The activity
+  itself has zero yen cost and consumes an evening. Changing the preference does not
+  erase completed gardening records or prevent their replay.
+- **Observed progress and presentation.** The setup/sync wizard adds a 宿舍活动 page for
+  introduced projects, with 0–3 counts per project, characteristic milestone wording and
+  the gardening preparation toggle. Unknown old counts start at zero; untouched fields
+  preserve existing records. A deliberate count correction changes `used[]` without
+  awarding past social-stat gains again. Prefilled future counts are labelled 预计 and
+  need the player's sync confirmation. Forecast cards use presentation kind `dorm`, show
+  `n/3` and distinguish expected unlock/upgrade from confirmed progress. App and widget
+  completion use the existing activity result path; a zero-stat project still offers
+  completion/skipping, and ordinary undo/history behavior applies.
+- **Period catalogue.** `service.PeriodTips.collect` builds a read-only catalogue directly
+  from `Rules.reminders` using the observed game date. Its period runs from the current
+  Tartarus block's opening through the day before the next block opens; before the first
+  opening, the separate 探索开放前 period covers the game's first day through the day before
+  exploration opens; the final period ends January 31. It keeps all recorded static events
+  of the period, including dates before the current save. An
+  explicit `untilDay` window is carried over when it overlaps the period; an ordinary
+  event without a window is not accumulated from older periods. A `firstEligible` item
+  without an end is conditional through the end of the calendar. The catalogue includes
+  collected request how-tos/deadlines/preparation, all 36 sourced classroom and 17 exam
+  answers selected by period, TV shopping, dozing choices, a general nurse trigger and
+  each overlapping missing-person group. There are no withheld class-answer dates in
+  the current source pack. No-deadline outing requirements and Request 75 instructions
+  persist across periods as conditional guidance; passing a walkthrough's suggested
+  date never marks them completed or expired.
+  A valid current plan can refine matching future rows and add its dynamic advice; no
+  plan is required for the raw catalogue. Rescue detail keeps original windows, recorded
+  named rescues/failures and any current forecast trip separate. It does not infer that
+  unnamed people were rescued merely from a tower record.
+- **Unlock and episode catalogue.** The tips collector also reads `links[].unlock`,
+  `episodes`, `datingNote` and dated `activities` directly, independently of which
+  social goals, episodes or activities the current plan selects. A manual or story
+  link's earliest unlock date in the period exposes its requirements and existing
+  unlock-step instructions; the date is the earliest opening, not a guarantee that
+  the player's prerequisites are met. All five episode tracks (24 parts) expose the
+  parts available in the period with their exact playable dates, complete window
+  deadline, sequence prerequisite, how-to and available reward text. This catalogue
+  does not depend on opt-in scheduling or turn an unwatched earlier episode into a
+  completed one. The first dating-note sale date is a feature reminder. Dated group
+  study appears on each available evening, while the dorm summary lists the period's
+  project dates, observed counts, stat benefits and gardening preparation.
+- **Calendar facts.** The catalogue also includes the period's existing `Day.noteZh`
+  facts, such as exam results, holidays, feature openings and the white-flower story
+  condition. Consecutive calendar days with the same lock reason and the same occupied
+  day/evening mask are combined into a range,
+  covering examinations even on days without a manual answer, summer classes, travel,
+  full-moon operations and other existing locks. Rescue notes already covered by rescue
+  rows are omitted to avoid repeating them. Calendar ranges show their dates and occupied
+  times, not misleading opening/deadline labels. These rows report the pack's calendar
+  facts; they do not invent rewards or simulate free gains from viewing the tips.
+- **Tips tab.** Bottom navigation is now 今天 / 日程 / 社群 / 提示 / 我的. `TipsPage` uses
+  the observed slot and only supplies a plan when `Snapshot.planCurrent` is true. The
+  summary shows block/floors, period dates, item count and game progress; rows are grouped
+  as 当前要留意, 接下来别错过 and 本期已过日期. A past date is not a completion record.
+  Window rows retain opening/deadline dates, including an earlier opening carried over
+  from another period. Ongoing conditional opportunities remain in the current section,
+  with 满足条件时 labels, rather than implying every prerequisite is already met. Every
+  card opens a dedicated 提示详情 sheet with the complete `ReminderViews` content and a
+  知道了 close action. Browsing does not advance the calendar,
+  write quest completion, change cash/stats or alter the plan. Existing tab keys, including
+  `me`, retain their meaning; `tips` is the new navigation key.
+- **Widget size contract.** The owner sets a minimum of 4×2 cells and a nominal size of
+  5×2; actual cell dimensions are launcher-dependent. Provider metadata targets 5×2,
+  uses `minWidth=320dp`, `minHeight=140dp`, and permits resizing down to 250×140dp.
+  The current minimum-size regression boundary is 250×140dp; nominal scenarios are
+  320×160, 360×180 and 400×180dp, with normal and 115% text scaling. Earlier historical
+  micro-card measurements in this document are not a new 3.3.0 support requirement.
+  The renderer's Android 13+ font measurement uses the same CJK fallback line spacing
+  and rounded title autosize pixels as the drawn TextView. Selected friendship annotations
+  are shortened while full choices and route conditions remain in details. No claim of
+  passed validation is implied by this size contract.
+- **Compatibility.** This is an additive `p3r.rules.v3` update, pack/app version 3.3.0,
+  Android version code 37. SQLite remains schema 2 and backup schema remains
+  `p3r.backup.v3`. Existing stable activity IDs and `PackLayout` remapping preserve old
+  menu discoveries, jobs and training while new project counts initialize to zero.
+  Forecast counts never become observed checkpoints merely because a plan was generated.
+  A future formal release must retain the 3.2.0 signing identity to allow an in-place
+  3.2.0 update. The current work prepares source and CI debug builds, not a published
+  signed 3.3.0 APK; the private signing backup must be restored before formal packaging.

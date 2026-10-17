@@ -704,6 +704,16 @@ public final class RulesLoader {
                 a.fromDay = dayInRange(o, "fromDay", where);
                 a.toDay = dayInRange(o, "toDay", where);
                 if (a.toDay < a.fromDay) throw fail(where + " ends before it starts");
+                if (!o.isNull("fixedDays")) {
+                    a.fixedDays = sortedDays(o, "fixedDays", where);
+                    if (a.fixedDays.length == 0) throw fail(where + ".fixedDays must not be empty");
+                    for (int d : a.fixedDays) {
+                        if (d < a.fromDay || d > a.toDay) throw fail(where + ".fixedDays contains a day outside fromDay..toDay");
+                    }
+                }
+                a.dormPartnerZh = optString(o, "dormPartnerZh", where);
+                if (a.dormPartnerZh != null && a.dormPartnerZh.trim().isEmpty()) throw fail(where + ".dormPartnerZh must not be blank");
+                a.requiresPlantedCrop = !o.isNull("requiresPlantedCrop") && reqBool(o, "requiresPlantedCrop", where);
                 a.cost = nonNegative(o, "cost", where);
                 JSONObject gain = reqObject(o, "gain", where);
                 Iterator<String> keys = gain.keys();
@@ -725,6 +735,10 @@ public final class RulesLoader {
                 a.pay = payTiers(o, where);
                 if (a.kind == Rules.ActivityKind.JOB && a.pay.length == 0) throw fail(where + ".pay must not be empty for a job");
                 a.once = reqBool(o, "once", where);
+                if (a.dormActivity() && (a.kind != Rules.ActivityKind.STAT || !a.eve || a.day || a.cost != 0 || a.once || a.fixedDays == null)) {
+                    throw fail(where + " dorm activity must be a free, repeatable evening activity with fixedDays");
+                }
+                if (a.requiresPlantedCrop && !a.dormActivity()) throw fail(where + ".requiresPlantedCrop needs dormPartnerZh");
                 a.noteZh = optString(o, "noteZh", where);
                 a.conf = checkConf(o, where);
                 a.src = sources(o, where);

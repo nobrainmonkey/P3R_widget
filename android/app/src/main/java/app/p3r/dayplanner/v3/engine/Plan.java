@@ -132,7 +132,7 @@ public final class Plan {
         public int slot;
         /** {@link Action#key} form. */
         public String action = "free";
-        /** Coarse category for icons: social | unlock | stat | job | tower | note | episode | locked | free. */
+        /** Coarse category for icons: social | unlock | stat | dorm | job | tower | note | episode | locked | free. */
         public String kind = "free";
         /** Link/activity id (no index) for display, or null. */
         public String entity;

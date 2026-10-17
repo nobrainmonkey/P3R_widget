@@ -484,7 +484,31 @@ final class Labels {
         step.titleZh = a.zh;
         step.locationZh = a.locationZh;
         String gains = gains(a, fx);
-        if (a.kind == Rules.ActivityKind.JOB) {
+        if (a.dormActivity()) {
+            step.kind = "dorm";
+            int count = Math.max(0, st.used[act]);
+            int after = Math.min(3, count + 1);
+            step.subtitleZh = count < 3 ? (gains.isEmpty() ? "特性进度 " + after + "/3" : dot(gains, after + "/3"))
+                    : gains;
+            if (count < 3) {
+                boolean unlocked = false;
+                boolean upgraded = m.dormTracks[m.dormGroup[act]].length >= 2;
+                for (int track : m.dormTracks[m.dormGroup[act]]) {
+                    if (track == act) continue;
+                    unlocked |= st.used[track] >= 3;
+                    upgraded &= st.used[track] >= 3;
+                }
+                if (after == 3) {
+                    step.whyZh = "这个项目预计做满 3 次" + (upgraded ? "，强化" : unlocked ? "" : "，解锁")
+                            + (upgraded || !unlocked ? a.dormPartnerZh + "的特性" : "");
+                } else {
+                    step.whyZh = "这个项目再做 " + (3 - count) + " 次，预计" + (unlocked ? "强化" : "解锁")
+                            + a.dormPartnerZh + "的特性";
+                }
+            } else {
+                step.whyZh = "特性所需次数已经够了，这次继续提升个人能力值";
+            }
+        } else if (a.kind == Rules.ActivityKind.JOB) {
             step.kind = "job";
             step.subtitleZh = gains.isEmpty() ? "预计 +" + yen(fx.pay) : dot("预计 +" + yen(fx.pay), gains);
             step.whyZh = jobWhy(st, a, gains);
@@ -494,6 +518,9 @@ final class Labels {
             step.whyZh = statWhy(st, a);
         }
         step.detailZh = blank(a.noteZh) ? null : a.noteZh.trim();
+        if (a.dormActivity()) step.detailZh = joinLines(step.detailZh,
+                "每次占用一个晚上；同一项目完成 3 次解锁特性，两个项目各完成 3 次强化特性。社群好感收益暂不计入。"
+                        + (a.requiresPlantedCrop ? "园艺要先种好作物；种子和准备费用未计入这次活动。" : "这次活动不另收费。"));
     }
 
     /** "魅力 +2（升到 Lv.3）、勇气 +1"; reaching the top level reads "（升到 MAX）". */

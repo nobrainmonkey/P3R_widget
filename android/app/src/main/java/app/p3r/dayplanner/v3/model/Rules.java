@@ -306,6 +306,12 @@ public final class Rules {
         public List<DayType> dayTypes = new ArrayList<>();
         public int fromDay;
         public int toDay = Integer.MAX_VALUE;
+        /** Exact available days, or null when the ordinary date/weekday rules apply. */
+        public int[] fixedDays;
+        /** Teammate whose dorm characteristic this activity advances; null for ordinary training. */
+        public String dormPartnerZh;
+        /** Gardening needs a planted crop; planning it requires the player's explicit preparation option. */
+        public boolean requiresPlantedCrop;
         public int cost;
         /** Points per stat index (length 3). */
         public int[] gain = new int[3];
@@ -323,6 +329,8 @@ public final class Rules {
         public List<String> src = new ArrayList<>();
 
         public boolean allowsWeekday(int wd) { return (weekdayMask & (1 << (wd - 1))) != 0; }
+
+        public boolean dormActivity() { return dormPartnerZh != null && !dormPartnerZh.isEmpty(); }
 
         /** Minimum pay for the given 1-based shift number. */
         public int payFor(int shiftNumber) {

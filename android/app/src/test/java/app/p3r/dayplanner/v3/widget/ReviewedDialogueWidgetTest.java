@@ -148,12 +148,15 @@ public class ReviewedDialogueWidgetTest {
     public void yukariRankFiveKeepsTheLastQuestionQualifier() throws Exception {
         PlanView view = scene("lovers", 5, Profile.Route.FRIEND);
         String model = plain(card(view).answers.get(0).text());
-        assertTrue(model, model.contains("抱歉"));
-        assertTrue(model, model.contains("最后一问"));
+        inOrder(model, "我是她朋友", "抱歉");
+        Rules.DialogueVariant details = pack.link("lovers").dialogueHints.get(5).friend;
+        assertEquals("抱歉", details.sequence.get(details.sequence.size() - 1));
+        assertTrue(details.noteZh, details.noteZh.contains("最后一问务必选「抱歉」"));
+        assertTrue(details.noteZh, details.noteZh.contains("社群逆位"));
         for (int[] size : SIZES) {
             String text = render(view, "yukari-r5", size);
             assertTrue(text, text.contains("抱歉"));
-            assertTrue(text, text.contains("最后一问"));
+            if (size[0] == 320) inOrder(text, "我是她朋友", "抱歉");
         }
     }
 

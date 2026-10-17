@@ -202,7 +202,8 @@ final class PlanValidator {
                     unlock(s, a.target, a.step);
                     break;
                 case ACTIVITY:
-                    expectKind(s, rules.activities[a.target].kind == Rules.ActivityKind.JOB ? "job" : "stat");
+                    expectKind(s, rules.activities[a.target].dormActivity() ? "dorm"
+                            : rules.activities[a.target].kind == Rules.ActivityKind.JOB ? "job" : "stat");
                     activity(a.target);
                     break;
                 case TARTARUS:
@@ -394,6 +395,12 @@ final class PlanValidator {
             Rules.Activity a = rules.activities[idx];
             if (!activityOnCalendar(a)) error(slot, "activity " + a.id + " not available in this slot");
             if (profile.excluded(a.id)) error(slot, "activity " + a.id + " is excluded by the player");
+            if (a.requiresPlantedCrop && !profile.planDormGardening) error(slot, "activity " + a.id + " needs planted-crop permission");
+            if (a.dormActivity() && used[idx] >= 3) {
+                boolean useful = false;
+                for (int s = 0; s < Math.min(3, a.gain.length); s++) useful |= a.gain[s] > 0 && stat[s] < rules.stats[s].thresholds[6];
+                if (!useful) error(slot, "completed dorm project " + a.id + " adds no useful stats");
+            }
             if (a.once && used[idx] > 0) error(slot, "once-only activity " + a.id + " repeated");
             if (a.requiresActivity >= 0 && used[a.requiresActivity] <= 0) {
                 error(slot, a.id + " needs prior activity " + rules.activities[a.requiresActivity].id);
@@ -450,6 +457,7 @@ final class PlanValidator {
             if (d == null) return false;
             if (evening() ? !a.eve : !a.day) return false;
             if (d.d < a.fromDay || d.d > a.toDay || !a.allowsWeekday(d.wd)) return false;
+            if (a.fixedDays != null && java.util.Arrays.binarySearch(a.fixedDays, d.d) < 0) return false;
             return a.dayTypes.isEmpty() || a.dayTypes.contains(d.type);
         }
 
@@ -559,12 +567,14 @@ final class PlanValidator {
                 if (cell) return true;
             }
             for (Rules.Activity a : rules.activities) {
-                if (a.cost != 0 || profile.excluded(a.id) || (a.once && used[a.idx] > 0) || !activityOnCalendar(a)) continue;
+                if (a.cost != 0 || profile.excluded(a.id) || (a.requiresPlantedCrop && !profile.planDormGardening)
+                        || (a.once && used[a.idx] > 0) || !activityOnCalendar(a)) continue;
                 if (a.requiresActivity >= 0 && used[a.requiresActivity] <= 0) continue;
                 boolean reqs = true;
                 for (Map.Entry<Integer, Integer> e : a.requiresLv.entrySet()) reqs &= statLevel(e.getKey()) >= e.getValue();
                 if (!reqs) continue;
                 if (a.kind == Rules.ActivityKind.JOB) return true;
+                if (a.dormActivity() && used[a.idx] < 3) return true;
                 for (int s = 0; s < Math.min(3, a.gain.length); s++) {
                     if (a.gain[s] > 0 && stat[s] < rules.stats[s].thresholds[6]) return true;
                 }

@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- P3R 每日安排 widget. Targets 4x2 cells, resizable down to about 3x2; updates are pushed by the app
+<!-- P3R 每日安排 widget. Targets 5x2 cells, resizable down to about 4x2; updates are pushed by the app
      (PlanWidget.refreshAll), never polled. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/plan_widget_description"
     android:initialLayout="@layout/widget_loading"
-    android:minWidth="250dp"
+    android:minWidth="320dp"
     android:minHeight="140dp"
-    android:minResizeWidth="180dp"
-    android:minResizeHeight="130dp"
+    android:minResizeWidth="250dp"
+    android:minResizeHeight="140dp"
     android:previewImage="@drawable/widget_preview_plan"
     android:previewLayout="@layout/widget_card_regular"
     android:resizeMode="horizontal|vertical"
-    android:targetCellWidth="4"
+    android:targetCellWidth="5"
     android:targetCellHeight="2"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen" />

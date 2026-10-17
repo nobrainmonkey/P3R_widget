@@ -17,7 +17,7 @@ import java.util.List;
 import app.p3r.dayplanner.R;
 
 /**
- * Bottom navigation in the P3R menu style: four tabs on a deep navy strip with a hairline cyan
+ * Bottom navigation in the P3R menu style: tabs on a deep navy strip with a hairline cyan
  * edge; the selected tab sits on a cyan parallelogram with navy ink.
  */
 public final class SlantTabBar extends LinearLayout {

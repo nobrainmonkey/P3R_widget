@@ -1,0 +1,896 @@
+{
+  "schema": "p3r.dorm_activities_evidence.v1",
+  "gameEdition": "reload",
+  "researchedDate": "2026-10-17",
+  "scope": "18 repeatable evening dorm hangout tracks for all 9 teammates. These are separate from Link Episodes, Social Links, Koromaru walks and exam group study.",
+  "capturePolicy": {
+    "kind": "local_calendar_extraction_and_web_rendered_observations",
+    "rawHtmlAdded": false,
+    "officialSimplifiedChineseClaim": false,
+    "description": "Existing cached aqiu calendar supplies exact dates and raw stat gains. Names use the existing official Simplified Chinese glossary; short action labels are editorial Chinese descriptions, not quoted in-game option text. New external evidence is summarized, not copied as a full article."
+  },
+  "localSourceGuards": [
+    {
+      "path": "rules/p3r/calendar_full_candidate.json",
+      "sha256": "442d4255261df6b3849c9ae6a40f7a5472af61ad44e1305505c1bf9980871ff9"
+    },
+    {
+      "path": "rules/sources/aqiu_pages/social-events.html",
+      "sha256": "404dea95268f8344576b33d9595037b08bfb89be7a390449b41635d22c3e4ec8"
+    },
+    {
+      "path": "rules/sources/cn_guides/data.json",
+      "sha256": "08719e728ab953852292b18dd49c40c5790302eac24dfb3962db4be4ab271e49"
+    }
+  ],
+  "sources": [
+    {
+      "id": "dorm_calendar_aqiu",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "locator": "Calendar > Evening; four dorm columns and Walking == Brushing",
+      "sourceType": "community_calendar",
+      "snapshot": "rules/sources/aqiu_pages/social-events.html",
+      "observations": [
+        "Exact dated cells include story-event exceptions to the usual weekday schedule.",
+        "Dorm activities open on 6/16. Aigis reading starts on 9/2.",
+        "Shinjiro cooking has 8 opportunities from 9/3 through 10/3; gardening has 8 from 9/7 through 10/1. No track continues after 10/3.",
+        "Cooking column Mit is tea; Ken is coffee. Walking column Brushing is the 18th dorm track and must not be confused with a Koromaru walk."
+      ]
+    },
+    {
+      "id": "dorm_rewards_aqiu",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/social-events#dorm-hangouts",
+      "locator": "Hangouts > Dorm Hangouts > Availability / Learned Skills",
+      "sourceType": "community_rules",
+      "observations": [
+        "DVD/reading activities give 2 raw social-stat points. This corresponds to one musical-note display in walkthroughs; do not import a displayed note as one raw point.",
+        "Every character has two separate activity counters. One counter reaching 3 unlocks the base combat characteristic; both counters reaching 3 upgrade it. Three mixed activities in total are insufficient.",
+        "Cooking/tea/coffee/brushing grant items and gardening improves harvests; none of those activities grants a social stat in this source.",
+        "The source also claims some female teammates receive affinity, but that model conflicts with another source. This evidence intentionally models no Social Link affinity and never reuses generic visit/dialogue multipliers."
+      ]
+    },
+    {
+      "id": "dorm_gardening_prerequisite_steam",
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3152126765",
+      "locator": "June Part 2 > Tuesday June 16 > Evening > Harvest Garden side note",
+      "sourceType": "community_walkthrough",
+      "observations": [
+        "A crop must be planted to participate in a gardening dorm hangout. This is an availability prerequisite, separate from the actor date."
+      ]
+    },
+    {
+      "id": "dorm_gardening_preparation_neoseeker",
+      "url": "https://www.neoseeker.com/persona-3-reload/walkthrough/September",
+      "locator": "September 14 Evening Daily Action / September 24 and 29",
+      "sourceType": "community_walkthrough",
+      "observations": [
+        "The 9/14 route plants a seedling and gardens with Shinjiro the same evening, so planting is a preparation step that does not consume the activity slot.",
+        "The guide confirms gardening three times grants Shinjiro a characteristic, and completing cooking as well upgrades it."
+      ]
+    },
+    {
+      "id": "dorm_seed_prices_prima",
+      "url": "https://primagames.com/gaming/persona-3-reload-all-gardening-seeds-and-where-to-get-them",
+      "locator": "Where to get all gardening sprouts > Seed price table",
+      "sourceType": "community_guide",
+      "observations": [
+        "Seedlings are paid inventory, with tomato and buff-potato seedlings priced at 700 yen. Gardening activity cost 0 does not mean preparation supplies are free.",
+        "Only the garden prerequisite and basic seed cost are used; this source has different date claims for some later seedlings, which are not imported."
+      ]
+    }
+  ],
+  "milestones": {
+    "counterUnit": "partner + activity category",
+    "perTrackCap": 3,
+    "baseCharacteristic": "At least one of a partner's two counters is 3.",
+    "upgradedCharacteristic": "Both counters of that partner are 3.",
+    "notEquivalentTo": "Total number of mixed hangouts, Persona awakening or a Link Episode rank.",
+    "afterCap": "No further characteristic progress from repeating a completed track; stat and item rewards may still exist.",
+    "recording": "Only completed/confirmed activity outcomes update real counters. Forecast rows are predictions, not achieved characteristics.",
+    "sourceRefs": [
+      "dorm_rewards_aqiu"
+    ]
+  },
+  "moneySemantics": {
+    "activityCost": 0,
+    "timeCost": "one evening slot",
+    "gardeningSupplyCost": "Requires planted growing crops. Buy/prepare seedlings separately, harvest mature crops and plant again before starting the hangout. Seed stock, growth and harvest are not simulated by this evidence.",
+    "mustNotClaim": "All dorm activity setup is always free or available without preparation."
+  },
+  "affinityPolicy": {
+    "modeledGain": 0,
+    "reason": "Existing dorm-affinity evidence is unresolved; do not use ordinary Social Link hangout points or matching-Persona bonuses here.",
+    "existingEvidence": "rules/p3r/affinity_model_evidence.json#dorm_affinity_not_generic"
+  },
+  "activities": [
+    {
+      "id": "dorm_yukari_dvd",
+      "zh": "和由加莉看DVD",
+      "partner": "yukari",
+      "partnerZh": "岳羽由加莉",
+      "kind": "dorm",
+      "category": "dvd",
+      "locationZh": "宿舍 · 1楼休息区",
+      "cost": 0,
+      "gain": {
+        "charm": 2
+      },
+      "dates": [
+        "2009-06-16",
+        "2009-06-23",
+        "2009-06-30",
+        "2009-07-28",
+        "2009-08-04",
+        "2009-08-19",
+        "2009-08-25",
+        "2009-09-08",
+        "2009-09-15",
+        "2009-10-20",
+        "2009-10-27",
+        "2009-11-10",
+        "2009-12-01",
+        "2009-12-22",
+        "2009-12-29",
+        "2010-01-05",
+        "2010-01-09",
+        "2010-01-19",
+        "2010-01-27"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": false,
+      "noteZh": "同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.dvd",
+        "rawSymbol": "Yuk",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Match exact role abbreviation, not a weekly approximation."
+      }
+    },
+    {
+      "id": "dorm_yukari_cooking",
+      "zh": "和由加莉做饭",
+      "partner": "yukari",
+      "partnerZh": "岳羽由加莉",
+      "kind": "dorm",
+      "category": "cooking",
+      "locationZh": "宿舍 · 1楼厨房",
+      "cost": 0,
+      "gain": {},
+      "dates": [
+        "2009-06-19",
+        "2009-06-26",
+        "2009-07-03",
+        "2009-07-31",
+        "2009-08-07",
+        "2009-08-21",
+        "2009-09-11",
+        "2009-09-25",
+        "2009-10-02",
+        "2009-10-23",
+        "2009-10-30",
+        "2009-11-13",
+        "2009-12-25",
+        "2010-01-01",
+        "2010-01-08",
+        "2010-01-15",
+        "2010-01-22",
+        "2010-01-29"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": false,
+      "noteZh": "能获得食物或饮品；同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.cooking",
+        "rawSymbol": "Yuk",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Match exact role abbreviation, not a weekly approximation."
+      }
+    },
+    {
+      "id": "dorm_junpei_reading",
+      "zh": "和顺平看书",
+      "partner": "junpei",
+      "partnerZh": "伊织顺平",
+      "kind": "dorm",
+      "category": "reading",
+      "locationZh": "宿舍 · 2楼休息区",
+      "cost": 0,
+      "gain": {
+        "courage": 2
+      },
+      "dates": [
+        "2009-06-16",
+        "2009-06-22",
+        "2009-06-29",
+        "2009-08-03",
+        "2009-08-17",
+        "2009-08-24",
+        "2009-09-03",
+        "2009-09-14",
+        "2009-09-21",
+        "2009-09-28",
+        "2009-10-20",
+        "2009-10-26",
+        "2009-11-14",
+        "2009-12-26",
+        "2009-12-28",
+        "2010-01-04",
+        "2010-01-18",
+        "2010-01-26"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": false,
+      "noteZh": "同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.reading",
+        "rawSymbol": "Jun",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Match exact role abbreviation, not a weekly approximation."
+      }
+    },
+    {
+      "id": "dorm_junpei_gardening",
+      "zh": "和顺平种菜",
+      "partner": "junpei",
+      "partnerZh": "伊织顺平",
+      "kind": "dorm",
+      "category": "gardening",
+      "locationZh": "宿舍 · 天台菜园",
+      "cost": 0,
+      "gain": {},
+      "dates": [
+        "2009-06-20",
+        "2009-06-27",
+        "2009-07-04",
+        "2009-07-18",
+        "2009-08-01",
+        "2009-08-08",
+        "2009-08-15",
+        "2009-08-22",
+        "2009-08-25",
+        "2009-09-26",
+        "2009-10-03",
+        "2009-10-17",
+        "2009-10-29",
+        "2009-10-31",
+        "2009-12-02",
+        "2010-01-16",
+        "2010-01-23"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": true,
+      "noteZh": "先确认菜园里种了作物；已成熟就先收获、再种苗。种苗另需准备，同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.gardening",
+        "rawSymbol": "Jun",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Match exact role abbreviation, not a weekly approximation."
+      }
+    },
+    {
+      "id": "dorm_akihiko_dvd",
+      "zh": "和明彦看DVD",
+      "partner": "akihiko",
+      "partnerZh": "真田明彦",
+      "kind": "dorm",
+      "category": "dvd",
+      "locationZh": "宿舍 · 1楼休息区",
+      "cost": 0,
+      "gain": {
+        "courage": 2
+      },
+      "dates": [
+        "2009-06-20",
+        "2009-06-27",
+        "2009-07-04",
+        "2009-07-18",
+        "2009-08-01",
+        "2009-08-08",
+        "2009-08-22",
+        "2009-09-12",
+        "2009-09-26",
+        "2009-10-03",
+        "2009-10-24",
+        "2009-10-31",
+        "2009-11-14",
+        "2009-11-21",
+        "2009-11-28",
+        "2009-12-26",
+        "2010-01-02",
+        "2010-01-23"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": false,
+      "noteZh": "同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.dvd",
+        "rawSymbol": "Aki",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Match exact role abbreviation, not a weekly approximation."
+      }
+    },
+    {
+      "id": "dorm_akihiko_cooking",
+      "zh": "和明彦做饭",
+      "partner": "akihiko",
+      "partnerZh": "真田明彦",
+      "kind": "dorm",
+      "category": "cooking",
+      "locationZh": "宿舍 · 1楼厨房",
+      "cost": 0,
+      "gain": {},
+      "dates": [
+        "2009-06-17",
+        "2009-06-24",
+        "2009-07-01",
+        "2009-08-05",
+        "2009-08-19",
+        "2009-09-16",
+        "2009-09-23",
+        "2009-09-30",
+        "2009-10-17",
+        "2009-10-21",
+        "2009-10-28",
+        "2009-11-11",
+        "2009-12-23",
+        "2010-01-06",
+        "2010-01-13",
+        "2010-01-20",
+        "2010-01-27"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": false,
+      "noteZh": "能获得食物或饮品；同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.cooking",
+        "rawSymbol": "Aki",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Match exact role abbreviation, not a weekly approximation."
+      }
+    },
+    {
+      "id": "dorm_mitsuru_reading",
+      "zh": "和美鹤看书",
+      "partner": "mitsuru",
+      "partnerZh": "桐条美鹤",
+      "kind": "dorm",
+      "category": "reading",
+      "locationZh": "宿舍 · 2楼休息区",
+      "cost": 0,
+      "gain": {
+        "academics": 2
+      },
+      "dates": [
+        "2009-07-05",
+        "2009-07-26",
+        "2009-08-01",
+        "2009-08-23",
+        "2009-08-29",
+        "2009-09-13",
+        "2009-09-27",
+        "2009-10-19",
+        "2009-10-25",
+        "2009-11-29",
+        "2009-12-21",
+        "2009-12-27",
+        "2010-01-10",
+        "2010-01-24"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": false,
+      "noteZh": "同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.reading",
+        "rawSymbol": "Mit",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Match exact role abbreviation, not a weekly approximation."
+      }
+    },
+    {
+      "id": "dorm_mitsuru_tea",
+      "zh": "和美鹤泡茶",
+      "partner": "mitsuru",
+      "partnerZh": "桐条美鹤",
+      "kind": "dorm",
+      "category": "tea",
+      "locationZh": "宿舍 · 1楼厨房",
+      "cost": 0,
+      "gain": {},
+      "dates": [
+        "2009-06-16",
+        "2009-06-22",
+        "2009-06-29",
+        "2009-07-06",
+        "2009-07-27",
+        "2009-08-03",
+        "2009-08-17",
+        "2009-08-24",
+        "2009-08-31",
+        "2009-09-14",
+        "2009-09-21",
+        "2009-09-28",
+        "2009-10-26",
+        "2009-11-30",
+        "2009-12-28",
+        "2010-01-04",
+        "2010-01-11",
+        "2010-01-18",
+        "2010-01-25"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": false,
+      "noteZh": "能获得食物或饮品；同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.cooking",
+        "rawSymbol": "Mit",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Cooking column includes Mitsuru tea / Ken coffee; Walking column Brushing alone means Koromaru brushing."
+      }
+    },
+    {
+      "id": "dorm_fuuka_reading",
+      "zh": "和风花看书",
+      "partner": "fuuka",
+      "partnerZh": "山岸风花",
+      "kind": "dorm",
+      "category": "reading",
+      "locationZh": "宿舍 · 2楼休息区",
+      "cost": 0,
+      "gain": {
+        "academics": 2
+      },
+      "dates": [
+        "2009-06-18",
+        "2009-06-25",
+        "2009-07-30",
+        "2009-08-20",
+        "2009-08-25",
+        "2009-09-04",
+        "2009-09-10",
+        "2009-09-17",
+        "2009-09-24",
+        "2009-10-01",
+        "2009-10-22",
+        "2009-10-29",
+        "2009-11-12",
+        "2010-01-07",
+        "2010-01-14",
+        "2010-01-28"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": false,
+      "noteZh": "同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.reading",
+        "rawSymbol": "Fuu",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Match exact role abbreviation, not a weekly approximation."
+      }
+    },
+    {
+      "id": "dorm_fuuka_gardening",
+      "zh": "和风花种菜",
+      "partner": "fuuka",
+      "partnerZh": "山岸风花",
+      "kind": "dorm",
+      "category": "gardening",
+      "locationZh": "宿舍 · 天台菜园",
+      "cost": 0,
+      "gain": {},
+      "dates": [
+        "2009-06-16",
+        "2009-06-23",
+        "2009-06-30",
+        "2009-08-27",
+        "2009-09-09",
+        "2009-09-15",
+        "2009-09-29",
+        "2009-10-27",
+        "2009-11-10",
+        "2009-11-21",
+        "2009-12-01",
+        "2009-12-22",
+        "2009-12-29",
+        "2010-01-05",
+        "2010-01-12",
+        "2010-01-22",
+        "2010-01-26"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": true,
+      "noteZh": "先确认菜园里种了作物；已成熟就先收获、再种苗。种苗另需准备，同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.gardening",
+        "rawSymbol": "Fuu",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Match exact role abbreviation, not a weekly approximation."
+      }
+    },
+    {
+      "id": "dorm_aigis_reading",
+      "zh": "和埃癸斯看书",
+      "partner": "aigis",
+      "partnerZh": "埃癸斯",
+      "kind": "dorm",
+      "category": "reading",
+      "locationZh": "宿舍 · 2楼休息区",
+      "cost": 0,
+      "gain": {
+        "charm": 2
+      },
+      "dates": [
+        "2009-09-02",
+        "2009-09-07",
+        "2009-09-09",
+        "2009-09-16",
+        "2009-09-25",
+        "2009-09-30",
+        "2009-10-02",
+        "2009-10-21",
+        "2009-10-24",
+        "2009-10-28",
+        "2009-11-11",
+        "2010-01-06",
+        "2010-01-13",
+        "2010-01-20",
+        "2010-01-27"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": false,
+      "noteZh": "同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.reading",
+        "rawSymbol": "Aig",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Match exact role abbreviation, not a weekly approximation."
+      }
+    },
+    {
+      "id": "dorm_aigis_gardening",
+      "zh": "和埃癸斯种菜",
+      "partner": "aigis",
+      "partnerZh": "埃癸斯",
+      "kind": "dorm",
+      "category": "gardening",
+      "locationZh": "宿舍 · 天台菜园",
+      "cost": 0,
+      "gain": {},
+      "dates": [
+        "2009-07-27",
+        "2009-08-02",
+        "2009-08-09",
+        "2009-08-23",
+        "2009-08-30",
+        "2009-10-20",
+        "2009-10-25",
+        "2009-11-01",
+        "2009-11-15",
+        "2009-11-22",
+        "2009-11-29",
+        "2010-01-09",
+        "2010-01-10",
+        "2010-01-17",
+        "2010-01-24"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": true,
+      "noteZh": "先确认菜园里种了作物；已成熟就先收获、再种苗。种苗另需准备，同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.gardening",
+        "rawSymbol": "Aig",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Match exact role abbreviation, not a weekly approximation."
+      }
+    },
+    {
+      "id": "dorm_koromaru_dvd",
+      "zh": "和虎狼丸看DVD",
+      "partner": "koromaru",
+      "partnerZh": "虎狼丸",
+      "kind": "dorm",
+      "category": "dvd",
+      "locationZh": "宿舍 · 1楼休息区",
+      "cost": 0,
+      "gain": {
+        "academics": 2
+      },
+      "dates": [
+        "2009-08-17",
+        "2009-08-24",
+        "2009-08-31",
+        "2009-09-07",
+        "2009-09-14",
+        "2009-09-21",
+        "2009-09-28",
+        "2009-10-19",
+        "2009-10-26",
+        "2009-11-09",
+        "2009-11-16",
+        "2009-12-28",
+        "2010-01-04",
+        "2010-01-11",
+        "2010-01-18",
+        "2010-01-25"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": false,
+      "noteZh": "同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.dvd",
+        "rawSymbol": "Kor",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Match exact role abbreviation, not a weekly approximation."
+      }
+    },
+    {
+      "id": "dorm_koromaru_brushing",
+      "zh": "给虎狼丸梳毛",
+      "partner": "koromaru",
+      "partnerZh": "虎狼丸",
+      "kind": "dorm",
+      "category": "brushing",
+      "locationZh": "宿舍 · 1楼休息区",
+      "cost": 0,
+      "gain": {},
+      "dates": [
+        "2009-08-20",
+        "2009-09-03",
+        "2009-09-09",
+        "2009-09-17",
+        "2009-09-24",
+        "2009-10-01",
+        "2009-10-22",
+        "2009-10-29",
+        "2009-11-12",
+        "2009-11-27",
+        "2009-12-04",
+        "2009-12-06",
+        "2009-12-10",
+        "2009-12-24",
+        "2010-01-14",
+        "2010-01-28",
+        "2010-01-30"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": false,
+      "noteZh": "能获得道具；梳毛和散步分别计算，散步不计入特性进度。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.activity.koromaru_walk",
+        "rawSymbol": "Brushing",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Cooking column includes Mitsuru tea / Ken coffee; Walking column Brushing alone means Koromaru brushing."
+      }
+    },
+    {
+      "id": "dorm_ken_dvd",
+      "zh": "和天田看DVD",
+      "partner": "ken",
+      "partnerZh": "天田乾",
+      "kind": "dorm",
+      "category": "dvd",
+      "locationZh": "宿舍 · 1楼休息区",
+      "cost": 0,
+      "gain": {
+        "courage": 2
+      },
+      "dates": [
+        "2009-09-04",
+        "2009-09-11",
+        "2009-09-25",
+        "2009-10-02",
+        "2009-10-23",
+        "2009-10-30",
+        "2009-11-13",
+        "2009-12-25",
+        "2010-01-01",
+        "2010-01-08",
+        "2010-01-15",
+        "2010-01-22",
+        "2010-01-29"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": false,
+      "noteZh": "同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.dvd",
+        "rawSymbol": "Ken",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Match exact role abbreviation, not a weekly approximation."
+      }
+    },
+    {
+      "id": "dorm_ken_coffee",
+      "zh": "和天田煮咖啡",
+      "partner": "ken",
+      "partnerZh": "天田乾",
+      "kind": "dorm",
+      "category": "coffee",
+      "locationZh": "宿舍 · 1楼厨房",
+      "cost": 0,
+      "gain": {},
+      "dates": [
+        "2009-09-06",
+        "2009-09-13",
+        "2009-09-27",
+        "2009-10-18",
+        "2009-10-25",
+        "2009-11-01",
+        "2009-11-22",
+        "2009-11-29",
+        "2009-12-27",
+        "2010-01-03",
+        "2010-01-10",
+        "2010-01-21",
+        "2010-01-24"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": false,
+      "noteZh": "能获得食物或饮品；同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.cooking",
+        "rawSymbol": "Ken",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Cooking column includes Mitsuru tea / Ken coffee; Walking column Brushing alone means Koromaru brushing."
+      }
+    },
+    {
+      "id": "dorm_shinjiro_cooking",
+      "zh": "和真次郎做饭",
+      "partner": "shinjiro",
+      "partnerZh": "荒垣真次郎",
+      "kind": "dorm",
+      "category": "cooking",
+      "locationZh": "宿舍 · 1楼厨房",
+      "cost": 0,
+      "gain": {},
+      "dates": [
+        "2009-09-03",
+        "2009-09-08",
+        "2009-09-12",
+        "2009-09-15",
+        "2009-09-22",
+        "2009-09-26",
+        "2009-09-29",
+        "2009-10-03"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": false,
+      "noteZh": "能获得食物或饮品；同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.cooking",
+        "rawSymbol": "Shi",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Match exact role abbreviation, not a weekly approximation."
+      }
+    },
+    {
+      "id": "dorm_shinjiro_gardening",
+      "zh": "和真次郎种菜",
+      "partner": "shinjiro",
+      "partnerZh": "荒垣真次郎",
+      "kind": "dorm",
+      "category": "gardening",
+      "locationZh": "宿舍 · 天台菜园",
+      "cost": 0,
+      "gain": {},
+      "dates": [
+        "2009-09-07",
+        "2009-09-10",
+        "2009-09-14",
+        "2009-09-17",
+        "2009-09-21",
+        "2009-09-24",
+        "2009-09-28",
+        "2009-10-01"
+      ],
+      "maxProgress": 3,
+      "requiresPlantedCrop": true,
+      "noteZh": "先确认菜园里种了作物；已成熟就先收获、再种苗。种苗另需准备，同一种活动累计3次可解锁或强化队友特性。",
+      "sourceRefs": [
+        "dorm_calendar_aqiu",
+        "dorm_rewards_aqiu"
+      ],
+      "calendarLocator": {
+        "entityId": "p3r.dorm.gardening",
+        "rawSymbol": "Shi",
+        "sourcePath": "rules/p3r/calendar_full_candidate.json",
+        "sourceField": "auxiliaryCells",
+        "columnMeaning": "Match exact role abbreviation, not a weekly approximation."
+      }
+    }
+  ],
+  "summary": {
+    "teammates": 9,
+    "tracks": 18,
+    "statTracks": 8,
+    "itemOrHarvestTracks": 10,
+    "gardeningTracks": 4,
+    "datedOpportunities": 278,
+    "sameNightChoice": "All tracks consume the evening, so choose at most one track per date. Availability does not imply simultaneous participation."
+  }
+}

@@ -727,7 +727,8 @@ final class Kernel {
         }
         int cost = Math.max(0, a.cost);
         if (cost > 0 && st.cash - cost < (hold >= 0 ? hold : optionalHold(m, st, m.gainMask[act]))) return false;
-        return a.kind == Rules.ActivityKind.JOB || usefulGain(m, st, a) > 0;
+        return a.kind == Rules.ActivityKind.JOB || (a.dormActivity() && st.used[act] < 3)
+                || usefulGain(m, st, a) > 0;
     }
 
     /** Stat points the activity would add below the Lv6 cap (points above it are worthless). */

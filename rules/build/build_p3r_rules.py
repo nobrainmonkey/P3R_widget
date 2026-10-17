@@ -45,7 +45,7 @@ PACK_PATH = ROOT / "android" / "app" / "src" / "main" / "assets" / "p3r" / "p3r_
 REPORT_PATH = ROOT / "rules" / "build" / "REPORT.md"
 
 SCHEMA = "p3r.rules.v3"
-PACK_VERSION = "3.2.0"
+PACK_VERSION = "3.3.0"
 GAME = "Persona 3 Reload (Xrd777, base game; excludes Episode Aigis/Astrea)"
 
 EPOCH = datetime.date(2009, 4, 1)
@@ -476,6 +476,10 @@ def build_sources() -> list[dict]:
         evidence("ev_slot_locks", "global_slot_locks_expansion_candidate.json", reload, "Whole-slot lock claims, Tartarus closures, witnesses"),
         evidence("ev_tartarus_supplement", "tartarus_entry_availability_supplement.json", reload, "Tartarus entry witnesses and closures"),
         evidence("ev_stats_actions", "stats_actions.json", reload, "Stat thresholds and evening stat actions"),
+        evidence("ev_group_study", "group_study_evidence.json", reload,
+                 "Four exam periods: 14 dated, zero-yen evening study sessions; conservative +4/+5 Academics"),
+        evidence("ev_dorm_activities", "dorm_activities_evidence.json", reload,
+                 "Exact dorm activity calendars, per-category characteristic progress and gardening preparation"),
         evidence("ev_stat_expansion", "stat_activity_expansion_candidate.json", reload, "Restaurants, karaoke, movies, daytime coffee"),
         evidence("ev_jobs", "jobs_wage_rules_candidate.json", reload, "Part-time job wage tiers and conflicts (Reload sections only)"),
         evidence("ev_manual_models", "manual_link_models.json", reload, "Normalised per-rank thresholds and answer gains"),
@@ -1945,6 +1949,7 @@ def audit_fallbacks(activities: list[dict], days: list[dict]) -> None:
             ok = any(
                 a["cost"] == 0 and a["kind"] == "stat" and slot in a["slots"] and day["wd"] in a["weekdays"]
                 and a["fromDay"] <= day["d"] <= a["toDay"] and (not a["dayTypes"] or day["type"] in a["dayTypes"])
+                and ("fixedDays" not in a or day["d"] in a["fixedDays"])
                 for a in activities
             )
             if not ok:
@@ -1970,6 +1975,47 @@ def audit_activity_prerequisites(activities: list[dict]) -> None:
             if prerequisite not in by_id:
                 raise BuildError(f"activity {ident}: requiresActivity references unknown activity {prerequisite}")
             current = by_id[prerequisite]
+
+
+def build_dated_dorm_activities(ledger: Ledger, days: list[dict]) -> list[dict]:
+    """Dated evening opportunities; never expand a dorm calendar into weekly availability."""
+    out = []
+    study = read_evidence("group_study_evidence.json")
+    for session in study["sessions"]:
+        day = day_of_md(session["date"])
+        gain = {stat: value for stat, value in zip(STAT_IDS, session["gains"]) if value}
+        rec = activity(session["id"], session["nameZh"], "stat", ["eve"], ALL_WEEK,
+                       "宿舍 · 大厅", gain=gain, src=["aqiu_walkthrough", "ev_group_study"],
+                       conf=session["conf"],
+                       note=f"考前限定，不花钱，但会用掉晚上。预计学力 +{session['gains'][0]}。"
+                            + ("不同攻略对全员学习的增加量有出入，这里按较少的值计算。"
+                               if session["wholeTeam"] else "在宿舍大厅和队友一起学习。"))["record"]
+        rec.update(fixedDays=[day], fromDay=day, toDay=day)
+        out.append(rec)
+
+    dorm = read_evidence("dorm_activities_evidence.json")
+    for entry in dorm["activities"]:
+        dates = sorted((datetime.date.fromisoformat(date) - EPOCH).days for date in entry["dates"])
+        if not dates or len(dates) != len(set(dates)) or dates[0] < FIRST_DAY or dates[-1] > LAST_DAY:
+            raise BuildError(f"{entry['id']}: invalid fixed dorm dates")
+        rec = activity(entry["id"], entry["zh"], "stat", ["eve"], ALL_WEEK, entry["locationZh"],
+                       gain=entry["gain"], src=["aqiu_social_events", "ev_dorm_activities"],
+                       conf="single", note=entry["noteZh"])["record"]
+        rec.update(fixedDays=dates, fromDay=dates[0], toDay=dates[-1], dormPartnerZh=entry["partnerZh"],
+                   requiresPlantedCrop=entry["requiresPlantedCrop"])
+        out.append(rec)
+    ledger.decide("activities", "group study", "Four exam periods offer 14 dated, zero-yen evening sessions: "
+                  "Academics +4 normally and a conservative +5 on the four whole-team evenings (another guide says +6). "
+                  "No Social Link affinity or characteristic progress is awarded. They use a full evening and respect "
+                  "ordinary story locks; stats above Lv6 have no planning value.")
+    ledger.decide("activities", "dorm activities", "18 partner/category tracks use exact aqiu calendar cells, "
+                  "including Koromaru Brushing (never ordinary walks). Each category's first three completions count "
+                  "towards a characteristic; any one category at three unlocks the base effect, both at three upgrade it. "
+                  "Only the eight reading/DVD tracks give the sourced +2 social stat. Cooking, tea, coffee, brushing "
+                  "and gardening give items, not invented social stats or Social Link points. Existing used[] counts "
+                  "store actual per-category progress; forecasts stay separate. Gardening is disabled by default until "
+                  "the player opts into preparing planted crops; seed/inventory costs are outside the cash estimate.")
+    return out
 
 
 def build_activities(ledger: Ledger, page: AqiuPage, guide_text: str, days: list[dict]) -> list[dict]:
@@ -2016,6 +2062,7 @@ def build_activities(ledger: Ledger, page: AqiuPage, guide_text: str, days: list
         if bad:
             raise BuildError(f"{rec['id']}: location fragments {bad} not found in the CN guide")
         out.append(rec)
+    out.extend(build_dated_dorm_activities(ledger, days))
     audit_activity_prerequisites(out)
     ledger.decide("activities", "selection", "Planned activities: desk study (evening; daytime on days without school), "
                   "library (school days, +2 lower bound), Wakatsu/Hagakure/Wilduck regular meals, Wakatsu/Hagakure "
@@ -2034,7 +2081,7 @@ def build_activities(ledger: Ledger, page: AqiuPage, guide_text: str, days: list
     ledger.decide("activities", "excluded", "Not planned: the weekend Wilduck set "
                   "(its unlock needs completed Request #11 that the model cannot express), the one-off "
                   "burger challenge (needs Requests #1/#9/#11), shrine donations (single source, unclear Reload value), "
-                  "dorm hangouts (DESIGN §10.10), film-festival hangouts and shrine fortunes. Link Episodes are opt-in tracks "
+                  "film-festival hangouts and shrine fortunes. Link Episodes are opt-in tracks "
                   "(`episodes`) and the dating-site note is `datingNote`, both outside `activities`.")
     audit_fallbacks(out, days)
     ledger.decide("activities", "no idle slots", "Every unlocked slot from 4/21 offers at least one free productive "
@@ -3887,7 +3934,7 @@ def check_reload_sources(pack: dict) -> None:
 # Latin tokens allowed in player-facing Chinese text: stat levels, ranks, floors, karaoke, and the
 # item names 莫乐蜜G and 急救组合M as the CN guide and 3DM write them. Class/exam answers are exempt (verbatim
 # 3DM text such as MAY BLUES or MADRID, listed in REPORT §7).
-ALLOWED_LATIN = ("Lv", "RANK", "MAX", "F", "OK", "G", "M")
+ALLOWED_LATIN = ("Lv", "RANK", "MAX", "F", "OK", "G", "M", "DVD")
 
 
 def player_texts(node, path: str = "") -> list[tuple[str, str]]:
@@ -4070,6 +4117,8 @@ FIELD_SEMANTICS = (
     "with rank >= r (skipped ranks share the next event's day).",
     "`activities`: `slots`, `weekdays`, `dayTypes` (empty = all), `fromDay..toDay`, `cost` (yen), `gain` "
     "(hidden stat points), `requires` (stat Lv), optional `requiresActivity` (a previously completed activity id), "
+    "optional `fixedDays` (exact calendar dates; no weekly approximation), `dormPartnerZh` (one of a partner's "
+    "two three-completion characteristic categories), and `requiresPlantedCrop` (opt-in garden preparation). "
     "and `once` (a one-off discovery or training). Restaurant discovery is an ordinary meal at its normal "
     "cost/gain on the eligible evenings. Jobs pay `pay` = [[minShiftNumber, minimum pay], …] for the "
     "N-th completed shift.",
@@ -4262,6 +4311,15 @@ def render_report(pack: dict, ledger: Ledger, pack_text: str) -> str:
     for a in pack["activities"]:
         out.append(f"| {a['id']} | {a['zh']} | {','.join(a['slots'])} | {','.join(map(str, a['weekdays']))} | "
                    f"{a['cost']} | {compact(a['gain'])} | {md_of(a['fromDay'])} | {a['conf']} |")
+    out.append("")
+    out.append("Dated opportunities (ordinary story locks still apply):")
+    out.append("")
+    out.append("| id | exact dates | characteristic partner | crop preparation |")
+    out.append("|---|---|---|---|")
+    for a in pack["activities"]:
+        if "fixedDays" in a:
+            out.append(f"| {a['id']} | {', '.join(md_of(d) for d in a['fixedDays'])} | "
+                       f"{a.get('dormPartnerZh', '—')} | {'yes' if a.get('requiresPlantedCrop') else 'no'} |")
     out.append("")
 
     out.append("### 4.6 Link Episodes (羁绊剧情)")

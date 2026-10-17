@@ -44,6 +44,8 @@ final class Tables {
     final int[] inviteMask;
     /** Activities allowed by the calendar in this slot (slot kind, weekday, day type, date range, lock). */
     final int[][] actsAt;
+    /** [activity][slot] remaining calendar opportunities, including this slot. */
+    final int[][] actRemain;
     /** Tartarus block index enterable in this (evening) slot, or -1. */
     final int[] towerBlock;
     /** [link][slot] calendar meeting opportunities in {@code [slot, lastSlot]}, missing windows excluded. */
@@ -196,6 +198,11 @@ final class Tables {
             if (eve && d.tartarus && d.block >= 0 && d.block < nBlocks) towerBlock[slot] = d.block;
         }
 
+        actRemain = new int[nActs][size];
+        for (int slot = lastSlot; slot >= 0; slot--) {
+            for (int a = 0; a < nActs; a++) actRemain[a][slot] = actRemain[a][slot + 1];
+            for (int a : actsAt[slot]) actRemain[a][slot]++;
+        }
         meetRemain = new int[nLinks][size];
         for (int l = 0; l < nLinks; l++) {
             int[] rem = meetRemain[l];
@@ -315,6 +322,7 @@ final class Tables {
     private static boolean activityOnCalendar(Rules.Activity a, Rules.Day d, boolean eve) {
         if (eve ? !a.eve : !a.day) return false;
         if (d.d < a.fromDay || d.d > a.toDay) return false;
+        if (a.fixedDays != null && java.util.Arrays.binarySearch(a.fixedDays, d.d) < 0) return false;
         if (!a.allowsWeekday(d.wd)) return false;
         return a.dayTypes.isEmpty() || a.dayTypes.contains(d.type);
     }

@@ -128,7 +128,7 @@ public class RulesPackFactsTest {
     public void playerFacingTextHasNoRawEnglishOrIds() {
         Pattern latin = Pattern.compile("[A-Za-z]+");
         // 莫乐蜜G and 急救组合M are item names as the CN guides write them (class/exam answers are left out).
-        Set<String> allowed = new HashSet<>(List.of("Lv", "RANK", "MAX", "F", "OK", "G", "M"));
+        Set<String> allowed = new HashSet<>(List.of("Lv", "RANK", "MAX", "F", "OK", "G", "M", "DVD"));
         List<String> texts = new ArrayList<>();
         for (Rules.Link l : r.links) {
             add(texts, l.arcanaZh, l.personZh, l.genderZh, l.labelZh, l.locationZh, l.noteZh, l.unlock.noteZh);
@@ -574,7 +574,7 @@ public class RulesPackFactsTest {
             assertTrue(a.id, a.day || a.eve);
             assertTrue(a.id, a.weekdayMask != 0);
             int gain = a.gain[0] + a.gain[1] + a.gain[2];
-            assertTrue(a.id + " must raise a stat", gain > 0);
+            assertTrue(a.id + " must raise a stat or advance a dorm characteristic", gain > 0 || a.dormActivity());
             if (a.kind == Rules.ActivityKind.JOB) {
                 assertEquals(a.id, 0, a.cost);
                 assertTrue(a.id, a.pay.length > 0 && a.payFor(1) > 0);

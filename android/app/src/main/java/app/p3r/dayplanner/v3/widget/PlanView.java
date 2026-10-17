@@ -132,7 +132,7 @@ final class PlanView {
     static boolean isDirect(Plan.Step step) {
         if (step == null || step.action == null || !step.action.startsWith("act:")) return false;
         if (step.side != null && !step.side.isEmpty()) return false;
-        return "stat".equals(step.kind) || "job".equals(step.kind);
+        return "stat".equals(step.kind) || "job".equals(step.kind) || "dorm".equals(step.kind);
     }
 
     private static Done doneFor(PlannerApi.Snapshot snap, List<PlanItems.Item> items, int index) {
@@ -296,7 +296,9 @@ final class PlanView {
         // The reminder row shows the most important one first (stable: plan order among equals).
         others.sort((a, b) -> Integer.compare(b.priority, a.priority));
         for (Plan.Reminder r : others) m.reminders.add(new CardModel.ReminderLine(r.textZh, blankToNull(r.shortZh)));
-        m.taskDescription = describe(m, spoken) + "。点击查看详情";
+        // The dorm chip keeps the stat gain and project count short; read the full level-up result aloud.
+        String spokenTag = "dorm".equals(step.kind) && blankToNull(step.subtitleZh) != null ? step.subtitleZh : m.tag;
+        m.taskDescription = describe(m, spoken, spokenTag) + "。点击查看详情";
         switch (done) {
             case COMMIT:
                 m.doneDescription = "完成：按安排记录「" + m.title + "」";
@@ -435,8 +437,12 @@ final class PlanView {
 
     /** The card read out: title, chip, place, hint, side steps, then {@code extra} (answers, 当日提醒). */
     private static String describe(CardModel m, List<String> extra) {
+        return describe(m, extra, m.tag);
+    }
+
+    private static String describe(CardModel m, List<String> extra, String tag) {
         StringBuilder sb = new StringBuilder(m.title);
-        if (m.tag != null) sb.append("，").append(m.tag);
+        if (tag != null) sb.append("，").append(tag);
         if (m.location != null) sb.append("，地点：").append(m.location);
         if (m.hint != null) sb.append("。").append(m.hint);
         if (m.side != null) sb.append("。").append(m.side);

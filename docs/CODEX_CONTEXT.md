@@ -1,7 +1,7 @@
 # P3R planner repository context
 
-Reference for continuing the owner's existing project with Claude. Updated on 2026-10-16
-(UTC), for the 3.2.0 changes and dialogue completion on branch `work`.
+Reference for continuing the owner's existing project with Claude. Updated on 2026-10-17
+(UTC), for the 3.3.0 study/dorm activity changes on branch `work`.
 This is an orientation snapshot; check newer code and owner decisions before implementing changes.
 
 ## Product and current baseline
@@ -13,7 +13,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
   player records a different result, changes goals, or returns later and syncs progress.
 - Useful, consistent plans matter more than global optimality. An unmet goal is not proof
   that the goal is impossible. Forecasts and confirmed progress must remain separate.
-- Current app source: **3.2.0**, version code **36**, application ID **`app.p3r.planner`**;
+- Current app source: **3.3.0**, version code **37**, application ID **`app.p3r.planner`**;
   debug builds add `.debug`. Java package/Android namespace remains `app.p3r.dayplanner`.
   Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, minimum API 26, compile/target API 35.
 - Player-facing language is natural Simplified Chinese using Reload terminology. Preserve
@@ -31,6 +31,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 | [README](../README.md) | Current product behavior, installation, screenshots and build entry points. |
 | [Design](DESIGN_v3.md) | Main architecture contract. Later numbered sections amend earlier sections. |
 | [3.2.0 release notes](RELEASE_NOTES_3.2.0.md) | Rescue batching, stat-gated menus and request tips. |
+| [3.3.0 change notes](RELEASE_NOTES_3.3.0.md) | Period tips, dated group study, dorm characteristics, gardening preparation and widget sizes. |
 | [3.1.0 specification](specs/SPEC_3.1.0.md) | Full replan, reminders, legacy removal, widget answers and breadth planning. |
 | [Chinese glossary](GLOSSARY_zh.md) | Exact UI terms, sentence style and deadline wording. |
 | [Rules report](../rules/build/REPORT.md) | Generated source decisions, confidence, coverage and modeling gaps. |
@@ -52,8 +53,8 @@ Production Java lives under `android/app/src/main/java/app/p3r/dayplanner/v3/`.
 | [model](../android/app/src/main/java/app/p3r/dayplanner/v3/model/) | `Rules`, `RulesLoader`, `Profile`: rule-pack parsing and validation, goals and preferences. Production `DefaultWiring` loads the asset through `RulesLoader`; `RulesAssets` is a separate cache helper. |
 | [engine](../android/app/src/main/java/app/p3r/dayplanner/v3/engine/) | `Engine` is the public facade. `Model`/`Tables` compile rules into arrays; `Kernel` applies transitions; `Simulator` exposes copy-based operations; `Heuristics`/`Planner` search; `PlanValidator` independently replays plans. Pure Java plus `org.json`. |
 | [store](../android/app/src/main/java/app/p3r/dayplanner/v3/store/) | `PlanDb`, `Ledger`, `Replayer`, `PackLayout`, `Backup`: SQLite records, replay, rule-update remapping and backup format. |
-| [service](../android/app/src/main/java/app/p3r/dayplanner/v3/service/) | `PlannerApi`/`PlannerService`: shared boundary for app and widget. `CommandCheck` validates writes; `ReplanWorker` computes and validates plans in the background. |
-| [ui](../android/app/src/main/java/app/p3r/dayplanner/v3/ui/) | `HomeActivity` and four tab pages; `StateActivity`/`StateDraft` for setup and sync; `ResultActivity`/`Outcomes`/`TowerPanel` for results; `FullReplanSheet`/`PlanDiff` for fresh planning. Native Android Views, largely built in Java. |
+| [service](../android/app/src/main/java/app/p3r/dayplanner/v3/service/) | `PlannerApi`/`PlannerService`: shared boundary for app and widget. `CommandCheck` validates writes; `ReplanWorker` computes and validates plans in the background; `PeriodTips` collects the current block period's reminder catalogue independently of the plan. |
+| [ui](../android/app/src/main/java/app/p3r/dayplanner/v3/ui/) | `HomeActivity` and five tab pages, including `TipsPage`; `StateActivity`/`StateDraft` for setup and sync; `ResultActivity`/`Outcomes`/`TowerPanel` for results; `FullReplanSheet`/`PlanDiff` for fresh planning. Native Android Views, largely built in Java. |
 | [widget](../android/app/src/main/java/app/p3r/dayplanner/v3/widget/) | `PlanWidget`, `PlanView`, `PlanItems`, `CardRenderer`, `CardText`, `WidgetWorker`: RemoteViews, task browsing, result actions, sizing and background work. `PaletteHost`/`FadeGuard` handle palette transitions. |
 | [rules builder](../rules/build/build_p3r_rules.py) | Python standard-library compiler for the shipped JSON asset and its generated report. |
 | [tests](../android/app/src/test/java/app/p3r/dayplanner/v3/) | JVM engine/model tests and Robolectric service, SQLite, UI and widget tests. |
@@ -70,7 +71,7 @@ installation → app and widget. Results return through the service into the eve
   evening **locked finale** as their last row; January 31 daytime is the last free slot.
 - `SimState` carries cash and its certainty, estimated hidden stat/affinity points,
   visible ranks, observed rank-up cues, unlock steps, rescue bits, tower visits/floor,
-  job counts, episode progress and player-reported rank holds. The same shape is used
+  job counts, episode progress, dorm project counts in `used[]` and player-reported rank holds. The same shape is used
   for observed and forecast states, but engine APIs copy their inputs.
 - Productive actions are meetings, consuming unlock steps, activities/jobs, Tartarus,
   dating-site notes and Link Episodes. `FREE` and locked rows complete calendar coverage.
@@ -93,6 +94,23 @@ installation → app and widget. Results return through the service into the eve
   visits. Jobs address projected spending needs. Unlock payments normally leave a
   ¥2,500 reserve; the fee policy can relax this when waiting would cost a milestone.
   Optional training and dating notes also reserve imminent unlock fees.
+- Since 3.3.0, 14 dated exam-study sessions compete with paid training using their actual
+  free cost and Academics +4/+5 gain. `fixedDays` narrows availability under the existing
+  story locks; rare dated gains are excluded from ordinary repeatable-training capacity
+  estimates. The four whole-team +5 records retain conflict confidence because a separate
+  guide claims +6; the model selects the lower sourced value.
+- Eighteen dorm projects cover nine teammates, two projects each. Each project contributes
+  at most three completions toward the characteristic objective: either project's third
+  unlocks it; both projects at three strengthen it. H values progress/milestones with
+  urgency from remaining dates; J also values those finite milestones. Dorm actions have
+  their own rollout category. At capped stats an unfinished project is still productive;
+  after three completions it requires useful stat gain to remain legal. Rescue comparison
+  and ordered Social Link goals retain priority. Dorm forecasts award no Social Link
+  affinity, episode rank or inventory; possible actual affinity effects remain unmodeled.
+  All dorm activities consume an evening.
+- Four gardening projects require `Profile.planDormGardening`, default false. The player's
+  explicit opt-in promises crops will be planted first; crop/seed inventory and preparation
+  costs are not modeled. It is a forecast preference, not a reason to erase past records.
 - Normal replans favor keeping the next three days stable. This behavior is deliberate
   and differs from **从头重新安排**, which passes no previous plan and uses a 3× budget.
 - `PlanValidator` has its own accumulator and transition checks instead of sharing
@@ -141,6 +159,30 @@ installation → app and widget. Results return through the service into the eve
   outing requirements. Completion/visit counts and request cash effects are not tracked; a
   reminder can describe a consuming action (e.g. Request 11 evening challenge).
   This is distinct from simulated **顺便** unlock steps, whose effects do count.
+- The 3.3.0 提示 tab uses `PeriodTips` to collect all stored tips for the current Tartarus
+  opening period, from this block's opening to before the next opening (final period to
+  January 31, with a separate pre-opening period before the first block). It uses the
+  observed game date and raw rules, retaining past dates within the period and explicit
+  windows overlapping it from earlier periods. Ordinary old
+  events without an end are not accumulated; `firstEligible` without a deadline remains
+  conditional through the calendar end. No-deadline outing instructions and Request 75
+  preparation persist across periods. It includes collected requests/preparation,
+  all period-matching sourced classroom/exam answers (36/17 in the complete pack, no
+  withheld class dates), shopping, dozing, the nurse trigger and rescue groups. It also
+  reads manual/story unlock earliest dates and requirements/steps, all five episode
+  tracks' 24 part calendars with full-window deadlines/how-to/available rewards,
+  dating-note first availability, group study dates and a dorm-activity schedule/progress
+  summary. Existing `Day.noteZh` facts (results, holidays, openings, white-flower story)
+  and consecutive calendar days locked for the same reason and day/evening mask are also
+  shown; range labels distinguish occupied dates from request deadlines. Exam ranges include
+  days without manual answers, alongside summer classes, trips and full-moon operations.
+  Calendar rows introduce no new assumed rewards. The catalogue is independent of profile
+  opt-ins and chosen goals; an earliest opening does not imply prerequisites are met or an
+  earlier episode was completed.
+  A current plan may refine dynamic advice but is optional; a missing/stale plan never
+  hides the raw period.
+  Dates elapsed do not mean completed. Browsing the catalogue writes no progress and
+  changes no cash, stats, plan identity or request-completion count.
 
 ## Confirmed progress and replanning integrity
 
@@ -160,6 +202,12 @@ installation → app and widget. Results return through the service into the eve
   edits preserve known hidden estimates. Changed ranks reset their affinity estimate;
   changed visible stat levels use the new level's lower bound. Sync can prefill a forecast
   when the player says they followed it, but requires the player's save to confirm it.
+- The 宿舍活动 setup/sync page records introduced projects at 0–3 completions and offers
+  the gardening preparation toggle. Counts beyond three display as three; old unknown
+  counts start at zero. Corrections change existing `used[]` without awarding past stats
+  again. Forecast-prefilled counts carry 预计 labels until the player confirms the sync.
+  Existing ledger completion/undo, checkpoint layout-ID remapping and backup schema carry
+  these counts; no database migration or separate observed trait-awakening bit is added.
 - `ReplanWorker` coalesces work on the service executor, computes outside the lock,
   cancels outdated jobs, validates output, and installs only current state/profile/rules
   revisions. A budget-exhausted ordinary run can get one 2× follow-up.
@@ -169,7 +217,7 @@ installation → app and widget. Results return through the service into the eve
 
 ## App and widget interaction
 
-- Tabs: **今天 / 日程 / 社群 / 我的**. Setup and later sync preserve drafts and prefill
+- Tabs: **今天 / 日程 / 社群 / 提示 / 我的**. Setup and later sync preserve drafts and prefill
   values. Result sheets ask only what matters to the action: rank-up/no rank-up, training
   correction, tower floor/cash/rescue, or an alternative action.
 - Widget arrows browse individual tasks; **当前** returns to the pending task;
@@ -178,7 +226,19 @@ installation → app and widget. Results return through the service into the eve
 - Widget writes verify plan ID, state revision, slot and action, with deterministic command
   IDs. All broadcast work goes through `WidgetWorker`/`goAsync`; avoid database access,
   rule loading or RemoteViews construction on the main thread.
-- Answers should stay readable at tiny/compact/regular sizes, including classroom answers
+- The 提示 summary shows the block, floors, period dates, count and game progress. Its
+  three sections are 当前要留意 / 接下来别错过 / 本期已过日期; every card opens its complete
+  提示详情 sheet. Opening/deadline windows retain their original dates across periods;
+  ongoing conditional tips are labelled 满足条件时 rather than claiming they can be done now.
+  The new tab key is `tips`; existing keys such as `me` retain their meaning.
+- Widgets target **5×2**, with **4×2** as the owner's minimum. Provider metadata targets
+  5×2 cells at minWidth 320dp/minHeight 140dp and allows minimum resize to 250×140dp;
+  launchers determine actual cell sizes. Current regression boundaries are 250×140dp
+  minimum and 320×160, 360×180, 400×180dp nominal, at normal and 115% font scaling.
+  Historic smaller-card matrices below describe earlier validation, not a new 3.3.0
+  support promise. Android 13+ CJK fallback line spacing and whole-pixel title autosize
+  are measured consistently with TextView; compact friendship notes keep full details.
+- Answers should stay readable at supported widget sizes, including classroom answers
   alongside Social Link answers. `DialogueHint`, `CardText` and the glossary encode
   uncertainty/romance wording and compact fallbacks; avoid blindly abbreviating them.
 - `OldGuideProgress` only reads `p3r_native_progress_v1` preferences and exports the old
@@ -189,20 +249,22 @@ installation → app and widget. Results return through the service into the eve
 
 The shipped [rule asset](../android/app/src/main/assets/p3r/p3r_rules.json) is generated
 from `rules/sources/` snapshots, their `SOURCES.json` manifest, and `rules/p3r/` evidence.
-At this revision it is 317,972 bytes, schema `p3r.rules.v3`, pack version `3.2.0`, runtime
-identity **`3.2.0|50f6e869ddd3`**. App and pack version numbers are separate.
+The current source pack uses schema `p3r.rules.v3` and pack version `3.3.0`; its final
+byte count and hash must be recorded after the current changes finish. App and pack version numbers are separate.
 `RulesLoader` appends the first 12 SHA-256 hex digits of the actual JSON text.
 
-Coverage: 22 Social Links (three story links), 22 activities, 10 Tartarus blocks,
+Coverage: 22 Social Links (three story links), 54 activities (the previous 22, 14 study
+sessions and 18 dorm projects), 10 Tartarus blocks,
 five Link Episode tracks, two link-specific rescues, 120 static reminder items and
-13 missing-person reminder groups. The pack lists 128 source records.
+13 missing-person reminder groups. The pack lists 130 source records.
 
 Change builder inputs/logic and regenerate both the asset and `rules/build/REPORT.md`;
 the report is not a hand-edited document. Keep Reload-specific provenance and confidence
 (`game_data`, `verified`, `single`, `estimate`, `conflict`). Mixed-edition sources only
 corroborate a Reload source. A matching file hash establishes identity, not game accuracy.
 
-Model limits to remember: free stat gains are not forecast; not every activity, item
+Model limits to remember: automatic free gains from class answers, exams and summer school
+are not forecast (scheduled study/dorm activity gains are); not every activity, item
 requirement or rescue floor is modeled; 女皇's exam-first-place requirement is described
 but not simulated; 审判 ranks 2–10 are dated January 30 as an estimate instead of derived
 from floors; some story dates are conservatively locked; no mid-chain holds are encoded
@@ -239,9 +301,13 @@ Useful regression entry points:
 | --- | --- |
 | Search, priorities, styles, budget | `PlannerTest`, `PlanRealPackTest`, `PlanBreadthRealPackTest`, `BreadthObjectiveTest`, `PlanPerformanceTest` |
 | Mechanics, legality, side steps, rescue margin | `CoreContractTest`, `SimulatorTest`, `PlanValidatorTest`, `SideStepTest`, `RescueMarginTest`, `RescueDeadlineRealPackTest`, `RescueBatchPolicyTest`, `RescueBatchRealPackTest`, `SpecialMenuTest` |
+| Dated study/dorm activities, characteristic scoring and prepared gardening | `DormActivityTest`, `DormActivityLoaderTest`, Python `test_dorm_activities.py` and `test_group_study_evidence.py` |
+| Dorm progress correction, save compatibility and restoration | `DormProgressUiTest`, `DormProgressBackupRealPackTest` |
 | Recorded progress, migrations, concurrency | `ReplayerRealPackTest`, `PackLayoutTest`, `ProfileChangeReplayTest`, `PlannerServiceRecordTest`, `PlannerServiceFollowUpTest`, `PlannerServiceFullReplanTest` |
 | Player results and sync | `EndToEndRealPackTest`, `ResultFlowsRealPackTest`, `ResultRealServiceTest`, `StateWizardTest`, `FullReplanUiTest` |
 | Widget behavior and rendering | `PlanWidgetBehaviourTest`, `PlanWidgetRealServiceTest`, `PlanWidgetFadeTest`, `AnswerRowRenderTest`, `ReminderRowRenderTest`, `PlanWidgetRealPackRenderTest` |
+| Period tips, overlapping windows and navigation without a current plan | `PeriodTipsTest`, `TipsPageTest` |
+| Dorm widget milestones and current size boundaries | `DormWidgetRenderTest` and the focused friendship/classroom cases in `AnswerRowRenderTest` |
 | Reviewed dialogue, branch boundaries and compact answers | `ReviewedDialogueHintTest`, `DialogueHintsLoaderTest`, `ReviewedDialogueWidgetTest`, `ConditionalAnswerFitTest`, Python `test_dialogue_guidance.py` |
 
 Real-pack test helpers multiply the planning budget by three when `CI` is set; production
@@ -278,7 +344,7 @@ failures, errors or skips; this total combines the full run and scoped reruns. T
 no consumers outside the widget package. Raw stage reports and the latest-result index live in
 `qa_out/dialogue_audit/final_validation.json`. Release lint passed with 176 warnings and zero
 errors; debug assembly succeeded. The APK is `app.p3r.planner.debug`, version code 36,
-with the exact shipped pack above. Signature/alignment and embedded-rule checks passed.
+with the then-current 3.2.0 pack. Signature/alignment and embedded-rule checks passed.
 SHA-256: `d7bfbc0725f125c3812e5229052c15c93153aa2a13dd849032b441cfd513e402`.
 This workspace has no release signing key, so that artifact is an independent test install,
 not a signed release update. The complete 32-row metrics table records the CI profile's
@@ -367,6 +433,41 @@ The formal APK is 905,984 bytes, SHA-256
 `9512cb85c6b78c30c8fb25067952172a27aebeed1242b632c92a7ebd6a9431d9`.
 Old-signature 3.x installs must export a backup before uninstalling; current backup format is
 compatible and preserves profile/checkpoints/events. The new private key and private backup
-remain ignored; never upload them with the APK. The signed-release workflow requires four
+were kept outside Git and supplied to the owner; never upload them with the APK. The signed-release workflow requires four
 ANDROID_* secrets and checks this new identity; configure those from the private backup for
 future tag-triggered builds. CI on main remains a test/debug build and does not itself publish.
+
+## Current 3.3.0 delivery boundary (2026-10-17)
+
+The owner requested higher priority for group study and dorm activities, then a separate
+period-wide 提示 tab and a 4×2 minimum / 5×2 nominal widget. The implementation adds dated
+activity rules, finite characteristic scoring, progress entry, compatible record storage,
+preparation-gated gardening and a plan-independent period catalogue. It does not turn story
+Persona awakenings into a planner-controlled mechanic. Source evidence is in
+`rules/p3r/group_study_evidence.json` and
+`rules/p3r/dorm_activities_evidence.json`. The rule pack identity is
+`3.3.0|91c21bba2bd5` (SHA-256
+`91c21bba2bd50eba6060f5b9774db4a23f85ae133ff04b02dfe0d731fa0c98be`).
+
+Validation: all 83 Python tests and the generated-pack freshness check passed. An initial
+full Android regression followed by fixes and focused reruns has 1,009 distinct latest
+passing results, with no remaining failures or skips. The final feature batch passed 56
+cases covering the period catalogue, all answers in the real period, navigation and
+4×2/5×2 dorm/dialogue cards on API 26/34. The final calendar-slot and club-entry refinements
+passed all 19 catalogue/UI cases again. Results are retained locally in
+`qa_out/dorm_validation/final_validation.json`; this is a latest-result union, not a claim
+that a single 1,009-case invocation ran. The newly added API 34 matrix for unsupported tiny
+widgets was removed at the owner's request and excluded; older existing tests remain.
+All 32 real-pack quality benchmarks and the updated MAX golden checks passed. The complete
+table in `PLAN_METRICS.md` records the tradeoffs; do not replace it with a focused run's
+partial generated table. Ordinary 360dp phone screenshots were inspected. No live-device
+or gameplay verification is claimed.
+Debug assembly and the exact embedded-rule comparison passed; APK metadata is 3.3.0/37,
+application ID `app.p3r.planner.debug`. Release lint passed with zero errors and 176 warnings.
+
+The current workspace does not contain the ignored `.signing/` files or the earlier private
+signing backup. This task prepares source changes, commit/push and CI debug validation;
+3.3.0 has not been published as a signed release. A future formal build needs the original
+3.2.0 private backup restored to keep the certificate listed above and allow an in-place
+3.2.0 update. Do not create a replacement key and describe it as compatible. The published
+stable release at this point is 3.2.0; leave its tag, APK and recorded hashes intact.

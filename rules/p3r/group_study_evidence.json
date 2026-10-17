@@ -1,0 +1,494 @@
+{
+  "schema": "p3r.group_study_evidence.v1",
+  "edition": "reload",
+  "policy": {
+    "slot": "evening",
+    "yenCost": 0,
+    "slotCost": 1,
+    "gainsOrder": [
+      "academics",
+      "charm",
+      "courage"
+    ],
+    "affinityPoints": 0,
+    "dormCharacteristicProgress": 0,
+    "availability": "Only the 14 dated sessions attested by the tested Reload route and corroborated by monthly event calendars. Normal calendar/story locks still apply.",
+    "wording": "Player-facing names are editorial Simplified Chinese abbreviations, not a claim of verbatim official UI text.",
+    "caps": "Academics gains stop at the normal stat cap; attending is optional and does not automatically beat a rescue deadline or a player MUST goal.",
+    "freeMeaning": "No yen cost; still consumes the evening."
+  },
+  "sources": {
+    "aqiu_walkthrough": {
+      "path": "aqiu_pages/ave-walkthrough.md",
+      "sha256": "c05dfe2820696ab26ffdcda17e5103b645c60320b99f29a57db73d5897250fac",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/ave-walkthrough",
+      "edition": "reload"
+    },
+    "steam_stat_points": {
+      "path": "steam_schinese/d_4206993388794169488.html",
+      "sha256": "6da7cebeaf455deb8c69a13eb12daaf41dd4fc5fc73f41a20009521cb9f06c55",
+      "url": "https://steamcommunity.com/app/2161700/discussions/0/4206993388794169488/",
+      "edition": "reload"
+    },
+    "cn_guide": {
+      "path": "cn_guides/data.json",
+      "sha256": "08719e728ab953852292b18dd49c40c5790302eac24dfb3962db4be4ab271e49",
+      "url": "https://www.gamersky.com/handbook/202402/1706261.shtml",
+      "edition": "cn_guide_reload",
+      "note": "Existing Chinese guide wording is used for names and first four date witnesses; no musical-note count is converted into hidden stat points."
+    },
+    "game8_05": {
+      "url": "https://game8.jp/p3re/720628",
+      "edition": "reload",
+      "retrieved": "2026-10-17",
+      "observedDates": [
+        "05-15",
+        "05-16",
+        "05-17"
+      ],
+      "snapshotPolicy": "Calendar facts summarized here after direct page inspection; hidden gains come from the existing pinned aqiu walkthrough and Steam discussion, not this page."
+    },
+    "game8_07": {
+      "url": "https://game8.jp/p3re/722264",
+      "edition": "reload",
+      "retrieved": "2026-10-17",
+      "observedDates": [
+        "07-09",
+        "07-10",
+        "07-13"
+      ],
+      "snapshotPolicy": "Calendar facts summarized here after direct page inspection; hidden gains come from the existing pinned aqiu walkthrough and Steam discussion, not this page."
+    },
+    "game8_10": {
+      "url": "https://game8.jp/p3re/724469",
+      "edition": "reload",
+      "retrieved": "2026-10-17",
+      "observedDates": [
+        "10-08",
+        "10-09",
+        "10-11",
+        "10-12"
+      ],
+      "snapshotPolicy": "Calendar facts summarized here after direct page inspection; hidden gains come from the existing pinned aqiu walkthrough and Steam discussion, not this page."
+    },
+    "game8_12": {
+      "url": "https://game8.jp/p3re/724471",
+      "edition": "reload",
+      "retrieved": "2026-10-17",
+      "observedDates": [
+        "12-09",
+        "12-11",
+        "12-12",
+        "12-13"
+      ],
+      "snapshotPolicy": "Calendar facts summarized here after direct page inspection; hidden gains come from the existing pinned aqiu walkthrough and Steam discussion, not this page."
+    }
+  },
+  "gainDecision": {
+    "normal": 4,
+    "wholeTeam": 5,
+    "basis": [
+      "Pinned aqiu Reload all-voiced route states Academics +4 normal, +5 whole-team for all 14 sessions.",
+      "Pinned Reload Steam discussion comment 803467095729815142 independently states +4 week-before and +5 night-before exam."
+    ],
+    "conflict": {
+      "sourceUrl": "https://gamefaqs.gamespot.com/pc/409941-persona-3-reload/faqs/81375/calendar",
+      "claim": "One separate calendar gives +6 for the final whole-team session (observed search excerpt for 10/12).",
+      "resolution": "Keep the lower +5 used by the pinned tested aqiu route and corroborated by the independent Steam points listing. Do not infer exact points from three musical notes or assume Temperance. Whole-team records retain conflict confidence.",
+      "selected": 5,
+      "rejected": 6
+    },
+    "friendshipPolicy": "No Social Link affinity, Persona/Charm multiplier, episode rank or dorm characteristic count is awarded: no reliable positive evidence was found for such effects from exam study sessions."
+  },
+  "coverage": {
+    "sessionCount": 14,
+    "byMonth": {
+      "05": 3,
+      "07": 3,
+      "10": 4,
+      "12": 4
+    },
+    "normalCount": 10,
+    "wholeTeamCount": 4,
+    "totalAcademicsBeforeCap": 60,
+    "examDates": [
+      "05-18",
+      "07-14",
+      "10-13",
+      "12-14"
+    ],
+    "optionalDateReview": "Monthly Game8 event calendars list the same study sessions as aqiu. 07-11, 07-12, 10-10 and 12-10 were checked as possible route-omitted dates; none is listed as a study date in those calendars. This corroborates the whitelist; an unlisted date is not inferred from the route choosing another action."
+  },
+  "sessions": [
+    {
+      "id": "group_study_05_15",
+      "date": "05-15",
+      "gains": [
+        4,
+        0,
+        0
+      ],
+      "wholeTeam": false,
+      "nameZh": "宿舍集体学习",
+      "whereZh": "宿舍大厅",
+      "conf": "verified",
+      "sourceRefs": [
+        {
+          "source": "aqiu_walkthrough",
+          "path": "aqiu_pages/ave-walkthrough.md",
+          "line": 401,
+          "heading": "05-15"
+        },
+        {
+          "source": "cn_guide",
+          "path": "cn_guides/data.json",
+          "id": "t029_03"
+        },
+        {
+          "source": "game8_05",
+          "locator": "05-15 evening study session"
+        }
+      ]
+    },
+    {
+      "id": "group_study_05_16",
+      "date": "05-16",
+      "gains": [
+        4,
+        0,
+        0
+      ],
+      "wholeTeam": false,
+      "nameZh": "宿舍集体学习",
+      "whereZh": "宿舍大厅",
+      "conf": "verified",
+      "sourceRefs": [
+        {
+          "source": "aqiu_walkthrough",
+          "path": "aqiu_pages/ave-walkthrough.md",
+          "line": 411,
+          "heading": "05-16"
+        },
+        {
+          "source": "cn_guide",
+          "path": "cn_guides/data.json",
+          "id": "t030_03"
+        },
+        {
+          "source": "game8_05",
+          "locator": "05-16 evening study session"
+        }
+      ]
+    },
+    {
+      "id": "group_study_05_17",
+      "date": "05-17",
+      "gains": [
+        5,
+        0,
+        0
+      ],
+      "wholeTeam": true,
+      "nameZh": "全员一起学习",
+      "whereZh": "宿舍大厅",
+      "conf": "conflict",
+      "sourceRefs": [
+        {
+          "source": "aqiu_walkthrough",
+          "path": "aqiu_pages/ave-walkthrough.md",
+          "line": 419,
+          "heading": "05-17"
+        },
+        {
+          "source": "cn_guide",
+          "path": "cn_guides/data.json",
+          "id": "t031_03"
+        },
+        {
+          "source": "game8_05",
+          "locator": "05-17 evening study session"
+        }
+      ]
+    },
+    {
+      "id": "group_study_07_09",
+      "date": "07-09",
+      "gains": [
+        4,
+        0,
+        0
+      ],
+      "wholeTeam": false,
+      "nameZh": "宿舍集体学习",
+      "whereZh": "宿舍大厅",
+      "conf": "verified",
+      "sourceRefs": [
+        {
+          "source": "aqiu_walkthrough",
+          "path": "aqiu_pages/ave-walkthrough.md",
+          "line": 996,
+          "heading": "07-09"
+        },
+        {
+          "source": "cn_guide",
+          "path": "cn_guides/data.json",
+          "id": "t080_04"
+        },
+        {
+          "source": "game8_07",
+          "locator": "07-09 evening study session"
+        }
+      ]
+    },
+    {
+      "id": "group_study_07_10",
+      "date": "07-10",
+      "gains": [
+        4,
+        0,
+        0
+      ],
+      "wholeTeam": false,
+      "nameZh": "宿舍集体学习",
+      "whereZh": "宿舍大厅",
+      "conf": "verified",
+      "sourceRefs": [
+        {
+          "source": "aqiu_walkthrough",
+          "path": "aqiu_pages/ave-walkthrough.md",
+          "line": 1006,
+          "heading": "07-10"
+        },
+        {
+          "source": "game8_07",
+          "locator": "07-10 evening study session"
+        }
+      ]
+    },
+    {
+      "id": "group_study_07_13",
+      "date": "07-13",
+      "gains": [
+        5,
+        0,
+        0
+      ],
+      "wholeTeam": true,
+      "nameZh": "全员一起学习",
+      "whereZh": "宿舍大厅",
+      "conf": "conflict",
+      "sourceRefs": [
+        {
+          "source": "aqiu_walkthrough",
+          "path": "aqiu_pages/ave-walkthrough.md",
+          "line": 1046,
+          "heading": "07-13"
+        },
+        {
+          "source": "game8_07",
+          "locator": "07-13 evening study session"
+        }
+      ]
+    },
+    {
+      "id": "group_study_10_08",
+      "date": "10-08",
+      "gains": [
+        4,
+        0,
+        0
+      ],
+      "wholeTeam": false,
+      "nameZh": "宿舍集体学习",
+      "whereZh": "宿舍大厅",
+      "conf": "verified",
+      "sourceRefs": [
+        {
+          "source": "aqiu_walkthrough",
+          "path": "aqiu_pages/ave-walkthrough.md",
+          "line": 1854,
+          "heading": "10-08"
+        },
+        {
+          "source": "game8_10",
+          "locator": "10-08 evening study session"
+        }
+      ]
+    },
+    {
+      "id": "group_study_10_09",
+      "date": "10-09",
+      "gains": [
+        4,
+        0,
+        0
+      ],
+      "wholeTeam": false,
+      "nameZh": "宿舍集体学习",
+      "whereZh": "宿舍大厅",
+      "conf": "verified",
+      "sourceRefs": [
+        {
+          "source": "aqiu_walkthrough",
+          "path": "aqiu_pages/ave-walkthrough.md",
+          "line": 1865,
+          "heading": "10-09"
+        },
+        {
+          "source": "game8_10",
+          "locator": "10-09 evening study session"
+        }
+      ]
+    },
+    {
+      "id": "group_study_10_11",
+      "date": "10-11",
+      "gains": [
+        4,
+        0,
+        0
+      ],
+      "wholeTeam": false,
+      "nameZh": "宿舍集体学习",
+      "whereZh": "宿舍大厅",
+      "conf": "verified",
+      "sourceRefs": [
+        {
+          "source": "aqiu_walkthrough",
+          "path": "aqiu_pages/ave-walkthrough.md",
+          "line": 1884,
+          "heading": "10-11"
+        },
+        {
+          "source": "game8_10",
+          "locator": "10-11 evening study session"
+        }
+      ]
+    },
+    {
+      "id": "group_study_10_12",
+      "date": "10-12",
+      "gains": [
+        5,
+        0,
+        0
+      ],
+      "wholeTeam": true,
+      "nameZh": "全员一起学习",
+      "whereZh": "宿舍大厅",
+      "conf": "conflict",
+      "sourceRefs": [
+        {
+          "source": "aqiu_walkthrough",
+          "path": "aqiu_pages/ave-walkthrough.md",
+          "line": 1892,
+          "heading": "10-12"
+        },
+        {
+          "source": "game8_10",
+          "locator": "10-12 evening study session"
+        }
+      ]
+    },
+    {
+      "id": "group_study_12_09",
+      "date": "12-09",
+      "gains": [
+        4,
+        0,
+        0
+      ],
+      "wholeTeam": false,
+      "nameZh": "宿舍集体学习",
+      "whereZh": "宿舍大厅",
+      "conf": "verified",
+      "sourceRefs": [
+        {
+          "source": "aqiu_walkthrough",
+          "path": "aqiu_pages/ave-walkthrough.md",
+          "line": 2436,
+          "heading": "12-09"
+        },
+        {
+          "source": "game8_12",
+          "locator": "12-09 evening study session"
+        }
+      ]
+    },
+    {
+      "id": "group_study_12_11",
+      "date": "12-11",
+      "gains": [
+        4,
+        0,
+        0
+      ],
+      "wholeTeam": false,
+      "nameZh": "宿舍集体学习",
+      "whereZh": "宿舍大厅",
+      "conf": "verified",
+      "sourceRefs": [
+        {
+          "source": "aqiu_walkthrough",
+          "path": "aqiu_pages/ave-walkthrough.md",
+          "line": 2457,
+          "heading": "12-11"
+        },
+        {
+          "source": "game8_12",
+          "locator": "12-11 evening study session"
+        }
+      ]
+    },
+    {
+      "id": "group_study_12_12",
+      "date": "12-12",
+      "gains": [
+        4,
+        0,
+        0
+      ],
+      "wholeTeam": false,
+      "nameZh": "宿舍集体学习",
+      "whereZh": "宿舍大厅",
+      "conf": "verified",
+      "sourceRefs": [
+        {
+          "source": "aqiu_walkthrough",
+          "path": "aqiu_pages/ave-walkthrough.md",
+          "line": 2470,
+          "heading": "12-12"
+        },
+        {
+          "source": "game8_12",
+          "locator": "12-12 evening study session"
+        }
+      ]
+    },
+    {
+      "id": "group_study_12_13",
+      "date": "12-13",
+      "gains": [
+        5,
+        0,
+        0
+      ],
+      "wholeTeam": true,
+      "nameZh": "全员一起学习",
+      "whereZh": "宿舍大厅",
+      "conf": "conflict",
+      "sourceRefs": [
+        {
+          "source": "aqiu_walkthrough",
+          "path": "aqiu_pages/ave-walkthrough.md",
+          "line": 2477,
+          "heading": "12-13"
+        },
+        {
+          "source": "game8_12",
+          "locator": "12-13 evening study session"
+        }
+      ]
+    }
+  ]
+}

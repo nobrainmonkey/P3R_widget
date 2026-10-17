@@ -957,13 +957,14 @@ final class Planner {
         /**
          * Up to {@code candidates} options to roll out, the base choice included in the count but not
          * returned: first one per category (best meeting, second meeting, best stat/job, Tartarus,
-         * best dating-site note, Link Episode), ordered by H; when K is larger than that, the next
+         * best dorm project, best dating-site note, Link Episode), ordered by H; when K is larger than that, the next
          * best remaining actions by H.
          */
         private int[] diverse(int n, int baseIdx) {
             int social1 = -1;
             int social2 = -1;
             int act = -1;
+            int dorm = -1;
             int tower = -1;
             int note = -1;
             int episode = -1;
@@ -978,7 +979,9 @@ final class Planner {
                         social2 = i;
                     }
                 } else if (type == Kernel.T_ACT) {
-                    if (act < 0 || scores[i] > scores[act]) act = i;
+                    if (m.rules.activities[Kernel.target(buf[i])].dormActivity()) {
+                        if (dorm < 0 || scores[i] > scores[dorm]) dorm = i;
+                    } else if (act < 0 || scores[i] > scores[act]) act = i;
                 } else if (type == Kernel.T_TOWER) {
                     if (tower < 0 || scores[i] > scores[tower]) tower = i;
                 } else if (type == Kernel.T_NOTE) {
@@ -987,8 +990,8 @@ final class Planner {
                     if (episode < 0 || scores[i] > scores[episode]) episode = i;
                 }
             }
-            List<Integer> picked = new ArrayList<>(6);
-            for (int r : new int[]{social1, social2, act, tower, note, episode}) if (r >= 0) picked.add(r);
+            List<Integer> picked = new ArrayList<>(7);
+            for (int r : new int[]{social1, social2, act, dorm, tower, note, episode}) if (r >= 0) picked.add(r);
             picked.sort(this::byScore);
             if (candidates > picked.size()) {
                 List<Integer> rest = new ArrayList<>();

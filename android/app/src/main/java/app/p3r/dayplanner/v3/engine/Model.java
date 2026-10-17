@@ -5,6 +5,9 @@ import app.p3r.dayplanner.v3.model.Rules;
 
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Rules + profile (+ engine options) compiled into flat arrays for the simulation kernel. Cheap to
@@ -32,9 +35,12 @@ final class Model {
     /** Event gains per link, romance route aware. */
     final int[][] eventGain;
     final boolean[] excluded;
+    /** Activity indices of each teammate's two dorm projects, and group per activity (-1 otherwise). */
+    final int[][] dormTracks;
+    final int[] dormGroup;
     /** Per activity: allowed activities unlocked by its recorded use (usually empty). */
     final int[][] unlockedActivities;
-    /** Most points one allowed activity gives each stat (an unlock gate this close is "about to open"). */
+    /** Most points one ordinary allowed activity gives each stat; scarce fixed-date bonuses are excluded. */
     final int[] maxGain;
     /** Per activity: bit s set when it raises stat s. */
     final int[] gainMask;
@@ -112,7 +118,24 @@ final class Model {
             reqLinkRank[l] = values(links);
         }
         excluded = new boolean[t.nActs];
-        for (Rules.Activity a : rules.activities) excluded[a.idx] = profile.excluded(a.id);
+        Map<String, List<Integer>> dorms = new TreeMap<>();
+        for (Rules.Activity a : rules.activities) {
+            excluded[a.idx] = profile.excluded(a.id) || (a.requiresPlantedCrop && !profile.planDormGardening);
+            if (a.dormActivity()) dorms.computeIfAbsent(a.dormPartnerZh, ignored -> new ArrayList<>()).add(a.idx);
+        }
+        dormTracks = new int[dorms.size()][];
+        dormGroup = new int[t.nActs];
+        Arrays.fill(dormGroup, -1);
+        int group = 0;
+        for (List<Integer> tracks : dorms.values()) {
+            dormTracks[group] = new int[tracks.size()];
+            for (int i = 0; i < tracks.size(); i++) {
+                int a = tracks.get(i);
+                dormTracks[group][i] = a;
+                dormGroup[a] = group;
+            }
+            group++;
+        }
         int[] unlockCounts = new int[t.nActs];
         for (Rules.Activity a : rules.activities) {
             if (a.requiresActivity >= 0 && !excluded[a.idx]) unlockCounts[a.requiresActivity]++;
@@ -132,7 +155,8 @@ final class Model {
         }
         maxGain = new int[t.nStats];
         for (Rules.Activity a : rules.activities) {
-            if (excluded[a.idx]) continue;
+            // Rare dated bonuses cannot make every future training slot look equally efficient.
+            if (excluded[a.idx] || a.fixedDays != null) continue;
             for (int s = 0; s < Math.min(a.gain.length, t.nStats); s++) maxGain[s] = Math.max(maxGain[s], a.gain[s]);
         }
         episodeWanted = new boolean[t.nEps];

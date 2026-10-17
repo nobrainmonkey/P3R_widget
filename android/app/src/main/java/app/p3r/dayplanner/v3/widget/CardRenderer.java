@@ -183,7 +183,7 @@ public final class CardRenderer {
     /** Height (dp) of the first {@code lines} lines of the bold title at {@code sp} wrapped to {@code widthDp}. */
     static float titleHeightDp(Context c, String title, float sp, float widthDp, int lines) {
         if (isBlank(title)) return 0;
-        StaticLayout layout = layout(c, title, sp, Typeface.DEFAULT_BOLD, widthDp, Integer.MAX_VALUE, 0f);
+        StaticLayout layout = titleLayout(c, title, sp, widthDp);
         int last = Math.max(0, Math.min(lines, layout.getLineCount()) - 1);
         return layout.getLineBottom(last) / c.getResources().getDisplayMetrics().density;
     }
@@ -197,7 +197,7 @@ public final class CardRenderer {
         if (isBlank(title)) return 1;
         int lines = 1;
         for (float sp = maxTitleSp(size); sp >= MIN_TITLE_SP - 0.01f; sp -= 1f) {
-            StaticLayout layout = layout(c, title, sp, Typeface.DEFAULT_BOLD, widthDp, Integer.MAX_VALUE, 0f);
+            StaticLayout layout = titleLayout(c, title, sp, widthDp);
             lines = layout.getLineCount();
             float height = layout.getHeight() / c.getResources().getDisplayMetrics().density;
             if (lines <= maxLines && height <= boxDp) return lines;
@@ -271,9 +271,9 @@ public final class CardRenderer {
             builder.setEllipsize(TextUtils.TruncateAt.END).setEllipsizedWidth(width);
         }
         boolean fitsOneLine = paint.measureText(text) <= width && text.indexOf('\n') < 0;
-        if (Build.VERSION.SDK_INT >= 28 && !fitsOneLine) {
-            // Like TextView for apps targeting P+: wrapped text (StaticLayout) gets the taller CJK
-            // fallback line spacing, single-line text (BoringLayout) keeps the primary font's.
+        if (Build.VERSION.SDK_INT >= 28 && (!fitsOneLine || Build.VERSION.SDK_INT >= 33)) {
+            // TextView uses fallback spacing for wrapped text from P, and for single-line
+            // BoringLayout text from Tiramisu. Measure both with the same CJK font height.
             builder.setUseLineSpacingFromFallbacks(true);
         }
         return builder.build();
@@ -1081,7 +1081,7 @@ public final class CardRenderer {
     static boolean titleCut(Context c, CardModel fitted, WidgetSize size, float widthDp) {
         if (isBlank(fitted.title)) return false;
         float titleWidth = titleWidthDp(fitted, size, widthDp - 2 * bodyPaddingDp(fitted, size));
-        StaticLayout layout = layout(c, fitted.title, MIN_TITLE_SP, Typeface.DEFAULT_BOLD, titleWidth, Integer.MAX_VALUE, 0f);
+        StaticLayout layout = titleLayout(c, fitted.title, MIN_TITLE_SP, titleWidth);
         return layout.getLineCount() > Math.max(1, fitted.titleMaxLines);
     }
 
@@ -1145,8 +1145,12 @@ public final class CardRenderer {
         float innerWidth = widthDp - 2 * sidePadding;
         float titleWidth = titleWidthDp(model, size, innerWidth);
         int lines = Math.max(1, model.titleMaxLines);
-        float comfortable = textHeightDp(c, model.title, comfortableTitleSp(size), true, titleWidth, lines);
-        float smallest = textHeightDp(c, model.title, MIN_TITLE_SP, true, titleWidth, lines);
+        float comfortable = Build.VERSION.SDK_INT >= 33
+                ? titleHeightDp(c, model.title, comfortableTitleSp(size), titleWidth, lines)
+                : textHeightDp(c, model.title, comfortableTitleSp(size), true, titleWidth, lines);
+        float smallest = Build.VERSION.SDK_INT >= 33
+                ? titleHeightDp(c, model.title, MIN_TITLE_SP, titleWidth, lines)
+                : textHeightDp(c, model.title, MIN_TITLE_SP, true, titleWidth, lines);
         CardModel fitted = model;
         // The answers row is essential: the width ladder's first form that fits, shorter forms only
         // after every other row but the cue.
@@ -1390,7 +1394,9 @@ public final class CardRenderer {
         // box shrinks to what the largest size needs (as the layout's autosize measures it, which may
         // be a little taller than the drawn text) and the text sits centred between plate and buttons.
         float sp = maxTitleSp(size);
-        float drawn = Math.max(textHeightDp(c, fitted.title, sp, true, titleWidth, fitLines), asideHeight);
+        float drawn = Math.max(Build.VERSION.SDK_INT >= 33
+                ? titleHeightDp(c, fitted.title, sp, titleWidth, fitLines)
+                : textHeightDp(c, fitted.title, sp, true, titleWidth, fitLines), asideHeight);
         float inBox = Math.max(0, titleNeedDp(c, fitted.title, sp, titleWidth, fitLines) + TITLE_SLACK_DP - drawn);
         float spare = body - rows - drawn - inBox;
         float under = spare > 0 ? Math.min(spare * UNDER_BUTTONS_SHARE, maxSpaceUnderButtonsDp(size)) : 0;
@@ -1459,7 +1465,14 @@ public final class CardRenderer {
      */
     private static StaticLayout autosizeLayout(Context c, String title, float sp, float widthDp) {
         DisplayMetrics metrics = c.getResources().getDisplayMetrics();
-        return autosizeLayoutPx(c, title, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, metrics), widthDp);
+        float px = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, metrics);
+        return autosizeLayoutPx(c, title, Build.VERSION.SDK_INT >= 33 ? Math.round(px) : px, widthDp);
+    }
+
+    /** Autosized title candidates use whole pixels; ordinary TextViews retain fractional SP sizing. */
+    private static StaticLayout titleLayout(Context c, String title, float sp, float widthDp) {
+        return Build.VERSION.SDK_INT >= 33 ? autosizeLayout(c, title, sp, widthDp)
+                : layout(c, title, sp, Typeface.DEFAULT_BOLD, widthDp, Integer.MAX_VALUE, 0f);
     }
 
     /**

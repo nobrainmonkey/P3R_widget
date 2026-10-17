@@ -58,6 +58,9 @@ import java.util.List;
  *       (plus {@link #EPISODE_FINISH} for the whole track); H scales that by the urgency of the
  *       episode's calendar window, so the last slot that keeps the track complete beats almost
  *       everything.</li>
+ *   <li><b>Dorm projects</b>: the first three completions of each project, with separate finite
+ *       value for a teammate's first completed project and for finishing both. Actual remaining
+ *       activity dates determine urgency. Stat gains still count after the characteristic is complete.</li>
  *   <li>FREE is never chosen while any productive action is legal.</li>
  * </ul>
  */
@@ -143,6 +146,11 @@ final class Heuristics {
     static final double EPISODE_VALUE = 2_500;
     /** Extra objective value of watching every episode of an opted-in track. */
     static final double EPISODE_FINISH = 4_000;
+    /** Dorm projects have finite value: three of one project unlock, both projects strengthen. */
+    // A useful bonus beside their free stats, without moving fee-paying jobs into scarce daytime.
+    static final double DORM_PROGRESS = 10;
+    static final double DORM_TRAIT = 120;
+    static final double DORM_UPGRADE = 180;
     /** Share of a meeting's value a dating-site note keeps in H (its points are only an estimate). */
     static final double NOTE_SHARE = 0.9;
     /**
@@ -586,7 +594,7 @@ final class Heuristics {
             if (m.excluded[a.idx]) continue;
             for (int s = 0; s < ns && s < a.gain.length; s++) {
                 if (a.gain[s] <= 0) continue;
-                if (a.eve) maxEve[s] = Math.max(maxEve[s], a.gain[s]);
+                if (a.eve && a.fixedDays == null) maxEve[s] = Math.max(maxEve[s], a.gain[s]);
                 if (a.cost > 0) {
                     ptsPerYen[s] = Math.max(ptsPerYen[s], a.gain[s] / (double) a.cost);
                     cheapestPaid[s] = Math.min(cheapestPaid[s], a.cost);
@@ -1271,6 +1279,7 @@ final class Heuristics {
             h += (0.2 + pv[s]) * useful;
         }
         if (a.cost > 0) h -= costPenalty(st.cash, a.cost);
+        if (a.dormActivity()) h += dormScore(st, act);
         if (a.kind == Rules.ActivityKind.JOB) {
             double money = moneyValue(st.cash - Math.max(0, a.cost), a.payFor(st.shifts[act] + 1));
             if (!eve && linkMeetable) money *= DAY_JOB_WITH_MEETING;
@@ -1289,6 +1298,46 @@ final class Heuristics {
             }
         }
         return h;
+    }
+
+    /** Value of the next first-three dorm completion, with urgency from its actual remaining dates. */
+    private double dormScore(SimState st, int act) {
+        int count = Math.max(0, st.used[act]);
+        if (count >= 3) return 0;
+        int need = 3 - count;
+        int remain = Math.max(1, t.actRemain[act][st.slot]);
+        int[] tracks = m.dormTracks[m.dormGroup[act]];
+        boolean unlocked = false;
+        boolean upgradeFits = tracks.length >= 2;
+        int totalNeed = 0;
+        for (int a : tracks) {
+            int left = Math.max(0, 3 - Math.max(0, st.used[a]));
+            unlocked |= left == 0;
+            totalNeed += left;
+            if (left > 0 && (m.excluded[a] || t.actRemain[a][st.slot] < left)) upgradeFits = false;
+        }
+        double worth = DORM_PROGRESS;
+        if (!unlocked && remain >= need) worth += DORM_TRAIT / need;
+        if (upgradeFits && totalNeed > 0) worth += DORM_UPGRADE / totalNeed;
+        return worth * urgency(need / (double) remain);
+    }
+
+    /** Only confirmed/forecast completions count, capped at three per project; no reward for farming. */
+    double dormValue(SimState end) {
+        double value = 0;
+        for (int[] tracks : m.dormTracks) {
+            boolean unlocked = false;
+            boolean upgraded = tracks.length >= 2;
+            for (int a : tracks) {
+                int count = Math.max(0, Math.min(3, end.used[a]));
+                value += DORM_PROGRESS * count;
+                unlocked |= count == 3;
+                upgraded &= count == 3;
+            }
+            if (unlocked) value += DORM_TRAIT;
+            if (upgraded) value += DORM_UPGRADE;
+        }
+        return value;
     }
 
     private double towerScore(SimState st, int block) {
@@ -1472,6 +1521,7 @@ final class Heuristics {
         }
         for (int s = 0; s < t.nStats; s++) j += 0.5 * Kernel.statLv(m, end, s);
         j += episodeValue(end);
+        j += dormValue(end);
         j += 0.0001 * end.cash;
         int unmet = 0;
         for (int b = 0; b < t.nBlocks; b++) unmet += Math.max(0, towerTarget[b] - end.towerVisits[b]);
