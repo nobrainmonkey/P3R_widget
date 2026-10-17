@@ -67,6 +67,7 @@ public class DormProgressBackupRealPackTest {
         Profile profile = new Profile();
         JSONObject oldProfile = profile.toJson();
         oldProfile.remove("planDormGardening");
+        oldProfile.remove("dormTargets");
         Backup.Data data = checkpoint(saved, legacy, oldProfile.toString());
 
         Backup.Data restored = Backup.read(Backup.write(data, legacy.version, 1));
@@ -92,12 +93,16 @@ public class DormProgressBackupRealPackTest {
         assertTrue("the real expanded pack is exercised", introduced > 0);
         assertFalse("old backups do not assume gardening supplies",
                 Profile.fromJson(new JSONObject(restored.profileJson)).planDormGardening);
+        assertTrue("old backups do not choose characteristic goals for the player",
+                Profile.fromJson(new JSONObject(restored.profileJson)).dormTargets.isEmpty());
     }
 
     @Test
     public void restoredDormHistoryCountsOnlyCompletedRecordsAfterActivityReordering() throws Exception {
         Profile profile = new Profile();
         profile.planDormGardening = true;
+        profile.dormTargets.put("dorm_yukari", Profile.DormTarget.UNLOCK);
+        profile.dormTargets.put("dorm_junpei", Profile.DormTarget.UPGRADE);
         SimState saved = stateAt(rules, Rules.slot(76, true)); // June 16, when dorm activities begin.
         Rules.Activity dorm = null;
         List<Integer> slots = new ArrayList<>();
@@ -129,6 +134,8 @@ public class DormProgressBackupRealPackTest {
         assertTrue(restored.events.get(2).voided);
         Profile restoredProfile = Profile.fromJson(new JSONObject(restored.profileJson));
         assertTrue(restoredProfile.planDormGardening);
+        assertEquals(Profile.DormTarget.UNLOCK, restoredProfile.dormTarget("dorm_yukari"));
+        assertEquals(Profile.DormTarget.UPGRADE, restoredProfile.dormTarget("dorm_junpei"));
 
         Rules reordered = RulesLoader.parse(pack);
         Collections.reverse(Arrays.asList(reordered.activities));

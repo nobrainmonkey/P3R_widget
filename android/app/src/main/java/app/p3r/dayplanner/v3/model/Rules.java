@@ -332,6 +332,13 @@ public final class Rules {
 
         public boolean dormActivity() { return dormPartnerZh != null && !dormPartnerZh.isEmpty(); }
 
+        /** Stable teammate key shared by both project ids; display names are never persisted as keys. */
+        public String dormPartnerId() {
+            if (!dormActivity() || id == null || !id.startsWith("dorm_")) return null;
+            int category = id.lastIndexOf('_');
+            return category > "dorm_".length() ? id.substring(0, category) : null;
+        }
+
         /** Minimum pay for the given 1-based shift number. */
         public int payFor(int shiftNumber) {
             int p = 0;

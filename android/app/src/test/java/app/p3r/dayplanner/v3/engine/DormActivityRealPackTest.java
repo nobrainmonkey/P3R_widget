@@ -44,6 +44,7 @@ public class DormActivityRealPackTest {
         int cooking = rules.activityIndex("dorm_shinjiro_cooking");
         start.used[cooking] = 2;
         Profile profile = isolated();
+        profile.dormTargets.put("dorm_shinjiro", Profile.DormTarget.UNLOCK);
         Plan plan = plan(profile, start);
         assertEquals("act:dorm_shinjiro_cooking", plan.steps.get(0).action);
         assertTrue(plan.steps.get(0).whyZh, plan.steps.get(0).whyZh.contains("预计做满 3 次，解锁荒垣真次郎的特性"));
@@ -53,12 +54,15 @@ public class DormActivityRealPackTest {
     }
 
     @Test
-    public void newGamePlansBothFreeStatGainsAndDormMilestonesWithoutAssumingPlantedCrops() throws Exception {
+    public void newGameWithSelectedTraitGoalsPlansFreeGainsAndMilestonesWithoutAssumingPlantedCrops() throws Exception {
         SimState start = start(4, 21, false);
         start.cash = 25_000;
         start.statPts = new int[3];
         Profile profile = new Profile();
         profile.applyNewProfileDefaults(rules);
+        for (Rules.Activity activity : rules.activities) {
+            if (activity.dormPartnerId() != null) profile.dormTargets.put(activity.dormPartnerId(), Profile.DormTarget.UPGRADE);
+        }
         Plan plan = plan(profile, start);
         SimState end = start;
         int dorm = 0;

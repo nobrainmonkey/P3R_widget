@@ -1,7 +1,8 @@
 # P3R planner repository context
 
 Reference for continuing the owner's existing project with Claude. Updated on 2026-10-17
-(UTC), for the 3.3.0 study/dorm activity changes on branch `work`.
+(UTC), for the 3.3.0 study/dorm activity changes and explicit teammate-characteristic
+goals on branch `work`.
 This is an orientation snapshot; check newer code and owner decisions before implementing changes.
 
 ## Product and current baseline
@@ -99,13 +100,19 @@ installation → app and widget. Results return through the service into the eve
   story locks; rare dated gains are excluded from ordinary repeatable-training capacity
   estimates. The four whole-team +5 records retain conflict confidence because a separate
   guide claims +6; the model selects the lower sourced value.
-- Eighteen dorm projects cover nine teammates, two projects each. Each project contributes
-  at most three completions toward the characteristic objective: either project's third
-  unlocks it; both projects at three strengthen it. H values progress/milestones with
-  urgency from remaining dates; J also values those finite milestones. Dorm actions have
-  their own rollout category. At capped stats an unfinished project is still productive;
-  after three completions it requires useful stat gain to remain legal. Rescue comparison
-  and ordered Social Link goals retain priority. Dorm forecasts award no Social Link
+- Eighteen dorm projects cover nine teammates, two projects each. The 社群 tab offers
+  「不追求 / 解锁 / 强化」 per teammate, default NONE, including when loading an old profile.
+  UNLOCK needs either project at three; UPGRADE needs both at three. H and J value finite
+  progress/milestones only for the selected target; remaining dates affect urgency.
+  Without an outstanding selected target, a dorm action needs useful stat gain to be
+  planned; a zero-stat project cannot occupy an evening just to pursue an unselected trait.
+  Achieving UNLOCK does not implicitly select UPGRADE. When choosing an action solely
+  for UNLOCK, concentrate on the feasible project with the most existing progress rather
+  than scattering completions across both. Existing actual project counts
+  determine whether the target is already achieved. Dorm actions have their own rollout
+  category. Rescue comparison and ordered Social Link goals retain priority. Selected
+  characteristic targets compete with other links, training and jobs in the weighted
+  objective, so their opportunity cost may reduce non-goal progress. Dorm forecasts award no Social Link
   affinity, episode rank or inventory; possible actual affinity effects remain unmodeled.
   All dorm activities consume an evening.
 - Four gardening projects require `Profile.planDormGardening`, default false. The player's
@@ -208,9 +215,21 @@ installation → app and widget. Results return through the service into the eve
   again. Forecast-prefilled counts carry 预计 labels until the player confirms the sync.
   Existing ledger completion/undo, checkpoint layout-ID remapping and backup schema carry
   these counts; no database migration or separate observed trait-awakening bit is added.
+- The 社群 tab allows checking the two actual project counts when choosing each
+  teammate's characteristic goal. Predicted counts are not actual history. Goal choices
+  are the `Profile.dormTargets` JSON map keyed by stable teammate ID (for example
+  `dorm_yukari`); absent entries mean `DormTarget.NONE`.
+  Profile copying, backup/restore and plan hashing include this map, with no rule-pack
+  or database-schema change. Changing the goal never erases completed projects.
 - `ReplanWorker` coalesces work on the service executor, computes outside the lock,
   cancels outdated jobs, validates output, and installs only current state/profile/rules
   revisions. A budget-exhausted ordinary run can get one 2× follow-up.
+- Plan-cache compatibility also checks the scheduling policy. `Plan.CURRENT_POLICY_VERSION`
+  is 1 and new plans default to `policyVersion=1`; legacy JSON without this field loads
+  as version 0. `PlannerService.isCurrent` checks this version plus the existing revisions
+  and rules identity. Upgrading recalculates the old implicit-all-teammate plan once without
+  changing actual records or the rule pack. A saved policy-version-1 plan remains reusable
+  on restart when its normal currentness checks pass.
 - Full replan rereads saved state/profile, uses a 7.5-second default budget and no stability
   bias, and does not itself change progress or history. Its ticket/result state is distinct
   from ordinary planning; a current widget can keep recording during it.
@@ -440,16 +459,19 @@ future tag-triggered builds. CI on main remains a test/debug build and does not 
 ## Current 3.3.0 delivery boundary (2026-10-17)
 
 The owner requested higher priority for group study and dorm activities, then a separate
-period-wide 提示 tab and a 4×2 minimum / 5×2 nominal widget. The implementation adds dated
-activity rules, finite characteristic scoring, progress entry, compatible record storage,
-preparation-gated gardening and a plan-independent period catalogue. It does not turn story
+period-wide 提示 tab and a 4×2 minimum / 5×2 nominal widget. After reviewing the opportunity
+cost of automatic characteristic scoring, the owner requested explicit goals in the 社群
+tab: nine teammates with NONE / UNLOCK / UPGRADE choices, default NONE. The implementation
+adds dated activity rules, opt-in finite characteristic scoring, progress entry, compatible
+record storage, preparation-gated gardening and a plan-independent period catalogue. It does not turn story
 Persona awakenings into a planner-controlled mechanic. Source evidence is in
 `rules/p3r/group_study_evidence.json` and
 `rules/p3r/dorm_activities_evidence.json`. The rule pack identity is
 `3.3.0|91c21bba2bd5` (SHA-256
 `91c21bba2bd50eba6060f5b9774db4a23f85ae133ff04b02dfe0d731fa0c98be`).
 
-Validation: all 83 Python tests and the generated-pack freshness check passed. An initial
+Previous-round validation (before the explicit characteristic-goal change): all 83 Python
+tests and the generated-pack freshness check passed. An initial
 full Android regression followed by fixes and focused reruns has 1,009 distinct latest
 passing results, with no remaining failures or skips. The final feature batch passed 56
 cases covering the period catalogue, all answers in the real period, navigation and
@@ -458,16 +480,38 @@ passed all 19 catalogue/UI cases again. Results are retained locally in
 `qa_out/dorm_validation/final_validation.json`; this is a latest-result union, not a claim
 that a single 1,009-case invocation ran. The newly added API 34 matrix for unsupported tiny
 widgets was removed at the owner's request and excluded; older existing tests remain.
-All 32 real-pack quality benchmarks and the updated MAX golden checks passed. The complete
-table in `PLAN_METRICS.md` records the tradeoffs; do not replace it with a focused run's
-partial generated table. Ordinary 360dp phone screenshots were inspected. No live-device
+All 32 real-pack quality benchmarks and the updated MAX golden checks passed in that round.
+The table in `PLAN_METRICS.md` has since been regenerated for explicit goals as described below.
+Do not replace it with a focused run's partial generated table. Ordinary 360dp phone screenshots were inspected. No live-device
 or gameplay verification is claimed.
 Debug assembly and the exact embedded-rule comparison passed; APK metadata is 3.3.0/37,
 application ID `app.p3r.planner.debug`. Release lint passed with zero errors and 176 warnings.
 
+Explicit-goal validation: a 786-case non-widget regression plus focused fixes/reruns yields
+789 distinct latest passing results, with no failures or skips. The initial four failures
+were two reviewed golden identities/routes, an UNLOCK policy that split pure-trait effort
+between projects (fixed without relaxing the three-use assertion), and the stale Lovers
+RANK 5 compact-note assertion that also caused GitHub run 39015205410 to fail. The latter
+now checks the actual friend/apology answers, while the detailed full sequence is retained.
+Results are in `qa_out/trait_goals/validation.json`. No widget size matrices were rerun for
+this follow-up. New policy-cache restart, goal JSON/copy/hash, backup/replay and six ordinary
+360dp UI cases passed; actual record edits leave stats and unrelated state intact.
+
+All 32 real-pack benchmark rows were regenerated with default NONE goals and the existing
+quality bounds unchanged. Three synthetic MAX action fingerprints remain unchanged; only
+their plan identities changed with the explicit-goal hash namespace. Three real-pack MAX
+fingerprints/ids were reviewed and refreshed for the new default behavior. Ten additional
+independently validated same-start comparisons record NONE, one teammate's unlock/upgrade,
+and all-team upgrades with/without gardening, both with and without all Link Episode tracks.
+These demonstrate opportunity costs rather than promise identical counts for other saves.
+Keep the rules identity above unless actual source rules change. Final debug assembly and exact
+embedded-rule checks passed (3.3.0/37, `app.p3r.planner.debug`); release lint has zero errors and
+176 warnings. The six goal UI cases passed again after the formatted-string lint cleanup.
+
 The current workspace does not contain the ignored `.signing/` files or the earlier private
-signing backup. This task prepares source changes, commit/push and CI debug validation;
-3.3.0 has not been published as a signed release. A future formal build needs the original
+signing backup. The owner has now requested commit/push, a green CI and a formal release;
+3.3.0 has not yet been published as a signed release in this snapshot. The release workflow
+can use the repository's existing ANDROID_* secrets if configured. A local formal build needs the original
 3.2.0 private backup restored to keep the certificate listed above and allow an in-place
 3.2.0 update. Do not create a replacement key and describe it as compatible. The published
 stable release at this point is 3.2.0; leave its tag, APK and recorded hashes intact.

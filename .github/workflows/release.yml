@@ -243,7 +243,7 @@ jobs:
           notes = notes.replace('(analysis/', '(https://github.com/' + os.environ['GITHUB_REPOSITORY'] + '/blob/main/docs/analysis/')
           notes += ('\n\n## 正式安装包\n\n'
                     + f'- 下载 `{output.name}` 后打开安装。\n'
-                    + '- 本版更换签名，旧签名的 3.1.2 及更早版本需先导出备份后重新安装；以后使用本次新签名的版本可直接覆盖更新。\n'
+                    + '- 沿用 3.2.0 起的正式签名，已安装 3.2.0 可直接覆盖更新；3.1.2 及更早版本需先导出备份后重新安装。\n'
                     + f'- 包名：`{expected[0]}`；版本：`{expected[2]}`（版本码 `{expected[1]}`）。\n'
                     + f'- APK SHA-256：`{digest}`。\n'
                     + f'- 签名证书 SHA-256：`{os.environ["EXPECTED_CERT_SHA256"]}`。\n')

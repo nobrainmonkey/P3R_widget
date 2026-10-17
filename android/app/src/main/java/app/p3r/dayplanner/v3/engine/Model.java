@@ -38,6 +38,8 @@ final class Model {
     /** Activity indices of each teammate's two dorm projects, and group per activity (-1 otherwise). */
     final int[][] dormTracks;
     final int[] dormGroup;
+    /** Explicit characteristic goal per teammate; ordinary useful stat gains do not require one. */
+    final Profile.DormTarget[] dormTargets;
     /** Per activity: allowed activities unlocked by its recorded use (usually empty). */
     final int[][] unlockedActivities;
     /** Most points one ordinary allowed activity gives each stat; scarce fixed-date bonuses are excluded. */
@@ -121,13 +123,17 @@ final class Model {
         Map<String, List<Integer>> dorms = new TreeMap<>();
         for (Rules.Activity a : rules.activities) {
             excluded[a.idx] = profile.excluded(a.id) || (a.requiresPlantedCrop && !profile.planDormGardening);
-            if (a.dormActivity()) dorms.computeIfAbsent(a.dormPartnerZh, ignored -> new ArrayList<>()).add(a.idx);
+            String partnerId = a.dormPartnerId();
+            if (partnerId != null) dorms.computeIfAbsent(partnerId, ignored -> new ArrayList<>()).add(a.idx);
         }
         dormTracks = new int[dorms.size()][];
+        dormTargets = new Profile.DormTarget[dorms.size()];
         dormGroup = new int[t.nActs];
         Arrays.fill(dormGroup, -1);
         int group = 0;
-        for (List<Integer> tracks : dorms.values()) {
+        for (Map.Entry<String, List<Integer>> entry : dorms.entrySet()) {
+            List<Integer> tracks = entry.getValue();
+            dormTargets[group] = profile.dormTarget(entry.getKey());
             dormTracks[group] = new int[tracks.size()];
             for (int i = 0; i < tracks.size(); i++) {
                 int a = tracks.get(i);
@@ -184,6 +190,32 @@ final class Model {
     /** Persona multiplier of meetings with {@code link} (1 when the player does not carry one). */
     double personaMult(int link) {
         return persona[link] ? personaFactor : 1.0;
+    }
+
+    /** Whether this completion can still advance the player's chosen characteristic goal. */
+    boolean dormTraitUseful(SimState state, int activity) {
+        int group = dormGroup[activity];
+        if (group < 0 || dormTargets[group] == Profile.DormTarget.NONE || state.used[activity] >= 3) return false;
+        if (dormTargets[group] == Profile.DormTarget.UNLOCK) {
+            int bestProgress = -1;
+            for (int track : dormTracks[group]) {
+                if (state.used[track] >= 3) return false;
+                int progress = Math.max(0, state.used[track]);
+                // Commit pure trait evenings to one finishable project. Otherwise alternating
+                // calendars can consume evenings on both projects before either unlocks anything.
+                // A closed/excluded project cannot strand another project's viable unlock.
+                if (!excluded[track] && t.actRemain[track][state.slot] >= 3 - progress
+                        && progress > bestProgress) {
+                    bestProgress = progress;
+                }
+            }
+            int progress = Math.max(0, state.used[activity]);
+            // Tied projects may both compete, so today's available project can establish the
+            // lead; subsequent pure trait evenings follow it instead of splitting the effort.
+            return progress == bestProgress && !excluded[activity]
+                    && t.actRemain[activity][state.slot] >= 3 - progress;
+        }
+        return true;
     }
 
     private static int[] keys(Map<Integer, Integer> map) {

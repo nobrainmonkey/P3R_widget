@@ -19,6 +19,8 @@ public final class Profile {
     public enum Tier { NONE, WANT, MUST }
     public enum AnswerPolicy { BEST, NONE }
     public enum Route { UNDECIDED, FRIEND, ROMANCE }
+    /** Optional teammate characteristic goal; actual dorm activity counts live in the observed state. */
+    public enum DormTarget { NONE, UNLOCK, UPGRADE }
     /** Matching-arcana Persona carried on meetings: never, only for goal links, or (almost) always. */
     public enum PersonaMode { NONE, GOALS, ALL }
     /**
@@ -70,6 +72,8 @@ public final class Profile {
     public boolean datingNotes = true;
     /** Allow dorm gardening when the player will plant crops beforehand (seeds are not budgeted). */
     public boolean planDormGardening = false;
+    /** Stable teammate id (e.g. dorm_yukari) → optional characteristic goal. Missing means NONE. */
+    public Map<String, DormTarget> dormTargets = new TreeMap<>();
     /** Link Episode track ids the player wants scheduled (opt-in). */
     public String[] episodeTracks = new String[0];
     /** Apply the Charm Lv6 ×1.51 bonus once (forecast) Charm reaches Lv6. */
@@ -110,6 +114,11 @@ public final class Profile {
     }
 
     public boolean isGoal(int link) { return tier[link] != Tier.NONE; }
+
+    public DormTarget dormTarget(String partnerId) {
+        DormTarget target = partnerId == null ? null : dormTargets.get(partnerId);
+        return target == null ? DormTarget.NONE : target;
+    }
 
     /**
      * The player chose the romance route with this link. {@link Route#UNDECIDED} (the default)
@@ -220,6 +229,12 @@ public final class Profile {
         o.put("personaMode", effectivePersonaMode().name());
         o.put("datingNotes", datingNotes);
         o.put("planDormGardening", planDormGardening);
+        JSONObject dorm = new JSONObject();
+        for (Map.Entry<String, DormTarget> entry : new TreeMap<>(dormTargets).entrySet()) {
+            if (entry.getKey() != null && !entry.getKey().isEmpty() && entry.getValue() != null
+                    && entry.getValue() != DormTarget.NONE) dorm.put(entry.getKey(), entry.getValue().name());
+        }
+        o.put("dormTargets", dorm);
         JSONArray eps = new JSONArray();
         for (String s : episodeTracks) eps.put(s);
         o.put("episodeTracks", eps);
@@ -257,6 +272,15 @@ public final class Profile {
         p.personaBonus = p.personaMode == PersonaMode.ALL;
         p.datingNotes = o.optBoolean("datingNotes", true);
         p.planDormGardening = o.optBoolean("planDormGardening", false);
+        JSONObject dorm = o.optJSONObject("dormTargets");
+        if (dorm != null) for (Iterator<String> it = dorm.keys(); it.hasNext(); ) {
+            String id = it.next();
+            if (id == null || id.isEmpty()) continue;
+            try {
+                DormTarget target = DormTarget.valueOf(dorm.optString(id, "NONE"));
+                if (target != DormTarget.NONE) p.dormTargets.put(id, target);
+            } catch (IllegalArgumentException ignored) { /* Unknown future values keep the conservative NONE default. */ }
+        }
         JSONArray eps = o.optJSONArray("episodeTracks");
         if (eps != null) {
             p.episodeTracks = new String[eps.length()];

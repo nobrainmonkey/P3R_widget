@@ -492,8 +492,10 @@ final class Labels {
                     : gains;
             if (count < 3) {
                 boolean unlocked = false;
-                boolean upgraded = m.dormTracks[m.dormGroup[act]].length >= 2;
-                for (int track : m.dormTracks[m.dormGroup[act]]) {
+                int group = m.dormGroup[act];
+                int[] tracks = group >= 0 ? m.dormTracks[group] : new int[]{act};
+                boolean upgraded = tracks.length >= 2;
+                for (int track : tracks) {
                     if (track == act) continue;
                     unlocked |= st.used[track] >= 3;
                     upgraded &= st.used[track] >= 3;

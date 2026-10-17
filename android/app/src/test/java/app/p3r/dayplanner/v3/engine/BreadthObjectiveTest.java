@@ -142,17 +142,17 @@ public class BreadthObjectiveTest {
     }
 
     /**
-     * 「尽量多 MAX」 plans equal the plans of the engine before 3.1.0, plan id included (recorded at
-     * the WP-0 commit with a time budget the search never runs out of): a new game, a 「必须」 goal and
-     * a 9/1 start with nothing unlocked.
+     * Synthetic MAX routes still match the engine before 3.1.0. Plan ids were refreshed for
+     * explicit dorm goals in 3.3.0; the original action fingerprints stay unchanged. A new game,
+     * a 「必须」 goal and a 9/1 start with nothing unlocked, with enough budget to finish searching.
      */
     @Test
     public void maxStyleReproducesThePreviousPlans() {
         Rules rules = RulesFixtures.fullYear();
         Object[][] golden = {
-                {"new game", RulesFixtures.others(), RulesFixtures.slot(4, 21, false), "07966421522f3e79", "c45f79d442d12dbe"},
-                {"must 4", RulesFixtures.must(4), RulesFixtures.slot(4, 21, false), "4186884fcf91ae90", "791749e1117abaf8"},
-                {"9/1", RulesFixtures.others(), RulesFixtures.slot(9, 1, false), "a97c882b2cc11458", "b2f684a085d67d50"}};
+                {"new game", RulesFixtures.others(), RulesFixtures.slot(4, 21, false), "6956624a743d6e95", "c45f79d442d12dbe"},
+                {"must 4", RulesFixtures.must(4), RulesFixtures.slot(4, 21, false), "268128a0c830c222", "791749e1117abaf8"},
+                {"9/1", RulesFixtures.others(), RulesFixtures.slot(9, 1, false), "7996e63238f753ac", "b2f684a085d67d50"}};
         for (Object[] g : golden) {
             Engine.Options options = new Engine.Options();
             options.timeBudgetMillis = 60_000;

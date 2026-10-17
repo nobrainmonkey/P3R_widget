@@ -890,6 +890,7 @@ public final class PlannerService implements PlannerApi {
         return v != null && p != null
                 && p.stateRevision == v.stateRevision
                 && p.profileRevision == v.profileRevision
+                && p.policyVersion == Plan.CURRENT_POLICY_VERSION
                 && Objects.equals(p.rulesVersion, v.rules.version);
     }
 

@@ -267,7 +267,9 @@ Principle: **确认而不是录入** — every field is prefilled (last observed
   "记录结果" and "这个时段改为…".
 - **社群 (tab 3)**: 22 arcana cards (罗马数字 + 阿尔卡那 + 人物 · 性别), current RANK (observed) and projected
   end RANK, goal tier chip cycling 「—」→「想要」→「必须」, order for 必须/想要 via ↑↓, MAX date or reason
-  ("时间不够：优先级低于 恋爱"). Story links show "剧情自动推进".
+  ("时间不够：优先级低于 恋爱"). Story links show "剧情自动推进". Since 3.3.0 the same tab
+  offers nine teammates' optional characteristic goals 「不追求 / 解锁 / 强化」, with both
+  projects' observed counts available when editing; this option is absent for other links.
 - **我的 (tab 4)**: 同步现状 / 完整修改状态, 规划设置 (人格面具加成, 魅力加成, 目标留余量, 回答方式, 每区块进塔
   次数与上限, 现金余量), 记录历史 (撤销/修改), 备份与恢复, 规划说明 (assumptions & sources), 添加桌面小组件
   (the 3.0.x guide entry was removed in 3.1.0; 备份与恢复 exports the progress it left on the phone, §19).
@@ -648,23 +650,39 @@ Owner directive (spec §8): plan for a player who wants to see as much of the ga
   completion uses the existing activity transition, adding its sourced social-stat gain
   where present and incrementing `SimState.used[activity]`. Completing either project
   three times unlocks that teammate's characteristic; completing both three times
-  strengthens it. A project remains productive below three completions even when social
-  stats are capped or its gain array is empty. Once it reaches three, it can only be
-  planned again for useful uncapped social-stat gain. The forecast adds no Social Link
+  strengthens it. These milestones are pursued only when selected for that teammate in
+  the 社群 tab: 「不追求」 (default), 「解锁」 or 「强化」. Unlock needs either project at three;
+  upgrade needs both at three. Existing actual counts determine whether the target is
+  already achieved. With no outstanding selected target, a project can only be planned
+  for useful uncapped social-stat gain; zero-stat projects do not consume evenings merely
+  to accumulate characteristic progress. An outstanding selected target can make an
+  completion toward that target productive even at capped stats. The forecast adds no Social Link
   affinity or episode rank; possible actual affinity effects are not modeled. Cooking,
   tea, coffee, gardening and brushing may give items, but inventory
   and those items' effects are not forecast. Koromaru's walks remain separate and do not
   increment brushing progress.
-- **Priority.** `Heuristics.dormScore` adds finite per-project progress value, first-unlock
-  value and both-project upgrade value to the local H score. The urgency factor uses the
-  actual remaining dates and completions needed; an upgrade bonus requires enough
-  opportunities in both allowed projects. `dormValue` adds the corresponding finite
-  milestones to the complete-plan J objective, capping counts at three to prevent
-  repetition from earning characteristic value indefinitely. `Planner.diverse` treats
-  dorm projects as a separate rollout category from ordinary training/jobs. Existing
-  missed-rescue/late-rescue comparison and strict ordered Social Link goals remain ahead
-  of the weighted objective. A higher priority is not a promise to schedule every dorm
-  project when dates or higher-priority goals conflict.
+- **Selected characteristic objective.** `Profile.dormTargets` stores each choice under a
+  stable teammate ID, not a translated name or positional link/activity index. An absent entry,
+  including old profiles, means `DormTarget.NONE` / 「不追求」. Only explicit UNLOCK / 「解锁」 and
+  UPGRADE / 「强化」 entries earn characteristic value. UNLOCK stops rewarding progress
+  as soon as either project reaches three; it never automatically pursues the other
+  project. When pursuing UNLOCK solely for its characteristic, the planner concentrates
+  on the feasible project with the most existing progress rather than splitting both.
+  UPGRADE values progress until both projects reach three. The map survives
+  JSON copy, backup/restore and plan hashing without a new database schema or rule pack.
+- **Priority.** `Heuristics.dormScore` adds finite progress and milestone value only for
+  the selected outstanding characteristic target. The urgency factor uses actual remaining
+  dates and completions needed; milestone bonuses require enough opportunities in the
+  allowed projects. `dormValue` adds the matching finite value to the complete-plan J
+  objective. There is no default reward for pursuing all nine teammates or an unselected
+  upgrade, and no reward for repeating an already achieved target. `Planner.diverse`
+  treats dorm projects as a separate rollout category from ordinary training/jobs.
+  Existing missed-rescue/late-rescue comparison and strict ordered Social Link goals
+  remain ahead of the weighted objective. Explicit characteristic targets compete with
+  remaining non-goal links, training and jobs; their opportunity cost is not hidden by
+  claiming that all link ranks or MAX counts remain unchanged. A higher score does not
+  guarantee a target when dates or higher-priority goals conflict. The previous implicit
+  all-teammate scoring measurements are historical and are not current default results.
 - **Gardening preparation.** `Activity.requiresPlantedCrop` marks the four gardening
   projects. `Profile.planDormGardening` defaults to false, including when loading older
   profiles; enabling it is the player's commitment to plant crops before the activity.
@@ -681,6 +699,11 @@ Owner directive (spec §8): plan for a player who wants to see as much of the ga
   `n/3` and distinguish expected unlock/upgrade from confirmed progress. App and widget
   completion use the existing activity result path; a zero-stat project still offers
   completion/skipping, and ordinary undo/history behavior applies.
+  The 社群 tab's characteristic selector also exposes both projects' actual counts so the
+  player can check them while choosing a target. Forecast counts and expected milestone
+  labels must never be presented as actual completed projects. No unsupported characteristic
+  names or battle effects are invented, and links without dorm characteristics have no
+  characteristic selector.
 - **Period catalogue.** `service.PeriodTips.collect` builds a read-only catalogue directly
   from `Rules.reminders` using the observed game date. Its period runs from the current
   Tartarus block's opening through the day before the next block opens; before the first
@@ -746,6 +769,15 @@ Owner directive (spec §8): plan for a player who wants to see as much of the ga
   Android version code 37. SQLite remains schema 2 and backup schema remains
   `p3r.backup.v3`. Existing stable activity IDs and `PackLayout` remapping preserve old
   menu discoveries, jobs and training while new project counts initialize to zero.
+  Missing characteristic-goal maps in old profiles mean NONE for every teammate;
+  gardening permission alone does not select a characteristic goal. The selected goals
+  participate in profile copy/backup and plan hashing, using stable teammate IDs.
+  `Plan.CURRENT_POLICY_VERSION` is 1; new plans carry `policyVersion=1`, while JSON with
+  no field reads as version 0. `PlannerService.isCurrent` requires this policy version
+  alongside the existing state/profile revisions and rules identity. Thus an installed
+  plan from the prior implicit all-teammate objective is recalculated once even though
+  the rule pack is unchanged. Actual records remain intact; a persisted version-1 plan
+  is reusable after restart when its other currentness checks still pass.
   Forecast counts never become observed checkpoints merely because a plan was generated.
   A future formal release must retain the 3.2.0 signing identity to allow an in-place
   3.2.0 update. The current work prepares source and CI debug builds, not a published

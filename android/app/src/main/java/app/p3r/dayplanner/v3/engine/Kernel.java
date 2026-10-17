@@ -727,7 +727,7 @@ final class Kernel {
         }
         int cost = Math.max(0, a.cost);
         if (cost > 0 && st.cash - cost < (hold >= 0 ? hold : optionalHold(m, st, m.gainMask[act]))) return false;
-        return a.kind == Rules.ActivityKind.JOB || (a.dormActivity() && st.used[act] < 3)
+        return a.kind == Rules.ActivityKind.JOB || m.dormTraitUseful(st, act)
                 || usefulGain(m, st, a) > 0;
     }
 

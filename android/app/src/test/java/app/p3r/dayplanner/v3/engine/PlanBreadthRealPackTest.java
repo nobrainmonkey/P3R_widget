@@ -347,15 +347,15 @@ public class PlanBreadthRealPackTest {
 
     /**
      * Reviewed MAX-style plans, with enough budget to make the outcome deterministic. Dated study
-     * and dorm characteristics intentionally change the pre-3.3 routes; capture fingerprints and ids
+     * and explicit dorm goals intentionally change the pre-3.3 routes; capture fingerprints and ids
      * so later changes still need an explicit review instead of silently skipping the check.
      */
     @Test
     public void maxStyleMatchesTheReviewedPlans() {
         Object[][] golden = {
-                {"新游戏", new Profile(), newGame(dayOf(4, 21)), "0750170f3f727138", GOLDEN_IDS[0]},
-                {"中期 10月22日", new Profile(), midGameState(), "cae862b863f92766", GOLDEN_IDS[1]},
-                {"中期 10月22日 · 必须：皇帝 · 想要：女教皇", midGoals(), midGameState(), "a248184093307236", GOLDEN_IDS[2]}};
+                {"新游戏", new Profile(), newGame(dayOf(4, 21)), "d4a4ccffe32f662c", GOLDEN_IDS[0]},
+                {"中期 10月22日", new Profile(), midGameState(), "1db859c1e75df79c", GOLDEN_IDS[1]},
+                {"中期 10月22日 · 必须：皇帝 · 想要：女教皇", midGoals(), midGameState(), "877ab0a115659f88", GOLDEN_IDS[2]}};
         boolean samePack = GOLDEN_RULES_VERSION.equals(rules.version);
         List<String> ids = new ArrayList<>();
         List<String> mismatches = new ArrayList<>();
@@ -385,12 +385,13 @@ public class PlanBreadthRealPackTest {
     /**
      * {@link Rules#version} of the pack the golden plan ids ({@link #GOLDEN_IDS}) were recorded on. They
      * were refreshed for 3.3.0 after reviewing dated study, finite dorm milestones, planted-crop
-     * permission, rescue margins, menu discovery, and the existing goal/coverage/cash invariants.
+     * permission, explicit NONE defaults, rescue margins, menu discovery, and the existing
+     * goal/coverage/cash invariants. Separate opt-in tests cover characteristic milestones.
      * MAX-style ids still omit style.
      */
     private static final String GOLDEN_RULES_VERSION = "3.3.0|91c21bba2bd5";
     /** Plan ids of the three golden 「尽量多 MAX」 plans on {@link #GOLDEN_RULES_VERSION}. */
-    private static final String[] GOLDEN_IDS = {"312ca502a1df5f6e", "7baf5333b54fc952", "2d7a0e61c364ee6b"};
+    private static final String[] GOLDEN_IDS = {"7e04a9f72c0f7531", "38c6c091cfa65547", "97686a572b09cf7a"};
 
     /** FNV-1a 64 over "slot|action|side…" per step: the plan's actions, independent of the pack version. */
     static String fingerprint(Plan plan) {

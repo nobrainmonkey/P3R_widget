@@ -210,7 +210,7 @@ public class ReviewedDialogueHintTest {
         String detail = labels.meetHow(start.slot, lovers.idx, effect);
         assertTrue(detail, detail.contains("任意 / 任意 / 任意 / 我是她朋友 / 抱歉"));
         DialogueHint.Answers a = DialogueHint.forScene(r, p, lovers.idx, 5, false);
-        assertTrue(DialogueHint.widgetLine(a), DialogueHint.widgetLine(a).contains("最后一问"));
+        assertTrue(DialogueHint.widgetLine(a), DialogueHint.widgetLine(a).contains("我是她朋友 / 抱歉"));
         assertFalse(DialogueHint.widgetLine(a), DialogueHint.widgetLine(a).contains("任意"));
     }
 }

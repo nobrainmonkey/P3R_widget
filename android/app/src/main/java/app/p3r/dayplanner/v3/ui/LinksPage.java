@@ -81,6 +81,8 @@ final class LinksPage {
         });
         column.addView(others, spaced(16));
 
+        DormTargets.addTo(column, host, d);
+
         column.addView(Ui.sectionHeader(c, "全部社群", "22 个"), spaced(20));
         LinearLayout row = null;
         for (Rules.Link link : d.rules.links) {

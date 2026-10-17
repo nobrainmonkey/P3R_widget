@@ -56,6 +56,12 @@ final class PlanHash {
         if (p.style != Profile.Style.MAX) str("style").str(p.style.json);
         // Added in 3.3.0; the default false preserves hashes for profiles without this option.
         if (p.planDormGardening) str("planDormGardening").bool(true);
+        // Goals are now explicit opt-ins. Tag even an empty map so a pre-option plan is stale.
+        str("dormTargets.explicit.v1");
+        for (java.util.Map.Entry<String, Profile.DormTarget> e : new java.util.TreeMap<>(p.dormTargets).entrySet()) {
+            if (e.getKey() != null && !e.getKey().isEmpty() && e.getValue() != null
+                    && e.getValue() != Profile.DormTarget.NONE) str(e.getKey()).str(e.getValue().name());
+        }
         return this;
     }
 

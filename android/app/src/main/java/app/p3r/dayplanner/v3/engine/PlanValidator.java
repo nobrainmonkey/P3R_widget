@@ -78,6 +78,8 @@ final class PlanValidator {
         final int[] visits;
         final int[] shifts;
         final int[] used;
+        /** Independent remaining calendar counts for choosing a finishable unlock project. */
+        final int[][] dormRemaining;
         /** Link Episodes watched per track. */
         final int[] episodes;
         int notesUsed;
@@ -94,6 +96,15 @@ final class PlanValidator {
             visits = new int[nBlocks];
             shifts = new int[nActs];
             used = new int[nActs];
+            dormRemaining = new int[nActs][];
+            for (Rules.Activity activity : rules.activities) {
+                if (!activity.dormActivity()) continue;
+                int[] remaining = dormRemaining[activity.idx] = new int[rules.lastSlot() + 2];
+                for (int at = rules.lastSlot(); at >= rules.firstSlot(); at--) {
+                    remaining[at] = remaining[at + 1];
+                    if (profile.lockOf(rules, at) == null && activityOnCalendar(activity, at)) remaining[at]++;
+                }
+            }
             episodes = new int[rules.episodes == null ? 0 : rules.episodes.length];
             slot = o.slot;
             cash = Math.max(0, o.cash);
@@ -396,10 +407,10 @@ final class PlanValidator {
             if (!activityOnCalendar(a)) error(slot, "activity " + a.id + " not available in this slot");
             if (profile.excluded(a.id)) error(slot, "activity " + a.id + " is excluded by the player");
             if (a.requiresPlantedCrop && !profile.planDormGardening) error(slot, "activity " + a.id + " needs planted-crop permission");
-            if (a.dormActivity() && used[idx] >= 3) {
+            if (a.dormActivity() && !dormTraitUseful(a)) {
                 boolean useful = false;
                 for (int s = 0; s < Math.min(3, a.gain.length); s++) useful |= a.gain[s] > 0 && stat[s] < rules.stats[s].thresholds[6];
-                if (!useful) error(slot, "completed dorm project " + a.id + " adds no useful stats");
+                if (!useful) error(slot, "dorm project " + a.id + " adds no useful stats or chosen characteristic progress");
             }
             if (a.once && used[idx] > 0) error(slot, "once-only activity " + a.id + " repeated");
             if (a.requiresActivity >= 0 && used[a.requiresActivity] <= 0) {
@@ -421,6 +432,30 @@ final class PlanValidator {
             }
             for (int s = 0; s < Math.min(3, a.gain.length); s++) stat[s] += a.gain[s];
             used[idx]++;
+        }
+
+        /** Re-derive goal usefulness from stable teammate keys, independently of the kernel model. */
+        private boolean dormTraitUseful(Rules.Activity activity) {
+            String partnerId = activity.dormPartnerId();
+            Profile.DormTarget target = profile.dormTarget(partnerId);
+            if (partnerId == null || target == Profile.DormTarget.NONE || used[activity.idx] >= 3) return false;
+            if (target == Profile.DormTarget.UNLOCK) {
+                int bestProgress = -1;
+                for (Rules.Activity track : rules.activities) {
+                    if (!partnerId.equals(track.dormPartnerId())) continue;
+                    if (used[track.idx] >= 3) return false;
+                    int progress = Math.max(0, used[track.idx]);
+                    if (!profile.excluded(track.id) && (!track.requiresPlantedCrop || profile.planDormGardening)
+                            && dormRemaining[track.idx][slot] >= 3 - progress && progress > bestProgress) {
+                        bestProgress = progress;
+                    }
+                }
+                int progress = Math.max(0, used[activity.idx]);
+                return progress == bestProgress && !profile.excluded(activity.id)
+                        && (!activity.requiresPlantedCrop || profile.planDormGardening)
+                        && dormRemaining[activity.idx][slot] >= 3 - progress;
+            }
+            return true;
         }
 
         /**
@@ -453,9 +488,13 @@ final class PlanValidator {
         }
 
         private boolean activityOnCalendar(Rules.Activity a) {
-            Rules.Day d = rules.day(day());
+            return activityOnCalendar(a, slot);
+        }
+
+        private boolean activityOnCalendar(Rules.Activity a, int at) {
+            Rules.Day d = rules.day(Rules.dayOf(at));
             if (d == null) return false;
-            if (evening() ? !a.eve : !a.day) return false;
+            if (Rules.isEvening(at) ? !a.eve : !a.day) return false;
             if (d.d < a.fromDay || d.d > a.toDay || !a.allowsWeekday(d.wd)) return false;
             if (a.fixedDays != null && java.util.Arrays.binarySearch(a.fixedDays, d.d) < 0) return false;
             return a.dayTypes.isEmpty() || a.dayTypes.contains(d.type);
@@ -574,7 +613,7 @@ final class PlanValidator {
                 for (Map.Entry<Integer, Integer> e : a.requiresLv.entrySet()) reqs &= statLevel(e.getKey()) >= e.getValue();
                 if (!reqs) continue;
                 if (a.kind == Rules.ActivityKind.JOB) return true;
-                if (a.dormActivity() && used[a.idx] < 3) return true;
+                if (dormTraitUseful(a)) return true;
                 for (int s = 0; s < Math.min(3, a.gain.length); s++) {
                     if (a.gain[s] > 0 && stat[s] < rules.stats[s].thresholds[6]) return true;
                 }

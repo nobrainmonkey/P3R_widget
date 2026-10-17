@@ -13,10 +13,15 @@ import java.util.List;
  * by the UI/widget without loading the rule pack.
  */
 public final class Plan {
+    /** Bump when planning semantics change without a rule-pack change; old cached plans replan. */
+    public static final int CURRENT_POLICY_VERSION = 1;
+
     public String planId = "";
     public long stateRevision;
     public long profileRevision;
     public String rulesVersion = "";
+    /** Policy used to compute this plan, distinct from the source rules and observed records. */
+    public int policyVersion = CURRENT_POLICY_VERSION;
     public int fromSlot;
     public int toSlot;
     public long createdMillis;
@@ -362,6 +367,7 @@ public final class Plan {
         o.put("stateRevision", stateRevision);
         o.put("profileRevision", profileRevision);
         o.put("rulesVersion", rulesVersion);
+        o.put("policyVersion", policyVersion);
         o.put("fromSlot", fromSlot);
         o.put("toSlot", toSlot);
         o.put("createdMillis", createdMillis);
@@ -386,6 +392,7 @@ public final class Plan {
         p.stateRevision = o.optLong("stateRevision");
         p.profileRevision = o.optLong("profileRevision");
         p.rulesVersion = o.optString("rulesVersion");
+        p.policyVersion = o.optInt("policyVersion", 0);
         p.fromSlot = o.getInt("fromSlot");
         p.toSlot = o.getInt("toSlot");
         p.createdMillis = o.optLong("createdMillis");
