@@ -53,6 +53,9 @@ android {
     testOptions {
         unitTests.includeAndroidResources = true
         unitTests.all {
+            testLogging {
+                exceptionFormat = 'full'
+            }
             systemProperty 'user.home', new File(toolchainDir, 'test-home').absolutePath
             systemProperty 'robolectric.graphicsMode', 'NATIVE'
             systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'

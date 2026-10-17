@@ -467,8 +467,8 @@ record storage, preparation-gated gardening and a plan-independent period catalo
 Persona awakenings into a planner-controlled mechanic. Source evidence is in
 `rules/p3r/group_study_evidence.json` and
 `rules/p3r/dorm_activities_evidence.json`. The rule pack identity is
-`3.3.0|91c21bba2bd5` (SHA-256
-`91c21bba2bd50eba6060f5b9774db4a23f85ae133ff04b02dfe0d731fa0c98be`).
+`3.3.0|30aef29ce462` (SHA-256
+`30aef29ce4629746b0895c83f81226cfcea3737d2e026c7c2a7e558415a7e79e`).
 
 Previous-round validation (before the explicit characteristic-goal change): all 83 Python
 tests and the generated-pack freshness check passed. An initial
@@ -493,8 +493,8 @@ were two reviewed golden identities/routes, an UNLOCK policy that split pure-tra
 between projects (fixed without relaxing the three-use assertion), and the stale Lovers
 RANK 5 compact-note assertion that also caused GitHub run 39015205410 to fail. The latter
 now checks the actual friend/apology answers, while the detailed full sequence is retained.
-Results are in `qa_out/trait_goals/validation.json`. No widget size matrices were rerun for
-this follow-up. New policy-cache restart, goal JSON/copy/hash, backup/replay and six ordinary
+Results are in `qa_out/trait_goals/validation.json`. At that stage no widget size matrices
+were rerun. New policy-cache restart, goal JSON/copy/hash, backup/replay and six ordinary
 360dp UI cases passed; actual record edits leave stats and unrelated state intact.
 
 All 32 real-pack benchmark rows were regenerated with default NONE goals and the existing
@@ -520,5 +520,25 @@ Owner's permanent signing instruction (2026-10-17): always retain the 3.2.0 cert
 never create another replacement release key. The lost Mac's pre-3.2 key is irrelevant.
 If the 3.2 private backup is unavailable, finish source/CI work and leave formal publication
 blocked until that same key is restored. Run 39016487230 confirmed that all four ANDROID_*
-secrets are absent; restoring signing and rerunning that release is sufficient, without
-replacing the source tag or relaxing certificate verification.
+secrets are absent; restore the same signing material and publish the corrected 3.3.0
+source tag without relaxing certificate verification.
+
+CI follow-up: run 39016480054 passed 1,028 of 1,029 cases; its remaining failure was the
+full answer-row render matrix. Align that matrix with the supported 250×140 minimum and
+320×160 / 360×180 / 400×180 nominal sizes (plus taller 320×200 / 320×240 cards), rather
+than optimizing unsupported 180dp-wide or 130dp-high cards. The supported matrix exposed
+a real API 31 / 115% font failure at 250×140: Priestess RANK 8's friendship annotation
+displaced the scene answers beside a classroom answer. Its compact note is now
+「已走友情」; full choices, sequence, branch conditions and alternative history are unchanged.
+This cosmetic source change explains the new pack identity above. Three reviewed MAX
+action fingerprints are unchanged; their plan ids are refreshed for the new pack identity.
+The deterministic scene regression now includes conditional Priestess RANK 8, API 31 and
+the four supported sizes. Android CI preserves JUnit XML/HTML reports and prints full
+failure messages, so a future render failure identifies its size and content directly.
+
+Final local follow-up: 19 focused Android cases pass across the new scene, full supported
+answer matrix, side-pick/golden renders, reviewed dialogue and refreshed MAX identities.
+All 83 Python tests and the generated-pack freshness check pass. Debug assembly embeds the
+exact new pack, with metadata still 3.3.0/37 and `app.p3r.planner.debug`. The official local
+packaging script now enforces the same sole 3.2.0 signer as Actions; a real debug-signed APK
+is rejected before copying to `dist`. Formal release signing itself remains blocked as above.

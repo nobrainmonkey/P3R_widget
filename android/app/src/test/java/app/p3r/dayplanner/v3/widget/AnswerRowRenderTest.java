@@ -54,7 +54,7 @@ import static org.junit.Assert.assertTrue;
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class AnswerRowRenderTest {
     private static final int ID = 47;
-    private static final int[][] SIZES = {{180, 130}, {180, 150}, {250, 130}, {250, 160}, {320, 200}, {320, 240}};
+    private static final int[][] SIZES = {{250, 140}, {320, 160}, {360, 180}, {400, 180}, {320, 200}, {320, 240}};
     private static Rules pack;
     private Context app;
 
@@ -303,13 +303,14 @@ public class AnswerRowRenderTest {
 
     /** Short friendship annotations keep the real scene answer beside a sourced classroom answer. */
     @Test
-    @Config(sdk = {26, 34})
+    @Config(sdk = {26, 31, 34})
     public void friendshipNotesKeepTheirOwnAnswerBesideClassWithoutPlanning() throws Exception {
         assertNotNull("the shipped pack is required", pack);
         Object[][] scenes = {{"lovers", 7, "class.11-30", "好像不错啊", "", Profile.Route.FRIEND},
                 {"empress", 9, "class.12-11", "放心了", "婉拒告白", Profile.Route.FRIEND},
                 {"lovers", 5, "class.11-12", "我是她朋友", "", Profile.Route.FRIEND},
-                {"lovers", 5, "class.11-12", "她男朋友", "", Profile.Route.ROMANCE}};
+                {"lovers", 5, "class.11-12", "她男朋友", "", Profile.Route.ROMANCE},
+                {"priestess", 8, "class.11-30", "帮你吃拉面", "已走友情", Profile.Route.FRIEND, true}};
         List<String> issues = new ArrayList<>();
         for (Object[] scene : scenes) {
             String link = (String) scene[0];
@@ -319,7 +320,8 @@ public class AnswerRowRenderTest {
                 if (scene[2].equals(reminder.id)) classroom = reminder;
             }
             assertNotNull(scene[2].toString(), classroom);
-            FakePlannerApi fake = scene(meeting(link, rank - 1, rank, true));
+            boolean conditional = scene.length > 6 && Boolean.TRUE.equals(scene[6]);
+            FakePlannerApi fake = scene(meeting(link, rank - 1, conditional ? rank - 1 : rank, !conditional));
             int slot = Rules.slot(classroom.day, false);
             fake.observed.slot = slot;
             fake.observed.rank[pack.link(link).idx] = rank - 1;
@@ -336,6 +338,7 @@ public class AnswerRowRenderTest {
             assertTrue(link, ownAndClassLines(beforeFit));
             CardModel.AnswerLine own = CardRenderer.own(beforeFit.answers);
             assertNotNull(own);
+            assertEquals(link, conditional, own.conditional);
             assertTrue(own.text(), own.choices.contains(scene[3]));
             assertEquals(scene[4], own.note == null ? "" : own.note);
             for (float scale : new float[]{1f, 1.15f}) {
@@ -350,7 +353,7 @@ public class AnswerRowRenderTest {
                     RenderSupport.collectCutText(root, tag, issues);
                     RenderSupport.collectWordSplits(root, tag, issues);
                     checkRow(root, model, tag, size[1] < 150, issues);
-                    if (scale == 1f) RenderSupport.save(root, RenderSupport.outputDir("reviewed"), tag);
+                    if (scale == 1f || conditional) RenderSupport.save(root, RenderSupport.outputDir("reviewed"), tag);
                 }
             }
         }
@@ -476,7 +479,8 @@ public class AnswerRowRenderTest {
     }
 
     /**
-     * Spec test 1: the render matrix {180x130 … 320x240} × font {1.0, 1.15} × SDK {26, 31} over every
+     * Spec test 1: the supported 4×2/5×2 sizes {250x140, 320x160, 360x180, 400x180}, plus taller
+     * {320x200, 320x240} cards, × font {1.0, 1.15} × SDK {26, 31} over every
      * card with a distinct answers row of three real plans (new game; 10/22 with every Persona; 7/1
      * with every link underway). Every card whose step has answers of its own and a 课堂/考试 answer keeps
      * both kinds at every size ({@link #checkRow}; until 3.1.0 the row left 「课堂：…」 out where the

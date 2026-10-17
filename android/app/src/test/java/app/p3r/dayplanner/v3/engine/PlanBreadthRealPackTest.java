@@ -389,9 +389,9 @@ public class PlanBreadthRealPackTest {
      * goal/coverage/cash invariants. Separate opt-in tests cover characteristic milestones.
      * MAX-style ids still omit style.
      */
-    private static final String GOLDEN_RULES_VERSION = "3.3.0|91c21bba2bd5";
+    private static final String GOLDEN_RULES_VERSION = "3.3.0|30aef29ce462";
     /** Plan ids of the three golden 「尽量多 MAX」 plans on {@link #GOLDEN_RULES_VERSION}. */
-    private static final String[] GOLDEN_IDS = {"7e04a9f72c0f7531", "38c6c091cfa65547", "97686a572b09cf7a"};
+    private static final String[] GOLDEN_IDS = {"dd8759b4a234d213", "9e40a8e612474c79", "b663634dfa64fd04"};
 
     /** FNV-1a 64 over "slot|action|side…" per step: the plan's actions, independent of the pack version. */
     static String fingerprint(Plan plan) {

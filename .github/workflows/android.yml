@@ -38,3 +38,12 @@ jobs:
           name: qa-renders
           path: ${{ runner.temp }}/qa_out
           if-no-files-found: ignore
+      - name: Upload unit test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-unit-test-reports
+          path: |
+            android/app/build/test-results/testDebugUnitTest/TEST-*.xml
+            android/app/build/reports/tests/testDebugUnitTest
+          if-no-files-found: ignore

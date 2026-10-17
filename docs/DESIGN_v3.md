@@ -761,6 +761,8 @@ Owner directive (spec §8): plan for a player who wants to see as much of the ga
   The current minimum-size regression boundary is 250×140dp; nominal scenarios are
   320×160, 360×180 and 400×180dp, with normal and 115% text scaling. Earlier historical
   micro-card measurements in this document are not a new 3.3.0 support requirement.
+  The full answer-row matrix uses those four supported sizes plus 320×200 and 320×240dp
+  to verify that taller cards retain their complete content.
   The renderer's Android 13+ font measurement uses the same CJK fallback line spacing
   and rounded title autosize pixels as the drawn TextView. Selected friendship annotations
   are shortened while full choices and route conditions remain in details. No claim of

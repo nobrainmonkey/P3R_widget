@@ -21,7 +21,14 @@ VERSION="$(sed -n "s/.*versionName '\(.*\)'.*/\1/p" app/build.gradle | head -1)"
 mkdir -p "$ROOT/dist"
 OUT="$ROOT/dist/P3R-Planner-$VERSION.apk"
 zipalign -c -P 16 -v 4 "$APK" >/dev/null
-apksigner verify --print-certs "$APK" | sed -n '1,4p'
+EXPECTED_CERT_SHA256="7123294095e29e1458eb01a3f3331a025e7dd1a5d7877b25c56fe0d8291beb2f"
+VERIFICATION="$(apksigner verify --print-certs "$APK")"
+CERT_SHA256="$(printf '%s\n' "$VERIFICATION" | sed -n 's/^Signer #[0-9][0-9]* certificate SHA-256 digest: //p')"
+if [[ "$CERT_SHA256" != "$EXPECTED_CERT_SHA256" ]]; then
+  echo "error: release must retain the 3.2.0 signing certificate ($EXPECTED_CERT_SHA256)" >&2
+  exit 1
+fi
+printf '%s\n' "$VERIFICATION" | sed -n '1,4p'
 cp "$APK" "$OUT"
 (cd "$ROOT/dist" && shasum -a 256 "$(basename "$OUT")") | tee "$OUT.sha256"
 aapt2 dump badging "$OUT" | grep -E "^package:|application-label:|sdkVersion|targetSdkVersion" || true
