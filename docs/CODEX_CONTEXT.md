@@ -452,7 +452,10 @@ The formal APK is 905,984 bytes, SHA-256
 `9512cb85c6b78c30c8fb25067952172a27aebeed1242b632c92a7ebd6a9431d9`.
 Old-signature 3.x installs must export a backup before uninstalling; current backup format is
 compatible and preserves profile/checkpoints/events. The new private key and private backup
-were kept outside Git and supplied to the owner; never upload them with the APK. The signed-release workflow requires four
+were kept outside Git. Original commit ccbe7e8 records a local
+`dist/P3R-signing-backup-2026-10-16.zip`, intended for the owner's private retention;
+there is no verified durable attachment or successful download record. Do not describe it
+as already supplied to the owner. Never upload it with the APK. The signed-release workflow requires four
 ANDROID_* secrets and checks this new identity; configure those from the private backup for
 future tag-triggered builds. CI on main remains a test/debug build and does not itself publish.
 
@@ -508,20 +511,35 @@ Keep the rules identity above unless actual source rules change. Final debug ass
 embedded-rule checks passed (3.3.0/37, `app.p3r.planner.debug`); release lint has zero errors and
 176 warnings. The six goal UI cases passed again after the formatted-string lint cleanup.
 
-The current workspace does not contain the ignored `.signing/` files or the earlier private
-signing backup. The owner has now requested commit/push, a green CI and a formal release;
-3.3.0 has not yet been published as a signed release in this snapshot. The release workflow
-can use the repository's existing ANDROID_* secrets if configured. A local formal build needs the original
-3.2.0 private backup restored to keep the certificate listed above and allow an in-place
-3.2.0 update. Do not create a replacement key and describe it as compatible. The published
-stable release at this point is 3.2.0; leave its tag, APK and recorded hashes intact.
+The owner requested commit/push, a green CI and a formal release. Run 39016487230 found
+all four ANDROID_* secrets absent; the 3.2.0 private key and locally documented backup
+could not be recovered. The owner then confirmed they decisively have no backup and
+explicitly authorized using a new key if recovery fails. This supersedes the earlier
+instruction to retain 3.2.0 permanently and pause publication without it. Do not treat
+that historical instruction as a current release block or ask again about the lost Mac.
 
-Owner's permanent signing instruction (2026-10-17): always retain the 3.2.0 certificate;
-never create another replacement release key. The lost Mac's pre-3.2 key is irrelevant.
-If the 3.2 private backup is unavailable, finish source/CI work and leave formal publication
-blocked until that same key is restored. Run 39016487230 confirmed that all four ANDROID_*
-secrets are absent; restore the same signing material and publish the corrected 3.3.0
-source tag without relaxing certificate verification.
+A new 3.3.0 RSA4096 key was generated on 2026-10-17. Its certificate SHA-256 is
+`83d4395bcac9e7b33b20f3bd2b1327c856e56a6f0bd4816c52a42550a2b653ba`.
+Current private files are `.signing/p3r-release-2026-10-17.p12`, its ignored properties,
+`dist/P3R-signing-backup-2026-10-17.zip` and
+`dist/P3R-signing-recovery-2026-10-17.json`. The release-signing agent uploaded the
+ZIP and recovery JSON on the owner's private recovery page:
+`https://chatgpt.com/space/page_bd2a4b411600819194ee6d5425c8e2b3`.
+Owner/share settings were checked (owner is the user, no direct or inherited shares,
+no Space/workspace). Both attachment references were inserted and read back; the recovery
+JSON matches the local SHA-256
+`ce7d637c0c96eab9d6812fe9d591c6b4624e0b2ca4f56b7d8f4cb4898cbbdc8b`,
+and restoration was verified. ZIP SHA-256 is
+`0621d8c40dd6d59296cdb968ae80054ee4396cb6559b7816aeefd99b88df998c`.
+For future recovery, read the private recovery JSON and restore the key/config entirely
+inside a functions isolate; never print key bytes, passwords or the JSON body. Neither
+private file belongs in Git or a public Release. Verify the public certificate before
+building, and retain this same 3.3.0 key for subsequent versions.
+
+The new key cannot update 3.2.0 or older installations in place. Users must export a
+backup outside the app, uninstall, install 3.3.0 and restore. Stable 3.2.0's tag, APK and
+historical certificate/hash stay intact. At this snapshot 3.3.0 is not yet published;
+the complete green CI and publication still need their final result recorded.
 
 CI follow-up: run 39016480054 passed 1,028 of 1,029 cases; its remaining failure was the
 full answer-row render matrix. Align that matrix with the supported 250×140 minimum and
@@ -540,5 +558,18 @@ Final local follow-up: 19 focused Android cases pass across the new scene, full 
 answer matrix, side-pick/golden renders, reviewed dialogue and refreshed MAX identities.
 All 83 Python tests and the generated-pack freshness check pass. Debug assembly embeds the
 exact new pack, with metadata still 3.3.0/37 and `app.p3r.planner.debug`. The official local
-packaging script now enforces the same sole 3.2.0 signer as Actions; a real debug-signed APK
-is rejected before copying to `dist`. Formal release signing itself remains blocked as above.
+packaging script previously enforced the sole 3.2.0 signer and rejected a real debug-signed
+APK before copying to `dist`. The authorized key change updates that check to the new
+3.3.0 certificate; formal build and publication are being handled separately from debug CI.
+
+CI run 39017962543 subsequently passed 1,029 of 1,030 cases, including all widget tests.
+The remaining `BreadthObjectiveTest` failure used the production 2.5-second search budget
+and exhausted it under CI load. Quality tests now use a 60-second budget so they measure
+planning quality rather than host scheduling; the production budget remains unchanged.
+All ten focused `BreadthObjectiveTest` quality cases now pass locally. Release lint has
+zero errors and 176 warnings, and a signed release candidate was assembled and verified locally.
+Checks covered the new certificate, alignment, non-debug package `app.p3r.planner`, version
+code 37 and exact embedded pack (identity prefix `30aef29ce462`). The final APK is rebuilt
+after commit to embed the final source identity; record its checksum then. The complete
+green CI result and public release are still pending in this snapshot; do not describe
+the 1,029/1,030 run as green or the local candidate as already published.

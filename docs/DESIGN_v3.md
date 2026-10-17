@@ -781,6 +781,9 @@ Owner directive (spec §8): plan for a player who wants to see as much of the ga
   the rule pack is unchanged. Actual records remain intact; a persisted version-1 plan
   is reusable after restart when its other currentness checks still pass.
   Forecast counts never become observed checkpoints merely because a plan was generated.
-  A future formal release must retain the 3.2.0 signing identity to allow an in-place
-  3.2.0 update. The current work prepares source and CI debug builds, not a published
-  signed 3.3.0 APK; the private signing backup must be restored before formal packaging.
+  The owner explicitly authorized a new 3.3.0 signing identity on October 17 after the
+  3.2.0 private key and backup could not be recovered, superseding the earlier instruction
+  to retain 3.2.0 indefinitely. Thus 3.2.0 and earlier users must export their backup,
+  uninstall, install 3.3.0 and restore; an in-place update is not possible. Later releases
+  should retain the 3.3.0 key, whose private recovery location and public certificate are
+  recorded in `RELEASE_SIGNING.md`. This snapshot does not claim formal publication.

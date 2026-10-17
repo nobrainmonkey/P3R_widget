@@ -22,6 +22,13 @@ import java.util.List;
 public class BreadthObjectiveTest {
     private static final double EPS = 1e-9;
 
+    /** Quality assertions should finish the search even on a busy CI host. */
+    private static Engine.Options generousOptions() {
+        Engine.Options options = new Engine.Options();
+        options.timeBudgetMillis = 60_000;
+        return options;
+    }
+
     private static Profile styled(Profile p, Profile.Style style) {
         Profile q = p.copy();
         q.style = style;
@@ -173,8 +180,8 @@ public class BreadthObjectiveTest {
         SimState start = RulesFixtures.newGame(rules, RulesFixtures.slot(9, 1, false));
         Profile breadth = RulesFixtures.others();
         Profile max = styled(breadth, Profile.Style.MAX);
-        Plan b = Engine.plan(rules, breadth, start, null, new Engine.Options());
-        Plan m = Engine.plan(rules, max, start, null, new Engine.Options());
+        Plan b = Engine.plan(rules, breadth, start, null, generousOptions());
+        Plan m = Engine.plan(rules, max, start, null, generousOptions());
         assertValid(rules, breadth, start, b);
         assertValid(rules, max, start, m);
         PlanMetrics pb = PlanMetrics.of(rules, breadth, start, b);
@@ -193,8 +200,8 @@ public class BreadthObjectiveTest {
         SimState start = RulesFixtures.newGame(rules, RulesFixtures.slot(4, 21, false));
         Profile breadth = RulesFixtures.must(4);
         Profile max = styled(breadth, Profile.Style.MAX);
-        Plan b = Engine.plan(rules, breadth, start, null, new Engine.Options());
-        Plan m = Engine.plan(rules, max, start, null, new Engine.Options());
+        Plan b = Engine.plan(rules, breadth, start, null, generousOptions());
+        Plan m = Engine.plan(rules, max, start, null, generousOptions());
         assertValid(rules, breadth, start, b);
         assertEquals(10, m.summary.endRanks[4]);
         assertEquals(m.summary.endRanks[4], b.summary.endRanks[4]);
@@ -276,8 +283,8 @@ public class BreadthObjectiveTest {
         for (Object[] c : cases) {
             Profile breadth = (Profile) c[0];
             SimState start = RulesFixtures.newGame(rules, (int) c[1]);
-            Plan b = Engine.plan(rules, breadth, start, null, new Engine.Options());
-            Plan m = Engine.plan(rules, styled(breadth, Profile.Style.MAX), start, null, new Engine.Options());
+            Plan b = Engine.plan(rules, breadth, start, null, generousOptions());
+            Plan m = Engine.plan(rules, styled(breadth, Profile.Style.MAX), start, null, generousOptions());
             assertValid(rules, breadth, start, b);
             String broken = PlanBreadthRealPackTest.brokenPromise(rules, breadth, start, b, m);
             assertTrue(broken, broken == null);
@@ -288,6 +295,6 @@ public class BreadthObjectiveTest {
         assertEquals(rules.lastSlot() - start.slot + 1, plan.steps.size());
         List<String> errors = Engine.validate(rules, profile, start, plan);
         assertTrue(errors.toString(), errors.isEmpty());
-        assertFalse(plan.budgetExhausted);
+        assertFalse("quality search exhausted its budget after " + plan.elapsedMillis + " ms", plan.budgetExhausted);
     }
 }
