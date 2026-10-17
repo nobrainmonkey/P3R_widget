@@ -786,4 +786,8 @@ Owner directive (spec §8): plan for a player who wants to see as much of the ga
   to retain 3.2.0 indefinitely. Thus 3.2.0 and earlier users must export their backup,
   uninstall, install 3.3.0 and restore; an in-place update is not possible. Later releases
   should retain the 3.3.0 key, whose private recovery location and public certificate are
-  recorded in `RELEASE_SIGNING.md`. This snapshot does not claim formal publication.
+  recorded in `RELEASE_SIGNING.md`. Source commit
+  `f2be4042515540def723ac5f419c19c817faa284` passed complete Android CI run 39019148832;
+  v3.3.0 was published on October 17 as the latest, non-draft, non-prerelease release.
+  The locally signed and verified APK was uploaded through the successful prebuilt
+  publisher run 39019952354 because Actions signing secrets remain unconfigured.

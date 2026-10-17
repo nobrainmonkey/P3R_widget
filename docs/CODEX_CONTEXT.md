@@ -17,6 +17,8 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 - Current app source: **3.3.0**, version code **37**, application ID **`app.p3r.planner`**;
   debug builds add `.debug`. Java package/Android namespace remains `app.p3r.dayplanner`.
   Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, minimum API 26, compile/target API 35.
+- Current public release is [v3.3.0](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.3.0),
+  latest and stable, published October 17 after complete Android CI passed for its source.
 - Player-facing language is natural Simplified Chinese using Reload terminology. Preserve
   the established navy/cyan P3R presentation, slanted panels, condensed numerals, day/night
   widget palettes and fade, readable answers, and action-specific result sheets.
@@ -538,8 +540,8 @@ building, and retain this same 3.3.0 key for subsequent versions.
 
 The new key cannot update 3.2.0 or older installations in place. Users must export a
 backup outside the app, uninstall, install 3.3.0 and restore. Stable 3.2.0's tag, APK and
-historical certificate/hash stay intact. At this snapshot 3.3.0 is not yet published;
-the complete green CI and publication still need their final result recorded.
+historical certificate/hash stay intact. The final 3.3.0 CI and public release succeeded;
+the exact source, runs and verified artifact are recorded below.
 
 CI follow-up: run 39016480054 passed 1,028 of 1,029 cases; its remaining failure was the
 full answer-row render matrix. Align that matrix with the supported 250×140 minimum and
@@ -569,7 +571,26 @@ planning quality rather than host scheduling; the production budget remains unch
 All ten focused `BreadthObjectiveTest` quality cases now pass locally. Release lint has
 zero errors and 176 warnings, and a signed release candidate was assembled and verified locally.
 Checks covered the new certificate, alignment, non-debug package `app.p3r.planner`, version
-code 37 and exact embedded pack (identity prefix `30aef29ce462`). The final APK is rebuilt
-after commit to embed the final source identity; record its checksum then. The complete
-green CI result and public release are still pending in this snapshot; do not describe
-the 1,029/1,030 run as green or the local candidate as already published.
+code 37 and exact embedded pack (identity prefix `30aef29ce462`). The final APK was rebuilt
+after commit to embed the final source identity. The 1,029/1,030 run remains a historical
+failed run; the later full green CI and completed publication supersede its status.
+
+Final delivery: source commit `f2be4042515540def723ac5f419c19c817faa284` passed the complete
+Android CI run [39019148832](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39019148832)
+(8 minutes 21 seconds). Do not infer an exact test count from the successful log.
+The source Signed Android release run 39019718556 stopped because the four signing
+secrets remain absent. The final package instead came from the locally signed, verified
+release build, using the current 3.3.0 key, and was published by a prebuilt-APK workflow.
+Its first publisher run 39019719742 created a draft but tag lookup returned 404; recovery
+looked up the existing release by ID and reused it without overwriting assets. Final
+publisher run [39019952354](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39019952354),
+helper commit `437ec5c971b1d255d8ef14094f75aae0ee713a86`, succeeded.
+
+Public release [v3.3.0](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.3.0)
+(ID 415691640) was published at `2026-10-17T09:08:14Z`, confirmed latest, not draft and
+not prerelease. It has exactly two assets: `P3R-Planner-3.3.0.apk` (931,500 bytes) and
+its `.sha256` file (88 bytes). Final APK SHA-256 is
+`4c35c908d5f17598a023eed0dabf9f855b00e2079c9d83c4488f30a99389bb03`;
+certificate is the new `83d439…653ba` identity and the embedded rules remain
+`3.3.0|30aef29ce462`. Private signing material is absent from the public release.
+Subsequent documentation-only commits do not require rebuilding this published APK.

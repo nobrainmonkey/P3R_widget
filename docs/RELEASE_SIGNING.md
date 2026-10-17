@@ -12,7 +12,13 @@
 
 后续版本应沿用这份 3.3.0 密钥。正式发布入口为 `scripts/build_release.sh` 或 Signed Android release 工作流，校验最终 APK 只能由当前证书签名；直接运行 Gradle 得到的 release 构建不等于已通过正式发布校验。CI 的 debug 包不能作为正式更新包。
 
-本记录更新时，私有持久备份已上传并回读校验，恢复材料也已验证；正式安装包已在本地构建通过，但 3.3.0 尚未发布。候选包的包名、版本码 37、非调试属性、签名、zipalign 及内嵌规则均已核对。提交后会重建以嵌入最终源码标识；完整 CI、最终安装包校验和和公开 Release 的结果仍待记录。
+私有持久备份已上传并回读校验，恢复材料也已验证。[3.3.0 正式版](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.3.0) 已于 2026-10-17 发布，确认为 latest，非草稿、非预发布。源码提交 `f2be4042515540def723ac5f419c19c817faa284` 的完整 Android CI [39019148832](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39019148832) 已通过。
+
+最终 `P3R-Planner-3.3.0.apk` 为 **931,500 bytes**，SHA-256 为：
+
+`4c35c908d5f17598a023eed0dabf9f855b00e2079c9d83c4488f30a99389bb03`
+
+已核对包名、版本码 37、非调试属性、新证书、zipalign 及内嵌规则。Release 恰有两个附件：正式 APK 和 88-byte 校验文件，不含私有签名材料。
 
 ## 3.2.0 的签名变更
 
@@ -50,6 +56,8 @@
 所有备份均含私密签名材料，不可公开上传。公开 Release 只附可安装 APK、校验和及面向用户的说明；私钥及密码不写入本文。
 
 ## GitHub Actions 后续发布
+
+本次四项签名 secrets 仍未配置，源码签名工作流 [39019718556](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39019718556) 因此停止。正式包在本地使用已备份的新密钥构建并校验，再通过预构建包发布流程上传；发布流程 [39019952354](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39019952354) 已成功。该路径没有使用调试签名，也没有放宽证书校验。
 
 仓库的 `Signed Android release` 工作流要求配置四项 Actions secrets：
 
