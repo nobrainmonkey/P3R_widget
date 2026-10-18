@@ -17,9 +17,9 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 - Current app source: **3.4.1**, version code **39**, application ID **`app.p3r.planner`**;
   debug builds add `.debug`. Java package/Android namespace remains `app.p3r.dayplanner`.
   Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, minimum API 26, compile/target API 35.
-- Current public release is [v3.4.0](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.4.0),
+- Current public release is [v3.4.1](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.4.1),
   latest and stable, published October 18 after complete Android CI passed for its source.
-  It retains the 3.3.0 signing certificate and supports in-place updates from 3.3.0.
+  It retains the 3.3.0 signing certificate and supports in-place updates from 3.3.0/3.4.0.
 - Player-facing language is natural Simplified Chinese using Reload terminology. Preserve
   the established navy/cyan P3R presentation, slanted panels, condensed numerals, day/night
   widget palettes and fade, readable answers, and action-specific result sheets.
@@ -289,7 +289,7 @@ installation → app and widget. Results return through the service into the eve
   key distinguishes checkpoint/effective observed events and the skipped interval so undo/sync
   invalidates old acknowledgements; replan, profile-only changes and historical tower-money
   corrections preserve them.
-- Forecast policy version is 2. Old cached forecasts are recomputed without changing
+- Forecast policy version is 3. Old cached forecasts are recomputed without changing
   confirmed records, even if rule pack and revisions happen to match.
 
 ## Confirmed progress and replanning integrity
@@ -709,7 +709,7 @@ certificate is the new `83d439…653ba` identity and the embedded rules remain
 `3.3.0|30aef29ce462`. Private signing material is absent from the public release.
 Subsequent documentation-only commits do not require rebuilding this published APK.
 
-## Current 3.4.0 delivery boundary (2026-10-18)
+## 3.4.0 delivery record (2026-10-18)
 
 Source `b8d5f52110fa5b289e2714e1a71a3e6b8394ec5d` passed complete Android CI
 [39118246698](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39118246698).
@@ -737,3 +737,30 @@ Version code is 38, package `app.p3r.planner`, non-debuggable. It can update 3.3
 Signing secrets remain absent from Actions; the verified prebuilt publication path was
 used again. No private signing material was committed or published. Later documentation
 changes do not require rebuilding this APK.
+
+## Current 3.4.1 delivery boundary (2026-10-18)
+
+Source `51e0ae1ff0ed4d6e85f97281cd042f508330ab60` passed complete Android CI
+[39157582456](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39157582456),
+including the full unit-test suite and debug assembly. Local verification also passed
+the 493-test core/UI batch, the final 42 focused tests, the final 23 real-pack tests,
+release lint and signed assembly. These local batches overlap; do not sum their counts.
+The committed mid-save benchmark generated 16 validated plans in eight comparisons:
+six matched and two improved the current BREADTH objective, with no lower rescue or
+ordered-goal result. See [the report](DEEP_SEARCH_BENCHMARK_3.4.1.md) for tradeoffs.
+
+[v3.4.1](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.4.1), release ID
+416657125, was published at `2026-10-18T19:32:33Z` and independently confirmed latest,
+not draft and not prerelease. Publisher run
+[39159213883](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39159213883)
+succeeded from helper commit `d8f9d4d84bbb71f417ffb675d5be7628111b6fde`.
+The tag resolves to the source above. Assets are `P3R-Planner-3.4.1.apk` (989,324 bytes)
+and its 88-byte checksum file. APK SHA-256 is
+`446d240187cb889256f4db3e18f0efa55a408dc6a404988a9f9c62685e22c524`.
+Both public asset digests match the verified local files. Version code is 39, package
+`app.p3r.planner`, non-debuggable, zipaligned and signed with the unchanged
+`83d439…653ba` certificate; it can update 3.3.0/3.4.0 in place. Embedded rule bytes
+match source and remain `3.4.0|06843d87d8ea`; scheduling policy is 3.
+Signing secrets remain absent from Actions, so the verified prebuilt path was used.
+No private signing material was committed or published. Later documentation-only
+commits do not require rebuilding this APK.
