@@ -120,7 +120,8 @@ scripts/verify_selfcontained.sh
 | `docs/DESIGN_v3.md` | v3 设计文档 |
 | `docs/HANDOFF_COMPLIANCE.md` | 项目要求的完成情况、复核证据与所有者决定 |
 | `docs/PLAN_METRICS.md` | 各场景的安排质量（真实规则包） |
-| [`docs/DEEP_SEARCH_BENCHMARK_3.4.1.md`](docs/DEEP_SEARCH_BENCHMARK_3.4.1.md) | 中途接入、照做和漏做后的 4／12／30 秒对照 |
+| [`docs/DEEP_SEARCH_AUTUMN_BENCHMARK_3.4.1.md`](docs/DEEP_SEARCH_AUTUMN_BENCHMARK_3.4.1.md) | 9／10月女性社群与太阳全必须：40份计划、整周记录和偏离后的对照 |
+| [`docs/DEEP_SEARCH_BENCHMARK_3.4.1.md`](docs/DEEP_SEARCH_BENCHMARK_3.4.1.md) | 原始中途／晚期样本，保留作尾段重排与救援回归 |
 | `docs/analysis/` | 代码、数据来源、对话覆盖和交互的分析报告 |
 | `docs/CODEX_CONTEXT.md` | 当前架构、规则边界与开发入口 |
 

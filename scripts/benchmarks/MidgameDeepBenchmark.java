@@ -19,9 +19,12 @@ import java.util.List;
 
 /** Optional real-pack mid-save experiment. No fresh-new-game comparison or default CI execution. */
 public final class MidgameDeepBenchmark {
-    private static Rules rules;
-    private static Path output;
-    private static int issues;
+    static Rules rules;
+    static Path output;
+    static int issues;
+    // Legacy fixtures require zero warnings. Autumn records advisory FREE-slot warnings
+    // separately, without conflating unused legal activities with illegal forecasts.
+    static boolean strictWarnings = true;
 
     public static void main(String[] args) throws Exception {
         Path repo = Path.of(System.getProperty("p3r.repo", System.getProperty("user.dir")));
@@ -125,7 +128,7 @@ public final class MidgameDeepBenchmark {
         }
     }
 
-    private static SimState record(Profile p, SimState state, Plan.Step step, boolean skipped) {
+    static SimState record(Profile p, SimState state, Plan.Step step, boolean skipped) {
         Action action = Action.parse(rules, step.action);
         if (action == null) throw new AssertionError("unparseable action " + step.action);
         Outcome o = Outcome.of(skipped ? Outcome.Code.SKIPPED : Outcome.Code.AS_PREDICTED);
@@ -142,17 +145,19 @@ public final class MidgameDeepBenchmark {
         return Engine.applyOutcome(rules, p, state, action, o);
     }
 
-    private static Planner.Pool pool(Profile p, SimState observed) {
+    static Planner.Pool pool(Profile p, SimState observed) {
         Engine.Options o = new Engine.Options();
+        o.lastTowerSlot = observed.lastTowerSlot;
         Model m = new Model(rules, p, o);
         SimState state = Kernel.normalize(m, observed);
         m.initializeBatches(state);
         return new Planner.Pool(m, state, null, o, Long.MAX_VALUE, Planner.portfolioFor(p));
     }
 
-    private static Plan run(String id, String phase, Profile p, SimState observed, Plan previous,
+    static Plan run(String id, String phase, Profile p, SimState observed, Plan previous,
                             Plan incumbent, long budget, boolean deep, Plan pairedBaseline) throws Exception {
         Engine.Options o = new Engine.Options(); o.timeBudgetMillis = budget; o.deepSearch = deep; o.incumbentPlan = incumbent;
+        o.lastTowerSlot = observed.lastTowerSlot;
         long t0 = System.nanoTime();
         Plan plan = Engine.plan(rules, p, observed, previous, o);
         long wall = (System.nanoTime() - t0) / 1_000_000;
@@ -172,17 +177,27 @@ public final class MidgameDeepBenchmark {
                 .put("rankSum", metrics.rankSum).put("rank5", metrics.atLeast5).put("minimumRank", metrics.minRank)
                 .put("minimumOpened", metrics.minOpened).put("daytimeWaste", metrics.daytimeWaste)
                 .put("dayJobs", metrics.dayJobs).put("eveJobs", metrics.eveJobs).put("endCash", metrics.endCash)
+                .put("dayStats", metrics.dayStats).put("eveStats", metrics.eveStats).put("freeSlots", metrics.freeSlots)
+                .put("style", p.style.json).put("personaMode", p.personaMode.name())
+                .put("previousPlanId", previous == null ? JSONObject.NULL : previous.planId)
+                .put("incumbentPlanId", incumbent == null ? JSONObject.NULL : incumbent.planId)
                 .put("notes", metrics.notes).put("missedRescues", metrics.rescuesMissed()).put("unmetTower", metrics.unmetTower)
                 .put("endStatLv", new JSONArray(plan.summary.endStatLv)).put("endRanks", new JSONArray(plan.summary.endRanks))
                 .put("errors", new JSONArray(errors)).put("warnings", new JSONArray(warnings))
                 .put("candidate", quality(measured)).put("previousSuffix", quality(remainingFloor)).put("pairedBaseline", quality(paired));
         JSONArray goalRows = new JSONArray();
+        int goalCompleted = 0, goalRankSum = 0, goalDeficit = 0;
         for (int g : Heuristics.goalOrder(evaluator.m)) {
+            int target = Math.max(1, Math.min(10, p.target[g]));
+            if (plan.summary.endRanks[g] >= target) goalCompleted++;
+            goalRankSum += plan.summary.endRanks[g];
+            goalDeficit += Math.max(0, target - plan.summary.endRanks[g]);
             goalRows.put(new JSONObject().put("id", rules.links[g].id).put("tier", p.tier[g].name())
                     .put("target", p.target[g]).put("endRank", plan.summary.endRanks[g])
                     .put("maxDate", plan.summary.maxSlot[g] < 0 ? "—" : PlanReport.date(rules, plan.summary.maxSlot[g])));
         }
-        row.put("goals", goalRows);
+        row.put("goals", goalRows).put("goalCompleted", goalCompleted)
+                .put("goalRankSum", goalRankSum).put("goalDeficit", goalDeficit);
         row.put("pairedQualityRelation", measured == null || paired == null ? "UNAVAILABLE"
                 : worse(measured, paired) ? "WORSE" : worse(paired, measured) ? "BETTER" : "SAME");
         row.put("previousSuffixQualityRelation", measured == null || remainingFloor == null ? "UNAVAILABLE"
@@ -205,7 +220,11 @@ public final class MidgameDeepBenchmark {
                 && (plan.summary.endRanks[rules.linkIndex("justice")] != 10
                 || plan.summary.endRanks[rules.linkIndex("strength")] < 8))
             problems.add("known feasible ordered goal result below Justice10/Strength8");
-        if (!errors.isEmpty() || !warnings.isEmpty() || measured == null) problems.add("validation/replay");
+        if (!errors.isEmpty() || measured == null) problems.add("validation/replay");
+        if (!warnings.isEmpty()) {
+            if (strictWarnings) problems.add("validation warnings");
+            else reviews.add("independent advisory warnings retained for slot-level audit: " + warnings.size());
+        }
         if (plan.steps.size() != rules.lastSlot() - observed.slot + 1) problems.add("incomplete plan");
         if (metrics.rescuesMissed() > 0 || metrics.unmetTower > 0) problems.add("rescue/tower");
         floorContract(p, measured, remainingFloor, "legal previous suffix", problems, reviews);
@@ -227,13 +246,13 @@ public final class MidgameDeepBenchmark {
         return plan;
     }
 
-    private static JSONObject quality(Planner.Candidate c) {
+    static JSONObject quality(Planner.Candidate c) {
         if (c == null) return null;
         return new JSONObject().put("missed", c.missed).put("late", c.late).put("objective", c.j).put("score", c.score)
                 .put("reached", new JSONArray(c.reached)).put("goalEndRanks", new JSONArray(c.endRank));
     }
 
-    private static boolean worse(Planner.Candidate a, Planner.Candidate b) {
+    static boolean worse(Planner.Candidate a, Planner.Candidate b) {
         if (a.missed != b.missed) return a.missed > b.missed;
         if (a.late != b.late) return a.late > b.late;
         int goals = Planner.Pool.compareGoals(a, b);

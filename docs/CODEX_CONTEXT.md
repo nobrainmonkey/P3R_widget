@@ -52,6 +52,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 | [Chinese glossary](GLOSSARY_zh.md) | Exact UI terms, sentence style and deadline wording. |
 | [Rules report](../rules/build/REPORT.md) | Generated source decisions, confidence, coverage and modeling gaps. |
 | [Plan metrics](PLAN_METRICS.md) | Recorded benchmark scenarios and tradeoffs between planning styles. |
+| [Autumn nine-goal comparison](DEEP_SEARCH_AUTUMN_BENCHMARK_3.4.1.md) | Primary mid-save deep-search evidence: September/October female links plus Sun MUST, full-week records/deviations, all 40 outcomes and scoring tradeoffs. |
 | [Mid-save deep-search comparison](DEEP_SEARCH_BENCHMARK_3.4.1.md) | Ordinary, deep and incremental results after onboarding mid-game, recording actions and skipping an action. |
 | [Project audit](HANDOFF_COMPLIANCE.md) | Requirements, historical audits and owner review; some line references and metrics describe earlier revisions. |
 
@@ -344,6 +345,13 @@ installation → app and widget. Results return through the service into the eve
   记录目标最终等级、解锁数、总等级、白天占用、花费、耗时和独立校验结果；不能只用
   新游戏结果说明中途重排质量。深度模式须实际执行并纳入普通搜索路线，检验救援及
   按序目标不退步；MAX 数和 R5 覆盖仍按当前风格取舍。
+- **2026-10-18 benchmark correction**: January fixtures primarily test tail recovery; use
+  September/October progressed checkpoints with all eight female manual links plus Sun
+  set to MUST, including unopened Empress/Aeon, for broader deep-search claims. Distinguish
+  automatic 4/12-second updates from manual 8/30-second replans. Include a full week of
+  records, legal alternative actions, uncertain failed rank-ups and cash corrections;
+  preserve affinity, Persona choice, dorm history, story ranks and rescue/tower history.
+  Compare ordered end ranks first and show MAX/R5/rank-sum/date tradeoffs separately.
 
 ## App and widget interaction
 
@@ -764,3 +772,22 @@ match source and remain `3.4.0|06843d87d8ea`; scheduling policy is 3.
 Signing secrets remain absent from Actions, so the verified prebuilt path was used.
 No private signing material was committed or published. Later documentation-only
 commits do not require rebuilding this APK.
+
+### Autumn benchmark follow-up (2026-10-18)
+
+The [new report](DEEP_SEARCH_AUTUMN_BENCHMARK_3.4.1.md) and
+[captured metrics](benchmarks/autumn-deep-3.4.1.json) cover five constructed September/
+October checkpoints, 40 plans and 20 comparisons, without changing the released engine.
+Every plan completes all nine MUST goals. Fifteen deep candidates score higher and five
+tie; no pair adds a completed MUST target over ordinary search. The earlier-goal bonus
+accounts for many gains: excluding only that bonus from the same scored routes leaves
+five higher, five equal and ten lower results. Do not describe 15/20 as uniformly better
+Social Link progress. All plans are complete and independent validation errors, missed
+rescues and unmet tower visits are zero; 86 advisory FREE-slot warnings remain recorded.
+
+Ordinary continuation can redistribute non-goal progress under the BREADTH acceptance
+rules even when the old deep suffix is legal: the balanced September expected-week case
+changes 19 MAX/R5+21/minimum2 into 18 MAX/R5+22/minimum5, retaining all nine MUST MAX.
+The 12-second update keeps the former route. This ordinary change is a style tradeoff,
+not budget exhaustion, and is not evidence that all earlier deep secondary gains persist.
+The benchmark launcher now defaults to autumn; `--legacy` reproduces the first16 plans.

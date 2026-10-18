@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Optional mid-save comparison; does not run as part of the default test/CI tasks.
-#   scripts/benchmark_midgame_deep.sh          # compile and run the 16-plan comparison
+#   scripts/benchmark_midgame_deep.sh          # September/October: all female links + Sun MUST
+#   scripts/benchmark_midgame_deep.sh --legacy # reproduce the original 16-plan comparison
 #   scripts/benchmark_midgame_deep.sh --check  # inspect cached dependencies only
 set -euo pipefail
 benchmark_root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -56,16 +57,28 @@ print(":".join(str(p) for p in (
 PY
 )
 
-if [[ "${1:-}" == "--check" ]]; then
+if [[ "${1:-}" == "--check" && $# -eq 1 ]]; then
     printf 'Cached benchmark dependencies: %s\n' "$benchmark_cp"
     exit 0
 fi
-if [[ $# -ne 0 ]]; then
-    printf 'Usage: %s [--check]\n' "$0" >&2
+if [[ $# -gt 1 ]]; then
+    printf 'Usage: %s [--autumn|--legacy|--check]\n' "$0" >&2
     exit 2
 fi
-
-benchmark_dir="$benchmark_root/qa_out/must_goals/midgame-deep"
+case "${1:-}" in
+    ''|--autumn)
+        benchmark_main=app.p3r.dayplanner.v3.engine.AutumnGoalBenchmark
+        benchmark_dir="$benchmark_root/qa_out/must_goals/autumn-deep"
+        ;;
+    --legacy)
+        benchmark_main=app.p3r.dayplanner.v3.engine.MidgameDeepBenchmark
+        benchmark_dir="$benchmark_root/qa_out/must_goals/midgame-deep"
+        ;;
+    *)
+        printf 'Usage: %s [--autumn|--legacy|--check]\n' "$0" >&2
+        exit 2
+        ;;
+esac
 mkdir -p "$benchmark_dir/classes"
 if command -v rg >/dev/null 2>&1; then
     rg --files -g '*.java' -g '!RulesAssets.java' \
@@ -83,7 +96,8 @@ android/app/src/test/java/app/p3r/dayplanner/v3/engine/PlanReport.java
 android/app/src/test/java/app/p3r/dayplanner/v3/engine/RescueMargin.java
 android/app/src/test/java/app/p3r/dayplanner/v3/engine/PlanBreadthRealPackTest.java
 scripts/benchmarks/MidgameDeepBenchmark.java
+scripts/benchmarks/AutumnGoalBenchmark.java
 SOURCES
 javac -cp "$benchmark_cp" -d "$benchmark_dir/classes" @"$benchmark_dir/sources.txt"
 java -Xmx768m -Dp3r.repo="$benchmark_root" -cp "$benchmark_dir/classes:$benchmark_cp" \
-    app.p3r.dayplanner.v3.engine.MidgameDeepBenchmark
+    "$benchmark_main"
