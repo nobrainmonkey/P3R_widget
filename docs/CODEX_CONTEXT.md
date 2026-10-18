@@ -17,8 +17,9 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 - Current app source: **3.4.0**, version code **38**, application ID **`app.p3r.planner`**;
   debug builds add `.debug`. Java package/Android namespace remains `app.p3r.dayplanner`.
   Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, minimum API 26, compile/target API 35.
-- Current public release is [v3.3.0](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.3.0),
-  latest and stable, published October 17 after complete Android CI passed for its source.
+- Current public release is [v3.4.0](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.4.0),
+  latest and stable, published October 18 after complete Android CI passed for its source.
+  It retains the 3.3.0 signing certificate and supports in-place updates from 3.3.0.
 - Player-facing language is natural Simplified Chinese using Reload terminology. Preserve
   the established navy/cyan P3R presentation, slanted panels, condensed numerals, day/night
   widget palettes and fade, readable answers, and action-specific result sheets.
@@ -141,7 +142,7 @@ installation → app and widget. Results return through the service into the eve
   explicit opt-in promises crops will be planted first; crop/seed inventory and preparation
   costs are not modeled. It is a forecast preference, not a reason to erase past records.
 - Normal replans favor keeping the next three days stable. This behavior is deliberate
-  and differs from **从头重新安排**, which passes no previous plan and uses a 3× budget.
+  and differs from **从头重新安排**, which passes no previous plan and uses a 3× budget capped at 8 seconds.
 - `PlanValidator` has its own accumulator and transition checks instead of sharing
   `Kernel`/`Simulator` transitions. Keep that independence when changing mechanics.
   It checks contiguous coverage, legality, affordability, caps and forecast consistency.
@@ -407,8 +408,8 @@ Useful regression entry points:
 | Dorm widget milestones and current size boundaries | `DormWidgetRenderTest` and the focused friendship/classroom cases in `AnswerRowRenderTest` |
 | Reviewed dialogue, branch boundaries and compact answers | `ReviewedDialogueHintTest`, `DialogueHintsLoaderTest`, `ReviewedDialogueWidgetTest`, `ConditionalAnswerFitTest`, Python `test_dialogue_guidance.py` |
 
-Real-pack test helpers multiply the planning budget by three when `CI` is set; production
-keeps its normal budget. Plan metrics from tests are forecasts under the selected profile,
+Real-pack quality tests use an explicit 8-second search budget on both local and CI hosts;
+the default performance test uses the actual 4-second production budget. Plan metrics from tests are forecasts under the selected profile,
 not promises about every save or measurements on a phone. A focused run writes only its
 scenarios to `android/app/build/plan_metrics.md`; do not overwrite the full committed
 `docs/PLAN_METRICS.md` with that partial output.
@@ -537,7 +538,7 @@ as already supplied to the owner. Never upload it with the APK. The signed-relea
 ANDROID_* secrets and checks this new identity; configure those from the private backup for
 future tag-triggered builds. CI on main remains a test/debug build and does not itself publish.
 
-## Current 3.3.0 delivery boundary (2026-10-17)
+## Historical 3.3.0 delivery boundary (2026-10-17)
 
 The owner requested higher priority for group study and dorm activities, then a separate
 period-wide 提示 tab and a 4×2 minimum / 5×2 nominal widget. After reviewing the opportunity
@@ -670,3 +671,32 @@ its `.sha256` file (88 bytes). Final APK SHA-256 is
 certificate is the new `83d439…653ba` identity and the embedded rules remain
 `3.3.0|30aef29ce462`. Private signing material is absent from the public release.
 Subsequent documentation-only commits do not require rebuilding this published APK.
+
+## Current 3.4.0 delivery boundary (2026-10-18)
+
+Source `b8d5f52110fa5b289e2714e1a71a3e6b8394ec5d` passed complete Android CI
+[39118246698](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39118246698).
+The official local release script passed all **1,160 tests in 116 suites**, with zero
+failures, errors or skips, plus release lint and signed assembly. Python rules checks
+passed **110 tests** and the generated pack freshness check. No live-device run was performed.
+
+The owner authorized longer background computation: ordinary plans use a 4-second soft
+search budget; follow-up and full replans are capped at 8 seconds. Real-pack quality tests
+use 8 seconds and retain their goal, rescue, validator and complete-search assertions.
+All 32 base metric scenarios were refreshed; results match the preceding complete-search
+baseline apart from timings. The 10 trait scenarios retain their earlier 7.5-second capture.
+
+[v3.4.0](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.4.0), release ID
+416381441, was published at `2026-10-18T10:25:20Z` and independently confirmed latest,
+not draft and not prerelease. Publisher run
+[39119147338](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39119147338)
+succeeded from helper commit `9ada9fc1326a97d9bfb095d058c61c87494a183e`.
+The tag resolves to the source above. Assets are `P3R-Planner-3.4.0.apk` (982,956 bytes)
+and its 88-byte checksum file. APK SHA-256 is
+`aa0342eb209fb2d2720f62b60f291f2e1f62be9350ff5c8b29608f6677deec26`.
+The certificate remains `83d439…653ba`; the embedded rule bytes match source and pack
+`3.4.0|06843d87d8ea`. Both public asset digests match the verified local files.
+Version code is 38, package `app.p3r.planner`, non-debuggable. It can update 3.3.0 in place.
+Signing secrets remain absent from Actions; the verified prebuilt publication path was
+used again. No private signing material was committed or published. Later documentation
+changes do not require rebuilding this APK.
