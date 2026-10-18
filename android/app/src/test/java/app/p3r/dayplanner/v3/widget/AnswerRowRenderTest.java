@@ -311,7 +311,8 @@ public class AnswerRowRenderTest {
                 {"lovers", 5, "class.11-12", "我是她朋友", "", Profile.Route.FRIEND},
                 {"lovers", 5, "class.11-12", "她男朋友", "", Profile.Route.ROMANCE},
                 {"priestess", 8, "class.11-30", "帮你吃拉面", "已走友情", Profile.Route.FRIEND, true},
-                {"priestess", 9, "class.01-18", "当然", "已走友情", Profile.Route.FRIEND}};
+                {"priestess", 9, "class.01-18", "当然", "已走友情", Profile.Route.FRIEND},
+                {"priestess", 9, "class.01-18", "当然", "已走友情", Profile.Route.FRIEND, true}};
         List<String> issues = new ArrayList<>();
         for (Object[] scene : scenes) {
             String link = (String) scene[0];
@@ -355,6 +356,7 @@ public class AnswerRowRenderTest {
                     View root = RenderSupport.layout(app,
                             PlanWidget.card(app, ID, plan, model, size[0], size[1]), size[0], size[1]);
                     String tag = "friend-class-" + link + "-r" + rank + "-" + scene[5]
+                            + (conditional ? "-conditional" : "")
                             + "-" + size[0] + "x" + size[1] + "-font" + scale;
                     RenderSupport.collectTextIssues(root, tag, issues);
                     RenderSupport.collectCutText(root, tag, issues);

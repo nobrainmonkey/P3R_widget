@@ -4,6 +4,9 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+concurrency:
+  group: android-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -31,7 +34,7 @@ jobs:
         env:
           P3R_TOOLCHAIN: ${{ runner.temp }}/p3r-toolchain
           P3R_QA_DIR: ${{ runner.temp }}/qa_out
-        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
+        run: ./gradlew --no-daemon :app:testDebugUnitTest --fail-fast :app:assembleDebug
       - uses: actions/upload-artifact@v4
         if: always()
         with:

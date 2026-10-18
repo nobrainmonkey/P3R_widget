@@ -215,7 +215,7 @@ with `w(MUST, order i) = 100 000 − 100 i`, `w(WANT, i) = 8 000 − 10 i`, `w(o
    Tower ← Strength 4, …) carry part of the gated link's value; money is a list of near-term needs
    (fees about to open, a small training float), so jobs stop once they are covered; admission
    control keeps the densest links "planned to MAX" when a slot kind is overbooked.
-3. **Budget**: soft time budget (default 2.5 s on device, configurable in tests). When exhausted, follow
+3. **Budget**: soft time budget (default 4 s on device, configurable in tests). When exhausted, follow
    the incumbent for the remaining slots — the plan still covers the full calendar.
 4. **Validation**: `PlanValidator` re-derives everything with its own independent accumulator and
    checks: one action per slot, contiguous slots, no action on a locked slot, link availability,
@@ -380,7 +380,7 @@ the new wizard. Release signing key lives in `.signing/` (git-ignored, never pub
 5. **Guarded dates**: Dec 24 free (all invitations declined) by default; Jan 21 daytime locked
    (conservative); unresolved story contexts (Yakushima 7/20–7/23, 1/1, 11/4 …) locked until
    disproven; the rules builder records each decision in `notes`.
-6. **Replan**: in-process single-thread executor, default budget 2.5 s on device; a result that
+6. **Replan**: in-process single-thread executor, default budget 4 s on device; a result that
    matches the prediction leaves the current plan valid, so the widget advances immediately.
 7. **Dialogue text** comes only from `rules/p3r/guide_dialogue_reference_map.json` (CN guide
    verbatim) as `links[].dialogue:{"<targetRank>": ["…"]}`; otherwise the fallback copy
@@ -436,7 +436,7 @@ the new wizard. Release signing key lives in `.signing/` (git-ignored, never pub
 ## 16. 3.1.0: 从头重新安排
 
 - **Why.** Every automatic replan passes the installed plan as `previous`, which biases the next three days towards it (the base policy's +2 %, `Planner.STABILITY_MARGIN`, `SWITCH_MARGIN`), and `requestReplan` does nothing while the plan is current. After several setting changes the plan can therefore look held back by its own history. 「从头重新安排」 is the player's way to drop that bias. With budget to spare, planning is deterministic, so the run only differs where the bias or the budget mattered.
-- **Service** (`PlannerApi.requestFullReplan` / `cancelFullReplan`, `PlannerService`). A request first re-reads the view from the store under the lock (`LedgerView.load`; the rule pack stays as loaded). It then queues a full job (`ReplanWorker.Job.full`, with a ticket): `previous = null`, three times the budget (`fullReplanBudget`: 7.5 s on device) and the usual 4 candidates (they are in the plan id). It also sets `options.followUp` and `followUpKey`, so no automatic 2× run follows. When the full job installs no plan for those revisions (stopped with 「先不算了」, or failed, while the installed plan is out of date) it gives the key back (`releaseFollowUpLocked`): the ordinary job that computes those revisions instead (the replan after 「先不算了」, or 重试) keeps its one 2× follow-up if it runs out of time, so the note 「这次没来得及算完，稍后会自动再算一次」 never stands without a run behind it.
+- **Service** (`PlannerApi.requestFullReplan` / `cancelFullReplan`, `PlannerService`). A request first re-reads the view from the store under the lock (`LedgerView.load`; the rule pack stays as loaded). It then queues a full job (`ReplanWorker.Job.full`, with a ticket): `previous = null`, three times the budget, capped at 8 s (`fullReplanBudget`) and the usual 4 candidates (they are in the plan id). It also sets `options.followUp` and `followUpKey`, so no automatic 2× run follows. When the full job installs no plan for those revisions (stopped with 「先不算了」, or failed, while the installed plan is out of date) it gives the key back (`releaseFollowUpLocked`): the ordinary job that computes those revisions instead (the replan after 「先不算了」, or 重试) keeps its one 2× follow-up if it runs out of time, so the note 「这次没来得及算完，稍后会自动再算一次」 never stands without a run behind it.
   - A pending full job takes precedence over a follow-up or an ordinary job (`nextJob`). A request cancels the other computation in flight (`cancelPartial`). 「先不算了」 cancels only a full one (`cancelFull`).
   - It is not a write: no revision moves, no command id, nothing in 记录历史, and `planCurrent` stays true throughout. So the widget keeps recording with one tap, and `Snapshot.planning` stays false. `Snapshot.fullReplanning` says a request is queued or computing.
   - A record during the run cancels the computation for the old records (`cancelOutdated`). The request stays pending, and the next job is again a full one for the new revisions.
@@ -865,3 +865,18 @@ The full April–January guide review is recorded in
   The app answer prefix is `回答：`; widget remains `答：`. Source/translation/numeric
   caveats belong in developer evidence rather than repeated player-facing captions.
   `预计` still distinguishes forecasts from confirmed results.
+
+## 27. 3.4.0: Bounded background computation
+
+On October 18 the owner explicitly accepted a few more seconds of computation. Ordinary
+planning uses a 4-second search budget; the one automatic follow-up and a manual full
+replan are capped at 8 seconds. Small injected test budgets retain their 2×/3× scaling
+until that cap. Both jobs stay on the existing cancellable background worker. A soft
+search cutoff preserves the complete incumbent plan; final assembly can take additional
+time. These limits supersede the earlier 2.5/5/7.5-second figures.
+
+Complete-search quality comparisons use an explicit 8-second budget and retain all goal,
+rescue, validation, determinism and golden assertions. Their elapsed-time ceiling allows
+for final assembly. The synthetic default-budget performance test uses the actual
+4-second application default. Timing limits follow the authorized runtime policy;
+changing them is not presented as a scoring improvement.

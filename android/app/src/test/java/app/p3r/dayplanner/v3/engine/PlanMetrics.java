@@ -318,9 +318,10 @@ final class PlanMetrics {
         StringBuilder md = new StringBuilder();
         md.append("# 安排质量（真实规则包）\n\n");
         md.append("由 `PlanRealPackTest` 和 `PlanBreadthRealPackTest` 生成：规则包 ").append(rules.packVersion)
-                .append(System.getenv("CI") != null
-                        ? "，共享构建环境的 CI 选项（时间预算 7.5 秒；应用默认 2.5 秒），桌面 JVM，用时随机器而变。"
-                        : "，默认选项（时间预算 2.5 秒），桌面 JVM，用时随机器而变。")
+                .append("，完整搜索测试预算 ").append(PlanBreadthRealPackTest.QUALITY_BUDGET_MILLIS / 1_000)
+                .append(" 秒；应用常规 ").append(Engine.DEFAULT_PLAN_BUDGET_MILLIS / 1_000)
+                .append(" 秒，补算与从头规划 ").append(PlanBreadthRealPackTest.QUALITY_BUDGET_MILLIS / 1_000)
+                .append(" 秒。桌面 JVM，用时随机器而变。")
                 .append("每个场景都排到 1月31日，并通过独立校验（PlanValidator）。")
                 .append("「解锁」是 RANK 1 以上的社群，「最低 RANK」只看非剧情社群；「最低 RANK（解锁的）」只看解锁了的非剧情社群，")
                 .append("「对比」两行按两种风格任一解锁的社群计算，避免双方都未解锁的社群主导最低等级。\n\n");

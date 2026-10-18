@@ -71,6 +71,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class PlannerService implements PlannerApi {
     private static final String TAG = "P3rPlanner";
+    private static final long MAX_EXTENDED_PLAN_BUDGET_MILLIS = 8_000;
 
     static final String ZH_STALE = "记录已经更新过了，请看最新的安排";
     static final String ZH_CONFLICT = "刚才已经保存过另一份结果，这次没有保存";
@@ -216,7 +217,7 @@ public final class PlannerService implements PlannerApi {
     private String failedPlanKey;
     /**
      * Revisions key ({@link #planKey}) whose budget follow-up was already queued: an installed plan
-     * that ran out of time gets exactly one follow-up computation with twice the budget.
+     * that ran out of time gets exactly one follow-up computation with twice the budget, capped at 8 s.
      */
     private String followUpKey;
     /**
@@ -840,7 +841,7 @@ public final class PlannerService implements PlannerApi {
 
     /**
      * 从头重新安排 (docs/DESIGN_v3.md §16): re-reads the view from the store, then queues a full
-     * job ({@link ReplanWorker.Job#full}: no previous plan, three times the budget) that takes
+     * job ({@link ReplanWorker.Job#full}: no previous plan, three times the budget capped at 8 s) that takes
      * precedence over any other computation and supersedes the one in flight. Not a write.
      */
     @Override
@@ -985,14 +986,18 @@ public final class PlannerService implements PlannerApi {
         }
     }
 
-    /** Budget of the follow-up computation: twice the normal one. */
+    /** Soft budget of the follow-up computation: twice the normal one, capped at 8 s. */
     static long followUpBudget(long budgetMillis) {
-        return budgetMillis > Long.MAX_VALUE / 2 ? Long.MAX_VALUE : budgetMillis * 2;
+        if (budgetMillis <= 0) return 0;
+        return budgetMillis > MAX_EXTENDED_PLAN_BUDGET_MILLIS / 2
+                ? MAX_EXTENDED_PLAN_BUDGET_MILLIS : budgetMillis * 2;
     }
 
-    /** Budget of a 从头重新安排 computation: three times the normal one (7.5 s on device). */
+    /** Soft budget of a 从头重新安排 computation: three times the normal one, capped at 8 s. */
     static long fullReplanBudget(long budgetMillis) {
-        return budgetMillis > Long.MAX_VALUE / 3 ? Long.MAX_VALUE : budgetMillis * 3;
+        if (budgetMillis <= 0) return 0;
+        return budgetMillis > MAX_EXTENDED_PLAN_BUDGET_MILLIS / 3
+                ? MAX_EXTENDED_PLAN_BUDGET_MILLIS : budgetMillis * 3;
     }
 
     /**
@@ -1233,7 +1238,7 @@ public final class PlannerService implements PlannerApi {
                     full = f.ended(FullReplanResult.FAILED);
                 }
                 // A request that came in while this run was ending, or the plan just installed ran
-                // out of time (compute it once more with twice the budget).
+                // out of time (compute it once more with twice the budget, capped at 8 s).
                 again = full.pending > 0 || needsFollowUpLocked(model);
             }
             refreshWidgets();

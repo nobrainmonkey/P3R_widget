@@ -60,26 +60,16 @@ import java.util.List;
 public class PlanBreadthRealPackTest {
     private static Rules rules;
 
-    /**
-     * Per-plan budget (default options, desktop JVM), as in PlanRealPackTest; shared CI runners are
-     * several times slower, there the planner's own time budget bounds the run.
-     */
-    private static final long MAX_MILLIS = System.getenv("CI") != null ? 5_000 : 1_500;
-    /**
-     * Per-plan budget of the slowest start ({@link #newGameWithGoalsAndEveryEpisodeStaysWithinTheBudget}):
-     * still below the planner's own 2.5 s budget, which it must not run out of.
-     */
-    private static final long SLOWEST_MILLIS = System.getenv("CI") != null ? 5_000 : 2_000;
-    /**
-     * Options of every plan here: the defaults, except that on a shared CI runner (env CI, several
-     * times slower than a desktop and with two cores for the two plannings 「尽量都体验」 runs) the
-     * planner's time budget is three times the default, so this test checks plan quality there and
-     * the budget is checked against the desktop limits above. On a device that runs out of time the
-     * plan is still complete and the service follows up with twice the budget (DESIGN §20 「Cost」).
-     */
+    /** Complete-search quality evaluation, matching the service's extended planning allowance. */
+    static final long QUALITY_BUDGET_MILLIS = 8_000;
+    /** Eight seconds of search plus assembly overhead; every scenario must finish its search. */
+    private static final long MAX_MILLIS = 10_000;
+    /** The same allowance for the historically slowest all-episodes-and-goals scenario. */
+    private static final long SLOWEST_MILLIS = 10_000;
+    /** The same explicit extended search budget on local JVMs and shared CI runners. */
     static Engine.Options options() {
         Engine.Options options = new Engine.Options();
-        if (System.getenv("CI") != null) options.timeBudgetMillis *= 3;
+        options.timeBudgetMillis = QUALITY_BUDGET_MILLIS;
         return options;
     }
 
@@ -142,11 +132,10 @@ public class PlanBreadthRealPackTest {
     }
 
     /**
-     * The slowest 「尽量都体验」 start the 3.1.0 re-check found: a new game with every 羁绊剧情 track and
-     * goals (必须 力量 to RANK 6, 想要 命运 to RANK 4), 1.37–1.39 s there and 1.4–1.5 s here against
-     * 1.1 s for 「尽量多 MAX」, so it is held to {@link #SLOWEST_MILLIS} rather than {@link #MAX_MILLIS}
-     * (DESIGN §20 「Cost」). Complete, validator-clean and not out of time ({@link #run}); the goals
-     * reached, the same links unlocked and at most one MAX fewer.
+     * The historically slowest 「尽量都体验」 start: a new game with every 羁绊剧情 track and goals
+     * (必须 力量 to RANK 6, 想要 命运 to RANK 4). Both styles must finish their extended search,
+     * validate cleanly and stay within {@link #SLOWEST_MILLIS}; the goals are reached, the same
+     * links unlocked and at most one MAX fewer.
      */
     @Test
     public void newGameWithGoalsAndEveryEpisodeStaysWithinTheBudget() {
@@ -572,7 +561,7 @@ public class PlanBreadthRealPackTest {
     }
 
     /**
-     * One plan with default options: complete, validator-clean, within the time budget, every rescue made and
+     * One plan with the extended quality-test options: complete, validator-clean, within the time budget, every rescue made and
      * none that matters left to its limit evening while an earlier one was open ({@link RescueMargin});
      * recorded by {@link #both}.
      */

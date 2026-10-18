@@ -199,7 +199,13 @@ public class PlannerServiceFollowUpTest extends ServiceTestBase {
         assertTrue(PlannerService.improves(p, same, null));
         assertFalse(PlannerService.improves(p, null, current));
         assertEquals(5_000, PlannerService.followUpBudget(2_500));
-        assertEquals(Long.MAX_VALUE, PlannerService.followUpBudget(Long.MAX_VALUE));
+        assertEquals(100, PlannerService.followUpBudget(50));
+        assertEquals(7_998, PlannerService.followUpBudget(3_999));
+        assertEquals(8_000, PlannerService.followUpBudget(4_000));
+        assertEquals(8_000, PlannerService.followUpBudget(4_001));
+        assertEquals(8_000, PlannerService.followUpBudget(Long.MAX_VALUE));
+        assertEquals(0, PlannerService.followUpBudget(0));
+        assertEquals(0, PlannerService.followUpBudget(Long.MIN_VALUE));
     }
 
     private static Plan exhausted(int[] endRanks) {

@@ -553,7 +553,12 @@ public class PlannerServiceFullReplanTest extends ServiceTestBase {
 
         assertEquals(7_500, PlannerService.fullReplanBudget(2_500));
         assertEquals(150, PlannerService.fullReplanBudget(50));
-        assertEquals(Long.MAX_VALUE, PlannerService.fullReplanBudget(Long.MAX_VALUE / 2));
+        assertEquals(7_998, PlannerService.fullReplanBudget(2_666));
+        assertEquals(8_000, PlannerService.fullReplanBudget(2_667));
+        assertEquals(8_000, PlannerService.fullReplanBudget(4_000));
+        assertEquals(8_000, PlannerService.fullReplanBudget(Long.MAX_VALUE));
+        assertEquals(0, PlannerService.fullReplanBudget(0));
+        assertEquals(0, PlannerService.fullReplanBudget(Long.MIN_VALUE));
     }
 
     @Test

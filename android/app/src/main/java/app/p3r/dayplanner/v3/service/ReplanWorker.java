@@ -30,10 +30,10 @@ import java.util.function.LongSupplier;
  *       cancelled, so a late cancel can never hit the computation for the latest state; a full
  *       replan cancelled this way is computed again for the new revisions.</li>
  *   <li>Follow-up: when the installed plan ran out of time ({@link Plan#budgetExhausted}), the
- *       host queues exactly one more computation for the same revisions with twice the budget
+ *       host queues exactly one more computation for the same revisions with twice the budget, capped at 8 s
  *       ({@link Job#followUp}) and installs its result only if it is complete or better.</li>
  *   <li>Full replan (从头重新安排, {@link Job#full}): computed without the installed plan as
- *       {@code previous} and with three times the budget. A request supersedes the other
+ *       {@code previous} and with three times the budget, capped at 8 s. A request supersedes the other
  *       computation in flight ({@link #cancelPartial}); 「先不算了」 stops only the full one
  *       ({@link #cancelFull}).</li>
  * </ul>
@@ -51,13 +51,13 @@ final class ReplanWorker {
         long profileRevision;
         Engine.Options options;
         /**
-         * The one extra computation, with twice the time budget, that follows an installed plan
+         * The one extra computation, with twice the time budget capped at 8 s, that follows an installed plan
          * which ran out of time ({@link Plan#budgetExhausted}) for the same revisions.
          */
         boolean followUp;
         /**
          * 从头重新安排: computed with no {@link #previous} plan (no stability bias) and three times
-         * the budget, for the request {@link #ticket}.
+         * the budget capped at 8 s, for the request {@link #ticket}.
          */
         boolean full;
         /** The request a {@link #full} job answers ({@code PlannerApi#requestFullReplan}); 0 otherwise. */

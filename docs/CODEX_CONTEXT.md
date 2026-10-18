@@ -93,8 +93,10 @@ installation → app and widget. Results return through the service into the eve
   obey money, availability, prerequisite and minimum-gap rules.
 - The planner screens 16 base-policy tunings, adds goal-first tunings when relevant,
   and improves promising complete trajectories with fortified rollout. Default options
-  allow four candidates and a 2.5-second soft budget. Budget exhaustion keeps a complete
-  incumbent tail, rather than truncating the calendar.
+  allow four candidates and a 4-second soft budget. Automatic follow-up and full replan
+  budgets are capped at 8 seconds. Budget exhaustion keeps a complete incumbent tail,
+  rather than truncating the calendar. The owner explicitly authorized this modestly
+  longer computation on October 18; earlier 2.5/5/7.5-second figures are historical.
 - Goals are compared in strict order: **必须**, then **想要**, each by the player's order.
   Target ranks can be below MAX. `Planner.Pool.compareGoals` and strict-priority reruns
   matter; the weighted objective alone is not the whole selection policy.
@@ -301,7 +303,7 @@ installation → app and widget. Results return through the service into the eve
   and rules identity. Upgrading recalculates the old implicit-all-teammate plan once without
   changing actual records or the rule pack. A saved policy-version-2 plan remains reusable
   on restart when its normal currentness checks pass.
-- Full replan rereads saved state/profile, uses a 7.5-second default budget and no stability
+- Full replan rereads saved state/profile, uses an 8-second default budget and no stability
   bias, and does not itself change progress or history. Its ticket/result state is distinct
   from ordinary planning; a current widget can keep recording during it.
 

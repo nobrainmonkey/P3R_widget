@@ -14,12 +14,15 @@ import java.util.List;
 public final class Engine {
     private Engine() {}
 
+    /** Default soft time budget for one plan. */
+    public static final long DEFAULT_PLAN_BUDGET_MILLIS = 4_000;
+
     public static final class Options {
         /**
-         * Soft wall-clock budget for the rollout phase; the plan is always complete. Default 2.5 s
+         * Soft wall-clock budget for the rollout phase; the plan is always complete. Default 4 s
          * (DESIGN §10.6). 0 disables the rollout (pure base policy).
          */
-        public long timeBudgetMillis = 2500;
+        public long timeBudgetMillis = DEFAULT_PLAN_BUDGET_MILLIS;
         /** Rollout candidates per slot. */
         public int candidates = 4;
         /** Optional progress callback (0..1), may be null. Called from the planning thread. */

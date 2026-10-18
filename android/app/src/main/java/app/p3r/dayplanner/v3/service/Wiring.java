@@ -1,5 +1,6 @@
 package app.p3r.dayplanner.v3.service;
 
+import app.p3r.dayplanner.v3.engine.Engine;
 import app.p3r.dayplanner.v3.store.OutcomeApplier;
 import app.p3r.dayplanner.v3.store.PlanDb;
 
@@ -24,8 +25,8 @@ public final class Wiring {
     public Runnable widgetRefresh = () -> { };
     /** Wall clock (ms) for the {@code created} columns. */
     public LongSupplier clock = System::currentTimeMillis;
-    /** Soft time budget per plan (DESIGN §10.6: 2.5 s on device). */
-    public long planBudgetMillis = 2500;
+    /** Soft time budget per plan (DESIGN §10.6: 4 s on device). */
+    public long planBudgetMillis = Engine.DEFAULT_PLAN_BUDGET_MILLIS;
     /**
      * Stop a computation early when a write makes it outdated. Its result would be discarded by
      * the revision check on install anyway; turning this off only costs time (tests use it to

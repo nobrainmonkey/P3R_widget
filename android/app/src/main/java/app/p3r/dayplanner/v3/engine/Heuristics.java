@@ -305,6 +305,9 @@ final class Heuristics {
     /** Actual free dates ordered by the best relevant gain, one date only once. */
     private final int[][] freeDates;
     private final int[][] datedFreeDates;
+    /** Boundaries of equal-gain groups, within which the dates are ascending. */
+    private final int[][] freeDateGroups;
+    private final int[][] datedFreeDateGroups;
     /** Best actual gain by mask/date, also reused when only one stat still needs training. */
     private final int[][] freeBestGain;
     private final int[][] datedFreeBestGain;
@@ -411,6 +414,10 @@ final class Heuristics {
     private final double[] gValue = new double[MAX_GATES];
     private final int[] gOrder = new int[MAX_GATES];
     private final double[] cumNeed = new double[3];
+    /** Capacity depends only on the prepared state and the window end; epochs avoid clearing. */
+    private final int[] capacityEpochAt;
+    private final double[] capacityAt;
+    private int capacityEpoch = 1;
     private int gates;
     private boolean linkMeetable;
     /** Money needs of the near term, highest value per yen first: amount and value per yen. */
@@ -504,6 +511,8 @@ final class Heuristics {
         }
 
         int size = t.lastSlot + 2;
+        capacityEpochAt = new int[size];
+        capacityAt = new double[size];
         openRemain = new int[2][size];
         for (int s = t.lastSlot; s >= 0; s--) {
             openRemain[0][s] = openRemain[0][s + 1] + ((s & 1) == 0 && t.open(s) ? 1 : 0);
@@ -519,6 +528,8 @@ final class Heuristics {
         datedFreePointsRemain = new int[ns][size];
         freeDates = new int[8][];
         datedFreeDates = new int[8][];
+        freeDateGroups = new int[8][];
+        datedFreeDateGroups = new int[8][];
         freeBestGain = new int[8][];
         datedFreeBestGain = new int[8][];
         freeActsAt = new int[size][];
@@ -796,7 +807,24 @@ final class Heuristics {
         });
         int[] result = new int[dates.size()];
         for (int i = 0; i < result.length; i++) result[i] = dates.get(i);
+        int[] groups = new int[result.length + 1];
+        int count = 0;
+        for (int i = 0; i < result.length; i++) {
+            if (i == 0 || bestGain[result[i]] != bestGain[result[i - 1]]) groups[count++] = i;
+        }
+        groups[count++] = result.length;
+        (dated ? datedFreeDateGroups : freeDateGroups)[mask] = Arrays.copyOf(groups, count);
         return result;
+    }
+
+    /** First date greater than {@code after} inside one ascending equal-gain group. */
+    private static int firstFreeDateAfter(int[] dates, int from, int to, int after) {
+        while (from < to) {
+            int mid = (from + to) >>> 1;
+            if (dates[mid] <= after) from = mid + 1;
+            else to = mid;
+        }
+        return from;
     }
 
     /** Gains after the current action and strictly before the gate action can use them. */
@@ -956,6 +984,10 @@ final class Heuristics {
 
     /** Prepare per-step values (link demand, contention, gates, money) for {@code st.slot}. */
     void prepare(SimState st) {
+        if (++capacityEpoch == 0) {
+            Arrays.fill(capacityEpochAt, 0);
+            capacityEpoch = 1;
+        }
         int slot = st.slot;
         int day = slot >> 1;
         for (int l = 0; l < t.nLinks; l++) linkMult[l] = Kernel.mult(m, st, l);
@@ -1184,10 +1216,10 @@ final class Heuristics {
             demand[l] = 0;
             perMeeting[l] = 0;
             admitted[l] = false;
-            if (rules.links[l].kind != Rules.LinkKind.MANUAL || Kernel.lost(m, st, l, day)) continue;
+            if (rules.links[l].kind != Rules.LinkKind.MANUAL) continue;
             int r = st.rank[l];
             int goalRank = milestone(l, r);
-            if (goalRank <= r) continue;
+            if (goalRank <= r || Kernel.lost(m, st, l, day)) continue;
             double mult = linkMult[l];
             int need = remainingMeetings(st, l, mult);
             if (need >= INF) continue;
@@ -1440,44 +1472,77 @@ final class Heuristics {
         if (mask == 0 || futureCapacity < 1) return;
         int left = (int) Math.floor(futureCapacity);
         int[] dates = dated ? datedFreeDates[mask] : freeDates[mask];
+        int[] groups = (dated ? datedFreeDateGroups : freeDateGroups)[mask];
         if ((mask & (mask - 1)) == 0) {
             // With one outstanding stat every other component contributes zero. The greatest
             // actual gain on this date therefore gives exactly the original capped gain,
             // including ties. Keep the same date order and each original floating-point update.
             int stat = Integer.numberOfTrailingZeros(mask);
             int[] bestGain = (dated ? datedFreeBestGain : freeBestGain)[mask];
-            for (int slot : dates) {
-                if (slot <= st.slot || slot > deadline || reservedFreeSlots[slot]) continue;
-                double gain = Math.min(freeNeed[stat], bestGain[slot]);
-                if (gain <= 0) continue;
-                out[stat] += gain;
-                freeNeed[stat] -= gain;
-                remaining -= gain;
-                if (--left == 0 || remaining <= 1e-9) break;
+            double need = freeNeed[stat];
+            double credit = out[stat];
+            singleAllocation:
+            for (int g = 0; g + 1 < groups.length; g++) {
+                int from = firstFreeDateAfter(dates, groups[g], groups[g + 1], st.slot);
+                int to = firstFreeDateAfter(dates, from, groups[g + 1], deadline);
+                for (int i = from; i < to; i++) {
+                    int slot = dates[i];
+                    if (reservedFreeSlots[slot]) continue;
+                    double gain = Math.min(need, bestGain[slot]);
+                    if (gain <= 0) continue;
+                    credit += gain;
+                    need -= gain;
+                    remaining -= gain;
+                    if (--left == 0 || remaining <= 1e-9) break singleAllocation;
+                }
             }
+            out[stat] = credit;
+            freeNeed[stat] = need;
             return;
         }
-        for (int slot : dates) {
-            if (slot <= st.slot || slot > deadline || reservedFreeSlots[slot]) continue;
-            int best = -1;
-            double bestGain = 0;
-            int[] gains = (dated ? datedFreeGainsAt : freeGainsAt)[slot];
-            for (int i = 0; i < gains.length; i += 3) {
-                double gain = 0;
-                gain += Math.min(freeNeed[0], gains[i]);
-                gain += Math.min(freeNeed[1], gains[i + 1]);
-                gain += Math.min(freeNeed[2], gains[i + 2]);
-                if (gain > bestGain) { bestGain = gain; best = i; }
+        // The output and scratch arrays are distinct in every caller. Keep their values local
+        // during allocation, preserving every floating-point operation in its original order.
+        double need0 = freeNeed[0], need1 = freeNeed[1], need2 = freeNeed[2];
+        double credit0 = out[0], credit1 = out[1], credit2 = out[2];
+        multiAllocation:
+        for (int g = 0; g + 1 < groups.length; g++) {
+            int from = firstFreeDateAfter(dates, groups[g], groups[g + 1], st.slot);
+            int to = firstFreeDateAfter(dates, from, groups[g + 1], deadline);
+            for (int i = from; i < to; i++) {
+                int slot = dates[i];
+                if (reservedFreeSlots[slot]) continue;
+                int best = -1;
+                double bestGain = 0;
+                int[] gains = (dated ? datedFreeGainsAt : freeGainsAt)[slot];
+                for (int j = 0; j < gains.length; j += 3) {
+                    double gain = 0;
+                    gain += Math.min(need0, gains[j]);
+                    gain += Math.min(need1, gains[j + 1]);
+                    gain += Math.min(need2, gains[j + 2]);
+                    if (gain > bestGain) { bestGain = gain; best = j; }
+                }
+                if (best < 0) continue;
+                double gain0 = Math.min(need0, gains[best]);
+                credit0 += gain0;
+                need0 -= gain0;
+                remaining -= gain0;
+                double gain1 = Math.min(need1, gains[best + 1]);
+                credit1 += gain1;
+                need1 -= gain1;
+                remaining -= gain1;
+                double gain2 = Math.min(need2, gains[best + 2]);
+                credit2 += gain2;
+                need2 -= gain2;
+                remaining -= gain2;
+                if (--left == 0 || remaining <= 1e-9) break multiAllocation;
             }
-            if (best < 0) continue;
-            for (int s = 0; s < 3; s++) {
-                double gain = Math.min(freeNeed[s], gains[best + s]);
-                out[s] += gain;
-                freeNeed[s] -= gain;
-                remaining -= gain;
-            }
-            if (--left == 0 || remaining <= 1e-9) break;
         }
+        out[0] = credit0;
+        out[1] = credit1;
+        out[2] = credit2;
+        freeNeed[0] = need0;
+        freeNeed[1] = need1;
+        freeNeed[2] = need2;
     }
 
     /** Reserve concrete last-chance evenings before promising them as free training. */
@@ -1536,6 +1601,7 @@ final class Heuristics {
         int slot = st.slot;
         int end = Math.min(t.lastSlot + 1, deadline + 1);
         if (end <= slot) return 0;
+        if (capacityEpochAt[end] == capacityEpoch) return capacityAt[end];
         double cap = openRemain[1][slot] - openRemain[1][end];
         for (int b = 0; b < t.nBlocks; b++) {
             int left = towerTarget[b] - st.towerVisits[b];
@@ -1560,7 +1626,10 @@ final class Heuristics {
                 if (due >= slot && due < end) cap--;
             }
         }
-        return Math.max(0, cap);
+        double result = Math.max(0, cap);
+        capacityEpochAt[end] = capacityEpoch;
+        capacityAt[end] = result;
+        return result;
     }
 
     /** H for one legal action; {@link #prepare} must have been called for this state. */

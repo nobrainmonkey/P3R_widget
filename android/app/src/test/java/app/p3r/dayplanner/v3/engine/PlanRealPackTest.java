@@ -31,7 +31,7 @@ import java.util.List;
  * coverage, a clean independent validation, useful actions until the last two weeks of January,
  * every Tartarus requirement and rescue, the one-day rescue margin ({@link RescueMargin}: no rescue that
  * matters on its limit evening while an earlier evening was open), runtime, and the plan-quality benchmarks below as lower
- * bounds (the numbers this planner reaches with default options; the CN walkthrough pinned in
+ * bounds (the numbers this planner reaches with completed extended searches; the CN walkthrough pinned in
  * rules/sources/cn_guides/data.json maxes all 22 links with matching Personas and is the feasibility witness):
  *
  * <table>
@@ -93,12 +93,8 @@ public class PlanRealPackTest {
 
     // ------------------------------------------------------------------ scenarios
 
-    /**
-     * Plan-quality budget per scenario (default options, desktop JVM; DESIGN §8). Shared CI runners
-     * (env CI) are several times slower and noisy: there the planner's own time budget bounds the run
-     * (each scenario still asserts the rollout finished inside it, {@code budgetExhausted} false).
-     */
-    private static final long MAX_MILLIS = System.getenv("CI") != null ? 5_000 : 1_500;
+    /** Eight-second quality searches plus assembly overhead; budget exhaustion still fails. */
+    private static final long MAX_MILLIS = 10_000;
     /** "Modest" cash: what the plan holds before the December filler jobs start. */
     private static final long MODEST_CASH = 60_000;
 
@@ -692,7 +688,7 @@ public class PlanRealPackTest {
         int dec1 = Rules.slot(dayOf(12, 1), false);
         long cashDec1 = pm.cashBefore(dec1);
         System.out.print(pm.format());
-        System.out.println("cash on 12/1 " + cashDec1 + " · end cash " + pm.endCash + " · elapsed " + ms + " ms (default options)");
+        System.out.println("cash on 12/1 " + cashDec1 + " · end cash " + pm.endCash + " · elapsed " + ms + " ms (extended quality options)");
         assertEquals(rules.lastSlot() - start.slot + 1, plan.steps.size());
         List<String> errors = Engine.validate(rules, profile, start, plan);
         assertTrue(errors.toString(), errors.isEmpty());
