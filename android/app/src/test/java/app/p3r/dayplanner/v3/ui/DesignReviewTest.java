@@ -400,7 +400,7 @@ public class DesignReviewTest extends UiTestBase {
 
     // ------------------------------------------------------------------ 12 「/」 starts the next line
 
-    private static final String ANSWERS = "参考回答：我会帮你的 / 这样的规矩没有意义";
+    private static final String ANSWERS = "回答：我会帮你的 / 这样的规矩没有意义";
 
     @Test
     public void noLineEndsWithASlash() {
@@ -411,7 +411,7 @@ public class DesignReviewTest extends UiTestBase {
             TextView t = drawn(ANSWERS, 15, false, w);
             Shots.checkLines(t, ANSWERS + " @" + w);
             List<String> shown = lines(t);
-            if (shown.size() > 1 && shown.get(0).equals("参考回答：我会帮你的")) {
+            if (shown.size() > 1 && shown.get(0).equals("回答：我会帮你的")) {
                 seen = true;
                 assertEquals(shown.toString(), "/ 这样的规矩没有意义", shown.get(1));
             }
@@ -436,7 +436,7 @@ public class DesignReviewTest extends UiTestBase {
         HomeActivity a = home();
         Shots.capture(a, false);
         List<String> shown = lines((TextView) Shots.find(a, ANSWERS));
-        assertEquals(Arrays.asList("参考回答：我会帮你的", "/ 这样的规矩没有意义"), shown);
+        assertEquals(Arrays.asList("回答：我会帮你的", "/ 这样的规矩没有意义"), shown);
         ResultActivity r = result(Fixtures.SLOT_NOW, "meet:emperor", Intents.MODE_RESULT);
         AuditFixesTest.assertNoBreakInsideKeptText(r, "rank-up sheet");
     }
@@ -616,7 +616,7 @@ public class DesignReviewTest extends UiTestBase {
         for (TextView t : AuditFixesTest.textViews(a.getWindow().getDecorView())) {
             String plain = Zh.plain(t.getText());
             assertFalse(plain, plain.startsWith("·"));
-            if (!plain.startsWith("普通见面按每次")) {
+            if (!plain.startsWith("普通见面预计好感")) {
                 continue;
             }
             notes++;

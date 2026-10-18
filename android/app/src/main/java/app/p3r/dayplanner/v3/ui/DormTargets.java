@@ -104,7 +104,7 @@ final class DormTargets {
             data.profile(), null, data.snap == null ? 0 : data.snap.stateRevision);
         LinearLayout sheet = Ui.column(c);
         Ui.pad(sheet, 20, 12, 20, 20);
-        sheet.addView(Ui.title(c, partner.name + " · 队友特性"));
+        sheet.addView(SheetChrome.title(c, partner.name + " · 队友特性"));
         sheet.addView(Ui.muted(c, "一种活动累计 3 次解锁特性，两种各 3 次强化。达到目标后，不会只为特性继续安排。"), spaced(c, 6));
         sheet.addView(Ui.muted(c, "宿舍活动占用晚上；救援和社群目标优先。未选特性目标，仍可能为能力值安排活动。"), spaced(c, 6));
         SegmentedControl target = new SegmentedControl(c, Arrays.asList("不追求", "解锁", "强化"));
@@ -151,7 +151,7 @@ final class DormTargets {
         for (Rules.Activity activity : partner.activities) garden |= activity.requiresPlantedCrop;
         if (garden) {
             sheet.addView(Ui.muted(c, data.profile().planDormGardening
-                ? "园艺已允许安排，请提前种好作物。种苗费用和作物状态不计入安排。"
+                ? "园艺已允许安排，请提前购买种苗、种好作物。"
                 : "该队友有园艺项目。目前未允许安排园艺；如需安排，请在「同步现状 → 宿舍活动」开启，并提前种好作物。"), spaced(c, 14));
         }
         if (hasCurrentPlan(data)) {

@@ -398,7 +398,7 @@ public final class Zh {
     /**
      * {@code text} with word joiners inside every name, venue, glossary term and short tag
      * ("救出舞子", "本区块第 2 次", "10月22日", "RANK 7", "2,500 日元", "「皇帝」", "（1）" with the
-     * character before it), each short answer of a "参考回答：" line, every Chinese word and short
+     * character before it), each short answer of a "回答：" line, every Chinese word and short
      * phrase ({@link #words}: "余额", "许可证", "没排到", "玩了吗"), and the last three characters of
      * every paragraph, so a line never breaks inside one and a paragraph never ends with a lone
      * character ("吗？", "证）。"). Idempotent; spans are kept.
@@ -469,13 +469,13 @@ public final class Zh {
         }
     }
 
-    /** Longest answer of a "参考回答：A / B" line kept on one line as a whole. */
+    /** Longest answer of a "回答：A / B" line kept on one line as a whole. */
     private static final int MAX_ANSWER = 10;
 
-    /** Each short answer of a "参考回答：A / B；…" line, so lines only break between answers. */
+    /** Each short answer of a "回答：A / B；…" line, so lines only break between answers. */
     private static void answers(CharSequence flat, List<int[]> out) {
         String s = flat.toString();
-        String prefix = "参考回答：";
+        String prefix = "回答：";
         int at = s.indexOf(prefix);
         if (at < 0) {
             return;

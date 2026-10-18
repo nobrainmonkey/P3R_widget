@@ -101,7 +101,7 @@ public class FeaturesTest {
             assertTrue(s.hintZh, s.hintZh.startsWith("记得带上「") && s.hintZh.endsWith("」阿尔卡那的人格面具"));
         }
         assertTrue("goal meetings carry the Persona hint", hinted > 5);
-        assertTrue(plan.summary.notesZh.toString(), plan.summary.notesZh.contains("按和目标社群见面时带着同阿尔卡那的人格面具估计，点数 ×1.51"));
+        assertTrue(plan.summary.notesZh.toString(), plan.summary.notesZh.contains("和目标社群见面时带同阿尔卡那的人格面具，点数 ×1.51"));
     }
 
     // ------------------------------------------------------------------ dating-site note
@@ -480,7 +480,8 @@ public class FeaturesTest {
             texts.addAll(s.sideZh);
         }
         assertTrue("the accepted 12/24 invitation is labelled", texts.contains(Rules.LOCK_CHRISTMAS_ZH));
-        assertTrue("an outing invitation reads 休息日邀约", texts.stream().anyMatch(t -> t.startsWith(Labels.INVITE + " · ")));
+        assertFalse("unreceived SMS invitations are not guaranteed future actions",
+                plan.steps.stream().anyMatch(s -> s.action.startsWith("invite:")));
         for (String t : texts) {
             String checked = t;
             for (String a : ALLOWED_TERMS) checked = checked.replace(a, "");

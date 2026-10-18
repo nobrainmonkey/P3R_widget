@@ -1,0 +1,3464 @@
+{
+  "schema": "p3r.request_catalogue.v1",
+  "edition": "Persona 3 Reload base game (no Episode Aigis)",
+  "source": "rules/sources/aqiu_gamedata/overworld.md#Elizabeth Requests",
+  "scope": "All numbered base-game requests, 1 through 101. The unnumbered Platinum Brooch negotiation is not a numbered request.",
+  "namePolicy": "Use pinned Simplified Chinese guide spellings where present; otherwise provide explicitly labelled editorial Chinese translations, not claimed official game quotations. English request names are search aliases.",
+  "sourceCorrections": [
+    {
+      "number": 11,
+      "tableHint": "The reward column lists only the submitted-request items and menu unlock",
+      "chosen": "Winning the one-evening Big Eater Challenge also grants Academics, Charm and Courage +4 each",
+      "witness": "aqiu_pages/ave-walkthrough.md Wed 5/13; the optional challenge gain is not an automatic story award"
+    },
+    {
+      "number": 38,
+      "tableHint": "Put in fridge over 3 months; x3",
+      "chosen": "One purchased taiyaki, refrigerated and retrieved the following evening; three times was walkthrough history, not a request requirement",
+      "evidenceIds": [
+        "request38_chill_next_day_prima",
+        "request38_cn_item_name_gamersky"
+      ]
+    },
+    {
+      "number": 44,
+      "tableHint": "6/20",
+      "chosen": "7/20 Yakushima beach; accept before departure; at least one souvenir",
+      "witness": "cn_guides/data.json t088_01 and aqiu_pages/ave-walkthrough.md Mon 7/20"
+    },
+    {
+      "number": 74,
+      "tablePrereq": "-",
+      "chosen": "Complete #53; Academics Lv5; inspect Inari shrine",
+      "evidenceIds": [
+        "request74_academics5_game8"
+      ]
+    },
+    {
+      "number": 99,
+      "chosen": "Clear prior Monad Passages; final target at 255F passage",
+      "witness": "aqiu_pages/ave-walkthrough.md Sun 1/4; BWIKI request99"
+    },
+    {
+      "number": 101,
+      "tablePrereq": "99",
+      "chosen": "Complete #81, #99 and #100; solo encounter at 255F passage",
+      "evidenceIds": [
+        "request101_requirements_atwiki",
+        "request101_combat_limits_atwiki"
+      ]
+    },
+    {
+      "number": 37,
+      "tableHint": "Yabbashah I P3",
+      "chosen": "91F Monad Passage; defeat all enemies, not a non-existent third passage in this section",
+      "witness": "aqiu_pages/ave-walkthrough.md Request #37 around 1224; tartarus.md Yabbashah I lists only P1 and P2 battles"
+    },
+    {
+      "number": 35,
+      "tablePrereq": "17",
+      "chosen": "Complete #25 and defeat 82F boss for Mothman fusion unlock item",
+      "witness": "aqiu_pages/ave-walkthrough.md around1217 explicitly requires Yabbashah I82; BWIKI #35 predecessor25"
+    },
+    {
+      "number": 37,
+      "tableAvailability": "6/13",
+      "chosen": "7/9 onwards, after first Monad Door tutorial at80F; target91Fpassage",
+      "witness": "Reload Yabbashah I opens7/9; BWIKI #37; walkthrough1224 target91F"
+    },
+    {
+      "number": 53,
+      "tablePrereq": "52",
+      "chosen": "Complete both52and78",
+      "sources": [
+        "https://w.atwiki.jp/wiki10_persona3/pages/457.html",
+        "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q12322485232"
+      ]
+    },
+    {
+      "numbers": [
+        77,
+        78,
+        79,
+        80,
+        81
+      ],
+      "tableHint": "Completed15/30/45/60/80requests",
+      "chosen": "Completed request ChallengeLevel sum25/60/100/150/185; previous outing completion at least3days earlier; daytimes only; school visit needs school open",
+      "sources": [
+        "https://w.atwiki.jp/wiki10_persona3/pages/457.html",
+        "https://game8.jp/p3re/727018"
+      ]
+    }
+  ],
+  "chineseWitnesses": {
+    "12": "松脂",
+    "13": "掌上游戏机",
+    "20": "猛药",
+    "40": "超级安全靴",
+    "42": "野猫罐头",
+    "44": "想感受大海",
+    "65": "御手杵",
+    "96": "关东煮"
+  },
+  "entries": [
+    {
+      "number": 1,
+      "sourceRow": [
+        "5/10",
+        "1",
+        "-",
+        "Bring me a Muscle Drink.",
+        "Pharmacy (Y1000)",
+        "Soul Drop x5"
+      ],
+      "titleZh": "想喝肌肉饮料",
+      "stepsZh": "到桐叶购物中心的蓝胡子药房购买1瓶肌肉饮料，1,000日元，带回天鹅绒房间交付。",
+      "rewardZh": "灵魂之滴×5",
+      "aliases": [
+        "Bring me a Muscle Drink.",
+        "Muscle Drink",
+        "带来活力饮料"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 2,
+      "sourceRow": [
+        "5/10",
+        "2",
+        "-",
+        "Retrieve the first old document.",
+        "Thebel 22 Rare (100%)",
+        "(-Y10000)"
+      ],
+      "titleZh": "拿到人工岛计划文书",
+      "stepsZh": "探索塔尔塔罗斯到22层，在该层固定宝箱中取得人工岛计划文书01，带回天鹅绒房间交付。可以和当期救人、开图一起完成，探索本身会用掉晚上。",
+      "rewardZh": "10,000日元",
+      "aliases": [
+        "Retrieve the first old document.",
+        "找来第1份人工岛计划文书",
+        "古文书",
+        "人工岛文书"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 3,
+      "sourceRow": [
+        "5/10",
+        "3",
+        "-",
+        "Shadow Hunting Milestone",
+        "Defeat a total of 100 Shadows",
+        "Cure Water x3"
+      ],
+      "titleZh": "针对暗影猎杀的建议",
+      "stepsZh": "在塔尔塔罗斯累计打倒100只暗影，再回天鹅绒房间向伊莉莎白报告。可随正常探索累计，不需要在同一个晚上打完；探索本身会用掉晚上。",
+      "rewardZh": "疗伤水×3",
+      "aliases": [
+        "Shadow Hunting Milestone",
+        "讨伐暗影：累计100只"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 4,
+      "sourceRow": [
+        "5/10",
+        "4",
+        "-",
+        "Treasure Hunting Milestone",
+        "Open a total of 50 chests",
+        "Snuff Soul x2"
+      ],
+      "titleZh": "针对宝藏搜寻的建议",
+      "stepsZh": "在塔尔塔罗斯累计打开50个宝箱，再回去报告。可随正常探索累计，不需要同一晚开完；探索本身会用掉晚上。",
+      "rewardZh": "吸魔灵×2",
+      "aliases": [
+        "Treasure Hunting Milestone",
+        "打开宝箱：累计50个"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 5,
+      "sourceRow": [
+        "5/10",
+        "5",
+        "-",
+        "Create a Persona that's level 13 or above.",
+        "Nekomata x Forneus = Tam Lin (Lv. 13)",
+        "Bufula Gem x3"
+      ],
+      "titleZh": "创造出等级不低于13的人格面具",
+      "stepsZh": "持有等级13以上的人格面具，带给伊莉莎白查看。参考合体：猫又＋佛钮司＝塔姆林（基础等级13）。",
+      "rewardZh": "布芙拉宝石×3",
+      "aliases": [
+        "Create a Persona that's level 13 or above.",
+        "合体出等级13以上的人格面具"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 6,
+      "sourceRow": [
+        "5/10",
+        "6",
+        "5",
+        "Create a Persona with Kouha.",
+        "Tam Lin x Orpheus = Archangel (Kouha)",
+        "Fierce Sutra x2"
+      ],
+      "titleZh": "创造出学会了克哈的人格面具",
+      "stepsZh": "让合体结果继承技能「克哈」。参考：塔姆林＋俄耳甫斯＝大天使；在继承技能选择中保留克哈，再带给伊莉莎白查看。",
+      "rewardZh": "猛攻经文×2",
+      "aliases": [
+        "Create a Persona with Kouha.",
+        "Kouha",
+        "合体出拥有克哈的人格面具"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 7,
+      "sourceRow": [
+        "5/10",
+        "7",
+        "2",
+        "Bring me a Juzumaru.",
+        "Arqa I 36 3-lock (100%)",
+        "Makouha"
+      ],
+      "titleZh": "把数珠丸恒次带过来",
+      "stepsZh": "探索塔尔塔罗斯，在36层打开需要3枚黄昏的碎片的固定宝箱，取得数珠丸恒次，再带回交付。",
+      "rewardZh": "玛哈克哈技能卡",
+      "aliases": [
+        "Bring me a Juzumaru.",
+        "Juzumaru",
+        "带来数珠丸恒次"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 8,
+      "sourceRow": [
+        "5/10",
+        "8",
+        "-",
+        "Experiment with fortune telling.",
+        "Club Escapade > Fortune Teller > Rarity Fortune (Y3000) > Tartarus > Defeat a Rare Shadow",
+        "Speed Incense I x3"
+      ],
+      "titleZh": "尝试占卜的效果",
+      "stepsZh": "到达塔尔塔罗斯12层、勇气达到Lv.2后，晚上到桐叶购物中心的放纵俱乐部，找占卜师花3,000日元做幸运占卜；同一晚进入塔尔塔罗斯并打倒稀有暗影，再回去报告。",
+      "rewardZh": "速度香Ⅰ×3",
+      "aliases": [
+        "Experiment with fortune telling.",
+        "fortune telling",
+        "试试占卜"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": []
+    },
+    {
+      "number": 9,
+      "sourceRow": [
+        "5/10",
+        "9",
+        "1",
+        "I'd like to try all kinds of drinks.",
+        "Buy 12 different drinks from the Dorms 2F + Dorms 3F + Iwatodai 3F + Port Island Station Vending Machines (Y1320)",
+        "Media"
+      ],
+      "titleZh": "想喝各种各样的饮品",
+      "stepsZh": "到宿舍2楼、3楼，严户台商店街3楼和港湾人工岛站的自动贩卖机，买齐12种不同饮料（共1,320日元）后交付。",
+      "rewardZh": "梅迪亚技能卡",
+      "aliases": [
+        "I'd like to try all kinds of drinks.",
+        "收集12种饮料"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 10,
+      "sourceRow": [
+        "5/10",
+        "10",
+        "1",
+        "I'd like to try a beef bowl.",
+        "Umiushi Fan Book (Y450) > Use computer > Umiushi Beef Bowl (Y300)",
+        "Winter Uniform (M)"
+      ],
+      "titleZh": "想吃牛肉盖饭",
+      "stepsZh": "在严户台商店街3楼的网吧购买海牛粉丝手册（450日元），晚上在宿舍公用电脑使用；之后到海牛盖饭店购买海牛盖饭（300日元）并交付。使用电脑要用掉一个晚上。",
+      "rewardZh": "男性冬季校服",
+      "aliases": [
+        "I'd like to try a beef bowl.",
+        "想吃海牛盖饭"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 11,
+      "sourceRow": [
+        "5/10",
+        "11",
+        "9",
+        "Please prevail in the Big Eater Challenge.",
+        "Wilduck Burger > Big Eater Challenge (Y1800) > Choice 2: Look away from the burgers. > Choice 1: Eat without stopping. > Choice 2: Imagine something sour.",
+        "Twilight Fragment x3 + Unlock Weekend Wilduck Set"
+      ],
+      "titleZh": "请挑战大胃王",
+      "stepsZh": "接下委托后，晚上去严户台商店街的怀老鸭汉堡，花1,800日元挑战大胃王。依次选「把视线从汉堡移开」→「不停地吃」→「想象酸的东西」（选项2→1→2）。挑战会用掉一个晚上，成功后学力、魅力、勇气各+4；完成后回去报告。",
+      "rewardZh": "挑战成功：学力、魅力、勇气各+4；交付：黄昏的碎片×3、解锁周末怀老鸭套餐",
+      "aliases": [
+        "Please prevail in the Big Eater Challenge.",
+        "挑战大胃王"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 12,
+      "sourceRow": [
+        "5/10-6/6",
+        "12",
+        "-",
+        "Bring me pine resin.",
+        "Talk to Yukari",
+        "Toy Bow"
+      ],
+      "titleZh": "把松脂粉带过来",
+      "stepsZh": "先接下委托，晚上回宿舍1楼找岳羽由加莉，取得松脂，再向伊莉莎白交付。接取和取物的顺序不能颠倒。",
+      "rewardZh": "玩具弓",
+      "aliases": [
+        "Bring me pine resin.",
+        "松脂",
+        "带来松脂"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 13,
+      "sourceRow": [
+        "5/10-6/6",
+        "13",
+        "12",
+        "Bring me a handheld game console.",
+        "Talk to Junpei",
+        "Pixel Vest"
+      ],
+      "titleZh": "把便携式游戏机带过来",
+      "stepsZh": "先交付第12号，再接第13号；晚上回宿舍找伊织顺平，取得掌上游戏机并交付。两件都要在6月6日或更早交完。",
+      "rewardZh": "像素背心",
+      "aliases": [
+        "Bring me a handheld game console.",
+        "掌上游戏机",
+        "handheld game console",
+        "带来掌上游戏机"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 14,
+      "sourceRow": [
+        "5/10",
+        "14",
+        "2",
+        "Retrieve the second old document.",
+        "Arqa I 43 Rare (100%)",
+        "(-Y20000)"
+      ],
+      "titleZh": "拿到人工岛计划文书·其二",
+      "stepsZh": "探索塔尔塔罗斯到43层，在该层固定宝箱中取得人工岛计划文书02，带回天鹅绒房间交付。可以和当期救人、开图一起完成，探索本身会用掉晚上。",
+      "rewardZh": "20,000日元",
+      "aliases": [
+        "Retrieve the second old document.",
+        "找来第2份人工岛计划文书",
+        "古文书",
+        "人工岛文书"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 15,
+      "sourceRow": [
+        "5/10",
+        "15",
+        "3",
+        "Shadow Hunting Milestone #2",
+        "Defeat a total of 200 Shadows",
+        "Umugi Water x3"
+      ],
+      "titleZh": "针对暗影猎杀的建议·其二",
+      "stepsZh": "在塔尔塔罗斯累计打倒200只暗影，再回天鹅绒房间向伊莉莎白报告。可随正常探索累计，不需要在同一个晚上打完；探索本身会用掉晚上。",
+      "rewardZh": "海胆水×3",
+      "aliases": [
+        "Shadow Hunting Milestone #2",
+        "讨伐暗影：累计200只"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 16,
+      "sourceRow": [
+        "5/10",
+        "16",
+        "4",
+        "Treasure Hunting Milestone #2",
+        "Open a total of 100 chests",
+        "Chewing Soul x2"
+      ],
+      "titleZh": "针对宝藏搜寻的建议·其二",
+      "stepsZh": "在塔尔塔罗斯累计打开100个宝箱，再回去报告。可随正常探索累计，不需要同一晚开完；探索本身会用掉晚上。",
+      "rewardZh": "嚼魂×2",
+      "aliases": [
+        "Treasure Hunting Milestone #2",
+        "打开宝箱：累计100个"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 17,
+      "sourceRow": [
+        "5/10",
+        "17",
+        "5",
+        "Fusion Series #1: Emperor, Oberon",
+        "Fuse an Oberon with Mazio, Archangel x Silky = Oberon (Mazio at Lv. 17)",
+        "Winter Uniform (F)"
+      ],
+      "titleZh": "人格面具制作课题1：皇帝奥伯隆",
+      "stepsZh": "合体出拥有「玛哈吉欧」的皇帝·奥伯隆。参考：大天使＋希路奇＝奥伯隆；奥伯隆升到17级学会玛哈吉欧后，带给伊莉莎白查看。",
+      "rewardZh": "女性冬季校服",
+      "aliases": [
+        "Fusion Series #1: Emperor, Oberon",
+        "Oberon",
+        "合体课题1：奥伯隆与玛哈吉欧"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 18,
+      "sourceRow": [
+        "6/13",
+        "18",
+        "-",
+        "I'd like to be gifted a bouquet of flowers.",
+        "Florist (Y2000)",
+        "Winter Garb (F)"
+      ],
+      "titleZh": "想收到别人送的花束",
+      "stepsZh": "到港湾人工岛站的花店购买花束，2,000日元，再带回交付。",
+      "rewardZh": "女性冬装",
+      "aliases": [
+        "I'd like to be gifted a bouquet of flowers.",
+        "想收到花束"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 19,
+      "sourceRow": [
+        "6/13",
+        "19",
+        "18",
+        "I want Jack Frost dolls.",
+        "Crane Game x3 (Y2400)",
+        "Twilight Fragment x3"
+      ],
+      "titleZh": "想要杰克霜精玩偶",
+      "stepsZh": "周五、周六或周日，到桐叶购物中心电玩大巡游门口的娃娃机，取得3个杰克霜精玩偶再交付。",
+      "rewardZh": "黄昏的碎片×3",
+      "aliases": [
+        "I want Jack Frost dolls.",
+        "带来3个杰克霜精玩偶"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 20,
+      "sourceRow": [
+        "6/13",
+        "20",
+        "-",
+        "Bring me some potent medicine.",
+        "Nurse's Office",
+        "Steel Pipe"
+      ],
+      "titleZh": "把猛药带过来",
+      "stepsZh": "先接下委托，在上学日到月光馆学园1楼保健室领取猛药，再带回交付。",
+      "rewardZh": "钢管",
+      "aliases": [
+        "Bring me some potent medicine.",
+        "猛药",
+        "potent medicine",
+        "带来猛药"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": []
+    },
+    {
+      "number": 21,
+      "sourceRow": [
+        "6/13",
+        "21",
+        "14",
+        "Retrieve the third old document.",
+        "Arqa II 69 Rare (100%)",
+        "(-Y30000)"
+      ],
+      "titleZh": "拿到人工岛计划文书·其三",
+      "stepsZh": "探索塔尔塔罗斯到69层，在该层固定宝箱中取得人工岛计划文书03，带回天鹅绒房间交付。可以和当期救人、开图一起完成，探索本身会用掉晚上。",
+      "rewardZh": "30,000日元",
+      "aliases": [
+        "Retrieve the third old document.",
+        "找来第3份人工岛计划文书",
+        "古文书",
+        "人工岛文书"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 22,
+      "sourceRow": [
+        "5/10",
+        "22",
+        "15",
+        "Shadow Hunting Milestone #3",
+        "Defeat a total of 300 Shadows",
+        "Bead x3"
+      ],
+      "titleZh": "针对暗影猎杀的建议·其三",
+      "stepsZh": "在塔尔塔罗斯累计打倒300只暗影，再回天鹅绒房间向伊莉莎白报告。可随正常探索累计，不需要在同一个晚上打完；探索本身会用掉晚上。",
+      "rewardZh": "宝玉×3",
+      "aliases": [
+        "Shadow Hunting Milestone #3",
+        "讨伐暗影：累计300只"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 23,
+      "sourceRow": [
+        "6/13",
+        "23",
+        "-",
+        "Persona Fusion Milestone",
+        "Conduct a total of 20 fusions",
+        "Twilight Fragment x5"
+      ],
+      "titleZh": "针对人格面具合体的建议",
+      "stepsZh": "在天鹅绒房间累计进行20次人格面具合体，再向伊莉莎白报告。可随正常合体累计；",
+      "rewardZh": "黄昏的碎片×5",
+      "aliases": [
+        "Persona Fusion Milestone",
+        "累计合体20次"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 24,
+      "sourceRow": [
+        "6/13",
+        "24",
+        "6",
+        "Create a Persona that's level 23 or above.",
+        "Resummon Mithras",
+        "Sugar Key"
+      ],
+      "titleZh": "创造出等级不低于23的人格面具",
+      "stepsZh": "持有等级23以上的人格面具，带给伊莉莎白查看。已登录米特拉斯时可从全书重新召唤，基础等级24。",
+      "rewardZh": "砂糖钥匙",
+      "aliases": [
+        "Create a Persona that's level 23 or above.",
+        "合体出等级23以上的人格面具"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        5
+      ]
+    },
+    {
+      "number": 25,
+      "sourceRow": [
+        "5/10",
+        "25",
+        "17",
+        "Fusion Series #2: Chariot, Mithras",
+        "Level Mithras to 26 or higher, Oberon x Leanan Sidhe = Mithras (Lv. 24)",
+        "Winter Garb (M)"
+      ],
+      "titleZh": "人格面具制作课题2：战车米特拉斯",
+      "stepsZh": "合体战车·米特拉斯，并把它升到26级以上。参考：奥伯隆＋莉南希＝米特拉斯（基础等级24）；达到要求后带去查看。",
+      "rewardZh": "男性冬装",
+      "aliases": [
+        "Fusion Series #2: Chariot, Mithras",
+        "Mithras",
+        "合体课题2：等级26的密特拉"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 26,
+      "sourceRow": [
+        "6/13",
+        "26",
+        "7",
+        "Bring me an Onimaru Kunitsuna.",
+        "Arqa II 54 3-lock (100%)",
+        "Crit Rate Boost"
+      ],
+      "titleZh": "把鬼丸国纲带过来",
+      "stepsZh": "探索塔尔塔罗斯，在54层打开需要3枚黄昏的碎片的固定宝箱，取得鬼丸国纲并交付。",
+      "rewardZh": "暴击率上升技能卡",
+      "aliases": [
+        "Bring me an Onimaru Kunitsuna.",
+        "Onimaru Kunitsuna",
+        "带来鬼丸国纲"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 27,
+      "sourceRow": [
+        "6/13-7/5",
+        "27",
+        "-",
+        "Bring me a triangular sword.",
+        "Talk to Mitsuru",
+        "Gallant Sneakers"
+      ],
+      "titleZh": "把三角之剑带过来",
+      "stepsZh": "先接下委托，晚上回宿舍找桐条美鹤，取得三棱剑后交付。",
+      "rewardZh": "英勇运动鞋",
+      "aliases": [
+        "Bring me a triangular sword.",
+        "triangular sword",
+        "带来三棱剑"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 28,
+      "sourceRow": [
+        "6/13-7/5",
+        "28",
+        "27",
+        "Bring me a protein not for pros.",
+        "Talk to Akihiko",
+        "Spiked Bat"
+      ],
+      "titleZh": "把非专业人士吃的蛋白粉带过来",
+      "stepsZh": "先交付第27号，再接第28号；晚上回宿舍找真田明彦，取得非专业用蛋白粉并交付。",
+      "rewardZh": "钉刺球棒",
+      "aliases": [
+        "Bring me a protein not for pros.",
+        "protein not for pros",
+        "带来非专业用蛋白粉"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 29,
+      "sourceRow": [
+        "6/13-7/5",
+        "29",
+        "-",
+        "I want to look fashionable.",
+        "Club Escapade Vendor > Black Quartz + (Y10000)",
+        "Power Incense I x5"
+      ],
+      "titleZh": "想打扮得时髦一点",
+      "stepsZh": "先接下委托，晚上到放纵俱乐部向名牌商店店员询问，再回去找伊莉莎白；准备黑水晶和10,000日元，回店员处取得时尚眼镜后交付。",
+      "rewardZh": "力量香Ⅰ×5",
+      "aliases": [
+        "I want to look fashionable.",
+        "想变得时尚"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 30,
+      "sourceRow": [
+        "7/9",
+        "30",
+        "21",
+        "Retrieve the fourth old document.",
+        "Yabbashah I 92 Rare (100%)",
+        "(-Y40000)"
+      ],
+      "titleZh": "拿到人工岛计划文书·其四",
+      "stepsZh": "探索塔尔塔罗斯到92层，在该层固定宝箱中取得人工岛计划文书04，带回天鹅绒房间交付。可以和当期救人、开图一起完成，探索本身会用掉晚上。",
+      "rewardZh": "40,000日元",
+      "aliases": [
+        "Retrieve the fourth old document.",
+        "找来第4份人工岛计划文书",
+        "古文书",
+        "人工岛文书"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 31,
+      "sourceRow": [
+        "5/10",
+        "31",
+        "22",
+        "Shadow Hunting Milestone #4",
+        "Defeat a total of 450 Shadows",
+        "Kamimusubi Water x2"
+      ],
+      "titleZh": "针对暗影猎杀的建议·其四",
+      "stepsZh": "在塔尔塔罗斯累计打倒450只暗影，再回天鹅绒房间向伊莉莎白报告。可随正常探索累计，不需要在同一个晚上打完；探索本身会用掉晚上。",
+      "rewardZh": "神产巢日水×2",
+      "aliases": [
+        "Shadow Hunting Milestone #4",
+        "讨伐暗影：累计450只"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 32,
+      "sourceRow": [
+        "5/10",
+        "32",
+        "16",
+        "Treasure Hunting Milestone #3",
+        "Open a total of 150 chests",
+        "Snuff Soul x6"
+      ],
+      "titleZh": "针对宝藏搜寻的建议·其三",
+      "stepsZh": "在塔尔塔罗斯累计打开150个宝箱，再回去报告。可随正常探索累计，不需要同一晚开完；探索本身会用掉晚上。",
+      "rewardZh": "吸魔灵×6",
+      "aliases": [
+        "Treasure Hunting Milestone #3",
+        "打开宝箱：累计150个"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 33,
+      "sourceRow": [
+        "6/13",
+        "33",
+        "23",
+        "Persona Fusion Milestone #2",
+        "Conduct a total of 35 fusions",
+        "Twilight Fragment x5"
+      ],
+      "titleZh": "针对人格面具合体的建议·其二",
+      "stepsZh": "在天鹅绒房间累计进行35次人格面具合体，再向伊莉莎白报告。可随正常合体累计；",
+      "rewardZh": "黄昏的碎片×5",
+      "aliases": [
+        "Persona Fusion Milestone #2",
+        "累计合体35次"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 34,
+      "sourceRow": [
+        "7/9",
+        "34",
+        "24",
+        "Create a Persona with Torrent Shot.",
+        "Mithras x Inugami = Matador (Torrent Shot)",
+        "Attack Mirror x3"
+      ],
+      "titleZh": "创造出学会了百万射击的人格面具",
+      "stepsZh": "持有学会「百万射击」的人格面具，带给伊莉莎白查看。参考：米特拉斯＋犬神＝斗牛士，合体时继承百万射击。",
+      "rewardZh": "物理反射镜×3",
+      "aliases": [
+        "Create a Persona with Torrent Shot.",
+        "Torrent Shot",
+        "合体出拥有激流连射的人格面具",
+        "激流连射"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        6,
+        24
+      ]
+    },
+    {
+      "number": 35,
+      "sourceRow": [
+        "7/9",
+        "35",
+        "17",
+        "Fusion Series #3: Hermit, Mothman",
+        "Fuse a Mothman with Agilao, Sati (Agilao) x Shiisaa = Mothman (Agilao)",
+        "Mitsuru's Maid Outfit"
+      ],
+      "titleZh": "人格面具制作课题3：隐者天蛾人",
+      "stepsZh": "先突破塔尔塔罗斯82层，取得天蛾人的合体解禁道具；合体出拥有「亚基拉欧」的隐者·天蛾人。参考：让娑提持有亚基拉欧，再与狮爷合体成天蛾人并继承该技能。",
+      "rewardZh": "美鹤的女仆装",
+      "aliases": [
+        "Fusion Series #3: Hermit, Mothman",
+        "Mothman",
+        "合体课题3：天蛾人与亚基拉欧"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        25
+      ]
+    },
+    {
+      "number": 36,
+      "sourceRow": [
+        "7/9",
+        "36",
+        "-",
+        "Defeat a rare Shadow #1",
+        "Defeat a Rare Shadow in Yabbashah",
+        "Onyx x7"
+      ],
+      "titleZh": "打倒稀有种·其一",
+      "stepsZh": "在塔尔塔罗斯第三区域打倒金色的稀有暗影，带回1枚掉落的硬币交付。",
+      "rewardZh": "缟玛瑙×7",
+      "aliases": [
+        "Defeat a rare Shadow #1",
+        "讨伐稀有暗影1"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        8
+      ]
+    },
+    {
+      "number": 37,
+      "sourceRow": [
+        "6/13",
+        "37",
+        "-",
+        "Traverse the Monad Passage.",
+        "Clear Yabbashah I P3",
+        "Black Sword"
+      ],
+      "titleZh": "征服蒙纳多通道",
+      "stepsZh": "完成80层蒙纳多之门教学后，探索到91层，进入该层的蒙纳多通道，击败通道内全部暗影，再回去报告。",
+      "rewardZh": "无之剑",
+      "aliases": [
+        "Traverse the Monad Passage.",
+        "通过蒙纳多通道"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "fromMd": "07-09"
+    },
+    {
+      "number": 38,
+      "sourceRow": [
+        "7/9",
+        "38",
+        "-",
+        "I want to eat some chilled taiyaki.",
+        "School X Site Note (Y500) > Use computer > School Store > Lukewarm Taiyaki x3 (Y600) > Put in fridge over 3 months",
+        "Nihil Cloth"
+      ],
+      "titleZh": "想吃冰凉的鲷鱼烧",
+      "stepsZh": "在放纵俱乐部购买「某学校匿名网站的字条」（500日元），晚上用宿舍公用电脑查看；到学校1楼小卖部买1份温吞白鲷鱼烧（200日元）。接下委托后放入宿舍厨房冰箱，次日取出冰凉白鲷鱼烧，再交付。查看网站要用掉一个晚上。",
+      "rewardZh": "无之布",
+      "aliases": [
+        "I want to eat some chilled taiyaki.",
+        "想吃冰鲷鱼烧",
+        "白鲷鱼烧",
+        "温吞白鲷鱼烧",
+        "冰凉白鲷鱼烧",
+        "鲷鱼烧",
+        "冰箱"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        10
+      ]
+    },
+    {
+      "number": 39,
+      "sourceRow": [
+        "7/9",
+        "39",
+        "-",
+        "Let me hear music unique to Gekkoukan.",
+        "School 2F > PA Room",
+        "Summer Uniform (F)"
+      ],
+      "titleZh": "想听和月光馆学园相关的音乐",
+      "stepsZh": "先接下委托，到月光馆学园2楼的广播室调查并进入，取得学校音乐后回去交付。",
+      "rewardZh": "女性夏季校服",
+      "aliases": [
+        "Let me hear music unique to Gekkoukan.",
+        "想听月光馆特有的音乐"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        20
+      ]
+    },
+    {
+      "number": 40,
+      "sourceRow": [
+        "7/9",
+        "40",
+        "-",
+        "I'd like to see a pair of Max Safety Shoes.",
+        "7/12: TV Shopping (Y9800) or Port Island Station NPC",
+        "Twilight Fragment x3"
+      ],
+      "titleZh": "想看超级安全靴",
+      "stepsZh": "7月12日在宿舍电视购物购买超级安全靴（9,800日元）；错过时，7月19日起可到港湾人工岛站电影院附近，找可疑男子花20,000日元购买，再带去交付。",
+      "rewardZh": "黄昏的碎片×3",
+      "aliases": [
+        "I'd like to see a pair of Max Safety Shoes.",
+        "超级安全靴",
+        "想看看超级安全靴"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 41,
+      "sourceRow": [
+        "7/9",
+        "41",
+        "40",
+        "Bring me the mysterious person's autograph.",
+        "Devil Rank 1",
+        "Nihil Blade"
+      ],
+      "titleZh": "把神秘人物的签名带过来",
+      "stepsZh": "推进恶魔·田中社长到RANK1，取得他的签名后交付。解锁恶魔要满足隐者社群与魅力门槛，并分不同晚上付钱。",
+      "rewardZh": "无之刀",
+      "aliases": [
+        "Bring me the mysterious person's autograph.",
+        "带来神秘人物的签名"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 42,
+      "sourceRow": [
+        "7/9",
+        "42",
+        "-",
+        "Please feed the cat.",
+        "Pharmacy > Super Cat Food x4 (Y2800) > Port Island Outskirts > Feed over 4 days",
+        "Summer Garb (M)"
+      ],
+      "titleZh": "去给猫咪喂食",
+      "stepsZh": "先接下委托，到蓝胡子药房买4份野猫罐头，共2,800日元；在港湾人工岛站前广场角落给没精神的猫喂食。每天1次，分4天完成后回去报告。",
+      "rewardZh": "男性夏装",
+      "aliases": [
+        "Please feed the cat.",
+        "野猫罐头",
+        "给猫喂食"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 43,
+      "sourceRow": [
+        "7/9-8/4",
+        "43",
+        "-",
+        "Bring me a Christmas star.",
+        "Talk to Fuuka",
+        "Jack's Gloves"
+      ],
+      "titleZh": "把猩猩之树带过来",
+      "stepsZh": "先接下委托，晚上回宿舍找山岸风花，取得猩猩之树并交付。8月4日或更早交完。",
+      "rewardZh": "杰克手套",
+      "aliases": [
+        "Bring me a Christmas star.",
+        "Christmas star",
+        "带来圣诞星",
+        "圣诞星",
+        "一品红"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 44,
+      "sourceRow": [
+        "7/9",
+        "44",
+        "-",
+        "I wish to feel the ocean.",
+        "Accept > 6/20: Collect Pretty Seashell + Strange Seaweed + Yakushima Wood + Small Crab",
+        "Amethyst x5"
+      ],
+      "titleZh": "想感受一下大海",
+      "stepsZh": "7月20日屋久岛旅行前先接下委托；当天在海滩拾取贝壳、海藻、浮木或小螃蟹中的至少一件，回来后交付。",
+      "rewardZh": "紫水晶×5",
+      "aliases": [
+        "I wish to feel the ocean.",
+        "想感受大海"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 45,
+      "sourceRow": [
+        "8/8",
+        "45",
+        "30",
+        "Retrieve the fifth old document.",
+        "Yabbashah II 118 Rare (100%)",
+        "(-Y50000)"
+      ],
+      "titleZh": "拿到人工岛计划文书·其五",
+      "stepsZh": "探索塔尔塔罗斯到118层，在该层固定宝箱中取得人工岛计划文书05，带回天鹅绒房间交付。可以和当期救人、开图一起完成，探索本身会用掉晚上。",
+      "rewardZh": "50,000日元",
+      "aliases": [
+        "Retrieve the fifth old document.",
+        "找来第5份人工岛计划文书",
+        "古文书",
+        "人工岛文书"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 46,
+      "sourceRow": [
+        "5/10",
+        "46",
+        "31",
+        "Shadow Hunting Milestone #5",
+        "Defeat a total of 600 Shadows",
+        "Bead Chain x2"
+      ],
+      "titleZh": "针对暗影猎杀的建议·其五",
+      "stepsZh": "在塔尔塔罗斯累计打倒600只暗影，再回天鹅绒房间向伊莉莎白报告。可随正常探索累计，不需要在同一个晚上打完；探索本身会用掉晚上。",
+      "rewardZh": "宝玉轮×2",
+      "aliases": [
+        "Shadow Hunting Milestone #5",
+        "讨伐暗影：累计600只"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 47,
+      "sourceRow": [
+        "5/10",
+        "47",
+        "32",
+        "Treasure Hunting Milestone #4",
+        "Open a total of 200 chests",
+        "Precious Egg x2"
+      ],
+      "titleZh": "针对宝藏搜寻的建议·其四",
+      "stepsZh": "在塔尔塔罗斯累计打开200个宝箱，再回去报告。可随正常探索累计，不需要同一晚开完；探索本身会用掉晚上。",
+      "rewardZh": "珍贵之卵×2",
+      "aliases": [
+        "Treasure Hunting Milestone #4",
+        "打开宝箱：累计200个"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 48,
+      "sourceRow": [
+        "6/13",
+        "48",
+        "33",
+        "Persona Fusion Milestone #3",
+        "Conduct a total of 50 fusions",
+        "Twilight Fragment x5"
+      ],
+      "titleZh": "针对人格面具合体的建议·其三",
+      "stepsZh": "在天鹅绒房间累计进行50次人格面具合体，再向伊莉莎白报告。可随正常合体累计；",
+      "rewardZh": "黄昏的碎片×5",
+      "aliases": [
+        "Persona Fusion Milestone #3",
+        "累计合体50次"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 49,
+      "sourceRow": [
+        "8/8",
+        "49",
+        "34",
+        "Create a Persona that's level 38 or above.",
+        "Jack Frost x Jack-o'-Lantern x King Frost = Black Frost (Lv. 37)",
+        "Marionette"
+      ],
+      "titleZh": "创造出等级不低于38的人格面具",
+      "stepsZh": "持有等级38以上的人格面具，带给伊莉莎白查看。参考特殊合体：杰克霜精＋南瓜杰克＋霜精之王＝邪恶霜精；基础等级37，需要合体社群经验或继续升级到38。",
+      "rewardZh": "提线木偶",
+      "aliases": [
+        "Create a Persona that's level 38 or above.",
+        "合体出等级38以上的人格面具"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        24
+      ]
+    },
+    {
+      "number": 50,
+      "sourceRow": [
+        "8/8",
+        "50",
+        "-",
+        "Perform King and I.",
+        "Only need to unlock it, Resummon Black Frost",
+        "Guard Incense II x3"
+      ],
+      "titleZh": "掌握“大王和俺们”",
+      "stepsZh": "取得并登录霜精之王与邪恶霜精，解锁主角神通法「大王和俺们」，回去报告。只需解锁，无需实际发动。",
+      "rewardZh": "防御香Ⅱ×3",
+      "aliases": [
+        "Perform King and I.",
+        "解锁神通法：国王与我",
+        "国王与我",
+        "大王和俺们"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        24
+      ]
+    },
+    {
+      "number": 51,
+      "sourceRow": [
+        "8/8",
+        "51",
+        "26",
+        "Bring me an Outenta Mitsuyo.",
+        "Nihil Blade + Black Quartz x5",
+        "Multi-Target Boost"
+      ],
+      "titleZh": "把大典太光世带过来",
+      "stepsZh": "到真宵堂古玩店，用1把无之刀和5颗黑水晶交换大典太光世，再带去交付。",
+      "rewardZh": "多体攻击强化技能卡",
+      "aliases": [
+        "Bring me an Outenta Mitsuyo.",
+        "Outenta Mitsuyo",
+        "带来大典太光世"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": []
+    },
+    {
+      "number": 52,
+      "sourceRow": [
+        "8/8",
+        "52",
+        "-",
+        "I'd like to try a home-cooked meal.",
+        "Cook with Akihiko or Yukari",
+        "Legendary Cleaver"
+      ],
+      "titleZh": "想吃妈妈的味道",
+      "stepsZh": "与岳羽由加莉或真田明彦进行宿舍做饭活动，把做出的料理留在背包并交付一份。做饭会用掉一个晚上。",
+      "rewardZh": "传说菜刀",
+      "aliases": [
+        "I'd like to try a home-cooked meal.",
+        "想吃家常菜"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        38
+      ]
+    },
+    {
+      "number": 53,
+      "sourceRow": [
+        "8/8",
+        "53",
+        "52",
+        "I'd like to see a mysterious potato.",
+        "Plant Buff Potato Sprout",
+        "Ergotite Shard"
+      ],
+      "titleZh": "想看神奇的土豆",
+      "stepsZh": "种下能力强化土豆苗，等成熟后收获土豆并交付；由这种苗种出的任一种土豆都可以。",
+      "rewardZh": "麦角碎片",
+      "aliases": [
+        "I'd like to see a mysterious potato.",
+        "想看看神奇的土豆"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        52,
+        78
+      ]
+    },
+    {
+      "number": 54,
+      "sourceRow": [
+        "8/8",
+        "54",
+        "-",
+        "Attempt a hundred shrine visits.",
+        "Try praying at the shrine over 3 days",
+        "Lime Swimwear"
+      ],
+      "titleZh": "去尝试百次参拜",
+      "stepsZh": "接下委托后，分3天去长鸣神社调查赛钱箱并尝试参拜，取得委托物品后交付。调查后退出，不另选投钱；这3次尝试不会消耗时间。",
+      "rewardZh": "青柠色泳装",
+      "aliases": [
+        "Attempt a hundred shrine visits.",
+        "尝试百次参拜"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        42
+      ]
+    },
+    {
+      "number": 55,
+      "sourceRow": [
+        "8/8",
+        "55",
+        "-",
+        "I'd like to see proof of a bond.",
+        "Any SL Rank 10",
+        "Space Badge"
+      ],
+      "titleZh": "想看羁绊的结晶",
+      "stepsZh": "把任意社群达到RANK10时获得的纪念物品带给伊莉莎白查看。",
+      "rewardZh": "太空徽章",
+      "aliases": [
+        "I'd like to see proof of a bond.",
+        "带来羁绊的证明"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 56,
+      "sourceRow": [
+        "8/8",
+        "56",
+        "-",
+        "Look for the drink with my name.",
+        "Port Island Outskirts > Bar",
+        "AS Generic Material"
+      ],
+      "titleZh": "请帮忙寻找带有我名字的饮品",
+      "stepsZh": "魅力达到Lv.5后，接下委托，到港湾人工岛站外围的酒吧「顺其自然」调查并进入，取得与伊莉莎白同名的饮料后交付。",
+      "rewardZh": "反暗影通用素材",
+      "aliases": [
+        "Look for the drink with my name.",
+        "my name",
+        "寻找与我同名的饮料"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        11
+      ]
+    },
+    {
+      "number": 57,
+      "sourceRow": [
+        "8/8",
+        "57",
+        "-",
+        "I'd like to try Aojiru.",
+        "Pharmacy > Antiques > Vintage Yagen for Topaz x2 + Turquoise > Pharmacy",
+        "Twilight Fragment x8"
+      ],
+      "titleZh": "想喝青汁",
+      "stepsZh": "先到蓝胡子药房询问青汁，再到真宵堂古玩店，用2颗黄玉和1颗绿松石交换古旧药研；回药房交换青汁，最后交付。",
+      "rewardZh": "黄昏的碎片×8",
+      "aliases": [
+        "I'd like to try Aojiru.",
+        "想喝青汁"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        10
+      ]
+    },
+    {
+      "number": 58,
+      "sourceRow": [
+        "8/8-8/31",
+        "58",
+        "-",
+        "I wish to become a straw millionaire.",
+        "Port Island Outskirts > Port Island Station > Iwatodai 1F",
+        "Turquoise x20"
+      ],
+      "titleZh": "想成为稻草富翁",
+      "stepsZh": "接下委托后，到港湾人工岛站前广场角落找小混混交换，再找车站咖啡店门口的学生，最后找严户台商店街1楼喜欢猫的少年，按这个顺序交换物品并回去交付。8月31日截止。",
+      "rewardZh": "绿松石×20",
+      "aliases": [
+        "I wish to become a straw millionaire.",
+        "成为稻草富翁"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 59,
+      "sourceRow": [
+        "9/10",
+        "59",
+        "45",
+        "Retrieve the sixth old document.",
+        "Tziah I 144 Rare (100%)",
+        "(-Y70000)"
+      ],
+      "titleZh": "拿到人工岛计划文书·其六",
+      "stepsZh": "探索塔尔塔罗斯到144层，在该层固定宝箱中取得人工岛计划文书06，带回天鹅绒房间交付。可以和当期救人、开图一起完成，探索本身会用掉晚上。",
+      "rewardZh": "70,000日元",
+      "aliases": [
+        "Retrieve the sixth old document.",
+        "找来第6份人工岛计划文书",
+        "古文书",
+        "人工岛文书"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 60,
+      "sourceRow": [
+        "5/10",
+        "60",
+        "46",
+        "Shadow Hunting Milestone #6",
+        "Defeat a total of 800 Shadows",
+        "Soma"
+      ],
+      "titleZh": "针对暗影猎杀的建议·其六",
+      "stepsZh": "在塔尔塔罗斯累计打倒800只暗影，再回天鹅绒房间向伊莉莎白报告。可随正常探索累计，不需要在同一个晚上打完；探索本身会用掉晚上。",
+      "rewardZh": "苏摩",
+      "aliases": [
+        "Shadow Hunting Milestone #6",
+        "讨伐暗影：累计800只"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 61,
+      "sourceRow": [
+        "9/10",
+        "61",
+        "49",
+        "Create a Persona that's level 46 or above.",
+        "Naga Raja x Loa = Kurama Tengu (Lv. 46)",
+        "Atrophying Sutra x2"
+      ],
+      "titleZh": "创造出等级不低于46的人格面具",
+      "stepsZh": "持有等级46以上的人格面具，带给伊莉莎白查看。参考合体：龙王＋罗阿＝鞍马天狗（基础等级46）。",
+      "rewardZh": "衰弱经文×2",
+      "aliases": [
+        "Create a Persona that's level 46 or above.",
+        "合体出等级46以上的人格面具"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 62,
+      "sourceRow": [
+        "9/10",
+        "62",
+        "25",
+        "Fusion Series #4: Lovers, Titania",
+        "Fuse a Titania with Matarukaja, Shiki-Ouji (Matarukaja at Lv. 47) x Kurama Tengu = Titania (Matarukaja)",
+        "Summer Uniform (M)"
+      ],
+      "titleZh": "人格面具制作课题4：恋爱缇坦妮雅",
+      "stepsZh": "合体出拥有「玛哈塔尔卡加」的恋爱·缇坦妮雅。参考：式王子升到47级学会该技能，再与鞍马天狗合体成缇坦妮雅，继承玛哈塔尔卡加。",
+      "rewardZh": "男性夏季校服",
+      "aliases": [
+        "Fusion Series #4: Lovers, Titania",
+        "Titania",
+        "合体课题4：缇坦妮娅与玛哈塔尔卡加"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        35
+      ]
+    },
+    {
+      "number": 63,
+      "sourceRow": [
+        "9/10",
+        "63",
+        "35",
+        "Fusion Series #5: Magician, Rangda",
+        "Level Rangda to 54 or higher, Titania x Thoth = Rangda (Lv. 50)",
+        "Summer Garb (F)"
+      ],
+      "titleZh": "人格面具制作课题5：魔术师兰达",
+      "stepsZh": "合体魔术师·兰达，并把它升到54级以上。参考：缇坦妮雅＋图特＝兰达（基础等级50）；只合出来还不够，要达到54级再带去查看。",
+      "rewardZh": "女性夏装",
+      "aliases": [
+        "Fusion Series #5: Magician, Rangda",
+        "Rangda",
+        "合体课题5：等级54的兰达"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        50
+      ]
+    },
+    {
+      "number": 64,
+      "sourceRow": [
+        "9/10",
+        "64",
+        "36",
+        "Defeat a rare Shadow #2",
+        "Defeat a Rare Shadow in Tziah",
+        "Topaz x7"
+      ],
+      "titleZh": "打倒稀有种·其二",
+      "stepsZh": "在塔尔塔罗斯第四区域打倒金色的稀有暗影，带回1枚掉落的硬币交付。",
+      "rewardZh": "黄玉×7",
+      "aliases": [
+        "Defeat a rare Shadow #2",
+        "讨伐稀有暗影2"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 65,
+      "sourceRow": [
+        "9/10",
+        "65",
+        "51",
+        "Bring me an Ote-gine.",
+        "Tziah I 143 3-lock (100%)",
+        "Quality Nihil Ore"
+      ],
+      "titleZh": "把御手杵带过来",
+      "stepsZh": "探索塔尔塔罗斯，在143层打开需要3枚黄昏的碎片的固定宝箱，取得御手杵，再带回交付。",
+      "rewardZh": "优质无之矿石",
+      "aliases": [
+        "Bring me an Ote-gine.",
+        "御手杵",
+        "Ote-gine",
+        "带来御手杵"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        26
+      ]
+    },
+    {
+      "number": 66,
+      "sourceRow": [
+        "9/10",
+        "66",
+        "-",
+        "Bring me a giant, creepy doll.",
+        "School 1F > Science Lab",
+        "Quality Nihil Blade"
+      ],
+      "titleZh": "把诡异的巨大人偶带过来",
+      "stepsZh": "先接下委托，到月光馆学园1楼实验室走廊，调查理科教室，向大西老师取得巨大人偶后交付。",
+      "rewardZh": "优质无之刀",
+      "aliases": [
+        "Bring me a giant, creepy doll.",
+        "giant, creepy doll",
+        "带来巨大又诡异的人偶"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        39
+      ]
+    },
+    {
+      "number": 67,
+      "sourceRow": [
+        "9/10",
+        "67",
+        "-",
+        "Find me a beautiful tile.",
+        "Port Island Outskirts > Mahjong Parlor",
+        "Scrub Brush"
+      ],
+      "titleZh": "想看神秘的美丽残片",
+      "stepsZh": "勇气达到Lv.5后，接下委托，到港湾人工岛站外围的棋牌室调查；猜拳选「石头」（第1项），取得麻将牌再交付。",
+      "rewardZh": "硬毛刷",
+      "aliases": [
+        "Find me a beautiful tile.",
+        "找来漂亮的麻将牌"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        54
+      ]
+    },
+    {
+      "number": 68,
+      "sourceRow": [
+        "9/10-10/2",
+        "68",
+        "-",
+        "Bring me a fruit knife.",
+        "Talk to Shinjiro",
+        "Bus Stop Sign"
+      ],
+      "titleZh": "把水果刀带过来",
+      "stepsZh": "先接下委托，晚上回宿舍找荒垣真次郎取得水果刀，再带回交付。10月2日或更早完成，之后无法补找他。",
+      "rewardZh": "公交站牌",
+      "aliases": [
+        "Bring me a fruit knife.",
+        "fruit knife",
+        "带来水果刀"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 69,
+      "sourceRow": [
+        "9/10-10/2",
+        "69",
+        "68",
+        "Bring me oil.",
+        "Talk to Aigis",
+        "Rocket Punch"
+      ],
+      "titleZh": "把油带过来",
+      "stepsZh": "先交付第68号，再接第69号；晚上回宿舍找埃癸斯，取得机油并交付。两件都要在10月2日或更早交完。",
+      "rewardZh": "火箭飞拳",
+      "aliases": [
+        "Bring me oil.",
+        "带来机油"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 70,
+      "sourceRow": [
+        "10/6",
+        "70",
+        "59",
+        "Retrieve the seventh old document.",
+        "Tziah II 172 Rare (100%)",
+        "(-Y90000)"
+      ],
+      "titleZh": "拿到人工岛计划文书·其七",
+      "stepsZh": "探索塔尔塔罗斯到172层，在该层固定宝箱中取得人工岛计划文书07，带回天鹅绒房间交付。可以和当期救人、开图一起完成，探索本身会用掉晚上。",
+      "rewardZh": "90,000日元",
+      "aliases": [
+        "Retrieve the seventh old document.",
+        "找来第7份人工岛计划文书",
+        "古文书",
+        "人工岛文书"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 71,
+      "sourceRow": [
+        "9/10",
+        "71",
+        "62",
+        "Fusion Series #6: Strength, Siegfried",
+        "Fuse a Siegfried with Endure, Hecatoncheires (Endure at Lv. 48) x Shiki-Ouji = Siegfried (Endure)",
+        "Sky Sundress"
+      ],
+      "titleZh": "人格面具制作课题6：刚毅齐格飞",
+      "stepsZh": "合体出拥有「忍耐」的刚毅·齐格飞。参考：百臂巨人升到48级学会忍耐，再与式王子合体成齐格飞，继承忍耐后带去查看。",
+      "rewardZh": "天空连衣裙",
+      "aliases": [
+        "Fusion Series #6: Strength, Siegfried",
+        "Siegfried",
+        "合体课题6：齐格飞与忍耐"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 72,
+      "sourceRow": [
+        "9/10",
+        "72",
+        "63",
+        "Fusion Series #7: Hierophant, Daisoujou",
+        "Fuse a Daisoujou with Regenerate 3, Suzaku (Regenerate 3 at Lv. 56) x Hecatoncheires = Daisoujou  (Regenerate 3)",
+        "Blue Shorts"
+      ],
+      "titleZh": "人格面具制作课题7：教皇大僧正",
+      "stepsZh": "合体出拥有「高级治愈促进」的教皇·大僧正。参考：朱雀升到56级学会该技能，再与百臂巨人合体成大僧正并继承。",
+      "rewardZh": "蓝色短裤",
+      "aliases": [
+        "Fusion Series #7: Hierophant, Daisoujou",
+        "Daisoujou",
+        "合体课题7：大僧正与高级治愈促进"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 73,
+      "sourceRow": [
+        "10/6",
+        "73",
+        "65",
+        "Bring me a Mikazuki Munechika.",
+        "Quality Nihil Blade + Emerald x3 + Silver Quartz x2",
+        "Endure"
+      ],
+      "titleZh": "把三日月宗近带过来",
+      "stepsZh": "到真宵堂古玩店，用1把优质无之刀、3颗祖母绿和2颗银水晶交换三日月宗近，再带去交付。",
+      "rewardZh": "忍耐技能卡",
+      "aliases": [
+        "Bring me a Mikazuki Munechika.",
+        "Mikazuki Munechika",
+        "带来三日月宗近"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        51
+      ]
+    },
+    {
+      "number": 74,
+      "sourceRow": [
+        "10/6",
+        "74",
+        "-",
+        "I'd like to try sushi.",
+        "Naganaki Shrine > Inari Sushi",
+        "Ergotite Chunk"
+      ],
+      "titleZh": "想吃充满魅力的寿司",
+      "stepsZh": "学力达到Lv.5后，接下委托，到长鸣神社左后方的稻荷祠堂（复制技能卡的位置）调查，取得稻荷寿司后交付。",
+      "rewardZh": "麦角块",
+      "aliases": [
+        "I'd like to try sushi.",
+        "想吃寿司"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        53
+      ]
+    },
+    {
+      "number": 75,
+      "sourceRow": [
+        "10/6",
+        "75",
+        "-",
+        "Bring me a Sengoku-era helm.",
+        "Visit the Faculty Office over 8 days",
+        "Twilight Fragment x7"
+      ],
+      "titleZh": "把战国时代的头盔带过来",
+      "stepsZh": "接下委托后，在上学日放学后分8天到学校1楼教职员室听老师说话；第8次取得头盔后交付。每次不会消耗时间，累计学力+16。",
+      "rewardZh": "黄昏的碎片×7",
+      "aliases": [
+        "Bring me a Sengoku-era helm.",
+        "Sengoku-era helm",
+        "带来战国时代的头盔",
+        "战国头盔",
+        "战国兜",
+        "头盔",
+        "教职员室"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        66
+      ]
+    },
+    {
+      "number": 76,
+      "sourceRow": [
+        "10/6-11/1",
+        "76",
+        "-",
+        "Bring me a glasses wipe.",
+        "Talk to Ikutsuki",
+        "Garnet x5"
+      ],
+      "titleZh": "把眼镜布带过来",
+      "stepsZh": "先接下委托，晚上回宿舍找几月修司，取得眼镜布后交付。11月1日或更早交完。",
+      "rewardZh": "石榴石×5",
+      "aliases": [
+        "Bring me a glasses wipe.",
+        "glasses wipe",
+        "带来眼镜布"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 77,
+      "sourceRow": [
+        "5/10",
+        "77",
+        "-",
+        "I'd like to walk around Paulownia Mall.",
+        "Completed 15 requests",
+        "Small Cheongsam"
+      ],
+      "titleZh": "想逛桐叶购物中心",
+      "stepsZh": "已完成委托的难度星数合计达到25。白天到天鹅绒房间接取邀请，再和伊莉莎白对话前往桐叶购物中心；外出不会消耗时间。",
+      "rewardZh": "小旗袍",
+      "aliases": [
+        "I'd like to walk around Paulownia Mall.",
+        "想逛桐叶购物中心"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 78,
+      "sourceRow": [
+        "5/10",
+        "78",
+        "77",
+        "I'd like to visit Iwatodai Station.",
+        "Completed 30 requests",
+        "Book of the Ancients"
+      ],
+      "titleZh": "想去严户台",
+      "stepsZh": "已完成委托的难度星数合计达到60。第77号外出完成后至少经过3天。白天到天鹅绒房间接取邀请，再和伊莉莎白对话前往严户台站；外出不会消耗时间。",
+      "rewardZh": "古代之书",
+      "aliases": [
+        "I'd like to visit Iwatodai Station.",
+        "想去严户台站"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 79,
+      "sourceRow": [
+        "5/10",
+        "79",
+        "78",
+        "I'd like to visit Naganaki Shrine.",
+        "Completed 45 requests",
+        "Vitality Sash"
+      ],
+      "titleZh": "想去长鸣神社",
+      "stepsZh": "已完成委托的难度星数合计达到100。第78号外出完成后至少经过3天。白天到天鹅绒房间接取邀请，再和伊莉莎白对话前往长鸣神社；外出不会消耗时间。",
+      "rewardZh": "活力腰带",
+      "aliases": [
+        "I'd like to visit Naganaki Shrine.",
+        "想去长鸣神社"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 80,
+      "sourceRow": [
+        "5/10",
+        "80",
+        "79",
+        "I'd like to visit Gekkoukan High.",
+        "Completed 60 requests",
+        "Sorcerer's Mark"
+      ],
+      "titleZh": "想去月光馆学园",
+      "stepsZh": "已完成委托的难度星数合计达到150。第79号外出完成后至少经过3天。白天到天鹅绒房间接取邀请，再和伊莉莎白对话前往月光馆学园；外出不会消耗时间。须在学校开放日进行。",
+      "rewardZh": "魔术师印记",
+      "aliases": [
+        "I'd like to visit Gekkoukan High.",
+        "想参观月光馆学园"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 81,
+      "sourceRow": [
+        "5/10",
+        "81",
+        "80",
+        "I'd like to visit your room.",
+        "Completed 80 requests",
+        "Tyrant's Horn"
+      ],
+      "titleZh": "想去您的房间",
+      "stepsZh": "已完成委托的难度星数合计达到185。第80号外出完成后至少经过3天。白天到天鹅绒房间接取邀请，再和伊莉莎白对话前往自己的房间；外出不会消耗时间。",
+      "rewardZh": "暴君之角",
+      "aliases": [
+        "I'd like to visit your room.",
+        "想去你的房间"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 82,
+      "sourceRow": [
+        "11/6",
+        "82",
+        "70",
+        "Retrieve the last old document.",
+        "Harabah I 198 Rare (100%)",
+        "(-Y120000)"
+      ],
+      "titleZh": "拿到人工岛计划文书·最终",
+      "stepsZh": "探索塔尔塔罗斯到198层，在该层固定宝箱中取得人工岛计划文书08，带回天鹅绒房间交付。可以和当期救人、开图一起完成，探索本身会用掉晚上。",
+      "rewardZh": "120,000日元",
+      "aliases": [
+        "Retrieve the last old document.",
+        "找来最后一份人工岛计划文书",
+        "古文书",
+        "人工岛文书"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 83,
+      "sourceRow": [
+        "12/4",
+        "83",
+        "82",
+        "Retrieve the progress report.",
+        "Harabah II 226 Rare (100%)",
+        "(-Y150000)"
+      ],
+      "titleZh": "拿到过程观察报告",
+      "stepsZh": "探索塔尔塔罗斯到226层，在该层固定宝箱中取得进度报告，带回天鹅绒房间交付。可以和当期救人、开图一起完成，探索本身会用掉晚上。",
+      "rewardZh": "150,000日元",
+      "aliases": [
+        "Retrieve the progress report.",
+        "找来进度报告"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 84,
+      "sourceRow": [
+        "11/6",
+        "84",
+        "61",
+        "Create a Persona with Tempest Slash.",
+        "Mishaguji x Ganesha = Chernobog (Tempest Slash)",
+        "Empowering Sutra x3"
+      ],
+      "titleZh": "创造出学会了五月雨斩的人格面具",
+      "stepsZh": "持有学会「五月雨斩」的人格面具，带给伊莉莎白查看。参考：御社宫司神＋象头神＝切尔诺伯格，继承五月雨斩。",
+      "rewardZh": "强化经文×3",
+      "aliases": [
+        "Create a Persona with Tempest Slash.",
+        "Tempest Slash",
+        "合体出拥有五月雨斩的人格面具"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 85,
+      "sourceRow": [
+        "12/4",
+        "85",
+        "84",
+        "Create a Persona with Auto-Maraku.",
+        "Koumokuten x Kurama Tengu = Raphael (Auto Maraku at Lv. 61)",
+        "Debilitator Sutra x3"
+      ],
+      "titleZh": "创造出学会了自动玛哈拉库卡的人格面具",
+      "stepsZh": "持有学会「自动玛哈拉库卡」的人格面具，带给伊莉莎白查看。参考：广目天＋鞍马天狗＝拉斐尔，升到61级学会该技能。",
+      "rewardZh": "弱化经文×3",
+      "aliases": [
+        "Create a Persona with Auto-Maraku.",
+        "Auto-Maraku",
+        "合体出拥有自动玛哈拉库的人格面具"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 86,
+      "sourceRow": [
+        "11/6",
+        "86",
+        "71",
+        "Fusion Series #8: Death, Alice",
+        "Fuse Alice, Pixie x Lilim x Narcissus x Titania = Alice",
+        "Aigis's Maid Outfit"
+      ],
+      "titleZh": "人格面具制作课题8：死神爱丽丝",
+      "stepsZh": "完成特殊合体「爱丽丝」并带去查看。配方：皮克希＋莉莉姆＋纳西瑟斯＋缇坦妮雅。",
+      "rewardZh": "埃癸斯的女仆装",
+      "aliases": [
+        "Fusion Series #8: Death, Alice",
+        "Alice",
+        "合体课题8：爱丽丝"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 87,
+      "sourceRow": [
+        "11/6",
+        "87",
+        "72",
+        "Fusion Series #9: Fool, Loki",
+        "Level Loki to 75 or higher, Suzaku x Pazuzu = Loki (Lv. 69)",
+        "Masakados"
+      ],
+      "titleZh": "人格面具制作课题9：愚者洛基",
+      "stepsZh": "合体愚者·洛基，并升到75级以上。参考：朱雀＋帕祖祖＝洛基（基础等级69）；升级到75再带去查看。",
+      "rewardZh": "将门之力；解禁将门合体",
+      "aliases": [
+        "Fusion Series #9: Fool, Loki",
+        "Loki",
+        "合体课题9：等级75的洛基"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        72
+      ]
+    },
+    {
+      "number": 88,
+      "sourceRow": [
+        "11/6",
+        "88",
+        "64",
+        "Defeat a Greedy Shadow.",
+        "Defeat a Greedy Shadow in Harabah",
+        "Life Aid"
+      ],
+      "titleZh": "打倒巨型稀有种",
+      "stepsZh": "在塔尔塔罗斯第五区域追踪并打倒贪婪暗影，带回1枚掉落的金牌交付。",
+      "rewardZh": "胜利气息技能卡",
+      "aliases": [
+        "Defeat a Greedy Shadow.",
+        "讨伐贪婪暗影"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 89,
+      "sourceRow": [
+        "11/6",
+        "89",
+        "73",
+        "Bring me a Rai Kunimitsu.",
+        "Harabah I 184 3-lock (100%)",
+        "Prime Nihil Ore"
+      ],
+      "titleZh": "把来国光带过来",
+      "stepsZh": "探索塔尔塔罗斯，在184层打开需要3枚黄昏的碎片的固定宝箱，取得来国光并交付。",
+      "rewardZh": "极品无之矿石",
+      "aliases": [
+        "Bring me a Rai Kunimitsu.",
+        "Rai Kunimitsu",
+        "带来雷国光"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 90,
+      "sourceRow": [
+        "12/4",
+        "90",
+        "89",
+        "Bring me a Dojigiri Yasutsuna.",
+        "Harabah II 212 3-lock (100%)",
+        "AS Refined Material"
+      ],
+      "titleZh": "把童子切安纲带过来",
+      "stepsZh": "探索塔尔塔罗斯，在212层打开需要3枚黄昏的碎片的固定宝箱，取得童子切安纲并交付。",
+      "rewardZh": "反暗影精制素材",
+      "aliases": [
+        "Bring me a Dojigiri Yasutsuna.",
+        "Dojigiri Yasutsuna",
+        "带来童子切安纲"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 91,
+      "sourceRow": [
+        "1/1",
+        "91",
+        "90",
+        "Bring me a Tonbo-kiri.",
+        "Prime Nihil Blade + Diamond x5 + Gold Quartz x2",
+        "Nihil Black Model x2"
+      ],
+      "titleZh": "把蜻蛉切带过来",
+      "stepsZh": "到真宵堂古玩店，用1把极品无之刀、5颗钻石和2颗金水晶交换蜻蛉切，再带去交付。",
+      "rewardZh": "无之黑模型×2",
+      "aliases": [
+        "Bring me a Tonbo-kiri.",
+        "Tonbo-kiri",
+        "带来蜻蛉切"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        73
+      ]
+    },
+    {
+      "number": 92,
+      "sourceRow": [
+        "11/6",
+        "92",
+        "67",
+        "Go clean a restroom.",
+        "Port Island Station > Bathroom > Choice 1: Scrub harder. > Choice 1: Scrub harder.",
+        "Yukari's Maid Outfit"
+      ],
+      "titleZh": "去打扫厕所",
+      "stepsZh": "接下委托后，到港湾人工岛站的厕所调查清扫，连续两次选「再用力擦」（第1项），完成后回去报告。",
+      "rewardZh": "由加莉的女仆装",
+      "aliases": [
+        "Go clean a restroom.",
+        "去打扫厕所"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 93,
+      "sourceRow": [
+        "11/6",
+        "93",
+        "-",
+        "Go water the flowers.",
+        "School Roof > Second planter from right",
+        "Fuuka's Maid Outfit"
+      ],
+      "titleZh": "去给花朵浇水",
+      "stepsZh": "先接下委托，到月光馆学园天台调查从右数第2个花坛并浇水，再回去报告。",
+      "rewardZh": "风花的女仆装",
+      "aliases": [
+        "Go water the flowers.",
+        "去给花浇水"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        75,
+        80
+      ]
+    },
+    {
+      "number": 94,
+      "sourceRow": [
+        "11/6-11/30",
+        "94",
+        "-",
+        "Bring me food for a furry friend.",
+        "Talk to Koromaru",
+        "Bone"
+      ],
+      "titleZh": "把老虎和狼的食物带过来",
+      "stepsZh": "先接下委托，晚上回宿舍找虎狼丸取得食物，再带去交付。",
+      "rewardZh": "骨头",
+      "aliases": [
+        "Bring me food for a furry friend.",
+        "带来给毛茸茸朋友的食物"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 95,
+      "sourceRow": [
+        "11/6-11/30",
+        "95",
+        "94",
+        "Bring me a Featherman R action figure.",
+        "Talk to Ken",
+        "Sacrificial Idol"
+      ],
+      "titleZh": "把翔羽侠R的玩偶带过来",
+      "stepsZh": "先交付第94号，再接第95号；晚上回宿舍找天田乾，取得翔羽侠R玩偶并交付。两件都要在11月30日或更早交完。",
+      "rewardZh": "替身人偶",
+      "aliases": [
+        "Bring me a Featherman R action figure.",
+        "Featherman R action figure",
+        "带来羽毛人R玩偶",
+        "翔羽侠R",
+        "羽毛人R"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 96,
+      "sourceRow": [
+        "11/6",
+        "96",
+        "-",
+        "I'd like to try Oden Juice.",
+        "Bought all 3 drinks from Kyoto vending machine > School Outdoor Corridor > Drink Maniac > Oden Juice (Y5000)",
+        "Aigis's Winter Uniform"
+      ],
+      "titleZh": "想喝关东煮汁",
+      "stepsZh": "11月17～19日修学旅行期间，买齐京都旅馆2楼自动贩卖机里的3种不同饮料；回来后到学校连接走廊，把饮料交给柿子树附近的女学生，再花5,000日元买关东煮汁并交付。旅行时没买齐就无法补买。",
+      "rewardZh": "埃癸斯的冬季校服",
+      "aliases": [
+        "I'd like to try Oden Juice.",
+        "关东煮",
+        "想喝关东煮饮料"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 97,
+      "sourceRow": [
+        "12/4-12/25",
+        "97",
+        "-",
+        "Bring me my Christmas present.",
+        "Rescued Ayako > Iwatodai 2F > Eccentric Man",
+        "Ruby x3 + Incense Box"
+      ],
+      "titleZh": "帮我取一下圣诞礼物",
+      "stepsZh": "先救出6月18日失踪的吉本绚子，领取感谢信；救援期限为7月6日。接下本委托后，晚上到严户台商店街2楼找扮圣诞老人的男子，出示感谢信换礼物，12月25日或更早交付。",
+      "rewardZh": "红宝石×3；香盒",
+      "aliases": [
+        "Bring me my Christmas present.",
+        "带来圣诞礼物",
+        "吉本绚子",
+        "感谢信",
+        "圣诞礼物"
+      ],
+      "nameBasis": "cn_wiki_reference"
+    },
+    {
+      "number": 98,
+      "sourceRow": [
+        "11/6",
+        "98",
+        "87",
+        "Fusion Series #10: Tower, Masakado",
+        "Fuse a Masakado with Charge, Setanta (Charge at Lv. 31) x Jack-o'-Lantern = Jikokuten, Zouchouten x Jikokuten (Charge) x Koumokuten x Bishamonten = Masakado (Charge)",
+        "Nihil White Model x2"
+      ],
+      "titleZh": "人格面具制作课题10：塔将门",
+      "stepsZh": "先完成第87号，取得将门之力并解禁将门合体。让瑟坦特升到31级学会蓄力，与南瓜杰克合体成持有蓄力的持国天；再用增长天＋持国天＋广目天＋毗沙门天特殊合体成将门，继承蓄力后带去查看。",
+      "rewardZh": "无之白模型×2",
+      "aliases": [
+        "Fusion Series #10: Tower, Masakado",
+        "Masakado",
+        "合体课题10：平将门与蓄力"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        86
+      ]
+    },
+    {
+      "number": 99,
+      "sourceRow": [
+        "1/1",
+        "99",
+        "-",
+        "Defeat the Shadow of the Void.",
+        "Clear Adamah I P3",
+        "Dead Moon's Husk"
+      ],
+      "titleZh": "讨伐大深渊之影",
+      "stepsZh": "先清完此前所有蒙纳多通道，再到塔尔塔罗斯255层固定蒙纳多通道的尽头，击败大深渊之影后报告。",
+      "rewardZh": "死月之壳",
+      "aliases": [
+        "Defeat the Shadow of the Void.",
+        "讨伐虚无的暗影",
+        "虚无的暗影",
+        "255层",
+        "蒙纳多"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        37
+      ]
+    },
+    {
+      "number": 100,
+      "sourceRow": [
+        "1/1",
+        "100",
+        "-",
+        "Bring me a Bloody Button.",
+        "Defeat the Reaper",
+        "Divine Pillar"
+      ],
+      "titleZh": "把染血的纽扣带过来",
+      "stepsZh": "在塔尔塔罗斯击败死神，取得血染纽扣后带回交付。",
+      "rewardZh": "神柱",
+      "aliases": [
+        "Bring me a Bloody Button.",
+        "Bloody Button",
+        "带来血染纽扣"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        83
+      ]
+    },
+    {
+      "number": 101,
+      "sourceRow": [
+        "1/1",
+        "101",
+        "99",
+        "Take out the ultimate adversary.",
+        "See Tartarus: Ultimate Adversary",
+        "Omnipotent Orb + Platinum Bookmark"
+      ],
+      "titleZh": "打倒最强之人",
+      "stepsZh": "主角独自前往塔尔塔罗斯255层蒙纳多通道最深处，挑战伊莉莎白并获胜。战斗中不要让她的攻击触发无效、反射或吸收；准备坚忍、不屈斗志应对9999伤害，哈米吉多顿留作最后一击。",
+      "rewardZh": "全能真球；白金书签",
+      "aliases": [
+        "Take out the ultimate adversary.",
+        "打倒终极对手",
+        "伊莉莎白",
+        "隐藏boss",
+        "255层"
+      ],
+      "nameBasis": "cn_wiki_reference",
+      "prerequisiteNumbers": [
+        81,
+        99,
+        100
+      ]
+    }
+  ],
+  "nameReference": {
+    "sourceUrl": "https://wiki.biligame.com/persona/P3R/%E4%BC%8A%E4%B8%BD%E8%8E%8E%E7%99%BD%E4%BB%BB%E5%8A%A1",
+    "sourceType": "third_party_cn_wiki_game_request_names",
+    "fetchedAt": "2026-10-18",
+    "names": {
+      "1": "想喝肌肉饮料",
+      "2": "拿到人工岛计划文书",
+      "3": "针对暗影猎杀的建议",
+      "4": "针对宝藏搜寻的建议",
+      "5": "创造出等级不低于13的人格面具",
+      "6": "创造出学会了克哈的人格面具",
+      "7": "把数珠丸恒次带过来",
+      "8": "尝试占卜的效果",
+      "9": "想喝各种各样的饮品",
+      "10": "想吃牛肉盖饭",
+      "11": "请挑战大胃王",
+      "12": "把松脂粉带过来",
+      "13": "把便携式游戏机带过来",
+      "14": "拿到人工岛计划文书·其二",
+      "15": "针对暗影猎杀的建议·其二",
+      "16": "针对宝藏搜寻的建议·其二",
+      "17": "人格面具制作课题1：皇帝奥伯隆",
+      "18": "想收到别人送的花束",
+      "19": "想要杰克霜精玩偶",
+      "20": "把猛药带过来",
+      "21": "拿到人工岛计划文书·其三",
+      "22": "针对暗影猎杀的建议·其三",
+      "23": "针对人格面具合体的建议",
+      "24": "创造出等级不低于23的人格面具",
+      "25": "人格面具制作课题2：战车米特拉斯",
+      "26": "把鬼丸国纲带过来",
+      "27": "把三角之剑带过来",
+      "28": "把非专业人士吃的蛋白粉带过来",
+      "29": "想打扮得时髦一点",
+      "30": "拿到人工岛计划文书·其四",
+      "31": "针对暗影猎杀的建议·其四",
+      "32": "针对宝藏搜寻的建议·其三",
+      "33": "针对人格面具合体的建议·其二",
+      "34": "创造出学会了百万射击的人格面具",
+      "35": "人格面具制作课题3：学会亚基拉欧的隐者天蛾人",
+      "36": "打倒稀有种·其一",
+      "37": "征服蒙纳多通道",
+      "38": "想吃冰凉的鲷鱼烧",
+      "39": "想听和月光馆学园相关的音乐",
+      "40": "想看超级安全靴",
+      "41": "把神秘人物的签名带过来",
+      "42": "去给猫咪喂食",
+      "43": "把猩猩之树带过来",
+      "44": "想感受一下大海",
+      "45": "拿到人工岛计划文书·其五",
+      "46": "针对暗影猎杀的建议·其五",
+      "47": "针对宝藏搜寻的建议·其四",
+      "48": "针对人格面具合体的建议·其三",
+      "49": "创造出等级不低于38的人格面具",
+      "50": "掌握“大王和俺们”",
+      "51": "把大典太光世带过来",
+      "52": "想吃妈妈的味道",
+      "53": "想看神奇的土豆",
+      "54": "去尝试百次参拜",
+      "55": "想看羁绊的结晶",
+      "56": "请帮忙寻找带有我名字的饮品",
+      "57": "想喝青汁",
+      "58": "想成为稻草富翁",
+      "59": "拿到人工岛计划文书·其六",
+      "60": "针对暗影猎杀的建议·其六",
+      "61": "创造出等级不低于46的人格面具",
+      "62": "人格面具制作课题4：恋爱缇坦妮雅",
+      "63": "人格面具制作课题5：魔术师兰达",
+      "64": "打倒稀有种·其二",
+      "65": "把御手杵带过来",
+      "66": "把诡异的巨大人偶带过来",
+      "67": "想看神秘的美丽残片",
+      "68": "把水果刀带过来",
+      "69": "把油带过来",
+      "70": "拿到人工岛计划文书·其七",
+      "71": "人格面具制作课题6：力量齐格飞",
+      "72": "人格面具制作课题7：教皇大僧正",
+      "73": "把三日月宗近带过来",
+      "74": "想吃充满魅力的寿司",
+      "75": "把战国时代的头盔带过来",
+      "76": "把眼镜布带过来",
+      "77": "想逛桐叶购物中心",
+      "78": "想去严户台",
+      "79": "想去长鸣神社",
+      "80": "想去月光馆学园",
+      "81": "想去您的房间",
+      "82": "拿到人工岛计划文书·最终",
+      "83": "拿到过程观察报告",
+      "84": "创造出学会了五月雨斩的人格面具",
+      "85": "创造出学会了自动玛哈拉库卡的人格面具",
+      "86": "人格面具制作课题8：死神爱丽丝",
+      "87": "人格面具制作课题9：愚者洛基",
+      "88": "打倒巨型稀有种",
+      "89": "把来国光带过来",
+      "90": "把童子切安纲带过来",
+      "91": "把蜻蛉切带过来",
+      "92": "去打扫厕所",
+      "93": "去给花朵浇水",
+      "94": "把老虎和狼的食物带过来",
+      "95": "把翔雨侠R的玩偶带过来",
+      "96": "想喝关东煮汁",
+      "97": "帮我取一下圣诞礼物",
+      "98": "人格面具制作课题10：塔将门",
+      "99": "讨伐大深渊之影",
+      "100": "把染血的纽扣带过来",
+      "101": "打倒最强之人"
+    },
+    "notes": [
+      "保留BWIKI原始中文委托标题；不宣称已逐一比对官方简中截图。",
+      "名字清单只用于中文名称校对。前置、等级、日期等条件需独立审计，不能把Wiki整表条件直接照搬。",
+      "第95条BWIKI标题写翔雨侠R，而现有中文日程有翔羽侠R；请以既有官方简中或截图为准。",
+      "第85条BWIKI标题写自动玛哈拉库卡；请按项目既有官方技能名规范校正。",
+      "第35条BWIKI标题额外包含学会亚基拉欧，保留原始来源供编辑决定是否缩写。"
+    ]
+  },
+  "supplementalEvidence": {
+    "schema": "p3r.request.extra_evidence.v1",
+    "checkedAt": "2026-10-18",
+    "notes": [
+      "这些是经web检索/正文交叉验证的简短摘录及事实摘要，不是完整网页镜像。",
+      "网页可能动态隐藏正文，Game8寿司门槛在搜索索引的正文可见，工具open部分响应只返回导航；indexed_body一项已明确标记。"
+    ],
+    "sources": [
+      {
+        "id": "request38_chill_next_day_prima",
+        "url": "https://primagames.com/tips/how-to-get-chilled-taiyaki-in-persona-3-reload",
+        "title": "How to Get Chilled Taiyaki in Persona 3 Reload",
+        "type": "article_body",
+        "requestIds": [
+          38
+        ],
+        "excerpt": "During the next night, return to the fridge, and you will find that your Lukewarm Taiyaki is now a Chilled Taiyaki",
+        "location": "Where to Find Chilled Taiyaki in Persona 3 Reload; kitchen fridge paragraph",
+        "factsZh": [
+          "只需一份温鲷鱼烧，放入宿舍厨房冰箱后，下一个晚上取出变成冰凉鲷鱼烧。",
+          "匿名学校网站字条需先从放纵俱乐部的可疑男子购入，再用宿舍公用电脑查看；看网页会消耗晚上时段。",
+          "不需要等3个月，不需要先冷藏3份。"
+        ]
+      },
+      {
+        "id": "request38_cn_item_name_gamersky",
+        "url": "https://www.gamersky.com/handbook/202401/1700806_21.shtml",
+        "title": "图文攻略：7月9日-7月13日、7月委托",
+        "type": "article_body",
+        "requestIds": [
+          38
+        ],
+        "excerpts": [
+          "某学校匿名网站的字条",
+          "第二天再来看得到冰凉白鲷鱼烧。"
+        ],
+        "location": "委托38流程段落",
+        "factsZh": [
+          "中文物品关键字为白鲷鱼烧、冰凉白鲷鱼烧；旧OCR的白稠鱼烧不应保留。",
+          "放纵俱乐部购情报、宿舍电脑查看、学校一楼小卖部购食物、宿舍冰箱冷藏、次日交付。"
+        ]
+      },
+      {
+        "id": "request74_academics5_game8",
+        "url": "https://game8.jp/p3re/731382",
+        "title": "魅惑のオスシを食べてみたいの攻略",
+        "type": "indexed_article_body",
+        "requestIds": [
+          74
+        ],
+        "excerpt": "学力の人間パラメータが5以上必要",
+        "location": "攻略のポイント",
+        "factsZh": [
+          "学力门槛为5，不是英文RPGSite的4，也不是部分中文早期攻略的6。",
+          "10/6且完成委托53后接取；去长鸣神社左后方稻荷取得稻荷寿司，再报告。"
+        ]
+      },
+      {
+        "id": "request101_requirements_atwiki",
+        "url": "https://w.atwiki.jp/wiki10_persona3/pages/452.html",
+        "title": "裏ボス攻略 — PERSONA3 @Wiki（Reload）",
+        "type": "article_body",
+        "requestIds": [
+          81,
+          99,
+          100,
+          101
+        ],
+        "excerpts": [
+          "受注条件として依頼81",
+          "依頼99",
+          "依頼100",
+          "をクリアしている必要がある。"
+        ],
+        "location": "VSエリザベス > 概要",
+        "factsZh": [
+          "委托101前置要完成81、99、100三条；本地英文表只写99而不完整。",
+          "接取后调查塔尔塔罗斯255F蒙纳多通道最深处的门；主角必须单挑。",
+          "99和100最早1/1可用，因此101在第三学期，不需要特意等1/31。"
+        ]
+      },
+      {
+        "id": "request101_combat_limits_atwiki",
+        "url": "https://w.atwiki.jp/wiki10_persona3/pages/452.html",
+        "title": "裏ボス攻略 — PERSONA3 @Wiki（Reload）",
+        "type": "article_body",
+        "requestIds": [
+          101
+        ],
+        "excerpts": [
+          "無効・反射・吸収いずれもアウト。",
+          "使用の際はトドメの一撃にすること"
+        ],
+        "location": "VSエリザベス > 特徴 > NG行動一覧",
+        "factsZh": [
+          "违规条件是实际让伊莉莎白的攻击遭无效、反射或吸收，而非仅仅持有某个带对应耐性的人格面具。",
+          "装备/反击技能/反射镜子等引起实际反射也会违规；装备提供的即死和异常无效允许。",
+          "哈米吉多顿必须用于斩杀，否则敌人随后进入反复回血与9999攻击模式。",
+          "常规打法需要准备坚忍/不屈斗志承受阶段9999，并保留神通法最终收尾。"
+        ]
+      },
+      {
+        "id": "request56_charm5_gamersky",
+        "url": "https://www.gamersky.com/handbook/202401/1700806_25.shtml",
+        "type": "article_body",
+        "requestIds": [
+          56
+        ],
+        "excerpt": "魅力达到5级气场十足才能进",
+        "location": "line280",
+        "factsZh": [
+          "委托56的港湾人工岛站外围酒吧需魅力Lv5。"
+        ]
+      },
+      {
+        "id": "request67_courage5_gamefaqs",
+        "url": "https://gamefaqs.gamespot.com/xbox-series-x/409940-persona-3-reload/faqs/81159/september",
+        "type": "indexed_article_body",
+        "requestIds": [
+          67
+        ],
+        "excerpt": "Requires Courage Rank 5",
+        "factsZh": [
+          "棋牌室需要勇气Lv5；gameludens.com/p3re/1685/的2024-03-02实玩评论同样证实勇气5可进。"
+        ]
+      },
+      {
+        "id": "request8_courage2_gamersky",
+        "url": "https://www.gamersky.com/handbook/202401/1700806_13.shtml",
+        "type": "indexed_article_body",
+        "requestIds": [
+          8,
+          29,
+          38
+        ],
+        "excerpts": [
+          "勇气达到2级",
+          "幸运占卜"
+        ],
+        "factsZh": [
+          "放纵俱乐部入场勇气Lv2，委托8使用幸运占卜。"
+        ]
+      },
+      {
+        "id": "request_outings_game8",
+        "url": "https://game8.jp/p3re/727018",
+        "type": "article_body",
+        "requestIds": [
+          77,
+          78,
+          79,
+          80,
+          81
+        ],
+        "factsZh": [
+          "独立Reload全委托表确认完成委托ChallengeLevel累计25/60/100/150/185。",
+          "第78至81号要求前次外出完成后至少3日。"
+        ],
+        "location": "lines351–390, independently checked by request_mechanics_review"
+      },
+      {
+        "id": "request53_missing_outing_yahoo",
+        "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q12322485232",
+        "type": "player_question_answer",
+        "requestIds": [
+          53,
+          78
+        ],
+        "factsZh": [
+          "2025/11/21玩家称已完成52但53未出；11/23答复要先完成78。"
+        ]
+      },
+      {
+        "id": "request40_fallback_destructoid",
+        "url": "https://www.destructoid.com/how-to-get-max-safety-shoes-in-persona-3-reload/",
+        "type": "article_body",
+        "requestIds": [
+          40
+        ],
+        "factsZh": [
+          "7/19起可在港湾人工岛站电影院外找可疑男子，20,000日元买超级安全靴；错过7/12电视购物仍可做。"
+        ]
+      },
+      {
+        "id": "request20_no_previous_tartarus_required",
+        "url": "https://kamigame.jp/p3r/page/306146947301954815.html",
+        "type": "article_body",
+        "requestIds": [
+          20
+        ],
+        "factsZh": [
+          "接取后放学去保健室领取关键物品即可。",
+          "本地ave-walkthrough.md678–695在6/12晚上游戏厅、6/13白天领取20号、6/13晚才爬塔，明确无需前晚进塔。"
+        ]
+      }
+    ]
+  },
+  "finalConditionAudit": {
+    "schema": "p3r.request.final_conditions.v1",
+    "sourceUrl": "https://w.atwiki.jp/wiki10_persona3/pages/457.html",
+    "sourceTitle": "エリザベス依頼/リロード — PERSONA3 @Wiki",
+    "checkedAt": "2026-10-18",
+    "scope": "额外核验的开放日期、前置与外出机制；非规划器状态数据",
+    "outings": {
+      "metric": "已完成委托的 Challenge Level 难度星数合计",
+      "metricExcerpt": "クリアした依頼の難易度(Chaallenge Level)の合計が25以上",
+      "waitMetric": "从前一条外出委托实际完成之日起算，至少经过3天；不是从接取时起算",
+      "records": [
+        {
+          "id": 77,
+          "minimumChallengeTotal": 25,
+          "prerequisiteIds": [],
+          "minimumDaysAfterPreviousCompletion": 0,
+          "sourceLines": [
+            715,
+            717,
+            720
+          ],
+          "timeOfDay": "日中",
+          "consumesSlot": false
+        },
+        {
+          "id": 78,
+          "minimumChallengeTotal": 60,
+          "prerequisiteIds": [
+            77
+          ],
+          "minimumDaysAfterPreviousCompletion": 3,
+          "waitExcerpt": "No77達成から3日以上経過",
+          "sourceLines": [
+            722,
+            724,
+            725,
+            728
+          ]
+        },
+        {
+          "id": 79,
+          "minimumChallengeTotal": 100,
+          "prerequisiteIds": [
+            78
+          ],
+          "minimumDaysAfterPreviousCompletion": 3,
+          "waitExcerpt": "No78達成から3日以上経過",
+          "sourceLines": [
+            730,
+            732,
+            733
+          ]
+        },
+        {
+          "id": 80,
+          "minimumChallengeTotal": 150,
+          "prerequisiteIds": [
+            79
+          ],
+          "minimumDaysAfterPreviousCompletion": 3,
+          "waitExcerpt": "No79達成から3日以上経過",
+          "sourceLines": [
+            736,
+            738,
+            739,
+            742
+          ],
+          "additionalConditionsZh": [
+            "学校休息日不能外出参观学校。"
+          ]
+        },
+        {
+          "id": 81,
+          "minimumChallengeTotal": 185,
+          "prerequisiteIds": [
+            80
+          ],
+          "minimumDaysAfterPreviousCompletion": 3,
+          "waitExcerpt": "No80達成から3日以上経過",
+          "sourceLines": [
+            745,
+            747,
+            748,
+            751
+          ],
+          "additionalConditionsZh": [
+            "网页未给房间邀请单独追加某个固定月份或日期门槛。",
+            "完成#80当天即便星数已185也不能立刻接#81，至少要等3天。"
+          ]
+        }
+      ],
+      "commonFactsZh": [
+        "外出不消耗时段；第77条明确只能在日中邀请，后续各条未另写覆盖此时段规则。",
+        "不得将约15/30/45/60/80个委托写成硬条件；次数是攻略路线近似，实际判定是难度星数合计。",
+        "五次外出依次间隔至少3天，因此从第一次到最后一次最短跨12天，连同首尾共13个日期。",
+        "该页提出从零开始时1/19是实质最晚开始日期，依据为13日期的完整链；这不是游戏委托面板上列出的硬截止日。"
+      ]
+    },
+    "conditions": [
+      {
+        "id": 17,
+        "tableAvailableFrom": "5/10",
+        "prerequisiteIds": [
+          5
+        ],
+        "conditionExcerpt": "発生条件 No5達成",
+        "sourceLines": [
+          381,
+          382,
+          383
+        ],
+        "factsZh": [
+          "持有学会玛哈吉欧的奥伯隆后报告；5/10并无确认错误。",
+          "日文部分攻略列6/9等为作者达到条件时日期，不应当作硬开放日期。"
+        ]
+      },
+      {
+        "id": 24,
+        "tableAvailableFrom": "6/13",
+        "prerequisiteIds": [
+          5
+        ],
+        "conditionExcerpt": "発生条件 No5達成",
+        "sourceLines": [
+          419,
+          420,
+          421
+        ],
+        "confidence": "与中文BWIKI一致；与aqiu表前置6存在冲突，记录冲突，不宣称游戏原始旗标验证",
+        "factsZh": [
+          "atwiki与BWIKI均记前置5；aqiu表写6。若用于精确前置展示，应采用5并保留来源冲突说明，或复查实机。",
+          "只需持有等级至少23的人格面具，不必刚刚合体。"
+        ]
+      },
+      {
+        "id": 25,
+        "tableAvailableFrom": "5/10",
+        "prerequisiteIds": [
+          17
+        ],
+        "conditionExcerpt": "発生条件 No17達成",
+        "sourceLines": [
+          426,
+          427,
+          428,
+          429
+        ],
+        "factsZh": [
+          "米特拉斯需要达到26级；初始24级不够。",
+          "aqiu日期5/10及前置17无需修改；完成日期可能在以后。"
+        ]
+      },
+      {
+        "id": 35,
+        "tableAvailableFrom": "5/10",
+        "effectiveEarliestCalendarDate": "7/9",
+        "prerequisiteIds": [
+          25
+        ],
+        "additionalGate": "取得82F守关敌掉落的极彩色之羽，解禁天蛾人合体",
+        "conditionExcerpts": [
+          "発生条件 No25達成",
+          "「極彩色の羽」入手"
+        ],
+        "sourceLines": [
+          477,
+          478,
+          479,
+          480,
+          482
+        ],
+        "factsZh": [
+          "纯表日期5/10不能独立解释为5月可完成：82F直到7/9的第三区开放后才能到达。",
+          "aqiu只写前置17不完整，应为25；25自身已要求17。",
+          "还必须持有学会亚基拉欧的天蛾人。"
+        ]
+      },
+      {
+        "id": 37,
+        "tableAvailableFrom": "7/9",
+        "additionalGate": "在80F遇到蒙纳多门开放流程",
+        "conditionExcerpt": "タルタロス80Fでモナドの扉を発見",
+        "factsZh": [
+          "目标是91F固定蒙纳多通道，清完全部暗影。",
+          "aqiu表写6/13明显提前；8/4只是其walkthrough路线实际完成日。"
+        ],
+        "sourceLines": [
+          490,
+          491,
+          492,
+          493
+        ]
+      },
+      {
+        "id": 53,
+        "tableAvailableFrom": "8/8",
+        "prerequisiteIds": [
+          52,
+          78
+        ],
+        "conditionExcerpt": "発生条件 No52、78達成",
+        "sourceLines": [
+          580,
+          581,
+          582,
+          584
+        ],
+        "factsZh": [
+          "不仅要先做52号家常菜，还要完成78号外出严户台；未外出会卡住解锁。",
+          "屋顶菜园种出的土豆种类不限；亲手和队友照顾并不是该页所述硬条件。"
+        ]
+      },
+      {
+        "id": 62,
+        "tableAvailableFrom": "9/10",
+        "prerequisiteIds": [
+          35
+        ],
+        "conditionExcerpt": "発生条件 No35達成",
+        "sourceLines": [
+          624,
+          625,
+          626
+        ],
+        "factsZh": [
+          "aqiu表写前置25，应补为35；35自身要求25。"
+        ]
+      },
+      {
+        "id": 63,
+        "tableAvailableFrom": "9/10",
+        "prerequisiteIds": [
+          50
+        ],
+        "conditionExcerpt": "発生条件 No50達成",
+        "factsZh": [
+          "aqiu表写前置35，与atwiki、BWIKI、Game8全部列表记录的50不符。"
+        ],
+        "sourceLines": [
+          632,
+          633,
+          634
+        ]
+      },
+      {
+        "id": 71,
+        "tableAvailableFrom": "9/10",
+        "prerequisiteIds": [
+          62
+        ],
+        "conditionExcerpt": "発生条件 No62達成",
+        "sourceLines": [
+          670,
+          671,
+          672
+        ],
+        "factsZh": [
+          "不要按部分英文攻略改成10/6；本地walkthrough在10/1完成62时已明确解锁71。"
+        ]
+      },
+      {
+        "id": 72,
+        "tableAvailableFrom": "9/10",
+        "prerequisiteIds": [
+          63
+        ],
+        "conditionExcerpt": "発生条件 No63達成",
+        "sourceLines": [
+          687,
+          688,
+          689
+        ],
+        "factsZh": [
+          "同71；本地walkthrough10/1完成63时已明确解锁72，10/6硬门槛不成立。"
+        ]
+      },
+      {
+        "id": 65,
+        "tableAvailableFrom": "9/10",
+        "prerequisiteIds": [
+          26
+        ],
+        "conditionExcerpt": "発生条件 No26達成",
+        "sourceLines": [
+          643,
+          644,
+          645
+        ],
+        "factsZh": [
+          "aqiu写51，与atwiki和Game8记录26不符。"
+        ]
+      },
+      {
+        "id": 73,
+        "tableAvailableFrom": "10/6",
+        "prerequisiteIds": [
+          51
+        ],
+        "conditionExcerpt": "発生条件 No51達成",
+        "sourceLines": [
+          693,
+          694,
+          695
+        ],
+        "factsZh": [
+          "aqiu写65，与atwiki和BWIKI记录51不符。"
+        ]
+      }
+    ],
+    "additionalFindings": [
+      {
+        "id": 67,
+        "factsZh": [
+          "同一atwiki页明确勇气5以上；猜拳结果无论出什么都相同。因此可保留石头作为可执行推荐，但不该说石头是唯一正确选项。"
+        ],
+        "sourceLines": [
+          651,
+          653,
+          654,
+          655
+        ]
+      },
+      {
+        "id": 87,
+        "factsZh": [
+          "此页写前置86，而BWIKI/aqiu写72，仍有来源冲突，暂不建议仅凭一页把72硬改成86。"
+        ]
+      },
+      {
+        "id": 75,
+        "factsZh": [
+          "到教职员室8次；每次还可免费加学力（页称增量同课堂），这是可提示但不能自动算成必然获得的收益。"
+        ],
+        "sourceLines": [
+          702,
+          706,
+          709
+        ]
+      }
+    ]
+  },
+  "outings": {
+    "difficultyTotals": [
+      25,
+      60,
+      100,
+      150,
+      185
+    ],
+    "minimumDaysAfterPreviousCompletion": 3,
+    "timeOfDayZh": "白天",
+    "consumesSlot": false,
+    "sources": [
+      "https://w.atwiki.jp/wiki10_persona3/pages/457.html",
+      "https://game8.jp/p3re/727018"
+    ]
+  },
+  "prerequisiteCrosscheck": {
+    "schema": "p3r.request.prereq_crosscheck.v1",
+    "checkedAt": "2026-10-18",
+    "sources": {
+      "game8": "https://game8.jp/p3re/727018",
+      "atwiki": "https://w.atwiki.jp/wiki10_persona3/pages/457.html",
+      "bwiki": "https://wiki.biligame.com/persona/P3R/%E4%BC%8A%E4%B8%BD%E8%8E%8E%E7%99%BD%E4%BB%BB%E5%8A%A1",
+      "aqiu": "https://aqiu384.github.io/megaten-database/p3r/overworld.html",
+      "game8_98": "https://game8.jp/p3re/731218",
+      "game8_91": "https://game8.jp/p3re/731946",
+      "game8_100": "https://game8.jp/p3re/732055"
+    },
+    "notes": [
+      "独立对照Game8本篇全委托表与BWIKI、atwiki和aqiu，明确区分发布前置与完成所需的面具解禁。",
+      "同网站总表与专题只算一个来源；两处一致不能算两家独立来源。",
+      "只记录事实字段与短片段，不镜像整篇文章。",
+      "Game8部分专题混入原版/FES旧资料；不要因为表格某项可用就全量采用后文。",
+      "终稿固定：已追加8/20/36/38/39/51/52/54/56/57，不再额外扫描。"
+    ],
+    "facts": {
+      "24": {
+        "id": 24,
+        "adopt": [
+          5
+        ],
+        "date": "6/13",
+        "agreement": "two_sources",
+        "support": [
+          "atwiki",
+          "bwiki"
+        ],
+        "otherSources": {
+          "game8": "列6/13但未列前置，不能视为反证",
+          "aqiu": [
+            6
+          ]
+        },
+        "notes": [
+          "采用5；atwiki/BWIKI均明确5，与aqiu6冲突。Game8将#34单独列为同时要求6与24，不能把#34对6的要求移到#24。"
+        ]
+      },
+      "49": {
+        "id": 49,
+        "adopt": [
+          24
+        ],
+        "date": "8/8",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          235,
+          239
+        ]
+      },
+      "50": {
+        "id": 50,
+        "adopt": [
+          24
+        ],
+        "date": "8/8",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          240,
+          243
+        ],
+        "otherSources": {
+          "aqiu": []
+        },
+        "notes": [
+          "aqiu漏掉24。登记霜精之王与邪恶霜精即可解禁对应神通法，实际不必在战斗中放出来。"
+        ]
+      },
+      "62": {
+        "id": 62,
+        "adopt": [
+          35
+        ],
+        "date": "9/10",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          286,
+          290
+        ],
+        "otherSources": {
+          "aqiu": [
+            25
+          ]
+        },
+        "notes": [
+          "35已包含25前置，不应只列更早的25。"
+        ]
+      },
+      "63": {
+        "id": 63,
+        "adopt": [
+          50
+        ],
+        "date": "9/10",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          291,
+          295
+        ],
+        "otherSources": {
+          "aqiu": [
+            35
+          ]
+        }
+      },
+      "65": {
+        "id": 65,
+        "adopt": [
+          26
+        ],
+        "date": "9/10",
+        "agreement": "two_sources",
+        "support": [
+          "game8",
+          "atwiki"
+        ],
+        "game8Lines": [
+          301,
+          305
+        ],
+        "otherSources": {
+          "bwiki": "65，明显自指错字",
+          "aqiu": [
+            51
+          ]
+        }
+      },
+      "66": {
+        "id": 66,
+        "adopt": [
+          39
+        ],
+        "date": "9/10",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          306,
+          310
+        ],
+        "otherSources": {
+          "aqiu": []
+        }
+      },
+      "67": {
+        "id": 67,
+        "adopt": [
+          54
+        ],
+        "date": "9/10",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          311,
+          314
+        ],
+        "otherSources": {
+          "aqiu": []
+        },
+        "notes": [
+          "实际取物要求勇气5；猜拳任意出拳均可，不必宣称石头唯一正确。"
+        ]
+      },
+      "73": {
+        "id": 73,
+        "adopt": [
+          51
+        ],
+        "date": "10/6",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          336,
+          340
+        ],
+        "otherSources": {
+          "aqiu": [
+            65
+          ]
+        }
+      },
+      "75": {
+        "id": 75,
+        "adopt": [
+          66
+        ],
+        "date": "10/6",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          346,
+          350
+        ],
+        "otherSources": {
+          "aqiu": []
+        }
+      },
+      "87": {
+        "id": 87,
+        "adopt": [
+          72
+        ],
+        "date": "11/6",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "bwiki",
+          "aqiu"
+        ],
+        "game8Lines": [
+          416,
+          420
+        ],
+        "otherSources": {
+          "atwiki": [
+            86
+          ]
+        },
+        "notes": [
+          "放弃atwiki这条86；Game8/BWIKI/aqiu一致支持72。洛基必须达到75级，BWIKI写65级也是错。奖励将门之力解禁平将门。"
+        ]
+      },
+      "91": {
+        "id": 91,
+        "adopt": [
+          73
+        ],
+        "date": "1/1",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          435,
+          439
+        ],
+        "otherSources": {
+          "aqiu": [
+            90
+          ]
+        },
+        "notes": [
+          "采用73；不是必须先完成90。"
+        ]
+      },
+      "93": {
+        "id": 93,
+        "adopt": [
+          75,
+          80
+        ],
+        "date": "11/6",
+        "agreement": "two_sources",
+        "support": [
+          "game8",
+          "atwiki"
+        ],
+        "game8Lines": [
+          445,
+          449
+        ],
+        "otherSources": {
+          "bwiki": [
+            80
+          ],
+          "aqiu": []
+        },
+        "notes": [
+          "BWIKI漏75；aqiu完全漏前置。"
+        ]
+      },
+      "98": {
+        "id": 98,
+        "adopt": [
+          86
+        ],
+        "date": "11/6",
+        "agreement": "two_sources_for_availability",
+        "support": [
+          "game8",
+          "atwiki"
+        ],
+        "game8Lines": [
+          459,
+          462
+        ],
+        "extraSources": [
+          "game8_98"
+        ],
+        "availabilityPrerequisites": [
+          86
+        ],
+        "completionPrerequisites": [
+          87
+        ],
+        "otherSources": {
+          "bwiki": [
+            86,
+            87
+          ],
+          "aqiu": [
+            87
+          ]
+        },
+        "notes": [
+          "必须拆接取与完成条件：Game8总表及专页都明确86完成后发布98。",
+          "要实际制作平将门，仍需要87奖励的将门之力解禁特殊合体；不可把87从完成提示删掉。",
+          "建议tip：先完成86开放本委托，再完成87解禁平将门，用四天王特殊合体并继承蓄力。",
+          "Game8专页后文将平将门写成隐者MAX和两身合体，混入旧版内容，必须丢弃那一段；这里只采其任务发布表。"
+        ]
+      },
+      "99": {
+        "id": 99,
+        "adopt": [
+          37
+        ],
+        "date": "1/1",
+        "agreement": "three_sources_for_request_prerequisite",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          463,
+          467,
+          471
+        ],
+        "otherSources": {
+          "aqiu": []
+        },
+        "notes": [
+          "各独立来源一致要求37。",
+          "发布地点门槛有歧义：Game8写抵达227F后，atwiki写进入255F通道；不应把255F写成唯一已证实的发布门槛。",
+          "完成目标明确在255F固定蒙纳多通道末端，需先推进前面各固定蒙纳多通道。",
+          "可采用tip：完成37并推进最终区域后查看委托；清完前面固定通道，到255F通道尽头讨伐大深渊之影。"
+        ]
+      },
+      "100": {
+        "id": 100,
+        "adopt": [
+          83
+        ],
+        "date": "1/1",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          472,
+          476
+        ],
+        "extraSources": [
+          "game8_100"
+        ],
+        "otherSources": {
+          "aqiu": []
+        },
+        "notes": [
+          "aqiu漏83。击败猎杀者取得染血的纽扣，保留一枚交付；卖掉需重打。"
+        ]
+      },
+      "8": {
+        "id": 8,
+        "adopt": [],
+        "date": "5/10",
+        "additionalGate": "塔尔塔罗斯到达12F",
+        "agreement": "two_sources",
+        "support": [
+          "game8",
+          "atwiki"
+        ],
+        "game8Lines": [
+          79,
+          82
+        ],
+        "notes": [
+          "仅到达12F；不是要求完成2号委托。进入放纵俱乐部另需勇气2；同晚幸运占卜后再进塔击败稀有种。"
+        ]
+      },
+      "36": {
+        "id": 36,
+        "adopt": [
+          8
+        ],
+        "date": "7/9",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          191,
+          195
+        ]
+      },
+      "38": {
+        "id": 38,
+        "adopt": [
+          10
+        ],
+        "date": "7/9",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          197,
+          201
+        ]
+      },
+      "39": {
+        "id": 39,
+        "adopt": [
+          20
+        ],
+        "date": "7/9",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          202,
+          206
+        ]
+      },
+      "52": {
+        "id": 52,
+        "adopt": [
+          38
+        ],
+        "date": "8/8",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          245,
+          249
+        ]
+      },
+      "54": {
+        "id": 54,
+        "adopt": [
+          42
+        ],
+        "date": "8/8",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          255,
+          259
+        ]
+      },
+      "56": {
+        "id": 56,
+        "adopt": [
+          11
+        ],
+        "date": "8/8",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          261,
+          265
+        ]
+      },
+      "57": {
+        "id": 57,
+        "adopt": [
+          10
+        ],
+        "date": "8/8",
+        "agreement": "three_sources",
+        "support": [
+          "game8",
+          "atwiki",
+          "bwiki"
+        ],
+        "game8Lines": [
+          266,
+          270
+        ]
+      },
+      "51": {
+        "id": 51,
+        "adopt": [],
+        "date": "8/8",
+        "agreement": "two_sources",
+        "support": [
+          "game8",
+          "atwiki"
+        ],
+        "extraUrl": "https://game8.jp/p3re/731332",
+        "excerpt": "発生条件  | -",
+        "notes": [
+          "Game8专题条件栏明确为-，atwiki同样-；aqiu前置26无两源支持。"
+        ]
+      },
+      "20": {
+        "id": 20,
+        "adopt": [],
+        "date": "6/13",
+        "agreement": "multiple_sources_with_coherent_route_counterexample",
+        "support": [
+          "atwiki",
+          "bwiki"
+        ],
+        "extraUrls": [
+          "https://kamigame.jp/p3r/page/306146947301954815.html",
+          "https://gamerpillar.com/where-to-get-potent-medicine-elizabeth-request-20-persona-3-reload/"
+        ],
+        "notes": [
+          "先接取，再在上学日放学到保健室取关键物。不要求前一晚探索塔。",
+          "本地ave-walkthrough.md在6/12晚上游戏厅、6/13白天领取20、6/13晚进塔，提供无需前晚塔的明确路线反例。",
+          "与塔后次日喝药获得勇气的普通事件分开。"
+        ]
+      },
+      "34": {
+        "id": 34,
+        "adopt": [
+          6,
+          24
+        ],
+        "support": [
+          "game8"
+        ],
+        "game8Lines": [
+          181
+        ],
+        "notes": [
+          "Game8全表明确同时要求6和24；atwiki仅列24，保留完整条件。"
+        ]
+      }
+    }
+  }
+}

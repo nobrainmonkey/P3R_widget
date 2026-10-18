@@ -112,7 +112,7 @@ final class StepViews {
     }
 
     /**
-     * A how-to line shown under the numbered steps rather than as one: 「注意：…」, 「参考回答：…」 and
+     * A how-to line shown under the numbered steps rather than as one: 「注意：…」, 「回答：…」 and
      * 「要是升级了，答：…」.
      */
     static boolean isAnnotation(String line) {
@@ -189,7 +189,7 @@ final class StepViews {
     }
 
     /**
-     * Numbered how-to ("怎么做"); a single step is shown as a plain paragraph. 「参考回答：…」 and
+     * Numbered how-to ("怎么做"); a single step is shown as a plain paragraph. 「回答：…」 and
      * 「注意：…」 lines follow the steps as marked notes, not numbered.
      */
     static View howTo(Context c, String detail, float sp) {
@@ -227,7 +227,7 @@ final class StepViews {
         return box;
     }
 
-    /** One note under the steps: a thin bar (gold for 注意, cyan for 参考回答) and the line. */
+    /** One note under the steps: a thin bar (gold for 注意, cyan for 回答) and the line. */
     private static View annotation(Context c, String line, float sp) {
         LinearLayout row = Ui.row(c);
         int accent = Ui.col(c, line.startsWith(NOTE_PREFIX) ? R.color.ui_gold : R.color.p3r_cyan_300);

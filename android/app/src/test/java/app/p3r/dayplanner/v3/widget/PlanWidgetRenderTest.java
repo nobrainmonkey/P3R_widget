@@ -67,7 +67,7 @@ public class PlanWidgetRenderTest {
             case "unlock": fake.observeAt("unlock:temperance:0"); break;
             case "locked": fake.observeAt("locked:full_moon"); break;
             case "story-run":
-                // 11/4 daytime through 11/5 daytime: one merged card.
+                // 11/4 daytime through 11/5 daytime: one card for each day.
                 fake.plan.steps.set(8, FakePlannerApi.step(FakePlannerApi.FIRST_SLOT + 8, "locked:story", "locked", "剧情事件", "剧情推进", null, null));
                 fake.observeAt("locked:story");
                 break;
@@ -97,7 +97,7 @@ public class PlanWidgetRenderTest {
             }
             case "dialogue":
             case "dialogue-hint": {
-                // A rank-up whose scene has guide answers (as the app's 参考回答 line shows them).
+                // A rank-up whose scene has guide answers (as the app's 回答 line shows them).
                 fake.rules = FakePlannerApi.miniRules();
                 fake.rules.link("emperor").dialogue.put(7, java.util.Arrays.asList("我会帮你的", "这样的规矩没有意义"));
                 Plan.Step emperor = fake.plan.steps.get(2);
@@ -234,7 +234,7 @@ public class PlanWidgetRenderTest {
         View regular = render(false, 320, 200);
         TextView line = regular.findViewById(R.id.widget_dialogue_choices);
         assertEquals(View.VISIBLE, line.getVisibility());
-        // The widget's 「答：」, never the app's 「参考回答：」 (docs/GLOSSARY_zh.md).
+        // The widget's 「答：」, never the app's 「回答：」 (docs/GLOSSARY_zh.md).
         assertEquals("答：我会帮你的 / 这样的规矩没有意义", CardText.plain(line.getText().toString()));
         assertTrue("「规矩」 is kept whole", line.getText().toString().contains("规" + CardText.WJ + "矩"));
         assertTrue("at most two lines", line.getLineCount() <= CardRenderer.MAX_ANSWER_LINES);
@@ -381,7 +381,7 @@ public class PlanWidgetRenderTest {
         assertTrue("locked items have nothing to record: the button goes on", locked.findViewById(R.id.button_spec_done).isEnabled());
         assertEquals("这段时间不能自由行动", text(locked, R.id.widget_detail_cue));
         state("story-run");
-        assertEquals("到11月5日都不能自由行动", text(render(false, 320, 200), R.id.widget_detail_cue));
+        assertEquals("这段时间不能自由行动", text(render(false, 320, 200), R.id.widget_detail_cue));
         state("social");
         View social = render(false, 320, 200);
         assertEquals("11/1", text(social, R.id.widget_date));

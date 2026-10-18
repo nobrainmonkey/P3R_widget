@@ -55,7 +55,10 @@ public final class Engine {
         public List<String> side;
     }
 
-    /** Legal productive actions for {@code state.slot} (empty if the slot is locked). */
+    /**
+     * Actions offered for recording at {@code state.slot} (empty if locked). INVITE choices are
+     * conditional on actually receiving the day's SMS; the automatic planner never uses them.
+     */
     public static List<Action> legalActions(Rules rules, Profile profile, SimState state) {
         return Simulator.legalActions(rules, profile, state);
     }
@@ -91,6 +94,12 @@ public final class Engine {
      */
     public static SimState applyOutcome(Rules rules, Profile profile, SimState state, Action action, Outcome outcome) {
         return Simulator.applyOutcome(rules, profile, state, action, outcome);
+    }
+
+    /** Raw affinity to snapshot when confirming a dorm activity; no action or time is applied. */
+    public static int activityAffinityGain(Rules rules, SimState state, int activity) {
+        return activity < 0 || activity >= rules.activities.length ? 0
+                : Kernel.activityAffinityGain(rules, state, rules.activities[activity]);
     }
 
     /**
@@ -136,11 +145,12 @@ public final class Engine {
     }
 
     /**
-     * Every legal productive action for {@code state.slot} as a labeled {@link Plan.Step} (Chinese
+     * Every recordable action for {@code state.slot} as a labeled {@link Plan.Step} (Chinese
      * title, subtitle, location, reason, how-to and forecast), most useful first: ordered by the
      * objective of taking the action and following the base policy to the end of the calendar. For
      * "改做别的" (the caller marks the planned one); the list is empty when the slot is locked or
-     * nothing productive is possible.
+     * nothing productive is possible. Possible holiday invitations are appended with an explicit
+     * "收到短信才选" condition; they are not guaranteed available or used by automatic planning.
      */
     public static List<Plan.Step> alternatives(Rules rules, Profile profile, SimState state) {
         return Planner.alternatives(rules, profile, state);

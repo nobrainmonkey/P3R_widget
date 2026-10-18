@@ -14,7 +14,8 @@ import java.util.Map;
  * silently.
  *
  * <p>Errors (plan must be rejected): wrong coverage or order of slots, actions on locked slots or
- * in the wrong slot kind, meetings outside the link's O/D days or while missing/lost, unlock steps
+ * in the wrong slot kind, meetings outside the link's O days or while missing/lost, unconfirmed
+ * holiday invitations in forecasts, unlock steps
  * out of order / too early / without prerequisites, side steps ({@link Plan.Step#side}: listed
  * non-consuming unlock steps, checked for order, slot kind, day rule, minGapDays, requirements and
  * fees, and counted in the unlock progress), excluded or unavailable activities, dating-site
@@ -80,6 +81,8 @@ final class PlanValidator {
         final int[] used;
         /** Independent remaining calendar counts for choosing a finishable unlock project. */
         final int[][] dormRemaining;
+        /** Actual future dated free training in this plan, counted once per evening. */
+        int[][] plannedFreeStat;
         /** Link Episodes watched per track. */
         final int[] episodes;
         int notesUsed;
@@ -146,6 +149,7 @@ final class PlanValidator {
             if (plan.toSlot != last) report.errors.add("plan ends at " + plan.toSlot + ", calendar ends at " + last);
             int expected = Math.max(0, last - slot + 1);
             if (plan.steps.size() != expected) report.errors.add("plan has " + plan.steps.size() + " steps, expected " + expected);
+            buildPlannedFreeStats(plan);
             for (Plan.Step s : plan.steps) {
                 if (s.slot != slot) {
                     error(s.slot, "out of order, expected slot " + slot);
@@ -164,6 +168,30 @@ final class PlanValidator {
         }
 
         // ------------------------------------------------------------------ one step
+
+        private void buildPlannedFreeStats(Plan plan) {
+            int end = rules.lastSlot() + 1;
+            plannedFreeStat = new int[3][end + 1];
+            for (Plan.Step step : plan.steps) {
+                int at = step.slot;
+                if (at < 0 || at >= end || (at & 1) == 0 || lockAt(at) != null) continue;
+                Action action = Action.parse(rules, step.action);
+                if (action == null || action.type != Action.Type.ACTIVITY) continue;
+                Rules.Activity activity = rules.activities[action.target];
+                if (activity.kind != Rules.ActivityKind.STAT || activity.cost != 0
+                        || (activity.fixedDays == null && !activity.dormActivity())
+                        || profile.excluded(activity.id) || !activityOnCalendar(activity, at)
+                        || (activity.requiresPlantedCrop && !profile.planDormGardening)) continue;
+                for (int s = 0; s < Math.min(3, activity.gain.length); s++) {
+                    plannedFreeStat[s][at] = Math.max(plannedFreeStat[s][at], activity.gain[s]);
+                }
+            }
+            for (int at = end - 1; at >= 0; at--) {
+                for (int s = 0; s < 3; s++) {
+                    plannedFreeStat[s][at] += plannedFreeStat[s][at + 1];
+                }
+            }
+        }
 
         /**
          * Lock of {@code s} under this profile, derived here on its own: the pack's lock, else
@@ -188,6 +216,20 @@ final class PlanValidator {
             if (lock != null) {
                 if (!s.action.equals("locked:" + lock) || !"locked".equals(s.kind)) error(slot, "locked slot (" + lock + ") planned as " + s.action);
                 if (!s.side.isEmpty()) error(slot, "side steps on a locked slot");
+                Rules.Day day = rules.day(slot >> 1);
+                for (int i = 0; i < Math.min(3, rules.stats.length); i++) {
+                    int gain = (slot & 1) == 0 && day != null && i < day.automaticStatGain.length
+                            ? Math.max(0, day.automaticStatGain[i]) : 0;
+                    if (s.predicted.statDelta[i] != gain) error(slot, "predicted story stat gain "
+                            + s.predicted.statDelta[i] + " but recount " + gain);
+                    int after = 1;
+                    for (int lv = 2; lv <= 6; lv++) {
+                        if (stat[i] + gain >= rules.stats[i].thresholds[lv]) after = lv;
+                    }
+                    int changed = after != statLevel(i) ? after : -1;
+                    if (s.predicted.statLvAfter[i] != changed) error(slot, "predicted story stat level "
+                            + s.predicted.statLvAfter[i] + " but recount " + changed);
+                }
                 return;
             }
             Action a = Action.parse(rules, s.action);
@@ -207,6 +249,9 @@ final class PlanValidator {
                 case MEET:
                     expectKind(s, "social");
                     meet(s, a.target);
+                    break;
+                case INVITE:
+                    error(slot, "unconfirmed holiday invitation cannot be forecast");
                     break;
                 case UNLOCK_STEP:
                     expectKind(s, "unlock");
@@ -247,9 +292,8 @@ final class PlanValidator {
             Rules.Link link = rules.links[l];
             int d = day();
             boolean ordinaryCell = link.avail.get(d) && link.evening == evening();
-            boolean inviteCell = link.invite.get(d) && !evening();
             if (link.kind != Rules.LinkKind.MANUAL) error(slot, "meeting a story link " + link.id);
-            if (!ordinaryCell && !inviteCell) error(slot, link.id + " is not available in this slot");
+            if (!ordinaryCell) error(slot, link.id + " is not available in this slot");
             if (unavailable(l)) error(slot, link.id + " is missing or lost");
             int r = rank[l];
             if (r < 1 || r >= 10) {
@@ -408,9 +452,9 @@ final class PlanValidator {
             if (profile.excluded(a.id)) error(slot, "activity " + a.id + " is excluded by the player");
             if (a.requiresPlantedCrop && !profile.planDormGardening) error(slot, "activity " + a.id + " needs planted-crop permission");
             if (a.dormActivity() && !dormTraitUseful(a)) {
-                boolean useful = false;
+                boolean useful = activityAffinityGain(a) > 0;
                 for (int s = 0; s < Math.min(3, a.gain.length); s++) useful |= a.gain[s] > 0 && stat[s] < rules.stats[s].thresholds[6];
-                if (!useful) error(slot, "dorm project " + a.id + " adds no useful stats or chosen characteristic progress");
+                if (!useful) error(slot, "dorm project " + a.id + " adds no useful stats, affinity or chosen characteristic progress");
             }
             if (a.once && used[idx] > 0) error(slot, "once-only activity " + a.id + " repeated");
             if (a.requiresActivity >= 0 && used[a.requiresActivity] <= 0) {
@@ -431,7 +475,18 @@ final class PlanValidator {
                 shifts[idx]++;
             }
             for (int s = 0; s < Math.min(3, a.gain.length); s++) stat[s] += a.gain[s];
+            int affinity = activityAffinityGain(a);
+            if (affinity > 0) pts[a.affinityLink] += affinity;
             used[idx]++;
+        }
+
+        /** Independent raw dorm affinity transition, without ordinary-visit multipliers. */
+        private int activityAffinityGain(Rules.Activity activity) {
+            int link = activity.affinityLink;
+            if (activity.affinityPts <= 0 || link < 0 || link >= nLinks
+                    || rank[link] < 1 || rank[link] >= 10 || ready[link]) return 0;
+            int gap = rules.links[link].threshold[rank[link] + 1] - pts[link];
+            return Math.min(activity.affinityPts, Math.max(0, gap));
         }
 
         /** Re-derive goal usefulness from stable teammate keys, independently of the kernel model. */
@@ -602,7 +657,7 @@ final class PlanValidator {
             for (Rules.Link link : rules.links) {
                 int l = link.idx;
                 if (link.kind != Rules.LinkKind.MANUAL || rank[l] < 1 || rank[l] >= 10 || unavailable(l)) continue;
-                boolean cell = (link.avail.get(d) && link.evening == evening()) || (link.invite.get(d) && !evening());
+                boolean cell = link.avail.get(d) && link.evening == evening();
                 if (cell) return true;
             }
             for (Rules.Activity a : rules.activities) {
@@ -612,10 +667,13 @@ final class PlanValidator {
                 boolean reqs = true;
                 for (Map.Entry<Integer, Integer> e : a.requiresLv.entrySet()) reqs &= statLevel(e.getKey()) >= e.getValue();
                 if (!reqs) continue;
-                if (a.kind == Rules.ActivityKind.JOB) return true;
+                // Work is always a manual option; a paid shift is not automatically a useful
+                // schedule when its stats are capped and no near-term expense needs the cash.
+                if (a.kind == Rules.ActivityKind.JOB && cashNeededSoon()) return true;
                 if (dormTraitUseful(a)) return true;
+                if (dormAffinityUseful(a)) return true;
                 for (int s = 0; s < Math.min(3, a.gain.length); s++) {
-                    if (a.gain[s] > 0 && stat[s] < rules.stats[s].thresholds[6]) return true;
+                    if (usefulStatTraining(a, s)) return true;
                 }
             }
             for (int e = 0; e < episodes.length; e++) {
@@ -631,6 +689,78 @@ final class PlanValidator {
             if (canWaitForBatch(day.block)) return false;
             // A visit that would use the cap a pending rescue later in this block needs is not counted.
             return visits[day.block] + 1 + pendingRescues(day.block) <= capOf(day.block);
+        }
+
+        /**
+         * Ordinary study need not pre-empt dated free sessions already assigned by this plan.
+         * Count actual actions, not every available option, and finish before the first wanted
+         * stat gate opens. A dated activity's own reward remains useful on its available night.
+         */
+        private boolean usefulStatTraining(Rules.Activity activity, int statIndex) {
+            int gap = rules.stats[statIndex].thresholds[6] - stat[statIndex];
+            if (activity.gain[statIndex] <= 0 || gap <= 0) return false;
+            if (!evening() || activity.fixedDays != null || activity.dormActivity() || plannedFreeStat == null) return true;
+            int deadline = rules.lastSlot() + 1;
+            for (Rules.Link link : rules.links) {
+                int l = link.idx;
+                if (link.kind != Rules.LinkKind.MANUAL || (!isGoal(l) && !profile.otherLinks)) continue;
+                // MAX Charm can improve existing links immediately, independently of unlock gates.
+                if ("charm".equals(rules.stats[statIndex].id) && profile.charmBonus && rank[l] >= 1 && rank[l] < 10) {
+                    deadline = slot + 1;
+                }
+                Integer required = link.unlock.statLv.get(statIndex);
+                if (rank[l] != 0 || required == null || statLevel(statIndex) >= required) continue;
+                deadline = Math.min(deadline, Math.max(slot + 1, Rules.slot(link.unlock.earliestDay, false)));
+            }
+            int future = plannedFreeStat[statIndex][slot + 1] - plannedFreeStat[statIndex][deadline];
+            return future < gap;
+        }
+
+        /** Conservative cash purpose for the FREE warning, independently of the planner's prices. */
+        private boolean cashNeededSoon() {
+            long need = Math.max(0, profile.cashBuffer);
+            long fees = 0;
+            int last = Math.min(rules.lastDay, day() + 21);
+            for (Rules.Link link : rules.links) {
+                int l = link.idx;
+                if (rank[l] != 0 || link.kind != Rules.LinkKind.MANUAL || unavailable(l)
+                        || (!isGoal(l) && !profile.otherLinks) || link.unlock.earliestDay > last) continue;
+                List<Rules.Step> steps = link.unlock.steps;
+                int next = step[l];
+                if (next < 0 || next >= steps.size()) continue;
+                Rules.Step first = steps.get(next);
+                boolean soon = false;
+                for (int d = Math.max(day(), link.unlock.earliestDay); d <= last; d++) {
+                    if (lockAt(Rules.slot(d, first.evening)) == null && stepDayAllowed(link, first, d)) {
+                        soon = true;
+                        break;
+                    }
+                }
+                if (!soon) continue;
+                for (int k = next; k < steps.size(); k++) fees += Math.max(0, steps.get(k).cost);
+            }
+            if (fees > 0) need = Math.max(need, fees + Kernel.FEE_RESERVE);
+            return cash < need;
+        }
+
+        /** Affinity is productive only for a wanted rank with a real future ordinary meeting. */
+        private boolean dormAffinityUseful(Rules.Activity activity) {
+            if (activityAffinityGain(activity) <= 0) return false;
+            int link = activity.affinityLink;
+            if (!isGoal(link) && !profile.otherLinks) return false;
+            if (!profile.otherLinks && rank[link] >= Math.max(1, Math.min(10, profile.target[link]))) return false;
+            if (heldInto[link] == rank[link] + 1) return false;
+            Rules.Link social = rules.links[link];
+            for (int d = social.avail.nextSetBit(day()); d >= 0 && d <= rules.lastDay; d = social.avail.nextSetBit(d + 1)) {
+                int meeting = Rules.slot(d, social.evening);
+                if (meeting <= slot || lockAt(meeting) != null || unavailableOn(link, d)) continue;
+                boolean held = false;
+                for (Rules.Hold hold : social.holds) {
+                    if (hold.rank == rank[link] + 1 && (hold.untilDay < 0 || d < hold.untilDay)) held = true;
+                }
+                if (!held) return true;
+            }
+            return false;
         }
 
         /** A dating-site note is affordable this evening and some established link the plan wants still needs points. */
@@ -697,6 +827,14 @@ final class PlanValidator {
         }
 
         private void advance() {
+            if ((slot & 1) == 0) {
+                Rules.Day completedDay = rules.day(slot >> 1);
+                if (completedDay != null) {
+                    for (int i = 0; i < Math.min(stat.length, completedDay.automaticStatGain.length); i++) {
+                        stat[i] += Math.max(0, completedDay.automaticStatGain[i]);
+                    }
+                }
+            }
             slot++;
             if ((slot & 1) != 0) return;
             int d = slot >> 1;

@@ -291,7 +291,7 @@ final class LinksPage {
 
     /**
      * 「路线：朋友 / 恋人」 for a link that can be romanced (Profile.route; the default counts as
-     * 朋友), with the note that the plan never asks for the romance route. Only the 参考回答 line
+     * 朋友), with the note that the plan never asks for the romance route. Only the 回答 line
      * depends on it.
      */
     private View routeChoice(Profile profile, Rules.Link link) {
@@ -359,7 +359,7 @@ final class LinksPage {
         boolean[] answered = {false};
         LinearLayout sheet = Ui.column(c);
         Ui.pad(sheet, 20, 12, 20, 20);
-        sheet.addView(Ui.title(c, Outcomes.episodeName(track)));
+        sheet.addView(SheetChrome.title(c, Outcomes.episodeName(track)));
         sheet.addView(Ui.mixed(c, "已经看了几话？", 20, Ui.col(c, R.color.p3r_cyan_400), true), spaced(6));
         sheet.addView(Ui.muted(c, "共 " + track.count + " 话。看过的不会再排进安排里，之后也能在「修改进度」里改。"), spaced(4));
         sheet.addView(watchedChips(c, track, current, n -> {

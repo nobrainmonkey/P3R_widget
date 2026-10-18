@@ -160,7 +160,6 @@ final class InfoPages {
         card.setBackground(Ui.card(c));
         Ui.pad(card, 16, 12, 16, 12);
         card.addView(line(c, "这是玩家自制的离线小工具，按你的目标为《女神异闻录3 Reload》安排每天的白天和晚上。"));
-        card.addView(line(c, "与 ATLUS、世嘉没有任何关联。游戏名称与角色名称归各自权利人所有。"));
         card.addView(line(c, "全部计算都在手机上完成，不联网，不收集任何数据。"));
         card.addView(line(c, "数字字体：Barlow Condensed（SIL 开放字体许可证）。"));
         column.addView(card, top(c, 16));

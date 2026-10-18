@@ -36,8 +36,8 @@ public final class CardText {
     static final String ANSWER_LINE_BREAK = "\n" + WJ;
     /** Separator between dialogue choices (「A / B」). */
     static final String CHOICE_SEPARATOR = " / ";
-    /** The app's prefix of guide answers (「参考回答：」): {@link #choices} keeps it whole where a line starts with it. */
-    static final String ANSWER_PREFIX = "参考回答：";
+    /** The app's prefix of guide answers (「回答：」): {@link #choices} keeps it whole where a line starts with it. */
+    static final String ANSWER_PREFIX = "回答：";
     /** Joins two alternatives inside one dialogue choice (「我也去看看吧或者我在这里等她」). */
     private static final String ALTERNATIVES = CardModel.AnswerLine.ALTERNATIVES;
     /** {@link #ALTERNATIVES} on a card too narrow for it. */
@@ -192,7 +192,7 @@ public final class CardText {
     }
 
     /**
-     * Dialogue choices 「A / B」, optionally after 「参考回答：」. Every choice stays whole, its 「（1）」
+     * Dialogue choices 「A / B」, optionally after 「回答：」. Every choice stays whole, its 「（1）」
      * included; lines break only after a slash (or after the prefix), never before one.
      */
     public static String choices(String text) {

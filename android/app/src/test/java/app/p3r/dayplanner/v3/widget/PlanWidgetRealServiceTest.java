@@ -29,6 +29,7 @@ import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
+import app.p3r.dayplanner.v3.service.StoryDisplay;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -77,6 +78,46 @@ public class PlanWidgetRealServiceTest {
     public void tearDown() {
         WidgetWorker.setForTest(null, null);
         PlanWidget.setClockForTest(null);
+    }
+
+    @Test
+    public void storyDaysAdvanceThroughTheirOwnButtonWithoutAnotherGameplayRecord() {
+        Rules rules = api.rules();
+        Profile profile = new Profile();
+        profile.otherLinks = false;
+        profile.towerVisitsPerBlock = 0;
+        SimState start = newGame(rules, dayOf(rules, 11, 16));
+        start.slot++;
+        PlannerApi.Receipt saved = api.saveCheckpoint(command(), api.snapshot().stateRevision, start, profile);
+        assertTrue(saved.errorZh, saved.ok);
+        Outcome skipped = Outcome.of(Outcome.Code.SKIPPED);
+        skipped.sideDone = false;
+        PlannerApi.Receipt recorded = api.recordOutcome(command(), api.snapshot().stateRevision, start.slot, "free", skipped);
+        assertTrue(recorded.errorZh, recorded.ok);
+        PlannerApi.Snapshot before = api.snapshot();
+        assertNotNull(before.storyDisplay);
+        int first = Rules.slot(dayOf(rules, 11, 17), false);
+        assertEquals(first, before.storyDisplay.cursorSlot);
+        id = host.createWidget(PlanWidget.class, R.layout.widget_loading);
+        idle();
+        PlanWidget.FADES.forget(id);
+        refresh();
+        assertEquals("11/17", text(R.id.widget_date));
+        assertEquals("修学旅行", text(R.id.widget_task));
+        assertEquals(StoryDisplay.CONTINUE_LABEL, text(R.id.button_spec_done_text));
+        int events = api.history(0).size();
+        tap(R.id.button_spec_done);
+        assertEquals("11/18", text(R.id.widget_date));
+        PlannerApi.Snapshot after = api.snapshot();
+        assertEquals(before.observed.slot, after.observed.slot);
+        assertEquals(before.stateRevision, after.stateRevision);
+        assertEquals(before.profileRevision, after.profileRevision);
+        assertEquals(before.observed.cash, after.observed.cash);
+        assertArrayEquals(before.observed.statPts, after.observed.statPts);
+        assertArrayEquals(before.observed.rank, after.observed.rank);
+        assertEquals(events, api.history(0).size());
+        assertEquals(WidgetIntents.ACTION_STORY_CONTINUE,
+                shadowOf(app).getBroadcastIntents().get(shadowOf(app).getBroadcastIntents().size() - 1).getAction());
     }
 
     @Test

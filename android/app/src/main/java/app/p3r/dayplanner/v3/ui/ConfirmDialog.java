@@ -12,7 +12,7 @@ final class ConfirmDialog {
     static Dialog show(Context context, String title, String body, String confirmLabel, Runnable onConfirm) {
         LinearLayout content = Ui.column(context);
         Ui.pad(content, 20, 22, 20, 16);
-        content.addView(Ui.title(context, title));
+        content.addView(SheetChrome.title(context, title));
         if (body != null) {
             TextView text = Ui.body(context, body);
             text.setLineSpacing(0f, 1.3f);

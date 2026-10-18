@@ -9,6 +9,8 @@ import android.content.Intent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
+import android.widget.EditText;
+import android.widget.TextView;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,6 +19,7 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -73,10 +76,12 @@ public class TipsPageTest extends UiTestBase {
         api.snap.planCurrent = false;
         HomeActivity a = tips();
         assertEquals(HomeActivity.TAB_TIPS, a.currentTab());
-        assertTrue(Shots.has(a, "提齐亚 · 69–117F"));
-        assertTrue(Shots.allText(a.getWindow().getDecorView()).contains("10月1日 ～ 11月30日 · 共 "));
-        assertTrue(Shots.has(a, "游戏进度：10月22日 白天"));
-        assertTrue(Shots.has(a, TipsPage.LEGEND));
+        assertEquals("10月1日 ～ 11月30日", taggedText(a, "tips_filter_selection"));
+        assertEquals(resultIds(a).size() + " 条", taggedText(a, "tips_result_counter"));
+        String page = Shots.allText(a.getWindow().getDecorView());
+        assertFalse(page, page.contains("游戏进度："));
+        assertFalse(page, page.contains("全部提示"));
+        assertFalse(page, page.contains(" · 共 "));
         View carried = rowForId(a, "request.carried");
         assertTrue(Shots.allText(carried).contains(CARRIED));
         Shots.shot(a, "home_tips_period");
@@ -104,11 +109,13 @@ public class TipsPageTest extends UiTestBase {
     }
 
     @Test
-    public void onboardingExplainsWhereThePeriodComesFrom() {
+    public void onboardingAsksForTheGameDateWithoutAddingSearchInstructions() {
         api.snap.observed = null;
         api.snap.plan = null;
         HomeActivity a = tips();
-        assertTrue(Shots.has(a, "先在「今天」里完成设置，这里会按游戏日期汇总当期提示。"));
+        assertTrue(Shots.has(a, "先设置游戏日期"));
+        assertEquals("0 条", taggedText(a, "tips_result_counter"));
+        assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("先在「今天」里完成设置"));
     }
 
     @Test
@@ -227,6 +234,305 @@ public class TipsPageTest extends UiTestBase {
         assertTrue(row.performClick());
         Shots.idle();
         assertTrue(Shots.has(a, unlock.detailZh));
+    }
+
+    @Test
+    public void searchFindsFullRankDialogueBeforeOnboardingWithoutRecordingOrPlanning() throws Exception {
+        api.rules = realRules();
+        api.snap.observed = null;
+        api.snap.plan = null;
+        api.snap.planCurrent = false;
+        HomeActivity a = tips();
+        EditText search = a.getWindow().getDecorView().findViewWithTag("tips_search");
+        assertNotNull(search);
+        search.setText("风花R2");
+        Shots.idle();
+        assertTrue(Shots.find(a, "全部").isSelected());
+        View row = rowForId(a, "dialogue.priestess.2");
+        String card = Shots.allText(row);
+        assertTrue(card, card.contains("升到 RANK 2"));
+        assertTrue(card, card.contains("没问题（首问） / 没问题（末问）"));
+        assertFalse(card, card.contains("4月"));
+        Shots.shot(a, "tips_search_dialogue_without_plan");
+        assertTrue(row.performClick());
+        Shots.idle();
+        String detail = Shots.allText(a.sheets().content());
+        assertTrue(detail, detail.contains("完整问答顺序：\n没问题\n任意\n没问题"));
+        assertTrue(api.calls.isEmpty());
+        assertEquals(null, api.snap.observed);
+        assertEquals(null, api.snap.plan);
+    }
+
+    @Test
+    public void contentFiltersAndGlobalSearchExposeAnswersOutsideTheCurrentPeriod() throws Exception {
+        api.rules = realRules();
+        api.snap.observed = Fixtures.observedMid(api.rules);
+        api.snap.plan = null;
+        api.snap.planCurrent = false;
+        HomeActivity a = tips();
+        Shots.click(a, "全部");
+        filter(a, "社群对话");
+        assertTrue("content filtering keeps the chosen all-game scope", Shots.find(a, "全部").isSelected());
+        assertNotNull(rowForId(a, "dialogue.priestess.2"));
+        filter(a, "课堂·考试");
+        EditText search = a.getWindow().getDecorView().findViewWithTag("tips_search");
+        search.setText("鲤鱼旗");
+        Shots.idle();
+        assertNotNull(rowForId(a, "class.04-08"));
+        assertTrue(Shots.allText(rowForId(a, "class.04-08")).contains("第 3 项"));
+        Shots.shot(a, "tips_search_past_school_answer");
+        Shots.click(a, "本期");
+        assertTrue(Shots.has(a, "没有匹配结果"));
+        Shots.click(a, "全部");
+        search.setText("完全不存在的剧情选项");
+        Shots.idle();
+        assertTrue(Shots.has(a, "没有匹配结果"));
+        assertTrue(api.calls.isEmpty());
+    }
+
+    @Test
+    public void requestsCanBeFoundByExactNumberOrNameAndReadWithoutRecordingCompletion() throws Exception {
+        api.rules = realRules();
+        api.rules.reminders.requestTips.clear();
+        Rules.RequestTip request = new Rules.RequestTip();
+        request.number = 75;
+        request.titleZh = "带给我战国时代的头盔";
+        request.aliases.add("战国头盔");
+        request.detailZh = "先接委托，到学校教职员室分 8 天触发对话，再拿物品交付。";
+        request.fromDay = Fixtures.day(10, 6);
+        api.rules.reminders.requestTips.add(request);
+        api.snap.observed = Fixtures.observedMid(api.rules);
+        api.snap.plan = null;
+        api.snap.planCurrent = false;
+        HomeActivity a = tips();
+        filter(a, "委托");
+        assertTrue(Shots.find(a, "本期").isSelected());
+        EditText search = a.getWindow().getDecorView().findViewWithTag("tips_search");
+        search.setText("请求75");
+        Shots.idle();
+        View result = rowForId(a, "request.catalogue.75");
+        assertTrue(Shots.allText(result).contains("第 75 号 · 带给我战国时代的头盔"));
+        Shots.shot(a, "tips_request_search_number");
+        search.setText("战国头盔");
+        Shots.idle();
+        assertTrue(rowForId(a, "request.catalogue.75").performClick());
+        Shots.idle();
+        String detail = Shots.allText(a.sheets().content());
+        assertTrue(detail, detail.contains("分 8 天"));
+        assertFalse(detail, detail.contains("未自动追踪"));
+        Shots.shot(a, "tips_request_detail");
+        assertTrue(api.calls.isEmpty());
+        assertEquals(Fixtures.SLOT_NOW, api.snap.observed.slot);
+    }
+
+    @Test
+    public void combatFilterFindsExactFloorsAndFullMoonMonthsAndOpensWeaknessAndTactics() throws Exception {
+        api.rules = realRules();
+        api.rules.reminders.combatTips.clear();
+        Rules.CombatTip guardian = new Rules.CombatTip();
+        guardian.id = "guardian.36";
+        guardian.kind = "guardian";
+        guardian.titleZh = "守关首领";
+        guardian.floor = 36;
+        guardian.fromDay = Fixtures.day(6, 13);
+        guardian.shortZh = "弱点：冰";
+        guardian.detailZh = "弱点：冰；火无效。\n先处理召唤的小怪。";
+        guardian.tacticsZh = "先处理召唤的小怪。";
+        Rules.CombatEnemy enemy = new Rules.CombatEnemy();
+        enemy.nameZh = "守关首领";
+        enemy.affinities = new String[]{"-", "-", "-", "n", "w", "-", "-", "-", "-"};
+        guardian.enemies.add(enemy);
+        api.rules.reminders.combatTips.add(guardian);
+        Rules.CombatTip moon = new Rules.CombatTip();
+        moon.id = "fullmoon.hermit";
+        moon.kind = "full_moon";
+        moon.titleZh = "隐者";
+        moon.fromDay = Fixtures.day(9, 5);
+        moon.shortZh = "注意蓄力攻击";
+        moon.detailZh = "蓄力后防御，准备治疗。";
+        api.rules.reminders.combatTips.add(moon);
+        api.snap.observed = Fixtures.observedMid(api.rules);
+        api.snap.plan = null;
+        api.snap.planCurrent = false;
+        HomeActivity a = tips();
+        filter(a, "战斗");
+        assertTrue(Shots.find(a, "本期").isSelected());
+        EditText search = a.getWindow().getDecorView().findViewWithTag("tips_search");
+        search.setText("第36层");
+        Shots.idle();
+        View row = rowForId(a, "combat.catalogue.guardian.36");
+        assertTrue(Shots.allText(row).contains("36F · 守关首领"));
+        assertTrue(Shots.allText(row).contains("弱点：冰"));
+        Shots.shot(a, "tips_combat_floor_search");
+        assertTrue(row.performClick());
+        Shots.idle();
+        String detail = Shots.allText(a.sheets().content());
+        android.widget.TextView fire = a.sheets().content().findViewWithTag("combat_affinity_0_3");
+        assertEquals("无", Zh.plain(fire.getText()));
+        assertTrue(detail, detail.contains("先处理召唤的小怪"));
+        Shots.shot(a, "tips_combat_detail");
+        Shots.click(a, "知道了");
+        search.setText("9月 满月");
+        Shots.idle();
+        assertNotNull(rowForId(a, "combat.catalogue.fullmoon.hermit"));
+        assertTrue(api.calls.isEmpty());
+        assertEquals(Fixtures.SLOT_NOW, api.snap.observed.slot);
+    }
+
+    @Test
+    public void filterSelectionsAreAppliedTogetherAndBackCancelsPendingChanges() {
+        reminders();
+        api.snap.plan = null;
+        api.snap.planCurrent = false;
+        HomeActivity a = tips();
+        List<String> initial = resultIds(a);
+        String initialCount = taggedText(a, "tips_result_counter");
+
+        Shots.click(a, "筛选");
+        assertTrue(Shots.has(a, "筛选提示"));
+        sheetClick(a, "委托");
+        assertTrue(a.sheets().isShowing());
+        assertTrue("a pending content choice does not change scope", Shots.find(a, "本期").isSelected());
+        assertEquals(initialCount, taggedText(a, "tips_result_counter"));
+        assertEquals(initial, resultIds(a));
+        a.onBackPressed();
+        Shots.idle();
+        assertFalse(a.sheets().isShowing());
+        assertEquals(initial, resultIds(a));
+        assertEquals("10月1日 ～ 11月30日", taggedText(a, "tips_filter_selection"));
+
+        Shots.click(a, "全部");
+        filter(a, "委托");
+        assertTrue(Shots.find(a, "全部").isSelected());
+        assertEquals("委托", taggedText(a, "tips_filter_selection"));
+        List<String> requests = resultIds(a);
+        assertTrue(requests.toString(), requests.contains("request.other"));
+        assertAllLabels(a, "委托");
+        Shots.click(a, "筛选");
+        sheetClick(a, "重置");
+        assertEquals(requests, resultIds(a));
+        assertEquals("委托", taggedText(a, "tips_filter_selection"));
+        a.onBackPressed();
+        Shots.idle();
+        assertEquals(requests, resultIds(a));
+        assertEquals("委托", taggedText(a, "tips_filter_selection"));
+
+        Shots.click(a, "筛选");
+        sheetClick(a, "重置");
+        sheetClick(a, "应用");
+        assertFalse(a.sheets().isShowing());
+        assertFalse(Shots.find(a, "筛选").isSelected());
+        assertEquals(View.GONE, a.getWindow().getDecorView().findViewWithTag("tips_filter_selection").getVisibility());
+        assertTrue(resultIds(a).size() > requests.size());
+        assertTrue(api.calls.isEmpty());
+        Shots.shot(a, "tips_filters_reset_all_content");
+    }
+
+    @Test
+    public void applyingContentFiltersKeepsTheExplicitPeriodScopeEvenWhenNothingChanged() {
+        reminders();
+        api.snap.plan = null;
+        api.snap.planCurrent = false;
+        HomeActivity a = tips();
+        filter(a, "委托");
+        assertTrue(Shots.find(a, "本期").isSelected());
+        List<String> periodRequests = resultIds(a);
+        assertFalse(periodRequests.contains("request.other"));
+        Shots.click(a, "全部");
+        assertTrue(resultIds(a).contains("request.other"));
+        Shots.click(a, "本期");
+        Shots.click(a, "筛选");
+        sheetClick(a, "应用");
+        assertTrue("applying an unchanged filter retains the user's period selection", Shots.find(a, "本期").isSelected());
+        assertEquals(periodRequests, resultIds(a));
+        assertEquals("10月1日 ～ 11月30日 · 委托", taggedText(a, "tips_filter_selection"));
+        assertTrue(api.calls.isEmpty());
+    }
+
+    @Test
+    public void actualCardTagsFilterRescuesAndUnlocksAndReplaceEarlierSelections() {
+        reminders();
+        Rules.Reminder unlock = raw("feature.unlock.search", Fixtures.OCT_22, -1, "勇气达到 6 级后，可开启女教皇社群");
+        unlock.kind = Plan.Reminder.FEATURE;
+        unlock.labelZh = "社群解锁";
+        api.rules.reminders.items.add(unlock);
+        Rules.RescueGroup rescue = new Rules.RescueGroup();
+        rescue.id = "rescue.10-21";
+        rescue.fromDay = Fixtures.day(10, 21);
+        rescue.toDay = Fixtures.day(11, 2);
+        rescue.count = 1;
+        rescue.rescueIds.add("maiko");
+        api.rules.reminders.rescueGroups.add(rescue);
+        api.snap.plan = null;
+        api.snap.planCurrent = false;
+        HomeActivity a = tips();
+        List<String> initial = resultIds(a);
+        filter(a, "失踪者");
+        assertTrue(Shots.find(a, "本期").isSelected());
+        assertEquals("10月1日 ～ 11月30日 · 失踪者", taggedText(a, "tips_filter_selection"));
+        assertAllLabels(a, "失踪者");
+        List<String> rescues = resultIds(a);
+        assertTrue(initial.containsAll(rescues));
+
+        Shots.click(a, "筛选");
+        assertTrue(Shots.find(a.sheets().content(), "失踪者").isSelected());
+        sheetClick(a, "社群解锁");
+        assertFalse(Shots.find(a.sheets().content(), "失踪者").isSelected());
+        assertTrue(Shots.find(a.sheets().content(), "社群解锁").isSelected());
+        assertEquals(rescues, resultIds(a));
+        Shots.shot(a, "tips_filter_sheet_actual_tags");
+        sheetClick(a, "应用");
+        assertEquals("10月1日 ～ 11月30日 · 社群解锁", taggedText(a, "tips_filter_selection"));
+        assertAllLabels(a, "社群解锁");
+        assertNotNull(rowForId(a, unlock.id));
+        for (String id : rescues) assertFalse(resultIds(a).contains(id));
+        assertEquals(resultIds(a).size() + " 条", taggedText(a, "tips_result_counter"));
+        assertTrue(api.calls.isEmpty());
+        assertEquals(Fixtures.SLOT_NOW, api.snap.observed.slot);
+        Shots.shot(a, "tips_filter_actual_unlocks");
+    }
+
+    private static void filter(HomeActivity a, String label) {
+        Shots.click(a, "筛选");
+        sheetClick(a, label);
+        sheetClick(a, "应用");
+        assertFalse(a.sheets().isShowing());
+    }
+
+    private static void sheetClick(HomeActivity a, String label) {
+        assertTrue("filter sheet is open", a.sheets().isShowing());
+        assertTrue(Shots.clickTarget(Shots.find(a.sheets().content(), label)).performClick());
+        Shots.idle();
+    }
+
+    private static String taggedText(HomeActivity a, String tag) {
+        TextView text = a.getWindow().getDecorView().findViewWithTag(tag);
+        assertNotNull(text);
+        return Zh.plain(text.getText());
+    }
+
+    private static List<String> resultIds(HomeActivity a) {
+        List<String> ids = new ArrayList<>();
+        ListView list = visibleList(a.getWindow().getDecorView());
+        assertNotNull(list);
+        for (int i = 0; i < list.getAdapter().getCount(); i++) {
+            TipsPage.Item item = (TipsPage.Item) list.getAdapter().getItem(i);
+            if (item.reminder != null) ids.add(item.reminder.id);
+        }
+        return ids;
+    }
+
+    private static void assertAllLabels(HomeActivity a, String label) {
+        ListView list = visibleList(a.getWindow().getDecorView());
+        assertNotNull(list);
+        int count = 0;
+        for (int i = 0; i < list.getAdapter().getCount(); i++) {
+            TipsPage.Item item = (TipsPage.Item) list.getAdapter().getItem(i);
+            if (item.reminder == null) continue;
+            assertEquals(item.reminder.id, label, item.reminder.labelZh);
+            count++;
+        }
+        assertTrue("the selected actual card tag has results", count > 0);
     }
 
     private static View rowForId(HomeActivity a, String id) {

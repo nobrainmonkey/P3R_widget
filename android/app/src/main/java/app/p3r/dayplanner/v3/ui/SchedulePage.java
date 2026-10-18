@@ -84,7 +84,7 @@ final class SchedulePage {
 
     void bind(UiData d) {
         data = d;
-        Plan plan = d.plan();
+        Plan plan = d.displayPlan();
         if (!d.hasState() || plan == null || PlanDiff.finished(plan)) {
             String text;
             if (!d.hasState()) {
@@ -102,11 +102,11 @@ final class SchedulePage {
         }
         empty.setVisibility(View.GONE);
         list.setVisibility(View.VISIBLE);
-        List<Item> items = buildItems(plan, d.currentSlot());
+        List<Item> items = buildItems(plan, d.displaySlot());
         adapter.setItems(items);
         if (!plan.planId.equals(scrolledForPlan)) {
             scrolledForPlan = plan.planId;
-            int today = Rules.dayOf(Math.max(d.currentSlot(), plan.fromSlot));
+            int today = Rules.dayOf(Math.max(d.displaySlot(), plan.fromSlot));
             for (int i = 0; i < items.size(); i++) {
                 if (items.get(i).type == TYPE_DAY && items.get(i).day == today) {
                     list.setSelection(i <= 3 ? 0 : i - 1);
@@ -196,7 +196,7 @@ final class SchedulePage {
     }
 
     private View summary() {
-        Plan plan = data.plan();
+        Plan plan = data.displayPlan();
         LinearLayout box = Ui.column(c);
         Ui.pad(box, 0, 8, 0, 4);
         TextView title = Ui.text(c, "日程", 28, Ui.col(c, R.color.p3r_white), true);
@@ -291,8 +291,8 @@ final class SchedulePage {
 
         void bind(UiData d, int day) {
             Context context = getContext();
-            Plan plan = d.plan();
-            int current = d.currentSlot();
+            Plan plan = d.displayPlan();
+            int current = d.displaySlot();
             boolean today = Rules.dayOf(current) == day;
             dayNumber.setText(String.valueOf(Zh.dateOf(day).getDayOfMonth()));
             Rules.Day info = d.rules.day(day);

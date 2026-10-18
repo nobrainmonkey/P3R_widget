@@ -27,10 +27,6 @@ final class ReminderViews {
     static final String TODAY_TITLE = "今天别错过";
     /** The day sheet's section: everything the day has. */
     static final String DAY_TITLE = "当天提醒";
-    /** Under a reminder whose answer has a single source or is an estimate. */
-    static final String ESTIMATE_CAPTION = "这条只有一份攻略写过，仅供参考";
-    /** A longer text that already says {@link #ESTIMATE_CAPTION} (the pack's estimated exam answers). */
-    static final String ESTIMATE_SAID = "只有一份攻略写过";
     /** Starts the 日程 day's third line: 「提醒：课堂提问 · 电视购物」. */
     static final String SCHEDULE_PREFIX = "提醒：";
     /** Labels a 日程 line names before 「等」. */
@@ -66,7 +62,7 @@ final class ReminderViews {
      * gives); a row opens the day sheet of its slot. Null when there is none.
      */
     static View todayBlock(HomeHost host, UiData d) {
-        List<Plan.Reminder> reminders = today(d.plan(), d.currentSlot());
+        List<Plan.Reminder> reminders = today(d.displayPlan(), d.displaySlot());
         if (reminders.isEmpty()) {
             return null;
         }
@@ -95,8 +91,8 @@ final class ReminderViews {
     // ------------------------------------------------------------------ day sheet
 
     /**
-     * 「当天提醒」 for the day sheet: every reminder of the day with its longer text, and
-     * {@link #ESTIMATE_CAPTION} under an estimated answer. Null when the day has none.
+     * 「当天提醒」 for the day sheet: every reminder of the day with its longer text.
+     * Null when the day has none.
      */
     static View daySection(Context c, Plan plan, int day) {
         List<Plan.Reminder> reminders = ofDay(plan, day);
@@ -167,13 +163,6 @@ final class ReminderViews {
             mp.topMargin = Ui.dp(c, 3);
             texts.addView(more, mp);
             spoken.append("。").append(r.detailZh.trim());
-        }
-        if (detail && r.estimate && (blank(r.detailZh) || !r.detailZh.contains(ESTIMATE_SAID))) {
-            TextView caption = Ui.text(c, ESTIMATE_CAPTION, 12, Ui.col(c, R.color.ui_gold), false);
-            LinearLayout.LayoutParams ep = Ui.matchWrap();
-            ep.topMargin = Ui.dp(c, 3);
-            texts.addView(caption, ep);
-            spoken.append("。").append(ESTIMATE_CAPTION);
         }
         LinearLayout.LayoutParams tp = Ui.weight(1);
         tp.leftMargin = Ui.dp(c, 10);

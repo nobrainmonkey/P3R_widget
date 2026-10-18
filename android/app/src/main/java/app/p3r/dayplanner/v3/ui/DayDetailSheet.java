@@ -11,6 +11,7 @@ import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.Intents;
 import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.model.Rules;
+import app.p3r.dayplanner.v3.service.StoryDisplay;
 
 /**
  * Detail sheet for one slot: the day's note, the day's 当日提醒 (「当天提醒」), what to do, where, the
@@ -24,7 +25,7 @@ final class DayDetailSheet {
     static View build(HomeHost host, int slot) {
         Context c = host.activity();
         UiData d = host.data();
-        Plan plan = d.plan();
+        Plan plan = d.displayPlan();
         Plan.Step step = plan == null ? null : plan.at(slot);
         LinearLayout column = Ui.column(c);
         Ui.pad(column, 20, 8, 20, 20);
@@ -88,7 +89,7 @@ final class DayDetailSheet {
         }
         List<String> notes = Assumptions.describeAll(step.assumptions, step.estimate);
         if (!notes.isEmpty()) {
-            column.addView(Ui.sectionHeader(c, "这一步用到的估计", null), top(c, 14));
+            column.addView(Ui.sectionHeader(c, "安排依据", null), top(c, 14));
             for (String note : notes) {
                 TextView line = Ui.mixed(c, note, 13, Ui.col(c, R.color.p3r_ink_muted), false);
                 line.setLineSpacing(0f, 1.25f);
@@ -103,6 +104,23 @@ final class DayDetailSheet {
         Context c = host.activity();
         int current = d.currentSlot();
         LinearLayout box = Ui.column(c);
+        if (d.snap.storyDisplay != null && d.snap.storyDisplay.cursorSlot == step.slot) {
+            TextView go = Ui.primary(c, StoryDisplay.CONTINUE_LABEL);
+            go.setOnClickListener(v -> {
+                host.dismissSheet();
+                host.commitDirect(step);
+            });
+            box.addView(go);
+            return box;
+        }
+        if (d.snap.storyDisplay != null && d.snap.storyDisplay.contains(step.slot)) {
+            box.addView(Ui.muted(c, "这天被剧情占用，不能自由行动。游戏里过完后，在「今天」点继续。"));
+            return box;
+        }
+        if (kind == StepKind.LOCKED && step.slot >= current) {
+            box.addView(Ui.muted(c, "这天被剧情占用，不能自由行动。"));
+            return box;
+        }
         if (step.slot < current) {
             box.addView(Ui.muted(c, "这个时段已经记录过了。要更正可以去「我的 → 记录历史」。"));
             return box;

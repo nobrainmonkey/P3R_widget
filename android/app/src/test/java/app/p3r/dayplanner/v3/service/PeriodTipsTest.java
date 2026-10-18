@@ -158,7 +158,7 @@ public class PeriodTipsTest {
         assertEquals(item.slot, withForecast.slot);
         assertEquals(item.textZh, withForecast.textZh);
         assertTrue(withForecast.detailZh.contains("勇气 Lv.2"));
-        assertTrue(withForecast.detailZh.contains("当前安排预计6月20日处理"));
+        assertTrue(withForecast.detailZh.contains("安排：6月20日处理"));
         pickup.requiresLv.put(2, 6);
         assertTrue(find(PeriodTips.collect(rules, at(50, false), null), pickup.id).detailZh.contains("勇气 MAX"));
     }
@@ -245,9 +245,8 @@ public class PeriodTipsTest {
         }
         PeriodTips.Period period = PeriodTips.collect(rules, observed, plan);
         String detail = find(period, group.id).detailZh;
-        assertTrue(detail.contains("预计5月31日进塔"));
-        assertTrue(detail.contains("不代表已经救出"));
-        assertTrue(detail.contains("尚未实机核对"));
+        assertTrue(detail.contains("安排：5月31日进塔"));
+        assertTrue(detail.contains("最晚在期限当天晚上救出"));
         assertEquals(0L, observed.rescued);
         assertTrue(period.ongoingIds.contains("period.nurse"));
         assertEquals(-1, find(period, "period.nurse").untilDay);
@@ -306,7 +305,7 @@ public class PeriodTipsTest {
         assertEquals(Rules.slot(40, true), past.slot);
         assertTrue(past.textZh.contains("学力 +4"));
         assertTrue(past.detailZh.contains("占用整个晚上"));
-        assertTrue(past.detailZh.contains("学力已满时不会再增加"));
+        assertTrue(past.detailZh.contains("学力已满可跳过"));
         assertNotNull(find(period, "activity.group_study_fixed.72"));
         assertNull(find(period, "activity.group_study_fixed.73"));
         assertEquals(2, observed.used[0]);
@@ -367,7 +366,7 @@ public class PeriodTipsTest {
         assertTrue(unlock.detailZh.contains("指定地点选「说话」"));
         assertTrue(unlock.detailZh.contains("不消耗时间；花费 1000 日元"));
         assertTrue(unlock.detailZh.contains("考试至少拿过一次第一名"));
-        assertTrue(unlock.detailZh.contains("不代表前置条件已经达成"));
+        assertTrue(unlock.detailZh.contains("最早5月13日开放"));
         assertNull(find(period, "unlock.prerequisite"));
         Plan.Reminder part = find(period, "episode.track.1");
         assertNotNull(part);

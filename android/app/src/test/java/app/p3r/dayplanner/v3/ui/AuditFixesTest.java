@@ -253,29 +253,29 @@ public class AuditFixesTest extends UiTestBase {
         // Verbatim pack fragments.
         List<String> priestess9 = Arrays.asList("对话选择：任意/任意/我喜欢风花（1），恋人线/任意");
         assertEquals(Dialogue.FRIEND_FALLBACK, Dialogue.friendLine(priestess9, 9));
-        assertEquals("参考回答：现在就是啊（2）；" + Dialogue.FRIEND_CAUTION,
+        assertEquals("回答：现在就是啊（2）；" + Dialogue.FRIEND_CAUTION,
             Dialogue.friendLine(Arrays.asList("对话选择：现在就是啊（2）/任意/是恋情（1，恋人线）"), 8));
-        assertEquals("参考回答：随便问吧（1） / 随时欢迎千寻找我倾诉（1） / 握住她的手（1）；" + Dialogue.FRIEND_CAUTION,
+        assertEquals("回答：随便问吧（1） / 随时欢迎千寻找我倾诉（1） / 握住她的手（1）；" + Dialogue.FRIEND_CAUTION,
             Dialogue.friendLine(Arrays.asList("对话选择：随便问吧（1）/产生恋爱感情了（1）/随时欢迎千寻找我倾诉（1）/握住她的手（1）",
                 "第二次选择“产生恋爱感情了（1）”会进入恋爱线；选第二项不会进入", "最后选择第二项亲上去，关系会破裂"), 5));
-        assertEquals("参考回答：突然这是怎么了？（1）；" + Dialogue.FRIEND_CAUTION,
+        assertEquals("回答：突然这是怎么了？（1）；" + Dialogue.FRIEND_CAUTION,
             Dialogue.friendLine(Arrays.asList("前3次对话选择：第1项/任意/任意", "接着选择：突然这是怎么了？（1）",
                 "最后一项：选1进入恋人线，选2做朋友"), 9));
         // No marking: RANK 8 and up get the generic hint, lower ranks read as usual.
         assertEquals(Dialogue.FRIEND_FALLBACK, Dialogue.friendLine(Arrays.asList("任意", "男孩或者女孩"), 8));
-        assertEquals("参考回答：再做给我吃吧（3）", Dialogue.friendLine(Arrays.asList("再做给我吃吧（3）"), 5));
+        assertEquals("回答：再做给我吃吧（3）", Dialogue.friendLine(Arrays.asList("再做给我吃吧（3）"), 5));
         // On the 恋人 route the guide's answers are shown as they are.
-        assertEquals("参考回答：我喜欢风花（1），恋人线", Dialogue.line(priestess9));
+        assertEquals("回答：我喜欢风花（1），恋人线", Dialogue.line(priestess9));
 
         Plan.Step step = Fixtures.social(api.rules, NOW, "priestess", 8, 9, true, false);
         Profile friend = Fixtures.profileMid();
         assertEquals(Dialogue.FRIEND_FALLBACK, Dialogue.line(api.rules, friend, step));
         Profile romance = Fixtures.profileMid();
         romance.route[2] = Profile.Route.ROMANCE;
-        assertEquals("参考回答：我喜欢风花（1），恋人线", Dialogue.line(api.rules, romance, step));
+        assertEquals("回答：我喜欢风花（1），恋人线", Dialogue.line(api.rules, romance, step));
         // A link that cannot be romanced is unchanged.
         Plan.Step emperor = Fixtures.social(api.rules, NOW, "emperor", 6, 7, true, true);
-        assertEquals("参考回答：我会帮你的 / 这样的规矩没有意义", Dialogue.line(api.rules, friend, emperor));
+        assertEquals("回答：我会帮你的 / 这样的规矩没有意义", Dialogue.line(api.rules, friend, emperor));
     }
 
     @Test
@@ -513,13 +513,13 @@ public class AuditFixesTest extends UiTestBase {
         assertTrue(side, side.contains("西" + Zh.WJ + "胁" + Zh.WJ + "结" + Zh.WJ + "子"));
         String persona = Zh.keepTogether("记得带上「皇帝」阿尔卡那的人格面具").toString();
         assertTrue(persona, persona.contains("人" + Zh.WJ + "格" + Zh.WJ + "面" + Zh.WJ + "具"));
-        String answer = Zh.keepTogether("参考回答：你说得对（1） / 那也没办法（2）").toString();
+        String answer = Zh.keepTogether("回答：你说得对（1） / 那也没办法（2）").toString();
         assertTrue(answer, answer.contains("对" + Zh.WJ + "（"));
         assertTrue(Zh.keepTogether("10月22日 晚上").toString().contains("2" + Zh.WJ + "日"));
         // Ordinary words (ICU dictionary segmentation) and whole short answers.
         assertTrue(side, side.contains("和" + Zh.WJ + "尚"));
         assertTrue(side, side.contains("奇" + Zh.WJ + "怪"));
-        String rule = Zh.keepTogether("参考回答：我会帮你的 / 这样的规矩没有意义").toString();
+        String rule = Zh.keepTogether("回答：我会帮你的 / 这样的规矩没有意义").toString();
         assertEquals(Zh.glue("这样的规矩没有意义"), rule.substring(rule.indexOf(" / ") + 3));
         assertTrue(rule, rule.contains(" / "));
         String meet = Zh.keepTogether("RANK 4 · 见面（预计不升级）").toString();

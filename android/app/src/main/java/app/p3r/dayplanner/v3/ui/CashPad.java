@@ -51,7 +51,7 @@ public final class CashPad {
         content = Ui.column(context);
         if (!inline) {
             Ui.pad(content, 20, 20, 20, 16);
-            content.addView(Ui.headline(context, options.title));
+            content.addView(SheetChrome.title(context, options.title));
         }
         if (options.hint != null) {
             TextView hint = Ui.mixed(context, options.hint, 13, Ui.col(context, R.color.p3r_ink_muted), false);

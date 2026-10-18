@@ -185,11 +185,7 @@ public final class ResultActivity extends Activity {
         root.addView(scrim, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
         panel = Ui.column(this);
-        int cut = Ui.dp(this, 28);
-        panel.setBackground(new SlantedPanelDrawable()
-            .fill(Ui.col(this, R.color.ui_sheet))
-            .stroke(Ui.alpha(Ui.col(this, R.color.p3r_cyan_400), 150), Ui.dp(this, 1))
-            .cuts(cut, 0, 0, 0));
+        panel.setBackground(SheetChrome.surface(this));
         panel.setClickable(true);
         scroll = new ScrollView(this);
         scroll.setClipToPadding(false);
@@ -567,7 +563,7 @@ public final class ResultActivity extends Activity {
     /** Index of the link a meeting / note is about, or -1. */
     private int linkOf(Plan.Step step) {
         Action action = Action.parse(rules, step.action);
-        if (action != null && (action.type == Action.Type.MEET || action.type == Action.Type.NOTE)
+        if (action != null && (action.type == Action.Type.MEET || action.type == Action.Type.INVITE || action.type == Action.Type.NOTE)
             && action.target >= 0 && action.target < rules.links.length) {
             return action.target;
         }
@@ -604,7 +600,8 @@ public final class ResultActivity extends Activity {
                 socialRankUp(step);
                 break;
             case SOCIAL_MEET:
-                socialMeet(step);
+                if (step.action != null && step.action.startsWith("invite:")) invitePanel(step);
+                else socialMeet(step);
                 break;
             case UNLOCK:
                 unlockPanel(step);
@@ -646,9 +643,6 @@ public final class ResultActivity extends Activity {
         String dialogue = Dialogue.besideHowTo(rules, snap.profile, step);
         if (dialogue != null) {
             body.addView(Ui.body(this, dialogue), top(6));
-        }
-        if (!step.predicted.certain) {
-            body.addView(Ui.muted(this, "升级是按估计排的，结果以游戏为准。"), top(4));
         }
         stepExtras(step, false, true);
         ToggleRow ready = readyToggle();
@@ -753,6 +747,20 @@ public final class ResultActivity extends Activity {
         TextView notDone = Ui.secondary(this, "没完成");
         notDone.setOnClickListener(v -> submit(step, Outcomes.notDone()));
         body.addView(pair(notDone, done), top(16));
+    }
+
+    /** Only an actual received SMS can be recorded here; no rank-up scene is inferred. */
+    private void invitePanel(Plan.Step step) {
+        body.addView(question("收到短信并赴约了吗？"), top(14));
+        body.addView(note("只加好感，不直接升级。"), top(4));
+        stepExtras(step, true, true);
+        ToggleRow ready = readyToggle();
+        body.addView(ready, top(12));
+        TextView attended = Ui.primary(this, "赴约了");
+        attended.setOnClickListener(v -> submit(step, Outcomes.invited(ready.isChecked())));
+        TextView not = Ui.secondary(this, "没赴约");
+        not.setOnClickListener(v -> submit(step, Outcomes.notDone()));
+        body.addView(pair(not, attended), top(16));
     }
 
     /** 结缘网站的字条: bought at the club and used on the dorm PC for one established link. */
@@ -1140,7 +1148,7 @@ public final class ResultActivity extends Activity {
             String group = groupOf(alt);
             if (!group.equals(lastKind)) {
                 lastKind = group;
-                body.addView(Ui.text(this, group, 13, Ui.col(this, R.color.p3r_cyan_300), true), top(14));
+                body.addView(Ui.sectionHeader(this, group, null), top(10));
             }
             body.addView(alternativeRow(alt, planned), top(6));
         }
@@ -1175,10 +1183,19 @@ public final class ResultActivity extends Activity {
 
     private View alternativeRow(Plan.Step alt, Plan.Step planned) {
         LinearLayout row = Ui.row(this);
-        row.setBackground(Ui.pressableCard(this));
+        boolean original = planned != null && alt.action.equals(planned.action);
+        SlantedPanelDrawable background = Ui.pressableCard(this);
+        if (original) background.fill(Ui.col(this, R.color.ui_card_raised))
+            .stroke(Ui.col(this, R.color.p3r_cyan_300), Ui.dp(this, 1.5f))
+            .accent(Ui.col(this, R.color.p3r_cyan_400), Ui.dp(this, 4));
+        row.setBackground(background);
         row.setMinimumHeight(Ui.dp(this, 56));
         Ui.pad(row, 14, 8, 10, 8);
-        row.addView(Ui.icon(this, StepKind.of(alt).iconRes, Ui.col(this, R.color.p3r_cyan_400), 20));
+        View icon = Ui.icon(this, StepKind.of(alt).iconRes, Ui.col(this, R.color.p3r_cyan_400), 20);
+        icon.setBackground(new SlantedPanelDrawable()
+            .fill(Ui.col(this, R.color.ui_cyan_faint)).skew(Ui.dp(this, 4)));
+        Ui.pad(icon, 6, 6, 6, 6);
+        row.addView(icon, new LinearLayout.LayoutParams(Ui.dp(this, 32), Ui.dp(this, 32)));
         LinearLayout texts = Ui.column(this);
         texts.addView(Ui.mixed(this, SlotRows.title(rules, alt), 15, Ui.col(this, R.color.p3r_white), true));
         String sub = SlotRows.subtitle(alt);
@@ -1186,15 +1203,15 @@ public final class ResultActivity extends Activity {
             texts.addView(Ui.mixed(this, sub, 13, Ui.col(this, R.color.p3r_cyan_300), false));
         }
         LinearLayout.LayoutParams tp = Ui.weight(1);
-        tp.leftMargin = Ui.dp(this, 12);
+        tp.leftMargin = Ui.dp(this, 10);
         row.addView(texts, tp);
-        if (planned != null && alt.action.equals(planned.action)) {
+        if (original) {
             TextView tag = Ui.text(this, "原安排", 11, Ui.col(this, R.color.p3r_navy_950), true);
             tag.setBackground(new SlantedPanelDrawable().fill(Ui.col(this, R.color.p3r_cyan_400)).skew(Ui.dp(this, 4)));
             Ui.pad(tag, 7, 1, 7, 1);
             row.addView(tag, Ui.wrap());
         }
-        row.addView(Ui.icon(this, R.drawable.ui_ic_chevron, Ui.col(this, R.color.p3r_ink_faint), 18));
+        row.addView(Ui.icon(this, R.drawable.ui_ic_chevron, Ui.col(this, R.color.p3r_cyan_300), 18));
         row.setClickable(true);
         row.setFocusable(true);
         row.setContentDescription(SlotRows.title(rules, alt) + (sub.isEmpty() ? "" : "，" + sub));

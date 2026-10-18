@@ -69,7 +69,7 @@ public class ReviewedDialogueHintTest {
         hint(r, 8).common = variant("男孩或女孩");
         DialogueHint.Answers answers = DialogueHint.forScene(r, new Profile(), 0, 8, false);
         assertTrue(answers.reviewed);
-        assertEquals("参考回答：男孩或女孩", DialogueHint.appLine(answers));
+        assertEquals("回答：男孩或女孩", DialogueHint.appLine(answers));
         assertEquals("答：男孩或女孩", DialogueHint.widgetLine(answers));
     }
 
@@ -100,7 +100,7 @@ public class ReviewedDialogueHintTest {
         v.sequence = List.of("任意", "加油", "加油", "任意");
         hint(r, 4).common = v;
         DialogueHint.Answers a = DialogueHint.forScene(r, null, 0, 4, false);
-        assertEquals("参考回答：加油 / 加油", DialogueHint.appLine(a));
+        assertEquals("回答：加油 / 加油", DialogueHint.appLine(a));
         assertEquals("答：加油 / 再选加油", DialogueHint.widgetLine(a));
         assertEquals(v.sequence, a.sequence);
     }
@@ -113,7 +113,7 @@ public class ReviewedDialogueHintTest {
         v.sequence = List.of("告白时别选「我喜欢风花」");
         hint(r, 9).friend = v;
         DialogueHint.Answers a = DialogueHint.forScene(r, null, 0, 9, false);
-        assertEquals("参考回答：别选「我喜欢风花」", DialogueHint.appLine(a));
+        assertEquals("回答：别选「我喜欢风花」", DialogueHint.appLine(a));
         assertEquals("答：别选「我喜欢风花」", DialogueHint.widgetLine(a));
         assertTrue(a.choices.isEmpty());
         v.noteZh = "友情路线其余问题仍待核对";

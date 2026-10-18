@@ -94,11 +94,16 @@ public final class Replayer {
         public final List<TowerGain> towerGains;
         /** Rows that could not be applied as recorded (see the class comment). */
         public final int problems;
+        /** Automatically traversed story slots, for display only; -1 when none. */
+        public final int skippedStoryFrom;
+        public final int skippedStoryTo;
 
-        Result(SimState state, List<TowerGain> towerGains, int problems) {
+        Result(SimState state, List<TowerGain> towerGains, int problems, int skippedStoryFrom, int skippedStoryTo) {
             this.state = state;
             this.towerGains = Collections.unmodifiableList(towerGains);
             this.problems = problems;
+            this.skippedStoryFrom = skippedStoryFrom;
+            this.skippedStoryTo = skippedStoryTo;
         }
     }
 
@@ -157,8 +162,10 @@ public final class Replayer {
                 }
             }
         }
+        int beforeStory = state.slot;
         state = advance(state, StateShape.firstOpenSlot(rules, profile, state.slot));
-        return new Result(state, run.gains, run.problems);
+        int storyFrom = beforeStory < state.slot ? beforeStory : -1;
+        return new Result(state, run.gains, run.problems, storyFrom, storyFrom < 0 ? -1 : state.slot - 1);
     }
 
     /**
@@ -201,7 +208,9 @@ public final class Replayer {
         } else {
             OutcomeRecord record = OutcomeRecord.fromJson(row.payload());
             Action action = resolve(record, slot, run);
-            Outcome outcome = record.outcome;
+            Outcome outcome = Outcome.fromJson(record.outcome.toJson());
+            outcome.activityAffinityLink = record.activityAffinityLink;
+            outcome.activityAffinityPts = record.activityAffinityPts;
             if (EventKind.SKIP.equals(row.kind)) {
                 outcome.code = Outcome.Code.SKIPPED;
             }

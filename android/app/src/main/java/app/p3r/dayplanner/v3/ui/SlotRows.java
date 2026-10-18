@@ -120,7 +120,8 @@ final class SlotRows {
             title.setTextColor(ink);
             title.setTypeface(state == State.CURRENT ? android.graphics.Typeface.DEFAULT_BOLD
                 : android.graphics.Typeface.DEFAULT);
-            String subText = locked ? "" : subtitle(step);
+            String subText = subtitle(step);
+            if (locked && "这段时间不能自由行动".equals(subText)) subText = "";
             subtitle.setText(Ui.latin(c, subText));
             subtitle.setTextColor(sub);
             subtitle.setVisibility(subText.isEmpty() ? GONE : VISIBLE);

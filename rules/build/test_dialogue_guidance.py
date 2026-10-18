@@ -227,14 +227,15 @@ class CompletedDialogueTest(unittest.TestCase):
             with self.assertRaisesRegex(builder.BuildError, 'official wording requires an inspected'):
                 builder.load_dialogue_completion()
 
-    def test_translations_are_marked_in_details_and_never_lose_question_order(self) -> None:
+    def test_source_labels_stay_out_of_details_and_question_order_is_preserved(self) -> None:
         for scene in self.completion['scenes']:
             for route, raw in scene['variants'].items():
                 with self.subTest(link=scene['link'], rank=scene['rank'], route=route):
                     emitted = self.variant(scene['link'], scene['rank'], route)
                     self.assertEqual(emitted['choices'], [builder.fix_names(text) for text in raw['choices']])
                     if builder._contains_translation(raw):
-                        self.assertIn(builder.TRANSLATION_NOTE_ZH, emitted['noteZh'])
+                        self.assertNotIn('译意', emitted.get('noteZh', ''))
+                        self.assertNotIn('译义', emitted.get('noteZh', ''))
                         self.assertEqual(emitted.get('shortNoteZh'), raw.get('shortNoteZh', ''))
                     self.assertTrue(set(emitted) <= builder.COMPLETION_VARIANT_FIELDS)
                     for alternative in raw.get('alternatives', []):
@@ -281,7 +282,7 @@ class CompletedDialogueTest(unittest.TestCase):
                                                '任意（若答「好像见过」，再问猫在哪里）', '好', '任意'])
         self.assertIn('没见过', variant['noteZh'])
         self.assertIn('跳过追问', variant['noteZh'])
-        self.assertIn(builder.TRANSLATION_NOTE_ZH, variant['noteZh'])
+        self.assertNotIn('译意', variant['noteZh'])
         displayed = ' / '.join(variant['sequence']) + variant['noteZh']
         self.assertNotIn('第1项', displayed)
         self.assertNotIn('待核对', displayed)
@@ -337,7 +338,7 @@ class CompletedDialogueTest(unittest.TestCase):
         self.assertNotIn('另一回答', result['choices'])
         self.assertEqual(result['sequence'], ['【按友情目标的推荐流程】', '任意', '主回答',
                                               '【此前另一路线】', '另一回答', '任意'])
-        self.assertIn(builder.TRANSLATION_NOTE_ZH, result['noteZh'])
+        self.assertNotIn('译意', result.get('noteZh', ''))
         self.assertNotIn('alternatives', result)
 
 

@@ -309,6 +309,7 @@ final class CommandCheck {
         }
         switch (action.type) {
             case MEET:
+            case INVITE:
                 return true;
             case UNLOCK_STEP:
                 return action.step >= 0 && action.step < rules.links[action.target].unlock.steps.size();

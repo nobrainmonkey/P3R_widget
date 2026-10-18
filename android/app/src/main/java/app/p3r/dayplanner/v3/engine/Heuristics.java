@@ -3,6 +3,7 @@ package app.p3r.dayplanner.v3.engine;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -33,18 +34,20 @@ import java.util.List;
  *       Magician 3, Temperance ← Hierophant 3, Sun ← Hanged Man 3, Devil ← Hermit 4, Tower ←
  *       Strength 4, Priestess ← Fortune 1) carries part of that link's value.</li>
  *   <li><b>Stats</b> are worth what they unlock, against deadlines: a gated link should open while
- *       it still has {@link Tuning#openSlack}× its needed opportunities left (for scarce links that
- *       is their first day) and must open while it has {@link #HARD_SLACK}×. Gates are checked
+ *       it first becomes available (or sooner if preserving {@link Tuning#openSlack}× its needed
+ *       opportunities requires it) and must open while it has {@link #HARD_SLACK}×. Gates are checked
  *       earliest deadline first against the evening capacity before each deadline (open evenings
  *       minus required Tartarus visits and evening-link meetings, times {@link Tuning#eveShare}).
- *       Evening training gets the gate's value with that urgency; daytime training only for the
- *       trainings evenings provably cannot fit before a hard deadline. The Charm Lv6 ×1.51 bonus is
+ *       Training urgency has no constant early reward. Guaranteed later story gains reduce its
+ *       deficit; a concrete allocation of future free dates reduces ordinary/paid training value
+ *       without granting optional gains. Useful dated dorm/study sessions retain their value.
+ *       Daytime training counts only when evenings cannot fit before a hard deadline. The Charm Lv6 ×1.51 bonus is
  *       a gate with an "as soon as evenings allow" deadline and no hard one, valued by the meetings
  *       it saves while the daytime calendar is overbooked. Points above Lv6 are worthless.</li>
  *   <li><b>Money</b> is a list of near-term needs, each with its value per yen: fees of unlocks that
  *       are about to open (Devil ¥40,000, the Hanged Man gift) and a small float for paid training.
- *       Earnings are worth the needs they cover, most valuable first; spare cash is worth almost
- *       nothing, so jobs never pile up yen for its own sake. Paid training is charged only for the
+ *       Earnings are worth the needs they cover, most valuable first; surplus cash has no value,
+ *       so jobs never pile up yen for its own sake. Paid training is charged only for the
  *       fees it would eat into. A daytime job while a wanted link could be met gets no money value.</li>
  *   <li><b>Tartarus</b>: required visits become mandatory as a block's open evenings run out (on the
  *       last possible evening they beat everything); a visit inside a missing-person window is a
@@ -61,7 +64,7 @@ import java.util.List;
  *   <li><b>Dorm projects</b>: only explicitly chosen characteristic goals earn finite progress and
  *       milestone value. An unlock goal stops after one project, an upgrade goal after both.
  *       Actual remaining activity dates determine urgency. Useful stat gains need no trait goal.</li>
- *   <li>FREE is never chosen while any productive action is legal.</li>
+ *   <li>FREE is allowed when legal work adds no needed cash or training worth doing before later free gains.</li>
  * </ul>
  */
 final class Heuristics {
@@ -116,8 +119,8 @@ final class Heuristics {
     static final double MANDATORY = PENALTY / 2;
     static final int INF = 10_000;
     /**
-     * Score of a legal action the planner refuses to take (a Tartarus visit that would use up the
-     * cap needed for a pending rescue in the same block). FREE beats it.
+     * Score of a legal action the planner refuses to schedule (a premature Tartarus visit, or
+     * work that adds neither needed money nor useful stats). FREE beats it.
      */
     static final double VETO = -1e9;
     /** Upper bound of the yen shadow price derived from paid training (a ¥2,500 shift: at most 300). */
@@ -138,6 +141,8 @@ final class Heuristics {
     static final double CHARM_EVENINGS_PER_TRAINING = 2.5;
     /** Score of a Tartarus visit beyond the required ones (under the cap). */
     static final double SPARE_TOWER = 2.0;
+    /** Value of an explicitly requested cash reserve, bounded by the reserve rather than wealth. */
+    static final double BUFFER_YEN_VALUE = 0.01;
     /**
      * Objective value of each Link Episode watched in a track the player opted into: more than a
      * whole "其余社群" link per track, less than one RANK of a 「想要」 goal, so opted-in tracks are
@@ -294,6 +299,25 @@ final class Heuristics {
     /** Best stat points per yen among paid activities, per stat. */
     final double[] ptsPerYen;
     final int[] cheapestPaid;
+    /** Free evening options are capacity, never stat points already received. */
+    private final int[][] freePointsRemain;
+    private final int[][] datedFreePointsRemain;
+    /** Actual free dates ordered by the best relevant gain, one date only once. */
+    private final int[][] freeDates;
+    private final int[][] datedFreeDates;
+    /** Best actual gain by mask/date, also reused when only one stat still needs training. */
+    private final int[][] freeBestGain;
+    private final int[][] datedFreeBestGain;
+    /** Calendar-order eligible indices; the hot allocation loop never scans paid alternatives. */
+    private final int[][] freeActsAt;
+    private final int[][] datedFreeActsAt;
+    /** Distinct nonzero gain vectors in first-activity order; allocation needs no activity objects. */
+    private final int[][] freeGainsAt;
+    private final int[][] datedFreeGainsAt;
+    private final boolean[] freeEligible;
+    private final boolean[] reservedFreeSlots;
+    /** Dated, unavoidable gains credited only after the daytime action completes. */
+    private final int[][] automaticGainRemain;
     /** Last slot at which unlocking the link still leaves enough meetings to reach its target. */
     final int[] latestUnlock;
     /** Objective value of establishing the link (seen from the start of the plan). */
@@ -316,6 +340,8 @@ final class Heuristics {
 
     /** Required Tartarus visits per block (absolute visit count to reach), achievable from the start. */
     final int[] towerTarget;
+    /** Observed visits earn no new objective value when the planner is rerun. */
+    private final int[] towerStart;
     final boolean[] rescueMatters;
     /** [rescue][block] last enterable evening of that block inside the rescue window, or -1. */
     private final int[][] rescueLastSlot;
@@ -346,6 +372,15 @@ final class Heuristics {
     private final boolean[] memoReady;
     private final double[] memoMult;
     private final int[] memoNeed;
+    /** The Charm counterfactual has a separate memo so it never replaces current-multiplier demand. */
+    private final int[] charmMemoRank;
+    private final int[] charmMemoPts;
+    private final int[] charmMemoStep;
+    private final int[] charmMemoHeld;
+    private final boolean[] charmMemoReady;
+    private final double[] charmMemoBeforeMult;
+    private final double[] charmMemoAfterMult;
+    private final int[] charmMemoNeed;
 
     // ---- per-step scratch, filled by prepare() (the planner is single-threaded)
     private final int[] demand;
@@ -361,6 +396,14 @@ final class Heuristics {
     /** Value per useful stat point of evening / daytime training. */
     private final double[] eveValue = new double[3];
     private final double[] dayValue = new double[3];
+    private final double[] datedEveValue = new double[3];
+    private final double[] paidEveValue = new double[3];
+    private final double[] ordinaryRoom = new double[3];
+    private final double[] datedRoom = new double[3];
+    private final double[] paidRoom = new double[3];
+    private final double[] freeNeed = new double[3];
+    private final double[] freeCredit = new double[3];
+    private final double[] datedCredit = new double[3];
     private final int[] gStat = new int[MAX_GATES];
     private final double[] gDeficit = new double[MAX_GATES];
     private final int[] gDeadline = new int[MAX_GATES];
@@ -375,9 +418,9 @@ final class Heuristics {
     private final double[] needValue = new double[MAX_GATES];
     /** The need is an unlock fee (spending on training must not eat into it). */
     private final boolean[] needFee = new boolean[MAX_GATES];
+    /** Per-link point gaps reserved by the bounded, rolling dating-note budget. */
+    private final int[] noteFundRoom;
     private int needs;
-    /** Value per yen of cash beyond every near-term need. */
-    private double spareYen;
     private long shortfall;
 
     Heuristics(Model m, SimState start, Plan previous) {
@@ -472,6 +515,20 @@ final class Heuristics {
         ptsPerYen = new double[ns];
         cheapestPaid = new int[ns];
         buildStatTables();
+        freePointsRemain = new int[ns][size];
+        datedFreePointsRemain = new int[ns][size];
+        freeDates = new int[8][];
+        datedFreeDates = new int[8][];
+        freeBestGain = new int[8][];
+        datedFreeBestGain = new int[8][];
+        freeActsAt = new int[size][];
+        datedFreeActsAt = new int[size][];
+        freeGainsAt = new int[size][];
+        datedFreeGainsAt = new int[size][];
+        freeEligible = new boolean[t.nActs];
+        reservedFreeSlots = new boolean[size];
+        automaticGainRemain = new int[ns][size];
+        buildFreeStatTables(start);
 
         meetsFromOne = new int[n];
         latestUnlock = new int[n];
@@ -502,6 +559,7 @@ final class Heuristics {
         }
 
         towerTarget = new int[t.nBlocks];
+        towerStart = Arrays.copyOf(start.towerVisits, t.nBlocks);
         for (int b = 0; b < t.nBlocks; b++) {
             int open = t.towerRemain[b][startSlot];
             towerTarget[b] = Math.min(m.towerWant[b], start.towerVisits[b] + open);
@@ -544,7 +602,17 @@ final class Heuristics {
         memoReady = new boolean[n];
         memoMult = new double[n];
         memoNeed = new int[n];
+        charmMemoRank = new int[n];
+        Arrays.fill(charmMemoRank, -1);
+        charmMemoPts = new int[n];
+        charmMemoStep = new int[n];
+        charmMemoHeld = new int[n];
+        charmMemoReady = new boolean[n];
+        charmMemoBeforeMult = new double[n];
+        charmMemoAfterMult = new double[n];
+        charmMemoNeed = new int[n];
         demand = new int[n];
+        noteFundRoom = new int[n];
         perMeeting = new double[n];
         admitted = new boolean[n];
         order = new int[n];
@@ -619,6 +687,126 @@ final class Heuristics {
                 }
             }
         }
+    }
+
+    /**
+     * Count only free options whose prerequisites are already known to be met. Future optional
+     * unlocks, once-only activities and unprepared gardening are not promised as capacity.
+     * Several alternatives on one evening contribute their maximum gain, not their sum.
+     */
+    private void buildFreeStatTables(SimState start) {
+        for (Rules.Activity a : rules.activities) {
+            boolean allowed = !m.excluded[a.idx] && a.cost <= 0 && !a.once
+                    && (a.requiresActivity < 0 || start.used[a.requiresActivity] > 0);
+            for (java.util.Map.Entry<Integer, Integer> req : a.requiresLv.entrySet()) {
+                if (req.getKey() < t.nStats && Kernel.statLv(m, start, req.getKey()) < req.getValue()) allowed = false;
+            }
+            freeEligible[a.idx] = allowed;
+        }
+        int[] gain = new int[3];
+        int[] datedGain = new int[3];
+        int[] freeActs = new int[t.nActs];
+        int[] datedActs = new int[t.nActs];
+        int[] noActs = new int[0];
+        for (int slot = t.lastSlot; slot >= 0; slot--) {
+            Arrays.fill(gain, 0);
+            Arrays.fill(datedGain, 0);
+            int freeCount = 0;
+            int datedCount = 0;
+            if ((slot & 1) == 1) {
+                for (int act : t.actsAt[slot]) {
+                    if (!freeEligible[act]) continue;
+                    Rules.Activity a = rules.activities[act];
+                    freeActs[freeCount++] = act;
+                    boolean dated = a.fixedDays != null || a.dormActivity();
+                    if (dated) datedActs[datedCount++] = act;
+                    for (int s = 0; s < Math.min(3, Math.min(t.nStats, a.gain.length)); s++) {
+                        gain[s] = Math.max(gain[s], a.gain[s]);
+                        if (dated) datedGain[s] = Math.max(datedGain[s], a.gain[s]);
+                    }
+                }
+            }
+            freeActsAt[slot] = freeCount == 0 ? noActs : Arrays.copyOf(freeActs, freeCount);
+            datedFreeActsAt[slot] = datedCount == 0 ? noActs : Arrays.copyOf(datedActs, datedCount);
+            freeGainsAt[slot] = freeGains(freeActsAt[slot]);
+            datedFreeGainsAt[slot] = freeGains(datedFreeActsAt[slot]);
+            for (int s = 0; s < Math.min(t.nStats, 3); s++) {
+                freePointsRemain[s][slot] = freePointsRemain[s][slot + 1] + gain[s];
+                datedFreePointsRemain[s][slot] = datedFreePointsRemain[s][slot + 1] + datedGain[s];
+                Rules.Day day = rules.day(slot >> 1);
+                int automatic = (slot & 1) == 0 && day != null && s < day.automaticStatGain.length
+                        ? Math.max(0, day.automaticStatGain[s]) : 0;
+                automaticGainRemain[s][slot] = automaticGainRemain[s][slot + 1] + automatic;
+            }
+        }
+        for (int subset = 1; subset < 8; subset++) {
+            freeDates[subset] = freeDates(subset, false);
+            datedFreeDates[subset] = freeDates(subset, true);
+        }
+    }
+
+    /** Equal gains have equal capped allocation for every deficit; keep only the first vector. */
+    private int[] freeGains(int[] acts) {
+        if (acts.length == 0) return acts;
+        int[] gains = new int[acts.length * 3];
+        int count = 0;
+        for (int act : acts) {
+            int[] raw = rules.activities[act].gain;
+            int a = t.nStats > 0 && raw.length > 0 ? Math.max(0, raw[0]) : 0;
+            int b = t.nStats > 1 && raw.length > 1 ? Math.max(0, raw[1]) : 0;
+            int c = t.nStats > 2 && raw.length > 2 ? Math.max(0, raw[2]) : 0;
+            if (a == 0 && b == 0 && c == 0) continue;
+            boolean duplicate = false;
+            for (int i = 0; i < count; i += 3) {
+                if (gains[i] == a && gains[i + 1] == b && gains[i + 2] == c) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (duplicate) continue;
+            gains[count++] = a;
+            gains[count++] = b;
+            gains[count++] = c;
+        }
+        return count == gains.length ? gains : Arrays.copyOf(gains, count);
+    }
+
+    private int bestFreeGain(int slot, int mask, boolean dated) {
+        int best = 0;
+        for (int act : (dated ? datedFreeActsAt : freeActsAt)[slot]) {
+            Rules.Activity a = rules.activities[act];
+            int gain = 0;
+            for (int s = 0; s < Math.min(3, Math.min(t.nStats, a.gain.length)); s++) if ((mask & (1 << s)) != 0) gain += Math.max(0, a.gain[s]);
+            best = Math.max(best, gain);
+        }
+        return best;
+    }
+
+    private int[] freeDates(int mask, boolean dated) {
+        List<Integer> dates = new ArrayList<>();
+        int[] bestGain = new int[t.lastSlot + 1];
+        (dated ? datedFreeBestGain : freeBestGain)[mask] = bestGain;
+        for (int slot = t.firstSlot | 1; slot <= t.lastSlot; slot += 2) {
+            bestGain[slot] = bestFreeGain(slot, mask, dated);
+            if (bestGain[slot] > 0) dates.add(slot);
+        }
+        dates.sort((a, b) -> {
+            int byGain = Integer.compare(bestGain[b], bestGain[a]);
+            return byGain != 0 ? byGain : Integer.compare(a, b);
+        });
+        int[] result = new int[dates.size()];
+        for (int i = 0; i < result.length; i++) result[i] = dates.get(i);
+        return result;
+    }
+
+    /** Gains after the current action and strictly before the gate action can use them. */
+    private int automaticBefore(int stat, int slot, int deadline) {
+        int end = Math.max(slot, Math.min(t.lastSlot + 1, deadline));
+        return automaticGainRemain[stat][slot] - automaticGainRemain[stat][end];
+    }
+
+    private double trainingDeficit(SimState st, int stat, int threshold, int deadline) {
+        return Math.max(0, threshold - st.statPts[stat] - automaticBefore(stat, st.slot, deadline));
     }
 
     /**
@@ -774,6 +962,16 @@ final class Heuristics {
         prepareDemand(st, day);
         Arrays.fill(eveValue, 0);
         Arrays.fill(dayValue, 0);
+        Arrays.fill(datedEveValue, 0);
+        Arrays.fill(paidEveValue, 0);
+        for (int s = 0; s < Math.min(3, t.nStats); s++) {
+            // The small fallback value also leaves room for known later gains. It must not
+            // quietly fill a stat that the gate policy is deliberately keeping below its cap.
+            double remaining = trainingDeficit(st, s, t.statCap[s], t.lastSlot + 1);
+            datedRoom[s] = remaining;
+            ordinaryRoom[s] = Math.max(0, remaining - datedFreePointsRemain[s][Math.min(t.lastSlot + 1, slot + 1)]);
+            paidRoom[s] = Math.max(0, remaining - freePointsRemain[s][Math.min(t.lastSlot + 1, slot + 1)]);
+        }
         Arrays.fill(linkBonus, 0);
         gates = 0;
         needs = 0;
@@ -782,14 +980,16 @@ final class Heuristics {
             if (Kernel.lost(m, st, l, day)) continue;
             boolean late = latestUnlock[l] < slot;
             double v = unlockValue[l] * (late ? 0.3 : admitted[l] ? 1.0 : 0.5);
-            int deadline = Math.max(slot, Math.min(gateDeadline[l], Math.max(slot, latestUnlock[l])));
+            // Prepare for this link's own opening, rather than relying on the old constant
+            // stat reward to accidentally finish its requirement months before/after it opens.
+            int deadline = Math.max(slot, Math.min(openSlot[l], Math.min(gateDeadline[l], latestUnlock[l])));
             // Daytime training only for links still planned to reach their milestone in time.
             int hard = late || !admitted[l] ? -1 : Math.max(slot, hardDeadline[l]);
             int[] rs = m.reqStat[l];
             double trainings = 0;
             for (int i = 0; i < rs.length; i++) {
                 int s = rs[i];
-                if (s < t.nStats) trainings += Math.max(0, rules.stats[s].thresholds[m.reqStatLv[l][i]] - st.statPts[s]) / eveGain[s];
+                if (s < t.nStats) trainings += trainingDeficit(st, s, rules.stats[s].thresholds[m.reqStatLv[l][i]], deadline) / eveGain[s];
             }
             int linkSteps = linkGateBonus(st, l, v, deadline, trainings);
             // The link's value needs its stat trainings, its gate meetings and its own meetings.
@@ -801,7 +1001,8 @@ final class Heuristics {
                 int deficit = rules.stats[s].thresholds[m.reqStatLv[l][i]] - st.statPts[s];
                 if (deficit <= 0) continue;
                 statsMet = false;
-                addGate(s, deficit, deadline, hard, v * share * tuning.statWeight);
+                double trainingDeficit = trainingDeficit(st, s, rules.stats[s].thresholds[m.reqStatLv[l][i]], deadline);
+                addGate(s, trainingDeficit, deadline, hard, v * share * tuning.statWeight);
             }
             int k = st.unlockStep[l];
             boolean soon = slot >= openSlot[l] - 2 * MONEY_LOOKAHEAD_DAYS || day >= rules.links[l].unlock.earliestDay - MONEY_LOOKAHEAD_DAYS;
@@ -817,18 +1018,20 @@ final class Heuristics {
             }
         }
         addCharmGate(st);
-        evaluateGates(st);
+        if (gates > 0) {
+            reserveFreeEvenings(st);
+            evaluateGates(st);
+        }
         double statYen = 0;
         long training = 0;
         for (int s = 0; s < t.nStats && s < 3; s++) {
-            statYen = Math.max(statYen, eveValue[s] * ptsPerYen[s]);
-            if (eveValue[s] > 0 && cheapestPaid[s] != Integer.MAX_VALUE) training = Math.max(training, 3L * cheapestPaid[s]);
+            statYen = Math.max(statYen, paidEveValue[s] * ptsPerYen[s]);
+            if (paidEveValue[s] > 0 && cheapestPaid[s] != Integer.MAX_VALUE) training = Math.max(training, 3L * cheapestPaid[s]);
         }
         double trainYen = tuning.moneyWeight * Math.max(0.0005, Math.min(MAX_STAT_YEN_VALUE, statYen));
         if (training > 0) addNeed(training, trainYen, false);
         if (m.cashBuffer > 0) addNeed(m.cashBuffer, trainYen, true);
-        if (tuning.goalFirst) addGoalNoteNeed(st, day);
-        spareYen = 0.05 * trainYen;
+        addNoteNeeds(st, day);
         sortNeeds();
         long reserve = 0;
         for (int i = 0; i < needs; i++) reserve += needYen[i];
@@ -845,23 +1048,80 @@ final class Heuristics {
         return fee <= 0 ? 0 : FEE_RESERVE;
     }
 
-    /** Dating-site notes a {@link Tuning#goalFirst} plan saves up for (about a week of evenings). */
-    static final int GOAL_NOTES_AHEAD = 3;
+    /** At most this many currently useful notes are funded ahead; each spend recomputes the need. */
+    static final int NOTES_AHEAD = 3;
 
     /**
-     * {@link Tuning#goalFirst}: while a goal still needs points and dating-site notes are (about to
-     * be) on sale, the price of the next few notes is a money need worth as much per yen as an
-     * unlock fee, so evening jobs pay for the notes that bring the goals to their targets.
+     * Fund actual affinity gaps whose notes can save a wanted link's near-term meeting. Ordinary
+     * links need this budget too: otherwise removing surplus-cash farming also removes the money
+     * that used to pay for useful notes. The aggregate budget is at most three notes, bounded by
+     * real gaps and the remaining use limit. It is spendable, like training money: purchasing the
+     * very note being funded must not incur an unlock-fee penalty against its own budget.
      */
-    private void addGoalNoteNeed(SimState st, int day) {
+    private void addNoteNeeds(SimState st, int day) {
         Rules.DatingNote note = m.note;
-        if (note == null || note.cost <= 0 || day < note.fromDay - MONEY_LOOKAHEAD_DAYS || st.notesUsed >= m.noteMaxUses) return;
-        for (int l : goalLinks) {
-            if (st.rank[l] >= 1 && st.rank[l] < target[l] && demand[l] > 0) {
-                addNeed((long) note.cost * GOAL_NOTES_AHEAD, MAX_FEE_YEN_VALUE, true);
-                return;
+        if (note == null || note.cost <= 0 || note.gain <= 0
+                || day < note.fromDay - MONEY_LOOKAHEAD_DAYS || st.notesUsed >= m.noteMaxUses) return;
+        for (java.util.Map.Entry<Integer, Integer> req : note.requiresLv.entrySet()) {
+            if (Kernel.statLv(m, st, req.getKey()) < req.getValue()) return;
+        }
+        int end = Math.min(t.lastSlot + 1, Rules.slot(day + MONEY_LOOKAHEAD_DAYS, true) + 1);
+        // The action whose earnings we value consumes this slot. Only a later open evening can
+        // spend that income on a note; tonight cannot be both a shift and a purchase.
+        int firstNote = Math.max((st.slot + 1) | 1, Rules.slot(note.fromDay, true));
+        while (firstNote < end && !t.open(firstNote)) firstNote += 2;
+        int from = Math.min(t.lastSlot + 1, firstNote + 1);
+        Arrays.fill(noteFundRoom, 0);
+        if (from >= end) return;
+        for (int l = 0; l < t.nLinks; l++) {
+            int r = st.rank[l];
+            if (!wanted[l] || demand[l] <= 0 || demand[l] >= INF || r < 1 || r >= 10
+                    || Kernel.blocked(m, st, l, day)) continue;
+            int room = Kernel.need(m, l, r) - st.pts[l];
+            if (!st.ready[l] && room > 0) {
+                if (t.meetRemain[l][from] > t.meetRemain[l][end]) noteFundRoom[l] = room;
+            } else if (r + 1 < milestone(l, r)) {
+                // A ready meeting does not need a note. Its next rank may: earning only after
+                // that meeting can miss the last working evening before a useful note. Reserve
+                // cash for that one predictable gap, without granting any forecast affinity.
+                int meet = nextMeetingSlot(l, st.slot, end);
+                if (meet < 0 || !Kernel.ranksUp(m, st, l, meet >> 1)) continue;
+                int noteSlot = Math.max(Rules.slot(note.fromDay, true), (meet | 1) + ((meet & 1) == 1 ? 2 : 0));
+                while (noteSlot < end && !t.open(noteSlot)) noteSlot += 2;
+                if (noteSlot >= end || nextMeetingSlot(l, noteSlot + 1, end) < 0) continue;
+                noteFundRoom[l] = Math.max(0, Kernel.need(m, l, r + 1) - Kernel.eventPts(m, l, r + 1, linkMult[l]));
             }
         }
+        int count = Math.min(NOTES_AHEAD, m.noteMaxUses - st.notesUsed);
+        for (int i = 0; i < count; i++) {
+            int best = -1;
+            double value = 0;
+            for (int l = 0; l < t.nLinks; l++) {
+                if (noteFundRoom[l] <= 0) continue;
+                double benefit = noteBenefit(st, l, noteFundRoom[l]);
+                if (benefit > value) {
+                    best = l;
+                    value = benefit;
+                }
+            }
+            if (best < 0) break;
+            addNeed(note.cost, Math.min(MAX_FEE_YEN_VALUE, value / note.cost), false);
+            noteFundRoom[best] = Math.max(0, noteFundRoom[best] - note.gain);
+        }
+    }
+
+    /** First ordinary calendar meeting in [from, end), using the existing remaining-count table. */
+    private int nextMeetingSlot(int link, int from, int end) {
+        if (from >= end || t.meetRemain[link][from] <= t.meetRemain[link][end]) return -1;
+        int remain = t.meetRemain[link][from];
+        int lo = from;
+        int hi = end - 1;
+        while (lo < hi) {
+            int mid = (lo + hi + 1) >>> 1;
+            if (t.meetRemain[link][mid] == remain) lo = mid;
+            else hi = mid - 1;
+        }
+        return lo;
     }
 
     private boolean linksMet(SimState st, int l) {
@@ -997,7 +1257,7 @@ final class Heuristics {
     }
 
     /**
-     * Charm Lv6 multiplies all affinity gains: worth the meetings it saves, as far as the daytime
+     * Charm Lv6 multiplies ordinary Social Link affinity gains: worth the meetings it saves, as far as the daytime
      * calendar is overbooked (otherwise the saved meetings would not be missed). Deadline: as soon
      * as a fair share of the evenings allows.
      */
@@ -1006,13 +1266,16 @@ final class Heuristics {
         if (ci < 0 || ci >= 3 || m.charmMult <= 1 || st.statPts[ci] >= t.statCap[ci]) return;
         double needed = 0;
         double valueSum = 0;
+        double saved = 0;
         for (int l = 0; l < t.nLinks; l++) {
-            if (demand[l] <= 0) continue;
+            if (!wanted[l] || rules.links[l].kind != Rules.LinkKind.MANUAL
+                    || demand[l] <= 0 || demand[l] >= INF || perMeeting[l] <= 0) continue;
             needed += demand[l];
             valueSum += perMeeting[l] * demand[l];
+            saved += Math.max(0, demand[l] - remainingMeetingsWithCharm(st, l));
         }
-        if (needed <= 0) return;
-        double saved = needed * (1 - 1 / m.charmMult) * 0.5;
+        if (needed <= 0 || saved <= 0) return;
+        saved *= 0.5; // Training takes time; retain the existing discount on future savings.
         double open = openRemain[0][st.slot];
         double overload = Math.max(0, needed - open);
         double avgPer = valueSum / needed;
@@ -1029,6 +1292,39 @@ final class Heuristics {
         }
         // No hard deadline: the bonus is never worth a daytime meeting.
         addGate(ci, deficit, due, -1, v * tuning.statWeight);
+    }
+
+    /** Future Charm changes only future gains; observed affinity and ready/hold cues stay intact. */
+    int remainingMeetingsWithCharm(SimState st, int link) {
+        int rank = st.rank[link];
+        int goalRank = milestone(link, rank);
+        if (goalRank <= rank) return 0;
+        double currentMult = Kernel.mult(m, st, link);
+        double mult = m.personaMult(link) * m.charmMult;
+        if (charmMemoRank[link] == rank && charmMemoPts[link] == st.pts[link]
+                && charmMemoStep[link] == st.unlockStep[link] && charmMemoHeld[link] == st.heldRank[link]
+                && charmMemoReady[link] == st.ready[link] && charmMemoBeforeMult[link] == currentMult
+                && charmMemoAfterMult[link] == mult) return charmMemoNeed[link];
+        int need;
+        if (st.heldRank[link] == rank + 1 && !st.ready[link]) {
+            need = INF;
+        } else if (rank == 0) {
+            // meetsFromOne was compiled at the original multiplier and cannot answer this
+            // counterfactual for a link whose establishing scene has not happened yet.
+            int meetings = meetingsBetween(link, 1, Kernel.eventPts(m, link, 1, mult), false, goalRank, mult);
+            need = Math.min(INF, unlockSlotsLeft(st, link) + meetings);
+        } else {
+            need = meetingsBetween(link, rank, st.pts[link], st.ready[link], goalRank, mult);
+        }
+        charmMemoRank[link] = rank;
+        charmMemoPts[link] = st.pts[link];
+        charmMemoStep[link] = st.unlockStep[link];
+        charmMemoHeld[link] = st.heldRank[link];
+        charmMemoReady[link] = st.ready[link];
+        charmMemoBeforeMult[link] = currentMult;
+        charmMemoAfterMult[link] = mult;
+        charmMemoNeed[link] = need;
+        return need;
     }
 
     /** The slot by which {@code evenings} open evenings have passed (or the last slot). */
@@ -1069,14 +1365,36 @@ final class Heuristics {
         if (gates == 0) return;
         sortGates(gDeadline);
         Arrays.fill(cumNeed, 0);
+        int previousDeadline = Integer.MIN_VALUE;
+        double rho = 0;
         for (int i = 0; i < gates; i++) {
             int g = gOrder[i];
             int s = gStat[g];
-            cumNeed[s] = Math.max(cumNeed[s], gDeficit[g] / eveGain[s]);
-            double total = cumNeed[0] + cumNeed[1] + cumNeed[2];
-            double cap = tuning.eveShare * eveningCapacity(st, gDeadline[g]);
-            double rho = total / Math.max(1.0, cap);
-            eveValue[s] += gValue[g] * urgency(rho) / Math.max(1.0, gDeficit[g]);
+            if (gDeadline[g] != previousDeadline) {
+                // Equal-deadline gates have identical prefix needs and free allocations.
+                // Keep the original prefix calculation and its order, once per deadline.
+                for (int h = 0; h < gates; h++) {
+                    if (gDeadline[h] <= gDeadline[g]) {
+                        int hs = gStat[h];
+                        cumNeed[hs] = Math.max(cumNeed[hs], gDeficit[h] / eveGain[hs]);
+                    }
+                }
+                double total = cumNeed[0] + cumNeed[1] + cumNeed[2];
+                double cap = tuning.eveShare * eveningCapacity(st, gDeadline[g]);
+                rho = total / Math.max(1.0, cap);
+                freeCapacity(st, gDeadline[g], cap, false, freeCredit);
+                freeCapacity(st, gDeadline[g], cap, true, datedCredit);
+                previousDeadline = gDeadline[g];
+            }
+            double perPoint = gValue[g] * statUrgency(rho) / Math.max(1.0, gDeficit[g]);
+            double paidDeficit = Math.max(0, gDeficit[g] - freeCredit[s]);
+            double ordinaryDeficit = Math.max(0, gDeficit[g] - datedCredit[s]);
+            datedEveValue[s] += perPoint;
+            eveValue[s] += perPoint * ordinaryDeficit / Math.max(1.0, gDeficit[g]);
+            paidEveValue[s] += perPoint * paidDeficit / Math.max(1.0, gDeficit[g]);
+            datedRoom[s] = Math.max(datedRoom[s], gDeficit[g]);
+            ordinaryRoom[s] = Math.max(ordinaryRoom[s], ordinaryDeficit);
+            paidRoom[s] = Math.max(paidRoom[s], paidDeficit);
         }
         for (int g = 0; g < gates; g++) {
             if (gHard[g] < 0) continue;
@@ -1097,7 +1415,98 @@ final class Heuristics {
             int end = Math.min(t.lastSlot + 1, gHard[g] + 1);
             int dayAvail = trainRemain[0][s][st.slot] - trainRemain[0][s][end];
             double dayFrac = Math.min(1.0, dayNeed / Math.max(1.0, total));
-            dayValue[s] += gValue[g] * dayFrac * urgency(dayNeed / Math.max(1, dayAvail)) / Math.max(1.0, gDeficit[g]);
+            dayValue[s] += gValue[g] * dayFrac * statUrgency(dayNeed / Math.max(1, dayAvail)) / Math.max(1.0, gDeficit[g]);
+        }
+    }
+
+    /**
+     * Allocate a concrete possible sequence of free evenings, without granting its stat points.
+     * Pick one real activity per date and use its actual gains; averaging per-stat gains would
+     * overpromise when the best activities for two stats compete on the same date. High-yield
+     * sessions go first, leaving a useful gap for later group study instead of buying it early.
+     */
+    private void freeCapacity(SimState st, int deadline, double capacity, boolean dated, double[] out) {
+        Arrays.fill(out, 0);
+        Arrays.fill(freeNeed, 0);
+        int mask = 0;
+        double remaining = 0;
+        for (int s = 0; s < Math.min(3, t.nStats); s++) {
+            freeNeed[s] = cumNeed[s] * eveGain[s];
+            remaining += freeNeed[s];
+            if (freeNeed[s] > 0) mask |= 1 << s;
+        }
+        // The action being scored consumes tonight; that slot cannot also fund a later option.
+        double futureCapacity = capacity - ((st.slot & 1) == 1 && t.open(st.slot) ? 1 : 0);
+        if (mask == 0 || futureCapacity < 1) return;
+        int left = (int) Math.floor(futureCapacity);
+        int[] dates = dated ? datedFreeDates[mask] : freeDates[mask];
+        if ((mask & (mask - 1)) == 0) {
+            // With one outstanding stat every other component contributes zero. The greatest
+            // actual gain on this date therefore gives exactly the original capped gain,
+            // including ties. Keep the same date order and each original floating-point update.
+            int stat = Integer.numberOfTrailingZeros(mask);
+            int[] bestGain = (dated ? datedFreeBestGain : freeBestGain)[mask];
+            for (int slot : dates) {
+                if (slot <= st.slot || slot > deadline || reservedFreeSlots[slot]) continue;
+                double gain = Math.min(freeNeed[stat], bestGain[slot]);
+                if (gain <= 0) continue;
+                out[stat] += gain;
+                freeNeed[stat] -= gain;
+                remaining -= gain;
+                if (--left == 0 || remaining <= 1e-9) break;
+            }
+            return;
+        }
+        for (int slot : dates) {
+            if (slot <= st.slot || slot > deadline || reservedFreeSlots[slot]) continue;
+            int best = -1;
+            double bestGain = 0;
+            int[] gains = (dated ? datedFreeGainsAt : freeGainsAt)[slot];
+            for (int i = 0; i < gains.length; i += 3) {
+                double gain = 0;
+                gain += Math.min(freeNeed[0], gains[i]);
+                gain += Math.min(freeNeed[1], gains[i + 1]);
+                gain += Math.min(freeNeed[2], gains[i + 2]);
+                if (gain > bestGain) { bestGain = gain; best = i; }
+            }
+            if (best < 0) continue;
+            for (int s = 0; s < 3; s++) {
+                double gain = Math.min(freeNeed[s], gains[best + s]);
+                out[s] += gain;
+                freeNeed[s] -= gain;
+                remaining -= gain;
+            }
+            if (--left == 0 || remaining <= 1e-9) break;
+        }
+    }
+
+    /** Reserve concrete last-chance evenings before promising them as free training. */
+    private void reserveFreeEvenings(SimState st) {
+        Arrays.fill(reservedFreeSlots, false);
+        for (int e = 0; e < t.nEps; e++) {
+            int next = e < st.episodes.length ? st.episodes[e] : 0;
+            if (!m.episodeWanted[e] || !t.epEve[e] || next >= t.epCount[e]) continue;
+            int last = t.epChain[e][next] ? t.epCount[e] : next + 1;
+            for (int n = next; n < last; n++) {
+                int slot = t.epLatest[e][n];
+                if (slot >= st.slot && slot <= t.lastSlot) reservedFreeSlots[slot] = true;
+            }
+        }
+        for (int i = 0; i < t.nRescues; i++) {
+            if (!rescueMatters[i] || ((st.rescued | st.rescueFailed) & (1L << i)) != 0) continue;
+            for (int b = 0; b < t.nBlocks; b++) {
+                int slot = rescueDueSlot[i][b];
+                if (slot >= st.slot) reservedFreeSlots[slot] = true;
+            }
+        }
+        for (int b = 0; b < t.nBlocks; b++) {
+            int need = towerTarget[b] - st.towerVisits[b];
+            if (need <= 0 || t.towerRemain[b][st.slot] > need) continue;
+            for (int slot = st.slot | 1; slot <= t.lastSlot; slot += 2) if (t.towerBlock[slot] == b) reservedFreeSlots[slot] = true;
+        }
+        for (int l = 0; l < t.nLinks; l++) {
+            if (!admitted[l] || !rules.links[l].evening || demand[l] <= 0 || t.meetRemain[l][st.slot] > demand[l]) continue;
+            for (int slot = st.slot | 1; slot <= t.lastSlot; slot += 2) if ((t.meetMask[slot] & (1 << l)) != 0) reservedFreeSlots[slot] = true;
         }
     }
 
@@ -1141,6 +1550,15 @@ final class Heuristics {
             if (remain <= 0) continue;
             int inside = remain - t.meetRemain[l][end];
             cap -= Math.min(demand[l], remain) * inside / (double) remain;
+        }
+        for (int e = 0; e < t.nEps; e++) {
+            int next = e < st.episodes.length ? st.episodes[e] : 0;
+            if (!m.episodeWanted[e] || !t.epEve[e] || next >= t.epCount[e]) continue;
+            int last = t.epChain[e][next] ? t.epCount[e] : next + 1;
+            for (int n = next; n < last; n++) {
+                int due = t.epLatest[e][n];
+                if (due >= slot && due < end) cap--;
+            }
         }
         return Math.max(0, cap);
     }
@@ -1266,23 +1684,41 @@ final class Heuristics {
         return tuning.patience + e + e * e * e;
     }
 
+    /** Training has no constant early-patience reward: its value follows its dated demand. */
+    private double statUrgency(double pressure) {
+        double e = Math.min(1.5, Math.max(0, pressure));
+        return e + e * e * e;
+    }
+
     private double activityScore(SimState st, int act) {
         Rules.Activity a = rules.activities[act];
         boolean eve = (st.slot & 1) == 1;
-        double[] pv = eve ? eveValue : dayValue;
+        boolean datedFree = a.cost <= 0 && (a.fixedDays != null || a.dormActivity());
+        double[] pv = !eve ? dayValue : a.cost > 0 ? paidEveValue : datedFree ? datedEveValue : eveValue;
+        double[] trainingRoom = a.cost > 0 ? paidRoom : datedFree ? datedRoom : ordinaryRoom;
         double h = 0;
+        double usefulDorm = 0;
         int ns = Math.min(Math.min(a.gain.length, t.nStats), 3);
         for (int s = 0; s < ns; s++) {
             int gain = a.gain[s];
             if (gain <= 0) continue;
             int useful = Math.min(gain, Math.max(0, t.statCap[s] - st.statPts[s]));
-            h += (0.2 + pv[s]) * useful;
+            double wanted = Math.min(useful, trainingRoom[s]);
+            h += (0.2 + pv[s]) * wanted;
+            if (datedFree && a.dormActivity()) usefulDorm += wanted;
         }
+        // On an otherwise equal useful free evening, keep the teammate project moving. This is
+        // finite stat utility; full stats with no selected characteristic earn no dorm bonus.
+        h += 0.1 * usefulDorm;
         if (a.cost > 0) h -= costPenalty(st.cash, a.cost);
         if (a.dormActivity()) h += dormScore(st, act);
+        h += dormAffinityScore(st, a);
         if (a.kind == Rules.ActivityKind.JOB) {
             double money = moneyValue(st.cash - Math.max(0, a.cost), a.payFor(st.shifts[act] + 1));
             if (!eve && linkMeetable) money *= DAY_JOB_WITH_MEETING;
+            // Manual work remains legal, but the policy does not invent a reason to earn surplus
+            // cash. A veto also lets FREE win when this is the only otherwise legal activity.
+            if (money <= 0 && h <= 0) return VETO;
             h += money + 0.25;
         }
         // Prefer discovering a menu over an otherwise identical regular meal. Its later +4 meals
@@ -1291,13 +1727,38 @@ final class Heuristics {
             for (int unlockedAct : m.unlockedActivities[act]) {
                 Rules.Activity unlocked = rules.activities[unlockedAct];
                 for (int s = 0; s < Math.min(ns, unlocked.gain.length); s++) {
-                    int room = Math.max(0, t.statCap[s] - st.statPts[s] - a.gain[s]);
-                    int extra = Math.min(room, Math.max(0, unlocked.gain[s] - a.gain[s]));
+                    double room = Math.max(0, Math.min(trainingRoom[s], t.statCap[s] - st.statPts[s]) - a.gain[s]);
+                    double extra = Math.min(room, Math.max(0, unlocked.gain[s] - a.gain[s]));
                     h += 0.25 * (0.2 + pv[s]) * extra;
                 }
             }
         }
+        if (a.kind != Rules.ActivityKind.JOB && h <= 0) return VETO;
         return h;
+    }
+
+    /** A finite share of the real meeting this raw point can save, not a generic social bonus. */
+    private double dormAffinityScore(SimState st, Rules.Activity activity) {
+        int gain = Kernel.activityAffinityGain(rules, st, activity);
+        int link = activity.affinityLink;
+        if (gain <= 0 || !wanted[link] || demand[link] <= 0 || demand[link] >= INF
+                || !futureRankMeeting(st, link)) return 0;
+        int rank = st.rank[link];
+        int targetRank = milestone(link, rank);
+        int before = meetingsBetween(link, rank, st.pts[link], st.ready[link], targetRank, linkMult[link]);
+        int after = meetingsBetween(link, rank, st.pts[link] + gain, st.ready[link], targetRank, linkMult[link]);
+        double share = Math.max(Math.max(0, before - after), gain / (double) Kernel.ordinaryPts(m, linkMult[link]));
+        return perMeeting[link] * Math.min(1.0, share) * NOTE_SHARE;
+    }
+
+    private boolean futureRankMeeting(SimState st, int link) {
+        int next = nextMeetingSlot(link, st.slot + 1, t.lastSlot + 1);
+        while (next >= 0) {
+            int day = next >> 1;
+            if (!Kernel.held(m, st, link, st.rank[link] + 1, day) && !Kernel.blocked(m, st, link, day)) return true;
+            next = nextMeetingSlot(link, next + 1, t.lastSlot + 1);
+        }
+        return false;
     }
 
     /** Value of the next first-three dorm completion, with urgency from its actual remaining dates. */
@@ -1412,6 +1873,15 @@ final class Heuristics {
         int r = st.rank[l];
         int room = Kernel.need(m, l, r) - st.pts[l];
         if (room <= 0) return 0.01;
+        double h = noteBenefit(st, l, room);
+        if (note.cost > 0) h -= costPenalty(st.cash, note.cost);
+        return Math.max(0.01, h);
+    }
+
+    /** Intrinsic meeting value of a useful note, before charging any protected cash it spends. */
+    private double noteBenefit(SimState st, int l, int room) {
+        Rules.DatingNote note = m.note;
+        if (note == null || room <= 0 || demand[l] <= 0 || !wanted[l]) return 0;
         double share = Math.min(1.0, Math.min(note.gain, room) / (double) Kernel.ordinaryPts(m, linkMult[l]));
         double worth;
         if (!admitted[l]) {
@@ -1422,9 +1892,7 @@ final class Heuristics {
             double early = goal[l] ? wGoal[l] * EARLY_PER_SLOT * (lastSlot - st.slot) / (double) remain : 0;
             worth = perMeeting[l] * overbooked + early;
         }
-        double h = worth * share * NOTE_SHARE;
-        if (note.cost > 0) h -= costPenalty(st.cash, note.cost);
-        return Math.max(0.01, h);
+        return worth * share * NOTE_SHARE;
     }
 
     /**
@@ -1488,8 +1956,9 @@ final class Heuristics {
     }
 
     /**
-     * Value of holding {@code cash}: the near-term needs it covers, most valuable first, then spare
-     * yen. With {@code feesOnly} the training float is left out (spending on training is what it is for).
+     * Value of holding {@code cash}: the near-term needs it covers, most valuable first. Surplus
+     * cash has no value. With {@code feesOnly} the training float is left out (spending on training
+     * is what it is for).
      */
     private double covered(long cash, boolean feesOnly) {
         double v = 0;
@@ -1500,13 +1969,13 @@ final class Heuristics {
             v += take * needValue[i];
             left -= take;
         }
-        return v + left * spareYen;
+        return v;
     }
 
-    /** Value of receiving {@code yen} on top of {@code cash}: the near-term needs it covers, little beyond. */
+    /** Value of receiving {@code yen} on top of {@code cash}: only the near-term needs it covers. */
     double moneyValue(long cash, long yen) {
         if (yen <= 0) return 0;
-        return covered(cash + yen, false) - covered(cash, false) + 0.0001 * yen;
+        return covered(cash + yen, false) - covered(cash, false);
     }
 
     /** Value lost by spending {@code cost} out of {@code cash} on training: the fees it no longer covers. */
@@ -1519,7 +1988,8 @@ final class Heuristics {
     /**
      * Objective J of a complete trajectory ending in {@code end}; {@code reached} as kept by
      * {@link #track}: rank values (with MAX bonuses), earlier goal targets, stat levels, opted-in
-     * Link Episodes, a little cash, minus a penalty per unmet Tartarus visit, missed rescue, or rescue
+     * Link Episodes, the explicit cash reserve and bounded spare tower visits, minus a penalty per
+     * unmet Tartarus visit, missed rescue, or rescue
      * left to the limit evening although an earlier one was open ({@link #lateRescues}: the link goes on,
      * but the plan would depend on an evening nobody has checked in the game).
      * Complete plans are compared by this less {@link #FRAGILE_MAX_PENALTY} per {@link #fragileMaxes}.
@@ -1534,7 +2004,11 @@ final class Heuristics {
         for (int s = 0; s < t.nStats; s++) j += 0.5 * Kernel.statLv(m, end, s);
         j += episodeValue(end);
         j += dormValue(end);
-        j += 0.0001 * end.cash;
+        j += BUFFER_YEN_VALUE * Math.min(Math.max(0, end.cash), m.cashBuffer);
+        for (int b = 0; b < t.nBlocks; b++) {
+            int optional = Math.min(m.towerCap[b], end.towerVisits[b]) - Math.max(towerStart[b], towerTarget[b]);
+            j += SPARE_TOWER * Math.max(0, optional);
+        }
         int unmet = 0;
         for (int b = 0; b < t.nBlocks; b++) unmet += Math.max(0, towerTarget[b] - end.towerVisits[b]);
         for (int i = 0; i < t.nRescues; i++) {

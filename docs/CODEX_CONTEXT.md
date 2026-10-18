@@ -1,8 +1,8 @@
 # P3R planner repository context
 
-Reference for continuing the owner's existing project with Claude. Updated on 2026-10-17
-(UTC), for the 3.3.0 study/dorm activity changes and explicit teammate-characteristic
-goals on branch `work`.
+Reference for continuing the owner's existing project with Claude. Updated on 2026-10-18
+(UTC), for the 3.4.0 dated stat planning, invitation accuracy, story-day display and
+global tips lookup on branch `work`.
 This is an orientation snapshot; check newer code and owner decisions before implementing changes.
 
 ## Product and current baseline
@@ -14,7 +14,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
   player records a different result, changes goals, or returns later and syncs progress.
 - Useful, consistent plans matter more than global optimality. An unmet goal is not proof
   that the goal is impossible. Forecasts and confirmed progress must remain separate.
-- Current app source: **3.3.0**, version code **37**, application ID **`app.p3r.planner`**;
+- Current app source: **3.4.0**, version code **38**, application ID **`app.p3r.planner`**;
   debug builds add `.debug`. Java package/Android namespace remains `app.p3r.dayplanner`.
   Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, minimum API 26, compile/target API 35.
 - Current public release is [v3.3.0](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.3.0),
@@ -22,6 +22,16 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 - Player-facing language is natural Simplified Chinese using Reload terminology. Preserve
   the established navy/cyan P3R presentation, slanted panels, condensed numerals, day/night
   widget palettes and fade, readable answers, and action-specific result sheets.
+- Owner preference (October 18): game tips should give information directly: answers,
+  locations, steps, rewards, conditions and deadlines. Remove repeated disclaimers and
+  internal modeling explanations. Keep provenance/uncertainty analysis in developer evidence;
+  retain concrete conditions that affect play, such as receiving an SMS, accepting a request
+  first or spending an evening. Missing Chinese text may be translated, with official SC
+  wording preferred wherever available.
+- Stat timing is a tradeoff, not a preference for later MAX dates. The owner explicitly
+  clarified that early MAX is not inherently wrong. Compare actual exam/unlock benefits,
+  future free gains, cash, competing activities and calendar slack. A later MAX date alone
+  does not establish an improvement; current exam rewards/results are not fully modeled.
 - The old fixed walkthrough and its widget were removed in 3.1.0 by owner decision.
   3.1.1 added read-only export of old checklist progress; 3.1.2 added the rescue margin.
   Do not interpret the original handoff's legacy-widget preservation request as a request
@@ -35,6 +45,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 | [Design](DESIGN_v3.md) | Main architecture contract. Later numbered sections amend earlier sections. |
 | [3.2.0 release notes](RELEASE_NOTES_3.2.0.md) | Rescue batching, stat-gated menus and request tips. |
 | [3.3.0 change notes](RELEASE_NOTES_3.3.0.md) | Period tips, dated group study, dorm characteristics, gardening preparation and widget sizes. |
+| [3.4.0 change notes](RELEASE_NOTES_3.4.0.md) | Dated training needs, automatic summer classes, conditional invitations, story display and tips search. |
 | [3.1.0 specification](specs/SPEC_3.1.0.md) | Full replan, reminders, legacy removal, widget answers and breadth planning. |
 | [Chinese glossary](GLOSSARY_zh.md) | Exact UI terms, sentence style and deadline wording. |
 | [Rules report](../rules/build/REPORT.md) | Generated source decisions, confidence, coverage and modeling gaps. |
@@ -106,7 +117,7 @@ installation → app and widget. Results return through the service into the eve
   「不追求 / 解锁 / 强化」 per teammate, default NONE, including when loading an old profile.
   UNLOCK needs either project at three; UPGRADE needs both at three. H and J value finite
   progress/milestones only for the selected target; remaining dates affect urgency.
-  Without an outstanding selected target, a dorm action needs useful stat gain to be
+  Without an outstanding selected target, a dorm action needs useful stat or affinity gain to be
   planned; a zero-stat project cannot occupy an evening just to pursue an unselected trait.
   Achieving UNLOCK does not implicitly select UPGRADE. When choosing an action solely
   for UNLOCK, concentrate on the feasible project with the most existing progress rather
@@ -114,8 +125,15 @@ installation → app and widget. Results return through the service into the eve
   determine whether the target is already achieved. Dorm actions have their own rollout
   category. Rescue comparison and ordered Social Link goals retain priority. Selected
   characteristic targets compete with other links, training and jobs in the weighted
-  objective, so their opportunity cost may reduce non-goal progress. Dorm forecasts award no Social Link
-  affinity, episode rank or inventory; possible actual affinity effects remain unmodeled.
+  objective, so their opportunity cost may reduce non-goal progress. Dorm forecasts award no
+  episode rank or inventory. Since 3.4, the eight dorm projects for Yukari, Fuuka, Mitsuru
+  and Aigis add a raw +1 lower bound within an established link's next-rank gap, without
+  multipliers; ready/unopened/MAX links have no deficit. This continues after completion
+  three. Its score uses a wanted link's actual meeting savings and finite progress value.
+  New activity events store the stable link ID and applied delta in `OutcomeRecord` outside
+  the original command, excluded from dedup fingerprints. Replay replaces the current pack's
+  predicted affinity with this snapshot; legacy records without it add zero. Stat/cash/rank
+  history is unchanged. See `dorm_affinity_evidence.json` and the engine/service/replay tests.
   All dorm activities consume an evening.
 - Four gardening projects require `Profile.planDormGardening`, default false. The player's
   explicit opt-in promises crops will be planted first; crop/seed inventory and preparation
@@ -125,6 +143,22 @@ installation → app and widget. Results return through the service into the eve
 - `PlanValidator` has its own accumulator and transition checks instead of sharing
   `Kernel`/`Simulator` transitions. Keep that independence when changing mechanics.
   It checks contiguous coverage, legality, affordability, caps and forecast consistency.
+- Since 3.4.0, stat urgency has no constant early reward. Future free activities reserve
+  training capacity without granting points; activity usefulness depends on the forecast's
+  actual date. Preserve catch-up when those dates are excluded or unavailable.
+- `Rules.Day.automaticStatGain` applies at that day's daytime-to-evening transition.
+  Only the six compulsory August 10–15 summer classes are currently sourced (+3 Academics
+  each, +18 total). Kernel and the independent validator both apply them. A checkpoint
+  entered after a class already includes the player's observed gains; never backfill it.
+  Conditional classroom answers, awake/sleep choices, nurse visits and exam rank rewards
+  remain reminders and must not be assumed to have happened.
+- Surplus cash has no objective value. Terminal cash reward is capped at the explicit cash
+  buffer; spare tower visits have finite utility under the visit cap and rescue policy.
+  Manual legality does not imply that an activity must occupy an otherwise free slot.
+  Valuable dating notes for any wanted link receive a short-term budget of at most three,
+  bounded by real affinity gaps and remaining uses. A ready link can reserve the next rank's
+  sourced gap when actual meeting/note opportunities remain. This is a purchase budget, not
+  a protected unlock fee: spending it on notes must not cancel the note's own value.
 
 ## Rescues, estimates and reminders
 
@@ -153,6 +187,12 @@ installation → app and widget. Results return through the service into the eve
 - Persona mode is NONE / GOALS / ALL, default NONE. Charm bonus and goal margin default
   on; explicit goals get an extra ordinary meeting's points at point-gated ranks.
   An undecided romance route is treated as friendship.
+- Holiday D cells are conditional SMS candidates, not ordinary meeting availability.
+  Automatic plans, unlock calendars and remaining-meeting counts use O cells only.
+  `invite:<id>` records a received invitation manually, never ranks up by itself and does
+  not invent unknown affinity. The result may confirm readiness for the next ordinary
+  meeting. Validators and future catch-up explicitly reject unconfirmed INVITE forecasts.
+  Previously confirmed `meet:` records retain their explicit observed rank.
 - Dating-site notes are modeled from November 11: an evening, ¥3,000, estimated +10
   affinity, no assumed Persona/Charm multiplication. The five episode tracks are selectable;
   new breadth-style onboarding selects all five, while stored choices are preserved.
@@ -192,6 +232,35 @@ installation → app and widget. Results return through the service into the eve
   hides the raw period.
   Dates elapsed do not mean completed. Browsing the catalogue writes no progress and
   changes no cash, stats, plan identity or request-completion count.
+- `TipsCatalogue` adds all 171 manual-link R2–R10 scenes and the whole-game reminder
+  catalogue for read-only search. It is rebuilt from current rules/profile, including
+  friendship/romance choices, and requires no plan/current rank. Short answers retain full
+  ordered questions/conditions in details. `TipsPage` offers period/all scope and content
+  filters in a single sheet, including the actual category tags used on cards. The main
+  page retains period/all, search and one result counter; no duplicate summary/tutorial.
+  Applying a filter preserves the selected scope; starting a query switches to all-game scope.
+- The independent request catalogue contains all numbered base-game requests 1–101.
+  Match bare/labelled numbers exactly and index titles/aliases. Requests 77–81 require total
+  completed-request difficulty stars 25/60/100/150/185, with a three-day interval after the
+  previous outing for 78–81. The old English table's 15/30/45/60/80 request counts were route
+  approximations, not the actual gate. Request 53 also needs outing 78; catalogue evidence
+  records the cross-source corrections and all source-row fingerprints.
+- Combat references include every sourced guard-floor encounter, Monad groups, full-moon
+  operations and final fights. Preserve structured enemy/phase rows and the nine raw element
+  affinities. `v` doubles damage without a weakness/down flag; `*` blocks secondary effects,
+  not elemental damage. Keep them distinct from true weakness, null, repel and drain. Cards
+  show the roster/phase names and weaknesses; details use a nine-attribute matrix and short
+  tactics. The owner explicitly rejected a standard affinity legend; only unusual `v/*/z`
+  mechanics need footnotes. April 9 is an awakening story entry with no invented enemy data.
+- Replayer still normalizes canonical progress to the next actionable slot. `StoryDisplay`
+  overlays the skipped locked interval in Today, Schedule and widget with per-day reasons
+  and static exam answers. A separate prefs cursor acknowledges display only; it must never
+  create ledger actions, add points, replan or change state/profile revisions. Its source
+  key distinguishes checkpoint/effective observed events and the skipped interval so undo/sync
+  invalidates old acknowledgements; replan, profile-only changes and historical tower-money
+  corrections preserve them.
+- Forecast policy version is 2. Old cached forecasts are recomputed without changing
+  confirmed records, even if rule pack and revisions happen to match.
 
 ## Confirmed progress and replanning integrity
 
@@ -227,10 +296,10 @@ installation → app and widget. Results return through the service into the eve
   cancels outdated jobs, validates output, and installs only current state/profile/rules
   revisions. A budget-exhausted ordinary run can get one 2× follow-up.
 - Plan-cache compatibility also checks the scheduling policy. `Plan.CURRENT_POLICY_VERSION`
-  is 1 and new plans default to `policyVersion=1`; legacy JSON without this field loads
+  is 2 and new plans default to `policyVersion=2`; legacy JSON without this field loads
   as version 0. `PlannerService.isCurrent` checks this version plus the existing revisions
   and rules identity. Upgrading recalculates the old implicit-all-teammate plan once without
-  changing actual records or the rule pack. A saved policy-version-1 plan remains reusable
+  changing actual records or the rule pack. A saved policy-version-2 plan remains reusable
   on restart when its normal currentness checks pass.
 - Full replan rereads saved state/profile, uses a 7.5-second default budget and no stability
   bias, and does not itself change progress or history. Its ticket/result state is distinct
@@ -270,22 +339,27 @@ installation → app and widget. Results return through the service into the eve
 
 The shipped [rule asset](../android/app/src/main/assets/p3r/p3r_rules.json) is generated
 from `rules/sources/` snapshots, their `SOURCES.json` manifest, and `rules/p3r/` evidence.
-The current source pack uses schema `p3r.rules.v3` and pack version `3.3.0`; its final
-byte count and hash must be recorded after the current changes finish. App and pack version numbers are separate.
+The current source pack uses schema `p3r.rules.v3`, pack version `3.4.0`, and is
+461,947 bytes with SHA-256 `06843d87d8eaadf59c51fef38506e4eed961082f4922c9a3fc391c176e7b9046`.
+App and pack version numbers are separate.
 `RulesLoader` appends the first 12 SHA-256 hex digits of the actual JSON text.
 
 Coverage: 22 Social Links (three story links), 54 activities (the previous 22, 14 study
 sessions and 18 dorm projects), 10 Tartarus blocks,
 five Link Episode tracks, two link-specific rescues, 120 static reminder items and
-13 missing-person reminder groups. The pack lists 130 source records.
+13 missing-person reminder groups, all 101 Elizabeth request guides and 97 combat guides.
+The pack lists 139 source records. Concrete Reload routes restore five Aeon and three
+Empress O dates that older generic weekday filters deleted; existing story locks and
+source absences remain. See `late_link_availability_evidence.json`.
 
 Change builder inputs/logic and regenerate both the asset and `rules/build/REPORT.md`;
 the report is not a hand-edited document. Keep Reload-specific provenance and confidence
 (`game_data`, `verified`, `single`, `estimate`, `conflict`). Mixed-edition sources only
 corroborate a Reload source. A matching file hash establishes identity, not game accuracy.
 
-Model limits to remember: automatic free gains from class answers, exams and summer school
-are not forecast (scheduled study/dorm activity gains are); not every activity, item
+Model limits to remember: conditional gains from class answers and exams are not
+forecast; compulsory summer classes award +3 Academics on each of August 10–15.
+Scheduled study/dorm activity gains are forecast; not every activity, item
 requirement or rescue floor is modeled; 女皇's exam-first-place requirement is described
 but not simulated; 审判 ranks 2–10 are dated January 30 as an estimate instead of derived
 from floors; some story dates are conservatively locked; no mid-chain holds are encoded

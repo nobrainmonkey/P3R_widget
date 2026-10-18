@@ -63,20 +63,20 @@ class RequestTipsTest(unittest.TestCase):
             self.assertIn("分 8 天", item["detailZh"])
             self.assertIn("不会消耗时间", item["detailZh"])
             self.assertIn("累计学力 +16", item["detailZh"])
-            self.assertIn(builder.STAT_SENTENCE, item["detailZh"])
+            self.assertNotIn("不代表已经替你记下", item["detailZh"])
             self.assertIn("aqiu_social_events", item["src"])
 
-    def test_outings_have_count_and_predecessor_requirements_not_fixed_unlock_dates(self) -> None:
+    def test_outings_use_difficulty_totals_and_wait_after_the_previous_outing(self) -> None:
         item = self.items["request.05-29.outings"]
         text = item["detailZh"]
-        self.assertIn("不会到了某个日期就自动出现", text)
-        self.assertIn("之后再回来", text)
+        self.assertIn("难度星数合计解锁", text)
         self.assertIn("先完成前一次外出", text)
-        for number, count in zip(range(77, 82), (15, 30, 45, 60, 80)):
-            self.assertIn(f"第 {number} 号：累计完成 {count} 个委托", text)
-        self.assertIn("第 77 号外出不会消耗时间", text)
-        # Later batches still surface the count requirement for players who start after this reminder.
-        self.assertIn("15、30、45、60、80", self.items["request.12-04"]["detailZh"])
+        self.assertIn("至少经过 3 天", text)
+        for number, total in zip(range(77, 82), (25, 60, 100, 150, 185)):
+            self.assertIn(f"第 {number} 号：难度星数合计 {total}", text)
+        self.assertIn("外出不会消耗时间", text)
+        self.assertIn("学校开放日", text)
+        self.assertIn("25、60、100、150、185", self.items["request.12-04"]["detailZh"])
 
     def test_how_to_cannot_silently_outlive_changed_source_prerequisites(self) -> None:
         _bullets, rows = builder.overworld_section("Elizabeth Requests")

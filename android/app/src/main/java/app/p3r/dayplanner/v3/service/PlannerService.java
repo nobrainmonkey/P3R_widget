@@ -201,6 +201,7 @@ public final class PlannerService implements PlannerApi {
 
     private final Context context;
     private final Wiring wiring;
+    private final StoryDisplayPrefs storyDisplayPrefs;
     private final Object lock = new Object();
     private final ExecutorService worker;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -231,6 +232,7 @@ public final class PlannerService implements PlannerApi {
     private PlannerService(Context context, Wiring wiring) {
         this.context = applicationOf(context);
         this.wiring = wiring;
+        this.storyDisplayPrefs = new StoryDisplayPrefs(this.context, wiring.databaseName);
         this.worker = Executors.newSingleThreadExecutor(PlannerService::newWorkerThread);
         this.replanner = new ReplanWorker(worker, new ReplanHost(), wiring.planner, wiring.validator, wiring.clock);
         worker.execute(this::loadInitial);
@@ -359,6 +361,7 @@ public final class PlannerService implements PlannerApi {
             return s;
         }
         s.observed = v.observed == null ? null : v.observed.copy();
+        s.storyDisplay = storyDisplay(v);
         s.profile = v.profile.copy();
         s.plan = m.plan;
         s.stateRevision = v.stateRevision;
@@ -369,6 +372,26 @@ public final class PlannerService implements PlannerApi {
         s.eventsSinceCheckpoint = v.eventsSinceCheckpoint;
         s.noticeZh = v.observed != null && v.mismatches > 0 ? mismatchNotice(v.mismatches) : null;
         return s;
+    }
+
+    private StoryDisplay storyDisplay(LedgerView view) {
+        return StoryDisplay.create(view.rules, view.profile, view.storySource, view.storyFromSlot,
+                view.storyToSlot, storyDisplayPrefs.cursor(view.storySource, view.storyFromSlot));
+    }
+
+    @Override
+    public boolean acknowledgeStory(String sourceKey, int slot) {
+        awaitLoaded();
+        boolean changed;
+        synchronized (lock) {
+            LedgerView view = model.view;
+            changed = view != null && storyDisplayPrefs.acknowledge(storyDisplay(view), sourceKey, slot);
+        }
+        if (changed) {
+            refreshWidgets();
+            notifyListeners();
+        }
+        return changed;
     }
 
     @Override
@@ -441,6 +464,7 @@ public final class PlannerService implements PlannerApi {
             Plan.Step step = plan == null ? null : plan.at(state.slot);
             Action action = step == null ? null : Action.parse(rules, step.action);
             boolean follow = action != null
+                    && action.type != Action.Type.INVITE
                     && action.isProductive()
                     && wiring.forecaster.legalActions(rules, profile, state).contains(action);
             SimState after = follow ? wiring.forecaster.apply(rules, profile, state, action).state : null;
@@ -540,7 +564,16 @@ public final class PlannerService implements PlannerApi {
                     rankAfter = after.rank[action.target];
                 }
             }
-            return record.withResolved(rules, side, rankAfter);
+            OutcomeRecord resolved = record.withResolved(rules, side, rankAfter);
+            if (action != null && action.type == Action.Type.ACTIVITY) {
+                Rules.Activity activity = rules.activities[action.target];
+                if (activity.affinityLink >= 0) {
+                    boolean completed = outcome.code != Outcome.Code.SKIPPED && outcome.code != Outcome.Code.NOT_DONE;
+                    int gain = completed ? Engine.activityAffinityGain(rules, start, action.target) : 0;
+                    resolved = resolved.withActivityAffinity(rules.links[activity.affinityLink].id, gain);
+                }
+            }
+            return resolved;
         } catch (JSONException | RuntimeException e) {
             // Never lose a record over this: stored as given, replay then works it out as before.
             Log.w(TAG, "could not resolve what the record at slot " + record.slot + " did", e);

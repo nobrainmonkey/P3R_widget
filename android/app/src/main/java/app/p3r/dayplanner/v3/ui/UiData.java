@@ -24,6 +24,7 @@ public final class UiData {
     /** Show "上次记录：… · 游戏进度变了吗？". */
     public final boolean returnBanner;
     public final long nowMillis;
+    private final Plan displayPlan;
 
     public UiData(Rules rules, PlannerApi.Snapshot snap, String changeSummary, boolean returnBanner, long nowMillis) {
         this.rules = rules;
@@ -31,6 +32,8 @@ public final class UiData {
         this.changeSummary = changeSummary;
         this.returnBanner = returnBanner;
         this.nowMillis = nowMillis;
+        this.displayPlan = snap == null ? null : snap.storyDisplay == null ? snap.plan
+                : snap.storyDisplay.overlay(snap.plan, snap.observed == null ? -1 : snap.observed.slot);
     }
 
     public SimState observed() {
@@ -39,6 +42,15 @@ public final class UiData {
 
     public Plan plan() {
         return snap == null ? null : snap.plan;
+    }
+
+    /** Calendar shown to the player, including story days before the next actionable slot. */
+    public Plan displayPlan() {
+        return displayPlan;
+    }
+
+    public int displaySlot() {
+        return snap != null && snap.storyDisplay != null ? snap.storyDisplay.cursorSlot : currentSlot();
     }
 
     public Profile profile() {
@@ -58,8 +70,8 @@ public final class UiData {
 
     /** The plan step for the next slot, or null while the plan is missing or lagging. */
     public Plan.Step current() {
-        Plan plan = plan();
-        int slot = currentSlot();
+        Plan plan = displayPlan();
+        int slot = displaySlot();
         return plan == null || slot < 0 ? null : plan.at(slot);
     }
 

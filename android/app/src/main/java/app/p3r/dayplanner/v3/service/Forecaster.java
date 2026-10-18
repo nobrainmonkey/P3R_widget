@@ -18,7 +18,7 @@ public interface Forecaster {
                                                                   SimState state, Engine.Options options) {
         return alternatives(rules, profile, state);
     }
-    /** Legal productive actions at {@code state.slot}. */
+    /** Recording choices at {@code state.slot}; INVITE requires an actually received SMS. */
     List<Action> legalActions(Rules rules, Profile profile, SimState state);
 
     /** Forecast of doing {@code action} at {@code state.slot}; must not mutate {@code state}. */

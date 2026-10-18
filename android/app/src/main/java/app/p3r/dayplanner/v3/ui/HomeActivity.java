@@ -588,6 +588,17 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         if (data == null || api == null) {
             return;
         }
+        if ("locked".equals(step.kind) && step.slot < data.currentSlot()) {
+            if (data.snap.storyDisplay == null || data.snap.storyDisplay.cursorSlot != step.slot) {
+                reload();
+                return;
+            }
+            String source = data.snap.storyDisplay.key;
+            PlannerApi target = api;
+            Async.run(this, () -> target.acknowledgeStory(source, step.slot), changed -> reload(),
+                    error -> showMessage(Messages.GENERIC_ERROR));
+            return;
+        }
         // A lagging plan's visible predictions (stat Lv) are left out: the engine works the result
         // out from the latest record instead.
         Outcome outcome = Outcomes.asPredicted(step, data.snap.planCurrent);
@@ -784,6 +795,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     private static PlannerApi.Snapshot copyOf(PlannerApi.Snapshot s) {
         PlannerApi.Snapshot c = new PlannerApi.Snapshot();
         c.observed = s.observed;
+        c.storyDisplay = s.storyDisplay;
         c.profile = s.profile;
         c.plan = s.plan;
         c.stateRevision = s.stateRevision;

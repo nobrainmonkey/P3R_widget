@@ -352,13 +352,13 @@ final class StateSteps {
 
     private View persona() {
         LinearLayout column = page("见面时通常带着同阿尔卡那的人格面具吗？",
-            "见面时带着和社群同阿尔卡那的人格面具，点数 ×1.51，升级更快。拿不准就选「不带/不一定」，安排会更保守。");
+            "见面时带同阿尔卡那的人格面具，好感 ×1.51。");
         Profile.PersonaMode mode = draft.profile.effectivePersonaMode();
         column.addView(option("基本都带", SettingsPage.PERSONA_TEXT[0][1], mode == Profile.PersonaMode.ALL,
             () -> persona(Profile.PersonaMode.ALL)), top(20));
         column.addView(option("只给目标社群带", SettingsPage.PERSONA_TEXT[1][1],
             mode == Profile.PersonaMode.GOALS, () -> persona(Profile.PersonaMode.GOALS)), top(10));
-        column.addView(option("不带/不一定", "都按不带算，最保守（默认）。", mode == Profile.PersonaMode.NONE,
+        column.addView(option("不带/不一定", "按不带计算（默认）。", mode == Profile.PersonaMode.NONE,
             () -> persona(Profile.PersonaMode.NONE)), top(10));
         column.addView(Ui.muted(c, "之后可以在「我的 → 规划设置」里随时修改。"), top(16));
         return column;
@@ -449,7 +449,7 @@ final class StateSteps {
         } else if (draft.observed != null && draft.observed.cashExact) {
             hint = "上次记录：" + Zh.yen(draft.observed.cash) + "。和游戏里一样就直接下一步。";
         } else {
-            hint = "游戏菜单里能看到。不确定也没关系，会按保守的数字算。";
+            hint = "在游戏菜单中查看当前能力等级。";
         }
         LinearLayout column = page("现在有多少钱？", hint);
         CashPad.Options options = new CashPad.Options();
@@ -712,7 +712,7 @@ final class StateSteps {
         LinearLayout column = page("宿舍活动各做过几次？",
             "每种活动满 3 次可解锁特性，两种都完成可强化。填实际次数，超过 3 次填 3；没记录过的先按 0 次安排，补填不会重复增加能力值。");
         ToggleRow gardening = new ToggleRow(c, "允许安排园艺（我会提前种好作物）",
-            "园艺不收费；种苗费用和作物状态不计入安排。开启后，请提前种好作物。", draft.profile.planDormGardening);
+            "园艺活动免费，需提前购买种苗、种好作物。", draft.profile.planDormGardening);
         gardening.setListener(enabled -> {
             draft.setDormGardening(enabled);
             callbacks.changed();

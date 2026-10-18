@@ -85,7 +85,7 @@ choice), `conflict` (strictest claim chosen; alternates in `alt`)} and `src` (li
      "slot":"day",                   // day | eve
      "locationZh":"月光馆学园 2楼 教室",
      "avail":[21,23,…],              // day ordinals with an O cell (ordinary meeting possible)
-     "invite":[25,…],                // day ordinals with a holiday invitation (D cell) — counts as a meeting
+     "invite":[25,…],                // possible holiday SMS senders (D cell), manual recording only
      "threshold":[0,0,0,0,15,15,15,15,22,22,22],   // [r] = points needed while at rank r-1 to reach r
      "eventGain":[0,0,10,20,15,15,15,15,20,15,20], // [r] = best-answer points earned in the rank-r scene (count toward r+1)
      "eventGainRomance":null,        // same shape when a romance route changes scenes
@@ -110,7 +110,7 @@ choice), `conflict` (strictest claim chosen; alternates in `alt`)} and `src` (li
     "blocks":[{"id":"thebel","zh":"世俗之庭 台伯勒","floorsZh":"2–22F","fromDay":20,"toDay":38,"top":22}, …],
     "rescues":[{"id":"bunkichi","zh":"北村文吉","fromDay":164,"toDay":185,"link":"hierophant"}, …]
   },
-  "invitesMeaning": "Holiday invitation (D cell): the link calls you on that day; accepting uses the daytime slot and counts as a normal meeting/rank-up.",
+  "invitesMeaning": "Holiday invitation (D cell): a possible SMS sender, not a guaranteed meeting. Only record an actually received invitation; it consumes daytime and raises affinity, never directly ranks up. Its unmodeled affinity gain is not credited to forecasts.",
   "notes": [ … free-form audit notes, Chinese terminology decisions … ]
 }
 ```
@@ -119,7 +119,14 @@ Conflict policy (from research): Devil needs Hermit **R4** + Charm Lv4; Tower ne
 Empress Mon/Fri cells are unconfirmed → use Tue/Wed/Thu/Sat + pre-exam week 12/7–12/12; tower block
 starts 06-13 and 12-03 (game data); Lovers invitations 08-03/08-09 exist (game data); Sun earliest
 08-09. Unknown slot state = **free** unless a lock or rule says otherwise (handoff: absence of an
-annotation is not proof of unavailability); links are only met on their O/D cells.
+annotation is not proof of unavailability); ordinary meetings and LINK_AVAIL unlock steps use O cells.
+D cells are candidate SMS dates, not confirmed invitations. They never contribute future meeting
+capacity or automatic rank-ups. On those dates, 改做别的 additionally lists `invite:<linkId>` with
+「收到短信才选」. Selecting it and confirming 「赴约了」 records the actual outing: one daytime
+slot, no rank change and no unrelated rank-scene answers. The exact answer-dependent affinity
+gain remains unmodeled, so the existing hidden-point lower bound is retained; a player-confirmed
+「游戏提示下次就能升级」 is recorded normally. O+D overlap keeps ordinary O meeting semantics.
+Old confirmed `meet:` records remain historical observations and retain their explicit ranks.
 
 Official zh-Hans terms (game string tables + Steam SC achievements): 社群, 级别 (UI uses "RANK" as the
 guide does), 个人能力值 (学力/魅力/勇气), 塔尔塔罗斯, 打工, 失踪者, 人格面具, 女皇, 倒悬者, 月亮, 贝培,
@@ -417,7 +424,7 @@ the new wizard. Release signing key lives in `.signing/` (git-ignored, never pub
 - **Meeting how-to.** 「怎么做」 of a meeting is: when/where/whom, the guide's 「参考回答：…」 (engine `DialogueHint`, same filtering as the UI's `Dialogue`), side steps, and the link's own note as 「注意：…」. The UI shows 「参考回答」 and 「注意」 lines as marked notes under the numbered steps (not counted as steps) and drops its separate 参考回答 row when the how-to already has it.
 - **Legacy guide** (removed in 3.1.0, §19). Text fields of `assets/data.json`, `display_metadata.json` and the copy embedded in `index.html` followed the glossary (「10月13日」, 「3,980 日元」, 「Lv.2」 for stats and 「→RANK2」 for links, 羁绊剧情, no English glosses after Chinese answers; English-class options such as 「Lives」 stay); ids, kinds, dates, keys, order and list lengths were pinned by `LegacyGuideChineseTest` against the 2.x structure. The guide widget kept goods, answers and counts (「（2）」「（1个）」) whole; `LegacyGuideWordsRenderTest` derived the quoted names and shopping goods from the data itself instead of relying on the word list alone. The two JSON files now live only as pinned sources under `rules/sources/cn_guides/`.
 - **Wording.** 主角 (not 主人公), also in the 3.0.x guide data; dates in text are 「10月23日 周五」 (the date plate keeps 「10/23」); 结缘网站的字条 always in full; widget and app text are shaped so names and short tags never break across lines (only （…） notes of up to 5 characters are glued, so longer ones can wrap at large font sizes).
-- **Aeon meeting days.** The aqiu calendar has Aigis after school Mon–Sat from 1/8; Game8, PC Invasion, Prima and GamesHorizon (Reload) list Mon/Wed/Fri/Sat. By the strictest-claim rule the pack keeps Mon/Wed/Fri/Sat (conflict `avail.aeon.tuethu` in `rules/build/REPORT.md`), found by the independent source check (`docs/analysis/audit/wiki_sources.json`).
+- **Aeon and Empress meeting days (corrected in 3.4).** Use the source O calendar minus existing story locks. Concrete Reload routes from PowerPyx and RPG Site corroborate Tuesday/Thursday Aeon and early Monday/Friday Empress meetings; generic weekday summaries must not delete these dates. This restores five Aeon and three Empress dates, retaining the 1/21 lock, Aeon's 1/25 absence and Empress's post-12/25 absences. Evidence: `rules/p3r/late_link_availability_evidence.json`.
 - **Measured** (real pack, desktop JVM, default options; full table in `docs/PLAN_METRICS.md`): new game with the arcana Persona for every meeting 22/22 MAX; no Persona 21/22 (恋爱 RANK 9; also 21/22 with all five Link Episode tracks); 皇帝 MUST 21/22 with 皇帝 MAX 6月29日; MUST 皇帝 + WANT 恋爱、女皇 with Persona for goals only 21/22, all three goals MAX; every scenario plans to 1月31日 and passes `PlanValidator`.
 
 ## 15. 3.0.2: independent sign-off reviews
@@ -498,7 +505,8 @@ Owner directive (spec §8): plan for a player who wants to see as much of the ga
 - **Objective.** Under 「尽量都体验」 each RANK of a 「其余社群」 link weighs `W_OTHER × BREADTH_RANK[r]` = 4, 2, 1.6, 1.4, 1.25, 0.9, 0.8, 0.7, 0.6, 0.5 for RANK 1…10 and MAX adds two ranks' worth instead of six (`BREADTH_MAX_BONUS_RANKS`), so two unlocks (8) still beat taking a link from RANK 5 to MAX (3.5 + 2), while once every link is open and high, finishing two links beats raising a third from RANK 3 to 8 (2·(0.7 + 0.6 + 0.5 + 2) = 7.6 against 5.05). With one rank's worth (the first 3.1.0 value) that trade was worth 0.55 ranks, less than the margin of one wasted daytime, and a new game with Persona for the goals only (必须 皇帝, 想要 恋爱、女皇) stopped at 19 MAX with three links at RANK 7–8 where 「尽量多 MAX」 reaches 21: MAX scenes are content too. Goals weigh exactly as before up to their target (above it they count as 「其余社群」); only the bonus for reaching a goal earlier is cut to a quarter (`BREADTH_EARLY_SHARE` 0.25): with all of it, finishing a 必须 goal one slot earlier was worth about one RANK of a 其余社群 link, and from 10/22 with 必须 ①星 ②正义 ③命运 the plan gave 21 daytimes to jobs that paid the goals' 结缘网站的字条 (「尽量多 MAX」: 1); with half of it the 「尽量多 MAX」 plan, now always a candidate (next item), won from 10/22 with 必须 皇帝 + 想要 女教皇 by reaching the goals a few days earlier, and the style lost its broader plan there.
 - **Never worse than 「尽量多 MAX」** (owner, after the 3.1.0 re-check: a player who wants to see everything must never get a worse plan from 「尽量都体验」 than from 「尽量多 MAX」 on what the style promises, nor lose MAX in a new game when time allows). At 10355be the 「尽量多 MAX」 plans joined a 「尽量都体验」 pool only when its best plan missed a goal (that rule fixed 10/22, 必须 ①女教皇 ②永劫 ③恋爱, where the breadth search alone left 恋爱 at RANK 9). With every goal reached the breadth plan could still be worse on every breadth number (10/22, 必须 ①星 ②正义 ③命运: 18 links unlocked against 19, rank sum 123 against 132, RANK ≥ 5 11 against 13, although the 「尽量都体验」 objective scored the 「尽量多 MAX」 plan 2,150 higher) or waste 11 and 13 more daytimes (two seeded 10/22 goal profiles).
   - `Planner.Pool.startMaxStyleRun` starts the whole 「尽量多 MAX」 planning of the same start (screening, fortified searches and strict-priority runs exactly as a profile with that style; `Heuristics` with `breadth = false`) on a second thread when a 「尽量都体验」 plan starts, with the same deadline and cancel flag and no progress callback. `addMaxStylePlans` waits for it, adds every plan it made to the pool, measured with the 「尽量都体验」 objective, and keeps the plan that style keeps as `maxPlan`. The two runs share only immutable data (the model, the tables, the start state); when no thread can be had the run happens after the breadth run on the same thread.
-  - `Pool.choose`: strict goal priority first (`compareGoals`, unchanged, so goals still end where 「尽量多 MAX」 ends them or higher). Among the plans whose goals tie with the best, only those that keep the promises (`keepsPromises`) take part: not beaten by `maxPlan` on links unlocked, links at RANK 5 or above and the rank sum all at once (one of them strictly), fewer links unlocked than `maxPlan` only when the 「尽量都体验」 objective J (before the waste margin) scores them at least as high (next item), and at most `BREADTH_WASTE_SLACK` (2) more wasted daytimes. `maxPlan` keeps them itself, so whenever its goals tie the plan kept keeps every promise and its score (the objective less the waste margin per wasted daytime, what the planner has compared complete plans by since 3.0) is at least `maxPlan`'s, less `SWITCH_MARGIN` at most when it keeps the previous plan's next three days. When a breadth plan reaches a goal 「尽量多 MAX」 misses, strict priority keeps it, and the promises apply among the plans with those goals when one of them keeps them.
+  - `Pool.choose`: strict goal priority first (`compareGoals`, unchanged, so goals still end where 「尽量多 MAX」 ends them or higher). Among the plans whose goals tie with the best, only those that keep the promises (`keepsPromises`) take part: not beaten by `maxPlan` on links unlocked, links at RANK 5 or above and the rank sum all at once (one of them strictly), at least as many links at RANK 5 or above, fewer links unlocked than `maxPlan` only when the 「尽量都体验」 objective J (before the waste margin) scores them at least as high (next item), and at most `BREADTH_WASTE_SLACK` (2) more wasted daytimes. `maxPlan` keeps them itself, so whenever its goals tie the plan kept keeps every promise and its score (the objective less the waste margin per wasted daytime, what the planner has compared complete plans by since 3.0) is at least `maxPlan`'s, less `SWITCH_MARGIN` at most when it keeps the previous plan's next three days. When a breadth plan reaches a goal 「尽量多 MAX」 misses, strict priority keeps it, and the promises apply among the plans with those goals when one of them keeps them.
+  - **Middle-story floor (3.4.0).** The Pareto guard alone allowed more unlocks and a larger rank sum to hide fewer links reaching RANK 5: from 10/22 with 必须 皇帝 and 想要 女教皇, the fortified route reached 21 links / 135 total ranks / 12 links at RANK 5, against the MAX route's 18 / 133 / 13. The pool already contained a route with both goals at MAX, 21 links / 132 total ranks / 13 at RANK 5 and a higher breadth score than the MAX route, so an explicit RANK 5 floor selects it without another search or changing weights. Goals and rescue safety still take priority.
   - Why the whole run rather than screening the 「尽量多 MAX」 tunings and fortifying the promising ones: in the re-check's 10/22 goal profiles the best screened tuning (its base policy alone) scored up to 20,000 below the best breadth plan while the best fortified one scored up to 7,700 above it (必须 ①星 ②正义 ③命运: 9,740 below screened, 2,150 above fortified), so the screen does not tell which tunings are worth a search; and the guarantee needs the very plan 「尽量多 MAX」 keeps.
   - **Unlock promise** (3.1.0 re-check). The style says 「先把每个社群都解锁」, yet the score could keep a plan that leaves a link locked which 「尽量多 MAX」 takes to MAX, although J itself scores the 「尽量多 MAX」 plan higher: from 10/22 with 想要 恋爱, 必须 永劫、倒悬者 (random 5 of `goalProfilesKeepTheGoalsAndStayBroad`) 恶魔 stayed at RANK 0 (尽量多 MAX: MAX), 19 links unlocked against 20, J 3,724 lower, kept for 6 wasted daytimes against 18; likewise 必须 皇帝、恋爱 with Persona for the goals (20 against 21, J 1,674 lower) and 必须 女教皇 with every 羁绊剧情 track (20 against 21 although one more MAX). The cause is the waste margin: with goals it is 2.5 slots of the goals' earlier-MAX bonus (`wasteMargin`: 500 per wasted daytime with one 必须 goal, 750 with three), while 「尽量都体验」 keeps a quarter of that bonus in J and an unlock weighs 4 × 300 = 1,200; the daytimes that pay 恶魔's fees and reach 魅力 Lv.4 count as waste. Scaling the margin's goal term by `BREADTH_EARLY_SHARE` would change every breadth plan with goals (the tuning sweep above: 69 more wasted daytimes over 45 starts), so `keepsPromises` takes the narrower rule: a plan that unlocks fewer links than `maxPlan` is kept only when J agrees. A plan with fewer links unlocked and a higher J stays allowed (10/22 必须 隐者、教皇、皇帝: 19 against 20, rank sum 131 against 115, J 3,850 higher). Effect: random 5 now keeps the 「尽量多 MAX」 plan itself (20 unlocked, 恶魔 MAX, 18 wasted daytimes), 皇帝、恋爱 with Persona 21 unlocked, rank sum 138 (尽量多 MAX 135), RANK ≥ 5 15 (12), 24 wasted daytimes (22), 女教皇 with every track 21 unlocked, rank sum 135 (126), 24 wasted daytimes (23), both with 恶魔 at MAX; `PlanRealPackTest`'s 10/22 ①恶魔 ②女皇 ③月亮 21 unlocked (was 20), rank sum 117 (122), RANK ≥ 5 11 (10). `goalProfilesKeepTheGoalsAndStayBroad` asserts per profile that no link 「尽量多 MAX」 takes to MAX stays at RANK 0, and `BreadthObjectiveTest.choiceKeepsThePromisesAgainstTheMaxPlan` checks the rule in `choose`.
   - **The floor is the score, not J.** J alone is lower for the kept plan in a few comparisons where that plan is broader on every count and wastes fewer daytimes (3.1.0 re-check: random 3 and 7, 20 and 15 lower); the planner compares complete plans by the score, so `PlanBreadthRealPackTest.brokenPromise` checks score(「尽量都体验」) ≥ score(「尽量多 MAX」) plus the unlock promise above, not J(「尽量都体验」) ≥ J(「尽量多 MAX」).
@@ -791,3 +799,69 @@ Owner directive (spec §8): plan for a player who wants to see as much of the ga
   v3.3.0 was published on October 17 as the latest, non-draft, non-prerelease release.
   The locally signed and verified APK was uploaded through the successful prebuilt
   publisher run 39019952354 because Actions signing secrets remain unconfigured.
+
+## 25. 3.4.0: Dated stat demand and free training capacity
+
+- **Train for an actual opening.** A stat gate's soft deadline is the earlier of its
+  first possible unlock date and the existing opportunity-based deadline. The original
+  hard deadline still determines when evening capacity is insufficient and daytime
+  training can justify its cost. Stat urgency has no constant patience floor; meeting
+  urgency and the strict ordering of 必须／想要 goals retain their existing meaning.
+- **Value Charm by real meetings saved.** The affinity bonus considers only wanted,
+  unfinished manual links with positive value. It compares their discrete remaining
+  meetings at the current and future Charm multipliers; zero-threshold links such as
+  Sun save no meetings. Observed points, ready cues and holds are preserved, while
+  future gains use the selected route and Persona. An unopened link recomputes the
+  future establishing scene at the new multiplier and keeps its remaining unlock slots.
+- **Count future story gains once.** The training deficit subtracts only unavoidable
+  `Day.automaticStatGain` that completes before the gate action. Summer classes add
+  Academics +3 on each daytime completion, August 10–15; an observed evening does not
+  receive that daytime's points again. Optional classroom answers and sleep choices are
+  not assumed to have happened.
+- **Reserve usable free opportunities.** Future free capacity is a concrete allocation
+  of actual calendar activities: one activity per evening, using its real gain vector,
+  respecting exclusions and already-met prerequisites. It excludes tonight, once-only
+  activities and reserved last-chance episode/rescue/tower/evening-link dates. Averages
+  cannot claim two conflicting high-yield activities on the same evening. These choices
+  reduce training urgency; they never add points to the simulation or observations.
+- **Distinguish how a gap is filled.** Useful dated dorm/group sessions retain their
+  stat value. Ordinary free training leaves room for later dated sessions; paid training
+  is valued against the remaining gap after reachable free capacity. Taking, missing or
+  excluding a session recalculates that gap, so paid catch-up becomes worthwhile when
+  needed. Menu-discovery bonuses obey the same remaining need. A useful free dorm action
+  has a small finite tie preference; capped stats with no selected characteristic earn
+  no extra dorm value. Legal manual training can remain available when the automatic
+  plan chooses FREE instead of filling a gap reserved for later gains.
+- **Quality contract.** This does not promise every link opens on its first date or that
+  every profile gains more MAX links. The selected social goals keep their priority;
+  the default breadth objective also values partial ranks. Real-pack comparisons must
+  report MAX counts, rank sum, goal completion, money and available-date legality,
+  rather than restoring routes that depended on unconfirmed holiday invitations.
+
+## 26. 3.4.0: Guide review, dorm affinity and concise secondary screens
+
+This section supersedes earlier quoted UI copy and the earlier omission of dorm affinity.
+The full April–January guide review is recorded in
+`analysis/score_guide_review_2026-10-18.md` and its three focused reports.
+
+- Concrete Reload routes override broad weekday summaries for eight Aeon/Empress dates;
+  the builder preserves the original O set minus story locks, never inventing weekly cells.
+- Eight female teammate projects add at most one raw point to an established link's
+  current next-rank deficit, with no multipliers or automatic rank-up. Ready, unopened
+  and MAX links have no such deficit. Project completion three caps characteristic
+  rewards, not subsequent affinity. Scores use wanted links' real meeting savings and
+  finite progress; manual activity effects do not depend on goal selection.
+- Activity outcome records snapshot the stable link ID and applied affinity delta outside
+  the original command. Resolved metadata is excluded from retry fingerprints. Replay
+  removes the current pack's predicted affinity before applying that snapshot; a legacy
+  record without it adds zero. Existing ranks, cash, stat gains and side actions retain
+  their historical behavior. This requires no database/checkpoint migration.
+- The tips page shows search, period/all scope, one filter button and one counter. The
+  filter sheet contains broad categories and the same actual category labels as cards;
+  apply preserves scope, cancel discards draft choices and reset selects all content.
+  Redundant summary/search teaching blocks and standard affinity legends are removed.
+- Secondary sheets share restrained navy/cyan surfaces, slanted titles and distinct
+  selection states. Visible text gives answers, actions and real game conditions.
+  The app answer prefix is `回答：`; widget remains `答：`. Source/translation/numeric
+  caveats belong in developer evidence rather than repeated player-facing captions.
+  `预计` still distinguishes forecasts from confirmed results.

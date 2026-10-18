@@ -44,6 +44,9 @@ final class LedgerView {
     final List<Replayer.TowerGain> towerGains;
     final long lastRecordMillis;
     final int eventsSinceCheckpoint;
+    final int storyFromSlot;
+    final int storyToSlot;
+    final String storySource;
     /**
      * Things in the latest checkpoint and its rows that no longer fit the loaded rule pack (values
      * dropped while carrying the checkpoint over, rows that could not be replayed as recorded),
@@ -54,7 +57,7 @@ final class LedgerView {
     private LedgerView(Rules rules, Profile profile, long stateRevision, long profileRevision,
                        long checkpointId, List<EventRow> chain, SimState observed,
                        List<Replayer.TowerGain> towerGains, long lastRecordMillis,
-                       int eventsSinceCheckpoint, int mismatches) {
+                       int eventsSinceCheckpoint, int mismatches, int storyFromSlot, int storyToSlot, String storySource) {
         this.rules = rules;
         this.profile = profile;
         this.stateRevision = stateRevision;
@@ -66,6 +69,9 @@ final class LedgerView {
         this.lastRecordMillis = lastRecordMillis;
         this.eventsSinceCheckpoint = eventsSinceCheckpoint;
         this.mismatches = mismatches;
+        this.storyFromSlot = storyFromSlot;
+        this.storyToSlot = storyToSlot;
+        this.storySource = storySource;
     }
 
     /** Reads everything from {@code ledger} and replays each checkpoint's rows. */
@@ -81,6 +87,8 @@ final class LedgerView {
                 : chains.getOrDefault(latest.id, Collections.emptyList());
         SimState observed = null;
         int mismatches = 0;
+        int storyFrom = -1;
+        int storyTo = -1;
         List<Replayer.TowerGain> gains = new ArrayList<>();
         for (CheckpointRow checkpoint : checkpoints) {
             List<EventRow> rows = chains.getOrDefault(checkpoint.id, Collections.emptyList());
@@ -98,12 +106,27 @@ final class LedgerView {
             if (isLatest) {
                 observed = result.state;
                 mismatches += start.lost + result.problems;
+                storyFrom = result.skippedStoryFrom;
+                storyTo = result.skippedStoryTo;
             }
         }
         return new LedgerView(rules, profile, ledger.stateRevision(), ledger.profileRevision(),
                 latest == null ? 0 : latest.id, Collections.unmodifiableList(new ArrayList<>(chain)),
                 observed, Collections.unmodifiableList(gains), lastRecord(latest, chain),
-                countObserved(chain), mismatches);
+                countObserved(chain), mismatches, storyFrom, storyTo,
+                storySource(latest, chain, storyFrom, storyTo));
+    }
+
+    private static String storySource(CheckpointRow checkpoint, List<EventRow> rows, int from, int to) {
+        if (checkpoint == null || from < 0) return null;
+        long seq = 0;
+        for (EventRow row : rows) {
+            if (!row.voided && EventKind.isObserved(row.kind)) seq = Math.max(seq, row.seq);
+        }
+        // A correction of an older visit changes gameplay revisions, but does not pass these story
+        // days again. Only the checkpoint, latest effective time-advancing row and interval identify
+        // the display acknowledgement. Undoing that row or starting a new checkpoint changes it.
+        return checkpoint.id + ":" + checkpoint.created + ":" + seq + ":" + from + ":" + to;
     }
 
     /** Block index at the observed slot, -1 if none. */

@@ -18,6 +18,7 @@ import org.robolectric.annotation.GraphicsMode;
 
 import app.p3r.dayplanner.v3.Intents;
 import app.p3r.dayplanner.v3.engine.Outcome;
+import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.model.Rules;
 
 /**
@@ -31,6 +32,34 @@ public class ResultSheetTest extends UiTestBase {
     private static final int NOW = Fixtures.SLOT_NOW;
 
     // ------------------------------------------------------------------ social
+
+    @Test
+    public void actualInvitationHasItsOwnPanelWithoutRankUpOrRankSceneAnswers() {
+        Plan.Step invite = new Plan.Step();
+        invite.slot = NOW;
+        invite.action = "invite:magician";
+        invite.kind = "invite";
+        invite.entity = "magician";
+        invite.titleZh = "魔术师 · 友近健二";
+        invite.subtitleZh = "休息日邀约 · 收到短信才选 · 只加好感";
+        invite.predicted.rankFrom = 3;
+        invite.predicted.rankTo = 3;
+        invite.predicted.certain = true;
+        api.alternatives = java.util.List.of(invite);
+        ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_OTHER);
+        assertTrue(Shots.has(a, "休息日邀约 · 收到短信才选 · 只加好感"));
+        Shots.click(a, "魔术师 · 友近健二");
+        assertTrue(Shots.has(a, "收到短信并赴约了吗？"));
+        assertFalse(Shots.has(a, "升到 RANK 4 了"));
+        assertNull(Dialogue.line(api.rules, api.snap.profile, invite));
+        Shots.click(a, "游戏提示下次就能升级");
+        Shots.click(a, "赴约了");
+        assertEquals("invite:magician", api.last().actionKey);
+        assertEquals(Outcome.Code.AS_PREDICTED, api.last().outcome.code);
+        assertEquals(-1, api.last().outcome.rank);
+        assertTrue(api.last().outcome.readyCue);
+        assertEquals("魔术师 · 赴约了", UndoCenter.take().summaryZh);
+    }
 
     @Test
     public void rankUpAsPredictedRecordsRank7() {
@@ -114,7 +143,7 @@ public class ResultSheetTest extends UiTestBase {
         int slot = Rules.slot(Fixtures.day(10, 24), false);
         advanceTo(slot);
         ResultActivity a = result(slot, "meet:sun", Intents.MODE_RESULT);
-        assertTrue(Shots.has(a, "升级是按估计排的，结果以游戏为准。"));
+        assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("以游戏为准"));
         Shots.shot(a, "result_social_rankup_estimate");
         assertTrue(Shots.has(a, "没升级"));
         assertTrue(Shots.has(a, "升到 RANK 8 了"));

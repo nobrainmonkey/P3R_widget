@@ -52,6 +52,9 @@ public final class OutcomeRecord {
     public final Map<String, String> sideStepIds;
     /** RANK after the action as resolved when recording, or -1. */
     public final int rankAfter;
+    /** Raw dorm affinity resolved when recording, keyed by stable link id; legacy rows have none. */
+    public final String activityAffinityLink;
+    public final int activityAffinityPts;
 
     public OutcomeRecord(int slot, String actionKey, Outcome outcome) {
         this(slot, actionKey, outcome, null);
@@ -63,6 +66,11 @@ public final class OutcomeRecord {
 
     private OutcomeRecord(int slot, String actionKey, Outcome outcome, String stepId, List<String> side,
                           Map<String, String> sideStepIds, int rankAfter) {
+        this(slot, actionKey, outcome, stepId, side, sideStepIds, rankAfter, null, 0);
+    }
+
+    private OutcomeRecord(int slot, String actionKey, Outcome outcome, String stepId, List<String> side,
+                          Map<String, String> sideStepIds, int rankAfter, String affinityLink, int affinityPts) {
         this.slot = slot;
         this.actionKey = actionKey;
         this.outcome = outcome;
@@ -70,6 +78,8 @@ public final class OutcomeRecord {
         this.side = side == null ? null : Collections.unmodifiableList(new ArrayList<>(side));
         this.sideStepIds = Collections.unmodifiableMap(new LinkedHashMap<>(sideStepIds));
         this.rankAfter = rankAfter;
+        this.activityAffinityLink = affinityLink;
+        this.activityAffinityPts = Math.max(0, affinityPts);
     }
 
     /**
@@ -85,7 +95,13 @@ public final class OutcomeRecord {
      * ({@code rankAfter}, -1 for none).
      */
     public OutcomeRecord withResolved(Rules rules, List<String> side, int rankAfter) {
-        return new OutcomeRecord(slot, actionKey, outcome, stepId, side, stepIdsOf(rules, side), rankAfter);
+        return new OutcomeRecord(slot, actionKey, outcome, stepId, side, stepIdsOf(rules, side), rankAfter,
+                activityAffinityLink, activityAffinityPts);
+    }
+
+    /** Adds a resolved effect outside the original command, preserving idempotency fingerprints. */
+    public OutcomeRecord withActivityAffinity(String linkId, int points) {
+        return new OutcomeRecord(slot, actionKey, outcome, stepId, side, sideStepIds, rankAfter, linkId, points);
     }
 
     /** Id of the unlock step an {@code unlock:} key points to under {@code rules}, else null. */
@@ -133,6 +149,10 @@ public final class OutcomeRecord {
         if (rankAfter >= 0) {
             o.put("rankAfter", rankAfter);
         }
+        if (activityAffinityLink != null) {
+            o.put("activityAffinityLink", activityAffinityLink);
+            o.put("activityAffinityPts", activityAffinityPts);
+        }
         return o;
     }
 
@@ -140,7 +160,8 @@ public final class OutcomeRecord {
         JSONObject outcome = o.getJSONObject("outcome");
         String stepId = o.has("stepId") ? o.getString("stepId") : null;
         return new OutcomeRecord(o.getInt("slot"), o.getString("action"), Outcome.fromJson(outcome), stepId,
-                sideOf(o), sideStepIdsOf(o), o.optInt("rankAfter", -1));
+                sideOf(o), sideStepIdsOf(o), o.optInt("rankAfter", -1),
+                o.isNull("activityAffinityLink") ? null : o.getString("activityAffinityLink"), o.optInt("activityAffinityPts", 0));
     }
 
     // ------------------------------------------------------------------ shared with TowerRecord

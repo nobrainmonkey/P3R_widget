@@ -69,6 +69,53 @@ public class ResultFlowsRealPackTest {
     // ------------------------------------------------------------------ 皇帝 RANK 6 → 7
 
     @Test
+    public void actualReceivedInvitationRecordsWithoutRankingUpAndSurvivesRetryAndRestart() {
+        String database = db();
+        PlannerService service = open(database);
+        int magician = link("magician");
+        int day = 25; // April 26: a possible Magician holiday SMS, no ordinary availability.
+        SimState start = new SimState(rules.blocks.length, rules.activities.length);
+        start.slot = Rules.slot(day, false);
+        start.cash = 10_000;
+        for (Rules.Link l : rules.links) {
+            if (l.kind == Rules.LinkKind.MANUAL) start.rank[l.idx] = 10;
+        }
+        start.rank[magician] = 1;
+        start.unlockStep[magician] = rules.links[magician].unlock.steps.size();
+        PlannerApi.Receipt checkpoint = service.saveCheckpoint(id(), service.snapshot().stateRevision, start, null);
+        assertTrue(checkpoint.errorZh, checkpoint.ok);
+        settledPlan(service, "before actual invitation");
+        List<Plan.Step> alternatives = service.alternatives(start.slot);
+        assertTrue(alternatives.stream().anyMatch(s -> s.action.equals("invite:magician")));
+        assertFalse(alternatives.stream().anyMatch(s -> s.action.equals("meet:magician")));
+
+        Outcome attended = app.p3r.dayplanner.v3.ui.Outcomes.invited(true);
+        attended.sideDone = false;
+        String command = id();
+        PlannerApi.Receipt result = service.recordOutcome(command, service.snapshot().stateRevision,
+                start.slot, "invite:magician", attended);
+        assertTrue(result.errorZh, result.ok);
+        settledPlan(service, "actual invitation recorded");
+        SimState after = service.snapshot().observed;
+        assertEquals("exactly the daytime slot was consumed", start.slot + 1, after.slot);
+        assertEquals(1, after.rank[magician]);
+        assertEquals(0, after.pts[magician]);
+        assertTrue(after.ready[magician]);
+        assertTrue(historyMentions(service, "休息日邀约"));
+        assertTrue(historyMentions(service, "赴约了"));
+
+        PlannerApi.Receipt retry = service.recordOutcome(command, result.stateRevision,
+                start.slot, "invite:magician", attended);
+        assertTrue(retry.ok);
+        assertTrue(retry.duplicate);
+        service = reopen(service, database);
+        settledPlan(service, "invitation after restart");
+        assertEquals(start.slot + 1, service.snapshot().observed.slot);
+        assertEquals(1, service.snapshot().observed.rank[magician]);
+        assertTrue(service.snapshot().observed.ready[magician]);
+    }
+
+    @Test
     public void emperorRankUpAsPredictedThenUndoRetryAndRestart() {
         String db = db();
         PlannerService service = open(db);

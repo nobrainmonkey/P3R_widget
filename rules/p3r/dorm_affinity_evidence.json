@@ -1,0 +1,96 @@
+{
+  "schema": "p3r.dorm_affinity_evidence.v1",
+  "edition": "reload",
+  "researchedDate": "2026-10-18",
+  "conf": "conflict",
+  "policy": {
+    "rawPoints": 1,
+    "multipliers": false,
+    "onlyEstablishedRanks": [
+      1,
+      9
+    ],
+    "capAtNextRankGap": true,
+    "bankBeforeUnlock": false,
+    "afterThirdCompletion": true,
+    "reference": "docs/analysis/score_guide_early_2026-10-18.md#专项补查宿舍活动的女性社群好感"
+  },
+  "sources": [
+    {
+      "id": "aqiu_dorm_affinity",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/social-events#dorm-hangouts",
+      "claim": "All four female Social Link party members receive affinity for either dorm project. The source states +2 at Charm 6 with top exam results, otherwise +1."
+    },
+    {
+      "id": "aqiu_route_affinity",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/ave-walkthrough",
+      "witnesses": [
+        {
+          "date": "09-09",
+          "link": "priestess",
+          "activity": "dorm_fuuka_gardening",
+          "before": 51,
+          "after": 53,
+          "threshold": 55
+        },
+        {
+          "date": "09-15",
+          "link": "priestess",
+          "activity": "dorm_fuuka_gardening",
+          "before": 53,
+          "after": 55,
+          "threshold": 55
+        },
+        {
+          "date": "10-02",
+          "link": "lovers",
+          "activity": "dorm_yukari_cooking",
+          "completionNumber": 4,
+          "rawGain": 2,
+          "result": "Enables the following daytime rank scene."
+        }
+      ]
+    },
+    {
+      "id": "reload_wiki_affinity_conflict",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/453.html",
+      "claim": "Existing pinned player-comment evidence says fixed 2 with no multipliers. It conflicts with the +1/+2 conditional claim.",
+      "localEvidence": "rules/p3r/affinity_model_evidence.json#dorm_affinity_not_generic"
+    }
+  ],
+  "activities": {
+    "dorm_yukari_dvd": {
+      "link": "lovers",
+      "rawPoints": 1
+    },
+    "dorm_yukari_cooking": {
+      "link": "lovers",
+      "rawPoints": 1
+    },
+    "dorm_fuuka_reading": {
+      "link": "priestess",
+      "rawPoints": 1
+    },
+    "dorm_fuuka_gardening": {
+      "link": "priestess",
+      "rawPoints": 1
+    },
+    "dorm_mitsuru_reading": {
+      "link": "empress",
+      "rawPoints": 1
+    },
+    "dorm_mitsuru_tea": {
+      "link": "empress",
+      "rawPoints": 1
+    },
+    "dorm_aigis_reading": {
+      "link": "aeon",
+      "rawPoints": 1
+    },
+    "dorm_aigis_gardening": {
+      "link": "aeon",
+      "rawPoints": 1
+    }
+  },
+  "implementation": "Use the common +1 lower bound without ordinary visit/Persona/Charm multipliers. Real event snapshots store stable link id and actual delta; legacy records lacking snapshots receive zero additional points. Characteristic counters never suppress later affinity."
+}

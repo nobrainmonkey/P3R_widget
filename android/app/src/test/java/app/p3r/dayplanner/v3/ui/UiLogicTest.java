@@ -18,6 +18,7 @@ import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
+import app.p3r.dayplanner.v3.service.StoryDisplay;
 
 /** Pure UI logic: formatting, outcomes, drafts, forecasts, plan diffs and link status. */
 @RunWith(RobolectricTestRunner.class)
@@ -26,6 +27,31 @@ public class UiLogicTest {
     private final Rules rules = Fixtures.rules();
     private final SimState obs = Fixtures.observedMid(rules);
     private final Plan plan = Fixtures.planMid(rules, obs);
+
+    @Test
+    public void pendingStoryDatesRemainInTheCalendarAfterTheForecastMovesOn() {
+        int first = obs.slot - 2;
+        Rules.Day locked = rules.day(Rules.dayOf(first));
+        locked.dayLock = "school_trip";
+        locked.eveLock = "school_trip";
+        locked.noteZh = "修学旅行，不能自由行动";
+        rules.lockReasonsZh.put("school_trip", "修学旅行");
+        PlannerApi.Snapshot snap = new PlannerApi.Snapshot();
+        snap.observed = obs;
+        snap.profile = new Profile();
+        snap.plan = plan;
+        snap.storyDisplay = StoryDisplay.create(rules, snap.profile, "trip-after-record", first, obs.slot - 1, first);
+        UiData data = new UiData(rules, snap, null, false, 0);
+        assertEquals(obs.slot, data.currentSlot());
+        assertEquals(first, data.displaySlot());
+        assertEquals("修学旅行", data.current().titleZh);
+        assertEquals("修学旅行，不能自由行动", SlotRows.subtitle(data.current()));
+        List<SchedulePage.Item> days = SchedulePage.buildItems(data.displayPlan(), data.displaySlot());
+        long dayRows = days.stream().filter(item -> item.type == 2).count();
+        assertEquals(Rules.dayOf(plan.toSlot) - Rules.dayOf(first) + 1L, dayRows);
+        assertTrue(days.stream().anyMatch(item -> item.type == 2 && item.day == Rules.dayOf(first)));
+        assertEquals("the installed forecast still starts at the next actionable slot", obs.slot, plan.fromSlot);
+    }
 
     // ------------------------------------------------------------------ Zh
 
@@ -132,9 +158,9 @@ public class UiLogicTest {
     @Test
     public void assumptionIdsNeverLeak() {
         List<String> lines = Assumptions.describeAll(java.util.Arrays.asList("ordinary_gain", "some_new_id"), true);
-        assertEquals(2, lines.size());
+        assertEquals(1, lines.size());
         assertTrue(lines.get(0).contains("+10"));
-        assertEquals(Assumptions.GENERIC, lines.get(1));
+        assertTrue(Assumptions.describeAll(java.util.List.of("unknown"), true).isEmpty());
         for (String line : Assumptions.global(new Profile())) {
             assertFalse(line, line.matches(".*[a-z_]{4,}.*"));
         }
@@ -215,6 +241,33 @@ public class UiLogicTest {
     }
 
     // ------------------------------------------------------------------ forecast / diff / status
+
+    @Test
+    public void forecastKeepsVisibleStoryLevelsWithoutFollowingAnUnconfirmedInvitation() {
+        SimState before = obs.copy();
+        before.statPts[0] = rules.stats[0].thresholds[6] - 3;
+        Plan story = new Plan();
+        story.fromSlot = before.slot;
+        story.toSlot = before.slot;
+        Plan.Step locked = new Plan.Step();
+        locked.slot = before.slot;
+        locked.kind = "locked";
+        locked.action = "locked:summer_class";
+        locked.predicted.statDelta[0] = 3;
+        locked.predicted.statLvAfter[0] = 6;
+        story.steps.add(locked);
+        SimState after = Forecast.visibleAt(rules, before, story, before.slot + 1);
+        assertEquals(rules.stats[0].thresholds[6], after.statPts[0]);
+        assertEquals(before.cash, after.cash);
+        assertEquals(rules.stats[0].thresholds[6] - 3, before.statPts[0]);
+
+        locked.kind = "invite";
+        locked.action = "invite:priestess";
+        locked.predicted.cashDelta = 1000;
+        SimState conditional = Forecast.visibleAt(rules, before, story, before.slot + 1);
+        assertEquals(before.statPts[0], conditional.statPts[0]);
+        assertEquals(before.cash, conditional.cash);
+    }
 
     @Test
     public void forecastProjectsVisibleValuesOnly() {

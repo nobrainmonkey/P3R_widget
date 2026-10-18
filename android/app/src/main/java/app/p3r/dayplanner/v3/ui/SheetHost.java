@@ -30,14 +30,9 @@ public final class SheetHost extends FrameLayout {
         addView(scrim, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 
         panel = Ui.column(context);
-        int cut = Ui.dp(context, 28);
-        panel.setBackground(new SlantedPanelDrawable()
-            .fill(Ui.col(context, R.color.ui_sheet))
-            .stroke(Ui.alpha(Ui.col(context, R.color.p3r_cyan_400), 150), Ui.dp(context, 1))
-            .cuts(cut, 0, 0, 0));
+        panel.setBackground(SheetChrome.surface(context));
         panel.setClickable(true);
-        View handle = new View(context);
-        handle.setBackground(new SlantedPanelDrawable().fill(Ui.col(context, R.color.p3r_ink_faint)).skew(Ui.dp(context, 3)));
+        View handle = SheetChrome.handle(context);
         LinearLayout.LayoutParams handleParams = new LinearLayout.LayoutParams(Ui.dp(context, 40), Ui.dp(context, 4));
         handleParams.gravity = Gravity.CENTER_HORIZONTAL;
         handleParams.topMargin = Ui.dp(context, 10);

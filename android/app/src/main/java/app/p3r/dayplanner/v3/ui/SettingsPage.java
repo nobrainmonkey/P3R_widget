@@ -41,7 +41,7 @@ final class SettingsPage {
             "魅力升到 MAX 后，社群点数 ×1.51。", p.charmBonus,
             (q, on) -> q.charmBonus = on), gapTop(c, 8));
         column.addView(toggle(host, "目标多留一次见面",
-            "目标社群每次升级多排一次见面，以防估计偏高。", p.goalBuffer,
+            "目标社群每次升级多排一次见面。", p.goalBuffer,
             (q, on) -> q.goalBuffer = on), gapTop(c, 8));
         column.addView(answers(host, p), gapTop(c, 8));
         column.addView(toggle(host, "其余社群也尽量提升",
@@ -158,7 +158,7 @@ final class SettingsPage {
     static final String[][] PERSONA_TEXT = {
         {"基本都带", "所有社群的点数都按 ×1.51 算。"},
         {"只给目标社群带", "只有目标社群按 ×1.51 算；每次和目标社群的人见面前，会提醒你带哪个阿尔卡那的人格面具。"},
-        {"不带/不一定", "都按不带算，最保守。拿不准就选这个。"},
+        {"不带/不一定", "按不带计算。"},
     };
 
     /** The 人格面具 question as three stacked choices (the labels are too long for one row). */

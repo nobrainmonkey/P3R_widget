@@ -21,6 +21,10 @@ final class Simulator {
         int n = Kernel.legal(m, st, codes);
         List<Action> out = new ArrayList<>(n);
         for (int i = 0; i < n; i++) out.add(Kernel.decode(codes[i]));
+        // These are conditional recording choices, never inputs to the automatic planner.
+        for (int l = 0; l < m.t.nLinks; l++) {
+            if (Kernel.inviteCandidate(m, st, l)) out.add(Action.invite(l));
+        }
         return out;
     }
 
@@ -172,6 +176,10 @@ final class Simulator {
             if (outcome.sideKeys != null) recordedSide(m, st, code, outcome.sideKeys, null, null);
             else Kernel.side(m, st, code, null);
         }
+        // A pack update must not grant newly modelled affinity to old activity records. Keep the
+        // kernel's stat/cash/counter effects, then replace only its affinity with the saved delta.
+        int predictedAffinityLink = action.type == Action.Type.ACTIVITY ? rules.activities[action.target].affinityLink : -1;
+        int predictedAffinityBefore = predictedAffinityLink >= 0 ? st.pts[predictedAffinityLink] : 0;
         switch (outcome.code) {
             case RANK_UP:
                 rankUp(m, st, action, link, outcome.rank);
@@ -198,6 +206,14 @@ final class Simulator {
                 else Kernel.mainEffect(m, st, code, null);
                 break;
         }
+        if (action.type == Action.Type.ACTIVITY) {
+            if (predictedAffinityLink >= 0) st.pts[predictedAffinityLink] = predictedAffinityBefore;
+            boolean completed = outcome.code != Outcome.Code.SKIPPED && outcome.code != Outcome.Code.NOT_DONE;
+            int recordedLink = outcome.activityAffinityLink == null ? -1 : rules.linkIndex(outcome.activityAffinityLink);
+            if (completed && recordedLink >= 0 && outcome.activityAffinityPts > 0) {
+                st.pts[recordedLink] += outcome.activityAffinityPts;
+            }
+        }
         if (outcome.readyCue && link >= 0 && st.rank[link] >= 1 && st.rank[link] < 10) {
             st.ready[link] = true;
             st.heldRank[link] = 0;
@@ -213,7 +229,8 @@ final class Simulator {
 
     /** The link an action is about (meetings, unlock steps and dating-site notes), else -1. */
     private static int linkOf(Action a) {
-        return a.type == Action.Type.MEET || a.type == Action.Type.UNLOCK_STEP || a.type == Action.Type.NOTE ? a.target : -1;
+        return a.type == Action.Type.MEET || a.type == Action.Type.INVITE
+                || a.type == Action.Type.UNLOCK_STEP || a.type == Action.Type.NOTE ? a.target : -1;
     }
 
     private static void rankUp(Model m, SimState st, Action action, int link, int observedRank) {
@@ -222,8 +239,8 @@ final class Simulator {
             return;
         }
         int to;
-        if (action.type == Action.Type.NOTE) {
-            // A note never ranks a link up by itself: keep its points and believe an explicit rank only.
+        if (action.type == Action.Type.NOTE || action.type == Action.Type.INVITE) {
+            // Notes and invitations never rank up by themselves; believe an explicit observed rank only.
             Kernel.mainEffect(m, st, Kernel.encode(action), null);
             if (observedRank > st.rank[link]) setRank(m, st, link, Math.min(10, observedRank));
             return;
@@ -296,6 +313,7 @@ final class Simulator {
         Tables t = m.t;
         switch (a.type) {
             case MEET:
+            case INVITE:
             case UNLOCK_STEP:
                 if (a.target < 0 || a.target >= t.nLinks) throw new IllegalArgumentException("bad link " + a);
                 if (a.type == Action.Type.UNLOCK_STEP && (a.step < 0 || a.step >= t.stepCount[a.target])) {

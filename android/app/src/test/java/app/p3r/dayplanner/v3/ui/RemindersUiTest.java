@@ -139,7 +139,7 @@ public class RemindersUiTest extends UiTestBase {
     }
 
     @Test
-    public void theDaySheetListsTheDaysRemindersWithTheEstimateCaption() {
+    public void theDaySheetListsAnswersAndDetailsWithoutExtraSourceCaptions() {
         remind();
         HomeActivity a = home();
         int exam = Rules.slot(Fixtures.day(12, 16), false);
@@ -147,9 +147,7 @@ public class RemindersUiTest extends UiTestBase {
         Shots.idle();
         assertTrue(Shots.has(a, ReminderViews.DAY_TITLE));
         assertTrue(Shots.has(a, "选「JUNE」"));
-        assertTrue(Shots.has(a, ReminderFixtures.ESTIMATE_DETAIL));
-        // The longer text already says it has a single source: no second caption that says it again.
-        assertFalse(Shots.has(a, ReminderViews.ESTIMATE_CAPTION));
+        assertTrue(Shots.has(a, "选「JUNE」。"));
         // The exam answers 「JUNE」「MADRID」 ship verbatim (spec 3.1.0 decision O4): the typography pass
         // takes a quoted capitalised answer for what it is, not leaked English.
         Shots.shot(a, "day_sheet_reminders_estimate");
@@ -159,11 +157,11 @@ public class RemindersUiTest extends UiTestBase {
         a.openDetail(Rules.slot(Fixtures.day(11, 3), false));
         Shots.idle();
         assertFalse(Shots.has(a, ReminderViews.DAY_TITLE));
-        // An estimate without that sentence gets the caption.
+        // Source metadata does not add a second footer to the answer.
         Plan.Reminder bare = ReminderFixtures.exam(Fixtures.day(12, 16), "JUNE", true);
         bare.detailZh = "这天考试有一道题要自己选，选「JUNE」。";
         String spoken = ReminderViews.row(a, bare, true).getContentDescription().toString();
-        assertTrue(spoken, spoken.endsWith(ReminderViews.ESTIMATE_CAPTION));
+        assertEquals("考试，选「JUNE」。" + bare.detailZh, spoken);
     }
 
     /**
@@ -250,11 +248,11 @@ public class RemindersUiTest extends UiTestBase {
         held.assumptions.add("rank_hold");
         assertNull(Dialogue.line(api.rules, api.snap.profile, held));
         // A rank-up reads exactly as in 3.0.2.
-        assertEquals("参考回答：我会帮你的 / 这样的规矩没有意义", Dialogue.line(api.rules, api.snap.profile,
+        assertEquals("回答：我会帮你的 / 这样的规矩没有意义", Dialogue.line(api.rules, api.snap.profile,
                 Fixtures.social(api.rules, NOW, "emperor", 6, 7, true, true)));
     }
 
-    /** The conditional line in a how-to is a note under the steps, like 「参考回答：…」, and is said once. */
+    /** The conditional line in a how-to is a note under the steps, like 「回答：…」, and is said once. */
     @Test
     public void theConditionalLineIsAHowToNote() {
         String how = "放学后到月光馆学园 · 学生会活动室找小田桐秀利\n" + DialogueHint.CONDITIONAL_PREFIX + "我会帮你的 / 这样的规矩没有意义";

@@ -10,7 +10,7 @@ import app.p3r.dayplanner.v3.model.Rules;
 /**
  * Dialogue hints for social steps, as the app writes them: the engine's {@link DialogueHint} (one
  * structured source for the app, the 「怎么做」 text and the widget) in the app's words,
- * 「参考回答：A / B」. Text comes only from the rule pack's verbatim CN guide fragments
+ * 「回答：A / B」. Text comes only from the rule pack's verbatim CN guide fragments
  * ({@code links[].dialogue}); otherwise the neutral fallback is shown. Foreign option ordinals are
  * never displayed (docs/DESIGN_v3.md §10.7).
  *
@@ -45,7 +45,7 @@ public final class Dialogue {
     }
 
     /**
-     * "参考回答：A / B" for a rank-up, "要是升级了，答：A / B" for a meeting that may rank up after
+     * "回答：A / B" for a rank-up, "要是升级了，答：A / B" for a meeting that may rank up after
      * all, the fallback for other meetings the guide has nothing on; null for a meeting with no scene
      * to prepare for (a hold, no rank-up for certain) and for every other step. The route of
      * {@code profile} (null = default) decides whether romance answers are shown.
@@ -66,7 +66,7 @@ public final class Dialogue {
 
     /**
      * {@link #line} for a separate row next to the how-to, or null when the step's 「怎么做」 already
-     * carries the guide's 「参考回答：…」 or 「要是升级了，答：…」 (the engine adds it; plans stored
+     * carries the guide's 「回答：…」 or 「要是升级了，答：…」 (the engine adds it; plans stored
      * before it did not).
      */
     static String besideHowTo(Rules rules, Profile profile, Plan.Step step) {
@@ -85,7 +85,7 @@ public final class Dialogue {
         return line != null && line.startsWith(DialogueHint.CONDITIONAL_PREFIX);
     }
 
-    /** A how-to line that is the guide's answers: 「参考回答：…」 or 「要是升级了，答：…」. */
+    /** A how-to line that is the guide's answers: 「回答：…」 or 「要是升级了，答：…」. */
     static boolean isAnswerLine(String line) {
         return line.startsWith(PREFIX) || line.startsWith(DialogueHint.CONDITIONAL_PREFIX);
     }
@@ -101,7 +101,7 @@ public final class Dialogue {
     }
 
     /**
-     * The "参考回答：…" line for one rank's guide fragments, {@link #ANY} when every choice is free,
+     * The "回答：…" line for one rank's guide fragments, {@link #ANY} when every choice is free,
      * or null when nothing usable remains (the caller shows {@link #FALLBACK}).
      */
     static String line(List<String> fragments) {

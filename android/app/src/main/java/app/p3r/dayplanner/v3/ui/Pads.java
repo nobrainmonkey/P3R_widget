@@ -22,11 +22,7 @@ final class Pads {
     static Dialog bottomDialog(Context context, View content) {
         Dialog dialog = new Dialog(context, R.style.P3R_UiDialog);
         FrameLayout frame = new FrameLayout(context);
-        int cut = Ui.dp(context, 24);
-        content.setBackground(new SlantedPanelDrawable()
-            .fill(Ui.col(context, R.color.ui_sheet))
-            .stroke(Ui.alpha(Ui.col(context, R.color.p3r_cyan_400), 160), Ui.dp(context, 1))
-            .cuts(cut, 0, 0, 0));
+        content.setBackground(SheetChrome.surface(context));
         frame.addView(content, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
         dialog.setContentView(frame);

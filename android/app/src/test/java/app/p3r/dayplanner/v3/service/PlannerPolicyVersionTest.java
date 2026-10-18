@@ -25,12 +25,17 @@ import java.util.concurrent.TimeUnit;
 public class PlannerPolicyVersionTest extends ServiceTestBase {
     @Test
     public void anOlderPlanWithoutAPolicyVersionReplansOnce() throws Exception {
-        assertOldPolicyReplans(false);
+        assertOldPolicyReplans(null);
     }
 
     @Test
     public void anExplicitOlderPolicyReplansOnce() throws Exception {
-        assertOldPolicyReplans(true);
+        assertOldPolicyReplans(0);
+    }
+
+    @Test
+    public void previousStatAndInvitationPolicyReplansOnce() throws Exception {
+        assertOldPolicyReplans(1);
     }
 
     @Test
@@ -44,7 +49,7 @@ public class PlannerPolicyVersionTest extends ServiceTestBase {
         assertEquals(0, Plan.fromJson(json).policyVersion);
     }
 
-    private void assertOldPolicyReplans(boolean explicitZero) throws Exception {
+    private void assertOldPolicyReplans(Integer oldVersion) throws Exception {
         onboard(TestRules.slot(TestRules.MAY_12, false));
         settle();
         PlannerApi.Snapshot before = service.snapshot();
@@ -56,7 +61,7 @@ public class PlannerPolicyVersionTest extends ServiceTestBase {
             Ledger.StoredPlan stored = ledger.plan();
             assertNotNull(stored);
             JSONObject old = new JSONObject(stored.json);
-            if (explicitZero) old.put("policyVersion", 0);
+            if (oldVersion != null) old.put("policyVersion", oldVersion);
             else old.remove("policyVersion");
             ledger.putPlan(new Ledger.StoredPlan(stored.stateRevision, stored.profileRevision,
                     stored.rulesVersion, old.toString()));
@@ -70,7 +75,7 @@ public class PlannerPolicyVersionTest extends ServiceTestBase {
             assertTrue("the old forecast must trigger a computation", planner.firstCallEntered.await(10, TimeUnit.SECONDS));
             PlannerApi.Snapshot during = service.snapshot();
             assertNotNull("the old forecast remains available while recomputing", during.plan);
-            assertEquals(0, during.plan.policyVersion);
+            assertEquals(oldVersion == null ? 0 : oldVersion.intValue(), during.plan.policyVersion);
             assertFalse("same rule pack and revisions are insufficient under an old policy", during.planCurrent);
             assertTrue(during.planning);
             assertEquals(rules.version, during.plan.rulesVersion);

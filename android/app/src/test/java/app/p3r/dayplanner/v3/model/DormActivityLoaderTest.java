@@ -41,11 +41,15 @@ public class DormActivityLoaderTest {
             activity.remove("fixedDays");
             activity.remove("dormPartnerZh");
             activity.remove("requiresPlantedCrop");
+            activity.remove("affinityLink");
+            activity.remove("affinityPts");
         }
         for (Rules.Activity activity : RulesLoader.parse(tree.toString()).activities) {
             assertNull(activity.fixedDays);
             assertFalse(activity.dormActivity());
             assertFalse(activity.requiresPlantedCrop);
+            assertEquals(-1, activity.affinityLink);
+            assertEquals(0, activity.affinityPts);
         }
         assertFalse(Profile.fromJson(new JSONObject()).planDormGardening);
     }
@@ -77,6 +81,35 @@ public class DormActivityLoaderTest {
         activity.put("slots", new JSONArray().put("eve"));
         activity.put("cost", 10);
         rejected(tree, "dorm activity must be a free, repeatable evening activity with fixedDays");
+    }
+
+    @Test
+    public void rawAffinityReferencesAManualLinkAndRequiresAPositivePairedGain() throws Exception {
+        JSONObject tree = PackFixture.tree();
+        JSONObject activity = tree.getJSONArray("activities").getJSONObject(0);
+        activity.put("fixedDays", new JSONArray(new int[]{activity.getInt("fromDay")}));
+        activity.put("slots", new JSONArray().put("eve"));
+        activity.put("cost", 0);
+        activity.put("once", false);
+        activity.put("kind", "stat");
+        activity.put("dormPartnerZh", "山岸风花");
+        activity.put("affinityLink", "priestess");
+        activity.put("affinityPts", 1);
+        Rules.Activity parsed = RulesLoader.parse(tree.toString()).activities[0];
+        assertEquals(RulesLoader.parse(tree.toString()).linkIndex("priestess"), parsed.affinityLink);
+        assertEquals(1, parsed.affinityPts);
+        activity.put("affinityLink", "unknown");
+        rejected(tree, "affinityLink references unknown link");
+        activity.put("affinityLink", "priestess");
+        activity.put("affinityPts", -1);
+        rejected(tree, "affinityPts");
+        activity.put("affinityPts", 0);
+        rejected(tree, "provided together");
+        activity.put("affinityPts", 1);
+        activity.remove("affinityLink");
+        rejected(tree, "provided together");
+        activity.put("affinityLink", "fool");
+        rejected(tree, "manual link");
     }
 
     private static void rejected(JSONObject tree, String expected) {

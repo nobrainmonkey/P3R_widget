@@ -46,7 +46,7 @@
         "DVD/reading activities give 2 raw social-stat points. This corresponds to one musical-note display in walkthroughs; do not import a displayed note as one raw point.",
         "Every character has two separate activity counters. One counter reaching 3 unlocks the base combat characteristic; both counters reaching 3 upgrade it. Three mixed activities in total are insufficient.",
         "Cooking/tea/coffee/brushing grant items and gardening improves harvests; none of those activities grants a social stat in this source.",
-        "The source also claims some female teammates receive affinity, but that model conflicts with another source. This evidence intentionally models no Social Link affinity and never reuses generic visit/dialogue multipliers."
+        "Female teammates with Social Links can receive raw affinity; the separate dorm_affinity_evidence.json reconciles the conflicting numeric claims with a +1 lower-bound policy and no ordinary visit multipliers."
       ]
     },
     {
@@ -98,9 +98,9 @@
     "mustNotClaim": "All dorm activity setup is always free or available without preparation."
   },
   "affinityPolicy": {
-    "modeledGain": 0,
-    "reason": "Existing dorm-affinity evidence is unresolved; do not use ordinary Social Link hangout points or matching-Persona bonuses here.",
-    "existingEvidence": "rules/p3r/affinity_model_evidence.json#dorm_affinity_not_generic"
+    "modeledGain": 1,
+    "reason": "Raw +1 lower bound for eight female Social Link dorm tracks; no generic multipliers, unopened-link banking or characteristic-count cap.",
+    "existingEvidence": "rules/p3r/dorm_affinity_evidence.json"
   },
   "activities": [
     {

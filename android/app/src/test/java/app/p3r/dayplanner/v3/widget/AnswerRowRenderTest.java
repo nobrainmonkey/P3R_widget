@@ -708,7 +708,7 @@ public class AnswerRowRenderTest {
         // The full app line is read out.
         CardModel justice = model(scene(meeting("justice", 4, 5, false)));
         assertTrue(justice.taskDescription, justice.taskDescription.contains(
-                "参考回答：随便问吧 / 产生恋爱感情了 / 随时欢迎千寻找我倾诉 / 握住她的手"));
+                "回答：随便问吧 / 产生恋爱感情了 / 随时欢迎千寻找我倾诉 / 握住她的手"));
         assertTrue(justice.taskDescription, justice.taskDescription.contains("亲上去"));
     }
 

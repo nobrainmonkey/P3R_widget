@@ -142,6 +142,13 @@ public class PlanWidget extends AppWidgetProvider {
             stateChanged = commit(app, id, tap, before);
         } else if (WidgetIntents.ACTION_UNDO.equals(action)) {
             stateChanged = undo(app, id, tap, before);
+        } else if (WidgetIntents.ACTION_STORY_CONTINUE.equals(action)) {
+            stateChanged = before.api != null && before.api.acknowledgeStory(
+                    tap.getStringExtra(WidgetIntents.EXTRA_STORY_SOURCE), tap.getIntExtra(Intents.EXTRA_SLOT, -1));
+            if (stateChanged) {
+                WidgetPrefs.clearCursor(app, id);
+                WidgetPrefs.clearReceipt(app, id);
+            }
         }
 
         Loaded after = load(app, id);
@@ -355,6 +362,8 @@ public class PlanWidget extends AppWidgetProvider {
         String planId = view.planId();
         long revision = view.stateRevision();
         switch (view.done) {
+            case STORY_CONTINUE:
+                return WidgetIntents.storyContinue(app, id, view.snapshot.storyDisplay.key, view.item.slot);
             case NEXT:
                 // A story-locked item: the button goes on to the next item, like ›.
                 return WidgetIntents.navigate(app, id, WidgetIntents.ACTION_NEXT);

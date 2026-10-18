@@ -162,11 +162,14 @@ public class CompletedDialogueHintTest {
     }
 
     @Test
-    public void translationDisclosureAppearsInDetailsButDoesNotLengthenTheWidget() {
+    public void sourceMetadataIsRetainedWithoutAddingDisclosureToAnswers() {
+        Rules.DialogueHintEntry entry = rules.link("justice").dialogueHints.get(9);
+        assertEquals("single", entry.conf);
+        assertTrue(entry.src.contains("ev_dialogue_completion"));
         for (Profile.Route route : new Profile.Route[]{Profile.Route.FRIEND, Profile.Route.ROMANCE}) {
             DialogueHint.Answers a = answers("justice", 9, route);
-            assertTrue(DialogueHint.appLine(a), DialogueHint.appLine(a).contains(TRANSLATION_NOTE));
-            assertTrue(detail("justice", 9, route).contains(TRANSLATION_NOTE));
+            assertFalse(DialogueHint.appLine(a), DialogueHint.appLine(a).contains(TRANSLATION_NOTE));
+            assertFalse(detail("justice", 9, route).contains(TRANSLATION_NOTE));
             assertFalse(DialogueHint.widgetLine(a).contains("译意"));
             assertFalse(DialogueHint.widgetLine(a).contains("按含义对应"));
             List<String> compact = DialogueHint.widgetChoices(a);

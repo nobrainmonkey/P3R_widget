@@ -152,6 +152,42 @@ public class PlannerServiceRecordTest extends ServiceTestBase {
         assertEquals("5月12日 放学后 · 皇帝 · 小田桐秀利 · 剧情原因暂时升不了", service.history(1).get(0).summaryZh);
     }
 
+    @Test
+    public void dormAffinityIsResolvedOutsideTheCommandAndRetryStaysADuplicate() throws Exception {
+        rules.activities[TestRules.STUDY].affinityLink = TestRules.EMPEROR;
+        rules.activities[TestRules.STUDY].affinityPts = 1;
+        rules.links[TestRules.EMPEROR].threshold[7] = 15;
+        app.p3r.dayplanner.v3.engine.SimState start = TestRules.state(rules, MAY12_EVE);
+        start.pts[TestRules.EMPEROR] = 14;
+        onboard(start);
+        String command = id();
+        long revision = rev();
+        Outcome request = Outcome.of(Outcome.Code.AS_PREDICTED);
+        PlannerApi.Receipt saved = service.recordOutcome(command, revision, MAY12_EVE, "act:study_room", request);
+        assertTrue(saved.errorZh, saved.ok);
+        assertEquals("emperor", lastPayload().getString("activityAffinityLink"));
+        assertEquals(1, lastPayload().getInt("activityAffinityPts"));
+        assertFalse(lastPayload().getJSONObject("outcome").has("activityAffinityPts"));
+        PlannerApi.Receipt retry = service.recordOutcome(command, revision, MAY12_EVE, "act:study_room", request);
+        assertTrue(retry.errorZh, retry.ok);
+        assertTrue(retry.duplicate);
+        assertEquals(saved.eventSeq, retry.eventSeq);
+    }
+
+    @Test
+    public void readyDormCompletionStoresAnExplicitZeroAffinityDelta() throws Exception {
+        rules.activities[TestRules.STUDY].affinityLink = TestRules.EMPEROR;
+        rules.activities[TestRules.STUDY].affinityPts = 1;
+        rules.links[TestRules.EMPEROR].threshold[7] = 15;
+        app.p3r.dayplanner.v3.engine.SimState start = TestRules.state(rules, MAY12_EVE);
+        start.pts[TestRules.EMPEROR] = 2;
+        start.ready[TestRules.EMPEROR] = true;
+        onboard(start);
+        assertTrue(record(MAY12_EVE, "act:study_room", Outcome.Code.AS_PREDICTED).ok);
+        assertEquals("emperor", lastPayload().getString("activityAffinityLink"));
+        assertEquals(0, lastPayload().getInt("activityAffinityPts"));
+    }
+
     // ------------------------------------------------------------------ helpers
 
     /** Payload of the newest observed row, read back through a backup. */

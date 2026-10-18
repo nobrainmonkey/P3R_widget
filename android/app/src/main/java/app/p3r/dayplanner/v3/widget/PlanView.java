@@ -8,6 +8,7 @@ import app.p3r.dayplanner.v3.engine.DialogueHint;
 import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
+import app.p3r.dayplanner.v3.service.StoryDisplay;
 
 /**
  * What one plan-widget instance shows, resolved from a planner snapshot plus the widget's own UI
@@ -43,6 +44,8 @@ final class PlanView {
         UNDO,
         /** Step on to the next item (a story-locked item has nothing to record). */
         NEXT,
+        /** Acknowledge one automatically traversed story day; never records a gameplay outcome. */
+        STORY_CONTINUE,
         /** Open onboarding. */
         ONBOARD,
         /** Open the app on 今天, where a failed or pending plan can be retried or followed (status cards). */
@@ -95,13 +98,15 @@ final class PlanView {
             if (snap.planErrorZh != null) return new PlanView(Mode.ERROR, snap, none, -1, null, Done.OPEN_APP);
             return new PlanView(Mode.EMPTY, snap, none, -1, null, Done.ONBOARD);
         }
-        if (snap.plan == null || (!snap.planCurrent && snap.plan.fromSlot > snap.observed.slot)) {
+        if (snap.storyDisplay == null && (snap.plan == null || (!snap.planCurrent && snap.plan.fromSlot > snap.observed.slot))) {
             // A lagging plan that starts after the observed slot (e.g. right after an undo or a sync
             // to an earlier date) cannot describe the pending slot: wait for the replan.
             Mode mode = snap.planErrorZh != null && !snap.planning ? Mode.ERROR : Mode.PLANNING;
             return new PlanView(mode, snap, none, -1, null, Done.OPEN_APP);
         }
-        List<PlanItems.Item> items = PlanItems.of(snap.plan, snap.observed.slot);
+        Plan display = snap.storyDisplay == null ? snap.plan : snap.storyDisplay.overlay(snap.plan, snap.observed.slot);
+        int first = snap.storyDisplay == null ? snap.observed.slot : snap.storyDisplay.cursorSlot;
+        List<PlanItems.Item> items = PlanItems.of(display, first);
         if (receiptValid(receipt, snap, nowMillis)) {
             return new PlanView(Mode.RECEIPT, snap, items, -1, receipt, Done.UNDO);
         }
@@ -137,6 +142,7 @@ final class PlanView {
 
     private static Done doneFor(PlannerApi.Snapshot snap, List<PlanItems.Item> items, int index) {
         PlanItems.Item item = items.get(index);
+        if (snap.storyDisplay != null && item.slot == snap.storyDisplay.cursorSlot) return Done.STORY_CONTINUE;
         // Nothing to record while the story runs: the button moves on to what comes after it.
         if (item.locked()) return index < items.size() - 1 ? Done.NEXT : Done.OPEN_SCHEDULE;
         if (item.slot > snap.observed.slot) return Done.CATCHUP;
@@ -270,6 +276,10 @@ final class PlanView {
         m.side = copy.side;
         m.sideShort = copy.sideShort;
         m.cue = cueFor(step, copy, rules);
+        if (snapshot.storyDisplay != null && snapshot.storyDisplay.contains(item.slot)) {
+            m.cueMaxLines = 2;
+            m.cueEssential = true;
+        }
         // What to answer: the step's own choices, the side steps' picks, then the class and exam
         // answers of the card's slots; never the app's generic hint. The full app line is read out.
         // CardRenderer keeps the step's own answers and the class/exam ones on the card at every size
@@ -299,7 +309,15 @@ final class PlanView {
         // The dorm chip keeps the stat gain and project count short; read the full level-up result aloud.
         String spokenTag = "dorm".equals(step.kind) && blankToNull(step.subtitleZh) != null ? step.subtitleZh : m.tag;
         m.taskDescription = describe(m, spoken, spokenTag) + "。点击查看详情";
+        if (snapshot.storyDisplay != null && snapshot.storyDisplay.contains(item.slot) && m.cue != null) {
+            m.taskDescription += "。" + m.cue;
+        }
         switch (done) {
+            case STORY_CONTINUE:
+                m.doneLabel = StoryDisplay.CONTINUE_LABEL;
+                m.doneIcon = CardModel.DoneIcon.NONE;
+                m.doneDescription = "剧情已过，继续：查看下一项，不记录任何行动";
+                break;
             case COMMIT:
                 m.doneDescription = "完成：按安排记录「" + m.title + "」";
                 break;
@@ -359,7 +377,7 @@ final class PlanView {
     /** Relative-day label plus one tick per slot of the shown day (白天/放学后, 晚上). */
     private void progress(CardModel m, int shownFirst, int shownLast, Rules rules) {
         int day = Rules.dayOf(shownFirst);
-        int observed = observedSlot();
+        int observed = snapshot.storyDisplay == null ? observedSlot() : snapshot.storyDisplay.cursorSlot;
         m.progressLabel = relativeDay(day, Rules.dayOf(observed));
         StringBuilder spoken = new StringBuilder(m.progressLabel);
         for (int evening = 0; evening <= 1; evening++) {

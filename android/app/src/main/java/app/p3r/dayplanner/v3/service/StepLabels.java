@@ -46,6 +46,15 @@ final class StepLabels {
             case MEET:
                 labelMeeting(rules, profile, before, action, step);
                 break;
+            case INVITE:
+                Rules.Link invited = rules.links[action.target];
+                step.kind = "invite";
+                step.entity = invited.id;
+                step.titleZh = invited.labelZh;
+                step.locationZh = "应邀外出";
+                step.subtitleZh = "休息日邀约 · 收到短信才选 · 只加好感";
+                step.detailZh = "收到短信后赴约；只加好感，不直接升级。";
+                break;
             case UNLOCK_STEP:
                 labelUnlock(rules, action, step);
                 break;

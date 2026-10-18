@@ -86,6 +86,45 @@ public class ReplayerRealPackTest {
         assertEquals(3, r.state.rank[fool]);
     }
 
+    @Test
+    public void legacyDormRecordsKeepTheSameStateWithoutRetrospectiveAffinity() throws Exception {
+        int slot = Rules.slot(161, true); // September 9.
+        int fuuka = rules.linkIndex("priestess");
+        Rules.Activity garden = rules.activity("dorm_fuuka_gardening");
+        garden.affinityLink = fuuka;
+        garden.affinityPts = 1;
+        SimState start = stateAt(slot);
+        start.rank[fuuka] = 9;
+        start.pts[fuuka] = rules.links[fuuka].threshold[10] - 1;
+        OutcomeRecord old = OutcomeRecord.of(rules, slot, "act:" + garden.id, Outcome.of(Outcome.Code.AS_PREDICTED))
+                .withResolved(rules, List.of(), -1);
+        SimState expected = Engine.apply(rules, new Profile(), start,
+                app.p3r.dayplanner.v3.engine.Action.activity(garden.idx)).state;
+        expected.pts[fuuka] = start.pts[fuuka];
+        Replayer.Result result = replayer.replay(start, List.of(row(old.kind(), old)), null);
+        assertEquals(0, result.problems);
+        assertEquals(expected.toJson().toString(), result.state.toJson().toString());
+    }
+
+    @Test
+    public void savedDormAffinitySurvivesNewActivityMetadataAndDoesNotMoveItsLink() throws Exception {
+        int slot = Rules.slot(161, true); // September 9.
+        int fuuka = rules.linkIndex("priestess");
+        Rules.Activity garden = rules.activity("dorm_fuuka_gardening");
+        SimState start = stateAt(slot);
+        start.rank[fuuka] = 9;
+        start.pts[fuuka] = rules.links[fuuka].threshold[10] - 1;
+        OutcomeRecord saved = OutcomeRecord.of(rules, slot, "act:" + garden.id, Outcome.of(Outcome.Code.AS_PREDICTED))
+                .withResolved(rules, List.of(), -1).withActivityAffinity("priestess", 1);
+        garden.affinityLink = rules.linkIndex("empress");
+        garden.affinityPts = 20;
+        Replayer.Result result = replayer.replay(start, List.of(row(saved.kind(), saved)), null);
+        assertEquals(0, result.problems);
+        assertEquals(start.pts[fuuka] + 1, result.state.pts[fuuka]);
+        assertEquals(start.pts[garden.affinityLink], result.state.pts[garden.affinityLink]);
+        assertEquals(9, result.state.rank[fuuka]);
+    }
+
     private EventRow tower(int slot, int floor) throws JSONException {
         TowerRecord rec = new TowerRecord();
         rec.slot = slot;

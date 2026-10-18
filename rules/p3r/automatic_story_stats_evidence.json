@@ -1,0 +1,52 @@
+{
+  "schema": "p3r.automatic_story_stats_evidence.v1",
+  "edition": "reload",
+  "policy": {
+    "scope": "Only guaranteed story stat gains. Optional classroom answers, dozing choices, nurse visits, exam placements and player-chosen activities are excluded.",
+    "timing": "After the listed daytime slot completes, including locked story slots. Never apply on entering the day or after the evening, and never re-add gains preceding the player's observed starting slot.",
+    "slotCost": "Part of the already locked daytime story; not an additional action.",
+    "wording": "暑期补习 follows the existing Simplified Chinese guide. The gain label is an editorial description, not a claim of verbatim official game UI text."
+  },
+  "localSourceGuards": [
+    {
+      "path": "rules/sources/aqiu_pages/social-events.html",
+      "sha256": "404dea95268f8344576b33d9595037b08bfb89be7a390449b41635d22c3e4ec8"
+    },
+    {
+      "path": "rules/sources/aqiu_pages/ave-walkthrough.md",
+      "sha256": "c05dfe2820696ab26ffdcda17e5103b645c60320b99f29a57db73d5897250fac"
+    },
+    {
+      "path": "rules/sources/cn_guides/data.json",
+      "sha256": "08719e728ab953852292b18dd49c40c5790302eac24dfb3962db4be4ab271e49"
+    }
+  ],
+  "sources": [
+    {
+      "id": "aqiu_social_events",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/social-events#general",
+      "locator": "Social Stat Scheduled Activities > General",
+      "claim": "Mandatory summer school from 8/10-8/15 will grant a total of Academics +18"
+    },
+    {
+      "id": "aqiu_walkthrough",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/ave-walkthrough",
+      "locator": "8/10 through 8/15, six Summer School entries",
+      "claim": "Summer School (Academics +3, 2 notes) on each of the six dates. The first four are all-day story entries; 8/14 and 8/15 explicitly list the class under Daytime.",
+      "lineage": "Same aqiu lineage as the social-events total; not an independent numeric verification."
+    },
+    {
+      "id": "cn_guide",
+      "locator": "8/10 through 8/14: 按剧情参加暑期补习，提升学力",
+      "claim": "Corroborates mandatory story attendance and Chinese wording, not the exact hidden point value or the final 8/15 session."
+    }
+  ],
+  "events": [
+    {"date": "08-10", "gain": {"academics": 3}, "dayLock": "summer_classes", "nameZh": "暑期补习", "conf": "single"},
+    {"date": "08-11", "gain": {"academics": 3}, "dayLock": "summer_classes", "nameZh": "暑期补习", "conf": "single"},
+    {"date": "08-12", "gain": {"academics": 3}, "dayLock": "summer_classes", "nameZh": "暑期补习", "conf": "single"},
+    {"date": "08-13", "gain": {"academics": 3}, "dayLock": "summer_classes", "nameZh": "暑期补习", "conf": "single"},
+    {"date": "08-14", "gain": {"academics": 3}, "dayLock": "summer_classes", "nameZh": "暑期补习", "conf": "single"},
+    {"date": "08-15", "gain": {"academics": 3}, "dayLock": "summer_classes", "nameZh": "暑期补习", "conf": "single"}
+  ]
+}

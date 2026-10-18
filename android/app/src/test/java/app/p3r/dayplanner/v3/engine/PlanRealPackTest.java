@@ -256,14 +256,14 @@ public class PlanRealPackTest {
         Result sj = run("1月8日 · 力量 6、正义 6 · 必须：①力量 ②正义", must(strength, justice), start, 99);
         assertEquals(10, sj.plan.summary.endRanks[strength]);
         assertTrue("正义 " + sj.plan.summary.endRanks[justice], sj.plan.summary.endRanks[justice] < 10);
-        assertEquals("正义：这次的安排里没排到 MAX（先保证了力量），预计停在 RANK " + sj.plan.summary.endRanks[justice],
-                sj.plan.summary.notesZh.get(1));
+        assertTrue(sj.plan.summary.notesZh.get(1).endsWith("预计停在 RANK " + sj.plan.summary.endRanks[justice]));
+        assertNotesNameOnlyKeptHigherGoals(sj.plan, new int[]{strength, justice});
 
         Result js = run("1月8日 · 力量 6、正义 6 · 必须：①正义 ②力量", must(justice, strength), start, 99);
         assertEquals(10, js.plan.summary.endRanks[justice]);
         assertTrue("力量 " + js.plan.summary.endRanks[strength], js.plan.summary.endRanks[strength] < 10);
-        assertEquals("力量：这次的安排里没排到 MAX（先保证了正义），预计停在 RANK " + js.plan.summary.endRanks[strength],
-                js.plan.summary.notesZh.get(1));
+        assertTrue(js.plan.summary.notesZh.get(1).endsWith("预计停在 RANK " + js.plan.summary.endRanks[strength]));
+        assertNotesNameOnlyKeptHigherGoals(js.plan, new int[]{justice, strength});
     }
 
     /**
@@ -452,7 +452,7 @@ public class PlanRealPackTest {
             assertEquals(s.detailZh, when + "到月光馆学园 · 学生会活动室找小田桐秀利", lines[0]);
             assertEquals(s.detailZh, "注意：11月3日～11月29日小田桐秀利不在学生会，见不到面。", lines[lines.length - 1]);
             if (s.predicted.rankUp && s.predicted.rankTo == 2) {
-                assertEquals(s.detailZh, "参考回答：无聊透顶（2）", lines[1]);
+                assertEquals(s.detailZh, "回答：无聊透顶（2）", lines[1]);
                 answers = true;
             }
             for (String line : lines) assertFalse(s.detailZh, line.startsWith("选能让对方高兴的回答"));

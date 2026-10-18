@@ -31,6 +31,8 @@ public interface PlannerApi {
          * calendar-locked slots are skipped automatically.
          */
         public SimState observed;
+        /** Story days passed by the next-actionable-slot cursor, still waiting to be shown. */
+        public StoryDisplay storyDisplay;
         /** Never null; defaults until the first save ({@link #profileRevision} 0). */
         public Profile profile;
         /** Latest installed plan (may lag one revision behind while replanning), or null. */
@@ -205,6 +207,11 @@ public interface PlannerApi {
      */
     default Snapshot peekSnapshot() {
         return snapshot();
+    }
+
+    /** Acknowledge only the currently displayed story card. Does not change gameplay or plan revisions. */
+    default boolean acknowledgeStory(String sourceKey, int slot) {
+        return false;
     }
 
     /**

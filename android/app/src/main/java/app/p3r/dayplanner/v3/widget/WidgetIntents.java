@@ -25,6 +25,8 @@ final class WidgetIntents {
     static final String ACTION_DONE = "app.p3r.dayplanner.v3.widget.DONE";
     static final String ACTION_UNDO = "app.p3r.dayplanner.v3.widget.UNDO";
     static final String ACTION_REFRESH = "app.p3r.dayplanner.v3.widget.REFRESH";
+    static final String ACTION_STORY_CONTINUE = "app.p3r.dayplanner.v3.widget.STORY_CONTINUE";
+    static final String EXTRA_STORY_SOURCE = "p3r.widget.storySource";
     /** Event sequence number to void (long). */
     static final String EXTRA_EVENT_SEQ = "p3r.widget.eventSeq";
 
@@ -42,7 +44,8 @@ final class WidgetIntents {
 
     static boolean isWidgetAction(String action) {
         return ACTION_PREV.equals(action) || ACTION_NEXT.equals(action) || ACTION_CURRENT.equals(action)
-                || ACTION_DONE.equals(action) || ACTION_UNDO.equals(action) || ACTION_REFRESH.equals(action);
+                || ACTION_DONE.equals(action) || ACTION_UNDO.equals(action) || ACTION_REFRESH.equals(action)
+                || ACTION_STORY_CONTINUE.equals(action);
     }
 
     private static Uri.Builder uri(int widgetId, String what) {
@@ -59,6 +62,14 @@ final class WidgetIntents {
     /** ‹ › 当前. */
     static PendingIntent navigate(Context c, int widgetId, String action) {
         Intent intent = broadcastIntent(c, widgetId, action, uri(widgetId, "nav").appendPath(action).build());
+        return PendingIntent.getBroadcast(c, widgetId, intent, FLAGS);
+    }
+
+    /** Story acknowledgement has its own intent and never reaches the gameplay record handler. */
+    static PendingIntent storyContinue(Context c, int widgetId, String source, int slot) {
+        Uri data = uri(widgetId, "story").appendPath(source).appendPath(String.valueOf(slot)).build();
+        Intent intent = broadcastIntent(c, widgetId, ACTION_STORY_CONTINUE, data)
+                .putExtra(EXTRA_STORY_SOURCE, source).putExtra(Intents.EXTRA_SLOT, slot);
         return PendingIntent.getBroadcast(c, widgetId, intent, FLAGS);
     }
 

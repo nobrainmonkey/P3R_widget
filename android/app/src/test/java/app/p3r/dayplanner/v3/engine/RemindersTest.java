@@ -123,14 +123,14 @@ public class RemindersTest {
         assertEquals("上课犯困", a.labelZh);
         assertEquals(Plan.Reminder.DOZE, a.kind);
         assertEquals(day(21), a.slot);
-        assertTrue(a.detailZh.endsWith(Reminders.STAT_NOTE));
+        assertTrue(a.detailZh.contains("不闭眼能让学力 +2"));
         assertNotNull(find(awake, "doze.04-24"));
 
         Plan eyesClosed = freePlan(r, ReminderFixtures.start(r, 20, 6, 1, 3));
         Plan.Reminder c = find(eyesClosed, "doze.04-22");
         assertEquals("上课犯困时闭上眼：勇气 +2", c.textZh);
         assertEquals("犯困闭眼：勇气 +2", c.shortZh);
-        assertTrue(c.detailZh.endsWith(Reminders.STAT_NOTE));
+        assertTrue(c.detailZh.contains("闭上眼，勇气 +2"));
 
         Plan both = freePlan(r, ReminderFixtures.start(r, 20, 6, 1, 6));
         assertNull("both MAX: nothing to gain", find(both, "doze.04-22"));
@@ -152,7 +152,7 @@ public class RemindersTest {
         assertEquals("保健室：勇气 +2", afterTower.shortZh);
         assertEquals("勇气 +2", afterTower.gainZh);
         assertEquals(Plan.Reminder.DEADLINE, afterTower.priority);
-        assertTrue(afterTower.detailZh.endsWith(Reminders.STAT_NOTE));
+        assertTrue(afterTower.detailZh.contains("1 楼保健室喝药，勇气 +2，不消耗时间"));
         assertNull("4/26 is a Sunday", find(plan, "nurse.04-26"));
         assertNotNull("the 5/12 full-moon operation", find(plan, "nurse.05-13"));
         assertNull("no Tartarus on 4/22 evening", find(plan, "nurse.04-23"));
@@ -182,10 +182,7 @@ public class RemindersTest {
         assertEquals("北村文吉失踪了，期限 5月16日", first.textZh);
         assertTrue(first.detailZh.contains("北村文吉没救出来的话，教皇社群就没法继续了。"));
         // One person or many: the details never say 「他们」.
-        // The limit evening still counts by the evidence (REPORT, tartarus "rescue deadline"), but nobody checked
-        // it in the game: the copy says both (DESIGN §10.3).
-        assertEquals("在塔尔塔罗斯里找到失踪的人就能救出，还能拿到奖励。过了期限就救不出来了；期限当天的晚上按游戏数据和攻略还来得及，"
-                + "但没在游戏里核对过。", Reminders.RESCUE_DETAIL);
+        assertEquals("在塔尔塔罗斯找到失踪者并救出，可领取奖励。最晚在期限当天晚上救出，逾期无法救援。", Reminders.RESCUE_DETAIL);
         assertTrue(first.detailZh.startsWith(Reminders.RESCUE_DETAIL) && !first.detailZh.contains("他们"));
         assertEquals(ReminderFixtures.MISSING_TO, first.untilDay);
         Plan.Reminder more = find(plan, "rescue.05-13.start");
@@ -214,19 +211,17 @@ public class RemindersTest {
         assertEquals("失踪者：5月16日截止，这几天没安排去塔尔塔罗斯", late.textZh);
         assertEquals("失踪者 5月16日截止", late.shortZh);
         assertTrue("what the 5/13 group locks", late.detailZh.endsWith(ReminderFixtures.LOCKS));
-        assertEquals("过了期限还没去塔尔塔罗斯的话就救不出来了。期限当天的晚上按游戏数据和攻略还来得及，但没在游戏里核对过，"
-                + "想救的话能早一天就早一天去。", Reminders.DEADLINE_DETAIL);
+        assertEquals("最晚在期限当天晚上进入塔尔塔罗斯救出失踪者，逾期无法救援。", Reminders.DEADLINE_DETAIL);
         assertTrue(late.detailZh.startsWith(Reminders.DEADLINE_DETAIL));
         assertEquals(Plan.Reminder.MISSABLE, late.priority);
         assertFalse("an evening before the limit", find(plan, "rescue.05-11.tower").detailZh.contains(Labels.LIMIT_EVENING_CAVEAT));
     }
 
     /**
-     * A planned Tartarus evening on the limit day, and a plan that starts on the limit day without one: the lines
-     * that send the player there that evening say the evidence has it in time but nobody checked it in the game.
+     * A plan that reaches the limit day states clearly that tonight is the last rescue opportunity.
      */
     @Test
-    public void theLimitEveningIsNeverPromisedWithoutSayingItIsUnchecked() {
+    public void theLimitEveningShowsTheLastRescueOpportunity() {
         Rules r = ReminderFixtures.rules();
         SimState start = ReminderFixtures.start(r, 20, 1, 1, 1);
         Plan onLimit = ReminderFixtures.plan(r, start,
@@ -239,7 +234,7 @@ public class RemindersTest {
         SimState lastDay = ReminderFixtures.start(r, ReminderFixtures.MISSING_TO, 1, 1, 1);
         Plan.Reminder today = find(freePlan(r, lastDay), "rescue.05-11.deadline");
         assertEquals(day(ReminderFixtures.MISSING_TO), today.slot);
-        assertEquals("过了今天就救不出来了。今晚是期限当天的晚上：按游戏数据和攻略还来得及，但没在游戏里核对过。",
+        assertEquals("过了今天就救不出来了。今晚是期限当天的晚上：最晚今晚完成救援。",
                 Reminders.DEADLINE_TODAY_DETAIL);
         assertTrue(today.detailZh, today.detailZh.startsWith(Reminders.DEADLINE_TODAY_DETAIL));
     }

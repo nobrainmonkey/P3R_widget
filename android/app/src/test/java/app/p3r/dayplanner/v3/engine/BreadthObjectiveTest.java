@@ -149,22 +149,24 @@ public class BreadthObjectiveTest {
     }
 
     /**
-     * Synthetic MAX routes still match the engine before 3.1.0. Plan ids were refreshed for
-     * explicit dorm goals in 3.3.0; the original action fingerprints stay unchanged. A new game,
-     * a 「必须」 goal and a 9/1 start with nothing unlocked, with enough budget to finish searching.
+     * Reviewed synthetic MAX routes after the 3.4 dated-stat, finite-resource and discrete Charm
+     * meeting-savings policy changes; all three remain validator-clean, with MAX counts 22/21/15.
+     * A new game, a 「必须」 goal and a 9/1 start with nothing unlocked, with enough budget to
+     * finish searching. Real-pack quality bounds and the separate goal-priority tests remain.
      */
     @Test
-    public void maxStyleReproducesThePreviousPlans() {
+    public void maxStyleMatchesTheReviewedSyntheticPlans() {
         Rules rules = RulesFixtures.fullYear();
         Object[][] golden = {
-                {"new game", RulesFixtures.others(), RulesFixtures.slot(4, 21, false), "6956624a743d6e95", "c45f79d442d12dbe"},
-                {"must 4", RulesFixtures.must(4), RulesFixtures.slot(4, 21, false), "268128a0c830c222", "791749e1117abaf8"},
-                {"9/1", RulesFixtures.others(), RulesFixtures.slot(9, 1, false), "7996e63238f753ac", "b2f684a085d67d50"}};
+                {"new game", RulesFixtures.others(), RulesFixtures.slot(4, 21, false), "ac74cc8e1b2fde8d", "cae73a054794c9e8"},
+                {"must 4", RulesFixtures.must(4), RulesFixtures.slot(4, 21, false), "9bce76442526a808", "cdd0f2a5c0db0154"},
+                {"9/1", RulesFixtures.others(), RulesFixtures.slot(9, 1, false), "85da9524eb2f4406", "4f3f2c2a7074003f"}};
         for (Object[] g : golden) {
             Engine.Options options = new Engine.Options();
             options.timeBudgetMillis = 60_000;
             Plan plan = Engine.plan(rules, styled((Profile) g[1], Profile.Style.MAX), RulesFixtures.newGame(rules, (int) g[2]), null, options);
             assertFalse(g[0] + " ran out of time", plan.budgetExhausted);
+            assertValid(rules, styled((Profile) g[1], Profile.Style.MAX), RulesFixtures.newGame(rules, (int) g[2]), plan);
             assertEquals(g[0] + " plan id", g[3], plan.planId);
             assertEquals(g[0] + " steps", g[4], PlanBreadthRealPackTest.fingerprint(plan));
         }
@@ -267,6 +269,35 @@ public class BreadthObjectiveTest {
         int[] ranks = new int[links];
         for (int l = 0; l < count; l++) ranks[l] = rank;
         return new Planner.Candidate(null, null, null, new int[0], score, score, score, 0, new boolean[0], new int[0], ranks, waste);
+    }
+
+    /** More unlocks and total ranks do not buy away a link's RANK 5 milestone. */
+    @Test
+    public void breadthKeepsTheMiddleStoryCountEvenWhenOtherBreadthNumbersImprove() {
+        Rules rules = RulesFixtures.fullYear();
+        Profile profile = RulesFixtures.others();
+        Model m = new Model(rules, profile, new Engine.Options());
+        SimState start = Kernel.normalize(m, RulesFixtures.newGame(rules, RulesFixtures.slot(9, 1, false)));
+        Planner.Pool pool = new Planner.Pool(m, start, null, new Engine.Options(), Long.MAX_VALUE, Planner.PORTFOLIO);
+        int n = rules.links.length;
+        Planner.Candidate max = candidate(n, 10, 5, 1_000, 0);
+        int[] wideRanks = new int[n];
+        java.util.Arrays.fill(wideRanks, 0, 9, 5);
+        java.util.Arrays.fill(wideRanks, 9, 15, 4);
+        Planner.Candidate wide = new Planner.Candidate(null, null, null, new int[0], 9_000, 9_000, 9_000, 0,
+                new boolean[0], new int[0], wideRanks, 0);
+        int[] middleRanks = wideRanks.clone();
+        middleRanks[9] = 5;
+        Planner.Candidate middle = new Planner.Candidate(null, null, null, new int[0], 8_000, 8_000, 8_000, 0,
+                new boolean[0], new int[0], middleRanks, 0);
+        pool.maxPlan = max;
+        pool.all.add(max);
+        pool.all.add(wide);
+        pool.all.add(middle);
+        assertTrue(wide.unlocked > max.unlocked && wide.rankSum > max.rankSum);
+        assertFalse(pool.keepsPromises(wide));
+        assertTrue(pool.keepsPromises(middle));
+        assertSame("keep a broader candidate that also preserves the middle stories", middle, pool.choose());
     }
 
     /**

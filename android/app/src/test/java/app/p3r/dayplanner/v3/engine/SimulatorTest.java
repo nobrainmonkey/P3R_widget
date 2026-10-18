@@ -178,11 +178,12 @@ public class SimulatorTest {
     }
 
     @Test
-    public void holidayInvitationIsADaytimeMeeting() {
+    public void holidayInvitationIsAConditionalDaytimeRecordingChoice() {
         SimState s = at(33, false); // Mon May 4, holiday with an invitation
         s.rank[S_MAGICIAN] = 2;
         List<Action> legal = Engine.legalActions(rules, others, s);
-        assertTrue(legal.contains(Action.meet(S_MAGICIAN)));
+        assertTrue(legal.contains(Action.invite(S_MAGICIAN)));
+        assertFalse(legal.contains(Action.meet(S_MAGICIAN)));
     }
 
     @Test

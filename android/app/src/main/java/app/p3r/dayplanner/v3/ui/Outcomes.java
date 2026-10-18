@@ -73,6 +73,13 @@ public final class Outcomes {
         return o;
     }
 
+    /** Actual received holiday invitation attended: no rank-up or invented affinity points. */
+    public static Outcome invited(boolean readyCue) {
+        Outcome o = Outcome.of(Outcome.Code.AS_PREDICTED);
+        o.readyCue = readyCue;
+        return o;
+    }
+
     /** The link reached {@code rank} (rank-up, as planned or unexpectedly). */
     public static Outcome rankUp(int rank) {
         Outcome o = Outcome.of(Outcome.Code.RANK_UP);
@@ -173,7 +180,7 @@ public final class Outcomes {
             return null;
         }
         Action action = Action.parse(rules, step.action);
-        if (action != null && (action.type == Action.Type.MEET || action.type == Action.Type.UNLOCK_STEP
+        if (action != null && (action.type == Action.Type.MEET || action.type == Action.Type.INVITE || action.type == Action.Type.UNLOCK_STEP
             || action.type == Action.Type.NOTE) && action.target >= 0 && action.target < rules.links.length) {
             return rules.links[action.target];
         }
@@ -267,6 +274,9 @@ public final class Outcomes {
                 return name + " · 已更正";
             case AS_PREDICTED:
             default:
+                if (step != null && step.action != null && step.action.startsWith("invite:")) {
+                    return name + " · 赴约了";
+                }
                 if (kind == StepKind.SOCIAL_RANK_UP && outcome.rank > 0) {
                     return rankResult(name, outcome.rank);
                 }

@@ -52,7 +52,7 @@ public class PlanReminderJsonTest {
         r.slot = Rules.slot(JUL_17, false);
         r.shortZh = "考试：MADRID";
         r.answerZh = "MADRID";
-        r.detailZh = "这条答案只有一份攻略写过，游戏里的写法可能略有不同。";
+        r.detailZh = "选「MADRID」。";
         r.priority = Plan.Reminder.MISSABLE;
         r.estimate = true;
         return r;

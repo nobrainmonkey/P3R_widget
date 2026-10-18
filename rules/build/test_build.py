@@ -82,6 +82,31 @@ class BuildTest(unittest.TestCase):
         self.assertEqual((note["fromDay"], note["cost"], note["gain"], note["maxUses"]),
                          (builder.day_of_md("11-11"), 3000, 10, None))
 
+    def test_late_links_keep_every_unlocked_original_o_cell(self) -> None:
+        """Concrete Reload routes override the old weekday exclusions, not the O calendar."""
+        raw = json.loads((builder.SOURCES_DIR / "aqiu_pages/social_events_day_calendar.json").read_text())
+        evidence = builder.read_evidence("late_link_availability_evidence.json")
+        self.assertEqual(evidence["schema"], "p3r.late_link_availability.v1")
+        self.assertEqual(evidence["restored"], {
+            "aeon": ["01-12", "01-14", "01-19", "01-26", "01-28"],
+            "empress": ["11-30", "12-04", "12-21"],
+        })
+        links = {x["id"]: x for x in self.pack["links"]}
+        days = {x["d"]: x for x in self.pack["days"]}
+        for ident, column in (("aeon", "Aeon"), ("empress", "Empress")):
+            observed = {builder.day_of_md("%02d-%02d" % tuple(map(int, row["Date"].split("/"))))
+                        for row in raw if row[column] == "O"}
+            expected = observed - {d for d in observed if days[d]["dayLock"] is not None}
+            self.assertEqual(set(links[ident]["avail"]), expected, ident)
+            self.assertEqual(len(observed), evidence["completeDelta"][ident]["rawO"])
+            self.assertEqual(len(expected), evidence["completeDelta"][ident]["newCompiled"])
+            restored = {builder.day_of_md(md) for md in evidence["restored"][ident]}
+            self.assertTrue(restored <= expected)
+            self.assertNotIn(builder.day_of_md("01-21"), expected)
+        self.assertNotIn(builder.day_of_md("01-25"), links["aeon"]["avail"])
+        for d in links["empress"]["avail"]:
+            self.assertFalse(d >= builder.day_of_md("12-25") and builder.weekday_of(d) in (1, 5))
+
     def test_player_text_follows_the_glossary(self) -> None:
         for where, value in builder.player_texts(self.pack):
             plain = value
@@ -439,17 +464,14 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(sum(n for _d, n in builder.walkthrough_rescues()), 20)
         for record in self.pack["tartarus"]["rescues"] + self.pack["reminders"]["rescueGroups"]:
             self.assertEqual(record["src"], list(builder.RESCUE_SRC), record["id"])
-        # The copy never words the limit as 「…前」, and never promises the limit evening without saying that
-        # nobody checked it in the game (the engine plans the rescue by the day before, DESIGN §10.3).
+        # The copy includes the deadline evening instead of incorrectly shortening the window.
         days = {d["md"]: d for d in self.pack["days"]}
         self.assertEqual(days["10-03"]["noteZh"],
-                         "今天是救出北村文吉的最后期限：按游戏数据和攻略今晚去塔尔塔罗斯还来得及，但没在游戏里核对过")
+                         "今天是救出北村文吉的最后期限，最晚今晚救出")
         self.assertEqual(days["09-12"]["noteZh"], "北村文吉失踪了，期限 10月3日，到塔尔塔罗斯把人救出来")
         links = {link["id"]: link for link in self.pack["links"]}
         self.assertEqual(links["hierophant"]["noteZh"], "9月12日北村文吉失踪，期限 10月3日，要到塔尔塔罗斯救出他，否则教皇社群无法继续。")
         for where, text in builder.player_texts(self.pack):
-            if "还来得及" in text:
-                self.assertIn("没在游戏里核对过", text, where)
             self.assertNotIn("最晚要在", text, where)
         for where, text in builder.player_texts(self.pack):
             self.assertNotRegex(text, r"不一定来得及|\d+日前(?:没)?(?:救出|到塔尔塔罗斯)", where)

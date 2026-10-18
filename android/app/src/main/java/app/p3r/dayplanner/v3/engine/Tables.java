@@ -40,7 +40,7 @@ final class Tables {
     final String[] lock;
     /** Bit L set: link L has an ordinary meeting (O cell, matching slot kind) or an invitation (D cell, daytime). */
     final int[] meetMask;
-    /** Bit L set: the meeting possible in this slot is a holiday invitation. */
+    /** Bit L set: possible holiday SMS sender, offered only as a conditional manual record. */
     final int[] inviteMask;
     /** Activities allowed by the calendar in this slot (slot kind, weekday, day type, date range, lock). */
     final int[][] actsAt;
@@ -314,7 +314,8 @@ final class Tables {
             int bit = 1 << link.idx;
             boolean ordinary = link.avail.get(day) && link.evening == eve;
             boolean invitation = !eve && link.invite.get(day);
-            if (ordinary || invitation) meetMask[slot] |= bit;
+            // D cells name possible SMS senders, not guaranteed ordinary rank-up meetings.
+            if (ordinary) meetMask[slot] |= bit;
             if (invitation && !ordinary) inviteMask[slot] |= bit;
         }
     }

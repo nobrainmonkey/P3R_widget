@@ -573,26 +573,26 @@ public class ReviewFixesTest extends UiTestBase {
         assertEquals("皇帝 RANK 7", Outcomes.summary(api.rules, api.snap.plan.at(NOW), Outcomes.rankUp(7)));
     }
 
-    // ------------------------------------------------------------------ COPY-5: 参考回答
+    // ------------------------------------------------------------------ COPY-5: 回答
 
     @Test
     public void copy5_answerLineShowsOnlyCleanGuideAnswers() {
-        assertEquals("参考回答：我喜欢风花（1），恋人线",
+        assertEquals("回答：我喜欢风花（1），恋人线",
             Dialogue.line(Arrays.asList("对话选择：任意/任意/我喜欢风花（1），恋人线/任意")));
-        assertEquals("参考回答：随便问吧（1） / 产生恋爱感情了（1） / 随时欢迎千寻找我倾诉（1） / 握住她的手（1）",
+        assertEquals("回答：随便问吧（1） / 产生恋爱感情了（1） / 随时欢迎千寻找我倾诉（1） / 握住她的手（1）",
             Dialogue.line(Arrays.asList("对话选择：随便问吧（1）/产生恋爱感情了（1）/随时欢迎千寻找我倾诉（1）/握住她的手（1）",
                 "第二次选择“产生恋爱感情了（1）”会进入恋爱线；选第二项不会进入", "最后选择第二项亲上去，关系会破裂")));
-        assertEquals("参考回答：突然这是怎么了？（1）", Dialogue.line(Arrays.asList("前3次对话选择：第1项/任意/任意",
+        assertEquals("回答：突然这是怎么了？（1）", Dialogue.line(Arrays.asList("前3次对话选择：第1项/任意/任意",
             "接着选择：突然这是怎么了？（1）", "最后一项：选1进入恋人线，选2做朋友")));
-        assertEquals("参考回答：好（1）", Dialogue.line(Arrays.asList("对话选择：任意/任意（前面选择第一个选项才有这个对话）/好（1）/任意")));
-        assertEquals("参考回答：那你的膝盖怎么办？（2）", Dialogue.line(Arrays.asList("第2项", "那你的膝盖怎么办？（2）")));
-        assertEquals("参考回答：不能进或者保密 / 成熟的好或者无所谓", Dialogue.line(Arrays.asList("不能进或者保密", "成熟的好或者无所谓")));
+        assertEquals("回答：好（1）", Dialogue.line(Arrays.asList("对话选择：任意/任意（前面选择第一个选项才有这个对话）/好（1）/任意")));
+        assertEquals("回答：那你的膝盖怎么办？（2）", Dialogue.line(Arrays.asList("第2项", "那你的膝盖怎么办？（2）")));
+        assertEquals("回答：不能进或者保密 / 成熟的好或者无所谓", Dialogue.line(Arrays.asList("不能进或者保密", "成熟的好或者无所谓")));
         assertEquals(Dialogue.ANY, Dialogue.line(Arrays.asList("任意")));
         assertNull("bare ordinals only → fallback", Dialogue.line(Arrays.asList("第1项", "第2项")));
         assertNull(Dialogue.line(Arrays.asList("任意", "除第1项外任选")));
 
         Plan.Step emperor = api.snap.plan.at(NOW);
-        assertEquals("参考回答：我会帮你的 / 这样的规矩没有意义", Dialogue.line(api.rules, emperor));
+        assertEquals("回答：我会帮你的 / 这样的规矩没有意义", Dialogue.line(api.rules, emperor));
         api.rules.links[4].dialogue.put(7, Arrays.asList("任意", "第1项"));
         assertEquals(Dialogue.FALLBACK, Dialogue.line(api.rules, emperor));
     }
@@ -646,11 +646,11 @@ public class ReviewFixesTest extends UiTestBase {
         assertTrue(global.contains("12月24日按都婉拒了邀约安排，可在「规划设置 → 平安夜」里改。"));
         assertTrue(global.contains("1月21日放学后先空出来（送过顺平「白色切花」的话会有剧情）。"));
         // 3.1.0 re-check: the glossary's 课堂提问 and 预计, and the 当天提醒 explained (GLOSSARY 「规划说明里写【当天提醒】」).
-        assertTrue(global.contains("课堂提问、上课犯困、保健室、考试名次等带来的能力值不在安排的预计里，回来时用「同步现状」更新就行。"));
+        assertTrue(global.contains("课堂提问、上课犯困、保健室和考试名次的收益，完成后在「同步现状」更新。"));
         assertTrue(global.contains("课堂提问和考试的答案、电视购物、伊莉莎白的委托、黄昏的碎片这些不会消耗时间的事，还有失踪者的期限，"
                 + "会在「今天别错过」和日程详情的「当天提醒」里提醒。"));
         for (String line : global) assertFalse(line, line.contains("课堂答题") || line.contains("预测"));
-        assertEquals("假定这次探索能顺利救出失踪者。", Assumptions.describe("rescue"));
+        assertEquals("这次探索要救出失踪者。", Assumptions.describe("rescue"));
         for (String line : global) {
             assertFalse(line, line.contains("进塔") || line.contains("1月21日白天"));
         }

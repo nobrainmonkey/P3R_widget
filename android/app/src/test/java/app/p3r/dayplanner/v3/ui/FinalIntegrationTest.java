@@ -32,7 +32,7 @@ import app.p3r.dayplanner.v3.engine.Plan;
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class FinalIntegrationTest extends UiTestBase {
     private static final int NOW = Fixtures.SLOT_NOW;
-    private static final String ANSWERS = "参考回答：我会帮你的 / 这样的规矩没有意义";
+    private static final String ANSWERS = "回答：我会帮你的 / 这样的规矩没有意义";
     private static final String MEET_HOW = "放学后到月光馆学园 · 学生会活动室找小田桐秀利\n"
         + "顺便：把 20,000 日元交给穿西装的男人\n"
         + ANSWERS + "\n"
@@ -63,7 +63,7 @@ public class FinalIntegrationTest extends UiTestBase {
 
         api.snap.plan.steps.set(0, step);
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
-        assertEquals(1, countTextViews(a.getWindow().getDecorView(), "参考回答："));
+        assertEquals(1, countTextViews(a.getWindow().getDecorView(), "回答："));
         Shots.shot(a, "result_social_answers_once");
     }
 
@@ -73,7 +73,7 @@ public class FinalIntegrationTest extends UiTestBase {
         step.detailZh = "放学后到月光馆学园 · 学生会活动室找小田桐秀利";
         api.snap.plan.steps.set(0, step);
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
-        assertEquals(1, countTextViews(a.getWindow().getDecorView(), "参考回答："));
+        assertEquals(1, countTextViews(a.getWindow().getDecorView(), "回答："));
     }
 
     @Test

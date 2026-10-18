@@ -17,7 +17,7 @@ import android.widget.TextView;
  * {@link Zh#keepTogether}), and a line never ends with a " · " or "/" separator. The dot stays on
  * the line of the part before it (no break before it); where the text wraps right after it, it
  * is not drawn, so the next part simply starts the next line ("RANK 4" / "见面（预计不升级）"). A
- * slash goes with the part after it: a " / " separator starts the next line ("参考回答：我会帮你的"
+ * slash goes with the part after it: a " / " separator starts the next line ("回答：我会帮你的"
  * / "/ 这样的规矩没有意义"), and "道具/特性" never breaks after its slash.
  */
 final class ZhTextView extends TextView {

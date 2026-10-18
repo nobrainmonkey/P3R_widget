@@ -9,6 +9,7 @@ import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
+import app.p3r.dayplanner.v3.service.StoryDisplay;
 
 /**
  * In-memory {@link PlannerApi} for UI tests. Records every write as a {@link Call}, enforces the
@@ -69,6 +70,7 @@ final class FakePlannerApi implements PlannerApi {
     /** Calls of {@link #requestFullReplan} / {@link #cancelFullReplan}. */
     int fullReplanRequests;
     int fullReplanCancels;
+    final List<Integer> acknowledgedStorySlots = new ArrayList<>();
     private long seq = 100;
 
     FakePlannerApi(Rules rules) {
@@ -174,6 +176,7 @@ final class FakePlannerApi implements PlannerApi {
     public synchronized Snapshot snapshot() {
         Snapshot s = new Snapshot();
         s.observed = snap.observed == null ? null : snap.observed.copy();
+        s.storyDisplay = snap.storyDisplay;
         s.profile = snap.profile == null ? null : snap.profile.copy();
         s.plan = snap.plan;
         s.stateRevision = snap.stateRevision;
@@ -188,6 +191,16 @@ final class FakePlannerApi implements PlannerApi {
         s.fullReplanDoneTicket = snap.fullReplanDoneTicket;
         s.fullReplanResult = snap.fullReplanResult;
         return s;
+    }
+
+    @Override
+    public synchronized boolean acknowledgeStory(String source, int slot) {
+        StoryDisplay story = snap.storyDisplay;
+        if (story == null || !story.key.equals(source) || story.cursorSlot != slot) return false;
+        acknowledgedStorySlots.add(slot);
+        snap.storyDisplay = StoryDisplay.create(rules, snap.profile, source, story.fromSlot, story.toSlot,
+                story.currentLastSlot() + 1);
+        return true;
     }
 
     private synchronized Receipt write(Call call, boolean stateWrite, boolean advance) {

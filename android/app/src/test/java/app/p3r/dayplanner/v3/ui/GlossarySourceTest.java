@@ -106,9 +106,8 @@ public class GlossarySourceTest {
      */
     /**
      * 「上一版」「这一版」 for plans; and a missing person's limit worded as 「…前要救出」 (it reads as if the limit day
-     * did not count) or as 「不一定来得及」: the limit evening counts by the evidence but nobody checked it in the game,
-     * so the copy says 「期限 10月3日」 and, wherever it sends the player there on the limit evening, 「按游戏数据和攻略
-     * 还来得及，但没在游戏里核对过」 (glossary 「失踪者的期限」, DESIGN §10.3).
+     * did not count) or as 「不一定来得及」. The limit evening counts; copy gives the actual
+     * deadline directly (glossary 「失踪者的期限」, DESIGN §10.3).
      */
     private static final String[] FORBIDDEN = {"上一版", "这一版", "前要救出", "前没救出", "前救出", "不一定来得及"};
 

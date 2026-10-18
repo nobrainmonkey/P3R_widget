@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 
 /**
  * Dialogue choices of a meeting or an unlock step as one structured {@link Answers}, and the two
- * ways to write them (docs/GLOSSARY_zh.md, docs/DESIGN_v3.md §18): the app's 「参考回答：A / B」
+ * ways to write them (docs/GLOSSARY_zh.md, docs/DESIGN_v3.md §18): the app's 「回答：A / B」
  * ({@link #appLine}; also the line in a meeting's 「怎么做」, see {@link Labels}) and the widget's
  * 「答：A / B」 ({@link #widgetLine}). A meeting uses reviewed route variants when present,
  * otherwise the legacy Chinese guide fragments ({@code links[].dialogue}). Reviewed details
@@ -41,7 +41,7 @@ import java.util.regex.Pattern;
 public final class DialogueHint {
     /** Shown when the guide has nothing usable for the scene. */
     public static final String FALLBACK = "选能让对方高兴的回答（♪ 越多越好）";
-    public static final String PREFIX = "参考回答：";
+    public static final String PREFIX = "回答：";
     /** Every choice of the scene is free (after a prefix). */
     public static final String ANY_ZH = "怎么回答都可以";
     public static final String ANY = PREFIX + ANY_ZH;
@@ -51,7 +51,7 @@ public final class DialogueHint {
     public static final String FRIEND_FALLBACK = FALLBACK + "；" + FRIEND_CAUTION;
     /** From this RANK on, unmarked answers of a romanceable link may lead into the romance route. */
     public static final int ROMANCE_FROM_RANK = 8;
-    /** The widget's prefix: the glossary never puts 「参考回答：」 on the widget. */
+    /** The widget's prefix: the glossary never puts 「回答：」 on the widget. */
     public static final String WIDGET_PREFIX = "答：";
     /** Prefix of the answers of a meeting that may rank up after all (app and widget). */
     public static final String CONDITIONAL_PREFIX = "要是升级了，答：";
@@ -181,6 +181,18 @@ public final class DialogueHint {
     }
 
     /**
+     * Read-only guide lookup for a chosen rank-up scene, independent of a plan, date or current rank.
+     * The same reviewed route selection as meeting cards applies; invalid or story-link scenes have
+     * no manual dialogue guidance. This does not imply that the scene is currently available.
+     */
+    public static Answers lookupScene(Rules rules, Profile profile, int link, int scene) {
+        if (rules == null || rules.links == null || link < 0 || link >= rules.links.length
+                || rules.links[link] == null || rules.links[link].kind != Rules.LinkKind.MANUAL
+                || scene < 2 || scene > 10) return Answers.NONE;
+        return forScene(rules, profile, link, scene, false);
+    }
+
+    /**
      * The answers of the scene of RANK {@code scene} of {@code link} ({@link Answers#conditional} as
      * given), as the route of {@code p} shows them.
      */
@@ -242,7 +254,7 @@ public final class DialogueHint {
     // ------------------------------------------------------------------ app line
 
     /**
-     * The app's line: 「参考回答：A / B」 (byte-identical to 3.0.2 for a rank-up), 「要是升级了，答：A / B」
+     * The app's line: 「回答：A / B」 (byte-identical to 3.0.2 for a rank-up), 「要是升级了，答：A / B」
      * for a meeting that may rank up, {@link #ANY}, a 朋友-route line (「…；只想做朋友的话，别选表白的回答」
      * or {@link #FRIEND_FALLBACK}), or {@link #FALLBACK} when there is nothing to say.
      */
@@ -264,7 +276,7 @@ public final class DialogueHint {
     }
 
     /**
-     * The 「参考回答：…」 line of one scene's guide fragments as written, {@link #ANY} when every
+     * The 「回答：…」 line of one scene's guide fragments as written, {@link #ANY} when every
      * choice is free, or null when nothing usable remains (the caller shows {@link #FALLBACK}).
      */
     public static String line(List<String> fragments) {

@@ -329,6 +329,22 @@ public final class RulesLoader {
                     throw fail(where + ".tartarus is true but the day has no block or a locked evening");
                 }
                 day.noteZh = optString(o, "noteZh", where);
+                if (!o.isNull("autoStatGain")) {
+                    JSONObject gain = reqObject(o, "autoStatGain", where);
+                    day.automaticStatGain = new int[rules.stats.length];
+                    Iterator<String> keys = gain.keys();
+                    boolean any = false;
+                    while (keys.hasNext()) {
+                        String id = keys.next();
+                        Integer idx = statIndex.get(id);
+                        if (idx == null) throw fail(where + ".autoStatGain references unknown stat '" + id + "'");
+                        day.automaticStatGain[idx] = intInRange(gain, id, where + ".autoStatGain", 1, 100);
+                        any = true;
+                    }
+                    if (any && day.dayLock == null) {
+                        throw fail(where + ".autoStatGain requires a locked daytime story slot");
+                    }
+                }
                 checkConf(o, where);
                 sources(o, where);
                 rules.days[day.d] = day;
@@ -714,6 +730,14 @@ public final class RulesLoader {
                 a.dormPartnerZh = optString(o, "dormPartnerZh", where);
                 if (a.dormPartnerZh != null && a.dormPartnerZh.trim().isEmpty()) throw fail(where + ".dormPartnerZh must not be blank");
                 a.requiresPlantedCrop = !o.isNull("requiresPlantedCrop") && reqBool(o, "requiresPlantedCrop", where);
+                if (!o.isNull("affinityLink")) {
+                    String id = reqString(o, "affinityLink", where);
+                    Integer link = linkIndex.get(id);
+                    if (link == null) throw fail(where + ".affinityLink references unknown link '" + id + "'");
+                    a.affinityLink = link;
+                }
+                if (!o.isNull("affinityPts")) a.affinityPts = nonNegative(o, "affinityPts", where);
+                if ((a.affinityLink >= 0) != (a.affinityPts > 0)) throw fail(where + " affinityLink and positive affinityPts must be provided together");
                 a.cost = nonNegative(o, "cost", where);
                 JSONObject gain = reqObject(o, "gain", where);
                 Iterator<String> keys = gain.keys();
@@ -739,6 +763,9 @@ public final class RulesLoader {
                     throw fail(where + " dorm activity must be a free, repeatable evening activity with fixedDays");
                 }
                 if (a.requiresPlantedCrop && !a.dormActivity()) throw fail(where + ".requiresPlantedCrop needs dormPartnerZh");
+                if (a.affinityPts > 0 && (!a.dormActivity() || rules.links[a.affinityLink].kind != Rules.LinkKind.MANUAL)) {
+                    throw fail(where + " affinity needs a dorm activity and manual link");
+                }
                 a.noteZh = optString(o, "noteZh", where);
                 a.conf = checkConf(o, where);
                 a.src = sources(o, where);
@@ -873,6 +900,119 @@ public final class RulesLoader {
                 Rules.Reminder r = parseReminder(reqObject(items, i, where), where);
                 if (!ids.add(r.id)) throw fail(where + ".id '" + r.id + "' is duplicated");
                 out.items.add(r);
+            }
+            if (!o.isNull("requestTips")) {
+                JSONArray requests = reqArray(o, "requestTips", "reminders");
+                Set<Integer> numbers = new HashSet<>();
+                for (int i = 0; i < requests.length(); i++) {
+                    String where = "reminders.requestTips[" + i + "]";
+                    JSONObject item = reqObject(requests, i, where);
+                    Rules.RequestTip tip = new Rules.RequestTip();
+                    tip.number = intInRange(item, "number", where, 1, 1000);
+                    if (!numbers.add(tip.number)) throw fail(where + ".number is duplicated");
+                    tip.titleZh = reqString(item, "titleZh", where);
+                    tip.detailZh = reqString(item, "detailZh", where);
+                    tip.fromDay = dayInRange(item, "fromDay", where);
+                    if (tip.fromDay < rules.firstDay) throw fail(where + ".fromDay is before the calendar");
+                    if (!item.isNull("untilDay")) {
+                        tip.untilDay = dayInRange(item, "untilDay", where);
+                        if (tip.untilDay < tip.fromDay) throw fail(where + ".untilDay is before fromDay");
+                    }
+                    if (!item.isNull("aliases")) {
+                        JSONArray aliases = reqArray(item, "aliases", where);
+                        Set<String> seen = new HashSet<>();
+                        for (int k = 0; k < aliases.length(); k++) {
+                            Object value = aliases.get(k);
+                            if (!(value instanceof String) || ((String) value).trim().isEmpty()) {
+                                throw fail(where + ".aliases[" + k + "] must be a nonempty string");
+                            }
+                            if (!seen.add((String) value)) throw fail(where + ".aliases[" + k + "] is duplicated");
+                            tip.aliases.add((String) value);
+                        }
+                    }
+                    tip.conf = checkConf(item, where);
+                    tip.src = sources(item, where);
+                    out.requestTips.add(tip);
+                }
+            }
+            if (!o.isNull("combatTips")) {
+                JSONArray fights = reqArray(o, "combatTips", "reminders");
+                Set<String> combatIds = new HashSet<>();
+                for (int i = 0; i < fights.length(); i++) {
+                    String where = "reminders.combatTips[" + i + "]";
+                    JSONObject item = reqObject(fights, i, where);
+                    Rules.CombatTip tip = new Rules.CombatTip();
+                    tip.id = reqString(item, "id", where);
+                    if (!tip.id.matches("combat\\.[a-z0-9_]+\\.[a-z0-9_]+") || !combatIds.add(tip.id)) {
+                        throw fail(where + ".id is malformed or duplicated");
+                    }
+                    tip.kind = reqString(item, "kind", where);
+                    if (!tip.kind.equals("guardian") && !tip.kind.equals("full_moon")
+                            && !tip.kind.equals("monad") && !tip.kind.equals("story")
+                            && !tip.kind.equals("final") && !tip.kind.equals("optional")) {
+                        throw fail(where + ".kind is unknown");
+                    }
+                    tip.titleZh = reqString(item, "titleZh", where);
+                    tip.shortZh = reqString(item, "shortZh", where);
+                    tip.detailZh = reqString(item, "detailZh", where);
+                    tip.tacticsZh = item.isNull("tacticsZh") ? tip.detailZh : reqString(item, "tacticsZh", where);
+                    String encounterType = optString(item, "encounterType", where);
+                    tip.encounterType = encounterType == null ? "" : encounterType;
+                    if (!tip.encounterType.isEmpty() && !tip.encounterType.equals("door")
+                            && !tip.encounterType.equals("passage")) {
+                        throw fail(where + ".encounterType must be door, passage or empty");
+                    }
+                    tip.battleOrder = item.isNull("battleOrder") ? 0 : intInRange(item, "battleOrder", where, 0, 9);
+                    if (tip.battleOrder > 0 && !tip.encounterType.equals("passage")) {
+                        throw fail(where + ".battleOrder is only valid for a fixed passage battle");
+                    }
+                    if (!item.isNull("enemies")) {
+                        JSONArray enemies = reqArray(item, "enemies", where);
+                        if (enemies.length() == 0 && !tip.kind.equals("story")) {
+                            throw fail(where + ".enemies must contain the enemy lineup");
+                        }
+                        for (int k = 0; k < enemies.length(); k++) {
+                            String enemyWhere = where + ".enemies[" + k + "]";
+                            JSONObject enemy = reqObject(enemies, k, enemyWhere);
+                            Rules.CombatEnemy parsed = new Rules.CombatEnemy();
+                            parsed.nameZh = reqString(enemy, "nameZh", enemyWhere);
+                            parsed.count = intInRange(enemy, "count", enemyWhere, 1, 99);
+                            JSONArray affinities = reqArray(enemy, "affinities", enemyWhere);
+                            if (affinities.length() != 9) throw fail(enemyWhere + ".affinities must have 9 entries");
+                            parsed.affinities = new String[9];
+                            for (int a = 0; a < 9; a++) {
+                                Object code = affinities.get(a);
+                                if (!(code instanceof String) || !((String) code).matches("(?:[wzvstnrd-]\\*?|\\*)")) {
+                                    throw fail(enemyWhere + ".affinities[" + a + "] has an unknown resistance symbol");
+                                }
+                                parsed.affinities[a] = (String) code;
+                            }
+                            tip.enemies.add(parsed);
+                        }
+                    }
+                    tip.fromDay = dayInRange(item, "fromDay", where);
+                    if (tip.fromDay < rules.firstDay) throw fail(where + ".fromDay is before the calendar");
+                    tip.floor = intInRange(item, "floor", where, 0, 264);
+                    if (tip.battleOrder > 0 && tip.floor == 0) {
+                        throw fail(where + ".floor is required for a fixed passage battle");
+                    }
+                    if ((tip.kind.equals("guardian") || tip.kind.equals("final")) && tip.floor == 0) {
+                        throw fail(where + ".floor must identify the fixed floor");
+                    }
+                    JSONArray aliases = reqArray(item, "aliases", where);
+                    Set<String> seen = new HashSet<>();
+                    for (int k = 0; k < aliases.length(); k++) {
+                        Object value = aliases.get(k);
+                        if (!(value instanceof String) || ((String) value).trim().isEmpty()) {
+                            throw fail(where + ".aliases[" + k + "] must be a nonempty string");
+                        }
+                        if (!seen.add((String) value)) throw fail(where + ".aliases[" + k + "] is duplicated");
+                        tip.aliases.add((String) value);
+                    }
+                    tip.conf = checkConf(item, where);
+                    tip.src = sources(item, where);
+                    out.combatTips.add(tip);
+                }
             }
             if (!o.isNull("doze")) {
                 String where = "reminders.doze";

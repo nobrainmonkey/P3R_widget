@@ -222,15 +222,32 @@ public class RulesPackFactsTest {
     }
 
     @Test
-    public void empressMeetsMondaysAndFridaysOnlyInThePreExamWeek() {
+    public void empressKeepsTheDatedNovemberAndDecemberRouteWitnesses() {
         Rules.Link empress = link("empress");
+        assertTrue(empress.avail.get(day(11, 30))); // RPG Site's Empress RANK 3
+        assertTrue(empress.avail.get(day(12, 4)));  // PowerPyx's Empress RANK 4
+        assertTrue(empress.avail.get(day(12, 21))); // aqiu's Empress RANK 9
         assertTrue(empress.avail.get(day(12, 7)));  // Monday of the pre-exam week
         assertTrue(empress.avail.get(day(12, 11))); // Friday of the pre-exam week
         for (int d = empress.avail.nextSetBit(0); d >= 0; d = empress.avail.nextSetBit(d + 1)) {
             int wd = r.day(d).wd;
-            if (wd == 1 || wd == 5) assertTrue(r.day(d).md, d >= day(12, 7) && d <= day(12, 12));
+            if (wd == 1 || wd == 5) assertTrue(r.day(d).md, d < day(12, 25));
         }
         assertEquals(day(11, 21), empress.avail.nextSetBit(0));
+        assertEquals(29, empress.avail.cardinality());
+        assertFalse(empress.avail.get(day(1, 21)));
+    }
+
+    @Test
+    public void aeonKeepsTuesdayAndThursdayMeetingsFromTheReloadRoutes() {
+        Rules.Link aeon = link("aeon");
+        for (int dom : new int[]{12, 14, 19, 26, 28}) assertTrue(r.day(day(1, dom)).md, aeon.avail.get(day(1, dom)));
+        assertEquals(17, aeon.avail.cardinality());
+        assertFalse(aeon.avail.get(day(1, 21))); // the existing white-flower story reservation
+        assertFalse(aeon.avail.get(day(1, 25))); // absent in the original O calendar
+        for (int d = aeon.avail.nextSetBit(0); d >= 0; d = aeon.avail.nextSetBit(d + 1)) {
+            assertEquals(Rules.DayType.SCHOOL, r.day(d).type);
+        }
     }
 
     @Test
@@ -703,10 +720,10 @@ public class RulesPackFactsTest {
     public void empressExamRequirementIsToldToThePlayer() {
         Rules.Unlock u = link("empress").unlock;
         assertEquals(Map.of(ACADEMICS, 6), u.statLv);
-        assertTrue(u.noteZh.contains("第一名") && u.noteZh.contains("未选"));
+        assertTrue(u.noteZh.contains("第一名") && u.noteZh.contains("学力 MAX"));
         assertTrue(u.steps.get(0).howZh.contains("第一名"));
         boolean noted = false;
-        for (String n : r.notes) noted |= n.startsWith("【女皇】") && n.contains("第一名") && n.contains("未选");
+        for (String n : r.notes) noted |= n.startsWith("【女皇】") && n.contains("第一名") && n.contains("学力 MAX");
         assertTrue("the 【女皇】 pack note must explain the exam requirement", noted);
     }
 
@@ -840,7 +857,7 @@ public class RulesPackFactsTest {
         assertEquals("estimate", note.conf);
         assertTrue(note.howZh.contains("放纵俱乐部") && note.howZh.contains("公用电脑"));
         assertEquals("桐叶购物中心 · 放纵俱乐部", note.locationZh);
-        assertTrue(note.noteZh.contains("不会直接升级"));
+        assertTrue(note.noteZh.contains("不直接升级"));
     }
 
     // ------------------------------------------------------------------ 3.1.0: 当日提醒
@@ -877,7 +894,8 @@ public class RulesPackFactsTest {
         }
         for (String estimate : new String[] {"exam.07-17", "exam.12-16"}) {
             assertEquals(estimate, "estimate", reminder(estimate).conf);
-            assertTrue(reminder(estimate).detailZh.contains("只有一份攻略写过"));
+            assertFalse(reminder(estimate).detailZh.contains("只有一份攻略写过"));
+            assertTrue(reminder(estimate).detailZh.contains(reminder(estimate).answerZh));
         }
         assertEquals("single", reminder("exam.07-15").conf);
         for (String english : new String[] {"Lives", "Geeses", "May Blues", "毕达哥拉斯", "逗号拼接", "翻译错误"}) {
@@ -939,7 +957,9 @@ public class RulesPackFactsTest {
         assertTrue(reminder("request.12-25.deadline").detailZh.contains("严户台商店街 2 楼"));
         assertTrue(reminder("request.05-10").detailZh.contains("用掉一个晚上"));
         assertTrue(reminder("request.10-06.faculty").detailZh.contains("分 8 天"));
-        assertTrue(reminder("request.05-29.outings").detailZh.contains("不会到了某个日期就自动出现"));
+        assertTrue(reminder("request.05-29.outings").detailZh.contains("按已完成委托的难度星数合计解锁"));
+        assertTrue(reminder("request.05-29.outings").detailZh.contains("第 81 号：难度星数合计 185"));
+        assertTrue(reminder("request.05-29.outings").detailZh.contains("至少经过 3 天"));
 
         assertEquals("今天城里能捡到黄昏的碎片（14 处）", reminder("fragment.04-21").zh);
         assertEquals(15, reminder("fragment.04-21").detailZh.split("\n").length);

@@ -24,6 +24,8 @@ final class Kernel {
     static final int T_NOTE = 5;
     /** The next Link Episode of a track. */
     static final int T_EPISODE = 6;
+    /** Manual record of an actually received holiday invitation; never returned by legal(). */
+    static final int T_INVITE = 7;
 
     // Assumption bits (ids in ASSUMPTION_IDS, same order).
     static final int A_ORDINARY = 1;
@@ -36,9 +38,11 @@ final class Kernel {
     static final int A_RESCUE = 1 << 7;
     static final int A_HOLD = 1 << 8;
     static final int A_NOTE = 1 << 9;
+    static final int A_INVITE_UNKNOWN = 1 << 10;
     static final String[] ASSUMPTION_IDS = {
             "ordinary_gain_estimate", "best_answers", "persona_bonus", "charm_bonus", "goal_buffer",
-            "tower_income_estimate", "job_pay_minimum", "rescue_on_visit", "rank_hold", "dating_note_gain"};
+            "tower_income_estimate", "job_pay_minimum", "rescue_on_visit", "rank_hold", "dating_note_gain",
+            "invite_gain_unmodeled"};
 
     static int code(int type, int target, int step) {
         return (type << 24) | (target << 8) | (step & 0xff);
@@ -53,6 +57,7 @@ final class Kernel {
     static int encode(Action a) {
         switch (a.type) {
             case MEET: return code(T_MEET, a.target, 0);
+            case INVITE: return code(T_INVITE, a.target, 0);
             case UNLOCK_STEP: return code(T_UNLOCK, a.target, a.step);
             case ACTIVITY: return code(T_ACT, a.target, 0);
             case TARTARUS: return code(T_TOWER, a.target, 0);
@@ -65,6 +70,7 @@ final class Kernel {
     static Action decode(int code) {
         switch (type(code)) {
             case T_MEET: return Action.meet(target(code));
+            case T_INVITE: return Action.invite(target(code));
             case T_UNLOCK: return Action.unlock(target(code), step(code));
             case T_ACT: return Action.activity(target(code));
             case T_TOWER: return Action.tower(target(code));
@@ -383,6 +389,15 @@ final class Kernel {
     static boolean meetLegal(Model m, SimState st, int link, int day) {
         int r = st.rank[link];
         return r >= 1 && r < 10 && !blocked(m, st, link, day);
+    }
+
+    /** Candidate for manual recording only: selecting it confirms that the SMS actually arrived. */
+    static boolean inviteCandidate(Model m, SimState st, int link) {
+        int slot = st.slot;
+        if (!m.t.open(slot) || (slot & 1) != 0 || link < 0 || link >= m.t.nLinks) return false;
+        return (m.t.inviteMask[slot] & (1 << link)) != 0
+                && m.rules.links[link].kind == Rules.LinkKind.MANUAL
+                && meetLegal(m, st, link, slot >> 1);
     }
 
     /**
@@ -727,7 +742,7 @@ final class Kernel {
         }
         int cost = Math.max(0, a.cost);
         if (cost > 0 && st.cash - cost < (hold >= 0 ? hold : optionalHold(m, st, m.gainMask[act]))) return false;
-        return a.kind == Rules.ActivityKind.JOB || m.dormTraitUseful(st, act)
+        return a.kind == Rules.ActivityKind.JOB || m.dormTraitUseful(st, act) || activityAffinityGain(m.rules, st, a) > 0
                 || usefulGain(m, st, a) > 0;
     }
 
@@ -745,8 +760,16 @@ final class Kernel {
 
     /** Apply {@code code} (with this slot's side steps) at {@code st.slot} and advance one slot (day rollover included). */
     static void apply(Model m, SimState st, int code, Effect fx) {
+        Rules.Day daytime = fx != null && (st.slot & 1) == 0 ? m.rules.day(st.slot >> 1) : null;
         effect(m, st, code, fx);
         advance(m, st);
+        if (fx != null && daytime != null) {
+            int n = Math.min(3, Math.min(m.t.nStats, daytime.automaticStatGain.length));
+            for (int s = 0; s < n; s++) {
+                fx.statDelta[s] += Math.max(0, daytime.automaticStatGain[s]);
+                fx.lvAfter[s] = statLv(m, st, s);
+            }
+        }
     }
 
     /** This slot's side steps, then the action's own effect, without advancing the slot. */
@@ -779,6 +802,9 @@ final class Kernel {
             case T_MEET:
                 meet(m, st, target(code), day, fx);
                 break;
+            case T_INVITE:
+                invitation(st, target(code), fx);
+                break;
             case T_UNLOCK:
                 unlock(m, st, target(code), step(code), day, fx);
                 break;
@@ -810,7 +836,9 @@ final class Kernel {
         boolean buffer = bufferApplies(m, link, r);
         if (fx != null) {
             fx.rankFrom = r;
-            fx.invite = (m.t.inviteMask[st.slot] & (1 << link)) != 0;
+            // Legacy confirmed meet: records retain their historical transition. New invitations
+            // have their own action and never reach this rank-up branch.
+            fx.invite = false;
             fx.held = isHeld;
         }
         if (!isHeld && (wasReady || st.pts[link] >= need)) {
@@ -842,6 +870,21 @@ final class Kernel {
             fx.assumptions = A_ORDINARY | extra | (buffer ? A_BUFFER : 0) | (isHeld ? A_HOLD : 0);
             fx.persona = m.persona[link];
         }
+    }
+
+    /**
+     * A holiday outing never runs a rank scene. Its exact answer-dependent affinity gain has not
+     * been modeled, so retain the lower bound and any observed ready cue instead of inventing
+     * ordinary-meeting points. The player may confirm a ready cue in the outcome sheet.
+     */
+    private static void invitation(SimState st, int link, Effect fx) {
+        if (fx == null) return;
+        fx.rankFrom = st.rank[link];
+        fx.rankTo = st.rank[link];
+        fx.invite = true;
+        fx.certain = true; // Certainly no rank-up; this suppresses unrelated rank-scene answers.
+        fx.estimate = true;
+        fx.assumptions = A_INVITE_UNKNOWN;
     }
 
     /**
@@ -917,6 +960,8 @@ final class Kernel {
 
     private static void activity(Model m, SimState st, int act, Effect fx) {
         Rules.Activity a = m.rules.activities[act];
+        int affinity = activityAffinityGain(m.rules, st, a);
+        if (affinity > 0) st.pts[a.affinityLink] += affinity;
         st.cash = Math.max(0, st.cash - Math.max(0, a.cost));
         if (a.kind == Rules.ActivityKind.JOB) {
             int pay = a.payFor(st.shifts[act] + 1);
@@ -935,6 +980,14 @@ final class Kernel {
             if (fx != null && s < 3) fx.statDelta[s] = a.gain[s];
         }
         st.used[act]++;
+    }
+
+    /** Dorm points use the raw next-rank gap, never the planner's safety buffer or visit multipliers. */
+    static int activityAffinityGain(Rules rules, SimState st, Rules.Activity a) {
+        int link = a.affinityLink;
+        if (a.affinityPts <= 0 || link < 0 || link >= rules.links.length || link >= st.rank.length
+                || st.rank[link] < 1 || st.rank[link] >= 10 || st.ready[link]) return 0;
+        return Math.min(a.affinityPts, Math.max(0, rules.links[link].threshold[st.rank[link] + 1] - st.pts[link]));
     }
 
     private static void tower(Model m, SimState st, int block, int day, Effect fx) {
@@ -962,8 +1015,18 @@ final class Kernel {
         }
     }
 
-    /** Move to the next slot; entering a new day applies story ranks, rescue deadlines and auto unlocks. */
+    /**
+     * Finish this slot: a daytime story's guaranteed points are awarded once before its evening.
+     * Entering a new day applies story ranks, rescue deadlines and auto unlocks.
+     */
     static void advance(Model m, SimState st) {
+        if ((st.slot & 1) == 0) {
+            Rules.Day day = m.rules.day(st.slot >> 1);
+            if (day != null) {
+                int n = Math.min(st.statPts.length, Math.min(m.t.nStats, day.automaticStatGain.length));
+                for (int s = 0; s < n; s++) st.statPts[s] += Math.max(0, day.automaticStatGain[s]);
+            }
+        }
         st.slot++;
         if ((st.slot & 1) == 0) rollover(m, st, st.slot >> 1);
     }

@@ -14,8 +14,7 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * Which card carries a 当日提醒 (spec 3.1.0 §1.2.7, docs/DESIGN_v3.md §17.2): the item covering its slot,
- * else the next item of the same day, else none; a story-locked run splits where a new day carries a
- * reminder (each exam day its own card), and days without reminders still merge. Plain JVM.
+ * else the next item of the same day, else none. Every story day has its own card. Plain JVM.
  */
 public class PlanItemsTest {
     private static final int S = FakePlannerApi.FIRST_SLOT;
@@ -48,24 +47,26 @@ public class PlanItemsTest {
         assertEquals(List.of("nurse.11-05"), ids(PlanItems.of(plan, S + 8).get(0)));
     }
 
-    /** Spec test 7: each exam day with its answer is its own locked card; runs without reminders still merge. */
+    /** Every locked day remains visible, with its own answer when one exists. */
     @Test
-    public void lockedRunsSplitOnlyWhereANewDayCarriesAReminder() {
+    public void lockedRunsSplitAtEveryNewDayEvenWithoutReminders() {
         Plan plan = examWeek();
         List<PlanItems.Item> merged = PlanItems.of(plan, S);
-        assertEquals("one card for the whole run, then the meeting, the training and Tartarus", 4, merged.size());
-        assertEquals(S + 5, merged.get(0).lastSlot);
+        assertEquals("three story days, then the meeting, the training and Tartarus", 6, merged.size());
+        assertEquals(S + 1, merged.get(0).lastSlot);
 
         ReminderFixtures.with(plan, ReminderFixtures.exam(NOV_1, "五月病", false), ReminderFixtures.exam(NOV_1 + 1, "摩西", false));
         List<PlanItems.Item> split = PlanItems.of(plan, S);
-        assertEquals(5, split.size());
+        assertEquals(6, split.size());
         assertEquals(S, split.get(0).slot);
         assertEquals(S + 1, split.get(0).lastSlot);
         assertEquals(List.of("exam.11-01"), ids(split.get(0)));
         assertEquals(List.of("exam.11-02"), ids(split.get(1)));
-        assertEquals("the day after without a reminder joins the run before it", S + 5, split.get(1).lastSlot);
-        assertEquals("meet:emperor", split.get(2).step.action);
-        assertTrue(split.get(2).reminders.isEmpty());
+        assertEquals(S + 3, split.get(1).lastSlot);
+        assertEquals("the day without an answer still has its own card", S + 4, split.get(2).slot);
+        assertEquals(S + 5, split.get(2).lastSlot);
+        assertEquals("meet:emperor", split.get(3).step.action);
+        assertTrue(split.get(3).reminders.isEmpty());
     }
 
     /** Spec test 7: the class answer rides on the daytime card only, not on the evening's. */

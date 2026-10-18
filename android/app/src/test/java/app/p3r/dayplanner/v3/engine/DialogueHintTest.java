@@ -91,7 +91,7 @@ public class DialogueHintTest {
         // The rank-up into RANK 4 is that scene.
         DialogueHint.Answers up = DialogueHint.forMeeting(pack, null, hermit, pred(3, 4, false), day);
         assertFalse(up.conditional);
-        assertEquals("参考回答：我们结婚吧（3）", DialogueHint.appLine(up));
+        assertEquals("回答：我们结婚吧（3）", DialogueHint.appLine(up));
         assertEquals("答：我们结婚吧", DialogueHint.widgetLine(up));
         // No rank-up for certain, MAX already, no prediction or rules: nothing.
         assertSame(DialogueHint.Answers.NONE, DialogueHint.forMeeting(pack, null, hermit, pred(4, 4, true), day));
@@ -290,7 +290,7 @@ public class DialogueHintTest {
         return null;
     }
 
-    /** The choices of an app line, counts left out: 「参考回答：A（1） / B；…」 → [A, B]. */
+    /** The choices of an app line, counts left out: 「回答：A（1） / B；…」 → [A, B]. */
     private static List<String> choicesOf(String line) {
         String body = line.substring(line.indexOf('：') + 1);
         int caution = body.indexOf('；');
@@ -313,7 +313,7 @@ public class DialogueHintTest {
         return s;
     }
 
-    /** Widget lines follow docs/GLOSSARY_zh.md: 「答：」 (never 「参考回答：」), full-width punctuation, no "…". */
+    /** Widget lines follow docs/GLOSSARY_zh.md: 「答：」 (never 「回答：」), full-width punctuation, no "…". */
     @Test
     public void widgetLinesFollowTheGlossary() {
         Pattern halfWidth = Pattern.compile("[\\u4e00-\\u9fff」）][?!]|[?!][\\u4e00-\\u9fff「（]|\\.\\.\\.");
@@ -325,7 +325,7 @@ public class DialogueHintTest {
                     String w = DialogueHint.widgetLine(a);
                     if (w == null) continue;
                     lines++;
-                    assertFalse(w, w.contains("参考回答"));
+                    assertFalse(w, w.contains(DialogueHint.PREFIX));
                     assertTrue(w, w.startsWith(conditional ? DialogueHint.CONDITIONAL_PREFIX : DialogueHint.WIDGET_PREFIX));
                     assertFalse(w, halfWidth.matcher(w).find());
                     if (w.contains("…")) {
@@ -348,7 +348,7 @@ public class DialogueHintTest {
         static final Pattern OPTION_NOTE = Pattern.compile("（[^（）]*(选项|选择|前面)[^（）]*）");
         static final Pattern LABEL = Pattern.compile("^[^：:/（]{0,10}(选择|对话)[^：:/（]{0,4}[：:]\\s*");
         static final String FALLBACK = "选能让对方高兴的回答（♪ 越多越好）";
-        static final String PREFIX = "参考回答：";
+        static final String PREFIX = "回答：";
         static final String FRIEND_CAUTION = "只想做朋友的话，别选表白的回答";
         static final String FRIEND_FALLBACK = FALLBACK + "；" + FRIEND_CAUTION;
 

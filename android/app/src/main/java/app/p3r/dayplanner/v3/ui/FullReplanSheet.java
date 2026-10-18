@@ -41,7 +41,7 @@ final class FullReplanSheet {
         Context c = host.activity();
         LinearLayout sheet = Ui.column(c);
         Ui.pad(sheet, 20, 12, 20, 20);
-        sheet.addView(Ui.title(c, TITLE + "？"));
+        sheet.addView(SheetChrome.title(c, TITLE + "？"));
         // The date in the numeral face, as everywhere else (规划说明 「排到1月31日」, 我的 「10月22日」).
         TextView body = Ui.mixed(c, body(d.rules), 15, Ui.col(c, R.color.p3r_ice_100), false);
         body.setLineSpacing(0f, 1.3f);

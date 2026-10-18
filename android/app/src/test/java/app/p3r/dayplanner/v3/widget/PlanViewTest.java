@@ -7,6 +7,8 @@ import java.util.List;
 import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
+import app.p3r.dayplanner.v3.service.StoryDisplay;
+import app.p3r.dayplanner.v3.store.TestRules;
 import app.p3r.dayplanner.v3.ui.ReminderFixtures;
 
 import static org.junit.Assert.assertEquals;
@@ -21,6 +23,36 @@ public class PlanViewTest {
 
     private static PlannerApi.Snapshot snapshot(FakePlannerApi fake) {
         return fake.snapshot();
+    }
+
+    @Test
+    public void pendingStoryDaysPrecedeTheCanonicalActionAndUseDisplayOnlyAcknowledgement() {
+        FakePlannerApi fake = new FakePlannerApi();
+        PlannerApi.Snapshot snap = snapshot(fake);
+        snap.observed.slot = S + 8;
+        Rules rules = TestRules.create();
+        rules.lockReasonsZh.put("school_trip", "修学旅行");
+        for (int day = Rules.dayOf(S + 4); day <= Rules.dayOf(S + 7); day++) {
+            rules.days[day].dayLock = "school_trip";
+            rules.days[day].eveLock = "school_trip";
+            rules.days[day].noteZh = "这天去修学旅行";
+        }
+        snap.storyDisplay = StoryDisplay.create(rules, snap.profile, "pending-trip", S + 4, S + 7, S + 4);
+        PlanView current = PlanView.resolve(snap, -1, null, NOW);
+        assertEquals(S + 4, current.shownSlot());
+        assertEquals(S + 5, current.item.lastSlot);
+        assertEquals(PlanView.Done.STORY_CONTINUE, current.done);
+        CardModel card = current.toCard(rules);
+        assertEquals("修学旅行", card.title);
+        assertEquals("这天去修学旅行", card.cue);
+        assertEquals(StoryDisplay.CONTINUE_LABEL, card.doneLabel);
+        assertEquals("今天", card.progressLabel);
+        assertEquals("browsing tomorrow cannot acknowledge it early", PlanView.Done.NEXT,
+                PlanView.resolve(snap, S + 6, null, NOW).done);
+        assertEquals("the real actionable slot is never moved backwards", S + 8, snap.observed.slot);
+        snap.plan = null;
+        assertEquals("story information remains available while a forecast is missing", PlanView.Mode.ITEM,
+                PlanView.resolve(snap, -1, null, NOW).mode);
     }
 
     @Test
@@ -366,12 +398,12 @@ public class PlanViewTest {
         assertEquals("这段时间不能自由行动", locked.cue);
         assertEquals("下一项：这段时间不能自由行动，不用记录，看之后要做的安排", locked.doneDescription);
 
-        // A run that spans days says until when.
+        // A run that spans days keeps one card per calendar day.
         fake.plan.steps.set(8, FakePlannerApi.step(S + 8, "locked:story", "locked", "剧情事件", "剧情安排，不能自由行动", null, null));
         fake.observeAt("locked:story");
         CardModel run = PlanView.resolve(snapshot(fake), -1, null, NOW).toCard(null);
         assertEquals("剧情事件", run.title);
-        assertEquals("到11月5日都不能自由行动", run.cue);
+        assertEquals("这段时间不能自由行动", run.cue);
         // A specific engine note is kept instead of the generic line.
         fake.plan.steps.get(5).subtitleZh = "白色的花交给顺平的话，这天会有剧情";
         fake.observeAt("locked:full_moon");
@@ -573,7 +605,7 @@ public class PlanViewTest {
         assertEquals(1, up.answers.size());
         assertEquals("答：我会帮你的 / 这样的规矩没有意义", up.answers.get(0).text());
         assertFalse(up.answers.get(0).conditional);
-        assertTrue(up.taskDescription, up.taskDescription.contains("参考回答：我会帮你的 / 这样的规矩没有意义"));
+        assertTrue(up.taskDescription, up.taskDescription.contains("回答：我会帮你的 / 这样的规矩没有意义"));
 
         emperor.predicted.rankTo = 6;
         emperor.predicted.rankUp = false;

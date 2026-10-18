@@ -66,7 +66,7 @@ public final class EventRow {
      * (the side steps done, the RANK after a meeting). They are not part of the command, so
      * {@link #commandSha256} leaves them out.
      */
-    private static final String[] RESOLVED_KEYS = {"side", "sideStepIds", "rankAfter"};
+    private static final String[] RESOLVED_KEYS = {"side", "sideStepIds", "rankAfter", "activityAffinityLink", "activityAffinityPts"};
 
     /**
      * SHA-256 of the command an observed-row payload came from: the canonical payload without the

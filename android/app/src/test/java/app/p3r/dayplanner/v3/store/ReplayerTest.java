@@ -383,7 +383,8 @@ public class ReplayerTest {
         int day = TestRules.slot(TestRules.MAY_12, false);
         OutcomeRecord request = OutcomeRecord.of(rules, day, "meet:emperor", Outcome.of(Outcome.Code.AS_PREDICTED));
         String json = Canonical.of(request.toJson());
-        String stored = Canonical.of(request.withResolved(rules, List.of("unlock:magician:0"), 7).toJson());
+        String stored = Canonical.of(request.withResolved(rules, List.of("unlock:magician:0"), 7)
+                .withActivityAffinity("priestess", 1).toJson());
         assertTrue(stored.contains("\"side\":[\"unlock:magician:0\"]"));
         assertTrue(stored.contains("\"sideStepIds\":{\"unlock:magician:0\":\"magician.intro\"}"));
         assertTrue(stored.contains("\"rankAfter\":7"));
@@ -396,6 +397,9 @@ public class ReplayerTest {
         OutcomeRecord back = OutcomeRecord.fromJson(new JSONObject(stored));
         assertEquals(List.of("unlock:magician:0"), back.side);
         assertEquals(7, back.rankAfter);
+        assertEquals("priestess", back.activityAffinityLink);
+        assertEquals(1, back.activityAffinityPts);
+        assertEquals(0, OutcomeRecord.fromJson(new JSONObject(json)).activityAffinityPts);
         assertEquals(null, OutcomeRecord.fromJson(new JSONObject(json)).side);
         TowerRecord tower = towerRecord(TestRules.slot(TestRules.MAY_12, true), 20, false, 0);
         tower.sideKeys = List.of("unlock:magician:0");

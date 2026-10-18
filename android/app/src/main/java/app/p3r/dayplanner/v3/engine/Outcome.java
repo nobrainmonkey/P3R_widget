@@ -48,6 +48,9 @@ public final class Outcome {
      * JSON key {@code sideKeys}, written only when not null.
      */
     public java.util.List<String> sideKeys;
+    /** Replay-only resolved dorm affinity. Missing in legacy events means zero, never a new estimate. */
+    public String activityAffinityLink;
+    public int activityAffinityPts;
 
     public static Outcome of(Code c) { Outcome o = new Outcome(); o.code = c; return o; }
 

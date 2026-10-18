@@ -25,18 +25,25 @@ public final class Forecast {
         boolean cashTouched = false;
         for (int at = base.slot; at < slot; at++) {
             Plan.Step step = plan.at(at);
-            if (step == null || !step.productive()) {
+            if (step == null) {
                 continue;
             }
+            // Conditional SMS records are never guaranteed future actions, even in an old or
+            // externally supplied plan; none of their predicted values or side steps are followed.
+            if (step.action != null && step.action.startsWith("invite:")) continue;
+            if (!step.productive() && !"locked".equals(step.kind)) continue;
+            // Mandatory story gains can cross a visible level while the slot is locked.
+            // They carry no player action, purchase or side-step progress to prefill.
+            for (int i = 0; i < Math.min(3, rules.stats.length); i++) {
+                int lv = step.predicted.statLvAfter[i];
+                if (lv <= 6 && lv > rules.stats[i].levelFor(s.statPts[i])) {
+                    s.statPts[i] = rules.stats[i].thresholds[lv];
+                }
+            }
+            if (!step.productive()) continue;
             if (step.predicted.cashDelta != 0) {
                 s.cash = Math.max(0, s.cash + step.predicted.cashDelta);
                 cashTouched = true;
-            }
-            for (int i = 0; i < Math.min(3, rules.stats.length); i++) {
-                int lv = step.predicted.statLvAfter[i];
-                if (lv > rules.stats[i].levelFor(s.statPts[i])) {
-                    s.statPts[i] = rules.stats[i].thresholds[lv];
-                }
             }
             applySide(rules, s, step, at);
             applyAction(rules, s, step, at);

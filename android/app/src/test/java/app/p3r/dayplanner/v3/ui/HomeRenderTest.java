@@ -15,6 +15,7 @@ import org.robolectric.annotation.GraphicsMode;
 
 import app.p3r.dayplanner.v3.Intents;
 import app.p3r.dayplanner.v3.model.Rules;
+import app.p3r.dayplanner.v3.service.StoryDisplay;
 
 /** Renders every 今天/日程/社群/我的 state and sub-page into $p3r.qa.dir/v3/ui. */
 @RunWith(RobolectricTestRunner.class)
@@ -96,6 +97,36 @@ public class HomeRenderTest extends UiTestBase {
         HomeActivity a = home();
         assertTrue(Shots.has(a, "继续"));
         Shots.shot(a, "home_today_locked");
+    }
+
+    @Test
+    public void pendingStoryDaysKeepTheirDatesAndContinueWithoutRecordingAnAction() {
+        int from = api.snap.observed.slot - 4;
+        int actionable = api.snap.observed.slot;
+        for (int day = Rules.dayOf(from); day <= Rules.dayOf(actionable - 1); day++) {
+            api.rules.days[day].dayLock = "school_trip";
+            api.rules.days[day].eveLock = "school_trip";
+            api.rules.days[day].noteZh = "这天去修学旅行，不能自由行动";
+        }
+        api.rules.lockReasonsZh.put("school_trip", "修学旅行");
+        api.snap.storyDisplay = StoryDisplay.create(api.rules, api.snap.profile, "record-before-trip", from, actionable - 1, from);
+        long revision = api.snap.stateRevision;
+        HomeActivity a = home();
+        assertEquals(from, a.data().displaySlot());
+        assertTrue(Shots.has(a, "修学旅行"));
+        assertTrue(Shots.has(a, StoryDisplay.CONTINUE_LABEL));
+        assertTrue(Shots.has(a, "这天去修学旅行，不能自由行动。游戏里过完后点「剧情已过，继续」。"));
+        Shots.shot(a, "home_today_pending_story");
+        Shots.click(a, StoryDisplay.CONTINUE_LABEL);
+        assertEquals(from + 2, a.data().displaySlot());
+        assertEquals(actionable, api.snap.observed.slot);
+        assertEquals(revision, api.snap.stateRevision);
+        assertTrue("the story button never creates a gameplay write", api.calls.isEmpty());
+        Shots.click(a, StoryDisplay.CONTINUE_LABEL);
+        assertEquals(actionable, a.data().displaySlot());
+        assertTrue(Shots.has(a, "完成 ✓"));
+        assertEquals(2, api.acknowledgedStorySlots.size());
+        assertTrue(api.calls.isEmpty());
     }
 
     @Test

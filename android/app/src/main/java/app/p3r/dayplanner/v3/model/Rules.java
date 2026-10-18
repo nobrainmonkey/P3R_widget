@@ -150,6 +150,12 @@ public final class Rules {
         /** Tartarus entry possible this evening (ignoring the evening lock, which is checked separately). */
         public boolean tartarus;
         public String noteZh;
+        /**
+         * Guaranteed story stat points, indexed like {@link Rules#stats}, awarded only when this
+         * day's daytime slot finishes. Empty means none. Never apply them on entering the day,
+         * after the evening slot, or again when observed stats already start in the evening.
+         */
+        public int[] automaticStatGain = new int[0];
 
         public int month() { return Integer.parseInt(md.substring(0, 2)); }
         public int dayOfMonth() { return Integer.parseInt(md.substring(3, 5)); }
@@ -173,7 +179,7 @@ public final class Rules {
         public String locationZh;
         /** Days with an ordinary-meeting (O) cell. */
         public BitSet avail = new BitSet();
-        /** Days with a holiday invitation (D cell); also meeting days. */
+        /** Days with a possible holiday SMS (D cell); not guaranteed ordinary meeting days. */
         public BitSet invite = new BitSet();
         /** threshold[r] = points needed while at rank r-1 to reach rank r. Length 11. */
         public int[] threshold = new int[11];
@@ -204,7 +210,7 @@ public final class Rules {
         public List<String> src = new ArrayList<>();
 
         /** True if a meeting is possible on this day (O or D cell). */
-        public boolean meetsOn(int day) { return avail.get(day) || invite.get(day); }
+        public boolean meetsOn(int day) { return avail.get(day); }
     }
 
     /** Source-bound dialogue guidance; common applies only where a selected route has no override. */
@@ -312,6 +318,10 @@ public final class Rules {
         public String dormPartnerZh;
         /** Gardening needs a planted crop; planning it requires the player's explicit preparation option. */
         public boolean requiresPlantedCrop;
+        /** Established Social Link receiving raw dorm affinity, or -1 when the activity has none. */
+        public int affinityLink = -1;
+        /** Raw points, independent of Persona/Charm multipliers; capped at the current rank's gap. */
+        public int affinityPts;
         public int cost;
         /** Points per stat index (length 3). */
         public int[] gain = new int[3];
@@ -520,6 +530,53 @@ public final class Rules {
         public List<String> src = new ArrayList<>();
     }
 
+    /** A searchable Elizabeth request reference; consulting it never records acceptance or completion. */
+    public static final class RequestTip {
+        public int number;
+        public String titleZh;
+        public List<String> aliases = new ArrayList<>();
+        /** Ordered instructions, conditions, rewards and any editorial translation caveat. */
+        public String detailZh;
+        /** Earliest published availability; prerequisites still apply. */
+        public int fromDay;
+        /** Actual request deadline, or -1 when none is listed. */
+        public int untilDay = -1;
+        public String conf;
+        public List<String> src = new ArrayList<>();
+    }
+
+    /** Searchable combat reference; its availability date is a catalogue period, not a scheduled fight. */
+    public static final class CombatTip {
+        public String id;
+        /** guardian, full_moon, monad, story, final or optional. */
+        public String kind;
+        public String titleZh;
+        public String shortZh;
+        public String detailZh;
+        /** Direct battle instructions, without a prose resistance table or provenance notes. */
+        public String tacticsZh;
+        /** door or passage for Monad encounters, empty otherwise. */
+        public String encounterType = "";
+        /** Consecutive battle number within a fixed Monad passage; zero outside those battles. */
+        public int battleOrder;
+        /** One row per enemy type or boss phase; empty for a noninteractive story reference. */
+        public List<CombatEnemy> enemies = new ArrayList<>();
+        public List<String> aliases = new ArrayList<>();
+        public int fromDay;
+        /** Fixed tower floor; zero when the encounter has no fixed floor. */
+        public int floor;
+        public String conf;
+        public List<String> src = new ArrayList<>();
+    }
+
+    /** Damage affinities in Slash/Strike/Pierce/Fire/Ice/Elec/Wind/Light/Dark order. */
+    public static final class CombatEnemy {
+        public String nameZh;
+        public int count = 1;
+        /** Original symbols: w/z weak, v double without knockdown, s/t resist, n/r/d and secondary-effect *. */
+        public String[] affinities = new String[0];
+    }
+
     /** Missing people who went missing on the same day with the same limit ({@code reminders.rescueGroups}). */
     public static final class RescueGroup {
         /** "rescue.MM-DD" of {@link #fromDay}. */
@@ -539,6 +596,10 @@ public final class Rules {
     public static final class Reminders {
         /** Static lines, sorted by (day, slot, id). */
         public List<Reminder> items = new ArrayList<>();
+        /** Independent numbered catalogue, available without a forecast or completed-request state. */
+        public List<RequestTip> requestTips = new ArrayList<>();
+        /** Tower guardians, Monad encounters, operation bosses and the finale. */
+        public List<CombatTip> combatTips = new ArrayList<>();
         /** School days on which class makes the protagonist drowsy (stay awake or close the eyes), ascending. */
         public int[] dozeDays = new int[0];
         /** Academics points for staying awake, Courage points for closing the eyes. */
@@ -554,7 +615,7 @@ public final class Rules {
         public List<RescueGroup> rescueGroups = new ArrayList<>();
 
         public boolean isEmpty() {
-            return items.isEmpty() && dozeDays.length == 0 && nurseCourage == 0 && rescueGroups.isEmpty();
+            return items.isEmpty() && requestTips.isEmpty() && combatTips.isEmpty() && dozeDays.length == 0 && nurseCourage == 0 && rescueGroups.isEmpty();
         }
     }
 

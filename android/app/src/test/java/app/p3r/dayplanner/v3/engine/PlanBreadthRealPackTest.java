@@ -30,7 +30,7 @@ import java.util.List;
  * order; with the same goals, not beaten by the 尽量多 MAX plan on links unlocked, links at RANK 5 or
  * above and the rank sum all at once; fewer links unlocked only with a 尽量都体验 objective at least
  * the 尽量多 MAX plan's; at most two more wasted daytimes; a 尽量都体验 score at least the 尽量多 MAX
- * plan's. On top of that (spec §8.2):
+ * plan's; at least as many links at RANK 5 or above. On top of that (spec §8.2):
  * <ul>
  *   <li>new game 4/21 (no Persona; every 羁绊剧情 track, the default of a new profile; Persona for
  *       the goals only): breadth unlocks the same links and brings at most one link fewer to MAX
@@ -347,15 +347,15 @@ public class PlanBreadthRealPackTest {
 
     /**
      * Reviewed MAX-style plans, with enough budget to make the outcome deterministic. Dated study
-     * and explicit dorm goals intentionally change the pre-3.3 routes; capture fingerprints and ids
+     * and dated stat demand intentionally change older routes; capture fingerprints and ids
      * so later changes still need an explicit review instead of silently skipping the check.
      */
     @Test
     public void maxStyleMatchesTheReviewedPlans() {
         Object[][] golden = {
-                {"新游戏", new Profile(), newGame(dayOf(4, 21)), "d4a4ccffe32f662c", GOLDEN_IDS[0]},
-                {"中期 10月22日", new Profile(), midGameState(), "1db859c1e75df79c", GOLDEN_IDS[1]},
-                {"中期 10月22日 · 必须：皇帝 · 想要：女教皇", midGoals(), midGameState(), "877ab0a115659f88", GOLDEN_IDS[2]}};
+                {"新游戏", new Profile(), newGame(dayOf(4, 21)), "9404248a7b09ab52", GOLDEN_IDS[0]},
+                {"中期 10月22日", new Profile(), midGameState(), "4f85b2bfb015d567", GOLDEN_IDS[1]},
+                {"中期 10月22日 · 必须：皇帝 · 想要：女教皇", midGoals(), midGameState(), "6f57d7caaea124be", GOLDEN_IDS[2]}};
         boolean samePack = GOLDEN_RULES_VERSION.equals(rules.version);
         List<String> ids = new ArrayList<>();
         List<String> mismatches = new ArrayList<>();
@@ -384,14 +384,18 @@ public class PlanBreadthRealPackTest {
 
     /**
      * {@link Rules#version} of the pack the golden plan ids ({@link #GOLDEN_IDS}) were recorded on. They
-     * were refreshed for 3.3.0 after reviewing dated study, finite dorm milestones, planted-crop
-     * permission, explicit NONE defaults, rescue margins, menu discovery, and the existing
-     * goal/coverage/cash invariants. Separate opt-in tests cover characteristic milestones.
+     * were refreshed for 3.4.0 after reviewing O-only meeting calendars, dated stat demand,
+     * compulsory summer points, finite cash/tower utility, useful-note financing, discrete Charm
+     * meeting savings, eight calendar corrections and conservative dorm affinity. All three
+     * plans replay validator-clean, fund every action and rescue every relevant missing person;
+     * the new game opens Empress on 11/21 and the mid-game MUST Emperor still reaches MAX.
+     * Existing goal/coverage/rescue/cash quality bounds are unchanged; focused tests cover free
+     * capacity allocation and conditional invitations. Separate opt-in tests cover characteristic milestones.
      * MAX-style ids still omit style.
      */
-    private static final String GOLDEN_RULES_VERSION = "3.3.0|30aef29ce462";
+    private static final String GOLDEN_RULES_VERSION = "3.4.0|06843d87d8ea";
     /** Plan ids of the three golden 「尽量多 MAX」 plans on {@link #GOLDEN_RULES_VERSION}. */
-    private static final String[] GOLDEN_IDS = {"dd8759b4a234d213", "9e40a8e612474c79", "b663634dfa64fd04"};
+    private static final String[] GOLDEN_IDS = {"ae7d81b8ee9d3b08", "58b552d7f1b9cc77", "f4ac259f60434e16"};
 
     /** FNV-1a 64 over "slot|action|side…" per step: the plan's actions, independent of the pack version. */
     static String fingerprint(Plan plan) {
@@ -511,6 +515,7 @@ public class PlanBreadthRealPackTest {
         int goals = compareGoals(profile, b.endRank, m.endRank);
         if (goals < 0) return "goals below 尽量多 MAX";
         if (goals > 0) return null; // a goal ends higher: strict goal priority comes first
+        if (b.atLeast5 < m.atLeast5) return "RANK 5 count below 尽量多 MAX";
         if (m.unlocked >= b.unlocked && m.atLeast5 >= b.atLeast5 && m.rankSum >= b.rankSum
                 && (m.unlocked > b.unlocked || m.atLeast5 > b.atLeast5 || m.rankSum > b.rankSum)) {
             return "dominated by 尽量多 MAX";

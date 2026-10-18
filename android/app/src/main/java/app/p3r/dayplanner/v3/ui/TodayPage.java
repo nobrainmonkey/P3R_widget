@@ -19,6 +19,7 @@ import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
+import app.p3r.dayplanner.v3.service.StoryDisplay;
 
 /**
  * 今天 tab: date plate, return banner, replanning status, resource strip, the hero card for the
@@ -86,9 +87,9 @@ final class TodayPage {
         }
         SimState obs = d.observed();
         Rules rules = d.rules;
-        boolean finished = Slots.finished(rules, obs);
+        boolean finished = Slots.finished(rules, obs) && d.snap.storyDisplay == null;
         DatePlate plate = new DatePlate(c, true);
-        plate.bind(rules, finished ? rules.lastSlot() : obs.slot);
+        plate.bind(rules, finished ? rules.lastSlot() : d.displaySlot());
         LinearLayout.LayoutParams plateParams = Ui.matchWrap();
         plateParams.topMargin = Ui.dp(c, 8);
         column.addView(plate, plateParams);
@@ -373,7 +374,11 @@ final class TodayPage {
         card.addView(title, spaced(10));
         String subtitle = SlotRows.subtitle(step);
         if (kind == StepKind.LOCKED) {
-            card.addView(Ui.mixed(c, lockedNote(step), 14, Ui.col(c, R.color.p3r_ink_muted), false), spaced(4));
+            String note = lockedNote(step);
+            if (d.snap.storyDisplay != null && d.snap.storyDisplay.cursorSlot == step.slot) {
+                note = note.replace("点「继续」", "点「" + StoryDisplay.CONTINUE_LABEL + "」");
+            }
+            card.addView(Ui.mixed(c, note, 14, Ui.col(c, R.color.p3r_ink_muted), false), spaced(4));
         } else if (!subtitle.isEmpty()) {
             LinearLayout subRow = Ui.row(c);
             TextView sub = Ui.mixed(c, subtitle, 20, Ui.col(c, R.color.p3r_cyan_400), true);
@@ -475,7 +480,9 @@ final class TodayPage {
         LinearLayout row = Ui.row(c);
         row.setBaselineAligned(false);
         if (kind == StepKind.LOCKED) {
-            TextView go = Ui.primary(c, "继续");
+            boolean pendingStory = host.data().snap.storyDisplay != null
+                    && host.data().snap.storyDisplay.cursorSlot == step.slot;
+            TextView go = Ui.primary(c, pendingStory ? StoryDisplay.CONTINUE_LABEL : "继续");
             go.setContentDescription("剧情结束，继续到下一个时段");
             go.setOnClickListener(v -> host.commitDirect(step));
             row.addView(go, Ui.weight(1));
@@ -522,7 +529,7 @@ final class TodayPage {
     // ------------------------------------------------------------------ upcoming
 
     private View upcoming(UiData d) {
-        Plan plan = d.plan();
+        Plan plan = d.displayPlan();
         Plan.Step current = d.current();
         if (plan == null || current == null) {
             return null;

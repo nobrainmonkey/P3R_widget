@@ -566,6 +566,8 @@ final class Planner {
          * 「尽量都体验」 is never a worse plan than 「尽量多 MAX」 on what it promises (DESIGN §20): the
          * 「尽量多 MAX」 plan of the same start ({@link #maxPlan}) does not beat {@code c} on links
          * unlocked, links at RANK 5 or above and the rank sum all at once (at least one strictly);
+         * {@code c} also keeps at least as many links at RANK 5 or above, so spreading meetings over
+         * more unlocks does not sacrifice the middle of their stories;
          * {@code c} unlocks fewer links than it only when the 「尽量都体验」 objective itself (J, before
          * the waste margin) scores {@code c} at least as high, since the style unlocks every link first
          * (「先把每个社群都解锁」); and {@code c} wastes at most {@link #BREADTH_WASTE_SLACK} more daytimes
@@ -586,6 +588,7 @@ final class Planner {
             for (int l = 0; l < c.linkRanks.length; l++) {
                 if (x.linkRanks[l] >= 10 && c.linkRanks[l] == 0) return false;
             }
+            if (c.rank5 < x.rank5) return false;
             boolean dominated = x.unlocked >= c.unlocked && x.rank5 >= c.rank5 && x.rankSum >= c.rankSum
                     && (x.unlocked > c.unlocked || x.rank5 > c.rank5 || x.rankSum > c.rankSum);
             boolean fewerUnlocked = c.unlocked < x.unlocked && c.j < x.j - EPS;
@@ -1080,6 +1083,13 @@ final class Planner {
         List<Plan.Step> out = new ArrayList<>(n);
         Kernel.Effect fx = new Kernel.Effect();
         for (int i : order) out.add(describe(m, labels, st, codes[i], fx));
+        // A D cell is only a possible SMS sender. Keep these manual-record choices separate
+        // from scored/rolled-out actions so future plans never depend on an unreceived message.
+        for (int l = 0; l < m.t.nLinks; l++) {
+            if (Kernel.inviteCandidate(m, st, l)) {
+                out.add(describe(m, labels, st, Kernel.code(Kernel.T_INVITE, l, 0), fx));
+            }
+        }
         return out;
     }
 
@@ -1155,8 +1165,8 @@ final class Planner {
                 String reason = t.lock[slot] != null ? t.lock[slot] : "out_of_range";
                 step.action = Action.locked(reason).key(rules);
                 labels.describeLocked(step, reason);
-                step.predicted.cashAfter = st.cash;
-                Kernel.apply(m, st, Kernel.FREE, null);
+                Kernel.apply(m, st, Kernel.FREE, fx);
+                step.predicted = Simulator.predicted(fx);
                 sum.lockedSlots++;
             } else {
                 step = describe(m, labels, st, code, fx);

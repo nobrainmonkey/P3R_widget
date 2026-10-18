@@ -51,9 +51,14 @@ public enum StepKind {
         if (action.startsWith("episode:")) {
             return EPISODE;
         }
+        if (action.startsWith("invite:")) {
+            return SOCIAL_MEET;
+        }
         switch (step.kind == null ? "" : step.kind) {
             case "social":
                 return step.predicted != null && step.predicted.rankUp ? SOCIAL_RANK_UP : SOCIAL_MEET;
+            case "invite":
+                return SOCIAL_MEET;
             case "note":
                 return NOTE;
             case "episode":

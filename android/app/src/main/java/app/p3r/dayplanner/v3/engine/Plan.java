@@ -14,7 +14,7 @@ import java.util.List;
  */
 public final class Plan {
     /** Bump when planning semantics change without a rule-pack change; old cached plans replan. */
-    public static final int CURRENT_POLICY_VERSION = 1;
+    public static final int CURRENT_POLICY_VERSION = 2;
 
     public String planId = "";
     public long stateRevision;
@@ -137,7 +137,7 @@ public final class Plan {
         public int slot;
         /** {@link Action#key} form. */
         public String action = "free";
-        /** Coarse category for icons: social | unlock | stat | dorm | job | tower | note | episode | locked | free. */
+        /** Coarse category for icons: social | invite | unlock | stat | dorm | job | tower | note | episode | locked | free. */
         public String kind = "free";
         /** Link/activity id (no index) for display, or null. */
         public String entity;

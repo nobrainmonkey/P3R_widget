@@ -45,9 +45,7 @@ final class Labels {
      * paying later would cost the link its target; once a fee is due within 14 days and affordable,
      * paid training and 结缘网站的字条 leave the fee plus the reserve; on a fee day they leave the reserve.
      */
-    static final String FEE_NOTE = "需要付钱解锁的社群：交完钱至少还留 " + yen(Kernel.FEE_RESERVE)
-            + "，只有晚交会赶不上升级目标时才会少于这个数；14 天内要交、钱也够交时，花钱提升能力和买结缘网站的字条"
-            + "不会动用要交的钱和这 " + yen(Kernel.FEE_RESERVE) + "，交钱当天也不会让手上少于 " + yen(Kernel.FEE_RESERVE);
+    static final String FEE_NOTE = "优先留足社群解锁费用，通常另留 " + yen(Kernel.FEE_RESERVE) + "。";
     /** The result-sheet answer for a story hold the player reports (outcome NOT_DONE, reason "hold"). */
     static final String HOLD_ANSWER = "剧情原因暂时升不了";
 
@@ -194,6 +192,9 @@ final class Labels {
             case Kernel.T_MEET:
                 describeMeet(step, st, target, fx);
                 break;
+            case Kernel.T_INVITE:
+                describeInvite(step, target);
+                break;
             case Kernel.T_UNLOCK:
                 describeUnlock(step, st, target, Kernel.step(code), fx);
                 break;
@@ -274,6 +275,28 @@ final class Labels {
             step.subtitleZh = "这段时间不能自由行动";
             step.detailZh = note;
         }
+        if (d != null && !Rules.isEvening(step.slot)) {
+            List<String> gains = new ArrayList<>();
+            for (int s = 0; s < Math.min(rules.stats.length, d.automaticStatGain.length); s++) {
+                if (d.automaticStatGain[s] > 0) gains.add(rules.stats[s].zh + " +" + d.automaticStatGain[s]);
+            }
+            if (!gains.isEmpty()) {
+                String automatic = "剧情自动获得：" + String.join("、", gains);
+                step.subtitleZh = joinLines(step.subtitleZh, automatic);
+                step.detailZh = joinLines(step.detailZh, automatic + "。");
+            }
+        }
+    }
+
+    private void describeInvite(Plan.Step step, int l) {
+        Rules.Link link = rules.links[l];
+        step.kind = "invite";
+        step.entity = link.id;
+        step.titleZh = linkLabel(l);
+        step.locationZh = "应邀外出";
+        step.subtitleZh = INVITE + " · 收到短信才选 · 只加好感";
+        step.whyZh = "收到" + link.personZh + "的短信后赴约";
+        step.detailZh = "只加好感，不直接升级。游戏提示下次就能升级时，记录时勾选对应选项。";
     }
 
     private void describeMeet(Plan.Step step, SimState st, int l, Kernel.Effect fx) {
@@ -484,6 +507,8 @@ final class Labels {
         step.titleZh = a.zh;
         step.locationZh = a.locationZh;
         String gains = gains(a, fx);
+        int affinity = Kernel.activityAffinityGain(rules, st, a);
+        if (affinity > 0) gains = dot(gains, rules.links[a.affinityLink].personZh + "好感 +" + affinity);
         if (a.dormActivity()) {
             step.kind = "dorm";
             int count = Math.max(0, st.used[act]);
@@ -508,7 +533,8 @@ final class Labels {
                             + a.dormPartnerZh + "的特性";
                 }
             } else {
-                step.whyZh = "特性所需次数已经够了，这次继续提升个人能力值";
+                step.whyZh = affinity > 0 ? "补足" + rules.links[a.affinityLink].personZh + "的社群好感"
+                        : "特性所需次数已经够了，这次继续提升个人能力值";
             }
         } else if (a.kind == Rules.ActivityKind.JOB) {
             step.kind = "job";
@@ -521,15 +547,15 @@ final class Labels {
         }
         step.detailZh = blank(a.noteZh) ? null : a.noteZh.trim();
         if (a.dormActivity()) step.detailZh = joinLines(step.detailZh,
-                "每次占用一个晚上；同一项目完成 3 次解锁特性，两个项目各完成 3 次强化特性。社群好感收益暂不计入。"
-                        + (a.requiresPlantedCrop ? "园艺要先种好作物；种子和准备费用未计入这次活动。" : "这次活动不另收费。"));
+                "每次占用一个晚上；同一项目完成 3 次解锁特性，两个项目各完成 3 次强化特性。"
+                        + (a.requiresPlantedCrop ? "园艺要先购买种苗、种好作物。" : "这次活动不另收费。"));
     }
 
     /** "魅力 +2（升到 Lv.3）、勇气 +1"; reaching the top level reads "（升到 MAX）". */
     private String gains(Rules.Activity a, Kernel.Effect fx) {
         StringBuilder sb = new StringBuilder();
         for (int s = 0; s < Math.min(3, a.gain.length); s++) {
-            if (a.gain[s] <= 0) continue;
+            if (a.gain[s] <= 0 || fx.lvBefore[s] >= 6) continue;
             if (sb.length() > 0) sb.append('、');
             sb.append(statName(s)).append(" +").append(a.gain[s]);
             if (fx.lvAfter[s] > fx.lvBefore[s]) sb.append("（升到 ").append(lvName(fx.lvAfter[s])).append('）');
@@ -570,16 +596,18 @@ final class Labels {
         if (h.shortfall() > 0) {
             int l = moneyGatedLink(st);
             if (l >= 0) return "攒钱：解锁" + arcana(l) + "社群要花钱";
-            return "攒钱，之后用来提升个人能力值";
+            if (st.cash < m.cashBuffer) return "补足你设置的现金保留额";
+            return "攒钱，给接下来的安排留够费用";
         }
-        if (!gains.isEmpty()) return "有收入，还能顺便提升" + statsOnly(a);
-        return "这个时段没有更好的安排，先赚点钱";
+        String usefulStats = statsOnly(st, a);
+        if (!usefulStats.isEmpty()) return "有收入，还能顺便提升" + usefulStats;
+        return "手动选择打工；当前没有需要补足的费用";
     }
 
-    private String statsOnly(Rules.Activity a) {
+    private String statsOnly(SimState st, Rules.Activity a) {
         StringBuilder sb = new StringBuilder();
         for (int s = 0; s < Math.min(3, a.gain.length); s++) {
-            if (a.gain[s] <= 0) continue;
+            if (a.gain[s] <= 0 || st.statPts[s] >= h.t.statCap[s]) continue;
             if (sb.length() > 0) sb.append('、');
             sb.append(statName(s));
         }
@@ -611,10 +639,9 @@ final class Labels {
     }
 
     /**
-     * What every line that sends the player to Tartarus on a limit evening adds: the evidence says the
-     * limit evening still counts (Rules.Rescue#toDay), but nobody has checked it in the game.
+     * The last-chance instruction for a rescue on its limit evening (Rules.Rescue#toDay).
      */
-    static final String LIMIT_EVENING_CAVEAT = "按游戏数据和攻略还来得及，但没在游戏里核对过";
+    static final String LIMIT_EVENING_CAVEAT = "最晚今晚完成救援";
     /** Who a summary note about a rescue without a link speaks of. */
     private static final String RESCUE_WHO = "失踪者";
 
@@ -805,22 +832,22 @@ final class Labels {
         int notesPlanned = 0;
         for (Plan.Step s : plan.steps) if (s.action != null && s.action.startsWith("note:")) notesPlanned++;
         if (notesPlanned > 0 && m.note != null) {
-            out.add("安排了 " + notesPlanned + " 次" + NOTE_NAME + "，每张按好感 +" + m.note.gain + " 估计");
+            out.add("安排了 " + notesPlanned + " 次" + NOTE_NAME + "，每张预计好感 +" + m.note.gain);
         }
         switch (p.effectivePersonaMode()) {
             case ALL:
-                out.add("按见面时都带着同阿尔卡那的人格面具估计，点数 ×1.51");
+                out.add("见面时带同阿尔卡那的人格面具，点数 ×1.51");
                 break;
             case GOALS:
-                if (p.hasAnyGoal()) out.add("按和目标社群见面时带着同阿尔卡那的人格面具估计，点数 ×1.51");
+                if (p.hasAnyGoal()) out.add("和目标社群见面时带同阿尔卡那的人格面具，点数 ×1.51");
                 break;
             default:
                 break;
         }
         if (p.hasAnyGoal() && p.goalBuffer) {
-            out.add("升级时间是估计值，「必须」「想要」目标已多留一次见面的余量");
+            out.add("「必须」「想要」目标每次升级已多留一次见面");
         } else {
-            out.add("升级时间按每次普通见面约 " + m.ordinaryGain + " 点好感（约 ♪♪）估计");
+            out.add("普通见面预计好感 +" + m.ordinaryGain + "（约 ♪♪）");
         }
     }
 

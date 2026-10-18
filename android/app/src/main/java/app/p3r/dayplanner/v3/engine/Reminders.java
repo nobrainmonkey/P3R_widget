@@ -20,25 +20,17 @@ import java.util.TreeMap;
 final class Reminders {
     private Reminders() {}
 
-    /** Added to the detail of every reminder that gives a stat (stats are not forecast, DESIGN §10.9). */
-    static final String STAT_NOTE = "这份加成不在安排的预计里，能力值升级后去「同步现状」更新一下，安排会更准。";
     /** Appended to a TV shopping detail when its price is above the forecast cash of that slot. */
     static final String CASH_SHORT = "按预计，这天的现金可能不够。";
     static final String DOZE_LABEL = "上课犯困";
     static final String NURSE_LABEL = "保健室";
     static final String RESCUE_LABEL = "失踪者";
-    /**
-     * The limit day's evening still counts by the evidence (game data Start/Limit days, aqiu's tested Reload
-     * walkthrough rescues on limit days; rules/build/REPORT.md, tartarus "rescue deadline"), but nobody has
-     * checked it in the game, so the copy never promises it without saying so ({@link Labels#LIMIT_EVENING_CAVEAT}).
-     */
-    static final String RESCUE_DETAIL = "在塔尔塔罗斯里找到失踪的人就能救出，还能拿到奖励。过了期限就救不出来了；期限当天的晚上"
-            + Labels.LIMIT_EVENING_CAVEAT + "。";
+    /** The limit day's evening is the last rescue opportunity. */
+    static final String RESCUE_DETAIL = "在塔尔塔罗斯找到失踪者并救出，可领取奖励。最晚在期限当天晚上救出，逾期无法救援。";
     static final String TOWER_DETAIL = "失踪的人在塔尔塔罗斯里，探索时找到就能救出，还能拿到奖励。";
     /** Added to {@link #TOWER_DETAIL} when the planned evening is the limit evening of a group it rescues. */
     static final String TOWER_LIMIT_NOTE = "这是期限当天的晚上：" + Labels.LIMIT_EVENING_CAVEAT + "。";
-    static final String DEADLINE_DETAIL = "过了期限还没去塔尔塔罗斯的话就救不出来了。期限当天的晚上" + Labels.LIMIT_EVENING_CAVEAT
-            + "，想救的话能早一天就早一天去。";
+    static final String DEADLINE_DETAIL = "最晚在期限当天晚上进入塔尔塔罗斯救出失踪者，逾期无法救援。";
     /** {@link #DEADLINE_DETAIL} when the line is shown on the limit day itself (a plan that starts that day). */
     static final String DEADLINE_TODAY_DETAIL = "过了今天就救不出来了。今晚是期限当天的晚上：" + Labels.LIMIT_EVENING_CAVEAT + "。";
     /** Visible stat level that is MAX. */
@@ -172,12 +164,12 @@ final class Reminders {
                 x.textZh = "上课犯困时别闭眼：" + x.gainZh;
                 x.shortZh = "犯困别闭眼：" + x.gainZh;
                 x.detailZh = "上课犯困时，撑住不闭眼能让学力 +" + data.dozeAcademics + "；学力 MAX 以后改成闭上眼，勇气 +"
-                        + data.dozeCourage + "。" + STAT_NOTE;
+                        + data.dozeCourage + "。";
             } else if (walk.lv(slot, courage.idx) < MAX_LV) {
                 x.gainZh = "勇气 +" + data.dozeCourage;
                 x.textZh = "上课犯困时闭上眼：" + x.gainZh;
                 x.shortZh = "犯困闭眼：" + x.gainZh;
-                x.detailZh = "学力已经 MAX，上课犯困时闭上眼，勇气 +" + data.dozeCourage + "。" + STAT_NOTE;
+                x.detailZh = "学力已经 MAX，上课犯困时闭上眼，勇气 +" + data.dozeCourage + "。";
             } else {
                 continue;
             }
@@ -222,7 +214,7 @@ final class Reminders {
             x.textZh = "放学后先去保健室：" + x.gainZh + "，不会消耗时间";
             x.shortZh = "保健室：" + x.gainZh;
             x.detailZh = "前一晚探索了塔尔塔罗斯或打了满月作战，放学后到 1 楼保健室喝药，勇气 +" + data.nurseCourage
-                    + "，不会消耗时间。" + STAT_NOTE;
+                    + "，不消耗时间。";
             x.slot = slot;
             x.priority = Plan.Reminder.DEADLINE;
             out.add(x);

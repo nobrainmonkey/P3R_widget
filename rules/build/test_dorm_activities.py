@@ -102,6 +102,25 @@ class DormActivitiesTest(unittest.TestCase):
                 self.assertFalse(self.activities[entry["id"]]["once"])
         self.assertEqual(3, self.evidence["milestones"]["perTrackCap"])
 
+    def test_only_eight_female_link_projects_receive_raw_affinity(self):
+        evidence = json.loads((ROOT / "rules/p3r/dorm_affinity_evidence.json").read_text())
+        expected = evidence["activities"]
+        self.assertEqual(8, len(expected))
+        self.assertEqual({"lovers", "priestess", "empress", "aeon"}, {v["link"] for v in expected.values()})
+        for ident, activity in self.activities.items():
+            with self.subTest(activity=ident):
+                if ident in expected:
+                    self.assertEqual(expected[ident]["link"], activity["affinityLink"])
+                    self.assertEqual(1, activity["affinityPts"])
+                    self.assertIn("ev_dorm_affinity", activity["src"])
+                    self.assertEqual("conflict", activity["conf"])
+                else:
+                    self.assertNotIn("affinityLink", activity)
+                    self.assertNotIn("affinityPts", activity)
+        self.assertFalse(evidence["policy"]["multipliers"])
+        self.assertFalse(evidence["policy"]["bankBeforeUnlock"])
+        self.assertTrue(evidence["policy"]["afterThirdCompletion"])
+
     def test_eight_stat_rewards_match_the_source_and_item_rewards_add_no_stats(self):
         start = self.page.html.index('id="dorm-hangouts"')
         end = self.page.html.index('id="learned-skills"', start)

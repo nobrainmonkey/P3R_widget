@@ -83,7 +83,7 @@ public class CardTextTest {
             String once = CardText.title(title, Collections.singletonList("塔尔塔罗斯"));
             assertEquals(title, once, CardText.title(once, Collections.singletonList("塔尔塔罗斯")));
         }
-        String choices = CardText.choices("参考回答：我会帮你的 / 这样的规矩没有意义");
+        String choices = CardText.choices("回答：我会帮你的 / 这样的规矩没有意义");
         assertEquals(choices, CardText.choices(choices));
     }
 
@@ -166,10 +166,10 @@ public class CardTextTest {
         assertTrue("「（1）」 stays with its answer", shaped.contains("对" + WJ + "（" + WJ + "1" + WJ + "）"));
         assertTrue("the slash ends its line", shaped.contains("）" + NBSP + "/ 那"));
         assertEquals(2, breakableSpaces(shaped));
-        String answer = CardText.choices("参考回答：我会帮你的 / 这样的规矩没有意义");
+        String answer = CardText.choices("回答：我会帮你的 / 这样的规矩没有意义");
         assertTrue(answer.startsWith("参" + WJ + "考" + WJ + "回" + WJ + "答" + WJ + "：我"));
         assertTrue("「规矩」 never splits", answer.contains("规" + WJ + "矩"));
-        assertEquals("参考回答：我会帮你的 / 这样的规矩没有意义", CardText.plain(answer));
+        assertEquals("回答：我会帮你的 / 这样的规矩没有意义", CardText.plain(answer));
         // Latin answers keep their inner space, unbreakable.
         String latin = CardText.choices("MAY BLUES（2）");
         assertEquals("MAY BLUES（2）", CardText.plain(latin));

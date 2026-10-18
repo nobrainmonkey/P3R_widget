@@ -260,6 +260,11 @@ final class HistoryText {
         switch (action.type) {
             case MEET:
                 return ZhText.join(title, meeting(action.target, outcome, traced));
+            case INVITE:
+                if (traced != null && traced.after.rank[action.target] != traced.before.rank[action.target]) {
+                    return ZhText.join(title, meeting(action.target, outcome, traced));
+                }
+                return ZhText.join(title, outcome.readyCue ? "赴约了 · 游戏提示下次能升级" : "赴约了");
             case UNLOCK_STEP:
                 return ZhText.join(title, unlocked(action.target, traced));
             case ACTIVITY:
@@ -286,6 +291,8 @@ final class HistoryText {
         switch (action.type) {
             case MEET:
                 return rules.links[action.target].labelZh;
+            case INVITE:
+                return ZhText.join("休息日邀约", rules.links[action.target].labelZh);
             case UNLOCK_STEP:
                 return ZhText.join(rules.links[action.target].labelZh, unlockStepZh(rules, action));
             case ACTIVITY:
@@ -363,6 +370,8 @@ final class HistoryText {
         switch (action.type) {
             case MEET:
                 return "没见到";
+            case INVITE:
+                return "没赴约";
             case TARTARUS:
                 return "没去成";
             case NOTE:

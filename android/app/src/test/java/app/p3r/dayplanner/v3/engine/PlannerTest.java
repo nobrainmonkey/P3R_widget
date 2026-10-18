@@ -129,7 +129,7 @@ public class PlannerTest {
     // ------------------------------------------------------------------ never idle when something useful is possible
 
     @Test
-    public void noFreeSlotWhileAProductiveActionIsLegal() {
+    public void freeSlotsDoNotSkipUsefulActionsMerelyBecauseManualWorkRemainsLegal() {
         Rules rules = RulesFixtures.fullYear();
         Profile profile = RulesFixtures.others();
         SimState start = RulesFixtures.newGame(rules, RulesFixtures.slot(4, 21, false));
@@ -139,8 +139,18 @@ public class PlannerTest {
         for (Plan.Step step : plan.steps) {
             if (!"free".equals(step.kind)) continue;
             SimState before = stateBefore(rules, profile, start, plan, step.slot);
-            assertTrue(PlanReport.date(rules, step.slot) + " " + Engine.legalActions(rules, profile, before),
-                    Engine.legalActions(rules, profile, before).isEmpty());
+            // Jobs remain legal for manual choice even when all their stats are MAX. The
+            // independent validator above checks real cash needs and reserved rescue visits.
+            for (Action action : Engine.legalActions(rules, profile, before)) {
+                if (action.type == Action.Type.TARTARUS) continue; // may be waiting for a rescue batch
+                assertEquals(PlanReport.date(rules, step.slot) + " " + action, Action.Type.ACTIVITY, action.type);
+                Rules.Activity activity = rules.activities[action.target];
+                assertEquals(activity.id, Rules.ActivityKind.JOB, activity.kind);
+                for (int stat = 0; stat < Math.min(3, activity.gain.length); stat++) {
+                    assertTrue(activity.id + " still raises " + rules.stats[stat].zh,
+                            activity.gain[stat] <= 0 || before.statPts[stat] >= rules.stats[stat].thresholds[6]);
+                }
+            }
             checked++;
         }
         assertTrue("the synthetic year has idle evenings late in the game", checked > 0);

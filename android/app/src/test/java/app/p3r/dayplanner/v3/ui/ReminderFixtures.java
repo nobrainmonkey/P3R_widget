@@ -12,9 +12,6 @@ import app.p3r.dayplanner.v3.model.Rules;
  * calendar's day ordinals (4月1日 = 0, as {@link Fixtures#day} and the widget's GameCalendar count).
  */
 public final class ReminderFixtures {
-    /** The day sheet's caption source: the estimate sentence of the exam answers 7/17 and 12/16. */
-    public static final String ESTIMATE_DETAIL = "这条答案只有一份攻略写过，游戏里的写法可能略有不同。";
-
     private ReminderFixtures() {}
 
     public static Plan.Reminder reminder(String id, String kind, String label, int day, boolean evening, String text,
@@ -48,7 +45,7 @@ public final class ReminderFixtures {
                 "考试：" + answer, Plan.Reminder.MISSABLE);
         r.answerZh = answer;
         r.estimate = estimate;
-        if (estimate) r.detailZh = ESTIMATE_DETAIL;
+        if (estimate) r.detailZh = "选「" + answer + "」。";
         return r;
     }
 
@@ -66,14 +63,14 @@ public final class ReminderFixtures {
                 "放学后先去保健室：勇气 +2，不会消耗时间", "保健室：勇气 +2", Plan.Reminder.DEADLINE);
         r.gainZh = "勇气 +2";
         r.detailZh = "前一晚探索了塔尔塔罗斯或打了满月作战，放学后到 1 楼保健室喝药，勇气 +2，不会消耗时间。"
-                + "这份加成不在安排的预计里，能力值升级后去「同步现状」更新一下，安排会更准。";
+                + "能力值升级后到「同步现状」更新。";
         return r;
     }
 
     public static Plan.Reminder tv(int day) {
         Plan.Reminder r = reminder("tv." + md(day), Plan.Reminder.TV, "电视购物", day, false,
                 "电视购物：玫瑰花束、高级巧克力 ×2，2,980 日元", "电视购物 2,980 日元", Plan.Reminder.NICE);
-        r.detailZh = "在自己房间看电视就能买，不会消耗时间；最好出门前先买。花的钱不在安排的预计里，买了以后记得在「同步现状」里更新现金。";
+        r.detailZh = "在自己房间看电视就能买，不会消耗时间；最好出门前先买。购买后到「同步现状」更新现金。";
         return r;
     }
 

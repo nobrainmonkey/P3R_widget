@@ -1,0 +1,249 @@
+{
+  "schema": "p3r.combat_cn_evidence.v1",
+  "scope": "Local evidence audit for combat tip names and mechanics; guide-localized names are not claimed to be verified official game text.",
+  "confirmedNameMappings": [
+    {
+      "en": "Bloody Maria",
+      "zh": "血腥之圣母",
+      "sources": [
+        "rules/sources/cn_guides/data.json:t113_02 (8/21)",
+        "rules/sources/cn_guides/3dm_p6.html:641",
+        "rules/sources/aqiu_gamedata/tartarus.md:471"
+      ],
+      "status": "Chinese guide text"
+    },
+    {
+      "en": "Executioner's Crown",
+      "zh": "处刑人之冠",
+      "sources": [
+        "rules/sources/cn_guides/data.json:t113_02 (8/21)",
+        "rules/sources/cn_guides/3dm_p6.html:642",
+        "rules/sources/aqiu_gamedata/tartarus.md:470"
+      ],
+      "status": "Chinese guide text"
+    },
+    {
+      "en": "Chidori",
+      "zh": "千鸟",
+      "sources": [
+        "rules/sources/cn_guides/data.json:t253_01 (1/21)"
+      ],
+      "status": "Chinese guide character text"
+    }
+  ],
+  "operations": [
+    {
+      "date": "05-09",
+      "en": "Priestess",
+      "zh": "女教皇",
+      "dateSource": "rules/sources/aqiu_pages/ave-walkthrough.md:313",
+      "confirmedTips": [
+        {
+          "text": "注意倒计时；降攻、降防后持续输出。",
+          "sources": [
+            "rules/sources/cn_guides/3dm_p3.html:393",
+            "rules/sources/cn_guides/3dm_p3.html:394",
+            "rules/sources/aqiu_gamedata/tartarus.md:106-110"
+          ]
+        }
+      ],
+      "unconfirmedLocally": [
+        "Countdown starting value and timer reductions"
+      ]
+    },
+    {
+      "date": "06-08",
+      "en": "Empress + Emperor",
+      "zh": "皇帝与女皇",
+      "dateSource": "rules/sources/cn_guides/data.json:t049_01",
+      "confirmedTips": [
+        {
+          "text": "皇帝有电／冰／火／风弱点形态；女皇有贯通／打击／斩击弱点形态。",
+          "sources": [
+            "rules/sources/aqiu_gamedata/tartarus.md:172-178"
+          ]
+        },
+        {
+          "text": "皇帝降攻、降防后击倒总攻；先解决女皇，再集中皇帝。",
+          "sources": [
+            "rules/sources/aqiu_gamedata/tartarus.md:215-219"
+          ]
+        }
+      ],
+      "unconfirmedLocally": [
+        "Specific trigger/name of weakness-changing skill; table establishes forms, not trigger"
+      ]
+    },
+    {
+      "date": "07-07",
+      "en": "Hierophant + Lovers",
+      "zh": "教皇与恋爱",
+      "dateSource": "rules/sources/aqiu_pages/ave-walkthrough.md:957",
+      "confirmedTips": [
+        {
+          "text": "第一战防全体恐惧，光暗无效；物理输出配合降防。",
+          "sources": [
+            "rules/sources/cn_guides/data.json:t078_01",
+            "rules/sources/aqiu_gamedata/tartarus.md:316-319"
+          ]
+        }
+      ],
+      "unconfirmedLocally": [
+        "Second battle charm skill timing"
+      ]
+    },
+    {
+      "date": "08-06",
+      "en": "Chariot + Justice",
+      "zh": "战车与正义",
+      "dateSource": "rules/sources/aqiu_pages/ave-walkthrough.md:1236",
+      "confirmedTips": [
+        {
+          "text": "装填时全员防御；被盯上的队员防御。分裂后同时击败两只，避免复活。",
+          "sources": [
+            "rules/sources/cn_guides/3dm_p6.html:327-330",
+            "rules/sources/cn_guides/data.json:t103_01"
+          ]
+        },
+        {
+          "text": "满月时月影伤害为1.75倍。",
+          "sources": [
+            "rules/sources/aqiu_gamedata/tartarus.md:449-451"
+          ]
+        }
+      ],
+      "unconfirmedLocally": [
+        "Exact turns allowed between both kills"
+      ]
+    },
+    {
+      "date": "09-05",
+      "en": "Hermit",
+      "zh": "隐者",
+      "dateSource": "rules/sources/aqiu_pages/ave-walkthrough.md:1499",
+      "confirmedTips": [
+        {
+          "text": "准备电击耐性与全体治疗，物理输出配合辅助。",
+          "sources": [
+            "rules/sources/aqiu_gamedata/tartarus.md:573-575"
+          ]
+        },
+        {
+          "text": "电击、疾风、暗无效；光只有非伤害附加效果无效，不是光伤害无效。",
+          "sources": [
+            "rules/sources/aqiu_gamedata/tartarus.md:521",
+            "rules/sources/cn_guides/3dm_p7.html:300"
+          ]
+        }
+      ],
+      "unconfirmedLocally": [
+        "Charged Giga Spark skill timing"
+      ]
+    },
+    {
+      "date": "10-04",
+      "en": "Fortune and Strength",
+      "zh": "命运与力量",
+      "dateSource": "rules/sources/aqiu_pages/ave-walkthrough.md:1797",
+      "confirmedTips": [
+        {
+          "text": "先用魔法打力量；力量倒下后，命运弱贯通和电击，吸收火、冰、风、光。",
+          "sources": [
+            "rules/sources/cn_guides/3dm_p8.html:281-284",
+            "rules/sources/aqiu_gamedata/tartarus.md:648-649"
+          ]
+        },
+        {
+          "text": "队伍HP保持300以上。",
+          "sources": [
+            "rules/sources/aqiu_gamedata/tartarus.md:708-710"
+          ]
+        }
+      ],
+      "unconfirmedLocally": [
+        "Roulette stop timing, red/blue sector and effect details"
+      ]
+    },
+    {
+      "date": "11-03",
+      "en": "Takaya + Jin; Hanged Man",
+      "zh": "双人战；倒悬者",
+      "dateSource": "rules/sources/aqiu_pages/ave-walkthrough.md:2092",
+      "confirmedTips": [
+        {
+          "text": "先清石像再集中本体。",
+          "sources": [
+            "rules/sources/aqiu_gamedata/tartarus.md:857-861"
+          ]
+        }
+      ],
+      "unconfirmedLocally": [
+        "Specific statue revival timing",
+        "Official simplified Chinese names for Takaya/Jin in local evidence"
+      ]
+    },
+    {
+      "date": "11-22",
+      "en": "Chidori",
+      "zh": "千鸟",
+      "dateSource": "rules/sources/aqiu_pages/ave-walkthrough.md:2282-2288 (prepare for battle)",
+      "confirmedTips": [
+        {
+          "text": "以存活为主，持续恢复。",
+          "sources": [
+            "rules/sources/aqiu_gamedata/tartarus.md:982-983"
+          ]
+        }
+      ],
+      "unconfirmedLocally": [
+        "11/22 date is inferred from prepare-for-battle line, not a named-battle entry",
+        "Life Drain skill timing"
+      ]
+    },
+    {
+      "date": "01-31",
+      "en": "Jin; Takaya; Nyx Avatar",
+      "zh": "259F；263F；最终战",
+      "dateSource": "rules/sources/cn_guides/data.json:t263_01",
+      "confirmedTips": [
+        {
+          "text": "259F起首领有多个阶段，不能用末日审判直接跳过后续阶段。",
+          "sources": [
+            "rules/sources/aqiu_gamedata/tartarus.md:1325-1326"
+          ]
+        },
+        {
+          "text": "263F敌人低血时保留神通法，准备应对。",
+          "sources": [
+            "rules/sources/aqiu_gamedata/tartarus.md:1327-1328"
+          ]
+        },
+        {
+          "text": "最终战14阶段，无可利用弱点；阶段转换后按新耐性选属性。",
+          "sources": [
+            "rules/sources/aqiu_gamedata/tartarus.md:1281-1294",
+            "rules/sources/aqiu_gamedata/tartarus.md:1304-1317",
+            "rules/sources/cn_guides/data.json:t263_01"
+          ]
+        }
+      ],
+      "unconfirmedLocally": [
+        "Moonless Gown turn count and cleanse details",
+        "Official simplified Chinese name for Nyx Avatar in local evidence"
+      ]
+    }
+  ],
+  "resistanceLegendSource": "rules/sources/aqiu_gamedata/tartarus.md:8-19",
+  "resistanceInterpretation": {
+    "z": "弱点；即死也易命中",
+    "w": "弱点",
+    "v": "伤害200%，但无弱点标记，不能按弱点击倒",
+    "-": "普通",
+    "s": "耐性50%",
+    "t": "耐性25%",
+    "n": "无效",
+    "r": "反射",
+    "d": "吸收",
+    "*": "无效非伤害附加效果；不得把单独*显示成属性无效"
+  }
+}

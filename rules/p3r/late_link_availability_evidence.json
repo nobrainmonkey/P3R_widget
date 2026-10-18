@@ -1,0 +1,68 @@
+{
+  "schema": "p3r.late_link_availability.v1",
+  "reviewed": "2026-10-18",
+  "edition": "reload",
+  "decision": "Retain the original aqiu O cells after ordinary story-lock filtering. Remove the additional generic weekday filters for Aeon and Empress. Never generate meetings from a weekly pattern.",
+  "sourceScope": "The aqiu day calendar is a third-party guide table, independently cross-checked with concrete Reload routes. It is not a raw extracted game table of NPC standing availability. 3DM and GamerSky repeat one Chinese route and are not counted as independent witnesses.",
+  "sources": [
+    {
+      "id": "aqiu_social_events",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "path": "rules/sources/aqiu_pages/social_events_day_calendar.json",
+      "kind": "pinned_guide_calendar",
+      "claim": "Aeon has 18 O cells; Empress has 30 O cells. Both include 1/21, which is separately removed by the existing story lock. Aeon has no O cell on 1/25; Empress has no Monday or Friday O cell from 12/25."
+    },
+    {
+      "id": "aqiu_walkthrough",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/ave-walkthrough",
+      "path": "rules/sources/aqiu_pages/ave-walkthrough.md",
+      "kind": "pinned_reload_completion_route",
+      "claim": "Aeon rank scenes occur on 1/12, 1/14 and 1/19. Empress RANK 9 occurs on Monday 12/21."
+    },
+    {
+      "id": "powerpyx_100pct",
+      "url": "https://www.powerpyx.com/persona-3-reload-100-walkthrough/",
+      "kind": "live_rendered_reload_completion_route",
+      "author": "Monomaru",
+      "claim": "The verified Reload route schedules Aeon RANK 2 on Tuesday 1/12, RANK 4 on Thursday 1/14, RANK 7 on Tuesday 1/19, and MAX on Tuesday 1/26. Empress RANK 4 is on Friday 12/4. It treats the 1/21 white-flower event separately."
+    },
+    {
+      "id": "rpgsite_100pct",
+      "url": "https://www.rpgsite.net/guide/15321-persona-3-reload-100-max-social-link-guide",
+      "kind": "live_rendered_independent_reload_completion_route",
+      "claim": "A different all-MAX route schedules Empress RANK 3 on Monday 11/30, Aeon RANK 4 on Tuesday 1/19 and RANK 9 on Tuesday 1/26. Its optional 1/21 Aeon scene is explicitly displaced if the white-flower story event occurs."
+    },
+    {
+      "id": "pushsquare_social_links",
+      "url": "https://www.pushsquare.com/guides/persona-3-reload-all-social-links-and-how-to-unlock-them",
+      "kind": "live_rendered_reload_weekly_overview",
+      "author": "Robert Ramsey",
+      "claim": "Lists Aeon and Empress as available after school Monday through Saturday. Used to corroborate the weekday coverage, not to add any date absent from the O calendar."
+    }
+  ],
+  "restored": {
+    "aeon": ["01-12", "01-14", "01-19", "01-26", "01-28"],
+    "empress": ["11-30", "12-04", "12-21"]
+  },
+  "completeDelta": {
+    "aeon": {
+      "rawO": 18,
+      "oldCompiled": 12,
+      "newCompiled": 17,
+      "stillExcluded": {"01-21": "reserved story daytime"}
+    },
+    "empress": {
+      "rawO": 30,
+      "oldCompiled": 26,
+      "newCompiled": 29,
+      "stillExcluded": {"01-21": "reserved story daytime"}
+    }
+  },
+  "unchanged": [
+    "The existing 1/21 daytime story reservation remains.",
+    "Aeon remains absent on 1/25 and every Sunday or holiday without an O cell.",
+    "Empress remains absent on every Monday or Friday from 12/25 because the source O calendar already excludes them.",
+    "No invitation D cell becomes an ordinary meeting.",
+    "Other links, episode windows, story locks, thresholds and objective weights are unchanged."
+  ]
+}

@@ -6,6 +6,7 @@ package app.p3r.dayplanner.v3.engine;
  *
  * <pre>
  *   meet:&lt;linkId&gt;            MEET
+ *   invite:&lt;linkId&gt;          INVITE (record an actual received holiday invitation; never planned)
  *   unlock:&lt;linkId&gt;:&lt;stepIdx&gt; UNLOCK_STEP
  *   act:&lt;activityId&gt;         ACTIVITY
  *   tower:&lt;blockIdx&gt;         TARTARUS
@@ -16,10 +17,10 @@ package app.p3r.dayplanner.v3.engine;
  * </pre>
  */
 public final class Action {
-    public enum Type { MEET, UNLOCK_STEP, ACTIVITY, TARTARUS, FREE, LOCKED, NOTE, EPISODE }
+    public enum Type { MEET, UNLOCK_STEP, ACTIVITY, TARTARUS, FREE, LOCKED, NOTE, EPISODE, INVITE }
 
     public final Type type;
-    /** Link index (MEET/UNLOCK_STEP), activity index (ACTIVITY), block index (TARTARUS), else -1. */
+    /** Link index (MEET/INVITE/UNLOCK_STEP/NOTE), activity index (ACTIVITY), block index (TARTARUS), else -1. */
     public final int target;
     /** Unlock step index for UNLOCK_STEP, else -1. */
     public final int step;
@@ -34,6 +35,7 @@ public final class Action {
     }
 
     public static Action meet(int link) { return new Action(Type.MEET, link, -1, null); }
+    public static Action invite(int link) { return new Action(Type.INVITE, link, -1, null); }
     public static Action unlock(int link, int step) { return new Action(Type.UNLOCK_STEP, link, step, null); }
     public static Action activity(int activity) { return new Action(Type.ACTIVITY, activity, -1, null); }
     public static Action tower(int block) { return new Action(Type.TARTARUS, block, -1, null); }
@@ -48,6 +50,7 @@ public final class Action {
     public String key(app.p3r.dayplanner.v3.model.Rules rules) {
         switch (type) {
             case MEET: return "meet:" + rules.links[target].id;
+            case INVITE: return "invite:" + rules.links[target].id;
             case UNLOCK_STEP: return "unlock:" + rules.links[target].id + ":" + step;
             case ACTIVITY: return "act:" + rules.activities[target].id;
             case TARTARUS: return "tower:" + target;
@@ -81,6 +84,10 @@ public final class Action {
             if (key.startsWith("meet:")) {
                 app.p3r.dayplanner.v3.model.Rules.Link l = rules.link(key.substring(5));
                 return l == null ? null : meet(l.idx);
+            }
+            if (key.startsWith("invite:")) {
+                app.p3r.dayplanner.v3.model.Rules.Link l = rules.link(key.substring(7));
+                return l == null ? null : invite(l.idx);
             }
             if (key.startsWith("unlock:")) {
                 String[] p = key.split(":");
