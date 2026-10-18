@@ -142,6 +142,10 @@ public class DialogueHintTest {
         assertTrue(friend.reviewed);
         assertFalse("friendship now has concrete answers", friend.choices.isEmpty());
         assertFalse("the confession is not a friendship recommendation", friend.choices.contains("我喜欢风花"));
+        assertEquals(Arrays.asList("当然", "好啊"), DialogueHint.widgetChoices(friend));
+        assertEquals("已走友情", DialogueHint.widgetNote(friend));
+        assertTrue("the full route and prompt sequence remain in details", friend.noteZh.contains("三问剧情"));
+        assertTrue(DialogueHint.appLine(friend), DialogueHint.appLine(friend).contains(friend.noteZh));
         DialogueHint.Answers love = DialogueHint.forScene(pack, romance("priestess"), priestess, 9, false);
         assertTrue(love.choices.contains("我喜欢风花"));
         assertTrue(DialogueHint.widgetLine(love).contains("我喜欢风花"));

@@ -368,6 +368,8 @@ public final class DialogueHint {
             if (!names.isEmpty()) notes.add("别选「" + String.join("」「", names) + "」");
         }
         String authored = compact && a.shortNoteZh != null ? a.shortNoteZh : a.noteZh;
+        // Keep the route condition beside the answers; prompt counts belong in the full details.
+        if (compact && "此前已走友情：三问剧情".equals(authored)) authored = "已走友情";
         if (authored != null && !authored.isEmpty() && !notes.contains(authored)) notes.add(authored);
         return notes.isEmpty() ? null : String.join("；", notes);
     }

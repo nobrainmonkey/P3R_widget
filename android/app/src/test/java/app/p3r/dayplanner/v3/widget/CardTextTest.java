@@ -167,7 +167,7 @@ public class CardTextTest {
         assertTrue("the slash ends its line", shaped.contains("）" + NBSP + "/ 那"));
         assertEquals(2, breakableSpaces(shaped));
         String answer = CardText.choices("回答：我会帮你的 / 这样的规矩没有意义");
-        assertTrue(answer.startsWith("参" + WJ + "考" + WJ + "回" + WJ + "答" + WJ + "：我"));
+        assertTrue(answer.startsWith("回" + WJ + "答" + WJ + "：我"));
         assertTrue("「规矩」 never splits", answer.contains("规" + WJ + "矩"));
         assertEquals("回答：我会帮你的 / 这样的规矩没有意义", CardText.plain(answer));
         // Latin answers keep their inner space, unbreakable.

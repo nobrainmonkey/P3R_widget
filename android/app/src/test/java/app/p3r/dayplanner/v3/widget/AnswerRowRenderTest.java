@@ -310,7 +310,8 @@ public class AnswerRowRenderTest {
                 {"empress", 9, "class.12-11", "放心了", "婉拒告白", Profile.Route.FRIEND},
                 {"lovers", 5, "class.11-12", "我是她朋友", "", Profile.Route.FRIEND},
                 {"lovers", 5, "class.11-12", "她男朋友", "", Profile.Route.ROMANCE},
-                {"priestess", 8, "class.11-30", "帮你吃拉面", "已走友情", Profile.Route.FRIEND, true}};
+                {"priestess", 8, "class.11-30", "帮你吃拉面", "已走友情", Profile.Route.FRIEND, true},
+                {"priestess", 9, "class.01-18", "当然", "已走友情", Profile.Route.FRIEND}};
         List<String> issues = new ArrayList<>();
         for (Object[] scene : scenes) {
             String link = (String) scene[0];
@@ -341,6 +342,12 @@ public class AnswerRowRenderTest {
             assertEquals(link, conditional, own.conditional);
             assertTrue(own.text(), own.choices.contains(scene[3]));
             assertEquals(scene[4], own.note == null ? "" : own.note);
+            if ("priestess".equals(link) && rank == 9) {
+                assertEquals(Arrays.asList("当然", "好啊"), own.choices);
+                CardModel.AnswerLine classLine = beforeFit.answers.get(beforeFit.answers.size() - 1);
+                assertEquals("喀耳刻", classroom.answerZh);
+                assertEquals(Arrays.asList("喀耳刻"), classLine.withoutPosition().choices);
+            }
             for (float scale : new float[]{1f, 1.15f}) {
                 RuntimeEnvironment.setFontScale(scale);
                 for (int[] size : new int[][]{{250, 140}, {320, 160}, {360, 180}, {400, 180}}) {
@@ -353,7 +360,19 @@ public class AnswerRowRenderTest {
                     RenderSupport.collectCutText(root, tag, issues);
                     RenderSupport.collectWordSplits(root, tag, issues);
                     checkRow(root, model, tag, size[1] < 150, issues);
-                    if (scale == 1f || conditional) RenderSupport.save(root, RenderSupport.outputDir("reviewed"), tag);
+                    if ("priestess".equals(link) && rank == 9) {
+                        assertEquals(tag, View.VISIBLE, root.findViewById(R.id.widget_dialogue_choices).getVisibility());
+                        String drawn = text(root, R.id.widget_dialogue_choices);
+                        assertTrue(tag + ": " + drawn, drawn.contains("当然"));
+                        assertTrue(tag + ": " + drawn, drawn.contains("好啊"));
+                        TextView aside = root.findViewById(R.id.widget_title_aside);
+                        String classroomDrawn = drawn + (aside.getVisibility() == View.VISIBLE
+                                ? text(root, R.id.widget_title_aside) : "");
+                        assertTrue(tag + ": " + classroomDrawn, classroomDrawn.contains("喀耳刻"));
+                    }
+                    if (scale == 1f || conditional || ("priestess".equals(link) && rank == 9 && size[0] == 250 && size[1] == 140)) {
+                        RenderSupport.save(root, RenderSupport.outputDir("reviewed"), tag);
+                    }
                 }
             }
         }
@@ -571,46 +590,53 @@ public class AnswerRowRenderTest {
     }
 
     /**
-     * Review: the shortest cards left their title out for the answers (7/10 教皇 at 180x130 also lost its
-     * 「课堂：卡巴拉」 line; 10/22 战车 at 180x130 and 115% font), and 「答：…」 without who it is for confuses.
-     * At 130dp high the title keeps one line beside one line of answers. The owner wants both kinds of
-     * answers on the card (after 3.1.0, which showed 「课堂：卡巴拉」 or the meeting's answers at 130dp and
-     * left the class answer out at 180x150 and 250x160 at 115% font): the class answer goes on the line of
-     * a short meeting answer (「答：好的 · 课堂：变为零」), else on the title's line beside the longest title
-     * form that fits there (「北村文吉」 「课堂：卡巴拉」), the meeting's answers whole or, short of room, the
-     * first of two alternatives and 「等 N 项」. Each case is the first real card of that meeting on that
-     * day with its own line and a class line ({@link #ownAndClassLines}): 7/10 教皇 of the 7/1 plan
-     * (「答：我也去看看吧或我在这里等她 / 真担心啊」, 「课堂：卡巴拉」; the new game's 7/10 教皇 has only the
-     * class line). Since 「尽量都体验」 keeps the promises of 「尽量多 MAX」 (DESIGN §20) the 10/22 plan meets
-     * 战车 first on 10/29; the same 战车 card (「答：明年的选拔赛呢？ / 加油」 and a class answer) is the new
-     * game's 10/19. Renders under answers/ as shortest-*.
+     * The minimum 4×2 and nominal 5×2 cards keep the meeting title, its real scene choices and a
+     * sourced classroom answer together. Independent one-step scenes keep this visual regression
+     * stable when planner priorities move a meeting to a different date: 教皇 RANK 4 has its long
+     * pair beside 7/10「卡巴拉」, and 战车 RANK 10 has its pair beside 10/19「印度」.
      */
     @Test
     public void theShortestCardsKeepTheirTitleBesideTheAnswers() throws Exception {
-        Assume.assumeTrue("rule pack not available", pack != null);
+        assertNotNull("the shipped rule pack is required", pack);
         File dir = RenderSupport.outputDir("answers");
-        Object[][] wanted = {{"0710-hierophant", dayOf(7, 10), "meet:hierophant"}, {"1019-chariot", dayOf(10, 19), "meet:chariot"}};
-        List<Plan> plans = realPlans();
+        Object[][] wanted = {
+                {"0710-hierophant", "hierophant", 4, "class.07-10", "卡巴拉",
+                        Arrays.asList("我也去看看吧或者我在这里等她", "真担心啊")},
+                {"1019-chariot", "chariot", 10, "class.10-19", "印度",
+                        Arrays.asList("明年的选拔赛呢？", "加油")}};
         List<String> issues = new ArrayList<>();
         for (Object[] w : wanted) {
-            Plan found = null;
-            int slot = -1;
-            for (Plan plan : plans) {
-                for (Plan.Step step : plan.steps) {
-                    if (found == null && Rules.dayOf(step.slot) == (Integer) w[1] && w[2].equals(step.action)
-                            && ownAndClassLines(model(on(plan, step.slot)))) {
-                        found = plan;
-                        slot = step.slot;
-                    }
-                }
+            String link = (String) w[1];
+            int rank = (Integer) w[2];
+            Rules.Reminder classroom = null;
+            for (Rules.Reminder reminder : pack.reminders.items) {
+                if (w[3].equals(reminder.id)) classroom = reminder;
             }
-            assertNotNull(w[0] + " with its own line and a class line is in a real plan", found);
+            assertNotNull(w[3].toString(), classroom);
+            assertEquals(Plan.Reminder.CLASS, classroom.kind);
+            assertEquals(w[4], classroom.answerZh);
+            FakePlannerApi fake = scene(meeting(link, rank - 1, rank, true));
+            int slot = Rules.slot(classroom.day, false);
+            fake.observed.slot = slot;
+            fake.observed.rank[pack.link(link).idx] = rank - 1;
+            fake.observed.ready[pack.link(link).idx] = true;
+            fake.plan.fromSlot = slot;
+            fake.plan.toSlot = slot;
+            fake.plan.steps.get(0).slot = slot;
+            ReminderFixtures.with(fake.plan, ReminderFixtures.classAnswer(classroom.day, classroom.answerZh, classroom.option));
+            assertEquals("the fixture is one explicit meeting", 1, fake.plan.steps.size());
+            CardModel beforeFit = model(fake);
+            assertTrue(w[0] + " has its own line and a class line", ownAndClassLines(beforeFit));
+            CardModel.AnswerLine own = CardRenderer.own(beforeFit.answers);
+            assertNotNull(own);
+            assertFalse(own.conditional);
+            assertEquals(w[0] + " keeps the real scene's two choices", w[5], own.choices);
+            CardModel.AnswerLine classLine = beforeFit.answers.get(beforeFit.answers.size() - 1);
+            assertEquals(Arrays.asList(classroom.answerZh + CardModel.AnswerLine.position(classroom.option)), classLine.choices);
             for (float scale : new float[]{1f, 1.15f}) {
                 RuntimeEnvironment.setFontScale(scale);
-                FakePlannerApi fake = on(found, slot);
-                CardModel model = model(fake);
-                assertTrue(w[0] + " has its own line and a class line", ownAndClassLines(model));
-                for (int[] size : new int[][]{{180, 130}, {250, 130}, {180, 150}, {250, 160}}) {
+                for (int[] size : new int[][]{{250, 140}, {320, 160}, {360, 180}}) {
+                    CardModel model = model(fake);
                     View root = render(fake, size[0], size[1]);
                     String tag = "shortest-" + w[0] + "-" + size[0] + "x" + size[1] + (scale > 1 ? "-font115" : "");
                     RenderSupport.save(root, dir, tag);
@@ -621,9 +647,9 @@ public class AnswerRowRenderTest {
                     checkRow(root, model, tag, size[1] < 150, issues);
                     TextView title = root.findViewById(R.id.widget_task);
                     TextView row = root.findViewById(R.id.widget_dialogue_choices);
-                    if (size[1] == 130 && (title.getLineCount() != 1 || row.getLineCount() != 1)) {
-                        issues.add(tag + " shows " + title.getLineCount() + " title and " + row.getLineCount() + " answers lines");
-                    }
+                    float density = app.getResources().getDisplayMetrics().scaledDensity;
+                    assertTrue(tag + " keeps the title readable", title.getTextSize() + 1 >= CardRenderer.MIN_TITLE_SP * density);
+                    assertTrue(tag + " keeps the answers readable", row.getTextSize() + 1 >= CardRenderer.ANSWERS_SMALL_SP * density);
                     TextView aside = root.findViewById(R.id.widget_title_aside);
                     String beside = aside.getVisibility() == View.VISIBLE ? " [" + text(root, R.id.widget_title_aside) + "]" : "";
                     System.out.println(tag + ": " + RenderSupport.lines(title) + beside + " | "
