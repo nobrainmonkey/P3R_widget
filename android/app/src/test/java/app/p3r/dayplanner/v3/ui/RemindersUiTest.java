@@ -100,7 +100,7 @@ public class RemindersUiTest extends UiTestBase {
         // A row opens the day sheet of its slot, with every reminder of the day and the longer text.
         Shots.click(a, CLASS_LINE);
         assertTrue(Shots.has(a, ReminderViews.DAY_TITLE));
-        assertTrue(Shots.has(a, "在自己房间看电视就能买，不会消耗时间；最好出门前先买。花的钱不在安排的预计里，买了以后记得在「同步现状」里更新现金。"));
+        assertTrue(Shots.has(a, "在自己房间看电视就能买，不会消耗时间；最好出门前先买。购买后到「同步现状」更新现金。"));
     }
 
     @Test
