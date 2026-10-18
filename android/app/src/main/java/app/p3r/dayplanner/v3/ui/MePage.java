@@ -89,7 +89,7 @@ final class MePage {
             true, actions::openExplain), spaced(8));
         boolean replanning = FullReplanSheet.running(d);
         column.addView(entry(R.drawable.ui_ic_replan, FullReplanSheet.TITLE,
-            replanning ? FullReplanSheet.RUNNING : "重新读取进度和规划设置，从头再排一遍",
+            replanning ? FullReplanSheet.runningText(d) : FullReplanSheet.SUBTITLE,
             FullReplanSheet.available(d) && !replanning, () -> FullReplanSheet.show(host)), spaced(8));
 
         column.addView(Ui.sectionHeader(c, "其他", null), spaced(16));

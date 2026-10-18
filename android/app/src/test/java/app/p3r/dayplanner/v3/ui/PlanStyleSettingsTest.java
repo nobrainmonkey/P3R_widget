@@ -136,4 +136,28 @@ public class PlanStyleSettingsTest extends UiTestBase {
         StateActivity sync = stateController("sync").get();
         assertEquals(0, sync.draft().profile.episodeTracks.length);
     }
+
+    @Test
+    public void deepChangesToggleSavesTheChoiceAndRestoresItWhenSettingsReopen() {
+        HomeActivity a = homeOn("me");
+        Shots.click(a, "规划设置");
+        ToggleRow row = (ToggleRow) Shots.clickTarget(Shots.find(a, "深度修改"));
+        assertFalse(row.isChecked());
+        assertTrue(Shots.has(a, "每次修改后最多计算 12 秒"));
+        long revision = api.snap.profileRevision;
+        Shots.click(a, "深度修改");
+        assertEquals("saveProfile", api.last().method);
+        assertEquals(revision, api.last().expectedRevision);
+        assertTrue(api.last().profile.deepChanges);
+        assertTrue(api.snap.profile.deepChanges);
+
+        a.popPage();
+        Shots.click(a, "规划设置");
+        row = (ToggleRow) Shots.clickTarget(Shots.find(a, "深度修改"));
+        assertTrue(row.isChecked());
+        Shots.click(a, "深度修改");
+        assertFalse(api.last().profile.deepChanges);
+        assertEquals("a preference change does not request a manual 30 s run", 0, api.deepReplanRequests);
+        assertEquals(0, api.fullReplanRequests);
+    }
 }

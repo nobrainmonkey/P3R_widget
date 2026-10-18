@@ -197,7 +197,7 @@ final class TodayPage {
         if (d.snap.fullReplanning) {
             // 从头重新安排 (the plan may still be current): recording goes on as usual meanwhile.
             LinearLayout box = Ui.column(c);
-            box.addView(Ui.text(c, FullReplanSheet.RUNNING, 14, Ui.col(c, R.color.p3r_cyan_300), true));
+            box.addView(Ui.text(c, FullReplanSheet.runningText(d), 14, Ui.col(c, R.color.p3r_cyan_300), true));
             box.addView(new BusyStripe(c), spaced(6));
             box.addView(Ui.caption(c, "可以照常记录，记下的结果会一起算进去"), spaced(6));
             TextView stop = Ui.quiet(c, "先不算了");

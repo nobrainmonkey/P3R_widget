@@ -64,6 +64,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     private long bannerDismissedFor;
     /** 从头重新安排 asked for here and not answered by the service yet (shown as running meanwhile). */
     private boolean fullRunning;
+    private boolean fullDeep;
     /** Ticket of the 从头重新安排 asked for here whose result is still to be shown once, 0 if none. */
     private long fullTicket;
     /** The plan shown when 从头重新安排 was asked for (what the result is compared with), or null. */
@@ -296,7 +297,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
                 before = null;
             }
             fullResult = PlanDiff.fullSummary(rules, before, plan, snap.observed == null ? 0 : snap.observed.slot,
-                snap.fullReplanResult);
+                snap.fullReplanResult, snap.fullReplanDeep);
             fullShown = Math.max(fullShown, snap.fullReplanDoneTicket);
             fullTicket = 0;
             fullBefore = null;
@@ -307,6 +308,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             // Asked for, but the request has not reached the service yet: it is still running.
             snap = copyOf(snap);
             snap.fullReplanning = true;
+            snap.fullReplanDeep = fullDeep;
         }
         boolean banner = UiData.returnBannerDue(snap, System.currentTimeMillis(), bannerDismissedFor);
         data = new UiData(rules, snap, changeSummary, banner, System.currentTimeMillis());
@@ -807,6 +809,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         c.lastRecordMillis = s.lastRecordMillis;
         c.eventsSinceCheckpoint = s.eventsSinceCheckpoint;
         c.fullReplanning = s.fullReplanning;
+        c.fullReplanDeep = s.fullReplanDeep;
         c.fullReplanTicket = s.fullReplanTicket;
         c.fullReplanDoneTicket = s.fullReplanDoneTicket;
         c.fullReplanResult = s.fullReplanResult;
@@ -831,18 +834,29 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
 
     @Override
     public void requestFullReplan() {
+        requestManualReplan(false);
+    }
+
+    @Override
+    public void requestDeepReplan() {
+        requestManualReplan(true);
+    }
+
+    private void requestManualReplan(boolean deep) {
         if (data == null || api == null || fullRunning || data.snap.fullReplanning) {
             return;
         }
         // Optimistic: the entries and the 今天 status line show it running right away.
         fullRunning = true;
+        fullDeep = deep;
         fullBefore = data.plan();
         PlannerApi.Snapshot optimistic = copyOf(data.snap);
         optimistic.fullReplanning = true;
+        optimistic.fullReplanDeep = deep;
         data = new UiData(data.rules, optimistic, data.changeSummary, data.returnBanner, data.nowMillis);
         bindPages();
         PlannerApi target = api;
-        Async.run(this, target::requestFullReplan, ticket -> {
+        Async.run(this, () -> deep ? target.requestDeepReplan() : target.requestFullReplan(), ticket -> {
             fullRunning = false;
             // Already taken from a snapshot (and maybe shown) before this answer came: shown once.
             if (ticket > fullShown) {

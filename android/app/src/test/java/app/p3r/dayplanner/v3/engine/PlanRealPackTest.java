@@ -251,12 +251,16 @@ public class PlanRealPackTest {
 
         Result sj = run("1月8日 · 力量 6、正义 6 · 必须：①力量 ②正义", must(strength, justice), start, 99);
         assertEquals(10, sj.plan.summary.endRanks[strength]);
+        assertTrue("正义 must retain at least its feasible RANK 7: " + sj.plan.summary.endRanks[justice],
+                sj.plan.summary.endRanks[justice] >= 7);
         assertTrue("正义 " + sj.plan.summary.endRanks[justice], sj.plan.summary.endRanks[justice] < 10);
         assertTrue(sj.plan.summary.notesZh.get(1).endsWith("预计停在 RANK " + sj.plan.summary.endRanks[justice]));
         assertNotesNameOnlyKeptHigherGoals(sj.plan, new int[]{strength, justice});
 
         Result js = run("1月8日 · 力量 6、正义 6 · 必须：①正义 ②力量", must(justice, strength), start, 99);
         assertEquals(10, js.plan.summary.endRanks[justice]);
+        assertTrue("力量 must retain at least its feasible RANK 8: " + js.plan.summary.endRanks[strength],
+                js.plan.summary.endRanks[strength] >= 8);
         assertTrue("力量 " + js.plan.summary.endRanks[strength], js.plan.summary.endRanks[strength] < 10);
         assertTrue(js.plan.summary.notesZh.get(1).endsWith("预计停在 RANK " + js.plan.summary.endRanks[strength]));
         assertNotesNameOnlyKeptHigherGoals(js.plan, new int[]{justice, strength});
@@ -265,8 +269,8 @@ public class PlanRealPackTest {
     /**
      * Audit cases (strict goal priority): 必须 ①女教皇 ②女皇 ③恋爱 used to end 女教皇 RANK 9 with 女皇
      * MAX, and ①恶魔 ②女皇 ③月亮 恶魔 RANK 9 with 女皇 and 月亮 MAX, although planning ① and ② alone
-     * reaches ①. The first goal is kept whenever a plan reaches it; a note names a goal as kept
-     * instead of another only when that goal comes first and this plan reaches it.
+     * reaches ① and ②. Both higher goals must remain MAX after adding a third goal; a note names
+     * a goal as kept instead of another only when that goal comes first and this plan reaches it.
      */
     @Test
     public void strictGoalPriorityKeepsTheFirstGoalInTheAuditCases() {
@@ -275,10 +279,14 @@ public class PlanRealPackTest {
             int[] goals = {link(ids[0]), link(ids[1]), link(ids[2])};
             Plan two = Engine.plan(rules, must(goals[0], goals[1]), midGameState(), null, PlanBreadthRealPackTest.options());
             assertEquals(ids[0] + " with two goals", 10, two.summary.endRanks[goals[0]]);
+            assertEquals(ids[1] + " is feasible alongside the first goal", 10, two.summary.endRanks[goals[1]]);
+            List<String> witnessErrors = Engine.validate(rules, must(goals[0], goals[1]), midGameState(), two);
+            assertTrue(witnessErrors.toString(), witnessErrors.isEmpty());
             String title = "中期 · 10月22日 · 必须：①" + rules.links[goals[0]].arcanaZh + " ②" + rules.links[goals[1]].arcanaZh
                     + " ③" + rules.links[goals[2]].arcanaZh + " + 其余社群";
             Result r = run(title, must(goals), midGameState(), 99);
             assertEquals(ids[0] + " first", 10, r.plan.summary.endRanks[goals[0]]);
+            assertEquals("adding a third goal must preserve feasible " + ids[1], 10, r.plan.summary.endRanks[goals[1]]);
             assertTrue(r.plan.summary.notesZh.get(0), r.plan.summary.notesZh.get(0).startsWith(rules.links[goals[0]].arcanaZh + "：预计 "));
             assertStrictPriority(r.plan, goals, null);
             assertNotesNameOnlyKeptHigherGoals(r.plan, goals);

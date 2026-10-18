@@ -72,6 +72,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class PlannerService implements PlannerApi {
     private static final String TAG = "P3rPlanner";
     private static final long MAX_EXTENDED_PLAN_BUDGET_MILLIS = 8_000;
+    private static final long DEEP_CHANGES_BUDGET_MILLIS = 12_000;
+    private static final long MANUAL_DEEP_BUDGET_MILLIS = 30_000;
 
     static final String ZH_STALE = "记录已经更新过了，请看最新的安排";
     static final String ZH_CONFLICT = "刚才已经保存过另一份结果，这次没有保存";
@@ -161,7 +163,7 @@ public final class PlannerService implements PlannerApi {
      * {@link #snapshot} reads it without locks. Tickets count from 1 per process.
      */
     private static final class Full {
-        static final Full NONE = new Full(0, 0, 0, null);
+        static final Full NONE = new Full(0, 0, 0, null, false);
 
         /** Latest ticket handed out, 0 if none. */
         final long ticket;
@@ -171,22 +173,25 @@ public final class PlannerService implements PlannerApi {
         final long done;
         /** How {@link #done} ended, or null when there is nothing to tell the player. */
         final FullReplanResult result;
+        /** Whether the latest ticket requested a deep search (retained with its result). */
+        final boolean deep;
 
-        private Full(long ticket, long pending, long done, FullReplanResult result) {
+        private Full(long ticket, long pending, long done, FullReplanResult result, boolean deep) {
             this.ticket = ticket;
             this.pending = pending;
             this.done = done;
             this.result = result;
+            this.deep = deep;
         }
 
         /** A new pending request (callers check {@link #pending} first). */
-        Full requested() {
-            return new Full(ticket + 1, ticket + 1, done, result);
+        Full requested(boolean deep) {
+            return new Full(ticket + 1, ticket + 1, done, result, deep);
         }
 
         /** The pending request has ended with {@code r}. */
         Full ended(FullReplanResult r) {
-            return new Full(ticket, 0, pending, r);
+            return new Full(ticket, 0, pending, r, deep);
         }
     }
 
@@ -354,6 +359,7 @@ public final class PlannerService implements PlannerApi {
         LedgerView v = m.view;
         s.planErrorZh = m.planErrorZh;
         s.fullReplanning = f.pending > 0;
+        s.fullReplanDeep = f.deep;
         s.fullReplanTicket = f.ticket;
         s.fullReplanDoneTicket = f.done;
         s.fullReplanResult = f.result;
@@ -846,6 +852,15 @@ public final class PlannerService implements PlannerApi {
      */
     @Override
     public long requestFullReplan() {
+        return requestManualReplan(false);
+    }
+
+    @Override
+    public long requestDeepReplan() {
+        return requestManualReplan(true);
+    }
+
+    private long requestManualReplan(boolean deep) {
         awaitLoaded();
         if (model.view == null) {
             // Loading failed earlier (rule pack or database): this works as 重试.
@@ -875,7 +890,7 @@ public final class PlannerService implements PlannerApi {
             }
             // Asked for by the player, like 重新安排: an earlier failure does not block it.
             failedPlanKey = null;
-            full = f.requested();
+            full = f.requested(deep);
             ticket = full.pending;
         }
         replanner.cancelPartial();
@@ -1071,6 +1086,15 @@ public final class PlannerService implements PlannerApi {
     }
 
     /**
+     * Deep search already compares a replayed incumbent by the engine's full objective. Reaching
+     * its manual time limit must not discard that improvement. Only the validated comparison input
+     * for these records can guard goal ranks; an old or invalid installed plan is not a baseline.
+     */
+    static boolean acceptsDeep(Profile profile, Plan fresh, Plan validatedCurrent) {
+        return validatedCurrent == null || compareGoals(profile, fresh, validatedCurrent) >= 0;
+    }
+
+    /**
      * True when {@code after} does the same thing as {@code before} in every one of its slots
      * (action and 顺便 lines) and ends at the same slot.
      */
@@ -1154,7 +1178,29 @@ public final class PlannerService implements PlannerApi {
                     job.full = true;
                     job.ticket = ticket;
                     job.options.followUp = true;
-                    job.options.timeBudgetMillis = fullReplanBudget(wiring.planBudgetMillis);
+                    job.options.deepSearch = full.deep;
+                    job.options.timeBudgetMillis = full.deep ? MANUAL_DEEP_BUDGET_MILLIS
+                            : fullReplanBudget(wiring.planBudgetMillis);
+                    if (full.deep) {
+                        job.options.candidates = Math.max(8, job.options.candidates);
+                        // Current metadata and cursor first; the worker validates this copy outside
+                        // the service lock before the engine may compare it with fresh candidates.
+                        if (isCurrent(m) && m.plan.fromSlot == m.view.observed.slot) {
+                            try {
+                                job.options.incumbentPlan = Plan.fromJson(m.plan.toJson());
+                            } catch (JSONException e) {
+                                Log.w(TAG, "deep replan: current plan could not be copied", e);
+                            }
+                        }
+                    }
+                } else if (job.profile.deepChanges) {
+                    // Opt-in automatic depth is one bounded run, separate from manual 30 s search.
+                    // Keep previous as a replayable suffix; the engine checks it at the new state.
+                    followUpKey = planKey(m.view);
+                    job.options.deepSearch = true;
+                    job.options.candidates = Math.max(8, job.options.candidates);
+                    job.options.timeBudgetMillis = DEEP_CHANGES_BUDGET_MILLIS;
+                    job.options.followUp = true;
                 } else if (followUp) {
                     // Exactly one follow-up per revisions, even if it runs out of time again.
                     followUpKey = planKey(m.view);
@@ -1211,6 +1257,9 @@ public final class PlannerService implements PlannerApi {
                     failedPlanKey = planKey(m.view);
                     model = m.withError(m.plan != null ? ZH_PLAN_FAILED_KEPT : ZH_PLAN_FAILED_NONE);
                     return false;
+                }
+                if (job.options.deepSearch) {
+                    plan.markFollowUpDone();
                 }
                 persistPlanLocked(plan);
                 failedPlanKey = null;
@@ -1284,7 +1333,9 @@ public final class PlannerService implements PlannerApi {
                     endFollowUpLocked(m);
                 }
                 result = FullReplanResult.FAILED;
-            } else if (!current || acceptsFull(job.profile, plan, m.plan)) {
+            } else if (!current || (job.options.deepSearch
+                    ? acceptsDeep(job.profile, plan, job.options.incumbentPlan)
+                    : acceptsFull(job.profile, plan, m.plan))) {
                 result = sameSteps(m.plan, plan) ? FullReplanResult.UNCHANGED : FullReplanResult.CHANGED;
                 installLocked(m, plan);
             } else {

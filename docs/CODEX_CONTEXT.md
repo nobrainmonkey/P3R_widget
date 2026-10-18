@@ -1,8 +1,8 @@
 # P3R planner repository context
 
 Reference for continuing the owner's existing project with Claude. Updated on 2026-10-18
-(UTC), for the 3.4.0 dated stat planning, invitation accuracy, story-day display and
-global tips lookup on branch `work`.
+(UTC), for the 3.4.1 goal preparation, shared school dates and manual deep search
+on branch `work`.
 This is an orientation snapshot; check newer code and owner decisions before implementing changes.
 
 ## Product and current baseline
@@ -14,7 +14,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
   player records a different result, changes goals, or returns later and syncs progress.
 - Useful, consistent plans matter more than global optimality. An unmet goal is not proof
   that the goal is impossible. Forecasts and confirmed progress must remain separate.
-- Current app source: **3.4.0**, version code **38**, application ID **`app.p3r.planner`**;
+- Current app source: **3.4.1**, version code **39**, application ID **`app.p3r.planner`**;
   debug builds add `.debug`. Java package/Android namespace remains `app.p3r.dayplanner`.
   Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, minimum API 26, compile/target API 35.
 - Current public release is [v3.4.0](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.4.0),
@@ -47,10 +47,12 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 | [3.2.0 release notes](RELEASE_NOTES_3.2.0.md) | Rescue batching, stat-gated menus and request tips. |
 | [3.3.0 change notes](RELEASE_NOTES_3.3.0.md) | Period tips, dated group study, dorm characteristics, gardening preparation and widget sizes. |
 | [3.4.0 change notes](RELEASE_NOTES_3.4.0.md) | Dated training needs, automatic summer classes, conditional invitations, story display and tips search. |
+| [3.4.1 change notes](RELEASE_NOTES_3.4.1.md) | Goal-prefix coverage, joint prerequisites, shared school calendars, useful dating notes and manual deep search. |
 | [3.1.0 specification](specs/SPEC_3.1.0.md) | Full replan, reminders, legacy removal, widget answers and breadth planning. |
 | [Chinese glossary](GLOSSARY_zh.md) | Exact UI terms, sentence style and deadline wording. |
 | [Rules report](../rules/build/REPORT.md) | Generated source decisions, confidence, coverage and modeling gaps. |
 | [Plan metrics](PLAN_METRICS.md) | Recorded benchmark scenarios and tradeoffs between planning styles. |
+| [Mid-save deep-search comparison](DEEP_SEARCH_BENCHMARK_3.4.1.md) | Ordinary, deep and incremental results after onboarding mid-game, recording actions and skipping an action. |
 | [Project audit](HANDOFF_COMPLIANCE.md) | Requirements, historical audits and owner review; some line references and metrics describe earlier revisions. |
 
 The original v2 handoff prompt, snapshot ZIP and handoff directory were removed at the
@@ -95,12 +97,30 @@ installation → app and widget. Results return through the service into the eve
 - The planner screens 16 base-policy tunings, adds goal-first tunings when relevant,
   and improves promising complete trajectories with fortified rollout. Default options
   allow four candidates and a 4-second soft budget. Automatic follow-up and full replan
-  budgets are capped at 8 seconds. Budget exhaustion keeps a complete incumbent tail,
+  budgets are capped at 8 seconds. Persistent optional **规划设置 → 深度修改** gives
+  automatic replans after progress records/settings changes 12 seconds, with no subsequent
+  8-second follow-up. Manual **我的 → 从头重新安排 → 深度计算** uses 30 seconds,
+  more action candidates and additional strategy variants. Both 12/30-second modes first
+  run the ordinary 4-second search inside their shared total budget, admit its route, then
+  use the remaining time for eight-candidate/all-tuning expanded search. Rescue and ordered
+  goals retain that ordinary route's priority; secondary metrics follow the current style.
+  Budget exhaustion keeps a complete incumbent tail,
   rather than truncating the calendar. The owner explicitly authorized this modestly
   longer computation on October 18; earlier 2.5/5/7.5-second figures are historical.
 - Goals are compared in strict order: **必须**, then **想要**, each by the player's order.
   Target ranks can be below MAX. `Planner.Pool.compareGoals` and strict-priority reruns
   matter; the weighted objective alone is not the whole selection policy.
+- **3.4.1 前置准备**：三维和解锁资金按 MUST/WANT 档位共同规划；同档看实际开放日期、
+  缺口、剩余训练窗口和后续免费收益，不继承目标序号。多个 MUST 的属性需求同时计入，
+  不等前一个社群 MAX 才准备下一个。直接见面、解锁行动和最终目标比较仍按目标顺序。
+  白天训练必须由该门槛自身的晚间容量缺口支持。
+- **3.4.1 上学日与结缘**：从真实 O 日历识别校内社群，共用的可见面上学日单独计算容量；
+  校外社群先用其实际假期机会。结缘按实际省下的白天见面和有限累积好感计分，只有
+  后续仍能使用好感的见面才安排。「尽量都体验」的其余社群保留自身剩余剧情的稀缺度，
+  只有显式目标可使用共同上学日压力提高紧迫度；共享资源仍通过原有平方根竞争项计分。
+- **已解锁目标的结缘策略**：至少两个目标、仍有目标未完成、未完成目标均已解锁且字条
+  可用时，在同一预算内额外比较 `orderedNotes` 路线，按目标顺序分配晚间好感，保留
+  后续目标可达的部分等级；默认属性准备仍按档位与日期共同安排。
 - Default style **尽量都体验** rewards unlocking and raising more links, with diminishing
   value for later non-goal ranks. **尽量多 MAX** concentrates on completions. Breadth
   planning also runs the MAX style on a second thread and considers its candidates.
@@ -141,8 +161,15 @@ installation → app and widget. Results return through the service into the eve
 - Four gardening projects require `Profile.planDormGardening`, default false. The player's
   explicit opt-in promises crops will be planted first; crop/seed inventory and preparation
   costs are not modeled. It is a forecast preference, not a reason to erase past records.
-- Normal replans favor keeping the next three days stable. This behavior is deliberate
-  and differs from **从头重新安排**, which passes no previous plan and uses a 3× budget capped at 8 seconds.
+- Normal replans favor keeping the next three days stable. **从头重新安排** removes this
+  stability bias and uses a 3× budget capped at 8 seconds. Its manual **深度计算** option
+  uses 30 seconds. Incremental replans also independently validate and replay the previous
+  route's remaining suffix from the current observed state before admitting it as a quality
+  baseline under the current goals and style promises. A higher raw score cannot override
+  BREADTH coverage requirements (`chooseWithFloor` checks `keepsPromises`). A suitable
+  legal suffix carries earlier deep-search gains forward; changed actual progress
+  rejects an illegal suffix and replans from the new state. The route is a comparison
+  baseline, not a fixed schedule; manual deep search gives its actions no stability bonus.
 - `PlanValidator` has its own accumulator and transition checks instead of sharing
   `Kernel`/`Simulator` transitions. Keep that independence when changing mechanics.
   It checks contiguous coverage, legality, affordability, caps and forecast consistency.
@@ -297,16 +324,26 @@ installation → app and widget. Results return through the service into the eve
   or database-schema change. Changing the goal never erases completed projects.
 - `ReplanWorker` coalesces work on the service executor, computes outside the lock,
   cancels outdated jobs, validates output, and installs only current state/profile/rules
-  revisions. A budget-exhausted ordinary run can get one 2× follow-up.
+  revisions. A budget-exhausted 4-second ordinary run can get one 2× follow-up. With
+  persistent **深度修改**, progress/settings replans use 12 seconds and do not queue that
+  8-second follow-up. The setting does not replace manual 8/30-second full-replan choices.
 - Plan-cache compatibility also checks the scheduling policy. `Plan.CURRENT_POLICY_VERSION`
-  is 2 and new plans default to `policyVersion=2`; legacy JSON without this field loads
+  is 3 and new plans default to `policyVersion=3`; legacy JSON without this field loads
   as version 0. `PlannerService.isCurrent` checks this version plus the existing revisions
-  and rules identity. Upgrading recalculates the old implicit-all-teammate plan once without
-  changing actual records or the rule pack. A saved policy-version-2 plan remains reusable
+  and rules identity. Upgrading recalculates older scheduling policies once without
+  changing actual records or the rule pack. A saved policy-version-3 plan remains reusable
   on restart when its normal currentness checks pass.
 - Full replan rereads saved state/profile, uses an 8-second default budget and no stability
   bias, and does not itself change progress or history. Its ticket/result state is distinct
-  from ordinary planning; a current widget can keep recording during it.
+  from ordinary planning; a current widget can keep recording during it. Manual deep mode
+  uses 30 seconds and independently validates/replays a same-state current plan before
+  comparing it under current goals and style promises. Ordinary and deep full replans share
+  the cancellable worker.
+- **3.4.1 对比验收**：比较必须覆盖中途存档、正常完成后的连续重排，以及没升级、改做
+  别的行动、同步不同属性或现金等实际偏离；分别检查 4 秒、12 秒修改和 30 秒手动计算。
+  记录目标最终等级、解锁数、总等级、白天占用、花费、耗时和独立校验结果；不能只用
+  新游戏结果说明中途重排质量。深度模式须实际执行并纳入普通搜索路线，检验救援及
+  按序目标不退步；MAX 数和 R5 覆盖仍按当前风格取舍。
 
 ## App and widget interaction
 

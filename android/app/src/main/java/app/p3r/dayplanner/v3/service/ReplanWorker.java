@@ -36,6 +36,10 @@ import java.util.function.LongSupplier;
  *       {@code previous} and with three times the budget, capped at 8 s. A request supersedes the other
  *       computation in flight ({@link #cancelPartial}); 「先不算了」 stops only the full one
  *       ({@link #cancelFull}).</li>
+ *   <li>Manual deep search shares the full-replan lifecycle, with a fixed 30 s budget and no
+ *       automatic follow-up. Its current-plan comparison candidate is validated before search.</li>
+ *   <li>深度修改 opts automatic record/settings replans into one 12 s deep search, with no extra
+ *       follow-up. It remains an ordinary replan rather than a manual full-replan ticket.</li>
  * </ul>
  */
 final class ReplanWorker {
@@ -57,7 +61,7 @@ final class ReplanWorker {
         boolean followUp;
         /**
          * 从头重新安排: computed with no {@link #previous} plan (no stability bias) and three times
-         * the budget capped at 8 s, for the request {@link #ticket}.
+         * the budget capped at 8 s (or a manual 30 s deep search), for the request {@link #ticket}.
          */
         boolean full;
         /** The request a {@link #full} job answers ({@code PlannerApi#requestFullReplan}); 0 otherwise. */
@@ -192,6 +196,13 @@ final class ReplanWorker {
         List<String> problems = Collections.emptyList();
         Throwable error = null;
         try {
+            if (job.options.deepSearch && job.options.incumbentPlan != null) {
+                List<String> found = validator.validate(job.rules, job.profile, job.observed,
+                        job.options.incumbentPlan);
+                if (found != null && !found.isEmpty()) {
+                    job.options.incumbentPlan = null;
+                }
+            }
             plan = planner.plan(job.rules, job.profile, job.observed, job.previous, job.options);
             if (plan != null && !cancel.get()) {
                 stamp(plan, job);

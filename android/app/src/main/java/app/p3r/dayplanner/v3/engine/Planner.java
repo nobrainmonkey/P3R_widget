@@ -118,6 +118,8 @@ final class Planner {
 
     /** Screened tunings whose fortified rollout runs (best screened objective first) while the budget allows. */
     static final int FORTIFY = 3;
+    /** Manual deep search also looks beyond the ordinary four best action categories. */
+    static final int DEEP_CANDIDATES = 8;
 
     static Plan plan(Rules rules, Profile profile, SimState observed, Plan previous, Engine.Options options) {
         return plan(rules, profile, observed, previous, options, portfolioFor(profile));
@@ -140,17 +142,44 @@ final class Planner {
     static Plan plan(Rules rules, Profile profile, SimState observed, Plan previous, Engine.Options options,
                      Heuristics.Tuning[] portfolio) {
         long t0 = System.nanoTime();
+        long deadline = t0 + Math.max(0, options.timeBudgetMillis) * 1_000_000L;
+        Plan ordinary = null;
+        if (options.deepSearch && options.timeBudgetMillis > 0 && !cancelled(options)) {
+            // Wider rollouts change their trajectories: they are not a superset of the ordinary
+            // four-action search. Keep a real ordinary search inside the same overall budget.
+            long available = Math.max(0, (deadline - System.nanoTime()) / 1_000_000L);
+            if (available > 0) {
+                Engine.Options baseline = quietCopy(options);
+                baseline.deepSearch = false;
+                baseline.candidates = 4;
+                baseline.timeBudgetMillis = Math.min(Engine.DEFAULT_PLAN_BUDGET_MILLIS, available);
+                baseline.trace = options.trace;
+                Engine.Progress progress = options.progress;
+                if (progress != null) baseline.progress = f -> progress.onProgress(DEEP_BASE_SHARE * f);
+                ordinary = plan(rules, profile, observed, previous, baseline, portfolio);
+            }
+            Engine.Options expanded = quietCopy(options);
+            expanded.incumbentPlan = options.incumbentPlan;
+            expanded.trace = options.trace;
+            Engine.Progress progress = options.progress;
+            if (progress != null) expanded.progress = f -> progress.onProgress(DEEP_BASE_SHARE + (1 - DEEP_BASE_SHARE) * f);
+            options = expanded;
+        }
         Model m = new Model(rules, profile, options);
         SimState start = Kernel.normalize(m, observed);
         m.initializeBatches(start);
-        long deadline = t0 + Math.max(0, options.timeBudgetMillis) * 1_000_000L;
         boolean search = options.timeBudgetMillis > 0;
-        Pool pool = new Pool(m, start, previous, options, deadline, portfolio);
+        Pool pool = new Pool(m, start, options.deepSearch ? null : previous, options, deadline, portfolio);
+        Candidate incumbent = options.deepSearch ? pool.admitIncumbent(options.incumbentPlan) : null;
+        Candidate remaining = pool.admitPrevious(previous);
+        if (remaining != null && (incumbent == null || Pool.better(remaining, incumbent))) incumbent = remaining;
+        Candidate ordinaryCandidate = pool.admitIncumbent(ordinary);
+        if (ordinaryCandidate != null && (incumbent == null || Pool.better(ordinaryCandidate, incumbent))) incumbent = ordinaryCandidate;
         if (search) pool.startMaxStyleRun();
         boolean exhausted = pool.run(null, search, true);
         if (search) exhausted |= pool.prioritise();
         if (search) exhausted |= pool.addMaxStylePlans();
-        Candidate chosen = pool.choose();
+        Candidate chosen = pool.chooseWithFloor(incumbent);
         Plan plan = assemble(m, pool.labelHeuristics(chosen), start, chosen.codes, pool.tradedFor(chosen));
         Reminders.attach(m, start, chosen.codes, plan, options.lastTowerSlot);
         plan.budgetExhausted = exhausted;
@@ -185,24 +214,19 @@ final class Planner {
         return out.toArray(new Candidate[0]);
     }
 
-    /**
-     * The screened tunings fortified in a strict-priority run ({@link Pool#prioritise}): the best
-     * by that goal order's objective and the best {@link Heuristics.Tuning#goalFirst} one (two
-     * fortified searches, so the extra runs stay within the time budget).
-     */
-    static Candidate[] priorityFortifyOrder(Candidate[] order, Heuristics.Tuning[] portfolio) {
-        List<Candidate> out = new ArrayList<>();
-        if (order.length > 0) out.add(order[0]);
-        for (Candidate c : order) {
-            if (!portfolio[c.variant].goalFirst) continue;
-            if (!out.contains(c)) out.add(c);
-            break;
-        }
+    /** Deep search keeps the ordinary shortlist first, then explores every other screened tuning. */
+    static Candidate[] fortifyOrder(Candidate[] order, Heuristics.Tuning[] portfolio, int goals, boolean deep) {
+        Candidate[] normal = fortifyOrder(order, portfolio, goals);
+        if (!deep) return normal;
+        List<Candidate> out = new ArrayList<>(Arrays.asList(normal));
+        for (Candidate c : order) if (!out.contains(c)) out.add(c);
         return out.toArray(new Candidate[0]);
     }
 
     /** Share of the progress bar used by the screening phase. */
     private static final float SCREEN_SHARE = 0.1f;
+    /** Deep search first obtains the ordinary route, then broadens the search within the shared deadline. */
+    private static final float DEEP_BASE_SHARE = 0.15f;
 
     /**
      * One complete plan of the portfolio. Plans are compared by their rescues left to the limit evening
@@ -378,6 +402,75 @@ final class Planner {
         }
 
         /**
+         * Admit only a complete, current-policy plan that can be replayed from this exact start.
+         * The validator checks its stored forecast; the kernel then independently checks each
+         * action's legality before we measure and later rebuild every label/prediction ourselves.
+         */
+        Candidate admitIncumbent(Plan plan) {
+            if (!currentRoute(plan) || plan.fromSlot != start.slot) return null;
+            try {
+                if (!PlanValidator.validate(m.rules, m.profile, start, plan).isEmpty()) return null;
+                return admitRoute(plan, 0);
+            } catch (RuntimeException malformed) {
+                return null;
+            }
+        }
+
+        /**
+         * Rebase a previous route onto the current observations. Its old predictions and summary
+         * describe an earlier cursor and are deliberately ignored: every remaining action must
+         * still be legal, and its rebuilt forecast must pass the independent replay validator.
+         */
+        Candidate admitPrevious(Plan plan) {
+            if (!currentRoute(plan) || plan.fromSlot > start.slot) return null;
+            return admitRoute(plan, start.slot - plan.fromSlot);
+        }
+
+        private boolean currentRoute(Plan plan) {
+            return plan != null && plan.policyVersion == Plan.CURRENT_POLICY_VERSION
+                    && m.rules.version.equals(plan.rulesVersion) && plan.fromSlot >= m.rules.firstSlot()
+                    && plan.toSlot == m.t.lastSlot && plan.steps != null
+                    && plan.steps.size() == Math.max(0, m.t.lastSlot - plan.fromSlot + 1);
+        }
+
+        private Candidate admitRoute(Plan plan, int offset) {
+            try {
+                int length = Math.max(0, m.t.lastSlot - start.slot + 1);
+                if (offset < 0 || offset > plan.steps.size() || plan.steps.size() - offset != length) return null;
+                int[] codes = new int[length];
+                int[] legal = new int[Kernel.maxLegal(m)];
+                SimState state = start.copy();
+                for (int i = 0; i < codes.length; i++) {
+                    Plan.Step step = plan.steps.get(offset + i);
+                    if (step == null || step.slot != state.slot) return null;
+                    Action action = Action.parse(m.rules, step.action);
+                    if (action == null || action.type == Action.Type.INVITE) return null;
+                    int code = Kernel.FREE;
+                    if (!m.t.open(state.slot)) {
+                        if (action.type != Action.Type.LOCKED
+                                || !step.action.equals("locked:" + m.t.lock[state.slot])) return null;
+                    } else if (action.type != Action.Type.FREE) {
+                        if (action.type == Action.Type.LOCKED) return null;
+                        code = Kernel.encode(action);
+                        int n = Kernel.legal(m, state, legal);
+                        boolean found = false;
+                        for (int j = 0; j < n; j++) if (legal[j] == code) { found = true; break; }
+                        if (!found) return null;
+                    }
+                    codes[i] = code;
+                    Kernel.apply(m, state, code, null);
+                }
+                Plan rebuilt = assemble(m, ref, start, codes);
+                if (!PlanValidator.validate(m.rules, m.profile, start, rebuilt).isEmpty()) return null;
+                Candidate candidate = candidate(ref, portfolio[0], null, codes, -2);
+                add(candidate);
+                return candidate;
+            } catch (RuntimeException malformed) {
+                return null; // stale or malformed cached plans are never executed unchecked
+            }
+        }
+
+        /**
          * One portfolio run for {@code goalOrder} (null: the profile's own): every tuning's base
          * policy is screened (only the first one without {@code search}), the best are fortified
          * ({@link #fortifyOrder}, by the objective of that goal order) while the budget allows, and
@@ -404,7 +497,9 @@ final class Planner {
             for (Candidate c : order) add(c);
             if (!search) return exhausted;
             int goalCount = goalOrder == null ? goals.length : goalOrder.length;
-            Candidate[] fortifyOrder = main ? fortifyOrder(order, portfolio, goalCount) : priorityFortifyOrder(order, portfolio);
+            // Prefix repair needs the same strategy coverage as a normal run: a reduced
+            // shortlist can miss a feasible pair of higher goals when a third goal is added.
+            Candidate[] fortifyOrder = fortifyOrder(order, portfolio, goalCount, options.deepSearch);
             int fortify = fortifyOrder.length;
             for (int k = 0; k < fortify; k++) {
                 if ((k > 0 || !main) && !timeForAnotherFortify()) {
@@ -449,8 +544,8 @@ final class Planner {
         /**
          * Strict goal priority. While the best plan misses a goal (its first missed goal, in
          * priority order) and a later goal exists, plan once more with only the goals up to the
-         * missed one as goals ("top-k"; the later goals count as 「其余社群」), a whole portfolio run
-         * ({@link #run}). Each k runs at most once.
+         * missed one as goals ("top-k"; the later goals count as 「其余社群」), with the same
+         * fortified strategy coverage as a normal run ({@link #run}). Each k runs at most once.
          * Then, for every goal the best plan still misses, a base-policy plan with that goal first
          * is screened, so the notes can say which goal it gave way to. Returns true when the time
          * budget ran out before a needed run.
@@ -478,7 +573,31 @@ final class Planner {
                 Heuristics h = heuristics(tuning, promoted);
                 add(candidate(h, tuning, promoted, new Search(m, h, options, deadline, 0f, 0f).runBase(start), -1));
             }
-            return false;
+            return orderedNoteStrategy();
+        }
+
+        /**
+         * Once every active goal is open, ordinary stat preparation no longer needs to compete
+         * with their notes. Compare an additional route that funds affinity in goal order; this
+         * can preserve an extra later-goal rank when the first goal needs several notes in a row.
+         * The normal portfolio and prefix repairs always run first, unchanged.
+         */
+        private boolean orderedNoteStrategy() {
+            if (goals.length < 2 || firstMissed(best()) < 0 || m.note == null
+                    || m.note.gain <= 0 || start.notesUsed >= m.noteMaxUses
+                    || Rules.dayOf(start.slot) < m.note.fromDay) return false;
+            for (int goal : goals) if (start.rank[goal] < m.target(goal) && start.rank[goal] < 1) return false;
+            for (java.util.Map.Entry<Integer, Integer> requirement : m.note.requiresLv.entrySet()) {
+                if (Kernel.statLv(m, start, requirement.getKey()) < requirement.getValue()) return false;
+            }
+            if (cancelled(options) || System.nanoTime() > deadline) return true;
+            Heuristics.Tuning tuning = Heuristics.Tuning.DEFAULT.goalFirst().orderedNotes();
+            Heuristics h = heuristics(tuning, null);
+            add(candidate(h, tuning, null, new Search(m, h, options, deadline, 0f, 0f).runBase(start), -3));
+            if (!timeForAnotherFortify()) return true;
+            Candidate fortified = fortify(tuning, null, -3, 0.99f, 0f);
+            add(fortified);
+            return fortified.exhausted;
         }
 
         /** Some plan with at most {@code late} rescues left to the limit evening reaches the goal. */
@@ -560,6 +679,18 @@ final class Planner {
                 if (keepsPreviousWindow(ref, start.slot, c.codes) && (stable == null || c.score > stable.score + EPS)) stable = c;
             }
             return stable != null && best.score <= stable.score + SWITCH_MARGIN ? stable : best;
+        }
+
+        /**
+         * Preserve a legal comparison baseline without undoing the current style's promises.
+         * Rescue and goal priority already apply to every candidate in {@link #choose}; a higher
+         * score alone must not restore an old MAX-style route after the player chooses breadth.
+         */
+        Candidate chooseWithFloor(Candidate incumbent) {
+            Candidate chosen = choose();
+            if (incumbent != null && better(incumbent, chosen)
+                    && (maxPlan == null || keepsPromises(incumbent) || !keepsPromises(chosen))) return incumbent;
+            return chosen;
         }
 
         /**
@@ -728,6 +859,7 @@ final class Planner {
         Engine.Options q = new Engine.Options();
         q.timeBudgetMillis = o.timeBudgetMillis;
         q.candidates = o.candidates;
+        q.deepSearch = o.deepSearch;
         q.cancelled = o.cancelled;
         q.towerIncomePerVisit = o.towerIncomePerVisit;
         q.followUp = o.followUp;
@@ -816,7 +948,7 @@ final class Planner {
             this.deadline = deadline;
             this.progressFrom = progressFrom;
             this.progressSpan = progressSpan;
-            this.candidates = Math.max(1, options.candidates);
+            this.candidates = Math.max(options.deepSearch ? DEEP_CANDIDATES : 1, options.candidates);
             this.wasteMargin = Planner.wasteMargin(h);
             this.buf = new int[Kernel.maxLegal(m)];
             this.rolloutBuf = new int[Kernel.maxLegal(m)];

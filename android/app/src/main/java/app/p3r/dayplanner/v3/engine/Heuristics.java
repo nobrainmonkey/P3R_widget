@@ -197,8 +197,8 @@ final class Heuristics {
      */
     static final double GOAL_FIRST = 300_000;
     static final double GOAL_FIRST_STEP = 1_000;
-    /** Like {@link #GOAL_FIRST} for a dating-site note that adds points to a goal (below a rescue visit). */
-    static final double GOAL_FIRST_NOTE = 150_000;
+    /** Useful goal preparation stays below a rescue; the tier, never its ordinal, sets the base. */
+    static final double GOAL_FIRST_PREPARATION = 150_000;
 
     /**
      * Knobs of the base policy. The planner runs a small portfolio of tunings and keeps the plan with
@@ -226,6 +226,8 @@ final class Heuristics {
          * can use; the balanced tunings of the portfolio cover the plans where every goal fits.
          */
         final boolean goalFirst;
+        /** Extra search strategy: when goals are already open, fund their notes in goal order. */
+        final boolean orderedNotes;
 
         Tuning(double statWeight, double moneyWeight, double patience, double openSlack, double eveShare, double feeWeight,
                double admitShare) {
@@ -234,6 +236,11 @@ final class Heuristics {
 
         Tuning(double statWeight, double moneyWeight, double patience, double openSlack, double eveShare, double feeWeight,
                double admitShare, boolean goalFirst) {
+            this(statWeight, moneyWeight, patience, openSlack, eveShare, feeWeight, admitShare, goalFirst, false);
+        }
+
+        private Tuning(double statWeight, double moneyWeight, double patience, double openSlack, double eveShare, double feeWeight,
+                       double admitShare, boolean goalFirst, boolean orderedNotes) {
             this.statWeight = statWeight;
             this.moneyWeight = moneyWeight;
             this.patience = patience;
@@ -242,11 +249,16 @@ final class Heuristics {
             this.feeWeight = feeWeight;
             this.admitShare = admitShare;
             this.goalFirst = goalFirst;
+            this.orderedNotes = orderedNotes;
         }
 
         /** The same knobs with goals in strict priority order. */
         Tuning goalFirst() {
-            return new Tuning(statWeight, moneyWeight, patience, openSlack, eveShare, feeWeight, admitShare, true);
+            return new Tuning(statWeight, moneyWeight, patience, openSlack, eveShare, feeWeight, admitShare, true, orderedNotes);
+        }
+
+        Tuning orderedNotes() {
+            return new Tuning(statWeight, moneyWeight, patience, openSlack, eveShare, feeWeight, admitShare, goalFirst, true);
         }
 
         /** The best all-round tuning on the real pack's benchmark states (first in the portfolio). */
@@ -254,7 +266,8 @@ final class Heuristics {
 
         @Override public String toString() {
             return "Tuning(" + statWeight + ", " + moneyWeight + ", " + patience + ", " + openSlack + ", " + eveShare + ", "
-                    + feeWeight + ", " + admitShare + (goalFirst ? ", goalFirst" : "") + ")";
+                    + feeWeight + ", " + admitShare + (goalFirst ? ", goalFirst" : "")
+                    + (orderedNotes ? ", orderedNotes" : "") + ")";
         }
     }
 
@@ -292,6 +305,10 @@ final class Heuristics {
 
     /** [kind][slot] open (unlocked) slots of that kind (0 daytime, 1 evening) in [slot, lastSlot]. */
     final int[][] openRemain;
+    /** Actual school-only O calendars share a smaller resource than all free daytime slots. */
+    private final boolean[] schoolOnly;
+    private final int[] schoolRemain;
+    private final int[][] schoolMeetRemain;
     /** [kind][stat][slot] slots of that kind ≥ slot in which some allowed activity raises that stat. */
     final int[][][] trainRemain;
     /** Points of a typical evening training per stat. */
@@ -392,6 +409,11 @@ final class Heuristics {
     private final boolean[] admitted;
     private final int[] order;
     private final double[] load = new double[2];
+    /** Shared calendar pressure, counting only equal/higher-priority work for an explicit goal. */
+    private final double[] calendarLoad;
+    private final double[] schoolGoalNeed;
+    private double schoolMustNeed;
+    private double schoolWantNeed;
     /** Bonus per meeting (or unlock action) of a link for the gates it opens for other links. */
     private final double[] linkBonus;
     /** Affinity multiplier per link in the prepared state (its Persona × the Charm bonus). */
@@ -412,6 +434,11 @@ final class Heuristics {
     private final int[] gDeadline = new int[MAX_GATES];
     private final int[] gHard = new int[MAX_GATES];
     private final double[] gValue = new double[MAX_GATES];
+    private final int[] gLink = new int[MAX_GATES];
+    private final double[] gPressure = new double[MAX_GATES];
+    private final double[] gOrdinaryDeficit = new double[MAX_GATES];
+    private final double[] gPaidDeficit = new double[MAX_GATES];
+    private final boolean[] gDayRequired = new boolean[MAX_GATES];
     private final int[] gOrder = new int[MAX_GATES];
     private final double[] cumNeed = new double[3];
     /** Capacity depends only on the prepared state and the window end; epochs avoid clearing. */
@@ -427,6 +454,9 @@ final class Heuristics {
     private final boolean[] needFee = new boolean[MAX_GATES];
     /** Per-link point gaps reserved by the bounded, rolling dating-note budget. */
     private final int[] noteFundRoom;
+    /** Actual near-term remaining unlock fees, indexed by link. */
+    private final long[] goalFeeNeed;
+    private final int[] goalFeeDeadline;
     private int needs;
     private long shortfall;
 
@@ -518,6 +548,12 @@ final class Heuristics {
             openRemain[0][s] = openRemain[0][s + 1] + ((s & 1) == 0 && t.open(s) ? 1 : 0);
             openRemain[1][s] = openRemain[1][s + 1] + ((s & 1) == 1 && t.open(s) ? 1 : 0);
         }
+        schoolOnly = new boolean[n];
+        schoolRemain = new int[size];
+        schoolMeetRemain = new int[n][size];
+        calendarLoad = new double[n];
+        schoolGoalNeed = new double[n];
+        buildSchoolCalendars();
         int ns = t.nStats;
         trainRemain = new int[2][ns][size];
         eveGain = new double[ns];
@@ -624,6 +660,8 @@ final class Heuristics {
         charmMemoNeed = new int[n];
         demand = new int[n];
         noteFundRoom = new int[n];
+        goalFeeNeed = new long[n];
+        goalFeeDeadline = new int[n];
         perMeeting = new double[n];
         admitted = new boolean[n];
         order = new int[n];
@@ -696,6 +734,31 @@ final class Heuristics {
                     }
                     rem[slot] = rem[slot + 1] + (any ? 1 : 0);
                 }
+            }
+        }
+    }
+
+    /** Infer the shared school resource from real O cells; SMS invitations are never capacity. */
+    private void buildSchoolCalendars() {
+        int schoolMask = 0;
+        for (int l = 0; l < t.nLinks; l++) {
+            if (!wanted[l] || rules.links[l].kind != Rules.LinkKind.MANUAL || rules.links[l].evening) continue;
+            boolean school = false;
+            boolean outside = false;
+            for (int slot = t.firstSlot; slot <= t.lastSlot; slot += 2) {
+                if (t.meetRemain[l][slot] == t.meetRemain[l][slot + 1]) continue;
+                if (rules.day(slot >> 1).type == Rules.DayType.SCHOOL) school = true;
+                else outside = true;
+            }
+            schoolOnly[l] = school && !outside;
+            if (schoolOnly[l]) schoolMask |= 1 << l;
+        }
+        for (int slot = t.lastSlot; slot >= 0; slot--) {
+            boolean school = (slot & 1) == 0 && (t.meetMask[slot] & schoolMask) != 0;
+            schoolRemain[slot] = schoolRemain[slot + 1] + (school ? 1 : 0);
+            for (int l = 0; l < t.nLinks; l++) {
+                boolean meeting = school && t.meetRemain[l][slot] > t.meetRemain[l][slot + 1];
+                schoolMeetRemain[l][slot] = schoolMeetRemain[l][slot + 1] + (meeting ? 1 : 0);
             }
         }
     }
@@ -1007,16 +1070,19 @@ final class Heuristics {
         Arrays.fill(linkBonus, 0);
         gates = 0;
         needs = 0;
+        Arrays.fill(goalFeeNeed, 0);
         for (int l = 0; l < t.nLinks; l++) {
             if (st.rank[l] != 0 || !wanted[l] || unlockValue[l] <= 0 || rules.links[l].kind != Rules.LinkKind.MANUAL) continue;
             if (Kernel.lost(m, st, l, day)) continue;
             boolean late = latestUnlock[l] < slot;
-            double v = unlockValue[l] * (late ? 0.3 : admitted[l] ? 1.0 : 0.5);
+            boolean preparationFits = goal[l] ? demand[l] > 0 && demand[l] <= t.meetRemain[l][slot] : admitted[l];
+            double value = goal[l] ? unlockValue[l] / wGoal[l] * preparationWeight(l) : unlockValue[l];
+            double v = value * (late ? 0.3 : preparationFits ? 1.0 : 0.5);
             // Prepare for this link's own opening, rather than relying on the old constant
             // stat reward to accidentally finish its requirement months before/after it opens.
             int deadline = Math.max(slot, Math.min(openSlot[l], Math.min(gateDeadline[l], latestUnlock[l])));
             // Daytime training only for links still planned to reach their milestone in time.
-            int hard = late || !admitted[l] ? -1 : Math.max(slot, hardDeadline[l]);
+            int hard = late || !preparationFits ? -1 : Math.max(slot, hardDeadline[l]);
             int[] rs = m.reqStat[l];
             double trainings = 0;
             for (int i = 0; i < rs.length; i++) {
@@ -1034,7 +1100,7 @@ final class Heuristics {
                 if (deficit <= 0) continue;
                 statsMet = false;
                 double trainingDeficit = trainingDeficit(st, s, rules.stats[s].thresholds[m.reqStatLv[l][i]], deadline);
-                addGate(s, trainingDeficit, deadline, hard, v * share * tuning.statWeight);
+                addGate(s, trainingDeficit, deadline, hard, v * share * tuning.statWeight, l);
             }
             int k = st.unlockStep[l];
             boolean soon = slot >= openSlot[l] - 2 * MONEY_LOOKAHEAD_DAYS || day >= rules.links[l].unlock.earliestDay - MONEY_LOOKAHEAD_DAYS;
@@ -1046,6 +1112,10 @@ final class Heuristics {
                 if (cost > 0) {
                     double perYen = v / Math.max(1.0, load[kind(l)]) * (statsMet ? 1.0 : 0.6) / cost;
                     addNeed(cost + feeReserve(cost), tuning.feeWeight * Math.min(MAX_FEE_YEN_VALUE, perYen), true);
+                    if (goal[l]) {
+                        goalFeeNeed[l] = cost + feeReserve(cost);
+                        goalFeeDeadline[l] = deadline;
+                    }
                 }
             }
         }
@@ -1235,6 +1305,39 @@ final class Heuristics {
         load[1] = busy1 / Math.max(1, openRemain[1][slot]);
         admit(st, 0);
         admit(st, 1);
+        prepareCalendarPressure(st);
+    }
+
+    /**
+     * Flexible links may use holidays first. Only their demand beyond those actual O dates
+     * competes with school links; school days with no school O cell add no capacity. A lower
+     * goal never makes a higher goal more urgent, while ordinary links see all requested work.
+     */
+    private void prepareCalendarPressure(SimState st) {
+        Arrays.fill(schoolGoalNeed, 0);
+        schoolMustNeed = schoolWantNeed = 0;
+        double total = 0;
+        int slot = st.slot;
+        for (int l = 0; l < t.nLinks; l++) {
+            if (!wanted[l] || demand[l] <= 0 || rules.links[l].evening) continue;
+            int remain = t.meetRemain[l][slot];
+            int outside = remain - schoolMeetRemain[l][slot];
+            double required = Math.max(0, Math.min(demand[l], remain) - outside);
+            total += required;
+            if (goal[l]) {
+                schoolGoalNeed[goalRank[l]] += required;
+                if (st.rank[l] < target[l]) {
+                    if (m.profile.tier[l] == Profile.Tier.MUST) schoolMustNeed += required;
+                    else schoolWantNeed += required;
+                }
+            }
+        }
+        for (int p = 1; p < goalLinks.length; p++) schoolGoalNeed[p] += schoolGoalNeed[p - 1];
+        int cap = Math.max(1, schoolRemain[slot]);
+        for (int l = 0; l < t.nLinks; l++) {
+            double pressure = schoolOnly[l] ? (goal[l] ? schoolGoalNeed[goalRank[l]] : total) / cap : 0;
+            calendarLoad[l] = pressure;
+        }
     }
 
     /** Value per meeting of a link that will not reach its milestone: the ranks its next few meetings bring. */
@@ -1303,7 +1406,9 @@ final class Heuristics {
             if (!wanted[l] || rules.links[l].kind != Rules.LinkKind.MANUAL
                     || demand[l] <= 0 || demand[l] >= INF || perMeeting[l] <= 0) continue;
             needed += demand[l];
-            valueSum += perMeeting[l] * demand[l];
+            double meetingValue = goal[l] && st.rank[l] < target[l]
+                    ? perMeeting[l] / wGoal[l] * preparationWeight(l) : perMeeting[l];
+            valueSum += meetingValue * demand[l];
             saved += Math.max(0, demand[l] - remainingMeetingsWithCharm(st, l));
         }
         if (needed <= 0 || saved <= 0) return;
@@ -1323,7 +1428,7 @@ final class Heuristics {
             if (v <= 0) return;
         }
         // No hard deadline: the bonus is never worth a daytime meeting.
-        addGate(ci, deficit, due, -1, v * tuning.statWeight);
+        addGate(ci, deficit, due, -1, v * tuning.statWeight, -1);
     }
 
     /** Future Charm changes only future gains; observed affinity and ready/hold cues stay intact. */
@@ -1374,13 +1479,15 @@ final class Heuristics {
         return lo;
     }
 
-    private void addGate(int stat, double deficit, int deadline, int hard, double value) {
+    private void addGate(int stat, double deficit, int deadline, int hard, double value, int link) {
         if (gates >= MAX_GATES || value <= 0) return;
         gStat[gates] = stat;
         gDeficit[gates] = deficit;
         gDeadline[gates] = deadline;
         gHard[gates] = hard;
         gValue[gates] = value;
+        gLink[gates] = link;
+        gDayRequired[gates] = false;
         gates++;
     }
 
@@ -1421,6 +1528,9 @@ final class Heuristics {
             double perPoint = gValue[g] * statUrgency(rho) / Math.max(1.0, gDeficit[g]);
             double paidDeficit = Math.max(0, gDeficit[g] - freeCredit[s]);
             double ordinaryDeficit = Math.max(0, gDeficit[g] - datedCredit[s]);
+            gPressure[g] = rho;
+            gOrdinaryDeficit[g] = ordinaryDeficit;
+            gPaidDeficit[g] = paidDeficit;
             datedEveValue[s] += perPoint;
             eveValue[s] += perPoint * ordinaryDeficit / Math.max(1.0, gDeficit[g]);
             paidEveValue[s] += perPoint * paidDeficit / Math.max(1.0, gDeficit[g]);
@@ -1444,6 +1554,7 @@ final class Heuristics {
             double total = cumNeed[0] + cumNeed[1] + cumNeed[2];
             double dayNeed = total - tuning.eveShare * eveningCapacity(st, gHard[g]);
             if (dayNeed <= 0) continue;
+            gDayRequired[g] = true;
             int end = Math.min(t.lastSlot + 1, gHard[g] + 1);
             int dayAvail = trainRemain[0][s][st.slot] - trainRemain[0][s][end];
             double dayFrac = Math.min(1.0, dayNeed / Math.max(1.0, total));
@@ -1664,24 +1775,107 @@ final class Heuristics {
     }
 
     /**
-     * {@link Tuning#goalFirst}: a meeting or unlock step that moves a goal towards its target, or
-     * a dating-site note whose points still count for it, scores by the goal's place in the
-     * priority order ({@link #GOAL_FIRST}, {@link #GOAL_FIRST_NOTE}); anything else keeps {@code h}.
+     * {@link Tuning#goalFirst}: a goal's place in the order applies to its direct meetings/unlock actions. Evening
+     * preparation instead follows MUST/WANT, actual deficits and calendar pressure.
      */
     private double goalFirst(SimState st, int code, double h) {
         int type = Kernel.type(code);
+        if (type == Kernel.T_ACT) return goalPreparationPriority(st, Kernel.target(code), h);
         if (type != Kernel.T_MEET && type != Kernel.T_UNLOCK && type != Kernel.T_NOTE) return h;
         int l = Kernel.target(code);
         if (!goal[l] || st.rank[l] >= target[l] || demand[l] <= 0 || h <= 0) return h;
-        double base;
         if (type == Kernel.T_NOTE) {
             if (Kernel.need(m, l, st.rank[l]) - st.pts[l] <= 0) return h;
-            base = GOAL_FIRST_NOTE;
-        } else {
-            if (h <= 1.0) return h; // a meeting that cannot add anything (banked points during a hold)
-            base = GOAL_FIRST;
+            if (tuning.orderedNotes) {
+                return GOAL_FIRST_PREPARATION + GOAL_FIRST_STEP * (goalLinks.length - goalRank[l])
+                        + Math.min(h, GOAL_FIRST_STEP - 1);
+            }
+            return goalNotePreparationPriority(st, l);
         }
-        return base + GOAL_FIRST_STEP * (goalLinks.length - goalRank[l]) + Math.min(h, GOAL_FIRST_STEP - 1);
+        if (h <= 1.0) return h; // a meeting that cannot add anything (banked points during a hold)
+        return GOAL_FIRST + GOAL_FIRST_STEP * (goalLinks.length - goalRank[l]) + Math.min(h, GOAL_FIRST_STEP - 1);
+    }
+
+    private double preparationWeight(int link) {
+        return m.profile.tier[link] == Profile.Tier.MUST ? MUST_BASE : WANT_BASE;
+    }
+
+    private double preparationBase(int link) {
+        return GOAL_FIRST_PREPARATION * preparationWeight(link) / MUST_BASE;
+    }
+
+    /** Dated tie-break within equally urgent preparation, independent of the goal list's order. */
+    private double preparationDateTie(SimState st, int deadline) {
+        return (GOAL_FIRST_STEP - 1) / (1.0 + Math.max(0, deadline - st.slot));
+    }
+
+    private double goalNotePreparationPriority(SimState st, int link) {
+        int remain = Math.max(1, t.meetRemain[link][st.slot]);
+        double pressure = demand[link] / (double) remain;
+        if (schoolOnly[link]) {
+            double needed = schoolMustNeed + (m.profile.tier[link] == Profile.Tier.MUST ? 0 : schoolWantNeed);
+            pressure = Math.max(pressure, needed / Math.max(1, schoolRemain[st.slot]));
+        }
+        double urgency = Math.min(1.0, statUrgency(pressure) / statUrgency(1.0));
+        int room = Kernel.need(m, link, st.rank[link]) - st.pts[link];
+        double share = noteMeetingShare(st, link, room);
+        int next = nextMeetingSlot(link, st.slot + 1, t.lastSlot + 1);
+        return preparationBase(link) * urgency * share + preparationDateTie(st, next);
+    }
+
+    /**
+     * An unopened goal also needs its prerequisites. Keep their real dated/free deficits and
+     * deadline pressure, and include the actual remaining unlock-fee gap in the same MUST/WANT
+     * tier. A distant gate, already-funded fee, or training covered by later free sessions earns
+     * no constant boost. Daytime training still needs a shortage of evenings for its own gate.
+     * Preparation stays below a rescue and direct goal meetings; a large raw stat value cannot
+     * bypass the tier and starve an imminent cash prerequisite.
+     */
+    private double goalPreparationPriority(SimState st, int act, double h) {
+        if (h <= 0) return h;
+        Rules.Activity a = rules.activities[act];
+        boolean eve = (st.slot & 1) == 1;
+        boolean dated = a.cost <= 0 && (a.fixedDays != null || a.dormActivity());
+        double[] pv = !eve ? dayValue : a.cost > 0 ? paidEveValue : dated ? datedEveValue : eveValue;
+        double preparation = 0;
+        double preparationCap = 0;
+        for (int g = 0; g < gates; g++) {
+            int l = gLink[g];
+            int s = gStat[g];
+            if (l < 0 || !goal[l] || s >= a.gain.length || a.gain[s] <= 0 || pv[s] <= 0
+                    || (!eve && !gDayRequired[g])) continue;
+            double room = a.cost > 0 ? gPaidDeficit[g] : dated ? gDeficit[g] : gOrdinaryDeficit[g];
+            double useful = Math.min(a.gain[s], Math.min(room, t.statCap[s] - st.statPts[s]));
+            if (useful <= 0) continue;
+            double pressure = Math.min(1.0, statUrgency(gPressure[g]) / statUrgency(1.0));
+            double share = Math.min(1.0, useful / eveGain[s]);
+            double priority = preparationBase(l);
+            preparationCap = Math.max(preparationCap, priority);
+            preparation = Math.max(preparation, priority * pressure * share + preparationDateTie(st, gDeadline[g]));
+        }
+        if (a.kind == Rules.ActivityKind.JOB && (eve || !linkMeetable)) {
+            long pay = a.payFor(st.shifts[act] + 1);
+            long cash = Math.max(0, st.cash - Math.max(0, a.cost));
+            for (int l = 0; pay > 0 && l < t.nLinks; l++) {
+                if (goalFeeNeed[l] <= 0) continue;
+                long fees = 0;
+                for (int p = 0; p < t.nLinks; p++) {
+                    if (goalFeeNeed[p] <= 0) continue;
+                    boolean higherTier = preparationWeight(p) > preparationWeight(l);
+                    boolean sameTier = preparationWeight(p) == preparationWeight(l);
+                    if (higherTier || (sameTier && goalFeeDeadline[p] <= goalFeeDeadline[l])) fees += goalFeeNeed[p];
+                }
+                long gap = fees - cash;
+                if (gap <= 0) continue;
+                double shifts = gap / (double) pay;
+                double capacity = tuning.eveShare * eveningCapacity(st, goalFeeDeadline[l]);
+                double pressure = Math.min(1.0, statUrgency(shifts / Math.max(1.0, capacity)) / statUrgency(1.0));
+                double priority = preparationBase(l);
+                preparationCap = Math.max(preparationCap, priority);
+                preparation = Math.max(preparation, priority * pressure + preparationDateTie(st, goalFeeDeadline[l]));
+            }
+        }
+        return preparation > 0 ? Math.max(Math.min(h, preparationCap - 1), preparation) : h;
     }
 
     /** The base policy's choice among {@code n} legal codes (FREE when none). */
@@ -1734,8 +1928,13 @@ final class Heuristics {
         if (demand[l] <= 0) return 0.05;
         int remain = Math.max(1, t.meetRemain[l][st.slot]);
         double ratio = admitted[l] ? Math.min(1.0, demand[l] / (double) remain) : breadth ? nextRanksShare(l, remain) : 0;
-        // Contention raises every meeting of that slot kind alike; the link's own scarcity orders them.
-        return perMeeting[l] * urgency(ratio) * Math.sqrt(Math.max(1.0, load[kind(l)]));
+        // Holidays cannot repay a school-only meeting. The shared pool is a bounded pressure,
+        // not a flat school bonus, and still competes at this link's own objective value.
+        // Breadth's ordinary partial-rank scarcity must distinguish long stories from near-MAX
+        // ones. Explicit goals still reserve their common school capacity before ordinary links.
+        if (schoolOnly[l] && (!breadth || goal[l])) ratio = Math.max(ratio, Math.min(1.0, calendarLoad[l]));
+        double contention = Math.sqrt(Math.max(1.0, Math.max(load[kind(l)], calendarLoad[l])));
+        return perMeeting[l] * urgency(ratio) * contention;
     }
 
     /** 「尽量都体验」: share of the link's {@code remain} opportunities its next few meetings need (≤ 1). */
@@ -1938,10 +2137,10 @@ final class Heuristics {
      */
     private double noteScore(SimState st, int l) {
         Rules.DatingNote note = m.note;
-        if (note == null || demand[l] <= 0 || !wanted[l]) return 0.01;
+        if (note == null || demand[l] <= 0 || !wanted[l] || !futureRankMeeting(st, l)) return VETO;
         int r = st.rank[l];
         int room = Kernel.need(m, l, r) - st.pts[l];
-        if (room <= 0) return 0.01;
+        if (room <= 0 || st.ready[l]) return VETO;
         double h = noteBenefit(st, l, room);
         if (note.cost > 0) h -= costPenalty(st.cash, note.cost);
         return Math.max(0.01, h);
@@ -1950,18 +2149,32 @@ final class Heuristics {
     /** Intrinsic meeting value of a useful note, before charging any protected cash it spends. */
     private double noteBenefit(SimState st, int l, int room) {
         Rules.DatingNote note = m.note;
-        if (note == null || room <= 0 || demand[l] <= 0 || !wanted[l]) return 0;
-        double share = Math.min(1.0, Math.min(note.gain, room) / (double) Kernel.ordinaryPts(m, linkMult[l]));
+        if (note == null || room <= 0 || demand[l] <= 0 || !wanted[l] || !futureRankMeeting(st, l)) return 0;
+        double share = noteMeetingShare(st, l, room);
         double worth;
         if (!admitted[l]) {
             worth = perMeeting[l];
         } else {
-            double overbooked = Math.min(1.0, Math.max(0, load[kind(l)] - tuning.admitShare));
+            double pressure = Math.max(load[kind(l)], calendarLoad[l]);
+            double overbooked = Math.min(1.0, Math.max(0, pressure - tuning.admitShare));
+            // A useful free evening can still save a daytime when the remaining route fits.
+            // Keep that small value finite, below the value of fixing a crowded calendar.
+            double spareEvening = 0.1 * Math.min(1.0, pressure);
             int remain = Math.max(1, t.meetRemain[l][st.slot]);
             double early = goal[l] ? wGoal[l] * EARLY_PER_SLOT * (lastSlot - st.slot) / (double) remain : 0;
-            worth = perMeeting[l] * overbooked + early;
+            worth = perMeeting[l] * Math.max(overbooked, spareEvening) + early;
         }
         return worth * share * NOTE_SHARE;
+    }
+
+    private double noteMeetingShare(SimState st, int l, int room) {
+        int gain = Math.min(m.note.gain, room);
+        int rank = st.rank[l];
+        int targetRank = milestone(l, rank);
+        int before = meetingsBetween(l, rank, st.pts[l], st.ready[l], targetRank, linkMult[l]);
+        int after = meetingsBetween(l, rank, st.pts[l] + gain, st.ready[l], targetRank, linkMult[l]);
+        // Crossing a threshold may save a whole daytime; smaller notes keep finite progress.
+        return Math.min(1.0, Math.max(Math.max(0, before - after), gain / (double) Kernel.ordinaryPts(m, linkMult[l])));
     }
 
     /**

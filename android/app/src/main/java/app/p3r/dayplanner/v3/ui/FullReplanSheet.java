@@ -15,6 +15,9 @@ import app.p3r.dayplanner.v3.model.Rules;
 final class FullReplanSheet {
     static final String TITLE = "从头重新安排";
     static final String RUNNING = "正在从头重新安排…";
+    static final String DEEP_TITLE = "深度计算";
+    static final String DEEP_RUNNING = "正在深度计算…";
+    static final String SUBTITLE = "普通重排或深度计算";
 
     private FullReplanSheet() {}
 
@@ -28,9 +31,12 @@ final class FullReplanSheet {
         return d != null && d.snap != null && d.snap.fullReplanning;
     }
 
+    static String runningText(UiData d) {
+        return d != null && d.snap != null && d.snap.fullReplanDeep ? DEEP_RUNNING : RUNNING;
+    }
+
     static String body(Rules rules) {
-        return "会重新读取你记下的进度和规划设置，不参考现在的安排，从头排到" + Zh.date(rules.lastDay)
-            + "。比平时多算一会儿，一般几秒，最多十来秒。接下来几天的安排可能会变。";
+        return "按已记录的进度和规划设置，重新排到" + Zh.date(rules.lastDay) + "。";
     }
 
     static void show(HomeHost host) {
@@ -46,32 +52,42 @@ final class FullReplanSheet {
         TextView body = Ui.mixed(c, body(d.rules), 15, Ui.col(c, R.color.p3r_ice_100), false);
         body.setLineSpacing(0f, 1.3f);
         sheet.addView(body, top(c, 8));
+        sheet.addView(Ui.mixed(c, "普通重排最多 8 秒；深度计算最多 30 秒。", 13,
+            Ui.col(c, R.color.p3r_ice_100), false), top(c, 8));
         if (running(d)) {
             // Already on its way: what it is doing instead of a second request.
-            TextView running = Ui.text(c, RUNNING, 14, Ui.col(c, R.color.p3r_cyan_300), true);
+            TextView running = Ui.text(c, runningText(d), 14, Ui.col(c, R.color.p3r_cyan_300), true);
             sheet.addView(running, top(c, 20));
             sheet.addView(new BusyStripe(c), top(c, 6));
             host.showSheet(sheet);
             return;
         }
-        LinearLayout buttons = Ui.row(c);
-        TextView later = Ui.secondary(c, "先不了");
-        later.setOnClickListener(v -> host.dismissSheet());
-        buttons.addView(later, Ui.weight(1));
-        TextView go = Ui.primary(c, TITLE);
+        TextView deep = Ui.primary(c, DEEP_TITLE);
+        TextView go = Ui.secondary(c, TITLE);
+        deep.setOnClickListener(v -> {
+            if (!deep.isEnabled()) {
+                return;
+            }
+            deep.setEnabled(false);
+            go.setEnabled(false);
+            host.dismissSheet();
+            host.requestDeepReplan();
+        });
+        sheet.addView(deep, top(c, 20));
         go.setOnClickListener(v -> {
             // One request per sheet, however fast the taps come.
             if (!go.isEnabled()) {
                 return;
             }
             go.setEnabled(false);
+            deep.setEnabled(false);
             host.dismissSheet();
             host.requestFullReplan();
         });
-        LinearLayout.LayoutParams goParams = Ui.weight(1.3f);
-        goParams.leftMargin = Ui.dp(c, 12);
-        buttons.addView(go, goParams);
-        sheet.addView(buttons, top(c, 20));
+        sheet.addView(go, top(c, 8));
+        TextView later = Ui.quiet(c, "先不了");
+        later.setOnClickListener(v -> host.dismissSheet());
+        sheet.addView(later, top(c, 4));
         host.showSheet(sheet);
     }
 

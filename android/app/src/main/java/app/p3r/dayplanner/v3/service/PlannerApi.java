@@ -62,6 +62,8 @@ public interface PlannerApi {
          * still the plan for the current records (the widget keeps recording with one tap).
          */
         public boolean fullReplanning;
+        /** The latest manual request uses the 30 s deep search, rather than ordinary full replan. */
+        public boolean fullReplanDeep;
         /** Latest ticket {@link #requestFullReplan} handed out in this process, 0 if none. */
         public long fullReplanTicket;
         /** Latest ticket whose request has ended (with {@link #fullReplanResult}), 0 if none. */
@@ -289,6 +291,15 @@ public interface PlannerApi {
     default long requestFullReplan() {
         requestReplan();
         return 0;
+    }
+
+    /**
+     * 深度计算: a manual background search with a 30 s budget, using the same current records and
+     * profile as {@link #requestFullReplan}. The installed plan is a comparison candidate only;
+     * it adds no stability bias. Shares full-replan tickets, progress, cancellation and results.
+     */
+    default long requestDeepReplan() {
+        return requestFullReplan();
     }
 
     /**

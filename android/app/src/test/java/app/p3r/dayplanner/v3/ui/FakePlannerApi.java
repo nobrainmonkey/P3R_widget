@@ -69,6 +69,7 @@ final class FakePlannerApi implements PlannerApi {
     int replanRequests;
     /** Calls of {@link #requestFullReplan} / {@link #cancelFullReplan}. */
     int fullReplanRequests;
+    int deepReplanRequests;
     int fullReplanCancels;
     final List<Integer> acknowledgedStorySlots = new ArrayList<>();
     private long seq = 100;
@@ -187,6 +188,7 @@ final class FakePlannerApi implements PlannerApi {
         s.lastRecordMillis = snap.lastRecordMillis;
         s.eventsSinceCheckpoint = snap.eventsSinceCheckpoint;
         s.fullReplanning = snap.fullReplanning;
+        s.fullReplanDeep = snap.fullReplanDeep;
         s.fullReplanTicket = snap.fullReplanTicket;
         s.fullReplanDoneTicket = snap.fullReplanDoneTicket;
         s.fullReplanResult = snap.fullReplanResult;
@@ -334,12 +336,23 @@ final class FakePlannerApi implements PlannerApi {
     @Override
     public synchronized long requestFullReplan() {
         fullReplanRequests++;
+        return requestManualReplan(false);
+    }
+
+    @Override
+    public synchronized long requestDeepReplan() {
+        deepReplanRequests++;
+        return requestManualReplan(true);
+    }
+
+    private long requestManualReplan(boolean deep) {
         if (snap.observed == null) {
             return 0;
         }
         if (!snap.fullReplanning) {
             snap.fullReplanTicket++;
             snap.fullReplanning = true;
+            snap.fullReplanDeep = deep;
         }
         return snap.fullReplanTicket;
     }

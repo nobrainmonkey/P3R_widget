@@ -750,6 +750,11 @@ final class PlanValidator {
             if (!isGoal(link) && !profile.otherLinks) return false;
             if (!profile.otherLinks && rank[link] >= Math.max(1, Math.min(10, profile.target[link]))) return false;
             if (heldInto[link] == rank[link] + 1) return false;
+            return futureAffinityMeeting(link);
+        }
+
+        /** Independently check whether affinity can still be used at an ordinary meeting. */
+        private boolean futureAffinityMeeting(int link) {
             Rules.Link social = rules.links[link];
             for (int d = social.avail.nextSetBit(day()); d >= 0 && d <= rules.lastDay; d = social.avail.nextSetBit(d + 1)) {
                 int meeting = Rules.slot(d, social.evening);
@@ -778,6 +783,7 @@ final class PlanValidator {
                 if (link.kind != Rules.LinkKind.MANUAL || r < 1 || r >= 10 || ready[l] || unavailable(l)) continue;
                 if (!isGoal(l) && !profile.otherLinks) continue;
                 if (!profile.otherLinks && r >= Math.max(1, Math.min(10, profile.target[l]))) continue;
+                if (!futureAffinityMeeting(l)) continue;
                 int thr = link.threshold[r + 1];
                 int need = thr + (isGoal(l) && profile.goalBuffer && thr > 0 ? ordinaryGain() : 0);
                 if (thr > 0 && pts[l] < need) return true;

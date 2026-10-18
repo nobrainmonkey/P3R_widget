@@ -62,6 +62,11 @@ interface HomeHost {
      */
     void requestFullReplan();
 
+    /** Manual 30 s search using the current progress and planning settings. */
+    default void requestDeepReplan() {
+        requestFullReplan();
+    }
+
     /** 「先不算了」: stops a running 从头重新安排. */
     void cancelFullReplan();
 

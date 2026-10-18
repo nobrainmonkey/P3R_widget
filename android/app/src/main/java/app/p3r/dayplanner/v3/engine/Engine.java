@@ -25,6 +25,19 @@ public final class Engine {
         public long timeBudgetMillis = DEFAULT_PLAN_BUDGET_MILLIS;
         /** Rollout candidates per slot. */
         public int candidates = 4;
+        /**
+         * Deep replan: first compare a real ordinary search (up to 4 s), then more actions per
+         * slot and every screened tuning within the same {@link #timeBudgetMillis}. The expanded
+         * search does not favour the previous schedule's next days.
+         */
+        public boolean deepSearch;
+        /**
+         * Optional complete plan from the same observed state/profile, compared as a quality
+         * baseline in a deep replan under the current goals and style. It is independently
+         * validated and replayed first; its actions never receive a stability bonus. Ignored
+         * by ordinary planning.
+         */
+        public Plan incumbentPlan;
         /** Optional progress callback (0..1), may be null. Called from the planning thread. */
         public Progress progress;
         /** Optional cancellation flag polled between slots. */
@@ -164,7 +177,11 @@ public final class Engine {
         return Planner.alternatives(rules, profile, state, options);
     }
 
-    /** Plan every slot from {@code observed.slot} to the end of the calendar. */
+    /**
+     * Plan every slot from {@code observed.slot} to the end of the calendar. The legal remaining
+     * route of {@code previous}, when it can be replayed from the new observations, joins the
+     * comparison under the current goals and style. Passing null requests a fresh plan.
+     */
     public static Plan plan(Rules rules, Profile profile, SimState observed, Plan previous, Options options) {
         return Planner.plan(rules, profile, observed, previous, options == null ? new Options() : options);
     }

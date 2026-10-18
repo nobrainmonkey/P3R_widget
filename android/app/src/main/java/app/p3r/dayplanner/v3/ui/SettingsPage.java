@@ -35,6 +35,8 @@ final class SettingsPage {
         LinearLayout column = Ui.column(c);
 
         column.addView(style(host, p));
+        column.addView(toggle(host, "深度修改", "每次修改后最多计算 12 秒", p.deepChanges,
+            (q, on) -> q.deepChanges = on), gapTop(c, 8));
         column.addView(Ui.sectionHeader(c, "社群点数", null), gapTop(c, 20));
         column.addView(persona(host, p), gapTop(c, 4));
         column.addView(toggle(host, "魅力 MAX 后的加成",
@@ -77,7 +79,7 @@ final class SettingsPage {
     private static View fullReplanFooter(HomeHost host) {
         Context c = host.activity();
         LinearLayout box = Ui.column(c);
-        box.addView(Ui.muted(c, "改动会马上生效，安排也会自动更新；想完全不参考现在的安排、从头排一遍："));
+        box.addView(Ui.muted(c, "按当前进度普通重排或深度计算："));
         TextView again = Ui.quiet(c, FullReplanSheet.TITLE);
         again.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         boolean enabled = FullReplanSheet.available(host.data());

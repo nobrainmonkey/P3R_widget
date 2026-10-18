@@ -44,7 +44,7 @@ public class FullReplanUiTest extends UiTestBase {
         HomeActivity a = me();
         View row = entry(a);
         assertTrue(row.isEnabled());
-        assertEquals("从头重新安排，重新读取进度和规划设置，从头再排一遍", row.getContentDescription().toString());
+        assertEquals("从头重新安排，普通重排或深度计算", row.getContentDescription().toString());
         Shots.shot(a, "me_full_replan_entry");
 
         assertTrue(row.performClick());
@@ -52,11 +52,11 @@ public class FullReplanUiTest extends UiTestBase {
         assertTrue(a.sheets().isShowing());
         View sheet = a.sheets();
         Shots.find(sheet, "从头重新安排？");
-        Shots.find(sheet, "会重新读取你记下的进度和规划设置，不参考现在的安排，从头排到1月31日。"
-            + "比平时多算一会儿，一般几秒，最多十来秒。接下来几天的安排可能会变。");
+        Shots.find(sheet, "按已记录的进度和规划设置，重新排到1月31日。");
+        Shots.find(sheet, "普通重排最多 8 秒；深度计算最多 30 秒。");
         // The date is in the numeral face, as on 规划说明 and 我的.
-        android.widget.TextView body = (android.widget.TextView) Shots.find(sheet, "会重新读取你记下的进度和规划设置，不参考现在的安排，"
-            + "从头排到1月31日。比平时多算一会儿，一般几秒，最多十来秒。接下来几天的安排可能会变。");
+        android.widget.TextView body = (android.widget.TextView) Shots.find(sheet,
+            "按已记录的进度和规划设置，重新排到1月31日。");
         CharSequence styled = body.getText();
         int date = styled.toString().indexOf('3', styled.toString().indexOf("排到"));
         assertTrue(styled.toString(), date > 0 && styled instanceof android.text.Spanned
@@ -107,7 +107,7 @@ public class FullReplanUiTest extends UiTestBase {
         Api.setForTest(api);
         HomeActivity finished = me();
         assertFalse(entry(finished).isEnabled());
-        assertTrue(Shots.has(finished, "重新读取进度和规划设置，从头再排一遍"));
+        assertTrue(Shots.has(finished, "普通重排或深度计算"));
 
         api = FakePlannerApi.firstRun();
         Api.setForTest(api);
@@ -242,7 +242,7 @@ public class FullReplanUiTest extends UiTestBase {
         HomeActivity a = home();
         a.pushPage("规划设置", SettingsPage.build(a));
         Shots.idle();
-        assertTrue(Shots.has(a, "改动会马上生效，安排也会自动更新；想完全不参考现在的安排、从头排一遍："));
+        assertTrue(Shots.has(a, "按当前进度普通重排或深度计算："));
         Shots.click(a, ENTRY);
         assertTrue(a.sheets().isShowing());
         Shots.find(a.sheets(), "从头重新安排？");
@@ -260,5 +260,51 @@ public class FullReplanUiTest extends UiTestBase {
         Shots.find(a.sheets(), RUNNING);
         assertTrue(Shots.findAll(a.sheets(), ENTRY).isEmpty());
         assertTrue(Shots.findAll(a.sheets(), "先不了").isEmpty());
+    }
+
+    @Test
+    public void deepChoiceRequestsOnlyOneDeepRunAndShowsItsRunningState() {
+        HomeActivity a = me();
+        entry(a).performClick();
+        Shots.idle();
+        View deep = Shots.clickTarget(Shots.find(a.sheets(), "深度计算"));
+        View ordinary = Shots.clickTarget(Shots.find(a.sheets(), ENTRY));
+        deep.performClick();
+        deep.performClick();
+        ordinary.performClick();
+        Shots.idle();
+        assertEquals(1, api.deepReplanRequests);
+        assertEquals(0, api.fullReplanRequests);
+        assertTrue("deep mode survives the API snapshot used by the screen", api.snapshot().fullReplanDeep);
+        assertTrue(Shots.has(a, "正在深度计算…"));
+        assertFalse(entry(a).isEnabled());
+        assertFalse(a.sheets().isShowing());
+        a.requestDeepReplan();
+        Shots.idle();
+        assertEquals(1, api.deepReplanRequests);
+    }
+
+    @Test
+    public void aDeepRunFoundByANewScreenCanBeStoppedAndReportsItsOwnResult() {
+        long ticket = api.requestDeepReplan();
+        assertTrue("a recreated screen receives the deep mode", api.snapshot().fullReplanDeep);
+        HomeActivity a = home();
+        assertTrue(Shots.has(a, "正在深度计算…"));
+        assertTrue("recording remains available", Shots.has(a, "完成 ✓"));
+        Shots.click(a, "先不算了");
+        assertEquals(1, api.fullReplanCancels);
+
+        api.snap.plan = Fixtures.planMid(api.rules, api.snap.observed, api.snap.observed.slot, "plan-deep");
+        api.snap.plan.steps.set(1, Fixtures.social(api.rules, Fixtures.SLOT_NOW + 1, "hermit", 3, 4, true, false));
+        api.endFullReplan(FullReplanResult.CHANGED);
+        api.fireChanged();
+        Shots.idle();
+        assertEquals(ticket, api.snap.fullReplanDoneTicket);
+        assertEquals("深度计算好了：这一周有 1 处变动", a.undoBar().messageText().toString());
+        assertFalse(Shots.has(a, "正在深度计算…"));
+        a.undoBar().hide();
+        api.fireChanged();
+        Shots.idle();
+        assertFalse("the result appears once", a.undoBar().isShowing());
     }
 }

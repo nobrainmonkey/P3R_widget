@@ -61,6 +61,8 @@ public final class Profile {
      * planner values links, not a choice the player made). JSON key {@code style}.
      */
     public Style style = Style.BREADTH;
+    /** 深度修改: use a 12 s deep search for each automatic replan after records/settings change. */
+    public boolean deepChanges = false;
     /**
      * Deprecated mirror of {@code personaMode == ALL}; kept so older code and backups still read.
      * New code uses {@link #personaMode} / {@link #personaFor(int)}.
@@ -225,6 +227,7 @@ public final class Profile {
         o.put("links", goals);
         o.put("otherLinks", otherLinks);
         o.put("style", style.json);
+        o.put("deepChanges", deepChanges);
         o.put("personaBonus", effectivePersonaMode() == PersonaMode.ALL);
         o.put("personaMode", effectivePersonaMode().name());
         o.put("datingNotes", datingNotes);
@@ -267,6 +270,7 @@ public final class Profile {
         }
         p.otherLinks = o.optBoolean("otherLinks", true);
         p.style = Style.fromJson(o.optString("style", Style.BREADTH.json));
+        p.deepChanges = o.optBoolean("deepChanges", false);
         p.personaBonus = o.optBoolean("personaBonus", false);
         p.personaMode = PersonaMode.valueOf(o.optString("personaMode", p.personaBonus ? "ALL" : "NONE"));
         p.personaBonus = p.personaMode == PersonaMode.ALL;

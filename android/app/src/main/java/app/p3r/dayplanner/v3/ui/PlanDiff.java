@@ -115,9 +115,17 @@ public final class PlanDiff {
         return FULL_UNCHANGED;
     }
 
+    /** Deep search uses the same result details with its own operation name. */
+    public static String fullSummary(Rules rules, Plan before, Plan after, int fromSlot,
+                                     PlannerApi.FullReplanResult result, boolean deep) {
+        String summary = fullSummary(rules, before, after, fromSlot, result);
+        return deep && summary != null ? summary.replace("从头重新安排", "深度计算") : summary;
+    }
+
     /** True for the results said with a neutral mark rather than a check (nothing was redone). */
     static boolean neutral(String summary) {
-        return FULL_FAILED.equals(summary) || FULL_CANCELLED.equals(summary);
+        return FULL_FAILED.equals(summary) || "这次没能深度计算，现在的安排不变".equals(summary)
+            || FULL_CANCELLED.equals(summary);
     }
 
     /** Slots from {@code fromSlot} on with the same action in both plans but other 顺便 lines. */

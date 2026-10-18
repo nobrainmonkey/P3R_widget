@@ -149,8 +149,9 @@ public class BreadthObjectiveTest {
     }
 
     /**
-     * Reviewed synthetic MAX routes after the 3.4 dated-stat, finite-resource and discrete Charm
-     * meeting-savings policy changes; all three remain validator-clean, with MAX counts 22/21/15.
+     * Reviewed synthetic MAX routes after the 3.4.1 shared-calendar and joint prerequisite
+     * preparation changes; all three remain validator-clean, with MAX counts 22/22/14
+     * (previously 22/21/15). The late empty-state route trades one MAX; quality bounds remain.
      * A new game, a 「必须」 goal and a 9/1 start with nothing unlocked, with enough budget to
      * finish searching. Real-pack quality bounds and the separate goal-priority tests remain.
      */
@@ -158,9 +159,9 @@ public class BreadthObjectiveTest {
     public void maxStyleMatchesTheReviewedSyntheticPlans() {
         Rules rules = RulesFixtures.fullYear();
         Object[][] golden = {
-                {"new game", RulesFixtures.others(), RulesFixtures.slot(4, 21, false), "ac74cc8e1b2fde8d", "cae73a054794c9e8"},
-                {"must 4", RulesFixtures.must(4), RulesFixtures.slot(4, 21, false), "9bce76442526a808", "cdd0f2a5c0db0154"},
-                {"9/1", RulesFixtures.others(), RulesFixtures.slot(9, 1, false), "85da9524eb2f4406", "4f3f2c2a7074003f"}};
+                {"new game", RulesFixtures.others(), RulesFixtures.slot(4, 21, false), "b1806cc53d0cabc4", "d58c41149de88990"},
+                {"must 4", RulesFixtures.must(4), RulesFixtures.slot(4, 21, false), "0c63ed3424f10d52", "1ab444dab406a8ed"},
+                {"9/1", RulesFixtures.others(), RulesFixtures.slot(9, 1, false), "cbbfd9b7350a6552", "ef116a5a7a9f7f68"}};
         for (Object[] g : golden) {
             Engine.Options options = new Engine.Options();
             options.timeBudgetMillis = 60_000;

@@ -256,24 +256,36 @@ public class PlanBreadthRealPackTest {
             cases.add(new Object[]{title.toString(), p, midGameState()});
         }
         int[] sum = new int[8];
+        int[] tiedSum = new int[8];
+        int tiedProfiles = 0;
         List<String> locked = new ArrayList<>();
         for (Object[] c : cases) {
             Pair p = compare((String) c[0], (Profile) c[1], (SimState) c[2]);
             // 「先把每个社群都解锁」: no link that 尽量多 MAX takes to MAX stays locked (3.1.0 re-check: 10/22
             // random 5 and 必须 皇帝、恋爱 left 恶魔 at RANK 0, J lower than the 尽量多 MAX plan's).
-            for (int l = 0; l < rules.links.length; l++) {
-                if (p.max.endRank[l] >= 10 && p.breadth.endRank[l] == 0) locked.add(rules.links[l].arcanaZh + " · " + p.line());
+            // As in brokenPromise, completing an additional explicit goal takes precedence
+            // over another style's ordinary links. Compare ordinary coverage when goals tie.
+            if (compareGoals(p.profile, p.breadth.endRank, p.max.endRank) == 0) {
+                for (int l = 0; l < rules.links.length; l++) {
+                    if (p.max.endRank[l] >= 10 && p.breadth.endRank[l] == 0) locked.add(rules.links[l].arcanaZh + " · " + p.line());
+                }
             }
             int[] add = {p.breadth.unlocked, p.max.unlocked, p.breadth.atLeast5, p.max.atLeast5, p.breadth.daytimeWaste,
                     p.max.daytimeWaste, p.breadth.rankSum, p.max.rankSum};
             for (int i = 0; i < sum.length; i++) sum[i] += add[i];
+            if (compareGoals(p.profile, p.breadth.endRank, p.max.endRank) == 0) {
+                for (int i = 0; i < tiedSum.length; i++) tiedSum[i] += add[i];
+                tiedProfiles++;
+            }
         }
         String totals = "unlocked " + sum[0] + " / " + sum[1] + " · RANK ≥ 5 " + sum[2] + " / " + sum[3]
                 + " · wasted daytime " + sum[4] + " / " + sum[5] + " · rank sum " + sum[6] + " / " + sum[7]
                 + " (尽量都体验 / 尽量多 MAX, " + cases.size() + " profiles)";
         System.out.println(totals);
         assertTrue("尽量多 MAX takes these to MAX, 尽量都体验 leaves them locked:\n" + String.join("\n", locked), locked.isEmpty());
-        assertTrue(totals, sum[0] >= sum[1] && sum[2] >= sum[3] && sum[4] < sum[5]);
+        assertTrue("the goal-tied comparison must not be empty", tiedProfiles > 0);
+        assertTrue(totals + "; goal-tied profiles " + tiedProfiles + ": " + Arrays.toString(tiedSum),
+                tiedSum[0] >= tiedSum[1] && tiedSum[2] >= tiedSum[3] && tiedSum[4] < tiedSum[5]);
     }
 
     /**
@@ -342,9 +354,9 @@ public class PlanBreadthRealPackTest {
     @Test
     public void maxStyleMatchesTheReviewedPlans() {
         Object[][] golden = {
-                {"新游戏", new Profile(), newGame(dayOf(4, 21)), "9404248a7b09ab52", GOLDEN_IDS[0]},
-                {"中期 10月22日", new Profile(), midGameState(), "4f85b2bfb015d567", GOLDEN_IDS[1]},
-                {"中期 10月22日 · 必须：皇帝 · 想要：女教皇", midGoals(), midGameState(), "6f57d7caaea124be", GOLDEN_IDS[2]}};
+                {"新游戏", new Profile(), newGame(dayOf(4, 21)), "d23ba6be1d256d2e", GOLDEN_IDS[0]},
+                {"中期 10月22日", new Profile(), midGameState(), "316e707273744436", GOLDEN_IDS[1]},
+                {"中期 10月22日 · 必须：皇帝 · 想要：女教皇", midGoals(), midGameState(), "8d68a0b7660f66dc", GOLDEN_IDS[2]}};
         boolean samePack = GOLDEN_RULES_VERSION.equals(rules.version);
         List<String> ids = new ArrayList<>();
         List<String> mismatches = new ArrayList<>();
@@ -373,18 +385,17 @@ public class PlanBreadthRealPackTest {
 
     /**
      * {@link Rules#version} of the pack the golden plan ids ({@link #GOLDEN_IDS}) were recorded on. They
-     * were refreshed for 3.4.0 after reviewing O-only meeting calendars, dated stat demand,
-     * compulsory summer points, finite cash/tower utility, useful-note financing, discrete Charm
-     * meeting savings, eight calendar corrections and conservative dorm affinity. All three
+     * were refreshed for 3.4.1 after reviewing shared school calendars, useful evening notes,
+     * joint MUST/WANT prerequisite preparation and prefix strategy coverage. All three
      * plans replay validator-clean, fund every action and rescue every relevant missing person;
-     * the new game opens Empress on 11/21 and the mid-game MUST Emperor still reaches MAX.
+     * the new game keeps 21 MAX and the mid-game MUST Emperor still reaches MAX.
      * Existing goal/coverage/rescue/cash quality bounds are unchanged; focused tests cover free
      * capacity allocation and conditional invitations. Separate opt-in tests cover characteristic milestones.
      * MAX-style ids still omit style.
      */
     private static final String GOLDEN_RULES_VERSION = "3.4.0|06843d87d8ea";
     /** Plan ids of the three golden 「尽量多 MAX」 plans on {@link #GOLDEN_RULES_VERSION}. */
-    private static final String[] GOLDEN_IDS = {"ae7d81b8ee9d3b08", "58b552d7f1b9cc77", "f4ac259f60434e16"};
+    private static final String[] GOLDEN_IDS = {"e95b19ac12601529", "22238e7fb12bb9af", "05243225bd4cded4"};
 
     /** FNV-1a 64 over "slot|action|side…" per step: the plan's actions, independent of the pack version. */
     static String fingerprint(Plan plan) {
