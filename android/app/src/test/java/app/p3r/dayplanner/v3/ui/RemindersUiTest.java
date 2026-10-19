@@ -38,7 +38,8 @@ public class RemindersUiTest extends UiTestBase {
     private static final String CLASS_LINE = "选「朱诺」（第 3 项）";
     private static final String TV_LINE = "玫瑰花束、高级巧克力 ×2，2,980 日元";
     private static final String RESCUE_LINE = "今晚去塔尔塔罗斯时，顺便救出失踪者（3 人）";
-    private static final String NURSE_LINE = "放学后先去保健室：勇气 +2，不会消耗时间";
+    /** The app drops the 「，不会消耗时间」 every reminder shares (the widget keeps it). */
+    private static final String NURSE_LINE = "放学后先去保健室：勇气 +2";
 
     /** 10/22: class answer, TV shopping (day) and a rescue tonight; 10/23: 保健室; 12/16: the JUNE exam. */
     private void remind() {
@@ -181,7 +182,7 @@ public class RemindersUiTest extends UiTestBase {
         assertEquals("a class answer still says it", 1,
                 Shots.findAll(ReminderViews.row(a, ReminderFixtures.classAnswer(OCT_22, "朱诺", 3), false), "魅力 +2").size());
         assertTrue(Shots.has(a, "上课犯困，上课犯困时别闭眼：学力 +2"));
-        assertTrue(Shots.has(a, "保健室，放学后先去保健室：勇气 +2，不会消耗时间"));
+        assertTrue(Shots.has(a, "保健室，放学后先去保健室：勇气 +2"));
         rows(a, "reminder_rows", false, ReminderFixtures.classAnswer(OCT_22, "朱诺", 3), ReminderFixtures.doze(OCT_22),
                 ReminderFixtures.nurse(OCT_22), ReminderFixtures.tv(OCT_22));
         assertNull(ReminderViews.gainOf(ReminderFixtures.doze(OCT_22)));

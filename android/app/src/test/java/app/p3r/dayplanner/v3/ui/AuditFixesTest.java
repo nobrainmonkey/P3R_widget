@@ -124,7 +124,7 @@ public class AuditFixesTest extends UiTestBase {
     public void towerCapsPerBlockAppearOnTodayTheWizardAndTheSheet() {
         api.snap.profile.towerCapByBlock.put("tziah", 6);
         HomeActivity a = home();
-        assertTrue(Shots.has(a, "塔尔塔罗斯 · 提齐亚\n本区块去过 1 次，上限 6 次"));
+        assertTrue(Shots.has(a, "提齐亚 · 去过 1/6 次"));
         StateActivity s = stateController("edit").get();
         jumpTo(s, StateSteps.Page.TOWER);
         assertTrue(Shots.has(s, "这个区块最多去 6 次，可在「规划设置 → 塔尔塔罗斯」里修改。"));
@@ -282,7 +282,8 @@ public class AuditFixesTest extends UiTestBase {
     public void heroCardShowsTheFriendRouteLine() {
         api.snap.plan.steps.set(0, Fixtures.social(api.rules, NOW, "priestess", 8, 9, true, false));
         HomeActivity a = home();
-        assertTrue(Shots.has(a, Dialogue.FRIEND_FALLBACK));
+        assertTrue(Shots.has(a, Dialogue.FRIEND_SHORT));
+        assertFalse("the generic advice is not repeated", Shots.has(a, Dialogue.FALLBACK));
         assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("我喜欢风花"));
         Shots.shot(a, "home_today_friend_route");
     }

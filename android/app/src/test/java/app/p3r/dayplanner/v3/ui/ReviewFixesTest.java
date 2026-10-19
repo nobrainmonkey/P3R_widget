@@ -369,14 +369,15 @@ public class ReviewFixesTest extends UiTestBase {
         HomeActivity a = home();
         assertTrue(a.showingLoadError());
         // The copy matches the button under it (the service's own 「请重新打开应用」 is for the widget).
-        assertTrue(Shots.has(a, "读取记录失败了。点「重试」再试一次，还不行就重新打开应用。"));
+        assertTrue(Shots.has(a, "记录没读出来"));
+        assertTrue(Shots.has(a, Messages.LOAD_RETRY));
         assertFalse(Shots.has(a, "开始设置"));
         Shots.shot(a, "home_load_failed");
         for (int tab = 0; tab < HomeActivity.TAB_KEYS.length; tab++) {
             a.selectTab(tab);
             Shots.idle();
             assertTrue(a.showingLoadError());
-            assertTrue(Shots.has(a, "暂时读不到记录"));
+            assertTrue(Shots.has(a, "记录没读出来"));
             assertFalse(Shots.has(a, "开始设置"));
         }
         // The data comes back: 重试 shows the pages again.
@@ -406,7 +407,7 @@ public class ReviewFixesTest extends UiTestBase {
         breakTheStore();
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
         assertTrue(Shots.has(a, "暂时读不到记录"));
-        assertTrue(Shots.has(a, "读取记录失败了。点「重试」再试一次，还不行就重新打开应用。"));
+        assertTrue(Shots.has(a, Messages.LOAD_RETRY));
         assertTrue(Shots.has(a, "重试"));
         assertFalse(Shots.has(a, "还没有设置游戏进度"));
         assertFalse(Shots.has(a, "去设置"));
@@ -606,19 +607,20 @@ public class ReviewFixesTest extends UiTestBase {
         reserved.kind = "locked";
         reserved.titleZh = "可能有剧情（先空出）";
         reserved.subtitleZh = "如果之前把「白色切花」送给了顺平，这天放学后会有剧情，所以先空出来";
-        assertEquals("如果之前把「白色切花」送给了顺平，这天放学后会有剧情，所以先空出来。游戏里过完后点「继续」。",
+        assertEquals("如果之前把「白色切花」送给了顺平，这天放学后会有剧情，所以先空出来",
             TodayPage.lockedNote(reserved));
         Plan.Step plain = new Plan.Step();
         plain.kind = "locked";
-        assertEquals("这段时间不能自由行动。游戏里过完后点「继续」。", TodayPage.lockedNote(plain));
+        assertEquals("这段时间不能自由行动", TodayPage.lockedNote(plain));
         plain.subtitleZh = "这段时间不能自由行动。";
-        assertEquals("这段时间不能自由行动。游戏里过完后点「继续」。", TodayPage.lockedNote(plain));
+        assertEquals("这段时间不能自由行动", TodayPage.lockedNote(plain));
 
         reserved.slot = NOW;
         api.snap.plan.steps.set(0, reserved);
         HomeActivity a = home();
-        assertTrue(Shots.has(a, "可能有剧情（先空出）"));
-        assertTrue(Shots.has(a, "如果之前把「白色切花」送给了顺平，这天放学后会有剧情，所以先空出来。游戏里过完后点「继续」。"));
+        assertTrue(Shots.has(a, SlotRows.RESERVED_TITLE));
+        assertFalse("no hedging title", Shots.has(a, SlotRows.RESERVED_PACK));
+        assertTrue(Shots.has(a, "如果之前把「白色切花」送给了顺平，这天放学后会有剧情，所以先空出来"));
         Shots.shot(a, "home_today_reserved_slot");
     }
 

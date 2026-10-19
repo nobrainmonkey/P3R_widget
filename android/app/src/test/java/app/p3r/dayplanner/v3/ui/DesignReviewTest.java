@@ -319,7 +319,7 @@ public class DesignReviewTest extends UiTestBase {
         Shots.capture(a, false);
         TextView tower = null;
         for (TextView t : AuditFixesTest.textViews(a.getWindow().getDecorView())) {
-            if (Zh.plain(t.getText()).contains("本区块去过")) {
+            if (Zh.plain(t.getText()).contains(" · 去过 ")) {
                 tower = t;
             }
         }
@@ -357,12 +357,13 @@ public class DesignReviewTest extends UiTestBase {
 
     @Test
     public void loadFailedCopyMatchesTheRetryButton() {
-        String retry = "点「重试」再试一次，还不行就重新打开应用。";
-        assertEquals("读取记录失败了。" + retry, Messages.loadFailed("读取记录失败了，请重新打开应用"));
+        String retry = "重试一下？不行就重开应用。";
+        // The title already says the records were not read: the body only offers what to do.
+        assertEquals(retry, Messages.loadFailed("读取记录失败了，请重新打开应用"));
         assertEquals("游戏资料读取失败。" + retry, Messages.loadFailed("游戏资料读取失败，请重新打开应用"));
         assertEquals("生成安排时出了问题。" + retry, Messages.loadFailed("生成安排时出了问题，请稍后再试"));
-        assertEquals("读取记录失败了。" + retry, Messages.loadFailed(null));
-        assertEquals("读取记录失败了。" + retry, Messages.loadFailed("java.io.IOException"));
+        assertEquals(retry, Messages.loadFailed(null));
+        assertEquals(retry, Messages.loadFailed("java.io.IOException"));
     }
 
     // ================================================================== second review (3.0.2)

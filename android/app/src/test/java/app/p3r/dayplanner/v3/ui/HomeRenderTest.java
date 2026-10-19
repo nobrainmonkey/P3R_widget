@@ -83,11 +83,14 @@ public class HomeRenderTest extends UiTestBase {
         api.snap.lastRecordMillis = System.currentTimeMillis() - 3L * 24 * 60 * 60 * 1000;
         api.snap.planning = true;
         HomeActivity a = home();
+        assertTrue(Shots.has(a, "之后又玩了吗？"));
         assertTrue(Shots.has(a, "同步现状"));
-        assertTrue(Shots.has(a, "正在重新安排…"));
+        // An ordinary replan shows only the stripe under the date, without words.
+        assertTrue(hasView(a.getWindow().getDecorView(), BusyStripe.class));
+        assertFalse(Shots.has(a, "正在重新安排…"));
         Shots.shot(a, "home_today_return_replanning");
-        Shots.click(a, "没变");
-        assertFalse(Shots.has(a, "没变"));
+        Shots.click(a, "没有");
+        assertFalse(Shots.has(a, "之后又玩了吗？"));
     }
 
     @Test
@@ -115,7 +118,8 @@ public class HomeRenderTest extends UiTestBase {
         assertEquals(from, a.data().displaySlot());
         assertTrue(Shots.has(a, "修学旅行"));
         assertTrue(Shots.has(a, StoryDisplay.CONTINUE_LABEL));
-        assertTrue(Shots.has(a, "这天去修学旅行，不能自由行动。游戏里过完后点「剧情已过，继续」。"));
+        assertTrue(Shots.has(a, "这天去修学旅行，不能自由行动"));
+        assertFalse("the button under it needs no instructions", Shots.has(a, "游戏里过完后点「剧情已过，继续」。"));
         Shots.shot(a, "home_today_pending_story");
         Shots.click(a, StoryDisplay.CONTINUE_LABEL);
         assertEquals(from + 2, a.data().displaySlot());
@@ -224,8 +228,8 @@ public class HomeRenderTest extends UiTestBase {
         api.snap.observed.rank[4] = 10;
         api.snap.plan = Fixtures.planMid(api.rules, api.snap.observed);
         HomeActivity a = home();
-        assertTrue(Shots.has(a, "日程已经全部结束"));
-        assertFalse(Shots.has(a, "正在根据最新记录重新安排…"));
+        assertTrue(Shots.has(a, TodayPage.FINISHED_TITLE));
+        assertFalse(Shots.has(a, "正在安排到1月31日…"));
         Shots.shot(a, "home_today_finished");
     }
 
@@ -270,5 +274,24 @@ public class HomeRenderTest extends UiTestBase {
         a.dismissSheet();
         a.openDetail(Fixtures.SLOT_NOW);
         Shots.shot(a, "home_detail_current");
+    }
+
+    /** True when a visible view of {@code type} is in the tree. */
+    static boolean hasView(android.view.View view, Class<?> type) {
+        if (view.getVisibility() != android.view.View.VISIBLE) {
+            return false;
+        }
+        if (type.isInstance(view)) {
+            return true;
+        }
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                if (hasView(group.getChildAt(i), type)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

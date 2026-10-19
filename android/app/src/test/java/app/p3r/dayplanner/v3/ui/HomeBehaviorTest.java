@@ -135,7 +135,8 @@ public class HomeBehaviorTest extends UiTestBase {
         api.snap.plan.steps.set(1, Fixtures.social(api.rules, Fixtures.SLOT_NOW + 1, "hermit", 3, 4, true, false));
         api.fireChanged();
         Shots.idle();
-        assertTrue(Shots.has(a, "已重新安排：这一周有 1 处变动"));
+        // Said once in the message bar, not as a line that stays on 今天.
+        assertEquals("已重新安排：这周 1 处有变", a.undoBar().messageText().toString());
         Shots.shot(a, "home_today_change_summary");
     }
 
