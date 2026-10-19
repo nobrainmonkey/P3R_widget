@@ -80,6 +80,24 @@ public final class Dialogue {
         return line(rules, profile, step);
     }
 
+    /** What the app shows for the generic friend-route hint: the one thing worth knowing. */
+    static final String FRIEND_SHORT = "只想做朋友？别选表白的回答";
+
+    /**
+     * {@code line} as the app shows it: real answers as they are, nothing for the generic
+     * 「选能让对方高兴的回答」 (every player knows that), and the friend-route hint as
+     * {@link #FRIEND_SHORT}. The widget keeps its own wording ({@link DialogueHint}).
+     */
+    static String shown(String line) {
+        if (line == null || FALLBACK.equals(line)) {
+            return null;
+        }
+        if (FRIEND_FALLBACK.equals(line)) {
+            return FRIEND_SHORT;
+        }
+        return line;
+    }
+
     /** The answers of a meeting that may not rank up after all: 「要是升级了，答：…」 (drawn muted). */
     static boolean conditional(String line) {
         return line != null && line.startsWith(DialogueHint.CONDITIONAL_PREFIX);

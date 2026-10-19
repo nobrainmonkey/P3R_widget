@@ -77,8 +77,7 @@ public final class StateActivity extends Activity implements StateSteps.Callback
 
     private void buildFrame() {
         FrameLayout root = new FrameLayout(this);
-        root.setBackground(new OceanDrawable(Ui.col(this, R.color.p3r_navy_800), Ui.col(this, R.color.p3r_navy_900),
-            Ui.col(this, R.color.p3r_navy_950), Ui.col(this, R.color.p3r_royal_500), Ui.col(this, R.color.p3r_cyan_300)));
+        root.setBackground(OceanDrawable.page(this));
         LinearLayout column = Ui.column(this);
 
         LinearLayout bar = Ui.row(this);

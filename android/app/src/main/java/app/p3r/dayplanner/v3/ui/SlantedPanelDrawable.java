@@ -46,6 +46,13 @@ public final class SlantedPanelDrawable extends Drawable {
     private float slabDy;
     private int accentColor;
     private float accentWidth;
+    private int tickColor;
+    private float tickWidth;
+    private int slashColor;
+    private final Paint tickPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint slashPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Path tick = new Path();
+    private final Path slash = new Path();
     private boolean pressed;
     private boolean enabled = true;
     private int alpha = 255;
@@ -127,6 +134,24 @@ public final class SlantedPanelDrawable extends Drawable {
         return this;
     }
 
+    /**
+     * A bright edge along the top-left cut that runs a short way along the top edge: the P3R panel
+     * highlight, used instead of a full outline.
+     */
+    public SlantedPanelDrawable cornerTick(int color, float widthPx) {
+        this.tickColor = color;
+        this.tickWidth = widthPx;
+        invalidateSelf();
+        return this;
+    }
+
+    /** A translucent diagonal band of light across the top-right of the face (hero panels). */
+    public SlantedPanelDrawable lightSlash(int color) {
+        this.slashColor = color;
+        invalidateSelf();
+        return this;
+    }
+
     @Override
     public boolean isStateful() {
         return true;
@@ -189,6 +214,33 @@ public final class SlantedPanelDrawable extends Drawable {
             canvas.drawPath(face, fillPaint);
         }
 
+        if (slashColor != 0 && right - left > 0 && bottom - top > 0) {
+            // Two parallel diagonal bands near the right edge, clipped to the face.
+            float w = right - left;
+            float h = bottom - top;
+            float band = Math.max(w * 0.11f, 1f);
+            float x0 = left + w * 0.64f;
+            float drift = h * 0.42f;
+            slash.reset();
+            slash.moveTo(x0 + drift, top);
+            slash.lineTo(x0 + drift + band, top);
+            slash.lineTo(x0 + band, bottom);
+            slash.lineTo(x0, bottom);
+            slash.close();
+            float x1 = x0 + band * 1.5f;
+            slash.moveTo(x1 + drift, top);
+            slash.lineTo(x1 + drift + band * 0.35f, top);
+            slash.lineTo(x1 + band * 0.35f, bottom);
+            slash.lineTo(x1, bottom);
+            slash.close();
+            int save = canvas.save();
+            canvas.clipPath(face);
+            slashPaint.setColor(slashColor);
+            slashPaint.setAlpha(scaleAlpha(slashColor, effectiveAlpha));
+            canvas.drawPath(slash, slashPaint);
+            canvas.restoreToCount(save);
+        }
+
         if (accentWidth > 0 && accentColor != 0) {
             float h = bottom - top;
             float shift = h <= 0 ? 0 : skew;
@@ -201,6 +253,30 @@ public final class SlantedPanelDrawable extends Drawable {
             accentPaint.setColor(accentColor);
             accentPaint.setAlpha(scaleAlpha(accentColor, effectiveAlpha));
             canvas.drawPath(accent, accentPaint);
+        }
+
+        if (tickWidth > 0 && tickColor != 0) {
+            float s = Math.min(skew, (right - left) / 3f);
+            float startX = left + Math.max(0, s);
+            float cut = Math.min(cuts[0], (bottom - top) / 2f);
+            float run = Math.min((right - left) * 0.28f, tickWidth * 26f);
+            tick.reset();
+            if (cut > 0) {
+                tick.moveTo(startX, top + cut);
+                tick.lineTo(startX + cut, top);
+            } else {
+                tick.moveTo(startX, top + Math.min(tickWidth * 8f, (bottom - top) / 2f));
+                tick.lineTo(startX, top);
+            }
+            tick.lineTo(startX + cut + run, top);
+            tickPaint.setStyle(Paint.Style.STROKE);
+            tickPaint.setStrokeWidth(tickWidth);
+            tickPaint.setStrokeCap(Paint.Cap.SQUARE);
+            tickPaint.setStrokeJoin(Paint.Join.MITER);
+            int tc = pressed && hasPressed ? Color.WHITE : tickColor;
+            tickPaint.setColor(tc);
+            tickPaint.setAlpha(scaleAlpha(tc, effectiveAlpha));
+            canvas.drawPath(tick, tickPaint);
         }
 
         if (strokeWidth > 0 && stroke != 0) {

@@ -7,8 +7,9 @@ import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
 
 /**
- * One-line summary of what a replan changed ("已重新安排：后面有 3 处变动"), and of how a
- * 从头重新安排 ended ({@link #fullSummary}).
+ * One-line summary of what a replan changed this week ("已重新安排：这周 3 处有变"), and of how a
+ * 从头重新安排 ended ({@link #fullSummary}). Nothing is said when nothing a player would notice
+ * changed.
  */
 public final class PlanDiff {
     private PlanDiff() {}
@@ -42,7 +43,11 @@ public final class PlanDiff {
     /** Days ahead whose changes are worth calling out; later days are re-planned quietly. */
     static final int NEAR_DAYS = 7;
 
-    /** Summary for the 今天 page, or null when there is nothing to compare or nothing left. */
+    /**
+     * Message after an ordinary replan: the first plan, or how many steps of the coming week moved;
+     * null when nothing this week changed (later days are re-planned quietly), when there is
+     * nothing to compare or nothing left.
+     */
     public static String summary(Rules rules, Plan before, Plan after, int fromSlot) {
         if (after == null || finished(after)) {
             return null;
@@ -52,23 +57,16 @@ public final class PlanDiff {
         }
         int nearEnd = Rules.slot(Rules.dayOf(fromSlot) + NEAR_DAYS, true);
         int near = changedSlots(before, after, fromSlot, nearEnd);
-        int later = changedSlots(before, after, nearEnd + 1, Integer.MAX_VALUE);
-        if (near == 0 && later == 0) {
-            return "已重新安排：后面的安排没变";
-        }
-        if (near == 0) {
-            return "已重新安排：这一周不变，之后的安排顺着调整了";
-        }
-        return "已重新安排：这一周有 " + near + " 处变动" + (later > 0 ? "，之后的也顺着调整了" : "");
+        return near == 0 ? null : "已重新安排：这周 " + near + " 处有变";
     }
 
-    /** 从头重新安排 ended with the same steps as before (also when nothing visible changed). */
-    static final String FULL_UNCHANGED = "重新算过了，安排没有变化";
-    static final String FULL_KEPT = "重新算过了，没找到更好的，现在的安排不变";
-    static final String FULL_FAILED = "这次没能从头重新安排，现在的安排不变";
-    static final String FULL_CANCELLED = "已停下，现在的安排不变";
+    /** 从头重新安排 ended with the same steps as before (also when nothing better was found). */
+    static final String FULL_UNCHANGED = "重新安排好了，和现在的一样";
+    static final String FULL_KEPT = FULL_UNCHANGED;
+    static final String FULL_FAILED = "这次没排好，安排先不变";
+    static final String FULL_CANCELLED = "已停下，安排没变";
     /** CHANGED when the plan before is not known (followed by the plan's last day, 「1月31日」). */
-    static final String FULL_CHANGED_UNCOUNTED = "从头重新安排好了，一直排到";
+    static final String FULL_CHANGED_UNCOUNTED = "重新安排好了，一直排到";
 
     /**
      * What a 从头重新安排 request ended with, for the message bar and the 今天 status line;
@@ -104,28 +102,26 @@ public final class PlanDiff {
         int near = changedSlots(before, after, fromSlot, nearEnd);
         int later = changedSlots(before, after, nearEnd + 1, Integer.MAX_VALUE);
         if (near > 0) {
-            return "从头重新安排好了：这一周有 " + near + " 处变动" + (later > 0 ? "，之后的也顺着调整了" : "");
+            return "重新安排好了：这周 " + near + " 处有变" + (later > 0 ? "，之后也有调整" : "");
         }
         if (later > 0) {
-            return "从头重新安排好了：这一周不变，之后的安排顺着调整了";
+            return "重新安排好了：这周不变，之后有调整";
         }
         if (changedSides(before, after, fromSlot) > 0) {
-            return "从头重新安排好了：要做的事没变，顺便做的事有调整";
+            return "重新安排好了：顺便的事有调整";
         }
         return FULL_UNCHANGED;
     }
 
-    /** Deep search uses the same result details with its own operation name. */
+    /** The same for an ordinary or a deep 从头重新安排: the player asked for one thing. */
     public static String fullSummary(Rules rules, Plan before, Plan after, int fromSlot,
                                      PlannerApi.FullReplanResult result, boolean deep) {
-        String summary = fullSummary(rules, before, after, fromSlot, result);
-        return deep && summary != null ? summary.replace("从头重新安排", "深度计算") : summary;
+        return fullSummary(rules, before, after, fromSlot, result);
     }
 
     /** True for the results said with a neutral mark rather than a check (nothing was redone). */
     static boolean neutral(String summary) {
-        return FULL_FAILED.equals(summary) || "这次没能深度计算，现在的安排不变".equals(summary)
-            || FULL_CANCELLED.equals(summary);
+        return FULL_FAILED.equals(summary) || FULL_CANCELLED.equals(summary);
     }
 
     /** Slots from {@code fromSlot} on with the same action in both plans but other 顺便 lines. */

@@ -68,10 +68,22 @@ final class ReminderViews {
         }
         Context c = host.activity();
         LinearLayout box = Ui.column(c);
-        box.addView(Ui.sectionHeader(c, TODAY_TITLE, null));
         LinearLayout card = Ui.column(c);
         card.setBackground(Ui.card(c).accent(Ui.col(c, R.color.ui_gold), Ui.dp(c, 4)));
-        Ui.pad(card, 14, 6, 12, 6);
+        Ui.pad(card, 16, 10, 12, 6);
+        LinearLayout head = Ui.row(c);
+        TextView tag = Ui.tag(c, TODAY_TITLE, Ui.col(c, R.color.ui_gold), Ui.col(c, R.color.p3r_navy_950));
+        head.addView(tag, Ui.wrap());
+        head.addView(new View(c), Ui.weight(1));
+        TextView all = Ui.text(c, "全部提示 ›", 14, Ui.col(c, R.color.p3r_cyan_200), true);
+        all.setMinHeight(Ui.dp(c, 40));
+        all.setGravity(Gravity.CENTER_VERTICAL);
+        Ui.pad(all, 12, 0, 4, 0);
+        all.setClickable(true);
+        all.setFocusable(true);
+        all.setOnClickListener(v -> host.selectTab(HomeActivity.TAB_TIPS));
+        head.addView(all, Ui.wrap());
+        card.addView(head, Ui.matchWrap());
         int chips = chipColumn(c, reminders);
         for (Plan.Reminder r : reminders) {
             LinearLayout row = row(c, r, false, chips);
@@ -82,9 +94,7 @@ final class ReminderViews {
             row.setOnClickListener(v -> host.openDetail(slot));
             card.addView(row);
         }
-        LinearLayout.LayoutParams cp = Ui.matchWrap();
-        cp.topMargin = Ui.dp(c, 4);
-        box.addView(card, cp);
+        box.addView(card, Ui.matchWrap());
         return box;
     }
 
@@ -177,6 +187,10 @@ final class ReminderViews {
      */
     static String lineOf(Plan.Reminder r) {
         String line = r.textZh == null ? "" : r.textZh.trim();
+        // Every reminder takes no time: the app does not say so on each line (the widget does).
+        if (line.endsWith(NO_TIME) && line.length() > NO_TIME.length()) {
+            line = line.substring(0, line.length() - NO_TIME.length());
+        }
         if (!blank(r.labelZh)) {
             String prefix = r.labelZh.trim() + "：";
             if (line.startsWith(prefix) && line.length() > prefix.length()) {
@@ -185,6 +199,9 @@ final class ReminderViews {
         }
         return line;
     }
+
+    /** The tail the app drops from reminder lines. */
+    private static final String NO_TIME = "，不会消耗时间";
 
     /**
      * What the reminder gives (「魅力 +2」), or null when it gives nothing or its line already says it
@@ -211,7 +228,7 @@ final class ReminderViews {
 
     /** The kind label (「课堂提问」) on a small gold chip. */
     static TextView labelChip(Context c, String label) {
-        TextView chip = Ui.text(c, blank(label) ? "提醒" : label.trim(), 11, Ui.col(c, R.color.p3r_navy_950), true);
+        TextView chip = Ui.text(c, blank(label) ? "提醒" : label.trim(), 12, Ui.col(c, R.color.p3r_navy_950), true);
         chip.setBackground(new SlantedPanelDrawable().fill(Ui.col(c, R.color.ui_gold)).skew(Ui.dp(c, 4)));
         Ui.pad(chip, 7, 1, 8, 1);
         chip.setMaxLines(1);
@@ -248,7 +265,7 @@ final class ReminderViews {
         if (count <= 0) {
             return null;
         }
-        TextView tag = Ui.mixed(c, "提醒 " + count, 11, Ui.col(c, R.color.ui_gold), true);
+        TextView tag = Ui.mixed(c, "提醒 " + count, 12, Ui.col(c, R.color.ui_gold), true);
         tag.setBackground(new SlantedPanelDrawable().stroke(Ui.col(c, R.color.ui_gold), Ui.dp(c, 1)).skew(Ui.dp(c, 4)));
         Ui.pad(tag, 6, 1, 7, 1);
         tag.setMaxLines(1);

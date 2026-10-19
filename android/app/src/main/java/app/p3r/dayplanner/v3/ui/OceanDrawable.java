@@ -30,6 +30,8 @@ public final class OceanDrawable extends Drawable {
     private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint shaft = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint caustic = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Path causticPath = new Path();
     private final Path[] shaftPaths = new Path[SHAFTS.length];
     private final Shader[] shaftShaders = new Shader[SHAFTS.length];
     private final int top;
@@ -54,6 +56,18 @@ public final class OceanDrawable extends Drawable {
         this.glowColor = glow;
         this.lightColor = light;
         line.setStyle(Paint.Style.STROKE);
+        caustic.setStyle(Paint.Style.STROKE);
+        caustic.setStrokeCap(Paint.Cap.ROUND);
+    }
+
+    /**
+     * The app's page water: lit royal blue near the surface at the top, sinking to the abyss at the
+     * bottom, with a cyan glow and caustics up where the light comes in.
+     */
+    public static OceanDrawable page(android.content.Context c) {
+        return new OceanDrawable(Ui.col(c, app.p3r.dayplanner.R.color.ui_sea_surface),
+            Ui.col(c, app.p3r.dayplanner.R.color.p3r_navy_800), Ui.col(c, app.p3r.dayplanner.R.color.p3r_navy_950),
+            Ui.col(c, app.p3r.dayplanner.R.color.p3r_royal_500), Ui.col(c, app.p3r.dayplanner.R.color.p3r_cyan_300));
     }
 
     @Override
@@ -111,6 +125,8 @@ public final class OceanDrawable extends Drawable {
             canvas.drawPath(shaftPaths[i], shaft);
         }
 
+        drawCaustics(canvas, b);
+
         line.setStrokeWidth(Math.max(1f, w / 400f));
         line.setColor(withAlpha(lightColor, 34));
         float lx = b.left + w * 0.78f;
@@ -119,6 +135,44 @@ public final class OceanDrawable extends Drawable {
         float lx2 = b.left + w * 0.95f;
         canvas.drawLine(lx2, b.top, lx2 - drift, b.bottom, line);
     }
+
+    /**
+     * Light rippling on the water surface: a few long, slightly tilted wave lines in the upper part
+     * of the page, brightest at the top-right where the glow is.
+     */
+    private void drawCaustics(Canvas canvas, Rect b) {
+        float w = b.width();
+        float h = b.height();
+        for (int i = 0; i < CAUSTICS.length; i++) {
+            float[] c = CAUSTICS[i];
+            float y0 = b.top + h * c[0];
+            float amp = h * c[1];
+            float waves = c[2];
+            caustic.setStrokeWidth(Math.max(1f, w * c[3]));
+            caustic.setColor(withAlpha(lightColor, (int) c[4]));
+            causticPath.reset();
+            int steps = 48;
+            for (int k = 0; k <= steps; k++) {
+                float x = b.left + w * (0.18f + 0.95f * k / steps);
+                double phase = (k / (double) steps) * Math.PI * 2 * waves + i * 1.7;
+                float y = y0 - (x - b.left) * 0.12f + (float) (Math.sin(phase) * amp);
+                if (k == 0) {
+                    causticPath.moveTo(x, y);
+                } else {
+                    causticPath.lineTo(x, y);
+                }
+            }
+            canvas.drawPath(causticPath, caustic);
+        }
+    }
+
+    /** Caustic lines as {y (fraction), amplitude (fraction of height), waves, stroke (fraction of width), alpha}. */
+    private static final float[][] CAUSTICS = {
+        {0.10f, 0.006f, 3.2f, 0.004f, 30f},
+        {0.16f, 0.008f, 2.4f, 0.003f, 22f},
+        {0.23f, 0.005f, 4.1f, 0.0025f, 16f},
+        {0.31f, 0.007f, 2.8f, 0.002f, 11f},
+    };
 
     private static int withAlpha(int color, int alpha) {
         return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));

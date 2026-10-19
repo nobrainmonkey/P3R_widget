@@ -40,9 +40,12 @@ final class SlotRows {
         return "locked".equals(step.kind) ? "剧情" : "自由活动";
     }
 
-    /** Second line; estimated rank-ups get the "≈" prefix. */
+    /**
+     * Second line; estimated rank-ups get the "≈" prefix, and an ordinary meeting is just
+     * 「RANK 4 · 见面」 (no rank-up is what a meeting without an arrow means).
+     */
     static String subtitle(Plan.Step step) {
-        String sub = step.subtitleZh == null ? "" : step.subtitleZh;
+        String sub = step.subtitleZh == null ? "" : step.subtitleZh.replace("见面（预计不升级）", "见面");
         boolean estimatedRankUp = step.predicted != null && step.predicted.rankUp && !step.predicted.certain;
         if (estimatedRankUp && !sub.isEmpty() && !sub.startsWith("≈")) {
             return "≈ " + sub;
@@ -74,9 +77,13 @@ final class SlotRows {
             setOrientation(HORIZONTAL);
             setGravity(Gravity.CENTER_VERTICAL);
             setMinimumHeight(Ui.dp(c, 44));
-            period = Ui.text(c, "", 12, Ui.col(c, R.color.p3r_ink_muted), true);
-            period.setMinWidth(Ui.dp(c, 46));
-            addView(period, Ui.wrap());
+            period = Ui.text(c, "", 13, Ui.col(c, R.color.p3r_ink_muted), true);
+            period.setGravity(Gravity.CENTER);
+            period.setMinWidth(Ui.dp(c, 50));
+            Ui.pad(period, 4, 1, 4, 2);
+            LayoutParams periodParams = Ui.wrap();
+            periodParams.rightMargin = Ui.dp(c, 10);
+            addView(period, periodParams);
             icon = new ImageView(c);
             icon.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
             LayoutParams iconParams = new LayoutParams(Ui.dp(c, 18), Ui.dp(c, 18));
@@ -84,7 +91,7 @@ final class SlotRows {
             addView(icon, iconParams);
             LinearLayout texts = Ui.column(c);
             Ui.pad(texts, 0, 3, 0, 3);
-            title = Ui.text(c, "", 15, Ui.col(c, R.color.p3r_white), false);
+            title = Ui.text(c, "", 16, Ui.col(c, R.color.p3r_white), false);
             title.setMaxLines(2);
             title.setEllipsize(TextUtils.TruncateAt.END);
             texts.addView(title);
@@ -92,11 +99,27 @@ final class SlotRows {
             subtitle.setMaxLines(2);
             subtitle.setEllipsize(TextUtils.TruncateAt.END);
             texts.addView(subtitle);
-            side = Ui.text(c, "", 12, Ui.col(c, R.color.ui_gold), false);
+            side = Ui.text(c, "", 13, Ui.col(c, R.color.ui_gold), false);
             side.setMaxLines(2);
             side.setEllipsize(TextUtils.TruncateAt.END);
             texts.addView(side);
             addView(texts, Ui.weight(1));
+        }
+
+        /** Replaces the period label ("全天" for a day whose two slots are one story lock). */
+        void setPeriod(String label) {
+            period.setText(label);
+            CharSequence spoken = getContentDescription();
+            if (spoken != null) {
+                String text = spoken.toString();
+                for (String p : new String[]{"白天", "放学后", "晚上"}) {
+                    int at = text.indexOf(p + "，");
+                    if (at >= 0) {
+                        setContentDescription(text.substring(0, at) + label + text.substring(at + p.length()));
+                        break;
+                    }
+                }
+            }
         }
 
         void bind(Rules rules, Plan.Step step, State state, boolean showPeriod) {
@@ -113,7 +136,18 @@ final class SlotRows {
             }
             period.setVisibility(showPeriod ? VISIBLE : GONE);
             period.setText(Zh.period(rules, step.slot));
-            period.setTextColor(state == State.CURRENT ? Ui.col(c, R.color.p3r_cyan_400) : Ui.col(c, R.color.p3r_ink_muted));
+            // A slanted period tag: 晚上 on a navy plate, the daytime periods cyan-outlined.
+            boolean evening = Rules.isEvening(step.slot);
+            int tagInk = state == State.DONE ? Ui.col(c, R.color.p3r_ink_faint)
+                : state == State.CURRENT ? Ui.col(c, R.color.p3r_cyan_400) : Ui.col(c, R.color.p3r_cyan_200);
+            SlantedPanelDrawable tag = new SlantedPanelDrawable().skew(Ui.dp(c, 4));
+            if (evening) {
+                tag.fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 200));
+            } else {
+                tag.stroke(Ui.alpha(tagInk, 170), Ui.dp(c, 1));
+            }
+            period.setBackground(tag);
+            period.setTextColor(tagInk);
             icon.setImageDrawable(Ui.tinted(c, state == State.DONE ? R.drawable.ui_ic_check : kind.iconRes, iconColor));
             String titleText = title(rules, step);
             title.setText(Ui.latin(c, titleText));
@@ -130,7 +164,7 @@ final class SlotRows {
             side.setTextColor(state == State.DONE ? ink : Ui.col(c, R.color.ui_gold));
             side.setVisibility(sideText.isEmpty() ? GONE : VISIBLE);
             String state0 = state == State.DONE ? "已记录，" : state == State.CURRENT ? "下一步，" : "";
-            setContentDescription(state0 + Zh.period(rules, step.slot) + "，" + titleText
+            setContentDescription(state0 + period.getText() + "，" + titleText
                 + (subText.isEmpty() ? "" : "，" + subText.replace("≈", "预计"))
                 + (sideText.isEmpty() ? "" : "，" + sideText));
         }

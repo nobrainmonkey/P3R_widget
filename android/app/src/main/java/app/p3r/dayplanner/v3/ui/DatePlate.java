@@ -25,6 +25,8 @@ public final class DatePlate extends LinearLayout {
     private final View moonView;
     private final TextView moonLabel;
     private final TextView period;
+    private final SlantedPanelDrawable weekdayPlate;
+    private final WatermarkDrawable watermark;
 
     /** @param large true for the 今天 header, false for sheet headers. */
     public DatePlate(Context context, boolean large) {
@@ -43,9 +45,10 @@ public final class DatePlate extends LinearLayout {
         LinearLayout top = Ui.row(context);
         weekday = Ui.text(context, "", large ? 16 : 13, Ui.col(context, R.color.p3r_navy_950), true);
         weekday.setGravity(Gravity.CENTER);
-        weekday.setBackground(new SlantedPanelDrawable()
+        weekdayPlate = new SlantedPanelDrawable()
             .fill(Ui.col(context, R.color.p3r_white))
-            .skew(Ui.dp(context, 6)));
+            .skew(Ui.dp(context, 6));
+        weekday.setBackground(weekdayPlate);
         Ui.pad(weekday, 10, 1, 10, 1);
         top.addView(weekday, Ui.wrap());
 
@@ -68,6 +71,14 @@ public final class DatePlate extends LinearLayout {
         periodParams.topMargin = Ui.dp(context, large ? 6 : 2);
         side.addView(period, periodParams);
         addView(side, Ui.wrap());
+        if (large) {
+            // WEEKDAY / WEEKEND behind the date, like the game's calendar.
+            watermark = new WatermarkDrawable("WEEKDAY", Ui.numerals(context),
+                Ui.alpha(Ui.col(context, R.color.p3r_cyan_300), 46), Ui.dp(context, 96), Ui.dp(context, 1.5f), -6f, 0.30f);
+            setBackground(watermark);
+        } else {
+            watermark = null;
+        }
     }
 
     /** Shows the date and time of day of {@code slot}. */
@@ -83,6 +94,13 @@ public final class DatePlate extends LinearLayout {
 
         Rules.Day info = rules == null ? null : rules.day(day);
         weekday.setText(info != null ? Zh.weekday(info.wd) : Zh.weekdayOf(day));
+        // Sundays and holidays get the game's red weekday mark.
+        boolean rest = info != null && (info.type == Rules.DayType.SUNDAY || info.type == Rules.DayType.HOLIDAY);
+        weekdayPlate.fill(Ui.col(getContext(), rest ? R.color.ui_holiday : R.color.p3r_white));
+        weekday.setTextColor(Ui.col(getContext(), rest ? R.color.p3r_white : R.color.p3r_navy_950));
+        if (watermark != null) {
+            watermark.setWord(rest ? "WEEKEND" : "WEEKDAY");
+        }
         int phase = info == null ? 0 : info.moon;
         boolean full = info != null && (info.fullMoon || info.moon == 4);
         moon.setPhase(phase);

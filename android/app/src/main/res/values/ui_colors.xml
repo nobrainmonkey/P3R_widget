@@ -16,6 +16,17 @@
     <!-- Cyan at low alpha for selection fills and light shafts. -->
     <color name="ui_cyan_soft">#333CE4FF</color>
     <color name="ui_cyan_faint">#1A3CE4FF</color>
+    <!-- Page water near the surface (top of every page), after the game's menu blue. -->
+    <color name="ui_sea_surface">#FF123C9C</color>
+    <!-- Borderless glass panels: lighter top-left to deeper bottom-right, no outline. -->
+    <color name="ui_glass_top">#E0102B73</color>
+    <color name="ui_glass_bottom">#D9071648</color>
+    <!-- Slanted summary bands and list hover. -->
+    <color name="ui_band">#A6030A24</color>
+    <!-- Light slash across hero panels. -->
+    <color name="ui_slash">#1F7BEEFF</color>
+    <!-- Sunday / holiday weekday plate (the game marks rest days in red). -->
+    <color name="ui_holiday">#FFE0243C</color>
     <!-- Gold accent for attention: the return banner, notices and values marked "?". -->
     <color name="ui_gold">#FFD166</color>
 </resources>

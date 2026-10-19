@@ -64,8 +64,13 @@ interface HomeHost {
      */
     void saveCheckpoint(SimState state, Profile profile, String doneZh);
 
-    /** Short confirmation or error message in the undo bar (no action). */
+    /** Short confirmation message in the undo bar (no action). */
     void showMessage(String text);
+
+    /** Something went wrong: the message bar with the red slab and 「!」. */
+    default void showError(String text) {
+        showMessage(text);
+    }
 
     void requestReplan();
 

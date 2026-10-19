@@ -35,6 +35,10 @@ public final class SlantTabBar extends LinearLayout {
     private int selected = -1;
     private int edgeWidth = -1;
     private Listener listener;
+    /** Position of the selection slab in tab units (animated between tabs). */
+    private float indicator = -1;
+    private android.animation.ValueAnimator slide;
+    private final SlantedPanelDrawable slab = new SlantedPanelDrawable();
 
     public SlantTabBar(Context context, String[] titles, int[] iconResources) {
         super(context);
@@ -57,7 +61,7 @@ public final class SlantTabBar extends LinearLayout {
                 }
             });
             ImageView icon = Ui.icon(context, iconResources[i], Ui.col(context, R.color.p3r_ink_muted), 22);
-            TextView label = Ui.text(context, titles[i], 12, Ui.col(context, R.color.p3r_ink_muted), true);
+            TextView label = Ui.text(context, titles[i], 13, Ui.col(context, R.color.p3r_ink_muted), true);
             label.setGravity(Gravity.CENTER);
             tab.addView(icon);
             LayoutParams labelParams = Ui.wrap();
@@ -82,27 +86,38 @@ public final class SlantTabBar extends LinearLayout {
         return selected;
     }
 
-    /** Highlights a tab without notifying the listener. */
+    /** Highlights a tab without notifying the listener; the highlight slides over when shown. */
     public void setSelectedTab(int index) {
+        int previous = selected;
         selected = index;
         Context context = getContext();
         for (int i = 0; i < tabs.size(); i++) {
             boolean on = i == index;
             LinearLayout tab = tabs.get(i);
-            if (on) {
-                tab.setBackground(new SlantedPanelDrawable()
-                    .fill(Ui.col(context, R.color.p3r_cyan_400))
-                    .skew(Ui.dp(context, 12))
-                    .slab(Ui.alpha(Ui.col(context, R.color.p3r_white), 200), Ui.dp(context, 3), -Ui.dp(context, 3)));
-            } else {
-                tab.setBackground(new SlantedPanelDrawable().fill(0)
-                    .pressedFill(Ui.col(context, R.color.ui_cyan_soft)).skew(Ui.dp(context, 12)));
-            }
+            tab.setBackground(new SlantedPanelDrawable().fill(0)
+                .pressedFill(Ui.col(context, R.color.ui_cyan_soft)).skew(Ui.dp(context, 12)));
             int ink = on ? Ui.col(context, R.color.p3r_navy_950) : Ui.col(context, R.color.p3r_ink_muted);
             icons.get(i).setImageDrawable(Ui.tinted(context, iconRes.get(i), ink));
             labels.get(i).setTextColor(ink);
             tab.setSelected(on);
             tab.setAccessibilityDelegate(new SelectedDelegate(on));
+        }
+        if (slide != null) {
+            slide.cancel();
+        }
+        if (previous >= 0 && previous != index && index >= 0 && Ui.animationsEnabled() && isLaidOut()) {
+            final float from = indicator;
+            slide = android.animation.ValueAnimator.ofFloat(0f, 1f);
+            slide.setDuration(220);
+            slide.setInterpolator(Motion.SETTLE);
+            slide.addUpdateListener(a -> {
+                indicator = from + (index - from) * (float) a.getAnimatedValue();
+                invalidate();
+            });
+            slide.start();
+        } else {
+            indicator = index;
+            invalidate();
         }
     }
 
@@ -120,7 +135,31 @@ public final class SlantTabBar extends LinearLayout {
                 Ui.alpha(Ui.col(getContext(), R.color.p3r_cyan_400), 200), Shader.TileMode.CLAMP));
         }
         canvas.drawRect(0, 0, w, line, edge);
+        drawIndicator(canvas);
         super.onDraw(canvas);
+    }
+
+    /** The cyan selection slab under the selected tab, interpolated while it slides. */
+    private void drawIndicator(Canvas canvas) {
+        if (indicator < 0 || tabs.isEmpty()) {
+            return;
+        }
+        int lower = Math.max(0, Math.min(tabs.size() - 1, (int) Math.floor(indicator)));
+        int upper = Math.min(tabs.size() - 1, lower + 1);
+        float t = indicator - lower;
+        LinearLayout a = tabs.get(lower);
+        LinearLayout b = tabs.get(upper);
+        if (a.getWidth() == 0) {
+            return;
+        }
+        float left = a.getLeft() + (b.getLeft() - a.getLeft()) * t;
+        float right = a.getRight() + (b.getRight() - a.getRight()) * t;
+        Context context = getContext();
+        slab.fill(Ui.col(context, R.color.p3r_cyan_400))
+            .skew(Ui.dp(context, 12))
+            .slab(Ui.alpha(Ui.col(context, R.color.p3r_white), 220), Ui.dp(context, 3), Ui.dp(context, 3));
+        slab.setBounds(Math.round(left), a.getTop(), Math.round(right), a.getBottom());
+        slab.draw(canvas);
     }
 
     /** Announces the selected state of a tab to TalkBack. */

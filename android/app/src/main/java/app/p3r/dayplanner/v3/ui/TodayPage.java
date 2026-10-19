@@ -22,13 +22,15 @@ import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.StoryDisplay;
 
 /**
- * 今天 tab: date plate, return banner, replanning status, resource strip, the hero card for the
- * next slot (with its 人格面具 reminder, "顺便" side steps and [做不了…] [完成 ✓]), the rest
- * of today plus the next 3 days, and goal progress chips. Once Jan 31 is recorded the hero card
- * becomes a closing summary.
+ * 今天 tab, after the game's calendar HUD: the date plate, at most one slim banner (return,
+ * error or 从头重新安排), the borderless resource band (tap → 修改进度), the hero card for the next
+ * slot (kind tag, title, the rank line with one 「预计」 tag, 人格面具 reminder, location, real
+ * answers, 顺便, an urgent reason only, [做不了…] [完成]), 今天别错过, the rest of today and tomorrow,
+ * and the goals that are in trouble. Once Jan 31 is recorded the hero becomes a closing card.
  */
 final class TodayPage {
-    private static final int LOOKAHEAD_DAYS = 3;
+    /** 接下来 covers the rest of today and this many more days. */
+    private static final int LOOKAHEAD_DAYS = 1;
 
     private final HomeHost host;
     private final Context c;
@@ -38,6 +40,9 @@ final class TodayPage {
     private int bottomInset;
     /** The hero card's button row (null when the hero has none); the undo bar keeps clear of it. */
     private View heroButtons;
+    /** Slot the hero showed last time (-1 before the first bind): a new one slides in. */
+    private int shownSlot = -1;
+    private boolean shownOnce;
 
     TodayPage(HomeHost host) {
         this.host = host;
@@ -45,10 +50,10 @@ final class TodayPage {
         root = new FrameLayout(c);
         ImageView art = new ImageView(c);
         art.setImageResource(R.drawable.ui_art_protagonist);
-        art.setAlpha(0.2f);
+        art.setAlpha(0.3f);
         art.setScaleType(ImageView.ScaleType.FIT_END);
         art.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        FrameLayout.LayoutParams artParams = new FrameLayout.LayoutParams(Ui.dp(c, 210), Ui.dp(c, 300),
+        FrameLayout.LayoutParams artParams = new FrameLayout.LayoutParams(Ui.dp(c, 220), Ui.dp(c, 300),
             Gravity.TOP | Gravity.END);
         root.addView(art, artParams);
         scroll = new ScrollView(c);
@@ -66,7 +71,7 @@ final class TodayPage {
         return root;
     }
 
-    /** The hero card's [做不了…] [完成 ✓] row, or null. */
+    /** The hero card's [做不了…] [完成] row, or null. */
     View heroButtons() {
         return heroButtons;
     }
@@ -76,47 +81,71 @@ final class TodayPage {
         scroll.setPadding(0, 0, 0, px);
     }
 
-    /** Rebuilds the page for {@code d}, keeping the scroll position. */
+    /**
+     * Rebuilds the page for {@code d}. A new next step scrolls back to the top and slides its hero
+     * in; the first show cascades the page in; any other rebind keeps the scroll position.
+     */
     void bind(UiData d) {
         int y = scroll.getScrollY();
         column.removeAllViews();
         heroButtons = null;
         if (!d.hasState()) {
             buildWelcome();
+            shownSlot = -1;
+            if (!shownOnce) {
+                Motion.cascade(column);
+            }
+            shownOnce = true;
             return;
         }
         SimState obs = d.observed();
         Rules rules = d.rules;
         boolean finished = Slots.finished(rules, obs) && d.snap.storyDisplay == null;
+        int slot = finished ? rules.lastSlot() : d.displaySlot();
         DatePlate plate = new DatePlate(c, true);
-        plate.bind(rules, finished ? rules.lastSlot() : d.displaySlot());
+        plate.bind(rules, slot);
         LinearLayout.LayoutParams plateParams = Ui.matchWrap();
         plateParams.topMargin = Ui.dp(c, 8);
         column.addView(plate, plateParams);
+        if (d.snap.planning && !d.snap.fullReplanning) {
+            // An ordinary replan: just the stripe under the date, no words.
+            column.addView(new BusyStripe(c), spaced(6));
+        }
 
         if (d.returnBanner) {
-            column.addView(returnBanner(d), spaced(16));
+            column.addView(returnBanner(d), spaced(14));
         }
-        View status = statusLine(d);
+        View status = statusBanner(d);
         if (status != null) {
-            column.addView(status, spaced(12));
+            column.addView(status, spaced(14));
         }
         column.addView(resources(d), spaced(16));
-        column.addView(finished ? finishedCard(d) : hero(d), spaced(20));
+        View hero = finished ? finishedCard(d) : hero(d);
+        column.addView(hero, spaced(18));
         // 今天别错过: the day's 当日提醒 still to come, under the hero.
         View reminders = finished ? null : ReminderViews.todayBlock(host, d);
         if (reminders != null) {
-            column.addView(reminders, spaced(20));
+            column.addView(reminders, spaced(18));
         }
         View upcoming = upcoming(d);
         if (upcoming != null) {
-            column.addView(upcoming, spaced(24));
+            column.addView(upcoming, spaced(22));
         }
         View goals = finished ? null : goals(d);
         if (goals != null) {
-            column.addView(goals, spaced(20));
+            column.addView(goals, spaced(18));
         }
-        scroll.post(() -> scroll.scrollTo(0, y));
+        boolean moved = shownSlot >= 0 && shownSlot != slot;
+        if (moved) {
+            scroll.scrollTo(0, 0);
+            Motion.swapIn(hero);
+        } else if (!shownOnce) {
+            Motion.cascade(column);
+        } else {
+            scroll.post(() -> scroll.scrollTo(0, y));
+        }
+        shownSlot = slot;
+        shownOnce = true;
     }
 
     private LinearLayout.LayoutParams spaced(int topDp) {
@@ -128,60 +157,37 @@ final class TodayPage {
     // ------------------------------------------------------------------ welcome (no state yet)
 
     private void buildWelcome() {
-        column.addView(Ui.gap(c, 96));
-        TextView title = Ui.text(c, "从现在的存档开始", 28, Ui.col(c, R.color.p3r_white), true);
-        column.addView(title);
-        TextView body = Ui.body(c, "告诉我游戏里现在的进度和你想要的社群，我会把到1月31日为止的每个"
-            + "白天和晚上都排好。之后每做完一件事点一下「完成」，后面的安排会自动跟上。");
+        column.addView(Ui.gap(c, 120));
+        TextView kicker = Ui.numeral(c, "S.E.E.S.", 18, Ui.col(c, R.color.p3r_cyan_400));
+        kicker.setLetterSpacing(0.2f);
+        kicker.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        column.addView(kicker, Ui.wrap());
+        TextView title = Ui.text(c, "从现在的存档开始", 32, Ui.col(c, R.color.p3r_white), true);
+        title.setShadowLayer(0.01f, Ui.dp(c, 2), Ui.dp(c, 2), Ui.alpha(Ui.col(c, R.color.p3r_royal_500), 200));
+        column.addView(title, spaced(6));
+        TextView body = Ui.body(c, "填好游戏进度和想升的社群，每天做什么就排好了。");
         body.setLineSpacing(0f, 1.3f);
         column.addView(body, spaced(12));
         TextView start = Ui.primary(c, "开始设置");
         start.setOnClickListener(v -> host.openState("onboarding"));
-        column.addView(start, spaced(28));
-        TextView hint = Ui.muted(c, "大约需要 2 分钟，所有内容之后都能修改。");
-        column.addView(hint, spaced(12));
-        String[][] steps = {
-            {"1", "选目标", "想把哪些社群升到 MAX，分「想要」和「必须」。"},
-            {"2", "对照游戏填进度", "日期、现金、个人能力值和社群 RANK，点选就行。"},
-            {"3", "照着做，点「完成」", "结果和预计不同时说一声，后面的安排会自动调整。"},
-        };
-        for (String[] s : steps) {
-            column.addView(welcomeStep(s[0], s[1], s[2]), spaced(12));
-        }
+        column.addView(start, spaced(32));
     }
 
-    private View welcomeStep(String number, String title, String body) {
-        LinearLayout row = Ui.row(c);
-        row.setGravity(Gravity.TOP);
-        row.setBackground(Ui.card(c));
-        Ui.pad(row, 16, 12, 16, 12);
-        TextView n = Ui.numeral(c, number, 30, Ui.col(c, R.color.p3r_cyan_400));
-        n.setMinWidth(Ui.dp(c, 32));
-        row.addView(n, Ui.wrap());
-        LinearLayout texts = Ui.column(c);
-        texts.addView(Ui.text(c, title, 16, Ui.col(c, R.color.p3r_white), true));
-        texts.addView(Ui.muted(c, body));
-        LinearLayout.LayoutParams tp = Ui.weight(1);
-        tp.leftMargin = Ui.dp(c, 8);
-        row.addView(texts, tp);
-        return row;
-    }
+    // ------------------------------------------------------------------ banners
 
-    // ------------------------------------------------------------------ banners and status
-
+    /** 「之后又玩了吗？」 when the last record is old: [没有] keeps going, [同步现状] catches up. */
     private View returnBanner(UiData d) {
         LinearLayout card = Ui.column(c);
-        SlantedPanelDrawable bg = Ui.card(c).accent(Ui.col(c, R.color.ui_gold), Ui.dp(c, 4));
-        card.setBackground(bg);
+        card.setBackground(Ui.card(c).accent(Ui.col(c, R.color.ui_gold), Ui.dp(c, 4)));
         Ui.pad(card, 18, 14, 14, 12);
-        String when = Zh.lastRecorded(d.rules, d.currentSlot());
-        TextView text = Ui.mixed(c, "上次记录：" + when + " · 游戏进度变了吗？", 15,
-            Ui.col(c, R.color.p3r_white), true);
+        TextView text = Ui.text(c, "之后又玩了吗？", 17, Ui.col(c, R.color.p3r_white), true);
         card.addView(text);
-        TextView age = Ui.caption(c, "距离上次记录已经 " + Zh.age(d.nowMillis, d.snap.lastRecordMillis).replace("前", ""));
-        card.addView(age, spaced(2));
+        String when = Zh.lastRecorded(d.rules, d.currentSlot());
+        String age = Zh.age(d.nowMillis, d.snap.lastRecordMillis);
+        TextView sub = Ui.mixed(c, "上次记到 " + when + " · " + age, 13, Ui.col(c, R.color.p3r_ink_muted), false);
+        card.addView(sub, spaced(2));
         LinearLayout buttons = Ui.row(c);
-        TextView same = Ui.secondary(c, "没变");
+        TextView same = Ui.secondary(c, "没有");
         same.setOnClickListener(v -> host.dismissReturnBanner());
         buttons.addView(same, Ui.weight(1));
         TextView sync = Ui.primary(c, "同步现状");
@@ -193,144 +199,128 @@ final class TodayPage {
         return card;
     }
 
-    private View statusLine(UiData d) {
+    /** 从头重新安排 running, or a replan that failed while the old plan stays; null otherwise. */
+    private View statusBanner(UiData d) {
         if (d.snap.fullReplanning) {
             // 从头重新安排 (the plan may still be current): recording goes on as usual meanwhile.
             LinearLayout box = Ui.column(c);
-            box.addView(Ui.text(c, FullReplanSheet.runningText(d), 14, Ui.col(c, R.color.p3r_cyan_300), true));
-            box.addView(new BusyStripe(c), spaced(6));
-            box.addView(Ui.caption(c, "可以照常记录，记下的结果会一起算进去"), spaced(6));
-            TextView stop = Ui.quiet(c, "先不算了");
-            stop.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+            LinearLayout row = Ui.row(c);
+            row.addView(Ui.text(c, FullReplanSheet.runningText(d), 15, Ui.col(c, R.color.p3r_cyan_300), true),
+                Ui.weight(1));
+            TextView stop = Ui.quiet(c, STOP_LABEL);
             stop.setOnClickListener(v -> host.cancelFullReplan());
-            box.addView(stop, Ui.wrap());
+            row.addView(stop, Ui.wrap());
+            box.addView(row);
+            box.addView(new BusyStripe(c), spaced(4));
             return box;
         }
-        if (d.snap.planErrorZh != null && !d.snap.planning && !d.snap.fullReplanning) {
+        if (d.snap.planErrorZh != null && !d.snap.planning && d.plan() != null) {
             LinearLayout card = Ui.row(c);
             card.setBackground(Ui.card(c).accent(Ui.col(c, R.color.p3r_danger), Ui.dp(c, 4)));
-            Ui.pad(card, 18, 10, 8, 10);
-            TextView text = Ui.text(c, "这次没能排好：" + d.snap.planErrorZh, 14, Ui.col(c, R.color.p3r_white), false);
+            Ui.pad(card, 18, 8, 8, 8);
+            TextView text = Ui.text(c, PLAN_FAILED, 14, Ui.col(c, R.color.p3r_white), true);
             card.addView(text, Ui.weight(1));
             TextView retry = Ui.quiet(c, "重试");
             retry.setOnClickListener(v -> host.requestReplan());
             card.addView(retry, Ui.wrap());
             return card;
         }
-        if (d.snap.planning || (!d.snap.planCurrent && d.plan() != null)) {
-            LinearLayout box = Ui.column(c);
-            TextView text = Ui.text(c, d.snap.planning ? "正在重新安排…" : "安排还没跟上最新记录",
-                14, Ui.col(c, R.color.p3r_cyan_300), true);
-            box.addView(text);
-            if (d.snap.planning) {
-                box.addView(new BusyStripe(c), spaced(6));
-            } else {
-                TextView again = Ui.quiet(c, "重新安排");
-                again.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-                again.setOnClickListener(v -> host.requestReplan());
-                box.addView(again, Ui.wrap());
-            }
-            return box;
-        }
-        if (d.changeSummary != null) {
-            LinearLayout row = Ui.row(c);
-            // A 从头重新安排 that failed or was stopped redid nothing: no check mark for it.
-            boolean neutral = PlanDiff.neutral(d.changeSummary);
-            row.addView(Ui.icon(c, neutral ? R.drawable.ui_ic_info : R.drawable.ui_ic_check,
-                Ui.col(c, neutral ? R.color.p3r_ink_muted : R.color.p3r_good), 18));
-            TextView text = Ui.mixed(c, d.changeSummary, 14, Ui.col(c, R.color.p3r_ice_100), false);
-            LinearLayout.LayoutParams p = Ui.weight(1);
-            p.leftMargin = Ui.dp(c, 8);
-            row.addView(text, p);
-            return row;
-        }
         return null;
     }
 
+    /** Stops a running 从头重新安排. */
+    static final String STOP_LABEL = "停下";
+    /** A replan failed and the plan before it stays. */
+    static final String PLAN_FAILED = "新安排没排出来，先按原来的走";
+
     // ------------------------------------------------------------------ resources
 
+    /**
+     * The resource band: 现金 and the three 个人能力值 in big numerals, the open tower block below;
+     * tapping it opens 修改进度.
+     */
     private View resources(UiData d) {
         SimState obs = d.observed();
         Rules rules = d.rules;
-        LinearLayout card = Ui.column(c);
-        card.setBackground(Ui.card(c));
-        Ui.pad(card, 16, 12, 16, 12);
+        LinearLayout band = Ui.column(c);
+        band.setBackground(Ui.band(c).pressedFill(Ui.col(c, R.color.ui_cyan_faint)));
+        Ui.pad(band, 18, 12, 16, 12);
         LinearLayout row = Ui.row(c);
         row.setGravity(Gravity.TOP);
         if (obs.cashExact || obs.cash > 0) {
-            String cash = (obs.cashExact ? "" : "≥") + Zh.number(obs.cash);
+            String cash = Zh.number(obs.cash) + (obs.cashExact ? "" : "+");
             row.addView(cell("现金", cash, "日元"), Ui.weight(1.6f));
         } else {
-            row.addView(cell("现金", null, "不确定"), Ui.weight(1.6f));
+            row.addView(cell("现金", "—", null), Ui.weight(1.6f));
         }
         for (int i = 0; i < Math.min(3, rules.stats.length); i++) {
             int lv = rules.stats[i].levelFor(obs.statPts[i]);
             row.addView(cell(rules.stats[i].zh, Zh.lv(lv), null), Ui.weight(1));
         }
-        card.addView(row);
-        View line = Ui.divider(c);
-        LinearLayout.LayoutParams lineParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-            Math.max(1, Ui.dp(c, 1)));
-        lineParams.topMargin = Ui.dp(c, 10);
-        lineParams.bottomMargin = Ui.dp(c, 8);
-        card.addView(line, lineParams);
-        card.addView(towerLine(d));
-        card.setContentDescription(null);
-        return card;
+        band.addView(row);
+        View tower = towerLine(d);
+        if (tower != null) {
+            View line = Ui.fadingRule(c);
+            LinearLayout.LayoutParams lineParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                Math.max(1, Ui.dp(c, 1)));
+            lineParams.topMargin = Ui.dp(c, 10);
+            lineParams.bottomMargin = Ui.dp(c, 8);
+            band.addView(line, lineParams);
+            band.addView(tower);
+        }
+        band.setClickable(true);
+        band.setFocusable(true);
+        band.setOnClickListener(v -> host.openState("edit"));
+        return band;
     }
 
-    /** A resource cell; a null {@code value} shows {@code unit} as plain text ("不确定"). */
+    /** A resource cell: caption over a big numeral (and a small unit). */
     private View cell(String label, String value, String unit) {
         LinearLayout cell = Ui.column(c);
-        TextView caption = Ui.text(c, label, 12, Ui.col(c, R.color.p3r_ink_muted), false);
+        TextView caption = Ui.text(c, label, 13, Ui.col(c, R.color.p3r_ink_muted), false);
         cell.addView(caption);
         LinearLayout valueRow = Ui.row(c);
         valueRow.setGravity(Gravity.BOTTOM);
-        if (value == null) {
-            valueRow.addView(Ui.text(c, unit, 16, Ui.col(c, R.color.p3r_ink_muted), true), Ui.wrap());
-            cell.addView(valueRow);
-            cell.setContentDescription(label + " " + unit);
-            return cell;
-        }
-        TextView number = Ui.numeral(c, value, 24, Ui.col(c, R.color.p3r_white));
+        TextView number = Ui.numeral(c, value, 26, Ui.col(c, R.color.p3r_white));
         valueRow.addView(number, Ui.wrap());
         if (unit != null) {
-            TextView u = Ui.text(c, unit, 11, Ui.col(c, R.color.p3r_cyan_300), true);
+            TextView u = Ui.text(c, unit, 12, Ui.col(c, R.color.p3r_cyan_300), true);
             LinearLayout.LayoutParams up = Ui.wrap();
             up.leftMargin = Ui.dp(c, 3);
             up.bottomMargin = Ui.dp(c, 2);
             valueRow.addView(u, up);
         }
         cell.addView(valueRow);
-        cell.setContentDescription(label + " " + value + (unit == null ? "" : unit));
+        cell.setContentDescription(label + " " + ("—".equals(value) ? "不确定" : value + (unit == null ? "" : unit)));
         return cell;
     }
 
+    /** 「提齐亚 · 去过 1/4 次」 with 「最高 96F」; null when no block is open. */
     private View towerLine(UiData d) {
         SimState obs = d.observed();
         Rules.Block block = d.rules.blockOn(Rules.dayOf(obs.slot));
+        if (block == null) {
+            return null;
+        }
         Profile profile = d.profile();
         LinearLayout row = Ui.row(c);
         row.addView(Ui.icon(c, R.drawable.ui_ic_tower, Ui.col(c, R.color.p3r_cyan_400), 18));
-        String text;
-        if (block == null) {
-            text = "塔尔塔罗斯 · 现在没有能探索的区块";
-        } else {
-            int visits = block.idx < obs.towerVisits.length ? obs.towerVisits[block.idx] : 0;
-            text = "塔尔塔罗斯 · " + block.zh + "\n本区块去过 " + visits + " 次，上限 " + profile.capFor(block.id) + " 次";
-        }
-        TextView label = Ui.mixed(c, text, 13, Ui.col(c, R.color.p3r_ice_100), false);
+        int visits = block.idx < obs.towerVisits.length ? obs.towerVisits[block.idx] : 0;
+        String text = towerText(block.zh, visits, profile.capFor(block.id));
+        TextView label = Ui.mixed(c, text, 14, Ui.col(c, R.color.p3r_ice_100), false);
         label.setMaxLines(2);
         label.setEllipsize(TextUtils.TruncateAt.END);
         LinearLayout.LayoutParams p = Ui.weight(1);
         p.leftMargin = Ui.dp(c, 8);
         row.addView(label, p);
         if (obs.floor > 0) {
-            // Labelled like the cells above it ("现金", "学力"): "最高" over "96F".
-            LinearLayout floor = Ui.column(c);
-            floor.setGravity(Gravity.END);
-            floor.addView(Ui.text(c, FLOOR_LABEL, 12, Ui.col(c, R.color.p3r_ink_muted), false), Ui.wrap());
-            floor.addView(Ui.numeral(c, obs.floor + "F", 16, Ui.col(c, R.color.p3r_cyan_300)), Ui.wrap());
+            LinearLayout floor = Ui.row(c);
+            floor.setGravity(Gravity.BOTTOM);
+            floor.addView(Ui.text(c, FLOOR_LABEL, 13, Ui.col(c, R.color.p3r_ink_muted), false), Ui.wrap());
+            TextView number = Ui.numeral(c, obs.floor + "F", 18, Ui.col(c, R.color.p3r_cyan_300));
+            LinearLayout.LayoutParams np = Ui.wrap();
+            np.leftMargin = Ui.dp(c, 4);
+            floor.addView(number, np);
             floor.setContentDescription(FLOOR_LABEL + " " + obs.floor + "F");
             LinearLayout.LayoutParams fp = Ui.wrap();
             fp.leftMargin = Ui.dp(c, 8);
@@ -339,10 +329,12 @@ final class TodayPage {
         return row;
     }
 
-    /**
-     * Caption over the highest floor reached in the stats strip; two characters like the other
-     * captions, so the tower line beside it still fits at a large font.
-     */
+    /** The tower line beside the tower icon: 「提齐亚 · 去过 1/4 次」 (block, visits this block / cap). */
+    static String towerText(String blockZh, int visits, int cap) {
+        return blockZh + " · 去过 " + visits + "/" + cap + " 次";
+    }
+
+    /** Caption beside the highest floor reached ("最高 96F"). */
     static final String FLOOR_LABEL = "最高";
 
     // ------------------------------------------------------------------ hero
@@ -350,44 +342,46 @@ final class TodayPage {
     private View hero(UiData d) {
         Plan.Step step = d.current();
         LinearLayout card = Ui.column(c);
-        card.setBackground(Ui.heroCard(c));
         Ui.pad(card, 22, 16, 18, 18);
         if (step == null) {
-            TextView text = Ui.headline(c, d.plan() == null ? "正在排到1月31日的安排…" :"正在根据最新记录重新安排…");
-            card.addView(text);
-            TextView sub = Ui.muted(c, "通常几秒内完成。");
-            card.addView(sub, spaced(6));
-            card.addView(new BusyStripe(c), spaced(14));
+            card.setBackground(Ui.heroCard(c));
+            boolean failed = d.snap.planErrorZh != null && !d.snap.planning && !d.snap.fullReplanning;
+            if (failed) {
+                card.addView(Ui.headline(c, "安排没排出来"));
+                TextView retry = Ui.primary(c, "重试");
+                retry.setOnClickListener(v -> host.requestReplan());
+                card.addView(retry, spaced(14));
+            } else {
+                card.addView(Ui.headline(c, "正在安排到1月31日…"));
+                card.addView(new BusyStripe(c), spaced(14));
+            }
             return card;
         }
         StepKind kind = StepKind.of(step);
+        card.setBackground(heroBackground(step));
         LinearLayout top = Ui.row(c);
-        top.addView(kindTag(kind));
+        top.addView(kindTag(c, kind));
         View spacer = new View(c);
         top.addView(spacer, Ui.weight(1));
-        TextView next = Ui.text(c, "下一步 · " + Zh.period(d.rules, step.slot), 13,
-            Ui.col(c, R.color.p3r_cyan_200), true);
-        top.addView(next, Ui.wrap());
+        if (kind != StepKind.LOCKED) {
+            TextView more = Ui.text(c, "详情 ›", 14, Ui.col(c, R.color.p3r_cyan_200), true);
+            more.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            top.addView(more, Ui.wrap());
+        }
         card.addView(top);
 
-        TextView title = Ui.mixed(c, SlotRows.title(d.rules, step), 24, Ui.col(c, R.color.p3r_white), true);
+        TextView title = Ui.mixed(c, SlotRows.title(d.rules, step), 26, Ui.col(c, R.color.p3r_white), true);
         card.addView(title, spaced(10));
-        String subtitle = SlotRows.subtitle(step);
+        String subtitle = heroSubtitle(step, kind);
         if (kind == StepKind.LOCKED) {
-            String note = lockedNote(step);
-            if (d.snap.storyDisplay != null && d.snap.storyDisplay.cursorSlot == step.slot) {
-                note = note.replace("点「继续」", "点「" + StoryDisplay.CONTINUE_LABEL + "」");
-            }
-            card.addView(Ui.mixed(c, note, 14, Ui.col(c, R.color.p3r_ink_muted), false), spaced(4));
+            card.addView(Ui.mixed(c, lockedNote(step), 15, Ui.col(c, R.color.p3r_ink_muted), false), spaced(4));
         } else if (!subtitle.isEmpty()) {
             LinearLayout subRow = Ui.row(c);
-            TextView sub = Ui.mixed(c, subtitle, 20, Ui.col(c, R.color.p3r_cyan_400), true);
+            TextView sub = Ui.mixed(c, subtitle, 21, Ui.col(c, R.color.p3r_cyan_400), true);
             subRow.addView(sub, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
             if (step.estimate) {
-                TextView est = Ui.text(c, "预计", 11, Ui.col(c, R.color.p3r_cyan_200), true);
-                est.setBackground(new SlantedPanelDrawable().stroke(Ui.col(c, R.color.p3r_cyan_200), Ui.dp(c, 1))
-                    .skew(Ui.dp(c, 4)));
-                Ui.pad(est, 7, 1, 7, 1);
+                TextView est = Ui.tag(c, "预计", Ui.alpha(Ui.col(c, R.color.p3r_cyan_200), 40),
+                    Ui.col(c, R.color.p3r_cyan_200));
                 LinearLayout.LayoutParams ep = Ui.wrap();
                 ep.leftMargin = Ui.dp(c, 10);
                 subRow.addView(est, ep);
@@ -395,35 +389,38 @@ final class TodayPage {
             card.addView(subRow, spaced(2));
         }
         if (StepViews.hasHint(step) && kind != StepKind.LOCKED) {
-            card.addView(StepViews.hintChip(c, step.hintZh), spaced(10));
+            card.addView(StepViews.hintChip(c, step.hintZh), spaced(12));
         }
         if (step.locationZh != null && !step.locationZh.isEmpty()) {
             LinearLayout loc = Ui.row(c);
-            loc.addView(Ui.icon(c, R.drawable.ui_ic_pin, Ui.col(c, R.color.p3r_ink_muted), 16));
-            TextView where = Ui.text(c, step.locationZh, 14, Ui.col(c, R.color.p3r_ice_100), false);
+            loc.addView(Ui.icon(c, R.drawable.ui_ic_pin, Ui.col(c, R.color.p3r_cyan_300), 16));
+            TextView where = Ui.text(c, step.locationZh, 15, Ui.col(c, R.color.p3r_ice_100), false);
             LinearLayout.LayoutParams wp = Ui.weight(1);
             wp.leftMargin = Ui.dp(c, 6);
             loc.addView(where, wp);
-            card.addView(loc, spaced(10));
+            card.addView(loc, spaced(12));
         }
         // The scene's answers; a meeting that may not rank up gets the next scene's, muted.
-        String dialogue = Dialogue.line(d.rules, d.profile(), step);
+        String dialogue = Dialogue.shown(Dialogue.line(d.rules, d.profile(), step));
         if (dialogue != null) {
             int ink = Dialogue.conditional(dialogue) ? R.color.p3r_ink_muted : R.color.p3r_ice_100;
-            TextView options = Ui.text(c, dialogue, 14, Ui.col(c, ink), false);
-            card.addView(options, spaced(6));
+            TextView options = Ui.text(c, dialogue, 15, Ui.col(c, ink), false);
+            card.addView(options, spaced(8));
         }
         if (StepViews.hasSide(step)) {
             card.addView(StepViews.sideBlock(c, step, 14), spaced(8));
         }
-        if (step.whyZh != null && !step.whyZh.isEmpty()) {
-            TextView why = Ui.mixed(c, step.whyZh, 13, Ui.col(c, R.color.p3r_ink_muted), false);
-            card.addView(why, spaced(8));
-        }
-        if (StepViews.hasHowTo(step)) {
-            TextView how = Ui.mixed(c, StepViews.howToLabel(step.detailZh) + " · 点卡片查看", 13,
-                Ui.col(c, R.color.p3r_cyan_200), true);
-            card.addView(how, spaced(6));
+        String reason = urgentReason(step.whyZh);
+        if (reason != null) {
+            LinearLayout urgent = Ui.row(c);
+            urgent.setGravity(Gravity.TOP);
+            TextView mark = Ui.numeral(c, "!", 16, Ui.col(c, R.color.ui_gold));
+            urgent.addView(mark, Ui.wrap());
+            TextView why = Ui.mixed(c, reason, 14, Ui.col(c, R.color.ui_gold), false);
+            LinearLayout.LayoutParams rp = Ui.weight(1);
+            rp.leftMargin = Ui.dp(c, 8);
+            urgent.addView(why, rp);
+            card.addView(urgent, spaced(10));
         }
         heroButtons = heroButtons(step, kind);
         card.addView(heroButtons, spaced(18));
@@ -432,16 +429,69 @@ final class TodayPage {
         return card;
     }
 
+    /** The hero panel; a rank-up carries its target rank as a huge faint numeral, like the widget's day. */
+    private android.graphics.drawable.Drawable heroBackground(Plan.Step step) {
+        SlantedPanelDrawable panel = Ui.heroCard(c);
+        if (step.predicted == null || !step.predicted.rankUp || step.predicted.rankTo <= 0) {
+            return panel;
+        }
+        String mark = step.predicted.rankTo >= 10 ? "MAX" : String.valueOf(step.predicted.rankTo);
+        WatermarkDrawable number = new WatermarkDrawable(mark, Ui.numerals(c),
+            Ui.alpha(Ui.col(c, R.color.p3r_cyan_300), 40), Ui.dp(c, mark.length() > 1 ? 120 : 190),
+            Ui.dp(c, 2), 0f, mark.length() > 1 ? 0.5f : 0.68f);
+        return new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{panel, number});
+    }
+
+    /**
+     * The hero's second line: the engine's subtitle without the 「≈」 (the hero has its 「预计」 tag)
+     * and without the 「（预计不升级）」 of an ordinary meeting; nothing for a free slot.
+     */
+    static String heroSubtitle(Plan.Step step, StepKind kind) {
+        if (kind == StepKind.FREE) {
+            return "";
+        }
+        String sub = step.subtitleZh == null ? "" : step.subtitleZh.trim();
+        if (sub.startsWith("≈")) {
+            sub = sub.substring(1).trim();
+        }
+        return sub.replace("见面（预计不升级）", "见面");
+    }
+
+    /**
+     * The one reason worth a line on the hero: a deadline or a last chance, someone who is only
+     * around on some days, a stat an unlock needs, or a story hold; null for every reason that only
+     * explains the plan. Scheduling-policy tails (「；安排不等到期限当天」) are cut.
+     */
+    static String urgentReason(String why) {
+        if (why == null || why.trim().isEmpty()) {
+            return null;
+        }
+        String text = why.trim();
+        boolean urgent = text.contains("最后") || text.contains("期限") || text.contains("只在")
+            || text.contains("机会不多") || text.contains("日子不多") || text.contains("晚上不多")
+            || (text.contains("需要") && text.contains("达到")) || text.contains("暂时无法升级")
+            || text.contains("短信后赴约");
+        if (!urgent) {
+            return null;
+        }
+        int policy = text.indexOf("；安排不等");
+        if (policy > 0) {
+            text = text.substring(0, policy);
+        }
+        policy = text.indexOf("，安排不等");
+        if (policy > 0) {
+            text = text.substring(0, policy);
+        }
+        return text;
+    }
+
     /**
      * The hero line under a story slot: the step's own note when it has one (a reserved slot such
-     * as 1月21日 explains why it is kept free), else the plain "不能自由行动".
+     * as 1月21日 explains why it is kept free), else 「这段时间不能自由行动」.
      */
     static String lockedNote(Plan.Step step) {
         String note = Zh.clause(step.subtitleZh);
-        if (note.isEmpty()) {
-            note = "这段时间不能自由行动";
-        }
-        return note + "。游戏里过完后点「继续」。";
+        return note.isEmpty() ? "这段时间不能自由行动" : note;
     }
 
     /** Shown instead of the hero once every slot up to Jan 31 is recorded. */
@@ -449,8 +499,7 @@ final class TodayPage {
         LinearLayout card = Ui.column(c);
         card.setBackground(Ui.heroCard(c));
         Ui.pad(card, 22, 18, 18, 20);
-        card.addView(Ui.text(c, "日程已经全部结束", 24, Ui.col(c, R.color.p3r_white), true));
-        card.addView(Ui.muted(c, "1月31日之前的时段都记录完了，辛苦了！"), spaced(6));
+        card.addView(Ui.text(c, FINISHED_TITLE, 24, Ui.col(c, R.color.p3r_white), true));
         SimState obs = d.observed();
         Profile profile = d.profile();
         int maxed = 0;
@@ -468,13 +517,25 @@ final class TodayPage {
                 }
             }
         }
-        String line = "升到 MAX 的社群：" + maxed + " 个";
+        LinearLayout row = Ui.row(c);
+        row.setGravity(Gravity.BOTTOM);
+        row.addView(Ui.numeral(c, String.valueOf(maxed), 72, Ui.col(c, R.color.p3r_cyan_400)), Ui.wrap());
+        LinearLayout labels = Ui.column(c);
+        labels.addView(Ui.mixed(c, "MAX 社群", 17, Ui.col(c, R.color.p3r_white), true));
         if (goals > 0) {
-            line += " · 目标 " + goalsMaxed + "/" + goals + " 个";
+            labels.addView(Ui.mixed(c, "目标 " + goalsMaxed + "/" + goals, 15, Ui.col(c, R.color.p3r_cyan_200), true));
         }
-        card.addView(Ui.mixed(c, line, 17, Ui.col(c, R.color.p3r_cyan_400), true), spaced(12));
+        LinearLayout.LayoutParams lp = Ui.wrap();
+        lp.leftMargin = Ui.dp(c, 12);
+        lp.bottomMargin = Ui.dp(c, 10);
+        row.addView(labels, lp);
+        row.setContentDescription("升到 MAX 的社群 " + maxed + " 个" + (goals > 0 ? "，目标 " + goalsMaxed + "/" + goals : ""));
+        card.addView(row, spaced(8));
         return card;
     }
+
+    /** Title of the closing card after Jan 31. */
+    static final String FINISHED_TITLE = "日程全部结束，辛苦了！";
 
     private View heroButtons(Plan.Step step, StepKind kind) {
         LinearLayout row = Ui.row(c);
@@ -496,7 +557,7 @@ final class TodayPage {
         Ui.pad(cannot, 10, 8, 10, 8);
         cannot.setOnClickListener(v -> host.openResult(step.slot, step.action, Intents.MODE_CANNOT));
         row.addView(cannot, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1));
-        TextView done = Ui.primary(c, "完成 ✓");
+        TextView done = Ui.primary(c, DONE_LABEL);
         done.setContentDescription("完成，记录结果");
         done.setOnClickListener(v -> {
             if (StepKind.oneTap(step)) {
@@ -505,7 +566,7 @@ final class TodayPage {
                 host.openResult(step.slot, step.action, Intents.MODE_RESULT);
             }
         });
-        LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1);
+        LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1.6f);
         doneParams.leftMargin = Ui.dp(c, 14);
         row.addView(done, doneParams);
         return row;
@@ -513,21 +574,28 @@ final class TodayPage {
 
     /** The hero's secondary button (as 「其他结果…」「改做别的…」: "…" opens more choices). */
     static final String CANNOT_LABEL = "做不了…";
+    /** The hero's primary button, as on the widget. */
+    static final String DONE_LABEL = "完成 ✓";
 
-    private View kindTag(StepKind kind) {
+    /** The slanted cyan kind tag of a step: icon + 「社群」. */
+    static View kindTag(Context c, StepKind kind) {
         LinearLayout tag = Ui.row(c);
-        tag.addView(Ui.icon(c, kind.iconRes, Ui.col(c, R.color.p3r_navy_950), 14));
-        TextView label = Ui.text(c, kind.tagZh, 12, Ui.col(c, R.color.p3r_navy_950), true);
+        tag.addView(Ui.icon(c, kind.iconRes, Ui.col(c, R.color.p3r_navy_950), 15));
+        TextView label = Ui.text(c, kind == StepKind.NOTE ? "社群" : kind.tagZh, 13, Ui.col(c, R.color.p3r_navy_950), true);
         LinearLayout.LayoutParams lp = Ui.wrap();
         lp.leftMargin = Ui.dp(c, 4);
         tag.addView(label, lp);
         tag.setBackground(new SlantedPanelDrawable().fill(Ui.col(c, R.color.p3r_cyan_400)).skew(Ui.dp(c, 5)));
-        Ui.pad(tag, 9, 3, 11, 3);
+        Ui.pad(tag, 10, 3, 12, 3);
         return tag;
     }
 
     // ------------------------------------------------------------------ upcoming
 
+    /**
+     * 接下来: the rest of today and tomorrow as one list under white slanted day plates; a day's
+     * identical story locks are one 「全天」 row. Ends with 「全部日程 ›」.
+     */
     private View upcoming(UiData d) {
         Plan plan = d.displayPlan();
         Plan.Step current = d.current();
@@ -539,7 +607,7 @@ final class TodayPage {
         LinearLayout box = Ui.column(c);
         box.addView(Ui.sectionHeader(c, "接下来", null));
         int shownDay = -1;
-        LinearLayout dayCard = null;
+        int rows = 0;
         for (int slot = current.slot + 1; slot <= lastSlot; slot++) {
             Plan.Step step = plan.at(slot);
             if (step == null) {
@@ -548,16 +616,23 @@ final class TodayPage {
             int day = Rules.dayOf(slot);
             if (day != shownDay) {
                 shownDay = day;
-                dayCard = Ui.column(c);
-                dayCard.setBackground(Ui.card(c));
-                Ui.pad(dayCard, 14, 8, 12, 6);
                 String head = day == firstDay ? "今天" : Zh.dayAndWeekday(day);
-                TextView dayLabel = Ui.mixed(c, head, 13, Ui.col(c, R.color.p3r_cyan_300), true);
-                dayCard.addView(dayLabel);
-                box.addView(dayCard, spaced(8));
+                TextView plate = Ui.tag(c, Ui.latin(c, head), Ui.col(c, R.color.p3r_white), Ui.col(c, R.color.p3r_navy_950));
+                LinearLayout.LayoutParams pp = Ui.wrap();
+                pp.topMargin = Ui.dp(c, rows == 0 ? 6 : 14);
+                box.addView(plate, pp);
             }
-            LinearLayout line = SlotRows.line(c, d.rules, step, SlotRows.State.FUTURE, true);
-            int reminders = ReminderViews.countAt(plan, slot);
+            boolean allDay = false;
+            if (!Rules.isEvening(slot) && slot + 1 <= lastSlot && StepKind.of(step) == StepKind.LOCKED) {
+                Plan.Step evening = plan.at(slot + 1);
+                allDay = evening != null && StepKind.of(evening) == StepKind.LOCKED
+                    && SlotRows.title(d.rules, evening).equals(SlotRows.title(d.rules, step));
+            }
+            SlotRows.Line line = SlotRows.line(c, d.rules, step, SlotRows.State.FUTURE, true);
+            if (allDay) {
+                line.setPeriod("全天");
+            }
+            int reminders = ReminderViews.countAt(plan, slot) + (allDay ? ReminderViews.countAt(plan, slot + 1) : 0);
             TextView marker = ReminderViews.marker(c, reminders);
             if (marker != null) {
                 LinearLayout.LayoutParams mp = Ui.wrap();
@@ -569,39 +644,76 @@ final class TodayPage {
             }
             line.setClickable(true);
             line.setFocusable(true);
-            line.setBackground(new SlantedPanelDrawable().fill(0).pressedFill(Ui.col(c, R.color.ui_cyan_faint)));
+            line.setBackground(new SlantedPanelDrawable().fill(0).pressedFill(Ui.col(c, R.color.ui_cyan_faint))
+                .skew(Ui.dp(c, 6)));
             final int target = slot;
             line.setOnClickListener(v -> host.openDetail(target));
-            dayCard.addView(line);
+            box.addView(line);
+            rows++;
+            if (allDay) {
+                slot++;
+            }
         }
-        return box.getChildCount() > 1 ? box : null;
+        if (rows == 0) {
+            return null;
+        }
+        TextView all = Ui.quiet(c, "全部日程 ›");
+        all.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        all.setOnClickListener(v -> host.selectTab(HomeActivity.TAB_SCHEDULE));
+        box.addView(all, Ui.matchWrap());
+        return box;
     }
 
     // ------------------------------------------------------------------ goals
 
+    /**
+     * The goals the plan does not reach, as gold lines that open 社群; one quiet line when every
+     * goal is on track; null without goals.
+     */
     private View goals(UiData d) {
         Profile profile = d.profile();
         List<Integer> order = LinkStatus.goalOrder(profile);
-        if (order.isEmpty()) {
+        if (order.isEmpty() || d.plan() == null) {
             return null;
         }
         LinearLayout box = Ui.column(c);
-        box.addView(Ui.sectionHeader(c, "目标进度", null));
-        FlowLayout chips = new FlowLayout(c, 8, 8);
+        box.addView(Ui.sectionHeader(c, "目标", null));
         for (int link : order) {
             LinkStatus status = LinkStatus.of(d.rules, profile, d.observed(), d.plan(), link);
-            TextView chip = Ui.chip(c, status.chipZh, false);
-            chip.setTextSize(13);
-            if (profile.tier[link] == Profile.Tier.MUST) {
-                SlantedPanelDrawable bg = new SlantedPanelDrawable().skew(Ui.dp(c, 6))
-                    .fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 140))
-                    .stroke(Ui.col(c, R.color.p3r_white), Ui.dp(c, 1.5f));
-                chip.setBackground(bg);
+            String trouble = troubleOf(d.rules, status);
+            if (trouble == null) {
+                continue;
             }
-            chip.setOnClickListener(v -> host.selectTab(HomeActivity.TAB_LINKS));
-            chips.addView(chip);
+            TextView line = Ui.mixed(c, trouble + " ›", 15, Ui.col(c, R.color.ui_gold), true);
+            line.setMinHeight(Ui.dp(c, 44));
+            line.setGravity(Gravity.CENTER_VERTICAL);
+            line.setClickable(true);
+            line.setFocusable(true);
+            line.setOnClickListener(v -> host.selectTab(HomeActivity.TAB_LINKS));
+            box.addView(line, Ui.matchWrap());
         }
-        box.addView(chips, spaced(4));
+        if (box.getChildCount() == 1) {
+            box.removeAllViews();
+            TextView ok = Ui.quiet(c, GOALS_OK);
+            ok.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+            ok.setOnClickListener(v -> host.selectTab(HomeActivity.TAB_LINKS));
+            box.addView(ok, Ui.matchWrap());
+        }
         return box;
+    }
+
+    /** Every goal is reached by the plan. */
+    static final String GOALS_OK = "目标都排到了 ›";
+
+    /** 「皇帝 · 没排到 MAX」 / 「女教皇 · 无法继续」 for a goal in trouble, else null. */
+    static String troubleOf(Rules rules, LinkStatus s) {
+        String name = rules.links[s.link].arcanaZh;
+        if (s.lost) {
+            return name + " · 无法继续";
+        }
+        if (s.observed >= s.target || s.story || s.targetSlot >= 0 || s.projected >= s.target) {
+            return null;
+        }
+        return name + " · 没排到 " + (s.target >= 10 ? "MAX" : Zh.rank(s.target));
     }
 }

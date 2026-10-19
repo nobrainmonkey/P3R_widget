@@ -277,9 +277,11 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         profileRevision.set(snap.profileRevision);
         Plan shownBefore = lastPlan;
         Plan plan = snap.plan;
+        String planChange = null;
         if (plan != null && snap.planCurrent) {
             if (lastPlan != null && !lastPlan.planId.equals(plan.planId) && snap.observed != null) {
                 changeSummary = PlanDiff.summary(rules, lastPlan, plan, snap.observed.slot);
+                planChange = changeSummary;
             }
             lastPlan = plan;
         }
@@ -321,8 +323,11 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         bindPages();
         if (fullResult != null && !undo.hasAction()) {
             // Said once in the message bar, unless a record made during the run still offers its 撤销
-            // there (the 今天 status line says it as well, changeSummary).
+            // there.
             showMessage(fullResult);
+        } else if (fullResult == null && planChange != null && !undo.isShowing()) {
+            // An ordinary replan that moved something this week: said once, never over a record's 撤销.
+            showMessage(planChange);
         }
         if (pendingOpenSlot >= 0) {
             int slot = pendingOpenSlot;
@@ -380,8 +385,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
 
     private void buildChrome() {
         root = new FrameLayout(this);
-        root.setBackground(new OceanDrawable(Ui.col(this, R.color.p3r_navy_800), Ui.col(this, R.color.p3r_navy_900),
-            Ui.col(this, R.color.p3r_navy_950), Ui.col(this, R.color.p3r_royal_500), Ui.col(this, R.color.p3r_cyan_300)));
+        root.setBackground(OceanDrawable.page(this));
         LinearLayout column = Ui.column(this);
         FrameLayout contentFrame = new FrameLayout(this);
         today = new TodayPage(this);
@@ -390,7 +394,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         tips = new TipsPage(this);
         me = new MePage(this, meActions());
         compendium = Ui.column(this);
-        TextView compendiumTitle = Ui.text(this, "图鉴与合成", 28, Ui.col(this, R.color.p3r_white), true);
+        View compendiumTitle = Ui.pageHeader(this, "人格面具全书", "COMPENDIUM", null);
         Ui.pad(compendiumTitle, Ui.GUTTER, 12, Ui.GUTTER, 4);
         compendium.addView(compendiumTitle);
         tabViews = new View[]{today.view(), schedule.view(), links.view(), tips.view(), compendium, me.view()};
@@ -398,14 +402,14 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             contentFrame.addView(v, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
         }
-        loading = Ui.muted(this, "正在读取记录…");
+        loading = Ui.muted(this, "读取中…");
         loading.setGravity(Gravity.CENTER);
         contentFrame.addView(loading, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
         errorView = Ui.column(this);
         errorView.setGravity(Gravity.CENTER_VERTICAL);
         Ui.pad(errorView, Ui.GUTTER + 8, 0, Ui.GUTTER + 8, 0);
-        errorView.addView(Ui.title(this, "暂时读不到记录"));
+        errorView.addView(Ui.title(this, "记录没读出来"));
         errorText = Ui.body(this, "");
         errorText.setLineSpacing(0f, 1.3f);
         LinearLayout.LayoutParams textParams = Ui.matchWrap();
@@ -420,7 +424,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         contentFrame.addView(errorView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
         column.addView(contentFrame, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
-        tabBar = new SlantTabBar(this, new String[]{"今天", "日程", "社群", "提示", "图鉴", "我的"}, new int[]{
+        tabBar = new SlantTabBar(this, new String[]{"今天", "日程", "社群", "提示", "全书", "我的"}, new int[]{
             R.drawable.ui_ic_tab_today, R.drawable.ui_ic_tab_schedule, R.drawable.ui_ic_tab_links,
             R.drawable.ui_ic_tab_tips, R.drawable.ui_ic_mask, R.drawable.ui_ic_tab_me});
         tabBar.setListener(this::selectTab);
@@ -547,8 +551,12 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         } else if (tab == TAB_COMPENDIUM && !failed) {
             CompendiumPage.refresh(compendiumContent);
         }
+        int previous = tabBar.getSelectedTab();
         for (int i = 0; i < tabViews.length; i++) {
             tabViews[i].setVisibility(i == tab && !failed ? View.VISIBLE : View.GONE);
+        }
+        if (previous >= 0 && previous != tab && !failed) {
+            Motion.tabIn(tabViews[tab], tab > previous);
         }
         tabBar.setSelectedTab(tab);
         placeUndo();
@@ -615,7 +623,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             String source = data.snap.storyDisplay.key;
             PlannerApi target = api;
             Async.run(this, () -> target.acknowledgeStory(source, step.slot), changed -> reload(),
-                    error -> showMessage(Messages.GENERIC_ERROR));
+                    error -> showError(Messages.ACTION_FAILED));
             return;
         }
         // A lagging plan's visible predictions (stat Lv) are left out: the engine works the result
@@ -633,18 +641,27 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
                 stateRevision.set(receipt.stateRevision);
                 showUndo(receipt.eventSeq, summary);
             } else {
-                showMessage(Messages.receiptError(receipt));
+                showError(Messages.receiptError(receipt));
             }
             reload();
-        }, error -> showMessage(Messages.GENERIC_ERROR));
+        }, error -> showError(Messages.GENERIC_ERROR));
     }
 
     /** "已记录：… · 撤销". */
     void showUndo(long eventSeq, String summary) {
-        undo.show("已记录：" + summary, eventSeq >= 0 ? "撤销" : null, () -> undoEvent(eventSeq, summary));
+        undo.show("已记录：" + summary, eventSeq >= 0 ? "撤销" : null, () -> undoEvent(eventSeq, summary),
+            isRankUp(summary) ? UndoBar.Style.RANK_UP : UndoBar.Style.RECORD);
         undoRetries = 0;
         placeUndo();
     }
+
+    /** "皇帝 RANK 7" / "皇帝 升到 MAX" (with or without the 顺便 tail): a rank-up record. */
+    static boolean isRankUp(String summary) {
+        return summary != null && RANK_UP_SUMMARY.matcher(summary).find();
+    }
+
+    private static final java.util.regex.Pattern RANK_UP_SUMMARY =
+        java.util.regex.Pattern.compile("^\\S+ (RANK \\d+|升到 MAX)(\\s|$)");
 
     private void undoEvent(long eventSeq, String summary) {
         if (api == null) {
@@ -655,9 +672,9 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             long rev = stateRevision.get();
             return target.voidEvent(CommandIds.of("void", rev, eventSeq), rev, eventSeq);
         }, receipt -> {
-            showMessage(receipt.ok ? "已撤销：" + summary : Messages.receiptError(receipt));
+            if (receipt.ok) showMessage("已撤销：" + summary); else showError(Messages.receiptError(receipt));
             reload();
-        }, error -> showMessage(Messages.GENERIC_ERROR));
+        }, error -> showError(Messages.GENERIC_ERROR));
     }
 
     @Override
@@ -724,24 +741,10 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     private void pushPage(String title, View content, boolean fillsPage) {
         finishPageExit();
         LinearLayout page = Ui.column(this);
-        page.setBackground(new OceanDrawable(Ui.col(this, R.color.p3r_navy_800), Ui.col(this, R.color.p3r_navy_900),
-            Ui.col(this, R.color.p3r_navy_950), Ui.col(this, R.color.p3r_royal_500), Ui.col(this, R.color.p3r_cyan_300)));
+        page.setBackground(OceanDrawable.page(this));
         page.setClickable(true);
         page.setPadding(0, topInset, 0, 0);
-        LinearLayout bar = Ui.row(this);
-        Ui.pad(bar, 4, 4, Ui.GUTTER, 4);
-        ImageView back = new ImageView(this);
-        back.setImageDrawable(Ui.tinted(this, R.drawable.ui_ic_back, Ui.col(this, R.color.p3r_white)));
-        back.setScaleType(ImageView.ScaleType.CENTER);
-        back.setContentDescription("返回");
-        back.setBackground(new SlantedPanelDrawable().fill(0).pressedFill(Ui.col(this, R.color.ui_cyan_soft)));
-        back.setOnClickListener(v -> popPage());
-        int size = Ui.dp(this, Ui.TOUCH);
-        bar.addView(back, new LinearLayout.LayoutParams(size, size));
-        TextView heading = Ui.text(this, title, 22, Ui.col(this, R.color.p3r_white), true);
-        LinearLayout.LayoutParams hp = Ui.weight(1);
-        hp.leftMargin = Ui.dp(this, 4);
-        bar.addView(heading, hp);
+        LinearLayout bar = Ui.subPageBar(this, title, v -> popPage());
         page.addView(bar, Ui.matchWrap());
         if (fillsPage) {
             FrameLayout holder = new FrameLayout(this);
@@ -863,11 +866,11 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             return receipt;
         }, receipt -> {
             if (!receipt.ok) {
-                showMessage(Messages.receiptError(receipt));
+                showError(Messages.receiptError(receipt));
                 reload();
             }
         }, error -> {
-            showMessage(Messages.GENERIC_ERROR);
+            showError(Messages.GENERIC_ERROR);
             reload();
         });
     }
@@ -896,10 +899,10 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             }
             return receipt;
         }, receipt -> {
-            showMessage(receipt.ok ? doneZh : Messages.receiptError(receipt));
+            if (receipt.ok) showMessage(doneZh); else showError(Messages.receiptError(receipt));
             reload();
         }, error -> {
-            showMessage(Messages.GENERIC_ERROR);
+            showError(Messages.GENERIC_ERROR);
             reload();
         });
     }
@@ -929,6 +932,13 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     @Override
     public void showMessage(String text) {
         undo.show(text, null, null);
+        undoRetries = 0;
+        placeUndo();
+    }
+
+    @Override
+    public void showError(String text) {
+        undo.show(text, null, null, UndoBar.Style.ERROR);
         undoRetries = 0;
         placeUndo();
     }
@@ -977,7 +987,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         }, error -> {
             fullRunning = false;
             fullBefore = null;
-            showMessage(Messages.GENERIC_ERROR);
+            showError(Messages.ACTION_FAILED);
             load();
         });
     }
@@ -991,7 +1001,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         Async.run(this, () -> {
             target.cancelFullReplan();
             return Boolean.TRUE;
-        }, done -> load(), error -> showMessage(Messages.GENERIC_ERROR));
+        }, done -> load(), error -> showError(Messages.ACTION_FAILED));
     }
 
     @Override
