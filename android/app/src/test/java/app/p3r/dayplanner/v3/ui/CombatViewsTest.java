@@ -184,7 +184,8 @@ public class CombatViewsTest extends UiTestBase {
         intent.putExtra(Intents.EXTRA_TAB, "tips");
         HomeActivity a = home(intent);
         Shots.click(a, "全部");
-        Shots.click(a, "筛选");
+        a.getWindow().getDecorView().findViewWithTag("tips_filter_button").performClick();
+        Shots.idle();
         assertTrue(Shots.clickTarget(Shots.find(a.sheets().content(), "战斗")).performClick());
         Shots.idle();
         assertTrue(Shots.clickTarget(Shots.find(a.sheets().content(), "应用")).performClick());
@@ -231,6 +232,9 @@ public class CombatViewsTest extends UiTestBase {
         for (int i = 0; i < list.getAdapter().getCount(); i++) {
             TipsPage.Item item = (TipsPage.Item) list.getAdapter().getItem(i);
             if (item.reminder != null && id.equals(item.reminder.id)) return list.getAdapter().getView(i, null, list);
+            if (item.group != null) for (app.p3r.dayplanner.v3.engine.Plan.Reminder entry : item.group.entries) {
+                if (id.equals(entry.id)) return list.getAdapter().getView(i, null, list).findViewWithTag("tips_entry_" + id);
+            }
         }
         throw new AssertionError("missing combat " + id);
     }
@@ -242,6 +246,7 @@ public class CombatViewsTest extends UiTestBase {
         for (int i = 0; i < list.getAdapter().getCount(); i++) {
             TipsPage.Item item = (TipsPage.Item) list.getAdapter().getItem(i);
             if (item.reminder != null) ids.add(item.reminder.id);
+            if (item.group != null) for (app.p3r.dayplanner.v3.engine.Plan.Reminder entry : item.group.entries) ids.add(entry.id);
         }
         return ids;
     }

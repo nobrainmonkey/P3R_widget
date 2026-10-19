@@ -132,9 +132,9 @@ public class PeriodTipsTest {
         assertNull(find(period, "next.request"));
     }
 
-    @Test public void unknownFirstEligiblePickupStaysConditionalAndCanCarryAcrossPeriods() {
+    @Test public void firstEligiblePickupKeepsConditionsWithinItsOpeningPeriod() {
         Rules rules = rules();
-        Rules.Reminder pickup = reminder("fragment.club", "fragment", 35, -1);
+        Rules.Reminder pickup = reminder("fragment.club", "fragment", 45, -1);
         pickup.firstEligible = true;
         pickup.zh = "勇气到 Lv.2 了";
         pickup.shortZh = "放纵俱乐部：黄昏的碎片";
@@ -161,6 +161,25 @@ public class PeriodTipsTest {
         assertTrue(withForecast.detailZh.contains("安排：6月20日处理"));
         pickup.requiresLv.put(2, 6);
         assertTrue(find(PeriodTips.collect(rules, at(50, false), null), pickup.id).detailZh.contains("勇气 MAX"));
+    }
+
+    @Test public void oldPermanentPickupIsLookupOnlyEvenWhenThePlanPredictsItThisPeriod() {
+        Rules rules = rules();
+        Rules.Reminder pickup = reminder("fragment.club", "fragment", 35, -1);
+        pickup.firstEligible = true;
+        pickup.shortZh = "放纵俱乐部：黄昏的碎片";
+        rules.reminders.items.add(pickup);
+        Plan forecast = new Plan();
+        Plan.Reminder predicted = new Plan.Reminder();
+        predicted.id = pickup.id;
+        predicted.kind = pickup.kind;
+        predicted.slot = Rules.slot(50, true);
+        forecast.reminders.add(predicted);
+        PeriodTips.Period current = PeriodTips.collect(rules, at(50, false), forecast);
+        assertNull(find(current, pickup.id));
+        assertFalse(current.ongoingIds.contains(pickup.id));
+        assertNotNull(find(PeriodTips.collectAll(rules, at(50, false)), pickup.id));
+        assertNotNull(find(PeriodTips.collect(rules, at(36, false), null), pickup.id));
     }
 
     @Test public void forecastRefinesSameIdWithoutDuplicatingOrMutatingInputs() {
@@ -434,19 +453,29 @@ public class PeriodTipsTest {
         assertNull(find(period, "calendar.full_moon.60"));
     }
 
-    @Test public void knownUntimedRequestsCarryAcrossPeriodsWithoutCarryingOrdinaryOldAnnouncements() throws Exception {
+    @Test public void oldPermanentPickupsAndUntimedRequestAnnouncementsStayInTheirOpeningPeriod() throws Exception {
         Rules rules = realPack();
         PeriodTips.Period june = PeriodTips.collect(rules, at(80, true), null);
-        assertNotNull(find(june, "request.05-29.outings"));
-        assertTrue(june.ongoingIds.contains("request.05-29.outings"));
+        assertNull(find(june, "fragment.05-25.club"));
+        assertNull(find(june, "request.05-29.outings"));
+        assertFalse(june.ongoingIds.contains("request.05-29.outings"));
         assertNull(find(june, "request.05-10"));
         PeriodTips.Period december = PeriodTips.collect(rules, at(250, true), null);
-        Plan.Reminder faculty = find(december, "request.10-06.faculty");
+        assertNull(find(december, "request.10-06.faculty"));
+        assertFalse(december.ongoingIds.contains("request.10-06.faculty"));
+        PeriodTips.Period october = PeriodTips.collect(rules, at(190, true), null);
+        Plan.Reminder faculty = find(october, "request.10-06.faculty");
         assertNotNull(faculty);
         assertTrue(faculty.detailZh.contains("分 8 天"));
-        assertTrue(december.ongoingIds.contains(faculty.id));
         assertNull(find(december, "request.10-07.faculty"));
         assertNull(find(december, "request.11-01.deadline"));
+        PeriodTips.Period may = PeriodTips.collect(rules, at(60, false), null);
+        assertNotNull(find(may, "fragment.05-25.club"));
+        assertNotNull(find(may, "request.05-29.outings"));
+        PeriodTips.Period all = PeriodTips.collectAll(rules, at(250, false));
+        assertNotNull(find(all, "fragment.05-25.club"));
+        assertNotNull(find(all, "request.05-29.outings"));
+        assertNotNull(find(all, "request.10-06.faculty"));
     }
 
     @Test public void everyRealPackPeriodPreservesEveryStaticDateAndEveryRescueGroup() throws Exception {

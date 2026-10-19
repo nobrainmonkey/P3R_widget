@@ -7,7 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from import_persona_data import DATABASE_COMMIT, DEFAULT_OUTPUT, TOOL_COMMIT, require, validate
+from import_persona_data import ACQUISITION_PATHS, DATABASE_COMMIT, DEFAULT_OUTPUT, TOOL_COMMIT, require, validate
 
 
 def validate_asset(path):
@@ -18,6 +18,11 @@ def validate_asset(path):
     require([s["commit"] for s in data["sources"]] == [TOOL_COMMIT, DATABASE_COMMIT], "Unexpected source version")
     require(data["sources"][0]["license"] == "Unlicense", "Missing fusion-tool license")
     require(data["sources"][1]["license"] != "Unlicense", "Do not assign the tool's license to the database")
+    acquisition = data["acquisitionSource"]
+    require(acquisition["commit"] == DATABASE_COMMIT and acquisition["root"] == "src/p3r/Content/Xrd777/",
+            "Acquisition must use pinned base-game data")
+    require(acquisition["paths"] == ACQUISITION_PATHS and acquisition["floorRange"] == [2, 264],
+            "Acquisition source table/range mismatch")
     personas = {p["id"]: p for p in data["personas"]}
     skills = {s["id"]: s for s in data["skills"]}
     arcana = {a["id"] for a in data["arcana"]}
@@ -61,8 +66,19 @@ def validate_asset(path):
     for recipe in recipes:
         require(2 <= len(recipe["ingredientIds"]) <= 6 and len(set(recipe["ingredientIds"])) == len(recipe["ingredientIds"]), "Invalid special ingredients")
     require(personas["persona_310"]["nameZh"] == "齐天大圣" and personas["persona_310"]["dlc"] == "p5r_2", "P5R alias mapping lost")
+    def floors_of(persona_id):
+        return {floor for origin in personas[persona_id]["origins"]
+                for floor in range(origin["floorFrom"], origin["floorTo"] + 1)}
+    require(floors_of("persona_156") == set(range(2, 22)) - {5, 11, 17},
+            "Pixie acquisition shifted or includes boss floors")
+    require(floors_of("persona_108") == set(range(23, 30)) - {28},
+            "Jack Frost Shuffle Time rank/floor mapping changed")
+    require({227, 257, 260, 261} <= floors_of("persona_208") and 256 not in floors_of("persona_208"),
+            "Final-day Adamah acquisition or teleporter exclusion lost")
+    require(not personas["persona_64"]["origins"] and not personas["persona_117"]["origins"],
+            "Do not invent tower locations from a Persona's level or enemy name")
     require(skills["skill_157"]["nameEn"] == "Diarahan" and "概率" not in skills["skill_157"]["effectZh"], "Healing amount incorrectly treated as probability")
-    print(f"Validated offline compendium: 173 base + 21 DLC Personas, 333 skills + 7 Theurgy, 22 special recipes; sha256={hashlib.sha256(content).hexdigest()}")
+    print(f"Validated offline compendium: 173 base + 21 DLC Personas, 333 skills + 7 Theurgy, 22 special recipes, 111 tower acquisitions; sha256={hashlib.sha256(content).hexdigest()}")
 
 
 if __name__ == "__main__":

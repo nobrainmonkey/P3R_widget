@@ -1,5 +1,8 @@
 package app.p3r.dayplanner.v3.ui;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.text.Editable;
 import android.text.InputType;
@@ -19,6 +22,8 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +38,7 @@ import app.p3r.dayplanner.v3.service.TipsCatalogue;
 final class TipsPage {
     private static final int SECTION = 0;
     private static final int REMINDER = 1;
+    private static final int GROUP = 2;
     private static final int ACTIVE = 0;
     private static final int UPCOMING = 1;
     private static final int PAST = 2;
@@ -49,13 +55,38 @@ final class TipsPage {
         final int section;
         final Plan.Reminder reminder;
         final int count;
+        final EntryGroup group;
 
         Item(int type, int section, Plan.Reminder reminder, int count) {
             this.type = type;
             this.section = section;
             this.reminder = reminder;
             this.count = count;
+            this.group = null;
         }
+
+        Item(int section, EntryGroup group) {
+            this.type = GROUP;
+            this.section = section;
+            this.reminder = null;
+            this.count = group.entries.size();
+            this.group = group;
+        }
+    }
+
+    static final class EntryGroup {
+        final String key;
+        final Rules.Link link;
+        final Rules.Block block;
+        final List<Plan.Reminder> entries = new ArrayList<>();
+
+        EntryGroup(String key, Rules.Link link, Rules.Block block) {
+            this.key = key;
+            this.link = link;
+            this.block = block;
+        }
+
+        boolean dialogue() { return link != null; }
     }
 
     private final HomeHost host;
@@ -78,6 +109,8 @@ final class TipsPage {
     private TipsCatalogue.Content content = TipsCatalogue.Content.ALL;
     private String category;
     private int currentSlot = -1;
+    private final Set<String> expandedGroups = new HashSet<>();
+    private final Set<String> collapsedSearchGroups = new HashSet<>();
 
     TipsPage(HomeHost host) {
         this.host = host;
@@ -122,9 +155,10 @@ final class TipsPage {
         LinearLayout.LayoutParams scopeGap = Ui.weight(1);
         scopeGap.leftMargin = Ui.dp(c, 8);
         scopes.addView(allFilter, scopeGap);
-        filterButton = Ui.chip(c, "筛选", false);
+        filterButton = CompendiumControls.icon(c, "筛选提示", R.drawable.ui_ic_filter);
+        filterButton.setTag("tips_filter_button");
         filterButton.setOnClickListener(v -> openFilters());
-        LinearLayout.LayoutParams filterGap = Ui.weight(1);
+        LinearLayout.LayoutParams filterGap = new LinearLayout.LayoutParams(Ui.dp(c, 48), Ui.dp(c, 48));
         filterGap.leftMargin = Ui.dp(c, 8);
         scopes.addView(filterButton, filterGap);
         resultCounter = Ui.mixed(c, "0 条", 12, Ui.col(c, R.color.p3r_ink_muted), false);
@@ -161,6 +195,7 @@ final class TipsPage {
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 boolean firstSearch = query.trim().isEmpty() && !s.toString().trim().isEmpty();
                 query = s.toString();
+                collapsedSearchGroups.clear();
                 if (firstSearch) allScope = true;
                 refresh();
             }
@@ -186,7 +221,7 @@ final class TipsPage {
             : content == TipsCatalogue.Content.COMBAT ? R.string.tips_combat_search_hint : R.string.tips_search_hint);
         Ui.setChipSelected(periodFilter, !allScope);
         Ui.setChipSelected(allFilter, allScope);
-        Ui.setChipSelected(filterButton, content != TipsCatalogue.Content.ALL || category != null);
+        CompendiumControls.setToolActive(filterButton, content != TipsCatalogue.Content.ALL || category != null);
         String caption = !allScope && period != null
             ? Zh.date(period.fromDay) + " ～ " + Zh.date(period.toDay) : "";
         String selection = category == null ? content == TipsCatalogue.Content.ALL ? "" : contentLabel(content) : category;
@@ -219,15 +254,52 @@ final class TipsPage {
                 items.add(new Item(SECTION, section, null, combat.size()));
                 for (Plan.Reminder item : combat) items.add(new Item(REMINDER, section, item, 0));
             }
-            adapter.setItems(items);
+            adapter.setItems(groupEntries(items));
         } else if (!allScope) {
-            adapter.setItems(buildItems(matches, currentSlot, selected.ongoingIds, selected.calendarEndSlots));
+            adapter.setItems(groupEntries(buildItems(matches, currentSlot, selected.ongoingIds, selected.calendarEndSlots)));
         } else {
             List<Item> items = new ArrayList<>();
             for (Plan.Reminder reminder : matches) items.add(new Item(REMINDER, LOOKUP, reminder, 0));
-            adapter.setItems(items);
+            adapter.setItems(groupEntries(items));
         }
         list.setSelection(0);
+    }
+
+    /** Keep section order, but give each social link or tower block just one expandable row. */
+    private List<Item> groupEntries(List<Item> source) {
+        List<Item> result = new ArrayList<>();
+        Map<String, EntryGroup> groups = new LinkedHashMap<>();
+        for (Item item : source) {
+            if (item.reminder == null) {
+                result.add(item);
+                continue;
+            }
+            Rules.Link link = TipsCatalogue.dialogueLink(data.rules, item.reminder);
+            Rules.CombatTip combat = TipsCatalogue.combatTip(data.rules, item.reminder);
+            boolean monad = combat != null && "monad".equals(combat.kind);
+            if (link == null && !monad) {
+                result.add(item);
+                continue;
+            }
+            Rules.Block block = monad ? TipsCatalogue.monadBlock(data.rules, item.reminder) : null;
+            String key = link != null ? "dialogue_" + link.id : "monad_" + (block == null ? "other" : block.id);
+            String scopedKey = item.section + ":" + key;
+            EntryGroup group = groups.get(scopedKey);
+            if (group == null) {
+                group = new EntryGroup(key, link, block);
+                groups.put(scopedKey, group);
+                result.add(new Item(item.section, group));
+            }
+            group.entries.add(item.reminder);
+        }
+        for (EntryGroup group : groups.values()) group.entries.sort((a, b) -> {
+            if (group.dialogue()) return Integer.compare(TipsCatalogue.dialogueRank(a), TipsCatalogue.dialogueRank(b));
+            Rules.CombatTip ca = TipsCatalogue.combatTip(data.rules, a);
+            Rules.CombatTip cb = TipsCatalogue.combatTip(data.rules, b);
+            int floor = Integer.compare(ca.floor, cb.floor);
+            return floor != 0 ? floor : Integer.compare(ca.battleOrder, cb.battleOrder);
+        });
+        return result;
     }
 
     private void openFilters() {
@@ -433,7 +505,7 @@ final class TipsPage {
         @Override public int getCount() { return items.size(); }
         @Override public Object getItem(int position) { return items.get(position); }
         @Override public long getItemId(int position) { return position; }
-        @Override public int getViewTypeCount() { return 2; }
+        @Override public int getViewTypeCount() { return 3; }
         @Override public int getItemViewType(int position) { return items.get(position).type; }
         @Override public boolean isEnabled(int position) { return false; }
 
@@ -448,8 +520,202 @@ final class TipsPage {
                 header.addView(Ui.sectionHeader(c, title, null));
                 return header;
             }
+            if (item.type == GROUP) return entryGroup(item.group);
             return reminder(item.reminder, item.section);
         }
+    }
+
+    private boolean isExpanded(EntryGroup group) {
+        return query.trim().isEmpty() ? expandedGroups.contains(group.key) : !collapsedSearchGroups.contains(group.key);
+    }
+
+    private View entryGroup(EntryGroup group) {
+        LinearLayout card = Ui.column(c);
+        card.setTag("tips_group_" + group.key);
+        card.setBackground(Ui.card(c).accent(Ui.col(c, R.color.p3r_cyan_300), Ui.dp(c, 3)));
+        Ui.pad(card, 14, 0, 12, 0);
+        LinearLayout header = Ui.row(c);
+        header.setTag("tips_group_header_" + group.key);
+        header.setBackground(new SlantedPanelDrawable().fill(0).pressedFill(Ui.col(c, R.color.ui_cyan_faint)));
+        header.setMinimumHeight(Ui.dp(c, 76));
+        Ui.pad(header, 0, 10, 0, 10);
+        LinearLayout names = Ui.column(c);
+        String title = group.dialogue() ? group.link.labelZh : group.block == null ? "蒙纳多" : group.block.zh;
+        if (title == null || title.trim().isEmpty()) title = group.dialogue() ? group.link.arcanaZh : "蒙纳多";
+        names.addView(Ui.mixed(c, title, 17, Ui.col(c, R.color.p3r_white), true));
+        String subtitle;
+        if (group.dialogue()) subtitle = group.entries.size() + " 段剧情";
+        else {
+            int doors = 0;
+            int passages = 0;
+            for (Plan.Reminder reminder : group.entries) {
+                Rules.CombatTip combat = TipsCatalogue.combatTip(data.rules, reminder);
+                if ("passage".equals(combat.encounterType)) passages++;
+                else doors++;
+            }
+            List<String> parts = new ArrayList<>();
+            if (group.block != null && group.block.floorsZh != null) parts.add(group.block.floorsZh);
+            if (doors > 0) parts.add("蒙纳多之门 " + doors);
+            if (passages > 0) parts.add("蒙纳多通道 " + passages);
+            subtitle = String.join(" · ", parts);
+        }
+        names.addView(Ui.mixed(c, subtitle, 12, Ui.col(c, R.color.p3r_ink_muted), false), top(3));
+        header.addView(names, Ui.weight(1));
+        TextView arrow = Ui.text(c, isExpanded(group) ? "−" : "+", 25, Ui.col(c, R.color.p3r_cyan_300), false);
+        arrow.setGravity(Gravity.CENTER);
+        header.addView(arrow, new LinearLayout.LayoutParams(Ui.dp(c, 32), Ui.dp(c, 48)));
+        card.addView(header, Ui.matchWrap());
+
+        LinearLayout body = Ui.column(c);
+        body.setTag("tips_group_body_" + group.key);
+        Ui.pad(body, 0, 0, 0, 12);
+        if (group.dialogue()) addRankGrid(body, group);
+        else for (Plan.Reminder reminder : group.entries) body.addView(monadEntry(reminder), top(5));
+        body.setVisibility(isExpanded(group) ? View.VISIBLE : View.GONE);
+        card.addView(body, Ui.matchWrap());
+        header.setClickable(true);
+        header.setFocusable(true);
+        String groupTitle = title;
+        header.setContentDescription(title + "，" + subtitle + (isExpanded(group) ? "，收起" : "，展开"));
+        header.setOnClickListener(v -> {
+            boolean expanded = !isExpanded(group);
+            if (query.trim().isEmpty()) {
+                if (expanded) expandedGroups.add(group.key);
+                else expandedGroups.remove(group.key);
+            } else {
+                if (expanded) collapsedSearchGroups.remove(group.key);
+                else collapsedSearchGroups.add(group.key);
+            }
+            arrow.setText(expanded ? "−" : "+");
+            header.setContentDescription(groupTitle + "，" + subtitle + (expanded ? "，收起" : "，展开"));
+            animateExpansion(body, expanded);
+        });
+        return card;
+    }
+
+    private void addRankGrid(LinearLayout body, EntryGroup group) {
+        LinearLayout row = null;
+        int position = 0;
+        for (Plan.Reminder reminder : group.entries) {
+            if (position % 3 == 0) {
+                row = Ui.row(c);
+                body.addView(row, top(6));
+            }
+            int target = TipsCatalogue.dialogueRank(reminder);
+            LinearLayout rank = Ui.column(c);
+            rank.setTag("tips_entry_" + reminder.id);
+            rank.setMinimumHeight(Ui.dp(c, 56));
+            rank.setGravity(Gravity.CENTER);
+            rank.setBackground(new SlantedPanelDrawable().fill(Ui.col(c, R.color.p3r_navy_950))
+                .pressedFill(Ui.col(c, R.color.p3r_navy_700))
+                .stroke(Ui.col(c, R.color.p3r_line), Ui.dp(c, 1)));
+            Ui.pad(rank, 4, 8, 4, 8);
+            TextView label = Ui.mixed(c, target <= 1 ? "解锁" : "RANK " + (target - 1), 14,
+                Ui.col(c, R.color.p3r_ice_100), true);
+            label.setGravity(Gravity.CENTER);
+            rank.addView(label, Ui.matchWrap());
+            if (target > 1) {
+                TextView next = Ui.mixed(c, "→ " + target, 11, Ui.col(c, R.color.p3r_ink_muted), false);
+                next.setGravity(Gravity.CENTER);
+                rank.addView(next, Ui.matchWrap());
+            }
+            rank.setClickable(true);
+            rank.setFocusable(true);
+            rank.setContentDescription(group.link.labelZh + (target <= 1 ? "，解锁与前置条件" : "，RANK " + (target - 1)
+                + " 升到 RANK " + target) + "，查看对话");
+            rank.setOnClickListener(v -> showDetail(reminder));
+            LinearLayout.LayoutParams params = Ui.weight(1);
+            if (position % 3 != 0) params.leftMargin = Ui.dp(c, 6);
+            row.addView(rank, params);
+            position++;
+        }
+        for (int missing = position % 3; missing > 0 && missing < 3; missing++) {
+            LinearLayout.LayoutParams params = Ui.weight(1);
+            params.leftMargin = Ui.dp(c, 6);
+            row.addView(new View(c), params);
+        }
+    }
+
+    private View monadEntry(Plan.Reminder reminder) {
+        Rules.CombatTip combat = TipsCatalogue.combatTip(data.rules, reminder);
+        LinearLayout entry = Ui.column(c);
+        entry.setTag("tips_entry_" + reminder.id);
+        entry.setMinimumHeight(Ui.dp(c, 64));
+        entry.setBackground(new SlantedPanelDrawable().fill(Ui.col(c, R.color.p3r_navy_950))
+            .pressedFill(Ui.col(c, R.color.p3r_navy_700))
+            .stroke(Ui.col(c, R.color.p3r_line), Ui.dp(c, 1)));
+        Ui.pad(entry, 12, 10, 12, 10);
+        LinearLayout line = Ui.row(c);
+        String title = monadTitle(combat.titleZh);
+        if (combat.floor > 0 && !title.contains(combat.floor + "F") && !title.contains(combat.floor + "层")) {
+            title = combat.floor + "F · " + title;
+        }
+        line.addView(Ui.mixed(c, title, 14, Ui.col(c, R.color.p3r_white), true), Ui.weight(1));
+        line.addView(Ui.text(c, "›", 20, Ui.col(c, R.color.p3r_cyan_300), false), Ui.wrap());
+        entry.addView(line, Ui.matchWrap());
+        entry.addView(Ui.mixed(c, TipsCatalogue.categoryLabel(combat)
+            + (combat.battleOrder > 0 ? " · 第 " + combat.battleOrder + " 战" : ""), 11,
+            Ui.col(c, R.color.p3r_ink_muted), false), top(3));
+        String summary = combat.enemies.isEmpty() ? combat.shortZh : CombatViews.weaknessSummary(combat);
+        if (summary != null && !summary.trim().isEmpty()) entry.addView(Ui.mixed(c, summary, 12,
+            Ui.col(c, R.color.ui_gold), false), top(4));
+        entry.setClickable(true);
+        entry.setFocusable(true);
+        entry.setContentDescription(title + "，" + TipsCatalogue.categoryLabel(combat) + "，查看属性与打法");
+        entry.setOnClickListener(v -> showDetail(reminder));
+        return entry;
+    }
+
+    private static String monadTitle(String title) {
+        for (String marker : new String[] {"蒙纳多通道", "蒙纳多之门", "蒙纳多门"}) {
+            int markerAt = title.indexOf(marker);
+            if (markerAt < 0) continue;
+            String name = title.substring(markerAt + marker.length()).trim();
+            int colon = name.indexOf('：');
+            if (colon < 0) colon = name.indexOf(':');
+            if (colon >= 0) name = name.substring(colon + 1).trim();
+            else if (name.startsWith("·")) name = name.substring(1).trim();
+            return name.isEmpty() ? title : name;
+        }
+        return title;
+    }
+
+    /** Expand in place so the selected link or floor range stays under the user's finger. */
+    private void animateExpansion(View body, boolean expanded) {
+        if (body.getTag(R.id.tips_expansion_animator) instanceof ValueAnimator) {
+            ((ValueAnimator) body.getTag(R.id.tips_expansion_animator)).cancel();
+        }
+        View parent = (View) body.getParent();
+        int width = body.getWidth() > 0 ? body.getWidth() : parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight();
+        if (!Ui.animationsEnabled() || width <= 0) {
+            body.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            body.setVisibility(expanded ? View.VISIBLE : View.GONE);
+            return;
+        }
+        int start = body.getVisibility() == View.GONE ? 0 : body.getHeight();
+        body.setVisibility(View.VISIBLE);
+        body.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int end = expanded ? body.getMeasuredHeight() : 0;
+        ValueAnimator animator = ValueAnimator.ofInt(start, end);
+        body.setTag(R.id.tips_expansion_animator, animator);
+        animator.setDuration(180);
+        animator.addUpdateListener(value -> {
+            body.getLayoutParams().height = (int) value.getAnimatedValue();
+            body.requestLayout();
+        });
+        animator.addListener(new AnimatorListenerAdapter() {
+            private boolean cancelled;
+            @Override public void onAnimationCancel(Animator animation) { cancelled = true; }
+            @Override public void onAnimationEnd(Animator animation) {
+                if (cancelled) return;
+                body.setVisibility(expanded ? View.VISIBLE : View.GONE);
+                body.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                body.setTag(R.id.tips_expansion_animator, null);
+                body.requestLayout();
+            }
+        });
+        animator.start();
     }
 
     private View reminder(Plan.Reminder r, int section) {
@@ -476,7 +742,8 @@ final class TipsPage {
         LinearLayout sheet = Ui.column(c);
         Ui.pad(sheet, 20, 12, 20, 20);
         Rules.CombatTip combat = TipsCatalogue.combatTip(data.rules, reminder);
-        sheet.addView(SheetChrome.title(c, combat == null ? "提示详情" : "战斗详情"));
+        boolean dialogue = TipsCatalogue.DIALOGUE.equals(reminder.kind);
+        sheet.addView(SheetChrome.title(c, dialogue ? "社群对话" : combat == null ? "提示详情" : "战斗详情"));
         sheet.addView(Ui.mixed(c, dateLine(reminder), 14,
             Ui.col(c, R.color.ui_gold), true), top(8));
         sheet.addView(combat == null ? ReminderViews.row(c, reminder, true) : CombatViews.detail(c, combat), top(8));

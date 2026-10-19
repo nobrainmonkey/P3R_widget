@@ -24,12 +24,13 @@ public final class TipsCatalogue {
             "(?:委托|请求|任务|伊莉莎白|elizabeth|request\\s*#?|no\\.?|#)\\s*0*(\\d{1,3})(?!\\d)(?:\\s*号)?"
                     + "|(?<!\\d)(?:第\\s*)?0*(\\d{1,3})\\s*号");
     private static final Pattern FLOOR_NUMBER = Pattern.compile("(?<!\\d)(?:第\\s*)?0*(\\d{1,3})\\s*(?:f|层)(?!\\d)");
+    private static final Pattern TARGET_RANK = Pattern.compile("(?:升到|升至|到达|目标)\\s*(?:rank|r)?\\s*(10|[1-9])(?!\\d)(?:\\s*级)?");
     public enum Content { ALL, DIALOGUE, CLASS_EXAM, REQUEST, COMBAT }
     public enum CombatGroup { GUARDIAN, MONAD, STORY, OPTIONAL }
 
     private TipsCatalogue() {}
 
-    /** Current reminders plus catalogue requests whose acceptance windows overlap the opening period. */
+    /** Current openings and dated windows that overlap this Tartarus-block period. */
     public static PeriodTips.Period current(Rules rules, SimState observed, Plan plan) {
         PeriodTips.Period period = PeriodTips.collect(rules, observed, plan);
         addRequests(period, rules, false);
@@ -47,6 +48,17 @@ public final class TipsCatalogue {
         for (int index = 0; index < rules.links.length; index++) {
             Rules.Link link = rules.links[index];
             if (link == null || link.kind != Rules.LinkKind.MANUAL) continue;
+            if (link.unlock != null) {
+                Plan.Reminder opening = PeriodTips.unlockTip(rules, observed, link);
+                catalogue.items.removeIf(item -> opening.id.equals(item.id));
+                catalogue.ongoingIds.remove(opening.id);
+                opening.id = "dialogue." + link.id + ".1";
+                opening.kind = DIALOGUE;
+                opening.labelZh = "社群对话";
+                opening.textZh = name(link) + " · 解锁";
+                opening.slot = -1;
+                dialogues.add(opening);
+            }
             for (int scene = 2; scene <= 10; scene++) {
                 DialogueHint.Answers answers = DialogueHint.lookupScene(rules, profile, index, scene);
                 if (answers.isEmpty()) continue;
@@ -58,7 +70,7 @@ public final class TipsCatalogue {
                 String route = link.romanceable
                         ? DialogueHint.romanceRoute(profile, index) ? "恋人路线" : "朋友路线" : "";
                 String compact = DialogueHint.widgetLine(answers);
-                item.textZh = name + " · 升到 RANK " + scene
+                item.textZh = name + " · RANK " + (scene - 1) + " → " + scene
                         + (route.isEmpty() ? "" : "（" + route + "）")
                         + "\n" + (compact == null ? DialogueHint.appLine(answers) : compact);
                 List<String> detail = new ArrayList<>();
@@ -87,7 +99,7 @@ public final class TipsCatalogue {
             period.items.removeIf(item -> Plan.Reminder.REQUEST.equals(item.kind));
         }
         for (Rules.RequestTip request : rules.reminders.requestTips) {
-            int until = request.untilDay < 0 ? rules.lastDay : request.untilDay;
+            int until = request.untilDay < 0 ? request.fromDay : request.untilDay;
             if (!all && (request.fromDay > period.toDay || until < period.fromDay)) continue;
             Plan.Reminder item = new Plan.Reminder();
             item.id = REQUEST_PREFIX + request.number;
@@ -190,6 +202,44 @@ public final class TipsCatalogue {
         return null;
     }
 
+    /** Rank-scene identifiers stay in the rules' target-rank convention (1 means opening). */
+    public static int dialogueRank(Plan.Reminder item) {
+        if (item == null || item.id == null) return 0;
+        if (item.id.startsWith("unlock.")) return 1;
+        if (!DIALOGUE.equals(item.kind) || !item.id.startsWith("dialogue.")) return 0;
+        int split = item.id.lastIndexOf('.');
+        if (split <= "dialogue.".length()) return 0;
+        try {
+            int rank = Integer.parseInt(item.id.substring(split + 1));
+            return rank >= 1 && rank <= 10 ? rank : 0;
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
+    }
+
+    /** Shared identity for social-link opening instructions and rank scenes. */
+    public static Rules.Link dialogueLink(Rules rules, Plan.Reminder item) {
+        if (rules == null || item == null || item.id == null || dialogueRank(item) == 0) return null;
+        String id = item.id.startsWith("unlock.") ? item.id.substring("unlock.".length())
+                : item.id.substring("dialogue.".length(), item.id.lastIndexOf('.'));
+        Rules.Link link = rules.link(id);
+        return link != null && link.kind == Rules.LinkKind.MANUAL ? link : null;
+    }
+
+    /** Monad doors have no fixed floor; their source block supplies the real floor range. */
+    public static Rules.Block monadBlock(Rules rules, Plan.Reminder item) {
+        Rules.CombatTip combat = combatTip(rules, item);
+        if (combat == null || !"monad".equals(combat.kind)) return null;
+        for (Rules.Block block : rules.blocks) {
+            if (block.id != null && combat.id.startsWith("combat." + block.id + ".")) return block;
+        }
+        Rules.Block current = null;
+        for (Rules.Block block : rules.blocks) {
+            if (block.fromDay <= combat.fromDay && (current == null || block.fromDay > current.fromDay)) current = block;
+        }
+        return current;
+    }
+
     public static CombatGroup combatGroup(Rules.CombatTip combat) {
         if (combat == null) return CombatGroup.OPTIONAL;
         if ("guardian".equals(combat.kind)) return CombatGroup.GUARDIAN;
@@ -210,6 +260,13 @@ public final class TipsCatalogue {
         if (content == Content.ALL && !selected.isEmpty()) content = contentForCategory(items, rules, selected);
         List<Plan.Reminder> out = new ArrayList<>();
         String normalized = normalize(query);
+        int targetRank = -1;
+        Matcher targetMatch = TARGET_RANK.matcher(normalized);
+        if (targetMatch.find()) {
+            targetRank = Integer.parseInt(targetMatch.group(1));
+            normalized = normalized.substring(0, targetMatch.start()) + " " + normalized.substring(targetMatch.end());
+            normalized = normalized.trim();
+        }
         int requestNumber = -1;
         int floorNumber = -1;
         if (normalized.matches("\\d{1,3}") && (content == Content.ALL
@@ -233,11 +290,12 @@ public final class TipsCatalogue {
                 }
             }
         }
-        normalized = normalized.replaceAll("(?:rank|r)\\s*(10|[2-9])", " rank$1 ")
-                .replaceAll("(10|[2-9])\\s*级", " rank$1 ").trim();
+        normalized = normalized.replaceAll("(?:rank|r)\\s*(10|[0-9])", " rank$1 ")
+                .replaceAll("(10|[0-9])\\s*级", " rank$1 ").trim();
         String[] words = normalized.isEmpty() ? new String[0] : normalized.split("\\s+");
         for (Plan.Reminder item : items) {
             if (!selected.isEmpty() && !selected.equals(categoryLabel(rules, item))) continue;
+            if (targetRank >= 0 && (!DIALOGUE.equals(item.kind) || dialogueRank(item) != targetRank)) continue;
             if (content == Content.DIALOGUE && !DIALOGUE.equals(item.kind)) continue;
             if (content == Content.CLASS_EXAM && !item.isAnswer()) continue;
             if (content == Content.REQUEST && !Plan.Reminder.REQUEST.equals(item.kind)) continue;
@@ -250,12 +308,13 @@ public final class TipsCatalogue {
             String searchable = searchable(item, rules);
             boolean matches = true;
             for (String word : words) {
-                boolean explicitRank = word.matches("rank(?:10|[2-9])");
-                boolean bareRank = words.length > 1 && word.matches("10|[2-9]");
-                if (DIALOGUE.equals(item.kind) && (explicitRank || bareRank)
-                        && !item.id.endsWith("." + (explicitRank ? word.substring(4) : word))) {
-                    matches = false;
-                    break;
+                boolean explicitRank = word.matches("rank(?:10|[0-9])");
+                boolean bareRank = words.length > 1 && word.matches("10|[0-9]");
+                if (DIALOGUE.equals(item.kind) && (explicitRank || bareRank)) {
+                    int requested = Integer.parseInt(explicitRank ? word.substring(4) : word);
+                    int targetScene = requested == 10 ? 10 : requested + 1;
+                    if (dialogueRank(item) != targetScene) { matches = false; break; }
+                    continue;
                 }
                 if (!searchable.contains(word)) { matches = false; break; }
             }
@@ -318,16 +377,23 @@ public final class TipsCatalogue {
             String scene = item.id.substring(split + 1);
             Rules.Link link = rules == null ? null : rules.link(id);
             if (link != null) {
-                add(text, link.arcanaZh + scene);
-                add(text, link.personZh + scene);
-                add(text, "rank" + scene);
+                int currentRank = Integer.parseInt(scene) - 1;
+                add(text, link.arcanaZh + currentRank);
+                add(text, link.personZh + currentRank);
+                add(text, "rank" + currentRank);
+                if (currentRank == 0) add(text, "解锁 前置 开启");
+                if (currentRank == 9) {
+                    add(text, "rank10 max");
+                    add(text, link.arcanaZh + "10");
+                    add(text, link.personZh + "10");
+                }
             }
         } else if (rules != null && item.slot >= 0) {
             Rules.Day day = rules.day(Rules.dayOf(item.slot));
             if (day != null) add(text, day.md + " " + day.month() + "/" + day.dayOfMonth()
                     + " " + day.month() + "月" + day.dayOfMonth() + "日");
         }
-        return normalize(text.toString()).replaceAll("rank\\s+(10|[2-9])", "rank$1");
+        return normalize(text.toString()).replaceAll("rank\\s+(10|[0-9])", "rank$1");
     }
 
     private static String name(Rules.Link link) {

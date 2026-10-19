@@ -18,6 +18,24 @@
     }
   ],
   "attribution": "图鉴数据与合成规则：aqiu384；游戏名称与文本：ATLUS / SEGA。",
+  "acquisitionSource": {
+    "repository": "https://github.com/aqiu384/megaten-database",
+    "commit": "8f87f212e206748b71298a52eb1eaec1efed6161",
+    "root": "src/p3r/Content/Xrd777/",
+    "paths": [
+      "Field/Data/DataTable/DT_FldDungeonFloor.tsv",
+      "Field/Data/DataTable/DT_FldDungeonEncountPac.tsv",
+      "Battle/Tables/DatEncountTableDataAsset.tsv",
+      "Battle/Tables/Shuffle/DatShuffleChoiceMinorArcanaDataAsset.tsv",
+      "Battle/Tables/Shuffle/DatShufflePersonaArcanaDataAsset.tsv"
+    ],
+    "method": "Main-tower normal encounter packs -> shuffleLevel -> low/high Persona ranks -> positive-weight Persona cards",
+    "floorRange": [
+      2,
+      264
+    ],
+    "blockNames": "Planner glossary and p3r_rules.json"
+  },
   "elements": [
     "sla",
     "str",
@@ -251,7 +269,30 @@
           "level": 15
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 23,
+          "floorTo": 27
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 29,
+          "floorTo": 34
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 37,
+          "floorTo": 41
+        }
+      ]
     },
     {
       "id": "persona_36",
@@ -302,6 +343,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Sun",
@@ -361,6 +403,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Strength",
@@ -420,6 +463,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Hanged",
@@ -479,6 +523,43 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 192
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 194,
+          "floorTo": 197
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 199,
+          "floorTo": 202
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 204,
+          "floorTo": 211
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 213
+        }
+      ],
       "heartItemEn": "Soul Sea Drop",
       "heartLevel": 61
     },
@@ -531,6 +612,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "heartItemEn": "Soul Sea Drop",
       "heartLevel": 78
     },
@@ -582,7 +664,37 @@
           "level": 45
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 142
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 145,
+          "floorTo": 150
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 152,
+          "floorTo": 154
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 156
+        }
+      ]
     },
     {
       "id": "persona_42",
@@ -633,6 +745,29 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 248,
+          "floorTo": 251
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 257,
+          "floorTo": 257
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 260,
+          "floorTo": 261
+        }
+      ],
       "heartItemEn": "Abyssal King Tooth",
       "heartLevel": 82
     },
@@ -678,6 +813,36 @@
       ],
       "theurgySkillIds": [
         "skill_260"
+      ],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 2,
+          "floorTo": 4
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 6,
+          "floorTo": 10
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 12,
+          "floorTo": 16
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 18,
+          "floorTo": 21
+        }
       ]
     },
     {
@@ -729,6 +894,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Hermit",
@@ -783,7 +949,23 @@
           "level": 10
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 12,
+          "floorTo": 16
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 18,
+          "floorTo": 21
+        }
+      ]
     },
     {
       "id": "persona_46",
@@ -834,6 +1016,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "heartItemEn": "Soul Sea Drop",
       "heartLevel": 73
     },
@@ -886,6 +1069,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Empress",
@@ -936,7 +1120,37 @@
           "level": 14
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 37,
+          "floorTo": 41
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 44,
+          "floorTo": 46
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 48,
+          "floorTo": 53
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 55,
+          "floorTo": 55
+        }
+      ]
     },
     {
       "id": "persona_49",
@@ -986,7 +1200,30 @@
           "level": 42
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 127,
+          "floorTo": 131
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 133,
+          "floorTo": 135
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 142
+        }
+      ]
     },
     {
       "id": "persona_50",
@@ -1032,7 +1269,37 @@
           "level": 37
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 119,
+          "floorTo": 123
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 127,
+          "floorTo": 131
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 133,
+          "floorTo": 135
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 137
+        }
+      ]
     },
     {
       "id": "persona_51",
@@ -1082,7 +1349,30 @@
           "level": 44
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 127,
+          "floorTo": 131
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 133,
+          "floorTo": 135
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 142
+        }
+      ]
     },
     {
       "id": "persona_52",
@@ -1128,7 +1418,23 @@
           "level": 15
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 29,
+          "floorTo": 34
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 37,
+          "floorTo": 41
+        }
+      ]
     },
     {
       "id": "persona_53",
@@ -1179,6 +1485,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "heartItemEn": "Preservation Conch",
       "heartLevel": 85
     },
@@ -1230,7 +1537,8 @@
           "level": 63
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_55",
@@ -1276,7 +1584,37 @@
           "level": 36
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 111
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 113,
+          "floorTo": 117
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 119,
+          "floorTo": 123
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 127,
+          "floorTo": 130
+        }
+      ]
     },
     {
       "id": "persona_56",
@@ -1318,7 +1656,37 @@
           "level": 8
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 2,
+          "floorTo": 4
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 6,
+          "floorTo": 10
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 12,
+          "floorTo": 16
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 18,
+          "floorTo": 21
+        }
+      ]
     },
     {
       "id": "persona_57",
@@ -1368,7 +1736,37 @@
           "level": 49
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 145,
+          "floorTo": 150
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 152,
+          "floorTo": 154
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 160
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 162
+        }
+      ]
     },
     {
       "id": "persona_58",
@@ -1419,6 +1817,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Emperor",
@@ -1477,7 +1876,37 @@
           "level": 47
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 145,
+          "floorTo": 150
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 152,
+          "floorTo": 154
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 160
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 162
+        }
+      ]
     },
     {
       "id": "persona_60",
@@ -1528,6 +1957,50 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 111
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 113,
+          "floorTo": 117
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 119,
+          "floorTo": 123
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 127,
+          "floorTo": 131
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 133,
+          "floorTo": 135
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 137
+        }
+      ],
       "heartItemEn": "Soul Sea Driblet",
       "heartLevel": 34
     },
@@ -1576,6 +2049,43 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 51,
+          "floorTo": 53
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 55,
+          "floorTo": 59
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 61,
+          "floorTo": 68
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 70,
+          "floorTo": 76
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 78,
+          "floorTo": 78
+        }
+      ],
       "heartItemEn": "Soul Sea Driblet",
       "heartLevel": 18
     },
@@ -1619,7 +2129,30 @@
           "level": 12
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 23,
+          "floorTo": 27
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 29,
+          "floorTo": 34
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 37,
+          "floorTo": 37
+        }
+      ]
     },
     {
       "id": "persona_63",
@@ -1669,7 +2202,30 @@
           "level": 32
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 100,
+          "floorTo": 104
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 111
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 113,
+          "floorTo": 117
+        }
+      ]
     },
     {
       "id": "persona_64",
@@ -1709,7 +2265,8 @@
       ],
       "theurgySkillIds": [
         "skill_260"
-      ]
+      ],
+      "origins": []
     },
     {
       "id": "persona_65",
@@ -1736,6 +2293,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "all_social",
         "textEn": "Max all Social Links",
@@ -1790,7 +2348,37 @@
           "level": 45
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 142
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 145,
+          "floorTo": 150
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 152,
+          "floorTo": 154
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 156
+        }
+      ]
     },
     {
       "id": "persona_67",
@@ -1836,7 +2424,30 @@
           "level": 13
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 23,
+          "floorTo": 27
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 29,
+          "floorTo": 34
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 37,
+          "floorTo": 37
+        }
+      ]
     },
     {
       "id": "persona_68",
@@ -1887,6 +2498,71 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 217
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 219,
+          "floorTo": 224
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 227,
+          "floorTo": 229
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 231,
+          "floorTo": 235
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 237,
+          "floorTo": 240
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 242,
+          "floorTo": 244
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 248,
+          "floorTo": 251
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 257,
+          "floorTo": 257
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 260,
+          "floorTo": 261
+        }
+      ],
       "heartItemEn": "Soul Sea Drop",
       "heartLevel": 68
     },
@@ -1938,7 +2614,44 @@
           "level": 57
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 173,
+          "floorTo": 178
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 180,
+          "floorTo": 183
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 185,
+          "floorTo": 187
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 189
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 196,
+          "floorTo": 197
+        }
+      ]
     },
     {
       "id": "persona_70",
@@ -1985,6 +2698,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "request",
         "requestId": 77,
@@ -2043,6 +2757,57 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 217
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 219,
+          "floorTo": 224
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 227,
+          "floorTo": 229
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 231,
+          "floorTo": 235
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 237,
+          "floorTo": 240
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 242,
+          "floorTo": 244
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 248,
+          "floorTo": 248
+        }
+      ],
       "heartItemEn": "Soul Sea Drop",
       "heartLevel": 67
     },
@@ -2090,7 +2855,72 @@
           "level": 70
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 217
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 219,
+          "floorTo": 224
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 227,
+          "floorTo": 229
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 231,
+          "floorTo": 235
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 237,
+          "floorTo": 240
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 242,
+          "floorTo": 244
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 248,
+          "floorTo": 251
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 257,
+          "floorTo": 257
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 260,
+          "floorTo": 261
+        }
+      ]
     },
     {
       "id": "persona_73",
@@ -2140,7 +2970,37 @@
           "level": 46
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 142
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 145,
+          "floorTo": 150
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 152,
+          "floorTo": 154
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 156
+        }
+      ]
     },
     {
       "id": "persona_74",
@@ -2190,7 +3050,37 @@
           "level": 47
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 145,
+          "floorTo": 150
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 152,
+          "floorTo": 154
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 160
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 162
+        }
+      ]
     },
     {
       "id": "persona_75",
@@ -2241,6 +3131,57 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 199,
+          "floorTo": 202
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 204,
+          "floorTo": 211
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 217
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 219,
+          "floorTo": 224
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 227,
+          "floorTo": 229
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 231,
+          "floorTo": 235
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 237,
+          "floorTo": 237
+        }
+      ],
       "heartItemEn": "Soul Sea Drop",
       "heartLevel": 66
     },
@@ -2288,7 +3229,30 @@
           "level": 14
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 23,
+          "floorTo": 27
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 29,
+          "floorTo": 34
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 37,
+          "floorTo": 41
+        }
+      ]
     },
     {
       "id": "persona_77",
@@ -2339,6 +3303,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Lovers",
@@ -2397,7 +3362,37 @@
           "level": 46
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 142
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 145,
+          "floorTo": 150
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 152,
+          "floorTo": 154
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 156
+        }
+      ]
     },
     {
       "id": "persona_79",
@@ -2450,6 +3445,7 @@
       "theurgySkillIds": [
         "skill_262"
       ],
+      "origins": [],
       "unlock": {
         "type": "request",
         "requestId": 24,
@@ -2505,7 +3501,30 @@
           "level": 33
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 100,
+          "floorTo": 104
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 111
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 113,
+          "floorTo": 117
+        }
+      ]
     },
     {
       "id": "persona_81",
@@ -2560,6 +3579,36 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 142
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 145,
+          "floorTo": 150
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 152,
+          "floorTo": 154
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 156
+        }
+      ],
       "heartItemEn": "Fetching Hero's Comb",
       "heartLevel": 44
     },
@@ -2611,7 +3660,58 @@
           "level": 67
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 199,
+          "floorTo": 202
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 204,
+          "floorTo": 211
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 217
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 219,
+          "floorTo": 224
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 227,
+          "floorTo": 229
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 231,
+          "floorTo": 235
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 237,
+          "floorTo": 237
+        }
+      ]
     },
     {
       "id": "persona_83",
@@ -2661,7 +3761,30 @@
           "level": 33
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 100,
+          "floorTo": 104
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 111
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 113,
+          "floorTo": 117
+        }
+      ]
     },
     {
       "id": "persona_84",
@@ -2707,7 +3830,23 @@
           "level": 51
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 160
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 168
+        }
+      ]
     },
     {
       "id": "persona_85",
@@ -2757,7 +3896,44 @@
           "level": 19
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 44,
+          "floorTo": 46
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 48,
+          "floorTo": 53
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 55,
+          "floorTo": 56
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 59,
+          "floorTo": 59
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 61,
+          "floorTo": 68
+        }
+      ]
     },
     {
       "id": "persona_86",
@@ -2808,6 +3984,29 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 127,
+          "floorTo": 131
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 133,
+          "floorTo": 135
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 142
+        }
+      ],
       "heartItemEn": "Soul Sea Droplet",
       "heartLevel": 41
     },
@@ -2859,7 +4058,37 @@
           "level": 51
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 145,
+          "floorTo": 150
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 152,
+          "floorTo": 154
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 160
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 168
+        }
+      ]
     },
     {
       "id": "persona_88",
@@ -2910,6 +4139,36 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 111
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 113,
+          "floorTo": 117
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 119,
+          "floorTo": 123
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 127,
+          "floorTo": 130
+        }
+      ],
       "heartItemEn": "Soul Sea Driblet",
       "heartLevel": 33
     },
@@ -2961,7 +4220,44 @@
           "level": 57
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 173,
+          "floorTo": 178
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 180,
+          "floorTo": 183
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 185,
+          "floorTo": 187
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 189
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 196,
+          "floorTo": 197
+        }
+      ]
     },
     {
       "id": "persona_90",
@@ -3012,6 +4308,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Hierophant",
@@ -3070,7 +4367,30 @@
           "level": 41
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 127,
+          "floorTo": 131
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 133,
+          "floorTo": 135
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 142
+        }
+      ]
     },
     {
       "id": "persona_92",
@@ -3121,6 +4441,57 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 160
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 168
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 173,
+          "floorTo": 178
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 180,
+          "floorTo": 183
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 185,
+          "floorTo": 185
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 187,
+          "floorTo": 187
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 189
+        }
+      ],
       "heartItemEn": "Soul Sea Droplet",
       "heartLevel": 51
     },
@@ -3178,7 +4549,8 @@
       ],
       "theurgySkillIds": [
         "skill_266"
-      ]
+      ],
+      "origins": []
     },
     {
       "id": "persona_94",
@@ -3229,6 +4601,22 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 111
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 113,
+          "floorTo": 117
+        }
+      ],
       "heartItemEn": "Soul Sea Driblet",
       "heartLevel": 32
     },
@@ -3281,6 +4669,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "linked",
         "character": "Ryoji",
@@ -3338,7 +4727,8 @@
           "level": 46
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_97",
@@ -3389,6 +4779,36 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 119,
+          "floorTo": 123
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 127,
+          "floorTo": 131
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 133,
+          "floorTo": 135
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 137
+        }
+      ],
       "heartItemEn": "Soul Sea Driblet",
       "heartLevel": 34
     },
@@ -3436,7 +4856,37 @@
           "level": 41
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 119,
+          "floorTo": 123
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 127,
+          "floorTo": 131
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 133,
+          "floorTo": 135
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 142
+        }
+      ]
     },
     {
       "id": "persona_99",
@@ -3487,6 +4937,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Moon",
@@ -3541,7 +4992,8 @@
           "level": 26
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_101",
@@ -3594,6 +5046,57 @@
       "theurgySkillIds": [
         "skill_264"
       ],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 180,
+          "floorTo": 183
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 185,
+          "floorTo": 187
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 192
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 194,
+          "floorTo": 197
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 199,
+          "floorTo": 202
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 204,
+          "floorTo": 211
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 213
+        }
+      ],
       "heartItemEn": "Nibelung Ore",
       "heartLevel": 59
     },
@@ -3641,7 +5144,23 @@
           "level": 29
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 78,
+          "floorTo": 81
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 83,
+          "floorTo": 89
+        }
+      ]
     },
     {
       "id": "persona_103",
@@ -3692,6 +5211,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "heartItemEn": "Destroyer's Drums",
       "heartLevel": 90
     },
@@ -3743,7 +5263,37 @@
           "level": 51
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 145,
+          "floorTo": 150
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 152,
+          "floorTo": 154
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 160
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 168
+        }
+      ]
     },
     {
       "id": "persona_105",
@@ -3793,7 +5343,37 @@
           "level": 35
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 93,
+          "floorTo": 98
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 100,
+          "floorTo": 104
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 111
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 113,
+          "floorTo": 117
+        }
+      ]
     },
     {
       "id": "persona_106",
@@ -3850,6 +5430,7 @@
       "theurgySkillIds": [
         "skill_262"
       ],
+      "origins": [],
       "heartItemEn": "Black Frostite",
       "heartLevel": 41
     },
@@ -3902,6 +5483,57 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 180,
+          "floorTo": 183
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 185,
+          "floorTo": 187
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 192
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 194,
+          "floorTo": 197
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 199,
+          "floorTo": 202
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 204,
+          "floorTo": 211
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 213
+        }
+      ],
       "heartItemEn": "Soul Sea Drop",
       "heartLevel": 60
     },
@@ -3952,6 +5584,22 @@
       "theurgySkillIds": [
         "skill_261"
       ],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 23,
+          "floorTo": 27
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 29,
+          "floorTo": 29
+        }
+      ],
       "heartItemEn": "Jacktite",
       "heartLevel": 11
     },
@@ -4001,6 +5649,29 @@
       ],
       "theurgySkillIds": [
         "skill_261"
+      ],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 51,
+          "floorTo": 53
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 55,
+          "floorTo": 59
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 61,
+          "floorTo": 68
+        }
       ],
       "heartItemEn": "Jacktite",
       "heartLevel": 17
@@ -4054,6 +5725,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Tower",
@@ -4104,7 +5776,30 @@
           "level": 9
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 7,
+          "floorTo": 10
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 12,
+          "floorTo": 16
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 18,
+          "floorTo": 21
+        }
+      ]
     },
     {
       "id": "persona_112",
@@ -4155,6 +5850,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Priestess",
@@ -4214,6 +5910,57 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 227,
+          "floorTo": 229
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 231,
+          "floorTo": 235
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 237,
+          "floorTo": 240
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 242,
+          "floorTo": 244
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 248,
+          "floorTo": 251
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 257,
+          "floorTo": 257
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 260,
+          "floorTo": 261
+        }
+      ],
       "heartItemEn": "Shadow Lipstick",
       "heartLevel": 74
     },
@@ -4266,6 +6013,57 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 180,
+          "floorTo": 183
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 185,
+          "floorTo": 187
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 192
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 194,
+          "floorTo": 197
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 199,
+          "floorTo": 202
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 204,
+          "floorTo": 211
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 213
+        }
+      ],
       "heartItemEn": "Soul Sea Drop",
       "heartLevel": 60
     },
@@ -4320,6 +6118,7 @@
       "theurgySkillIds": [
         "skill_265"
       ],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Fool",
@@ -4374,7 +6173,37 @@
           "level": 16
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 37,
+          "floorTo": 41
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 44,
+          "floorTo": 46
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 48,
+          "floorTo": 53
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 55,
+          "floorTo": 55
+        }
+      ]
     },
     {
       "id": "persona_117",
@@ -4425,6 +6254,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "linked",
         "character": "Junpei",
@@ -4482,7 +6312,44 @@
           "level": 73
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 227,
+          "floorTo": 229
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 231,
+          "floorTo": 235
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 237,
+          "floorTo": 240
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 242,
+          "floorTo": 244
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 248,
+          "floorTo": 248
+        }
+      ]
     },
     {
       "id": "persona_119",
@@ -4529,6 +6396,29 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 127,
+          "floorTo": 131
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 133,
+          "floorTo": 135
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 142
+        }
+      ],
       "heartItemEn": "Soul Sea Droplet",
       "heartLevel": 42
     },
@@ -4580,7 +6470,23 @@
           "level": 34
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 111
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 113,
+          "floorTo": 117
+        }
+      ]
     },
     {
       "id": "persona_121",
@@ -4630,7 +6536,58 @@
           "level": 68
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 217
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 219,
+          "floorTo": 224
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 227,
+          "floorTo": 229
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 231,
+          "floorTo": 235
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 237,
+          "floorTo": 240
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 242,
+          "floorTo": 244
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 248,
+          "floorTo": 251
+        }
+      ]
     },
     {
       "id": "persona_122",
@@ -4680,7 +6637,37 @@
           "level": 19
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 44,
+          "floorTo": 46
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 48,
+          "floorTo": 53
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 55,
+          "floorTo": 59
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 68,
+          "floorTo": 68
+        }
+      ]
     },
     {
       "id": "persona_123",
@@ -4730,7 +6717,44 @@
           "level": 57
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 173,
+          "floorTo": 178
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 180,
+          "floorTo": 183
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 185,
+          "floorTo": 187
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 192
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 194,
+          "floorTo": 197
+        }
+      ]
     },
     {
       "id": "persona_124",
@@ -4776,7 +6800,30 @@
           "level": 43
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 127,
+          "floorTo": 131
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 133,
+          "floorTo": 135
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 142
+        }
+      ]
     },
     {
       "id": "persona_125",
@@ -4826,7 +6873,37 @@
           "level": 65
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 199,
+          "floorTo": 202
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 204,
+          "floorTo": 211
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 217
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 219,
+          "floorTo": 224
+        }
+      ]
     },
     {
       "id": "persona_126",
@@ -4876,7 +6953,37 @@
           "level": 28
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 78,
+          "floorTo": 81
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 83,
+          "floorTo": 89
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 93,
+          "floorTo": 98
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 100,
+          "floorTo": 102
+        }
+      ]
     },
     {
       "id": "persona_127",
@@ -4927,6 +7034,29 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 70,
+          "floorTo": 76
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 78,
+          "floorTo": 81
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 83,
+          "floorTo": 83
+        }
+      ],
       "heartItemEn": "Soul Sea Driblet",
       "heartLevel": 23
     },
@@ -4979,6 +7109,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Death",
@@ -5033,7 +7164,37 @@
           "level": 18
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 44,
+          "floorTo": 46
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 48,
+          "floorTo": 53
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 55,
+          "floorTo": 56
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 68,
+          "floorTo": 68
+        }
+      ]
     },
     {
       "id": "persona_130",
@@ -5084,6 +7245,50 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 192
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 194,
+          "floorTo": 197
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 199,
+          "floorTo": 202
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 204,
+          "floorTo": 211
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 217
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 219,
+          "floorTo": 219
+        }
+      ],
       "heartItemEn": "Soul Sea Drop",
       "heartLevel": 61
     },
@@ -5135,7 +7340,51 @@
           "level": 54
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 168
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 173,
+          "floorTo": 178
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 180,
+          "floorTo": 183
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 185,
+          "floorTo": 185
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 187,
+          "floorTo": 187
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 189
+        }
+      ]
     },
     {
       "id": "persona_132",
@@ -5182,6 +7431,50 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 168
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 173,
+          "floorTo": 178
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 180,
+          "floorTo": 183
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 185,
+          "floorTo": 187
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 189
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 196,
+          "floorTo": 197
+        }
+      ],
       "heartItemEn": "Soul Sea Droplet",
       "heartLevel": 52
     },
@@ -5236,6 +7529,7 @@
       "theurgySkillIds": [
         "skill_263"
       ],
+      "origins": [],
       "unlock": {
         "type": "floor",
         "floor": 143,
@@ -5292,6 +7586,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "request",
         "requestId": 78,
@@ -5344,6 +7639,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Chariot",
@@ -5403,6 +7699,36 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 145,
+          "floorTo": 150
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 152,
+          "floorTo": 154
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 160
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 162
+        }
+      ],
       "heartItemEn": "Soul Sea Droplet",
       "heartLevel": 46
     },
@@ -5454,7 +7780,51 @@
           "level": 65
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 192
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 194,
+          "floorTo": 197
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 199,
+          "floorTo": 202
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 204,
+          "floorTo": 211
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 217
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 219,
+          "floorTo": 224
+        }
+      ]
     },
     {
       "id": "persona_138",
@@ -5500,7 +7870,37 @@
           "level": 22
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 55,
+          "floorTo": 59
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 61,
+          "floorTo": 68
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 70,
+          "floorTo": 76
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 78,
+          "floorTo": 78
+        }
+      ]
     },
     {
       "id": "persona_139",
@@ -5550,7 +7950,37 @@
           "level": 48
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 145,
+          "floorTo": 150
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 152,
+          "floorTo": 154
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 160
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 162
+        }
+      ]
     },
     {
       "id": "persona_140",
@@ -5601,6 +8031,36 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 78,
+          "floorTo": 81
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 83,
+          "floorTo": 89
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 93,
+          "floorTo": 98
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 100,
+          "floorTo": 102
+        }
+      ],
       "heartItemEn": "Soul Sea Driblet",
       "heartLevel": 25
     },
@@ -5652,7 +8112,8 @@
           "level": 53
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_142",
@@ -5698,7 +8159,44 @@
           "level": 17
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 37,
+          "floorTo": 41
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 44,
+          "floorTo": 46
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 48,
+          "floorTo": 53
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 55,
+          "floorTo": 56
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 68,
+          "floorTo": 68
+        }
+      ]
     },
     {
       "id": "persona_143",
@@ -5744,7 +8242,37 @@
           "level": 22
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 55,
+          "floorTo": 59
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 61,
+          "floorTo": 68
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 70,
+          "floorTo": 76
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 78,
+          "floorTo": 78
+        }
+      ]
     },
     {
       "id": "persona_144",
@@ -5790,7 +8318,8 @@
           "level": 8
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_145",
@@ -5841,6 +8370,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "request",
         "requestId": 49,
@@ -5899,6 +8429,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "heartItemEn": "Second Hand of Fate",
       "heartLevel": 71
     },
@@ -5950,7 +8481,44 @@
           "level": 78
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 237,
+          "floorTo": 240
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 242,
+          "floorTo": 244
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 248,
+          "floorTo": 251
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 257,
+          "floorTo": 257
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 260,
+          "floorTo": 261
+        }
+      ]
     },
     {
       "id": "persona_148",
@@ -6001,6 +8569,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "heartItemEn": "Soul Sea Droplet",
       "heartLevel": 51
     },
@@ -6048,7 +8617,30 @@
           "level": 25
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 70,
+          "floorTo": 76
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 78,
+          "floorTo": 81
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 83,
+          "floorTo": 89
+        }
+      ]
     },
     {
       "id": "persona_150",
@@ -6098,7 +8690,51 @@
           "level": 61
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 192
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 194,
+          "floorTo": 197
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 199,
+          "floorTo": 202
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 204,
+          "floorTo": 211
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 217
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 219,
+          "floorTo": 219
+        }
+      ]
     },
     {
       "id": "persona_151",
@@ -6148,7 +8784,37 @@
           "level": 41
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 119,
+          "floorTo": 123
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 127,
+          "floorTo": 131
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 133,
+          "floorTo": 135
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 137
+        }
+      ]
     },
     {
       "id": "persona_152",
@@ -6198,7 +8864,51 @@
           "level": 36
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 111
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 113,
+          "floorTo": 117
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 119,
+          "floorTo": 123
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 127,
+          "floorTo": 131
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 133,
+          "floorTo": 135
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 137
+        }
+      ]
     },
     {
       "id": "persona_153",
@@ -6244,7 +8954,58 @@
           "level": 54
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 160
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 168
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 173,
+          "floorTo": 178
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 180,
+          "floorTo": 183
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 185,
+          "floorTo": 185
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 187,
+          "floorTo": 187
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 189
+        }
+      ]
     },
     {
       "id": "persona_154",
@@ -6294,7 +9055,58 @@
           "level": 69
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 217
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 219,
+          "floorTo": 224
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 227,
+          "floorTo": 229
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 231,
+          "floorTo": 235
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 237,
+          "floorTo": 240
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 242,
+          "floorTo": 244
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 248,
+          "floorTo": 251
+        }
+      ]
     },
     {
       "id": "persona_155",
@@ -6344,7 +9156,30 @@
           "level": 30
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 93,
+          "floorTo": 98
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 100,
+          "floorTo": 104
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 106
+        }
+      ]
     },
     {
       "id": "persona_156",
@@ -6386,7 +9221,37 @@
           "level": 6
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 2,
+          "floorTo": 4
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 6,
+          "floorTo": 10
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 12,
+          "floorTo": 16
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 18,
+          "floorTo": 21
+        }
+      ]
     },
     {
       "id": "persona_157",
@@ -6432,7 +9297,8 @@
           "level": 19
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_158",
@@ -6482,7 +9348,37 @@
           "level": 66
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 199,
+          "floorTo": 202
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 204,
+          "floorTo": 211
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 217
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 219,
+          "floorTo": 224
+        }
+      ]
     },
     {
       "id": "persona_159",
@@ -6533,6 +9429,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "linked",
         "character": "Koromaru",
@@ -6591,6 +9488,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "heartItemEn": "Soul Sea Driblet",
       "heartLevel": 17
     },
@@ -6640,6 +9538,36 @@
       ],
       "theurgySkillIds": [
         "skill_263"
+      ],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 12,
+          "floorTo": 16
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "thebel",
+          "blockNameZh": "世俗之庭 台伯勒",
+          "floorFrom": 18,
+          "floorTo": 21
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 23,
+          "floorTo": 27
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 29,
+          "floorTo": 29
+        }
       ]
     },
     {
@@ -6691,6 +9619,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Magician",
@@ -6750,6 +9679,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "heartItemEn": "Soul Sea Droplet",
       "heartLevel": 37
     },
@@ -6797,7 +9727,37 @@
           "level": 21
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 55,
+          "floorTo": 59
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 61,
+          "floorTo": 68
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 70,
+          "floorTo": 76
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 78,
+          "floorTo": 78
+        }
+      ]
     },
     {
       "id": "persona_165",
@@ -6847,7 +9807,8 @@
           "level": 28
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_166",
@@ -6897,7 +9858,23 @@
           "level": 53
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 160
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 168
+        }
+      ]
     },
     {
       "id": "persona_167",
@@ -6943,7 +9920,37 @@
           "level": 18
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 44,
+          "floorTo": 46
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 48,
+          "floorTo": 53
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 55,
+          "floorTo": 56
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 68,
+          "floorTo": 68
+        }
+      ]
     },
     {
       "id": "persona_168",
@@ -6994,6 +10001,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "linked",
         "character": "Shinjiro",
@@ -7052,6 +10060,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Devil",
@@ -7110,7 +10119,44 @@
           "level": 59
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 173,
+          "floorTo": 178
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 180,
+          "floorTo": 183
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 185,
+          "floorTo": 187
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 192
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 194,
+          "floorTo": 197
+        }
+      ]
     },
     {
       "id": "persona_171",
@@ -7161,6 +10207,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "floor",
         "floor": 225,
@@ -7219,6 +10266,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "linked",
         "character": "Akihiko",
@@ -7276,7 +10324,23 @@
           "level": 51
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 160
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 168
+        }
+      ]
     },
     {
       "id": "persona_174",
@@ -7327,6 +10391,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "heartItemEn": "Mara's Head",
       "heartLevel": 81
     },
@@ -7379,6 +10444,22 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 257,
+          "floorTo": 257
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 260,
+          "floorTo": 261
+        }
+      ],
       "heartItemEn": "Soul Sea Drop",
       "heartLevel": 82
     },
@@ -7431,6 +10512,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "request",
         "requestId": 87,
@@ -7492,7 +10574,8 @@
           "level": 64
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_178",
@@ -7542,7 +10625,8 @@
           "level": 28
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_179",
@@ -7593,6 +10677,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "linked",
         "character": "Ken",
@@ -7650,7 +10735,51 @@
           "level": 54
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 168
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 173,
+          "floorTo": 178
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 180,
+          "floorTo": 183
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 185,
+          "floorTo": 185
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 187,
+          "floorTo": 187
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 189
+        }
+      ]
     },
     {
       "id": "persona_181",
@@ -7696,7 +10825,23 @@
           "level": 27
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 78,
+          "floorTo": 81
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 83,
+          "floorTo": 89
+        }
+      ]
     },
     {
       "id": "persona_182",
@@ -7748,6 +10893,36 @@
       ],
       "theurgySkillIds": [
         "skill_264"
+      ],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 83,
+          "floorTo": 89
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 93,
+          "floorTo": 98
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 100,
+          "floorTo": 104
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 106
+        }
       ]
     },
     {
@@ -7803,6 +10978,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Judgement",
@@ -7862,6 +11038,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Aeon",
@@ -7921,6 +11098,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Justice",
@@ -7975,7 +11153,37 @@
           "level": 23
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 59,
+          "floorTo": 59
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 61,
+          "floorTo": 68
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 70,
+          "floorTo": 76
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 78,
+          "floorTo": 78
+        }
+      ]
     },
     {
       "id": "persona_187",
@@ -8022,6 +11230,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "floor",
         "floor": 82,
@@ -8077,7 +11286,8 @@
           "level": 63
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_189",
@@ -8123,7 +11333,37 @@
           "level": 37
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 119,
+          "floorTo": 123
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 127,
+          "floorTo": 131
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 133,
+          "floorTo": 135
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 137,
+          "floorTo": 137
+        }
+      ]
     },
     {
       "id": "persona_190",
@@ -8173,7 +11413,37 @@
           "level": 30
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 83,
+          "floorTo": 89
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 93,
+          "floorTo": 98
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 100,
+          "floorTo": 104
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 106
+        }
+      ]
     },
     {
       "id": "persona_191",
@@ -8224,6 +11494,29 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 93,
+          "floorTo": 98
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 100,
+          "floorTo": 104
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 106
+        }
+      ],
       "heartItemEn": "Soul Sea Driblet",
       "heartLevel": 28
     },
@@ -8272,6 +11565,29 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 23,
+          "floorTo": 27
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 29,
+          "floorTo": 34
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 37,
+          "floorTo": 41
+        }
+      ],
       "heartItemEn": "Soul Sea Driblet",
       "heartLevel": 13
     },
@@ -8324,6 +11640,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Temperance",
@@ -8378,7 +11695,30 @@
           "level": 20
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 51,
+          "floorTo": 53
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 55,
+          "floorTo": 59
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 61,
+          "floorTo": 68
+        }
+      ]
     },
     {
       "id": "persona_196",
@@ -8429,6 +11769,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Fortune",
@@ -8488,6 +11829,36 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 145,
+          "floorTo": 150
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 152,
+          "floorTo": 154
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 156,
+          "floorTo": 160
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 162
+        }
+      ],
       "heartItemEn": "Soul Sea Droplet",
       "heartLevel": 48
     },
@@ -8539,7 +11910,58 @@
           "level": 66
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 199,
+          "floorTo": 202
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 204,
+          "floorTo": 211
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 213,
+          "floorTo": 217
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 219,
+          "floorTo": 224
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 227,
+          "floorTo": 229
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 231,
+          "floorTo": 235
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 237,
+          "floorTo": 237
+        }
+      ]
     },
     {
       "id": "persona_199",
@@ -8586,6 +12008,29 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 93,
+          "floorTo": 98
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 100,
+          "floorTo": 104
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 106
+        }
+      ],
       "heartItemEn": "Soul Sea Driblet",
       "heartLevel": 28
     },
@@ -8638,6 +12083,50 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "tziah",
+          "blockNameZh": "奢豪之庭 茨尔阿",
+          "floorFrom": 162,
+          "floorTo": 168
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 173,
+          "floorTo": 178
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 180,
+          "floorTo": 183
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 185,
+          "floorTo": 187
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 189,
+          "floorTo": 189
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "harabah",
+          "blockNameZh": "焦炎之庭 哈拉瓦",
+          "floorFrom": 196,
+          "floorTo": 197
+        }
+      ],
       "heartItemEn": "Soul Sea Droplet",
       "heartLevel": 54
     },
@@ -8689,7 +12178,30 @@
           "level": 26
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 70,
+          "floorTo": 76
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 78,
+          "floorTo": 81
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 83,
+          "floorTo": 89
+        }
+      ]
     },
     {
       "id": "persona_202",
@@ -8740,6 +12252,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "floor",
         "floor": 193,
@@ -8789,7 +12302,30 @@
           "level": 13
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 23,
+          "floorTo": 27
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 29,
+          "floorTo": 34
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "arqa",
+          "blockNameZh": "奇颜之庭 阿尔卡",
+          "floorFrom": 37,
+          "floorTo": 37
+        }
+      ]
     },
     {
       "id": "persona_204",
@@ -8840,6 +12376,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "unlock": {
         "type": "request",
         "requestId": 81,
@@ -8900,6 +12437,7 @@
       "theurgySkillIds": [
         "skill_266"
       ],
+      "origins": [],
       "unlock": {
         "type": "social",
         "arcana": "Star",
@@ -8956,7 +12494,37 @@
           "level": 31
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 93,
+          "floorTo": 98
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 100,
+          "floorTo": 104
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 106,
+          "floorTo": 111
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "yabbashah",
+          "blockNameZh": "鄙俗之庭 亚巴扎",
+          "floorFrom": 113,
+          "floorTo": 117
+        }
+      ]
     },
     {
       "id": "persona_207",
@@ -9007,6 +12575,7 @@
         }
       ],
       "theurgySkillIds": [],
+      "origins": [],
       "heartItemEn": "Soul Sea Droplet",
       "heartLevel": 36
     },
@@ -9064,6 +12633,57 @@
       ],
       "theurgySkillIds": [
         "skill_265"
+      ],
+      "origins": [
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 227,
+          "floorTo": 229
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 231,
+          "floorTo": 235
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 237,
+          "floorTo": 240
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 242,
+          "floorTo": 244
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 248,
+          "floorTo": 251
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 257,
+          "floorTo": 257
+        },
+        {
+          "kind": "shuffle",
+          "blockId": "adamah",
+          "blockNameZh": "忧郁之庭 亚达玛",
+          "floorFrom": 260,
+          "floorTo": 261
+        }
       ]
     },
     {
@@ -9114,7 +12734,8 @@
           "level": 29
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_301",
@@ -9164,7 +12785,8 @@
           "level": 23
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_302",
@@ -9214,7 +12836,8 @@
           "level": 27
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_303",
@@ -9264,7 +12887,8 @@
           "level": 24
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_304",
@@ -9314,7 +12938,8 @@
           "level": 32
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_305",
@@ -9364,7 +12989,8 @@
           "level": 33
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_306",
@@ -9414,7 +13040,8 @@
           "level": 41
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_307",
@@ -9464,7 +13091,8 @@
           "level": 42
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_308",
@@ -9514,7 +13142,8 @@
           "level": 42
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_309",
@@ -9564,7 +13193,8 @@
           "level": 95
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_310",
@@ -9614,7 +13244,8 @@
           "level": 46
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_311",
@@ -9664,7 +13295,8 @@
           "level": 49
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_312",
@@ -9714,7 +13346,8 @@
           "level": 48
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_313",
@@ -9764,7 +13397,8 @@
           "level": 53
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_314",
@@ -9814,7 +13448,8 @@
           "level": 59
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_315",
@@ -9864,7 +13499,8 @@
           "level": 60
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_316",
@@ -9914,7 +13550,8 @@
           "level": 66
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_317",
@@ -9964,7 +13601,8 @@
           "level": 64
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_318",
@@ -10014,7 +13652,8 @@
           "level": 52
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_319",
@@ -10064,7 +13703,8 @@
           "level": 56
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     },
     {
       "id": "persona_320",
@@ -10114,7 +13754,8 @@
           "level": 39
         }
       ],
-      "theurgySkillIds": []
+      "theurgySkillIds": [],
+      "origins": []
     }
   ],
   "skills": [

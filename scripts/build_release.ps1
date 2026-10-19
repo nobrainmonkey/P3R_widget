@@ -22,6 +22,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "rules unit tests failed" }
     & python scripts/validate_persona_data.py
     if ($LASTEXITCODE -ne 0) { throw "Persona data check failed" }
+    & python -m unittest discover -s scripts -p 'test_persona_acquisition.py'
+    if ($LASTEXITCODE -ne 0) { throw "Persona acquisition tests failed" }
 } finally {
     Pop-Location
 }

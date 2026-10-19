@@ -1,7 +1,7 @@
 # P3R planner repository context
 
-Reference for continuing the owner's existing project. Updated for the released 3.5.0 compendium,
-continuous fusion basket, previous-day corrections, rescue floors and unlock prerequisite fixes.
+Reference for continuing the owner's existing project. Updated for 3.5.1 grouped lookups,
+Persona acquisition floors, icon controls and game-date navigation, on top of 3.5.0.
 This is an orientation snapshot; check newer code and owner decisions before implementing changes.
 
 ## Product and current baseline
@@ -13,7 +13,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
   player records a different result, changes goals, or returns later and syncs progress.
 - Useful, consistent plans matter more than global optimality. An unmet goal is not proof
   that the goal is impossible. Forecasts and confirmed progress must remain separate.
-- Current app source: **3.5.0**, version code **41**, application ID **`app.p3r.planner`**;
+- Current app source: **3.5.1**, version code **42**, application ID **`app.p3r.planner`**;
   debug builds add `.debug`. Java package/Android namespace remains `app.p3r.dayplanner`.
   Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, minimum API 26, compile/target API 35.
 - The owner released 3.4.2 at `52e9b9d`; 3.5.0 builds on those changes. See
@@ -51,6 +51,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 | [3.4.0 change notes](RELEASE_NOTES_3.4.0.md) | Dated training needs, automatic summer classes, conditional invitations, story display and tips search. |
 | [3.4.1 change notes](RELEASE_NOTES_3.4.1.md) | Goal-prefix coverage, joint prerequisites, shared school calendars, useful dating notes and manual deep search. |
 | [3.5.0 change notes](RELEASE_NOTES_3.5.0.md) | Compendium, fusion basket, previous-day corrections, rescue floors and prerequisite candidates. |
+| [3.5.1 change notes](RELEASE_NOTES_3.5.1.md) | Icon controls, acquisition floors, grouped social/Monad lookups, period scoping and jump to today. |
 | [3.1.0 specification](specs/SPEC_3.1.0.md) | Full replan, reminders, legacy removal, widget answers and breadth planning. |
 | [Chinese glossary](GLOSSARY_zh.md) | Exact UI terms, sentence style and deadline wording. |
 | [Rules report](../rules/build/REPORT.md) | Generated source decisions, confidence, coverage and modeling gaps. |
@@ -106,6 +107,16 @@ a separate choice. Registrations do not change the calendar's Persona bonus assu
 Browsing keeps one transient page above the existing workspace, supports direct
 ingredient recipe lookup and 「接着合成」, and preserves search/filter/list state. Sheets and page
 transitions cancel superseded animations so a previous dismissal cannot hide the next picker.
+
+3.5.1 adds exact Shuffle Time acquisition ranges for 111 base-game Personas, from the upstream
+floor/encounter/minor-arcana/Persona-card tables; existing fusion fields and formulas stay unchanged.
+Persona details use aligned star and circle/check slanted controls; filters use icon-only funnels.
+Tips group social links into expandable opening/current-RANK selectors and Monad fights into
+their tower blocks and floor ranges. A displayed/search RANK 1 means the scene from 1 to 2;
+stored dialogue scene IDs still mean the target rank, and explicit 「升到 RANK 2」 remains supported.
+Permanent pickups and undated requests belong to their opening period, while actual deadline
+windows can overlap periods. All entries remain available under 「全部」. The calendar's floating
+arrow uses the game cursor, and keeps the previous-day correction entry point.
 
 Scheduling policy is now **4**: old policy3 forecasts are recomputed without changing records.
 NEW_DIVERSE reserves one unlock/prerequisite candidate within K (K≥2), including when an

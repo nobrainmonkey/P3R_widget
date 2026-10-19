@@ -247,6 +247,50 @@ public class CompendiumFusionTest {
         assertTrue(fusionTool);
     }
 
+    @Test public void towerAcquisitionContainsRealShuffleFloorsWithoutBossOrDlcLocations() throws Exception {
+        int withOrigins = 0;
+        for (Persona persona : catalogue().personas()) {
+            if (!persona.origins.isEmpty()) withOrigins++;
+            if (persona.isDlc()) assertTrue(persona.origins.isEmpty());
+            int previous = 0;
+            for (Compendium.Origin origin : persona.origins) {
+                assertEquals("shuffle", origin.kind);
+                assertFalse(origin.blockId.isEmpty());
+                assertFalse(origin.blockNameZh.isEmpty());
+                assertTrue(origin.floorFrom > previous);
+                assertTrue(origin.floorFrom <= origin.floorTo && origin.floorTo <= 264);
+                previous = origin.floorTo;
+            }
+        }
+        assertEquals(111, withOrigins);
+        assertEquals(Set.of(2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 18, 19, 20, 21),
+                acquisitionFloors(persona("Pixie")));
+        assertEquals(Set.of(23, 24, 25, 26, 27, 29), acquisitionFloors(persona("Jack Frost")));
+        assertTrue(acquisitionFloors(persona("Loki")).containsAll(Set.of(227, 257, 260, 261)));
+        assertFalse(acquisitionFloors(persona("Loki")).contains(256));
+        assertTrue(persona("Orpheus").origins.isEmpty());
+        assertTrue(persona("Surt").origins.isEmpty());
+    }
+
+    @Test public void malformedAcquisitionFloorsAndDlcTowerLocationsAreRejected() throws Exception {
+        JSONObject root = new JSONObject(new String(Files.readAllBytes(assetPath()), StandardCharsets.UTF_8));
+        JSONObject location = new JSONObject().put("kind", "shuffle").put("blockId", "thebel")
+                .put("blockNameZh", "世俗之庭 台伯勒").put("floorFrom", 10).put("floorTo", 2);
+        root.getJSONArray("personas").getJSONObject(0).put("origins", new org.json.JSONArray().put(location));
+        assertBad(root, "Invalid Persona acquisition floors");
+        location.put("floorTo", 12);
+        root.getJSONArray("personas").getJSONObject(0).put("dlc", Compendium.DLC_P5_FIRST);
+        assertBad(root, "DLC Persona cannot occur");
+    }
+
+    private static Set<Integer> acquisitionFloors(Persona persona) {
+        Set<Integer> floors = new HashSet<>();
+        for (Compendium.Origin origin : persona.origins) {
+            for (int floor = origin.floorFrom; floor <= origin.floorTo; floor++) floors.add(floor);
+        }
+        return floors;
+    }
+
     @Test public void brokenSkillReferencesAndResistanceVectorsAreRejectedAtLoadTime() throws Exception {
         JSONObject root = new JSONObject(new String(Files.readAllBytes(assetPath()), StandardCharsets.UTF_8));
         root.getJSONArray("personas").getJSONObject(0).getJSONArray("skills")

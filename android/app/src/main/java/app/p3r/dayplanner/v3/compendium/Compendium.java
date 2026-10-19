@@ -97,6 +97,22 @@ public final class Compendium {
         }
     }
 
+    /** A contiguous set of real tower floors with this Persona in Shuffle Time. */
+    public static final class Origin {
+        public final String kind, blockId, blockNameZh;
+        public final int floorFrom, floorTo;
+        private Origin(JSONObject row) throws JSONException {
+            kind = required(row, "kind");
+            blockId = required(row, "blockId");
+            blockNameZh = required(row, "blockNameZh");
+            floorFrom = row.getInt("floorFrom");
+            floorTo = row.getInt("floorTo");
+            check(kind.equals("shuffle"), "Unknown Persona acquisition type: " + kind);
+            check(floorFrom >= 2 && floorTo <= 264 && floorFrom <= floorTo,
+                    "Invalid Persona acquisition floors");
+        }
+    }
+
     public static final class Persona {
         public final String id, key, nameZh, nameEn, arcana, resists, inherits, dlc;
         public final int level;
@@ -104,6 +120,7 @@ public final class Compendium {
         public final int[] stats;
         public final List<LearnedSkill> skills;
         public final List<String> theurgySkillIds;
+        public final List<Origin> origins;
         public final String unlockType, unlockTextZh, unlockTextEn;
         private Persona(JSONObject row, int elementCount) throws JSONException {
             id = required(row, "id");
@@ -129,6 +146,16 @@ public final class Compendium {
             for (int i = 0; i < skillRows.length(); i++) learned.add(new LearnedSkill(skillRows.getJSONObject(i)));
             skills = Collections.unmodifiableList(learned);
             theurgySkillIds = strings(row.optJSONArray("theurgySkillIds"));
+            List<Origin> locations = new ArrayList<>();
+            JSONArray originRows = row.optJSONArray("origins");
+            if (originRows != null) for (int i = 0; i < originRows.length(); i++) {
+                Origin origin = new Origin(originRows.getJSONObject(i));
+                check(locations.isEmpty() || locations.get(locations.size() - 1).floorTo < origin.floorFrom,
+                        "Overlapping Persona acquisition floors: " + id);
+                locations.add(origin);
+            }
+            check(dlc.isEmpty() || locations.isEmpty(), "DLC Persona cannot occur in tower Shuffle Time: " + id);
+            origins = Collections.unmodifiableList(locations);
             JSONObject unlock = row.optJSONObject("unlock");
             unlockType = unlock == null ? "" : unlock.optString("type", "");
             unlockTextZh = unlock == null ? "" : unlock.optString("textZh", "");

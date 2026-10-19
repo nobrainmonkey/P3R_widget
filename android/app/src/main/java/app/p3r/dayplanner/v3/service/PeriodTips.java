@@ -27,7 +27,7 @@ public final class PeriodTips {
         public int observedSlot;
         public String blockZh = "当前阶段";
         public String floorsZh = "";
-        /** Original event/opening dates are retained, including a carried-over window's earlier date. */
+        /** Original event/opening dates are retained, including an explicit window's earlier date. */
         public List<Plan.Reminder> items = new ArrayList<>();
         /** Unbounded conditional opportunities: the opening date passing does not expire them. */
         public Set<String> ongoingIds = new LinkedHashSet<>();
@@ -65,12 +65,12 @@ public final class PeriodTips {
 
         Map<String, Plan.Reminder> items = new LinkedHashMap<>();
         Set<String> conditionalItems = new LinkedHashSet<>();
+        Set<String> sourceIds = new LinkedHashSet<>();
         for (Rules.Reminder source : data.items) {
-            int until = source.untilDay;
-            boolean ongoingRequest = "request.05-29.outings".equals(source.id)
-                    || "request.10-06.faculty".equals(source.id);
-            if ((source.firstEligible || ongoingRequest) && until < 0) until = rules.lastDay;
-            if (!overlaps(period, source.day, until)) continue;
+            sourceIds.add(source.id);
+            // Permanent pickups and invitations belong to their opening period. Only a real
+            // deadline/window can carry an earlier entry into a later period.
+            if (!overlaps(period, source.day, source.untilDay)) continue;
             Plan.Reminder item = from(source);
             String condition = requirements(rules, source);
             if (source.firstEligible) {
@@ -81,7 +81,6 @@ public final class PeriodTips {
                 item.textZh = "达到" + condition + "时：" + source.zh;
             }
             if (!condition.isEmpty()) item.detailZh = append(item.detailZh, "条件：" + condition + "。");
-            if (ongoingRequest) period.ongoingIds.add(item.id);
             if (source.firstEligible || !condition.isEmpty()) conditionalItems.add(item.id);
             items.put(item.id, item);
         }
@@ -117,6 +116,8 @@ public final class PeriodTips {
         if (plan != null) {
             for (Plan.Reminder item : plan.reminders) {
                 if (Plan.Reminder.RESCUE.equals(item.kind)) continue;
+                // A predicted pickup date must not turn an old opening into a current-period item.
+                if (sourceIds.contains(item.id) && !items.containsKey(item.id)) continue;
                 if (conditionalItems.contains(item.id)) {
                     Plan.Reminder catalogue = items.get(item.id);
                     if (catalogue.slot != item.slot) {
@@ -348,43 +349,50 @@ public final class PeriodTips {
         for (Rules.Link link : rules.links) {
             Rules.Unlock unlock = link.unlock;
             if (unlock == null || !inside(period, unlock.earliestDay)) continue;
-            Plan.Reminder item = new Plan.Reminder();
-            item.id = "unlock." + link.id;
-            item.kind = Plan.Reminder.FEATURE;
-            item.labelZh = "社群解锁";
-            item.slot = Rules.slot(unlock.earliestDay, link.evening);
-            String name = nonempty(link.labelZh, nonempty(link.arcanaZh, "社群"));
-            boolean story = link.kind == Rules.LinkKind.STORY;
-            item.textZh = name + (story ? "：随剧情自动开启" : "：本期起可尝试解锁");
-            List<String> lines = new ArrayList<>();
-            lines.add("最早" + date(rules, unlock.earliestDay) + (story ? "随剧情开启。" : "开放。"));
-            List<String> conditions = new ArrayList<>();
-            for (Rules.Stat stat : rules.stats) {
-                Integer level = unlock.statLv.get(stat.idx);
-                if (level != null) conditions.add(stat.zh + (level >= 6 ? " MAX" : " Lv." + level));
-            }
-            for (Rules.Link prerequisite : rules.links) {
-                Integer rank = unlock.linkRank.get(prerequisite.idx);
-                if (rank != null) conditions.add(nonempty(prerequisite.arcanaZh, prerequisite.labelZh) + "社群 RANK " + rank);
-            }
-            if (!conditions.isEmpty()) lines.add("前置条件：" + String.join("、", conditions) + "。");
-            for (int i = 0; i < unlock.steps.size(); i++) {
-                Rules.Step step = unlock.steps.get(i);
-                String time = step.consumesSlot ? "占用" + (step.evening ? "晚上" : "白天") : "不消耗时间";
-                lines.add((i + 1) + ". " + nonempty(step.howZh, step.zh) + "（" + time
-                        + (step.cost > 0 ? "；花费 " + step.cost + " 日元" : "")
-                        + (i > 0 && step.minGapDays > 0 ? "；与上一步至少间隔 " + step.minGapDays + " 天" : "") + "）");
-            }
-            if (unlock.noteZh != null && !unlock.noteZh.isEmpty()) lines.add(unlock.noteZh);
-            if (observed != null && link.idx >= 0 && link.idx < observed.rank.length && observed.rank[link.idx] > 0) {
-                lines.add("当前记录已建立此社群：RANK " + observed.rank[link.idx] + "。");
-            } else if (!story) {
-                period.ongoingIds.add(item.id);
-            }
-            item.detailZh = String.join("\n", lines);
-            item.estimate = "estimate".equals(unlock.conf) || "conflict".equals(unlock.conf);
+            Plan.Reminder item = unlockTip(rules, observed, link);
+            if (link.kind != Rules.LinkKind.STORY && (observed == null || link.idx < 0
+                    || link.idx >= observed.rank.length || observed.rank[link.idx] == 0)) period.ongoingIds.add(item.id);
             items.put(item.id, item);
         }
+    }
+
+    /** Shared opening instructions for both the calendar and the social-link lookup. */
+    static Plan.Reminder unlockTip(Rules rules, SimState observed, Rules.Link link) {
+        Rules.Unlock unlock = link.unlock;
+        Plan.Reminder item = new Plan.Reminder();
+        item.id = "unlock." + link.id;
+        item.kind = Plan.Reminder.FEATURE;
+        item.labelZh = "社群解锁";
+        item.slot = Rules.slot(unlock.earliestDay, link.evening);
+        String name = nonempty(link.labelZh, nonempty(link.arcanaZh, "社群"));
+        boolean story = link.kind == Rules.LinkKind.STORY;
+        item.textZh = name + (story ? "：随剧情自动开启" : "：本期起可尝试解锁");
+        List<String> lines = new ArrayList<>();
+        lines.add("最早" + date(rules, unlock.earliestDay) + (story ? "随剧情开启。" : "开放。"));
+        List<String> conditions = new ArrayList<>();
+        for (Rules.Stat stat : rules.stats) {
+            Integer level = unlock.statLv.get(stat.idx);
+            if (level != null) conditions.add(stat.zh + (level >= 6 ? " MAX" : " Lv." + level));
+        }
+        for (Rules.Link prerequisite : rules.links) {
+            Integer rank = unlock.linkRank.get(prerequisite.idx);
+            if (rank != null) conditions.add(nonempty(prerequisite.arcanaZh, prerequisite.labelZh) + "社群 RANK " + rank);
+        }
+        if (!conditions.isEmpty()) lines.add("前置条件：" + String.join("、", conditions) + "。");
+        for (int i = 0; i < unlock.steps.size(); i++) {
+            Rules.Step step = unlock.steps.get(i);
+            String time = step.consumesSlot ? "占用" + (step.evening ? "晚上" : "白天") : "不消耗时间";
+            lines.add((i + 1) + ". " + nonempty(step.howZh, step.zh) + "（" + time
+                    + (step.cost > 0 ? "；花费 " + step.cost + " 日元" : "")
+                    + (i > 0 && step.minGapDays > 0 ? "；与上一步至少间隔 " + step.minGapDays + " 天" : "") + "）");
+        }
+        if (unlock.noteZh != null && !unlock.noteZh.isEmpty()) lines.add(unlock.noteZh);
+        if (observed != null && link.idx >= 0 && link.idx < observed.rank.length && observed.rank[link.idx] > 0) {
+            lines.add("当前记录已建立此社群：RANK " + observed.rank[link.idx] + "。");
+        }
+        item.detailZh = String.join("\n", lines);
+        item.estimate = "estimate".equals(unlock.conf) || "conflict".equals(unlock.conf);
+        return item;
     }
 
     private static void episodes(Rules rules, SimState observed, Period period, Map<String, Plan.Reminder> items) {

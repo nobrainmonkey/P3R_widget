@@ -5,7 +5,7 @@
 | 来源 | 固定版本 | 使用内容 |
 | --- | --- | --- |
 | Megami Tensei Fusion Tools | `0b207612f6cdcff092e62af16f5c355271a1d892` | `src/app/p3r/data/` 的Persona、技能、属性顺序、继承、合成表、特殊合成与解锁条件；`src/app/compendium/data/skill-effects.json` 的技能效果模板 |
-| Megami Tensei Database | `8f87f212e206748b71298a52eb1eaec1efed6161` | `src/p3r/Content/Xrd777/Blueprints/common/Names/` 中的Persona、技能和塔罗中英名称；`UI/Tables/AddContentEntitlementNameDataAsset.tsv` 中的DLC名称 |
+| Megami Tensei Database | `8f87f212e206748b71298a52eb1eaec1efed6161` | `src/p3r/Content/Xrd777/Blueprints/common/Names/` 中的Persona、技能和塔罗中英名称；`UI/Tables/AddContentEntitlementNameDataAsset.tsv` 中的DLC名称；主塔楼层、遭遇包、战斗与洗牌牌池表中的获取出处 |
 
 工具代码采用 [Unlicense](licenses/megaten-fusion-tool-Unlicense.txt)。Database 仓库在上述版本未单列许可证；本项目没有把工具代码的 Unlicense 扩大标注到游戏原始文本或图像。
 
@@ -20,6 +20,19 @@
 - 耐性顺序为斩击、打击、贯穿、火炎、冰冻、电击、疾风、光明、黑暗、万能。编码为 `w` 弱、`s` 耐、`n` 无效、`r` 反射、`d` 吸收、`-` 普通。
 - Persona/技能/塔罗/DLC**名称**采用原表 `zh-Hans` 与 `en`。`effectZh` 是根据上游结构化数值生成的简短中文技能说明，`unlock.textZh` 是解锁条件译文；这两项不标为官方原文。
 - `fusion.chart` 保留上游下三角表，`specialRecipes` 使用稳定Persona ID。拥有DLC会改变可参与普通合成的Persona列表，应在合成前按用户选择重建。
+- `personas[].origins` 记录 **111个本体Persona** 的塔内洗牌出处，共474段连续楼层。`kind: "shuffle"`，`blockId` 为六大区块，`blockNameZh` 沿用规划器的中文区块名，`floorFrom` / `floorTo` 为包含首尾的实际可遇楼层。无出处的Persona保留空数组，不推测为可掉落。
+
+## 塔内获取出处
+
+出处由同一固定版本的五张游戏表联接生成，完整路径与提交也保留在资源的 `acquisitionSource`，不是把同名阴影敌人当作可获得面具：
+
+1. `Field/Data/DataTable/DT_FldDungeonFloor.tsv`：保留原始行号作为楼层ID，只取主塔2–264层、`enemyMax > 0` 的可遇普通敌人楼层。
+2. `Field/Data/DataTable/DT_FldDungeonEncountPac.tsv`：通过 `encountPack` 读取正权重的 `encNo1..8`。
+3. `Battle/Tables/DatEncountTableDataAsset.tsv`：读取各遭遇的 `shuffleLevel`。
+4. `Battle/Tables/Shuffle/DatShuffleChoiceMinorArcanaDataAsset.tsv`：以 `shuffleLevel` 为行号，解析 `LowPersonaRankId` / `HightPersonaRankId`。战斗的洗牌等级与Persona牌池等级不是同一编号，不能直接套用。
+5. `Battle/Tables/Shuffle/DatShufflePersonaArcanaDataAsset.tsv`：读取范围内正权重的 `PersonaId`，按游戏名称ID关联本图鉴。
+
+首领、传送点和入口层的表行可能留有占位遭遇包，必须按实际敌人数排除。正常主塔楼层的 `pinchEncountPack` 与 `encountPack` 相同。强敌、稀有阴影及蒙纳多战斗不混入普通Persona牌池；同版本 `walkthrough/combat.md` 的洗牌出现表列出它们没有Persona牌。保留亚达玛最终日可探索的257、260–261层；不读取主塔之后的特殊场景表行，也不读取 Episode Aigis 的 Astrea 数据。区块中文与现有规划器及 `docs/GLOSSARY_zh.md` 一致。
 
 ## 重新生成与离线校验
 
@@ -37,9 +50,10 @@ CI仅使用仓库中已提交的资源，无需网络或上游仓库：
 
 ```sh
 python3 scripts/validate_persona_data.py
+python3 -m unittest discover -s scripts -p 'test_persona_acquisition.py'
 ```
 
-校验覆盖数量、唯一ID、中英名称、DLC分组、十项耐性、技能引用与学习等级、神通法分类、22项特殊合成和塔罗表完整性。
+校验覆盖数量、唯一ID、中英名称、DLC分组、十项耐性、技能引用与学习等级、神通法分类、22项特殊合成、塔罗表及出处完整性。出处测试同时检查卡池等级转换、零权重排除、首领占位、楼层分段、最终日楼层和特殊场景边界。
 
 独立核对合成公式（需上述固定版本的工具仓库与 Java 17）：
 

@@ -34,6 +34,7 @@ jobs:
           python3 rules/build/build_p3r_rules.py --check
           python3 -m unittest discover -s rules/build -p 'test_*.py'
           python3 scripts/validate_persona_data.py
+          python3 -m unittest discover -s scripts -p 'test_persona_acquisition.py'
       - name: Unit tests and debug build
         working-directory: android
         env:

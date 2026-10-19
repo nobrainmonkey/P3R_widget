@@ -1,6 +1,7 @@
 package app.p3r.dayplanner.v3.ui;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
@@ -18,6 +19,43 @@ import app.p3r.dayplanner.R;
 /** Quiet tools and scope selectors; the strong slanted tabs remain navigation only. */
 final class CompendiumControls {
     private CompendiumControls() {}
+
+    static TextView icon(Context c, String description, int drawableRes) {
+        TextView button = new IconTool(c, drawableRes);
+        button.setContentDescription(description);
+        button.setTooltipText(description);
+        button.setClickable(true);
+        button.setFocusable(true);
+        button.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setClassName("android.widget.Button");
+                info.setSelected(host.isSelected());
+            }
+        });
+        setToolActive(button, false);
+        return button;
+    }
+
+    /** Matched controls for the Persona's favorite and compendium registration state. */
+    static void setStateSelected(TextView button, boolean selected) {
+        Context c = button.getContext();
+        button.setSelected(selected);
+        button.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setClassName("android.widget.CheckBox");
+                info.setCheckable(true);
+                info.setChecked(host.isSelected());
+            }
+        });
+        button.setTextColor(Ui.col(c, selected ? R.color.p3r_cyan_300 : R.color.p3r_ice_100));
+        button.setBackground(new SlantedPanelDrawable()
+            .fill(selected ? Ui.col(c, R.color.ui_cyan_soft) : Ui.col(c, R.color.p3r_navy_950))
+            .pressedFill(Ui.col(c, R.color.p3r_navy_700))
+            .stroke(Ui.col(c, selected ? R.color.p3r_cyan_300 : R.color.p3r_line_soft), Ui.dp(c, 1))
+            .skew(Ui.dp(c, 6)));
+    }
 
     static TextView toolButton(Context c, CharSequence label, boolean active) {
         TextView button = Ui.text(c, label, 13, Ui.col(c, R.color.p3r_ice_100), false);
@@ -47,6 +85,11 @@ final class CompendiumControls {
         int border = active ? Ui.alpha(Ui.col(c, R.color.p3r_cyan_300), 150)
             : Ui.col(c, R.color.p3r_line_soft);
         button.setBackground(background(c, Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 90), border));
+        if (button instanceof IconTool) {
+            ((IconTool) button).icon.setTint(button.getCurrentTextColor());
+            button.invalidate();
+            return;
+        }
         Drawable[] icons = button.getCompoundDrawables();
         Drawable indicator = null;
         if (active) {
@@ -88,5 +131,28 @@ final class CompendiumControls {
         shape.setCornerRadius(Ui.dp(c, 6));
         shape.setStroke(Ui.dp(c, 1), border);
         return shape;
+    }
+
+    private static final class IconTool extends TextView {
+        private final Drawable icon;
+
+        IconTool(Context c, int resource) {
+            super(c);
+            icon = c.getDrawable(resource).mutate();
+            setMinWidth(Ui.dp(c, 48));
+            setMaxWidth(Ui.dp(c, 48));
+            setMinHeight(Ui.dp(c, 48));
+            setMaxHeight(Ui.dp(c, 48));
+            setPadding(0, 0, 0, 0);
+        }
+
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            int size = Ui.dp(getContext(), 24);
+            int left = (getWidth() - size) / 2;
+            int top = (getHeight() - size) / 2;
+            icon.setBounds(left, top, left + size, top + size);
+            icon.draw(canvas);
+        }
     }
 }

@@ -59,9 +59,27 @@ public class CompendiumPageTest extends UiTestBase {
         assertTrue(Shots.has(activity, "弱点与耐性"));
         assertTrue(Shots.has(activity, "可学技能"));
         assertTrue(Shots.has(activity, orpheus.nameEn));
-        tagged(activity, "persona_favorite_" + orpheus.id).performClick();
+        TextView favorite = tagged(activity, "persona_favorite_" + orpheus.id);
+        TextView registered = tagged(activity, "persona_detail_owned_" + orpheus.id);
+        assertEquals("☆", favorite.getText().toString());
+        assertEquals("○", registered.getText().toString());
+        favorite.performClick();
+        registered.performClick();
         assertTrue(prefs.favorites().contains(orpheus.id));
+        assertTrue(prefs.ownedPersonas().contains(orpheus.id));
+        assertEquals("★", favorite.getText().toString());
+        assertEquals("✓", registered.getText().toString());
+        assertTrue(favorite.getContentDescription().toString().contains("取消收藏"));
+        assertTrue(registered.getContentDescription().toString().contains("取消登录"));
         capture(activity, "compendium_detail");
+        assertEquals(Ui.dp(activity, 48), favorite.getWidth());
+        assertEquals(favorite.getWidth(), registered.getWidth());
+        assertEquals(favorite.getHeight(), registered.getHeight());
+        int[] starPosition = new int[2];
+        int[] checkPosition = new int[2];
+        favorite.getLocationOnScreen(starPosition);
+        registered.getLocationOnScreen(checkPosition);
+        assertEquals("the two state buttons share a baseline", starPosition[1], checkPosition[1]);
         activity.onBackPressed();
         assertEquals("Orpheus", ((EditText) tagged(activity, "compendium_search")).getText().toString());
         Shots.click(activity, "收藏");
@@ -72,7 +90,10 @@ public class CompendiumPageTest extends UiTestBase {
 
     @Test public void filtersApplyArcanaLevelAndOrderingAndResetTogether() {
         HomeActivity activity = open();
-        Shots.click(activity, "筛选");
+        TextView filter = tagged(activity, "compendium_filter");
+        assertEquals("", filter.getText().toString());
+        assertEquals("筛选图鉴", filter.getContentDescription().toString());
+        filter.performClick();
         ((EditText) tagged(activity, "compendium_min_level")).setText("20");
         ((EditText) tagged(activity, "compendium_max_level")).setText("70");
         Shots.click(activity, data.arcana("Lovers").nameZh);
@@ -89,30 +110,48 @@ public class CompendiumPageTest extends UiTestBase {
             assertTrue(persona.level <= last);
             last = persona.level;
         }
-        Shots.click(activity, "筛选");
+        tagged(activity, "compendium_filter").performClick();
         Shots.click(activity, "重置");
         Shots.click(activity, "应用");
         assertEquals("173 个", text(activity, "compendium_count"));
         assertCatalogueOrder(activity, false, false);
 
-        Shots.click(activity, "筛选");
+        tagged(activity, "compendium_filter").performClick();
         tagged(activity, "compendium_sort_arcana").performClick();
         assertEquals("升序 ↑", text(activity, "compendium_sort_direction"));
         Shots.click(activity, "应用");
         assertCatalogueOrder(activity, true, false);
 
-        Shots.click(activity, "筛选");
+        tagged(activity, "compendium_filter").performClick();
         tagged(activity, "compendium_sort_direction").performClick();
         assertTrue(tagged(activity, "compendium_sort_arcana").isSelected());
         assertEquals("降序 ↓", text(activity, "compendium_sort_direction"));
         Shots.click(activity, "应用");
         assertCatalogueOrder(activity, true, true);
 
-        Shots.click(activity, "筛选");
+        tagged(activity, "compendium_filter").performClick();
         tagged(activity, "compendium_sort_level").performClick();
         assertEquals("降序 ↓", text(activity, "compendium_sort_direction"));
         Shots.click(activity, "应用");
         assertCatalogueOrder(activity, false, true);
+    }
+
+    @Test public void towerSourcesAreVisibleBesideThePersonaInformation() {
+        HomeActivity activity = open();
+        Compendium.Persona pixie = data.personaByKey("Pixie");
+        assertFalse("Pixie has a shuffle-time source", pixie.origins.isEmpty());
+        ((EditText) tagged(activity, "compendium_search")).setText("Pixie");
+        choose(activity, "compendium_list", pixie.id);
+        View origins = tagged(activity, "persona_origins_" + pixie.id);
+        String source = Shots.allText(origins);
+        assertTrue(source.contains("洗牌时间"));
+        for (Compendium.Origin origin : pixie.origins) {
+            assertTrue(source.contains(origin.blockNameZh));
+            String range = origin.floorFrom == origin.floorTo ? Integer.toString(origin.floorFrom)
+                : origin.floorFrom + "–" + origin.floorTo;
+            assertTrue("source includes " + range, source.contains(range));
+        }
+        capture(activity, "compendium_tower_source");
     }
 
     @Test public void ownedDlcChangesTheActualFusionResult() {
@@ -175,7 +214,7 @@ public class CompendiumPageTest extends UiTestBase {
 
     @Test public void secondaryMenuSurfacesRemainUsableAtPhoneSize() {
         HomeActivity activity = open();
-        Shots.click(activity, "筛选");
+        tagged(activity, "compendium_filter").performClick();
         capture(activity, "compendium_filter_sheet");
         assertNotNull(tagged(activity, "compendium_min_level"));
         assertNotNull(tagged(activity, "compendium_max_level"));

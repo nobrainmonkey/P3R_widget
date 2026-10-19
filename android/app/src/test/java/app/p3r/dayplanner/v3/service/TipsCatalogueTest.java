@@ -3,6 +3,7 @@ package app.p3r.dayplanner.v3.service;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -30,13 +31,22 @@ public class TipsCatalogueTest {
         Rules rules = realRules();
         PeriodTips.Period all = TipsCatalogue.all(rules, new Profile(), null);
         List<Plan.Reminder> dialogues = TipsCatalogue.filter(all.items, rules, "", TipsCatalogue.Content.DIALOGUE);
-        assertEquals("all 19 manual links, nine rank-up scenes each", 171, dialogues.size());
+        assertEquals("all 19 manual links, opening and nine rank-up scenes each", 190, dialogues.size());
         for (Rules.Link link : rules.links) {
             if (link.kind != Rules.LinkKind.MANUAL) continue;
+            Plan.Reminder opening = find(dialogues, "dialogue." + link.id + ".1");
+            assertNotNull(link.id, opening);
+            assertEquals(link.labelZh + " · 解锁", opening.textZh);
+            assertEquals(-1, opening.slot);
+            assertSame(link, TipsCatalogue.dialogueLink(rules, opening));
+            assertEquals(1, TipsCatalogue.dialogueRank(opening));
+            assertNull(find(all.items, "unlock." + link.id));
             for (int scene = 2; scene <= 10; scene++) {
                 Plan.Reminder item = find(dialogues, "dialogue." + link.id + "." + scene);
                 assertNotNull(item);
-                assertTrue(item.textZh.contains("升到 RANK " + scene));
+                assertTrue(item.textZh.contains("RANK " + (scene - 1) + " → " + scene));
+                assertSame(link, TipsCatalogue.dialogueLink(rules, item));
+                assertEquals(scene, TipsCatalogue.dialogueRank(item));
                 assertEquals("a lookup is not a calendar appointment", -1, item.slot);
                 assertFalse(item.textZh.contains(DialogueHint.FALLBACK));
             }
@@ -50,25 +60,49 @@ public class TipsCatalogueTest {
     @Test public void searchFindsCharacterRankRepeatedAnswersFullSequenceAndDates() throws Exception {
         Rules rules = realRules();
         PeriodTips.Period all = TipsCatalogue.all(rules, new Profile(), null);
-        List<Plan.Reminder> exact = TipsCatalogue.filter(all.items, rules, "风花 RANK 2", TipsCatalogue.Content.ALL);
+        List<Plan.Reminder> exact = TipsCatalogue.filter(all.items, rules, "风花 RANK 1", TipsCatalogue.Content.ALL);
         assertEquals(1, exact.size());
         assertEquals("dialogue.priestess.2", exact.get(0).id);
         assertTrue(exact.get(0).textZh.contains("没问题（首问） / 没问题（末问）"));
         assertTrue(exact.get(0).detailZh.contains("完整问答顺序：\n没问题\n任意\n没问题"));
-        assertEquals(1, TipsCatalogue.filter(all.items, rules, "女教皇2", TipsCatalogue.Content.ALL).size());
-        assertEquals(1, TipsCatalogue.filter(all.items, rules, "风花 ｒ２", TipsCatalogue.Content.DIALOGUE).size());
-        assertEquals(1, TipsCatalogue.filter(all.items, rules, "女教皇 2级", TipsCatalogue.Content.DIALOGUE).size());
-        assertEquals("dialogue.priestess.3", TipsCatalogue.filter(all.items, rules, "女教皇3级",
+        assertEquals("dialogue.priestess.2", TipsCatalogue.filter(all.items, rules, "女教皇1", TipsCatalogue.Content.ALL).get(0).id);
+        assertEquals(1, TipsCatalogue.filter(all.items, rules, "风花 ｒ１", TipsCatalogue.Content.DIALOGUE).size());
+        assertEquals(1, TipsCatalogue.filter(all.items, rules, "女教皇 1级", TipsCatalogue.Content.DIALOGUE).size());
+        assertEquals("dialogue.priestess.3", TipsCatalogue.filter(all.items, rules, "女教皇2级",
                 TipsCatalogue.Content.DIALOGUE).get(0).id);
-        assertEquals("dialogue.priestess.3", TipsCatalogue.filter(all.items, rules, "风花R3",
+        assertEquals("dialogue.priestess.3", TipsCatalogue.filter(all.items, rules, "风花R2",
                 TipsCatalogue.Content.DIALOGUE).get(0).id);
-        assertEquals(1, TipsCatalogue.filter(all.items, rules, "女教皇 3", TipsCatalogue.Content.DIALOGUE).size());
+        assertEquals(1, TipsCatalogue.filter(all.items, rules, "女教皇 2", TipsCatalogue.Content.DIALOGUE).size());
+        for (String query : new String[]{"风花 升到RANK2", "女教皇 升至2级", "风花 到达R2"}) {
+            List<Plan.Reminder> result = TipsCatalogue.filter(all.items, rules, query, TipsCatalogue.Content.ALL);
+            assertEquals(query, 1, result.size());
+            assertEquals(query, "dialogue.priestess.2", result.get(0).id);
+        }
         assertEquals("dialogue.empress.10", TipsCatalogue.filter(all.items, rules, "美鹤 rank 10",
                 TipsCatalogue.Content.DIALOGUE).get(0).id);
         assertEquals("class.04-08", TipsCatalogue.filter(all.items, rules, "4/8 鲤鱼旗",
                 TipsCatalogue.Content.CLASS_EXAM).get(0).id);
         assertTrue(TipsCatalogue.filter(all.items, rules, "完全不存在的剧情选项", TipsCatalogue.Content.ALL).isEmpty());
         assertTrue(TipsCatalogue.filter(all.items, rules, "鲤鱼旗", TipsCatalogue.Content.DIALOGUE).isEmpty());
+    }
+
+    @Test public void openingLookupIncludesFullRequirementsStepsAndCurrentRankZeroAliases() throws Exception {
+        Rules rules = realRules();
+        PeriodTips.Period all = TipsCatalogue.all(rules, new Profile(), null);
+        for (String query : new String[]{"风花 解锁", "女教皇 前置", "女教皇 RANK0", "风花 r0"}) {
+            List<Plan.Reminder> results = TipsCatalogue.filter(all.items, rules, query, TipsCatalogue.Content.DIALOGUE);
+            assertEquals(query, 1, results.size());
+            Plan.Reminder opening = results.get(0);
+            assertEquals(query, "dialogue.priestess.1", opening.id);
+            assertTrue(opening.detailZh.contains("勇气 MAX"));
+            assertTrue(opening.detailZh.contains("命运社群 RANK 1"));
+            assertTrue(opening.detailZh.contains("教室前的走廊"));
+        }
+        Plan.Reminder justice = find(all.items, "dialogue.justice.1");
+        assertNotNull(justice);
+        for (Rules.Step step : rules.link("justice").unlock.steps) assertTrue(justice.detailZh.contains(step.howZh));
+        assertNull(TipsCatalogue.dialogueLink(rules, find(all.items, "unlock.fool")));
+        assertEquals(0, TipsCatalogue.dialogueRank(new Plan.Reminder()));
     }
 
     @Test public void currentRouteChangesLookupWithoutCachingOrMutatingThePreviousCatalogue() throws Exception {
@@ -187,6 +221,37 @@ public class TipsCatalogueTest {
         assertEquals(-1, rules.reminders.requestTips.get(1).untilDay);
     }
 
+    @Test public void currentRequestListKeepsRealDeadlineWindowsButDoesNotRepeatOldUntimedRequests() {
+        Rules rules = requestRules();
+        Rules.Block first = new Rules.Block(); first.fromDay = 0;
+        Rules.Block second = new Rules.Block(); second.fromDay = 180;
+        Rules.Block third = new Rules.Block(); third.fromDay = 210;
+        rules.blocks = new Rules.Block[]{first, second, third};
+        Rules.RequestTip timed = request(90, "有期限的委托", "期限", 200, 220);
+        rules.reminders.requestTips.add(timed);
+        SimState observed = new SimState(); observed.slot = Rules.slot(215, false);
+        PeriodTips.Period current = TipsCatalogue.current(rules, observed, null);
+        assertNull(find(current.items, "request.catalogue.75"));
+        assertNotNull(find(current.items, "request.catalogue.76"));
+        assertNotNull(find(current.items, "request.catalogue.90"));
+        assertNotNull(find(TipsCatalogue.all(rules, new Profile(), observed).items, "request.catalogue.75"));
+    }
+
+    @Test public void realLatePeriodExcludesMayPermanentOpeningsAndKeepsCompleteLookup() throws Exception {
+        Rules rules = realRules();
+        SimState observed = new SimState(); observed.slot = Rules.slot(190, false);
+        PeriodTips.Period current = TipsCatalogue.current(rules, observed, null);
+        assertNull(find(current.items, "fragment.05-25.club"));
+        assertNull(find(current.items, "request.05-29.outings"));
+        assertNull(find(current.items, "request.catalogue.77"));
+        assertNotNull(find(current.items, "request.catalogue.75"));
+        assertNotNull(find(current.items, "request.10-06.faculty"));
+        PeriodTips.Period all = TipsCatalogue.all(rules, new Profile(), observed);
+        assertNotNull(find(all.items, "fragment.05-25.club"));
+        assertNotNull(find(all.items, "request.catalogue.77"));
+        assertNotNull(find(all.items, "request.catalogue.78"));
+    }
+
     @Test public void combatLookupMatchesExactFloorsNamesAndMonthsAndKeepsBareRequestNumbersDistinct() {
         Rules rules = combatRules();
         PeriodTips.Period all = TipsCatalogue.all(rules, new Profile(), null);
@@ -232,6 +297,39 @@ public class TipsCatalogueTest {
         assertTrue(plan.steps.isEmpty());
         assertEquals(Rules.slot(190, false), observed.slot);
         assertEquals(0, observed.floor);
+    }
+
+    @Test public void everyMonadEncounterMapsToItsOfficialOpeningBlockAndFloorRange() throws Exception {
+        Rules rules = realRules();
+        PeriodTips.Period all = TipsCatalogue.all(rules, new Profile(), null);
+        Set<String> blockIds = new LinkedHashSet<>();
+        int doors = 0;
+        int passages = 0;
+        for (Plan.Reminder item : all.items) {
+            Rules.CombatTip combat = TipsCatalogue.combatTip(rules, item);
+            if (combat == null || !"monad".equals(combat.kind)) {
+                assertNull(item.id, TipsCatalogue.monadBlock(rules, item));
+                continue;
+            }
+            Rules.Block block = TipsCatalogue.monadBlock(rules, item);
+            assertNotNull(combat.id, block);
+            blockIds.add(block.id);
+            assertEquals(combat.id, combat.fromDay, block.fromDay);
+            assertTrue(combat.id, combat.id.startsWith("combat." + block.id + "."));
+            assertFalse(block.zh.isEmpty());
+            assertFalse(block.floorsZh.isEmpty());
+            if ("door".equals(combat.encounterType)) {
+                doors++;
+                assertEquals("random doors must not be assigned a fake floor", 0, combat.floor);
+            } else {
+                passages++;
+                assertTrue(combat.id, combat.floor <= block.top);
+            }
+        }
+        assertEquals(Arrays.asList("yabbashah_1", "yabbashah_2", "tziah_1", "tziah_2",
+                "harabah_1", "harabah_2", "adamah"), new ArrayList<>(blockIds));
+        assertEquals(21, doors);
+        assertEquals(18, passages);
     }
 
     @Test public void combatTitlesCanMentionRequestsWithoutTurningTheSearchIntoARequestNumberFilter() {

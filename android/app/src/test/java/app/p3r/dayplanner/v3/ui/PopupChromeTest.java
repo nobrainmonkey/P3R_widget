@@ -55,7 +55,8 @@ public class PopupChromeTest extends UiTestBase {
         intent.putExtra(Intents.EXTRA_TAB, "tips");
         HomeActivity a = home(intent);
 
-        Shots.click(a, "筛选");
+        a.getWindow().getDecorView().findViewWithTag("tips_filter_button").performClick();
+        Shots.idle();
         choose(a, "社群解锁");
         TextView tag = (TextView) Shots.find(a.sheets().content(), "社群解锁");
         assertTrue(tag.isSelected());
@@ -65,10 +66,11 @@ public class PopupChromeTest extends UiTestBase {
         a.onBackPressed();
         Shots.idle();
         assertFalse(a.sheets().isShowing());
-        assertFalse(Shots.find(a, "筛选").isSelected());
+        assertFalse(a.getWindow().getDecorView().findViewWithTag("tips_filter_button").isSelected());
         assertTrue(api.calls.isEmpty());
 
-        Shots.click(a, "筛选");
+        a.getWindow().getDecorView().findViewWithTag("tips_filter_button").performClick();
+        Shots.idle();
         choose(a, "战斗");
         TextView combat = (TextView) Shots.find(a.sheets().content(), "战斗");
         assertTrue(combat.isSelected());
@@ -77,7 +79,7 @@ public class PopupChromeTest extends UiTestBase {
         Shots.shot(a, "popup_filter_selected_combat");
         choose(a, "应用");
         assertFalse(a.sheets().isShowing());
-        assertTrue(Shots.find(a, "筛选").isSelected());
+        assertTrue(a.getWindow().getDecorView().findViewWithTag("tips_filter_button").isSelected());
         assertTrue(Shots.find(a, "本期").isSelected());
         assertEquals("10月1日 ～ 11月30日 · 战斗", Zh.plain(((TextView) a.getWindow().getDecorView()
             .findViewWithTag("tips_filter_selection")).getText()));

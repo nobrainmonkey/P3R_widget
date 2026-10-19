@@ -40,6 +40,23 @@ ELEMENTS = {
     "dar": "黑暗", "alm": "万能", "ail": "异常", "rec": "回复",
     "sup": "辅助", "spe": "特殊", "pas": "被动",
 }
+ACQUISITION_PATHS = [
+    "Field/Data/DataTable/DT_FldDungeonFloor.tsv",
+    "Field/Data/DataTable/DT_FldDungeonEncountPac.tsv",
+    "Battle/Tables/DatEncountTableDataAsset.tsv",
+    "Battle/Tables/Shuffle/DatShuffleChoiceMinorArcanaDataAsset.tsv",
+    "Battle/Tables/Shuffle/DatShufflePersonaArcanaDataAsset.tsv",
+]
+# The six game areas, using the same Simplified Chinese names as the planner.
+# Adamah's final-day floors continue beyond the ordinary 256F barrier.
+ACQUISITION_BLOCKS = (
+    ("thebel", "世俗之庭 台伯勒", 2, 22),
+    ("arqa", "奇颜之庭 阿尔卡", 23, 69),
+    ("yabbashah", "鄙俗之庭 亚巴扎", 70, 118),
+    ("tziah", "奢豪之庭 茨尔阿", 119, 172),
+    ("harabah", "焦炎之庭 哈拉瓦", 173, 226),
+    ("adamah", "忧郁之庭 亚达玛", 227, 264),
+)
 TARGETS = {
     "1 foe": "敌方单体", "All foes": "敌方全体", "1 ally": "我方单体",
     "All allies": "我方全体", "Universal": "敌我全体", "-": "自身",
@@ -129,6 +146,57 @@ def check_commit(repo, expected):
     require(actual == expected, f"Expected {repo.name} at {expected}; found {actual}")
 
 
+def acquisition_from_tables(floors, packs, encounters, minor_arcana, persona_cards):
+    """Join real Shuffle Time drops to normal encounters on playable tower floors.
+
+    TSV rows here retain row zero: floor/pack/encounter IDs and shuffleLevel are
+    direct row indices. shuffleLevel is NOT itself a Persona-card RankId; the
+    minor-arcana table resolves its low/high Persona-card ranks first.
+    """
+    cards_by_rank = {}
+    for row in persona_cards:
+        if int(row["Prob"]) > 0:
+            cards_by_rank.setdefault(int(row["RankId"]), set()).add(int(row["PersonaId"]))
+    locations = {}
+    for floor, row in enumerate(floors):
+        if not 2 <= floor <= 264 or int(row["enemyMax"]) <= 0:
+            # Boss/entrance/teleporter rows contain stale placeholder pack IDs.
+            # Later table rows describe special fields, not numbered tower floors.
+            continue
+        block = next((b for b in ACQUISITION_BLOCKS if b[2] <= floor <= b[3]), None)
+        require(block is not None, f"Unknown tower floor {floor}")
+        pack = packs[int(row["encountPack"])]
+        for position in range(1, 9):
+            if int(pack[f"probability{position}"]) <= 0:
+                continue
+            encounter = encounters[int(pack[f"encNo{position}"])]
+            ranks = minor_arcana[int(encounter["shuffleLevel"])]
+            for rank in range(int(ranks["LowPersonaRankId"]), int(ranks["HightPersonaRankId"]) + 1):
+                for persona_id in cards_by_rank.get(rank, ()):
+                    locations.setdefault(persona_id, {}).setdefault(block[0], set()).add(floor)
+    origins = {}
+    for persona_id, blocks in locations.items():
+        entries = []
+        for block_id, name_zh, _, _ in ACQUISITION_BLOCKS:
+            values = sorted(blocks.get(block_id, ()))
+            start, end = None, None
+            for floor in values + [None]:
+                if start is not None and (floor is None or floor != end + 1):
+                    entries.append({"kind": "shuffle", "blockId": block_id, "blockNameZh": name_zh,
+                                    "floorFrom": start, "floorTo": end})
+                    start = None
+                if floor is not None:
+                    if start is None:
+                        start = floor
+                    end = floor
+        origins[persona_id] = entries
+    return origins
+
+
+def load_acquisition(raw):
+    return acquisition_from_tables(*(tsv_file(raw / path) for path in ACQUISITION_PATHS))
+
+
 def translate_term(term):
     if term in TERMS:
         return TERMS[term]
@@ -187,6 +255,7 @@ def build(tool_repo, database_repo):
     chart = json_file(data / "fusion-chart.json")
     effects = json_file(tool_repo / "src/app/compendium/data/skill-effects.json")
     persona_rows = tsv_file(name_dir / "DatPersonaNameDataAsset.tsv")
+    acquisition = load_acquisition(raw)
     skill_rows = tsv_file(name_dir / "DatSkillNameDataAsset.tsv")
     race_rows = tsv_file(name_dir / "DatRaceDataAsset.tsv")
     persona_names = {r["en"]: (i, r) for i, r in enumerate(persona_rows) if r["flag"] == "1"}
@@ -261,6 +330,7 @@ def build(tool_repo, database_repo):
             "arcana": entry["race"], "level": entry["lvl"], "stats": entry["stats"],
             "resists": entry["resists"], "inherits": entry["inherits"], "dlc": dlc.get(key, ""),
             "skills": learned, "theurgySkillIds": theurgy,
+            "origins": acquisition.get(game_id, []),
         }
         if key in unlocks:
             persona["unlock"] = unlocks[key]
@@ -275,6 +345,12 @@ def build(tool_repo, database_repo):
             {"name": "Megami Tensei Database", "author": "aqiu384", "url": "https://github.com/aqiu384/megaten-database", "commit": DATABASE_COMMIT, "license": "No separate license declared"},
         ],
         "attribution": "图鉴数据与合成规则：aqiu384；游戏名称与文本：ATLUS / SEGA。",
+        "acquisitionSource": {
+            "repository": "https://github.com/aqiu384/megaten-database", "commit": DATABASE_COMMIT,
+            "root": "src/p3r/Content/Xrd777/", "paths": ACQUISITION_PATHS,
+            "method": "Main-tower normal encounter packs -> shuffleLevel -> low/high Persona ranks -> positive-weight Persona cards",
+            "floorRange": [2, 264], "blockNames": "Planner glossary and p3r_rules.json",
+        },
         "elements": config["resistElems"], "elementNamesZh": ELEMENTS,
         "resistCodes": {"w": "弱", "s": "耐", "n": "无", "r": "反", "d": "吸", "-": "—"},
         "arcana": [{"id": name, "nameEn": name, "nameZh": race_names[name]["zh-Hans"], "order": i}
@@ -299,12 +375,21 @@ def validate(data):
     require(len(skills) == len(skill_ids) == 340, "Expected 333 normal + 7 Theurgy skills")
     require(sum(s["costType"] == "theurgy" for s in skills) == 7, "Expected seven Theurgy skills")
     require(len(data["fusion"]["specialRecipes"]) == 22, "Expected 22 special fusion recipes")
+    require(sum(bool(p.get("origins")) for p in personas) == 111, "Expected 111 tower Shuffle Time Personas")
     for p in personas:
         require(len(p["resists"]) == 10 and set(p["resists"]) <= set("wsnrd-"), f"Bad resistance data: {p['id']}")
         require(len(p["stats"]) == 5 and len(p["nameZh"]) > 0, f"Missing Persona fields: {p['id']}")
         require(p["inherits"] in data["inheritance"]["types"], f"Unknown inheritance type: {p['id']}")
         require(all(s["id"] in skill_ids and 0 <= s["level"] <= 99 for s in p["skills"]), f"Bad skill reference: {p['id']}")
         require(all(s in skill_ids for s in p["theurgySkillIds"]), f"Bad Theurgy reference: {p['id']}")
+        previous_to = 0
+        for origin in p["origins"]:
+            block = next((b for b in ACQUISITION_BLOCKS if b[0] == origin["blockId"]), None)
+            require(not p["dlc"] and origin["kind"] == "shuffle", f"Invalid acquisition type/DLC: {p['id']}")
+            require(block is not None and origin["blockNameZh"] == block[1], f"Unknown acquisition block: {p['id']}")
+            require(block[2] <= origin["floorFrom"] <= origin["floorTo"] <= block[3], f"Invalid acquisition floors: {p['id']}")
+            require(origin["floorFrom"] > previous_to, f"Overlapping/unsorted acquisition floors: {p['id']}")
+            previous_to = origin["floorTo"]
     for recipe in data["fusion"]["specialRecipes"]:
         require(recipe["resultId"] in persona_ids and set(recipe["ingredientIds"]) <= persona_ids, "Bad fusion reference")
     require(all(len(row) == i + 1 for i, row in enumerate(data["fusion"]["chart"])), "Bad triangular fusion chart")

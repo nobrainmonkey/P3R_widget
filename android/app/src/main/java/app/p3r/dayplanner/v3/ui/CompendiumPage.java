@@ -216,8 +216,8 @@ public final class CompendiumPage {
         LinearLayout filters = Ui.row(c);
         allButton = CompendiumControls.scopeButton(c, "全部", true);
         favoritesButton = CompendiumControls.scopeButton(c, "收藏", false);
-        filterButton = CompendiumControls.toolButton(c, "筛选", false);
-        addToolIcon(filterButton, R.drawable.ui_ic_settings);
+        filterButton = CompendiumControls.icon(c, "筛选图鉴", R.drawable.ui_ic_filter);
+        filterButton.setTag("compendium_filter");
         allButton.setOnClickListener(v -> { favoritesOnly = false; refreshList(true); });
         favoritesButton.setOnClickListener(v -> { favoritesOnly = true; refreshList(true); });
         filterButton.setOnClickListener(v -> openFilters());
@@ -517,23 +517,37 @@ public final class CompendiumPage {
         hero.setBackground(Ui.heroCard(c));
         Ui.pad(hero, 16, 16, 16, 16);
         LinearLayout heading = Ui.row(c);
-        heading.addView(Ui.title(c, persona.nameZh), Ui.weight(1));
-        TextView favorite = CompendiumControls.toolButton(c, favoriteLabel(persona), favoriteIds.contains(persona.id));
+        LinearLayout identity = Ui.column(c);
+        identity.addView(Ui.title(c, persona.nameZh));
+        identity.addView(Ui.muted(c, persona.nameEn), top(4));
+        heading.addView(identity, Ui.weight(1));
+        TextView favorite = Ui.text(c, "", 24, Ui.col(c, R.color.p3r_ice_100), false);
+        favorite.setGravity(Gravity.CENTER);
+        favorite.setIncludeFontPadding(false);
+        favorite.setLineSpacing(0, 1);
+        favorite.setClickable(true);
+        favorite.setFocusable(true);
         favorite.setTag("persona_favorite_" + persona.id);
+        paintFavorite(favorite, persona);
         favorite.setOnClickListener(v -> {
             toggleFavorite(persona);
-            favorite.setText(favoriteLabel(persona));
-            CompendiumControls.setToolActive(favorite, favoriteIds.contains(persona.id));
+            paintFavorite(favorite, persona);
         });
-        heading.addView(favorite, Ui.wrap());
+        LinearLayout toggles = Ui.row(c);
+        toggles.setTag("persona_detail_toggles");
+        toggles.addView(favorite, new LinearLayout.LayoutParams(Ui.dp(c, 48), Ui.dp(c, 48)));
+        OwnedToggle owned = new OwnedToggle(persona, true);
+        owned.setTag("persona_detail_owned_" + persona.id);
+        LinearLayout.LayoutParams ownedGap = new LinearLayout.LayoutParams(Ui.dp(c, 48), Ui.dp(c, 48));
+        ownedGap.leftMargin = Ui.dp(c, 6);
+        toggles.addView(owned, ownedGap);
+        LinearLayout.LayoutParams toggleGap = Ui.wrap();
+        toggleGap.leftMargin = Ui.dp(c, 10);
+        heading.addView(toggles, toggleGap);
         hero.addView(heading);
-        hero.addView(Ui.muted(c, persona.nameEn), top(4));
         LinearLayout metadata = Ui.row(c);
         metadata.addView(Ui.mixed(c, arcanaName(persona.arcana) + " · Lv." + persona.level, 16,
             Ui.col(c, R.color.p3r_cyan_300), true), Ui.weight(1));
-        OwnedToggle owned = new OwnedToggle(persona, true);
-        owned.setTag("persona_detail_owned_" + persona.id);
-        metadata.addView(owned, Ui.wrap());
         hero.addView(metadata, top(10));
         if (persona.isDlc()) hero.addView(Ui.caption(c, dlcName(persona.dlc)), top(8));
         if (!persona.unlockTextZh.isEmpty()) hero.addView(Ui.body(c, persona.unlockTextZh), top(10));
@@ -548,6 +562,30 @@ public final class CompendiumPage {
         use.setOnClickListener(v -> openMaterialFusion(persona));
         actions.addView(use, weightedGap());
         content.addView(actions, top(12));
+        if (!persona.origins.isEmpty()) {
+            content.addView(Ui.sectionHeader(c, "获取", "塔尔塔罗斯"), top(14));
+            LinearLayout origins = Ui.column(c);
+            origins.setTag("persona_origins_" + persona.id);
+            for (int i = 0; i < persona.origins.size();) {
+                Compendium.Origin origin = persona.origins.get(i);
+                StringBuilder floors = new StringBuilder();
+                while (i < persona.origins.size()) {
+                    Compendium.Origin range = persona.origins.get(i);
+                    if (!origin.blockId.equals(range.blockId) || !origin.kind.equals(range.kind)) break;
+                    if (floors.length() > 0) floors.append("、");
+                    floors.append(range.floorFrom);
+                    if (range.floorTo != range.floorFrom) floors.append("–").append(range.floorTo);
+                    i++;
+                }
+                LinearLayout source = Ui.column(c);
+                source.setBackground(Ui.card(c));
+                Ui.pad(source, 12, 10, 12, 10);
+                source.addView(Ui.headline(c, origin.blockNameZh));
+                source.addView(Ui.body(c, "洗牌时间 · " + floors + "层"), top(3));
+                origins.addView(source, top(7));
+            }
+            content.addView(origins);
+        }
         content.addView(Ui.sectionHeader(c, "属性", null), top(14));
         String[] labels = {"力", "魔", "耐", "速", "运"};
         LinearLayout stats = Ui.row(c);
@@ -1070,17 +1108,21 @@ public final class CompendiumPage {
 
     private final class OwnedToggle extends TextView {
         private final Compendium.Persona persona;
-        private final boolean wide;
-        OwnedToggle(Compendium.Persona persona, boolean wide) {
+        private final boolean framed;
+        OwnedToggle(Compendium.Persona persona, boolean framed) {
             super(c);
             this.persona = persona;
-            this.wide = wide;
+            this.framed = framed;
             setTag("persona_owned_" + persona.id);
             setGravity(Gravity.CENTER);
-            setTextSize(wide ? 14 : 21);
-            setMinWidth(Ui.dp(c, wide ? 112 : 48));
+            setTextSize(framed ? 24 : 21);
+            if (framed) {
+                setIncludeFontPadding(false);
+                setLineSpacing(0, 1);
+            }
+            setMinWidth(Ui.dp(c, 48));
             setMinHeight(Ui.dp(c, 48));
-            Ui.pad(this, wide ? 12 : 8, 6, wide ? 12 : 8, 6);
+            Ui.pad(this, 8, framed ? 0 : 6, 8, framed ? 0 : 6);
             setClickable(true);
             setFocusable(true);
             setAccessibilityDelegate(new View.AccessibilityDelegate() {
@@ -1100,18 +1142,26 @@ public final class CompendiumPage {
         }
         void paint() {
             boolean owned = ownedPersonas.contains(persona.id);
-            setText(wide ? owned ? "✓ 可召唤" : "□ 未登录" : owned ? "✓" : "□");
-            setSelected(owned);
-            setTextColor(Ui.col(c, owned ? R.color.p3r_cyan_300 : R.color.p3r_ink_muted));
+            setText(owned ? "✓" : "○");
             setContentDescription((owned ? "取消登录 " : "标记可召唤 ") + persona.nameZh);
-            setBackground(new SlantedPanelDrawable()
-                .fill(owned ? Ui.col(c, R.color.ui_cyan_soft) : 0)
-                .pressedFill(Ui.col(c, R.color.p3r_navy_700)).cuts(Ui.dp(c, 6), 0, 0, 0));
+            setTooltipText((owned ? "可召唤 · " : "标记可召唤 · ") + persona.nameZh);
+            if (framed) CompendiumControls.setStateSelected(this, owned);
+            else {
+                setSelected(owned);
+                setTextColor(Ui.col(c, owned ? R.color.p3r_cyan_300 : R.color.p3r_ink_muted));
+                setBackground(new SlantedPanelDrawable()
+                    .fill(owned ? Ui.col(c, R.color.ui_cyan_soft) : 0)
+                    .pressedFill(Ui.col(c, R.color.p3r_navy_700)).cuts(Ui.dp(c, 6), 0, 0, 0));
+            }
         }
     }
 
-    private String favoriteLabel(Compendium.Persona persona) {
-        return favoriteIds.contains(persona.id) ? "★ 已收藏" : "☆ 收藏";
+    private void paintFavorite(TextView button, Compendium.Persona persona) {
+        boolean selected = favoriteIds.contains(persona.id);
+        button.setText(selected ? "★" : "☆");
+        button.setContentDescription((selected ? "取消收藏 " : "收藏 ") + persona.nameZh);
+        button.setTooltipText((selected ? "取消收藏 " : "收藏 ") + persona.nameZh);
+        CompendiumControls.setStateSelected(button, selected);
     }
 
     private final class PersonaAdapter extends BaseAdapter {

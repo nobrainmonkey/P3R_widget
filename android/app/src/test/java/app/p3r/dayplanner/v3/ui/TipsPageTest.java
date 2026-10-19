@@ -245,13 +245,14 @@ public class TipsPageTest extends UiTestBase {
         HomeActivity a = tips();
         EditText search = a.getWindow().getDecorView().findViewWithTag("tips_search");
         assertNotNull(search);
-        search.setText("风花R2");
+        search.setText("风花R1");
         Shots.idle();
         assertTrue(Shots.find(a, "全部").isSelected());
         View row = rowForId(a, "dialogue.priestess.2");
         String card = Shots.allText(row);
-        assertTrue(card, card.contains("升到 RANK 2"));
-        assertTrue(card, card.contains("没问题（首问） / 没问题（末问）"));
+        assertTrue(card, card.contains("RANK 1"));
+        assertTrue(card, card.contains("→ 2"));
+        assertFalse(card, card.contains("没问题（首问）"));
         assertFalse(card, card.contains("4月"));
         Shots.shot(a, "tips_search_dialogue_without_plan");
         assertTrue(row.performClick());
@@ -287,6 +288,127 @@ public class TipsPageTest extends UiTestBase {
         search.setText("完全不存在的剧情选项");
         Shots.idle();
         assertTrue(Shots.has(a, "没有匹配结果"));
+        assertTrue(api.calls.isEmpty());
+    }
+
+    @Test
+    public void socialLinksCollapseToOneRowThenOfferUnlockAndCurrentRankButtons() throws Exception {
+        api.rules = realRules();
+        api.snap.plan = null;
+        api.snap.planCurrent = false;
+        HomeActivity a = tips();
+        Shots.click(a, "全部");
+        ListView list = visibleList(a.getWindow().getDecorView());
+        int manualLinks = 0;
+        for (Rules.Link link : api.rules.links) if (link.kind == Rules.LinkKind.MANUAL) manualLinks++;
+        int groupedLinks = 0;
+        boolean groupedMonad = false;
+        for (int i = 0; i < list.getAdapter().getCount(); i++) {
+            TipsPage.Item item = (TipsPage.Item) list.getAdapter().getItem(i);
+            if (item.group != null) {
+                if (item.group.dialogue()) groupedLinks++;
+                else groupedMonad = true;
+            } else if (item.reminder != null) assertFalse("all-content keeps dialogue grouped too",
+                "dialogue".equals(item.reminder.kind));
+        }
+        assertEquals(manualLinks, groupedLinks);
+        assertTrue("all-content keeps Monad grouped too", groupedMonad);
+        filter(a, "社群对话");
+        assertEquals("one row per social link, not one card per rank", manualLinks, list.getAdapter().getCount());
+        View group = groupRow(a, "dialogue_priestess");
+        View body = group.findViewWithTag("tips_group_body_dialogue_priestess");
+        assertEquals(View.GONE, body.getVisibility());
+        View header = group.findViewWithTag("tips_group_header_dialogue_priestess");
+        assertTrue(header.performClick());
+        Shots.idle();
+        assertEquals(View.VISIBLE, body.getVisibility());
+        a.reload();
+        Shots.idle();
+        group = groupRow(a, "dialogue_priestess");
+        body = group.findViewWithTag("tips_group_body_dialogue_priestess");
+        header = group.findViewWithTag("tips_group_header_dialogue_priestess");
+        assertEquals("refresh preserves the open social link", View.VISIBLE, body.getVisibility());
+        Shots.shot(a, "tips_social_ranks");
+        View unlock = group.findViewWithTag("tips_entry_dialogue.priestess.1");
+        assertEquals("解锁", Shots.allText(unlock).trim());
+        View rankOne = group.findViewWithTag("tips_entry_dialogue.priestess.2");
+        String rankText = Shots.allText(rankOne);
+        assertTrue(rankText, rankText.contains("RANK 1"));
+        assertTrue(rankText, rankText.contains("→ 2"));
+        assertFalse("answers stay in the detail, not spread across the results", rankText.contains("没问题"));
+        assertTrue(unlock.performClick());
+        Shots.idle();
+        String unlockText = Shots.allText(a.sheets().content());
+        assertTrue(unlockText, unlockText.contains("最早6月19日开放"));
+        assertTrue(unlockText, unlockText.contains("前置条件：勇气 MAX、命运社群 RANK 1"));
+        assertTrue(unlockText, unlockText.contains("放学后到教室前的走廊和山岸风花说话"));
+        Shots.click(a, "知道了");
+        assertTrue(rankOne.performClick());
+        Shots.idle();
+        assertTrue(Shots.allText(a.sheets().content()).contains("完整问答顺序：\n没问题\n任意\n没问题"));
+        Shots.click(a, "知道了");
+        assertTrue(header.performClick());
+        assertEquals(View.GONE, body.getVisibility());
+        assertTrue(api.calls.isEmpty());
+        Shots.shot(a, "tips_social_groups");
+    }
+
+    @Test
+    public void monadGroupsExposeEveryDoorAndPassageInsideTheirNamedFloorRange() throws Exception {
+        api.rules = realRules();
+        api.snap.plan = null;
+        api.snap.planCurrent = false;
+        HomeActivity a = tips();
+        Shots.click(a, "全部");
+        filter(a, "战斗");
+        View group = groupRow(a, "monad_yabbashah_1");
+        View body = group.findViewWithTag("tips_group_body_monad_yabbashah_1");
+        assertEquals(View.GONE, body.getVisibility());
+        String summary = Shots.allText(group.findViewWithTag("tips_group_header_monad_yabbashah_1"));
+        assertTrue(summary, summary.contains("鄙俗之庭 亚巴扎"));
+        assertTrue(summary, summary.contains("70–92F"));
+        assertTrue(summary, summary.contains("蒙纳多之门 3"));
+        assertTrue(summary, summary.contains("蒙纳多通道 2"));
+        assertTrue(group.findViewWithTag("tips_group_header_monad_yabbashah_1").performClick());
+        assertEquals(View.VISIBLE, body.getVisibility());
+        assertEquals(5, ((ViewGroup) body).getChildCount());
+        View door = group.findViewWithTag("tips_entry_combat.catalogue.combat.yabbashah_1.d1");
+        assertTrue(Shots.allText(door).contains("优雅圣母"));
+        View passage = group.findViewWithTag("tips_entry_combat.catalogue.combat.yabbashah_1.p2");
+        assertTrue(Shots.allText(passage).contains("91F"));
+        assertTrue(Shots.allText(passage).contains("第 2 战"));
+        Shots.shot(a, "tips_monad_group");
+        assertTrue(passage.performClick());
+        Shots.idle();
+        assertNotNull(a.sheets().content().findViewWithTag("combat_affinity_scroll"));
+        assertTrue(Shots.allText(a.sheets().content()).contains("暴走驱动器"));
+        Shots.shot(a, "tips_monad_group_detail");
+        Shots.click(a, "知道了");
+        assertNotNull("the next opening range has its own group", groupRow(a, "monad_yabbashah_2"));
+        EditText search = a.getWindow().getDecorView().findViewWithTag("tips_search");
+        search.setText("117层");
+        Shots.idle();
+        View matchingGroup = groupRow(a, "monad_yabbashah_2");
+        assertEquals("floor search opens the matching block directly", View.VISIBLE,
+            matchingGroup.findViewWithTag("tips_group_body_monad_yabbashah_2").getVisibility());
+        assertTrue(resultIds(a).toString(), resultIds(a).contains("combat.catalogue.combat.yabbashah_2.p1"));
+        assertFalse(resultIds(a).contains("combat.catalogue.combat.yabbashah_1.p1"));
+        assertTrue(api.calls.isEmpty());
+    }
+
+    @Test
+    public void filterUsesOnlyTheRecognizableIconWithAnAccessibleName() {
+        HomeActivity a = tips();
+        TextView filter = a.getWindow().getDecorView().findViewWithTag("tips_filter_button");
+        assertNotNull(filter);
+        assertEquals("", Zh.plain(filter.getText()));
+        assertEquals("筛选提示", filter.getContentDescription().toString());
+        Shots.render(a.getWindow().getDecorView()).recycle();
+        assertEquals("the icon keeps a full touch target", Ui.dp(a, 48), filter.getHeight());
+        assertEquals("the icon keeps a full touch target", Ui.dp(a, 48), filter.getWidth());
+        assertTrue(filter.performClick());
+        Shots.idle();
+        assertTrue(Shots.has(a, "筛选提示"));
         assertTrue(api.calls.isEmpty());
     }
 
@@ -388,7 +510,7 @@ public class TipsPageTest extends UiTestBase {
         List<String> initial = resultIds(a);
         String initialCount = taggedText(a, "tips_result_counter");
 
-        Shots.click(a, "筛选");
+        openFilter(a);
         assertTrue(Shots.has(a, "筛选提示"));
         sheetClick(a, "委托");
         assertTrue(a.sheets().isShowing());
@@ -408,7 +530,7 @@ public class TipsPageTest extends UiTestBase {
         List<String> requests = resultIds(a);
         assertTrue(requests.toString(), requests.contains("request.other"));
         assertAllLabels(a, "委托");
-        Shots.click(a, "筛选");
+        openFilter(a);
         sheetClick(a, "重置");
         assertEquals(requests, resultIds(a));
         assertEquals("委托", taggedText(a, "tips_filter_selection"));
@@ -417,11 +539,11 @@ public class TipsPageTest extends UiTestBase {
         assertEquals(requests, resultIds(a));
         assertEquals("委托", taggedText(a, "tips_filter_selection"));
 
-        Shots.click(a, "筛选");
+        openFilter(a);
         sheetClick(a, "重置");
         sheetClick(a, "应用");
         assertFalse(a.sheets().isShowing());
-        assertFalse(Shots.find(a, "筛选").isSelected());
+        assertFalse(a.getWindow().getDecorView().findViewWithTag("tips_filter_button").isSelected());
         assertEquals(View.GONE, a.getWindow().getDecorView().findViewWithTag("tips_filter_selection").getVisibility());
         assertTrue(resultIds(a).size() > requests.size());
         assertTrue(api.calls.isEmpty());
@@ -441,7 +563,7 @@ public class TipsPageTest extends UiTestBase {
         Shots.click(a, "全部");
         assertTrue(resultIds(a).contains("request.other"));
         Shots.click(a, "本期");
-        Shots.click(a, "筛选");
+        openFilter(a);
         sheetClick(a, "应用");
         assertTrue("applying an unchanged filter retains the user's period selection", Shots.find(a, "本期").isSelected());
         assertEquals(periodRequests, resultIds(a));
@@ -474,7 +596,7 @@ public class TipsPageTest extends UiTestBase {
         List<String> rescues = resultIds(a);
         assertTrue(initial.containsAll(rescues));
 
-        Shots.click(a, "筛选");
+        openFilter(a);
         assertTrue(Shots.find(a.sheets().content(), "失踪者").isSelected());
         sheetClick(a, "社群解锁");
         assertFalse(Shots.find(a.sheets().content(), "失踪者").isSelected());
@@ -492,8 +614,15 @@ public class TipsPageTest extends UiTestBase {
         Shots.shot(a, "tips_filter_actual_unlocks");
     }
 
+    private static void openFilter(HomeActivity a) {
+        View filter = a.getWindow().getDecorView().findViewWithTag("tips_filter_button");
+        assertNotNull(filter);
+        assertTrue(filter.performClick());
+        Shots.idle();
+    }
+
     private static void filter(HomeActivity a, String label) {
-        Shots.click(a, "筛选");
+        openFilter(a);
         sheetClick(a, label);
         sheetClick(a, "应用");
         assertFalse(a.sheets().isShowing());
@@ -518,6 +647,7 @@ public class TipsPageTest extends UiTestBase {
         for (int i = 0; i < list.getAdapter().getCount(); i++) {
             TipsPage.Item item = (TipsPage.Item) list.getAdapter().getItem(i);
             if (item.reminder != null) ids.add(item.reminder.id);
+            if (item.group != null) for (Plan.Reminder entry : item.group.entries) ids.add(entry.id);
         }
         return ids;
     }
@@ -543,8 +673,28 @@ public class TipsPageTest extends UiTestBase {
             if (item.reminder != null && id.equals(item.reminder.id)) {
                 return list.getAdapter().getView(i, null, list);
             }
+            if (item.group != null) for (Plan.Reminder entry : item.group.entries) {
+                if (id.equals(entry.id)) return list.getAdapter().getView(i, null, list).findViewWithTag("tips_entry_" + id);
+            }
         }
         throw new AssertionError("missing reminder " + id);
+    }
+
+    private static View groupRow(HomeActivity a, String key) {
+        ListView list = visibleList(a.getWindow().getDecorView());
+        assertNotNull(list);
+        for (int i = 0; i < list.getAdapter().getCount(); i++) {
+            TipsPage.Item item = (TipsPage.Item) list.getAdapter().getItem(i);
+            if (item.group != null && key.equals(item.group.key)) {
+                list.setSelection(i);
+                Shots.idle();
+                Shots.render(a.getWindow().getDecorView()).recycle();
+                View group = list.findViewWithTag("tips_group_" + key);
+                assertNotNull("the selected group is visible", group);
+                return group;
+            }
+        }
+        throw new AssertionError("missing group " + key);
     }
 
     private static Rules realRules() throws Exception {

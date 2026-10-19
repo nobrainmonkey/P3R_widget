@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -49,6 +50,7 @@ final class SchedulePage {
     private final Context c;
     private final FrameLayout root;
     private final ListView list;
+    private final ImageView jumpToday;
     private final TextView empty;
     private final Adapter adapter = new Adapter();
     private UiData data;
@@ -68,7 +70,7 @@ final class SchedulePage {
         list.setSelector(android.R.color.transparent);
         list.setClipToPadding(false);
         list.setVerticalScrollBarEnabled(false);
-        list.setPadding(Ui.dp(c, Ui.GUTTER), Ui.dp(c, 8), Ui.dp(c, Ui.GUTTER), Ui.dp(c, 24));
+        list.setPadding(Ui.dp(c, Ui.GUTTER), Ui.dp(c, 8), Ui.dp(c, Ui.GUTTER), Ui.dp(c, 88));
         list.setAdapter(adapter);
         root.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
@@ -77,6 +79,32 @@ final class SchedulePage {
         Ui.pad(empty, 32, 0, 32, 0);
         root.addView(empty, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
+        jumpToday = new ImageView(c);
+        jumpToday.setImageDrawable(Ui.tinted(c, R.drawable.ui_ic_up, Ui.col(c, R.color.p3r_navy_950)));
+        jumpToday.setScaleType(ImageView.ScaleType.CENTER);
+        jumpToday.setBackground(new SlantedPanelDrawable()
+            .fill(Ui.col(c, R.color.p3r_cyan_400))
+            .pressedFill(Ui.col(c, R.color.p3r_cyan_200))
+            .stroke(Ui.col(c, R.color.p3r_cyan_200), Ui.dp(c, 1))
+            .skew(Ui.dp(c, 8)));
+        jumpToday.setElevation(Ui.dp(c, 6));
+        jumpToday.setContentDescription("回到今天");
+        jumpToday.setTooltipText("回到今天");
+        jumpToday.setClickable(true);
+        jumpToday.setFocusable(true);
+        jumpToday.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(View view,
+                    android.view.accessibility.AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(view, info);
+                info.setClassName("android.widget.Button");
+            }
+        });
+        jumpToday.setOnClickListener(v -> jumpToToday(true));
+        FrameLayout.LayoutParams jumpParams = new FrameLayout.LayoutParams(Ui.dp(c, 56), Ui.dp(c, 48),
+            Gravity.BOTTOM | Gravity.END);
+        jumpParams.rightMargin = Ui.dp(c, Ui.GUTTER);
+        jumpParams.bottomMargin = Ui.dp(c, 16);
+        root.addView(jumpToday, jumpParams);
     }
 
     View view() {
@@ -84,7 +112,10 @@ final class SchedulePage {
     }
 
     void setBottomInset(int px) {
-        list.setPadding(list.getPaddingLeft(), list.getPaddingTop(), list.getPaddingRight(), px + Ui.dp(c, 24));
+        list.setPadding(list.getPaddingLeft(), list.getPaddingTop(), list.getPaddingRight(), px + Ui.dp(c, 88));
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) jumpToday.getLayoutParams();
+        params.bottomMargin = px + Ui.dp(c, 16);
+        jumpToday.setLayoutParams(params);
     }
 
     void bind(UiData d) {
@@ -102,24 +133,47 @@ final class SchedulePage {
             empty.setText(text);
             empty.setVisibility(View.VISIBLE);
             list.setVisibility(View.GONE);
+            jumpToday.setVisibility(View.GONE);
             adapter.setItems(new ArrayList<>());
             return;
         }
         empty.setVisibility(View.GONE);
         list.setVisibility(View.VISIBLE);
+        jumpToday.setVisibility(View.VISIBLE);
         List<Item> items = buildItems(plan, d.displaySlot(), d.rules.firstDay);
         adapter.setItems(items);
         loadHistory(d);
         if (!plan.planId.equals(scrolledForPlan)) {
             scrolledForPlan = plan.planId;
-            int today = Rules.dayOf(Math.max(d.displaySlot(), plan.fromSlot));
-            for (int i = 0; i < items.size(); i++) {
-                if (items.get(i).type == TYPE_DAY && items.get(i).day == today) {
-                    list.setSelection(i <= 3 ? 0 : i - 1);
-                    break;
-                }
-            }
+            jumpToToday(false);
         }
+    }
+
+    private void jumpToToday(boolean smooth) {
+        if (data == null || !data.hasState()) return;
+        int position = todayPosition(adapter.items, data.displaySlot());
+        if (position < 0) return;
+        if (smooth && Ui.animationsEnabled()) {
+            list.smoothScrollToPositionFromTop(position, Ui.dp(c, 8), 260);
+        } else {
+            list.setSelectionFromTop(position, Ui.dp(c, 8));
+        }
+    }
+
+    /** The game's cursor can sit after the finale; keep its last calendar day reachable. */
+    static int todayPosition(List<Item> items, int currentSlot) {
+        int today = Rules.dayOf(currentSlot);
+        int position = -1;
+        for (int i = 0; i < items.size(); i++) {
+            Item item = items.get(i);
+            if (item.type != TYPE_DAY) continue;
+            position = i;
+            if (item.day >= today) break;
+        }
+        if (position < 0) return -1;
+        // At the top, retain the summary, month and yesterday beside today's highlight.
+        if (position <= 3) return 0;
+        return items.get(position - 1).type == TYPE_MONTH ? position - 1 : position;
     }
 
     /** Summary, then for every day of the plan a month header when the month changes. */
@@ -130,8 +184,8 @@ final class SchedulePage {
     static List<Item> buildItems(Plan plan, int currentSlot, int firstGameDay) {
         List<Item> items = new ArrayList<>();
         items.add(new Item(TYPE_SUMMARY, -1, -1));
-        int firstDay = Math.max(firstGameDay, Rules.dayOf(currentSlot) - 1);
         int lastDay = Rules.dayOf(plan.toSlot);
+        int firstDay = Math.max(firstGameDay, Math.min(lastDay, Rules.dayOf(currentSlot) - 1));
         int month = -1;
         for (int day = firstDay; day <= lastDay; day++) {
             int m = Zh.dateOf(day).getMonthValue();
