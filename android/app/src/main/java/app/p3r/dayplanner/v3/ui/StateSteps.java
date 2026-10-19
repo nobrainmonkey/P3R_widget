@@ -423,8 +423,6 @@ final class StateSteps {
             callbacks.refresh();
         });
         column.addView(period, top(16));
-        TextView explain = Ui.muted(c, "「" + dayLabel + "」是回宿舍之前的自由时间，「晚上」是回到宿舍之后。");
-        column.addView(explain, top(6));
         LinearLayout summary = Ui.row(c);
         summary.setBackground(Ui.card(c).accent(Ui.col(c, R.color.p3r_cyan_400), Ui.dp(c, 4)));
         Ui.pad(summary, 18, 12, 14, 12);
@@ -449,7 +447,7 @@ final class StateSteps {
         } else if (draft.observed != null && draft.observed.cashExact) {
             hint = "上次记录：" + Zh.yen(draft.observed.cash) + "。和游戏里一样就直接下一步。";
         } else {
-            hint = "在游戏菜单中查看当前能力等级。";
+            hint = "打开游戏菜单就能看到持有金额。";
         }
         LinearLayout column = page("现在有多少钱？", hint);
         CashPad.Options options = new CashPad.Options();
@@ -651,7 +649,7 @@ final class StateSteps {
     // ------------------------------------------------------------------ 解锁进度
 
     private View unlock() {
-        LinearLayout column = page("解锁进度", "这些社群还没解锁，但需要提前做准备。告诉我已经做到哪一步了。");
+        LinearLayout column = page("解锁进度", "以下社群需要分步前置解锁，请选择当前已完成的步骤。");
         for (int linkIdx : draft.unlockLinks()) {
             Rules.Link link = draft.rules.links[linkIdx];
             LinearLayout card = Ui.column(c);

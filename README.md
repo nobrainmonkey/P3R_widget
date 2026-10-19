@@ -31,9 +31,9 @@
 
 ## 下载
 
-下载正式版 [P3R-Planner-3.4.1.apk](https://github.com/nobrainmonkey/P3R_widget/releases/download/v3.4.1/P3R-Planner-3.4.1.apk)，在手机上打开安装即可（需要允许“安装未知应用”）。完整说明和校验文件见 [3.4.1 Release](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.4.1)。
+下载正式版 [P3R-Planner-3.4.2.apk](https://github.com/nobrainmonkey/P3R_widget/releases/download/v3.4.2/P3R-Planner-3.4.2.apk)，在手机上打开安装即可（需要允许“安装未知应用”）。完整说明和校验文件见 [3.4.2 Release](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.4.2)。
 
-**正式版安装**：[3.4.1](docs/RELEASE_NOTES_3.4.1.md) 沿用 3.3.0 签名，可以直接覆盖 3.3.0／3.4.0 并保留进度。3.2.0 及更早版本的更新步骤见[签名与迁移说明](docs/RELEASE_SIGNING.md)。
+**正式版安装**：[3.4.2](docs/RELEASE_NOTES_3.4.2.md) 沿用 3.3.0 签名，可以直接覆盖 3.3.0～3.4.1 并保留进度。3.2.0 及更早版本的更新步骤见[签名与迁移说明](docs/RELEASE_SIGNING.md)。
 
 **从 3.0.x 更新**：3.1.0 去掉了「我的 → 逐日攻略」，更新后就看不到它的打勾进度了。想保留的话，**更新前**先打开逐日攻略，点右上角的菜单按钮打开「设置」，再点「导出进度备份」（这个文件可以导入旧版 2.0.0 “P3R” 的固定攻略）。已经更新了也不要紧：打勾进度并没有被删除，仍然留在手机上；从 3.1.1 起，「我的 → 备份与恢复」里有「旧版逐日攻略」一节，点「导出打勾进度」就能导出同样的文件（手机上没有打过勾的进度时，不会显示这一节）。桌面上的「P3R 逐日攻略」小组件更新后会失效，长按移除即可；「P3R 每日安排」不受影响。
 
