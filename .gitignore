@@ -16,4 +16,6 @@ __pycache__/
 local_state.sqlite
 .signing/
 dist/
-.claude/
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
