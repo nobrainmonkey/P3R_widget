@@ -31,7 +31,7 @@ import app.p3r.dayplanner.v3.model.Rules;
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class PopupChromeTest extends UiTestBase {
     @Test
-    public void filterPopupHighlightsActualTagsAndCombatWithoutChangingLabelsOrWritingProgress() {
+    public void tipsMoreListAppliesATagWithOneTapAndTheCombatChipKeepsThePeriod() {
         api.rules.reminders = new Rules.Reminders();
         Rules.Reminder unlock = new Rules.Reminder();
         unlock.id = "feature.popup.unlock";
@@ -45,7 +45,7 @@ public class PopupChromeTest extends UiTestBase {
         guardian.kind = "guardian";
         guardian.titleZh = "36层守关战";
         guardian.floor = 36;
-        guardian.fromDay = Fixtures.day(6, 13);
+        guardian.fromDay = Fixtures.day(10, 13);
         guardian.shortZh = "弱点：冰";
         guardian.tacticsZh = "用冰属性攻击，优先处理随从。";
         api.rules.reminders.combatTips.add(guardian);
@@ -55,34 +55,32 @@ public class PopupChromeTest extends UiTestBase {
         intent.putExtra(Intents.EXTRA_TAB, "tips");
         HomeActivity a = home(intent);
 
-        a.getWindow().getDecorView().findViewWithTag("tips_filter_button").performClick();
+        a.getWindow().getDecorView().findViewWithTag("tips_content_more").performClick();
         Shots.idle();
-        choose(a, "社群解锁");
-        TextView tag = (TextView) Shots.find(a.sheets().content(), "社群解锁");
-        assertTrue(tag.isSelected());
-        assertEquals("社群解锁", Zh.plain(tag.getText()));
-        assertFalse(Shots.find(a.sheets().content(), "全部内容").isSelected());
-        Shots.shot(a, "popup_filter_selected_tag");
+        assertTrue(a.sheets().isShowing());
+        View tag = a.sheets().content().findViewWithTag("tips_more_社群解锁");
+        assertEquals("the tag and how many there are", "社群解锁\n1", Shots.allText(tag).trim());
+        Shots.shot(a, "popup_tips_more");
         a.onBackPressed();
         Shots.idle();
-        assertFalse(a.sheets().isShowing());
-        assertFalse(a.getWindow().getDecorView().findViewWithTag("tips_filter_button").isSelected());
-        assertTrue(api.calls.isEmpty());
+        assertFalse("back closes without choosing", a.sheets().isShowing());
+        assertEquals(View.GONE, a.getWindow().getDecorView().findViewWithTag("tips_filter_selection").getVisibility());
 
-        a.getWindow().getDecorView().findViewWithTag("tips_filter_button").performClick();
+        a.getWindow().getDecorView().findViewWithTag("tips_content_more").performClick();
         Shots.idle();
-        choose(a, "战斗");
-        TextView combat = (TextView) Shots.find(a.sheets().content(), "战斗");
-        assertTrue(combat.isSelected());
-        assertEquals("战斗", Zh.plain(combat.getText()));
-        assertFalse(Shots.find(a.sheets().content(), "社群解锁").isSelected());
-        Shots.shot(a, "popup_filter_selected_combat");
-        choose(a, "应用");
-        assertFalse(a.sheets().isShowing());
-        assertTrue(a.getWindow().getDecorView().findViewWithTag("tips_filter_button").isSelected());
-        assertTrue(Shots.find(a, "本期").isSelected());
-        assertEquals("10月1日 ～ 11月30日 · 战斗", Zh.plain(((TextView) a.getWindow().getDecorView()
-            .findViewWithTag("tips_filter_selection")).getText()));
+        assertTrue(a.sheets().content().findViewWithTag("tips_more_社群解锁").performClick());
+        Shots.idle();
+        assertFalse("one tap applies and closes", a.sheets().isShowing());
+        TextView pill = a.getWindow().getDecorView().findViewWithTag("tips_filter_selection");
+        assertEquals("社群解锁", Zh.plain(pill.getText()));
+        assertTrue(a.getWindow().getDecorView().findViewWithTag("tips_content_more").isSelected());
+
+        a.getWindow().getDecorView().findViewWithTag("tips_content_combat").performClick();
+        Shots.idle();
+        assertTrue(a.getWindow().getDecorView().findViewWithTag("tips_content_combat").isSelected());
+        assertFalse(a.getWindow().getDecorView().findViewWithTag("tips_content_more").isSelected());
+        assertEquals(View.GONE, pill.getVisibility());
+        assertTrue(a.getWindow().getDecorView().findViewWithTag("tips_scope_period").isSelected());
         assertTrue(api.calls.isEmpty());
         assertEquals(Fixtures.SLOT_NOW, api.snap.observed.slot);
     }
@@ -113,12 +111,5 @@ public class PopupChromeTest extends UiTestBase {
         assertFalse(confirm.isShowing());
         assertEquals(1, confirmations.get());
         assertTrue(api.calls.isEmpty());
-    }
-
-    private static void choose(HomeActivity a, String label) {
-        assertTrue(a.sheets().isShowing());
-        View choice = Shots.find(a.sheets().content(), label);
-        assertTrue(Shots.clickTarget(choice).performClick());
-        Shots.idle();
     }
 }

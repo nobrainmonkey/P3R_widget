@@ -328,6 +328,26 @@ class CompletedDialogueTest(unittest.TestCase):
                     link.pop(field, None)
         self.assertEqual(current, original)
 
+    def test_displayed_dialogue_copy_has_no_japanese_or_raw_point_values(self) -> None:
+        def strings(node):
+            if isinstance(node, str):
+                yield node
+            elif isinstance(node, list):
+                for item in node:
+                    yield from strings(item)
+            elif isinstance(node, dict):
+                for item in node.values():
+                    yield from strings(item)
+        for link in self.pack['links']:
+            for field in ('dialogue', 'dialogueHints'):
+                for text in strings(link.get(field, {})):
+                    with self.subTest(link=link['id'], field=field):
+                        self.assertIsNone(builder.RESEARCH_SHORTHAND.search(text), text)
+        justice = self.variant('justice', 9, 'romance')['sequence']
+        self.assertIn('这一场第2问只有「千寻是清白的」加好感；第4问选「我都看到了」。', justice)
+        with self.assertRaisesRegex(builder.BuildError, 'research shorthand'):
+            builder.check_player_copy({'noteZh': '另一项为1♪'}, 'sample')
+
     def test_flattening_preserves_alternative_without_putting_it_in_primary_choices(self) -> None:
         raw = {'choices': ['主回答'], 'sequence': ['任意', '主回答'],
                'choiceOrigins': [], 'alternatives': [

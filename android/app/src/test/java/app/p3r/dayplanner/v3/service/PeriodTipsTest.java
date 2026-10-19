@@ -145,7 +145,9 @@ public class PeriodTipsTest {
         assertNotNull(item);
         assertTrue(period.ongoingIds.contains(pickup.id));
         assertFalse(item.textZh.contains("勇气到"));
-        assertTrue(item.detailZh.contains("勇气 Lv.2"));
+        assertEquals("放纵俱乐部：黄昏的碎片（勇气 Lv.2 以后）", item.textZh);
+        assertFalse("no robotic 「满足条件后可处理」", item.textZh.contains("处理"));
+        assertTrue(item.detailZh.contains("要勇气 Lv.2。"));
         assertTrue(item.detailZh.contains("原始完整攻略与步骤"));
         assertEquals("勇气到 Lv.2 了", pickup.zh);
         Plan forecast = new Plan();
@@ -158,7 +160,7 @@ public class PeriodTipsTest {
         assertEquals(item.slot, withForecast.slot);
         assertEquals(item.textZh, withForecast.textZh);
         assertTrue(withForecast.detailZh.contains("勇气 Lv.2"));
-        assertTrue(withForecast.detailZh.contains("安排：6月20日处理"));
+        assertTrue(withForecast.detailZh.contains("安排在 6月20日。"));
         pickup.requiresLv.put(2, 6);
         assertTrue(find(PeriodTips.collect(rules, at(50, false), null), pickup.id).detailZh.contains("勇气 MAX"));
     }
@@ -202,7 +204,7 @@ public class PeriodTipsTest {
         plan.reminders.add(doze);
         PeriodTips.Period period = PeriodTips.collect(rules, at(50, false), plan);
         assertEquals(3, period.items.size());
-        assertTrue(find(period, "doze." + rules.days[40].md).textZh.contains("不闭眼"));
+        assertTrue(find(period, "doze." + rules.days[40].md).textZh.startsWith("别闭眼：学力 +"));
         assertEquals(doze.textZh, find(period, doze.id).textZh);
         assertEquals(forecast.textZh, find(period, forecast.id).textZh);
         find(period, forecast.id).textZh = "UI 修改副本";
@@ -236,8 +238,9 @@ public class PeriodTipsTest {
         PeriodTips.Period period = PeriodTips.collect(rules, state, plan);
         assertEquals(1, period.items.size());
         Plan.Reminder item = period.items.get(0);
-        assertTrue(item.textZh.contains("3 人（包括已知姓名）"));
-        assertTrue(item.detailZh.contains("已确认救出已知姓名"));
+        assertTrue(item.textZh, item.textZh.startsWith("救出 3 位失踪者（有已知姓名） · 期限 "));
+        assertTrue(item.detailZh.contains("已知姓名已经救出来了。"));
+        assertFalse(item.detailZh.contains("记录里"));
         assertTrue(item.detailZh.contains("第 97 号委托"));
         assertFalse(item.detailZh.contains("已救出 3"));
         assertEquals(60, item.untilDay);
@@ -265,7 +268,7 @@ public class PeriodTipsTest {
         Plan.Reminder item = find(PeriodTips.collect(rules, at(50, false), null), group.id);
         assertTrue(item.textZh.contains("50F、120F"));
         assertTrue(item.detailZh.contains("50F · Ayako Yoshimoto\n120F · 北村文吉"));
-        assertFalse(item.detailZh.contains("已确认救出"));
+        assertFalse(item.detailZh.contains("已经救出来了"));
     }
 
     @Test public void plannedRescueOnLimitEveningIsAdviceAndNotConfirmedCompletion() {
@@ -288,8 +291,9 @@ public class PeriodTipsTest {
         }
         PeriodTips.Period period = PeriodTips.collect(rules, observed, plan);
         String detail = find(period, group.id).detailZh;
-        assertTrue(detail.contains("安排：5月31日进塔"));
-        assertTrue(detail.contains("最晚在期限当天晚上救出"));
+        assertTrue(detail, detail.contains("安排里 5月31日 会探索塔尔塔罗斯，顺便救人。"));
+        assertTrue(detail, detail.contains("最晚 5月31日 晚上"));
+        assertFalse(detail, detail.contains("救援窗口"));
         assertEquals(0L, observed.rescued);
         assertTrue(period.ongoingIds.contains("period.nurse"));
         assertEquals(-1, find(period, "period.nurse").untilDay);
@@ -332,23 +336,25 @@ public class PeriodTipsTest {
         Plan.Reminder overview = find(period, "period.dorm");
         assertNotNull(overview);
         assertTrue(period.ongoingIds.contains(overview.id));
-        assertTrue(overview.textZh.contains("2 位队友"));
+        assertEquals("和队友甲、队友乙一起做宿舍活动", overview.textZh);
         assertTrue(overview.detailZh.contains("5月13日、6月8日"));
         assertTrue(overview.detailZh.contains("6月10日"));
         assertFalse(overview.detailZh.contains("5月9日"));
         assertFalse(overview.detailZh.contains("6月13日"));
         assertFalse(overview.detailZh.contains("下期队友"));
-        assertTrue(overview.detailZh.contains("已记录 2 次（特性进度 2/3）"));
-        assertTrue(overview.detailZh.contains("已记录 3 次（特性进度 3/3）"));
+        assertTrue(overview.detailZh.contains("做过 2 次，再 1 次解锁特性"));
+        assertTrue(overview.detailZh.contains("做满 3 次了"));
         assertTrue(overview.detailZh.contains("魅力 +2"));
-        assertTrue(overview.detailZh.contains("两个项目各完成 3 次"));
-        assertTrue(overview.detailZh.contains("允许安排园艺"));
+        assertTrue(overview.detailZh.contains("两种各 3 次强化"));
+        assertFalse("no settings path in a hint", overview.detailZh.contains("允许安排园艺"));
+        assertFalse(overview.detailZh.contains("本期"));
         Plan.Reminder past = find(period, "activity.group_study_fixed.40");
         assertNotNull(past);
         assertEquals(Rules.slot(40, true), past.slot);
         assertTrue(past.textZh.contains("学力 +4"));
-        assertTrue(past.detailZh.contains("占用整个晚上"));
-        assertTrue(past.detailZh.contains("学力已满可跳过"));
+        assertEquals("宿舍集体学习", past.labelZh);
+        assertTrue(past.detailZh.contains("不花钱，但会用掉晚上"));
+        assertTrue(past.detailZh.contains("学力 MAX 了就不用参加"));
         assertNotNull(find(period, "activity.group_study_fixed.72"));
         assertNull(find(period, "activity.group_study_fixed.73"));
         assertEquals(2, observed.used[0]);
@@ -404,23 +410,25 @@ public class PeriodTipsTest {
         PeriodTips.Period period = PeriodTips.collect(rules, observed, null);
         Plan.Reminder unlock = find(period, "unlock.current");
         assertNotNull(unlock);
-        assertTrue(unlock.textZh.contains("可尝试解锁"));
-        assertTrue(unlock.detailZh.contains("勇气 MAX、前置社群 RANK 4"));
+        assertEquals("本期社群", unlock.textZh);
+        assertTrue(unlock.detailZh.contains("解锁条件：勇气 MAX、前置社群 RANK 4"));
         assertTrue(unlock.detailZh.contains("指定地点选「说话」"));
-        assertTrue(unlock.detailZh.contains("不消耗时间；花费 1000 日元"));
+        assertTrue(unlock.detailZh, unlock.detailZh.contains("（不会消耗时间；1,000 日元）"));
         assertTrue(unlock.detailZh.contains("考试至少拿过一次第一名"));
-        assertTrue(unlock.detailZh.contains("最早5月13日开放"));
+        assertTrue(unlock.detailZh.contains("5月13日起可以解锁。"));
+        assertFalse(unlock.detailZh.contains("前置条件"));
         assertNull(find(period, "unlock.prerequisite"));
         Plan.Reminder part = find(period, "episode.track.1");
         assertNotNull(part);
         assertEquals(74, part.untilDay);
-        assertTrue(part.detailZh.contains("本期可看日期：5月16日、6月10日"));
-        assertTrue(part.detailZh.contains("最后可看日期：6月14日"));
-        assertTrue(part.detailZh.contains("魅力 +2"));
-        assertTrue(part.detailZh.contains("当前记录已看 1 话"));
-        assertTrue(part.detailZh.contains("勾选对应的「羁绊剧情」"));
+        assertEquals("羁绊剧情 · 队友（第 1 话）", part.textZh);
+        assertTrue(part.detailZh.contains("能看的日子：5月16日、6月10日"));
+        assertTrue(part.detailZh.contains("最晚 6月14日。要按顺序看。"));
+        assertTrue(part.detailZh.contains("奖励：魅力 +2"));
+        assertTrue(part.detailZh.contains("已经看了 1 话。"));
+        assertFalse("no how-to-use-the-app sentence", part.detailZh.contains("「社群」页"));
         assertNull(find(period, "episode.track.2"));
-        assertTrue(find(period, "feature.dating_note").textZh.contains("3000 日元，占用晚上"));
+        assertTrue(find(period, "feature.dating_note").textZh.contains("3,000 日元，会用掉晚上"));
         assertTrue(find(period, "feature.dating_note").detailZh.contains("不会自行提升社群等级"));
         assertTrue(find(period, "feature.dating_note").detailZh.contains("勇气 Lv.2"));
         assertEquals(0, observed.rank[1]);
@@ -446,11 +454,55 @@ public class PeriodTipsTest {
         assertEquals(42, exams.untilDay);
         assertEquals(Integer.valueOf(Rules.slot(42, true)), period.calendarEndSlots.get(exams.id));
         assertEquals(Integer.valueOf(Rules.slot(43, false)), period.calendarEndSlots.get("calendar.lock.exam.1.43"));
-        assertTrue(exams.textZh.contains("5月11日～5月13日（白天和晚上）"));
+        assertEquals("考试期间 · 白天和晚上", exams.textZh);
+        assertNull("a lock needs no sheet", exams.detailZh);
         assertTrue(find(period, "calendar.lock.exam.1.43").textZh.contains("白天"));
         assertEquals("期中考试放榜", find(period, "calendar.note.50").textZh);
+        assertNull("a note's sheet would only repeat it", find(period, "calendar.note.50").detailZh);
         assertNotNull(find(period, "calendar.lock.full_moon.3.60"));
         assertNull(find(period, "calendar.full_moon.60"));
+    }
+
+    @Test public void calendarMergesRepeatedNotesDropsBareHolidaysAndLocksTheNotesAlreadyExplain() {
+        Rules rules = rules();
+        rules.lockReasonsZh.put("summer_classes", "暑期补习");
+        rules.lockReasonsZh.put("reserved", "可能有剧情（先空出）");
+        for (int day = 40; day <= 45; day++) {
+            rules.days[day].noteZh = "暑期补习：学力 +3";
+            rules.days[day].dayLock = "summer_classes";
+            rules.days[day].eveLock = "summer_classes";
+        }
+        rules.days[50].noteZh = "敬老日";
+        rules.days[50].type = Rules.DayType.HOLIDAY;
+        rules.days[55].noteZh = "如果之前把「白色切花」送给了顺平，这天放学后会有剧情，所以先空出来";
+        rules.days[55].dayLock = "reserved";
+        PeriodTips.Period period = PeriodTips.collect(rules, at(52, false), null);
+        Plan.Reminder summer = find(period, "calendar.note.40");
+        assertNotNull(summer);
+        assertEquals(45, summer.untilDay);
+        assertNull(find(period, "calendar.note.41"));
+        assertNull("the note already says 暑期补习", find(period, "calendar.lock.summer_classes.3.40"));
+        assertNull("a bare holiday changes nothing", find(period, "calendar.note.50"));
+        assertEquals("如果之前把「白色切花」送给了顺平，这天放学后会有剧情", find(period, "calendar.note.55").textZh);
+        assertNull(find(period, "calendar.lock.reserved.1.55"));
+        assertEquals(2, period.items.size());
+    }
+
+    @Test public void anUnlockedLinkIsNoNewsInItsOpeningPeriod() {
+        Rules rules = rules();
+        Rules.Link link = new Rules.Link();
+        link.idx = 0;
+        link.id = "current";
+        link.labelZh = "本期社群";
+        link.unlock.earliestDay = 42;
+        rules.links = new Rules.Link[]{link};
+        SimState observed = at(60, false);
+        assertNotNull(find(PeriodTips.collect(rules, observed, null), "unlock.current"));
+        observed.rank[0] = 3;
+        assertNull(find(PeriodTips.collect(rules, observed, null), "unlock.current"));
+        Plan.Reminder lookup = find(PeriodTips.collectAll(rules, observed), "unlock.current");
+        assertNotNull("the whole-game lookup keeps it", lookup);
+        assertTrue(lookup.detailZh.endsWith("已经解锁了，现在 RANK 3。"));
     }
 
     @Test public void oldPermanentPickupsAndUntimedRequestAnnouncementsStayInTheirOpeningPeriod() throws Exception {

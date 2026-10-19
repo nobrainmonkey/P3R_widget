@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="tips_search_hint">搜人物、社群、委托、战斗或答案</string>
-    <string name="tips_search_description">搜索全部提示、社群对话、委托和战斗</string>
-    <string name="tips_request_search_hint">搜委托编号或名字</string>
-    <string name="tips_combat_search_hint">搜楼层、首领名或月份</string>
+    <string name="tips_search_hint">风花、36F、委托 75…</string>
+    <string name="tips_search_description">搜索提示、社群对话、委托和战斗</string>
+    <string name="tips_social_search_hint">风花、女教皇 3…</string>
+    <string name="tips_class_search_hint">鲤鱼旗、4月…</string>
+    <string name="tips_request_search_hint">75、战国头盔…</string>
+    <string name="tips_combat_search_hint">36F、9月 满月…</string>
 </resources>
