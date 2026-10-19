@@ -3,6 +3,7 @@ package app.p3r.dayplanner.v3.service;
 import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Rules;
+import app.p3r.dayplanner.v3.engine.RescueLocations;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -226,6 +227,8 @@ public final class PeriodTips {
         StringBuilder detail = new StringBuilder("在塔尔塔罗斯探索时找到失踪者并救出。救援窗口：")
                 .append(date(rules, group.fromDay)).append("～").append(date(rules, group.toDay))
                 .append("。最晚在期限当天晚上救出，逾期无法救援。");
+        String locations = RescueLocations.details(java.util.Collections.singletonList(group));
+        if (!locations.isEmpty()) detail.append('\n').append(locations).append('\n');
         for (String id : group.rescueIds) {
             for (int i = 0; i < rules.rescues.length; i++) {
                 Rules.Rescue person = rules.rescues[i];
@@ -250,6 +253,8 @@ public final class PeriodTips {
         item.textZh = "失踪者 " + group.count + " 人" + (names.isEmpty() ? "" : "（"
                 + (names.size() < group.count ? "包括" : "") + String.join("、", names) + "）")
                 + "，" + date(rules, group.toDay) + "截止";
+        String floors = RescueLocations.floors(java.util.Collections.singletonList(group));
+        if (!floors.isEmpty()) item.textZh += " · " + floors;
         item.shortZh = "失踪者 " + group.count + " 人";
         item.detailZh = detail.toString();
         return item;

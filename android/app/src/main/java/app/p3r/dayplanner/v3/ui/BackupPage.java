@@ -52,7 +52,7 @@ final class BackupPage {
         LinearLayout column = Ui.column(c);
 
         column.addView(Ui.sectionHeader(c, "导出备份", null));
-        LinearLayout export = card(c, "把目标、设置和全部记录导出成一段文字，发到聊天或存到文件里都可以。");
+        LinearLayout export = card(c, "导出目标、设置、全部记录，以及图鉴收藏和已购 DLC。");
         TextView share = Ui.primary(c, "分享备份");
         share.setOnClickListener(v -> exportBackup(host));
         export.addView(share, top(c, 12));

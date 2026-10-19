@@ -159,11 +159,33 @@ final class InfoPages {
         LinearLayout card = Ui.column(c);
         card.setBackground(Ui.card(c));
         Ui.pad(card, 16, 12, 16, 12);
-        card.addView(line(c, "这是玩家自制的离线小工具，按你的目标为《女神异闻录3 Reload》安排每天的白天和晚上。"));
+        card.addView(line(c, "为《女神异闻录3 Reload》安排日程、查提示、查面具和合成。"));
         card.addView(line(c, "全部计算都在手机上完成，不联网，不收集任何数据。"));
         card.addView(line(c, "数字字体：Barlow Condensed（SIL 开放字体许可证）。"));
         column.addView(card, top(c, 16));
+        column.addView(Ui.sectionHeader(c, "图鉴与合成资料", null), top(c, 20));
+        LinearLayout credits = Ui.column(c);
+        credits.setBackground(Ui.card(c));
+        Ui.pad(credits, 16, 12, 16, 12);
+        credits.addView(sourceLink(c, "aqiu384 · Megaten Database", "https://github.com/aqiu384/megaten-database"));
+        credits.addView(sourceLink(c, "aqiu384 · Fusion Tools（Unlicense）", "https://github.com/aqiu384/megaten-fusion-tool"));
+        credits.addView(line(c, "面具、技能与游戏文本：ATLUS / SEGA。"));
+        column.addView(credits, top(c, 4));
         return column;
+    }
+
+    private static TextView sourceLink(Context c, String name, String url) {
+        TextView text = line(c, name + " ↗");
+        text.setTextColor(Ui.col(c, R.color.p3r_cyan_300));
+        text.setOnClickListener(v -> {
+            try {
+                c.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+                    android.net.Uri.parse(url)));
+            } catch (android.content.ActivityNotFoundException ignored) {
+                android.widget.Toast.makeText(c, url, android.widget.Toast.LENGTH_SHORT).show();
+            }
+        });
+        return text;
     }
 
     private static TextView line(Context c, String text) {

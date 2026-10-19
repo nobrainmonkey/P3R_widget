@@ -1,8 +1,7 @@
 # P3R planner repository context
 
-Reference for continuing the owner's existing project with Claude. Updated on 2026-10-18
-(UTC), for the 3.4.1 goal preparation, shared school dates and manual deep search
-on branch `work`.
+Reference for continuing the owner's existing project. Updated for the 3.5.0 compendium,
+fusion tools, rescue floors and unlock prerequisite fixes on branch `work`.
 This is an orientation snapshot; check newer code and owner decisions before implementing changes.
 
 ## Product and current baseline
@@ -14,12 +13,12 @@ This is an orientation snapshot; check newer code and owner decisions before imp
   player records a different result, changes goals, or returns later and syncs progress.
 - Useful, consistent plans matter more than global optimality. An unmet goal is not proof
   that the goal is impossible. Forecasts and confirmed progress must remain separate.
-- Current app source: **3.4.1**, version code **39**, application ID **`app.p3r.planner`**;
+- Current app source: **3.5.0**, version code **41**, application ID **`app.p3r.planner`**;
   debug builds add `.debug`. Java package/Android namespace remains `app.p3r.dayplanner`.
   Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, minimum API 26, compile/target API 35.
-- Current public release is [v3.4.1](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.4.1),
-  latest and stable, published October 18 after complete Android CI passed for its source.
-  It retains the 3.3.0 signing certificate and supports in-place updates from 3.3.0/3.4.0.
+- The owner released 3.4.2 at `52e9b9d`; 3.5.0 builds on those changes. See
+  [release signing](RELEASE_SIGNING.md) for the verified current public APK and CI evidence.
+  Retain the 3.3.0 signing certificate for in-place updates.
 - Player-facing language is natural Simplified Chinese using Reload terminology. Preserve
   the established navy/cyan P3R presentation, slanted panels, condensed numerals, day/night
   widget palettes and fade, readable answers, and action-specific result sheets.
@@ -70,6 +69,7 @@ Production Java lives under `android/app/src/main/java/app/p3r/dayplanner/v3/`.
 | --- | --- |
 | [model](../android/app/src/main/java/app/p3r/dayplanner/v3/model/) | `Rules`, `RulesLoader`, `Profile`: rule-pack parsing and validation, goals and preferences. Production `DefaultWiring` loads the asset through `RulesLoader`; `RulesAssets` is a separate cache helper. |
 | [engine](../android/app/src/main/java/app/p3r/dayplanner/v3/engine/) | `Engine` is the public facade. `Model`/`Tables` compile rules into arrays; `Kernel` applies transitions; `Simulator` exposes copy-based operations; `Heuristics`/`Planner` search; `PlanValidator` independently replays plans. Pure Java plus `org.json`. |
+| [compendium](../android/app/src/main/java/app/p3r/dayplanner/v3/compendium/) | `Compendium` loads the offline catalogue; `FusionCalculator` handles normal/same-arcana/fixed special fusion with three owned DLC packs; `CompendiumPrefs` stores favorites and DLC separately from scheduling assumptions. |
 | [store](../android/app/src/main/java/app/p3r/dayplanner/v3/store/) | `PlanDb`, `Ledger`, `Replayer`, `PackLayout`, `Backup`: SQLite records, replay, rule-update remapping and backup format. |
 | [service](../android/app/src/main/java/app/p3r/dayplanner/v3/service/) | `PlannerApi`/`PlannerService`: shared boundary for app and widget. `CommandCheck` validates writes; `ReplanWorker` computes and validates plans in the background; `PeriodTips` collects the current block period's reminder catalogue independently of the plan. |
 | [ui](../android/app/src/main/java/app/p3r/dayplanner/v3/ui/) | `HomeActivity` and five tab pages, including `TipsPage`; `StateActivity`/`StateDraft` for setup and sync; `ResultActivity`/`Outcomes`/`TowerPanel` for results; `FullReplanSheet`/`PlanDiff` for fresh planning. Native Android Views, largely built in Java. |
@@ -80,6 +80,22 @@ Production Java lives under `android/app/src/main/java/app/p3r/dayplanner/v3/`.
 The main data flow is: checkpoint plus recorded events → replayed observed state → copied
 state and profile → complete forecast plan → independent validation → revision-checked
 installation → app and widget. Results return through the service into the event ledger.
+
+3.5.0 adds a single 「图鉴与合成」 entry in 提示/我的. `CompendiumPage` keeps search,
+filters, favorites, details and fusion navigation together; it uses filling sub-pages with their
+own lists rather than nesting a list inside the ordinary sub-page ScrollView. The 194 summonable
+Personas (173 base + 21 DLC), official SC/English names, skills, chart and recipes are in
+`assets/p3r_compendium.json`; provenance and regeneration are in [PERSONA_DATA_SOURCES.md](PERSONA_DATA_SOURCES.md).
+No portraits are shipped; Episode Aigis is excluded. DLC ownership changes fusion ladders, not
+just list visibility. Favorites do not change the planner's assumed carried Arcana. These choices
+live in SQLite meta and round-trip through the normal backup; old backups keep current choices.
+
+Scheduling policy is now **4**: old policy3 forecasts are recomputed without changing records.
+NEW_DIVERSE reserves one unlock/prerequisite candidate within K (K≥2), including when an
+ordinary unlock and a goal-serving prerequisite meeting coexist. Goal priority follows unmet
+rank prerequisites recursively, stops when the required rank is met or parent established,
+and does not make prerequisites implicit MAX goals. Rescue groups now carry all20 people and
+their floors, shared by planned-visit reminders and period tips; IDs21–27 are cats, excluded.
 
 ## Calendar and planning mechanics
 

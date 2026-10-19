@@ -254,11 +254,13 @@ final class Reminders {
             int count = 0;
             List<String> names = new ArrayList<>();
             List<String> notes = new ArrayList<>();
+            List<Rules.RescueGroup> pending = new ArrayList<>();
             for (Rules.RescueGroup e : active) {
                 if (e.toDay != g.toDay || e.fromDay > g.fromDay) continue;
                 int n = night.get(e);
                 if (e != g && n >= 0 && n < Rules.slot(g.fromDay, false)) continue;
                 count += e.count;
+                pending.add(e);
                 people(rules, e, names, notes);
             }
             Plan.Reminder x = rescueLine("start", g, slot, Plan.Reminder.DEADLINE, g.toDay);
@@ -271,7 +273,7 @@ final class Reminders {
                 x.textZh = "有 " + count + " 名失踪者，期限 " + limit;
             }
             x.shortZh = "失踪者 " + count + " 人 · 期限 " + limit;
-            x.detailZh = RESCUE_DETAIL + String.join("", notes);
+            x.detailZh = RESCUE_DETAIL + locations(pending) + String.join("", notes);
             starts.put(slot + "/" + g.toDay, x); // groups in fromDay order: a later one replaces an earlier one
         }
         out.addAll(starts.values());
@@ -296,8 +298,14 @@ final class Reminders {
             Plan.Reminder x = rescueLine("tower", groups.get(0), e.getKey(), Plan.Reminder.DEADLINE, until);
             x.textZh = "今晚去塔尔塔罗斯时，顺便救出失踪者（" + count + " 人）";
             x.shortZh = "顺便救出失踪者";
+            String floors = RescueLocations.floors(groups);
+            if (!floors.isEmpty()) {
+                x.textZh += "：" + floors;
+                x.shortZh = "救援 " + count + " 人 · " + floors;
+            }
             boolean limitNight = Rules.dayOf(e.getKey()) >= until;
-            x.detailZh = TOWER_DETAIL + (limitNight ? TOWER_LIMIT_NOTE : "") + String.join("", notes);
+            x.detailZh = TOWER_DETAIL + (limitNight ? TOWER_LIMIT_NOTE : "") + locations(groups)
+                    + String.join("", notes);
             out.add(x);
         }
         // No Tartarus evening planned before the limit: say so the day before it.
@@ -310,9 +318,15 @@ final class Reminders {
             String limit = date(rules, limitDay);
             x.textZh = RESCUE_LABEL + "：" + limit + "截止，这几天没安排去塔尔塔罗斯";
             x.shortZh = "失踪者 " + limit + "截止";
-            x.detailZh = (Rules.dayOf(slot) >= limitDay ? DEADLINE_TODAY_DETAIL : DEADLINE_DETAIL) + String.join("", notes);
+            x.detailZh = (Rules.dayOf(slot) >= limitDay ? DEADLINE_TODAY_DETAIL : DEADLINE_DETAIL)
+                    + locations(e.getValue()) + String.join("", notes);
             out.add(x);
         }
+    }
+
+    private static String locations(List<Rules.RescueGroup> groups) {
+        String details = RescueLocations.details(groups);
+        return details.isEmpty() ? "" : "\n" + details + "\n";
     }
 
     /** All the group's modelled people are already rescued or lost in the start state. */

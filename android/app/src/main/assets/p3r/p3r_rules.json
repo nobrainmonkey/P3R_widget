@@ -443,7 +443,7 @@
 "【当天提醒】课堂与考试答案、保健室、电视购物、委托、黄昏的碎片和救援期限会在当天显示，也可在「提示」中搜索。",
 "【剧情学力】8月10日～15日暑期补习每天自动学力 +3。课堂提问、上课犯困、保健室和考试名次的收益，完成后在「同步现状」更新。"
 ],
-"packVersion":"3.4.0",
+"packVersion":"3.5.0",
 "policy":{
 "charmMult":1.51,
 "conf":"estimate",
@@ -784,19 +784,19 @@
 {"aliases":["Take out the ultimate adversary.","打倒终极对手","伊莉莎白","隐藏boss","255层"],"conf":"single","detailZh":"开放：1月1日起\n前置：完成第81号、第99号、第100号\n主角独自前往塔尔塔罗斯255层蒙纳多通道最深处，挑战伊莉莎白并获胜。战斗中不要让她的攻击触发无效、反射或吸收；准备坚忍、不屈斗志应对9999伤害，哈米吉多顿留作最后一击。\n奖励：全能真球；白金书签","fromDay":275,"number":101,"src":["aqiu_overworld","aqiu_walkthrough","cn_guide","ev_request_catalogue"],"titleZh":"打倒最强之人"}
 ],
 "rescueGroups":[
-{"conf":"verified","count":1,"fromDay":78,"id":"rescue.06-18","locksZh":"救不出来的话，伊莉莎白的第 97 号委托就做不了。","rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help"],"toDay":96},
-{"conf":"verified","count":2,"fromDay":86,"id":"rescue.06-26","rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help"],"toDay":96},
-{"conf":"verified","count":2,"fromDay":124,"id":"rescue.08-03","rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help"],"toDay":126},
-{"conf":"verified","count":1,"fromDay":140,"id":"rescue.08-19","rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help"],"toDay":156},
-{"conf":"verified","count":1,"fromDay":150,"id":"rescue.08-29","rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help"],"toDay":156},
-{"conf":"verified","count":1,"fromDay":155,"id":"rescue.09-03","rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help"],"toDay":156},
-{"conf":"verified","count":1,"fromDay":164,"id":"rescue.09-12","rescueIds":["bunkichi"],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help"],"toDay":185},
-{"conf":"verified","count":2,"fromDay":174,"id":"rescue.09-22","rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help"],"toDay":185},
-{"conf":"verified","count":2,"fromDay":203,"id":"rescue.10-21","rescueIds":["maiko"],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help"],"toDay":215},
-{"conf":"verified","count":1,"fromDay":212,"id":"rescue.10-30","rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help"],"toDay":215},
-{"conf":"verified","count":2,"fromDay":241,"id":"rescue.11-28","rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help"],"toDay":244},
-{"conf":"verified","count":2,"fromDay":265,"id":"rescue.12-22","rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help"],"toDay":273},
-{"conf":"verified","count":2,"fromDay":289,"id":"rescue.01-15","rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help"],"toDay":304}
+{"conf":"verified","count":1,"fromDay":78,"id":"rescue.06-18","locksZh":"救不出来的话，伊莉莎白的第 97 号委托就做不了。","people":[{"floor":50,"id":1,"nameEn":"Ayako Yoshimoto"}],"rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help","gd_dungeon_floor"],"toDay":96},
+{"conf":"verified","count":2,"fromDay":86,"id":"rescue.06-26","people":[{"floor":56,"id":2,"nameEn":"Kenjiro Tsutsumi"},{"floor":64,"id":3,"nameEn":"Yoshimi Miyama"}],"rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help","gd_dungeon_floor"],"toDay":96},
+{"conf":"verified","count":2,"fromDay":124,"id":"rescue.08-03","people":[{"floor":79,"id":4,"nameEn":"Yasuko Murabayashi"},{"floor":84,"id":5,"nameEn":"Shuichi Niimura"}],"rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help","gd_dungeon_floor"],"toDay":126},
+{"conf":"verified","count":1,"fromDay":140,"id":"rescue.08-19","people":[{"floor":101,"id":6,"nameEn":"Satsuki Onozuka"}],"rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help","gd_dungeon_floor"],"toDay":156},
+{"conf":"verified","count":1,"fromDay":150,"id":"rescue.08-29","people":[{"floor":109,"id":7,"nameEn":"Hirotaka Tanigami"}],"rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help","gd_dungeon_floor"],"toDay":156},
+{"conf":"verified","count":1,"fromDay":155,"id":"rescue.09-03","people":[{"floor":114,"id":8,"nameEn":"Reiko Makita"}],"rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help","gd_dungeon_floor"],"toDay":156},
+{"conf":"verified","count":1,"fromDay":164,"id":"rescue.09-12","people":[{"floor":120,"id":9,"nameEn":"Bunkichi Kitamura","nameZh":"北村文吉"}],"rescueIds":["bunkichi"],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help","gd_dungeon_floor"],"toDay":185},
+{"conf":"verified","count":2,"fromDay":174,"id":"rescue.09-22","people":[{"floor":135,"id":10,"nameEn":"Aki Kurobe"},{"floor":140,"id":11,"nameEn":"Yasunobu Shimozono"}],"rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help","gd_dungeon_floor"],"toDay":185},
+{"conf":"verified","count":2,"fromDay":203,"id":"rescue.10-21","people":[{"floor":146,"id":12,"nameEn":"Maiko Oohashi","nameZh":"舞子"},{"floor":159,"id":13,"nameEn":"Ryohei Nakatsugawa"}],"rescueIds":["maiko"],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help","gd_dungeon_floor"],"toDay":215},
+{"conf":"verified","count":1,"fromDay":212,"id":"rescue.10-30","people":[{"floor":165,"id":14,"nameEn":"Takeko Hiraoka"}],"rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help","gd_dungeon_floor"],"toDay":215},
+{"conf":"verified","count":2,"fromDay":241,"id":"rescue.11-28","people":[{"floor":177,"id":15,"nameEn":"Tomoyuki Itami"},{"floor":196,"id":16,"nameEn":"Katsue Sugi"}],"rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help","gd_dungeon_floor"],"toDay":244},
+{"conf":"verified","count":2,"fromDay":265,"id":"rescue.12-22","people":[{"floor":209,"id":17,"nameEn":"Yumiko Sasamaki"},{"floor":221,"id":18,"nameEn":"Nobuko Fukuchi"}],"rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help","gd_dungeon_floor"],"toDay":273},
+{"conf":"verified","count":2,"fromDay":289,"id":"rescue.01-15","people":[{"floor":232,"id":19,"nameEn":"Fumika Terado"},{"floor":250,"id":20,"nameEn":"Mitsutoshi Okimoto"}],"rescueIds":[],"src":["aqiu_overworld","aqiu_walkthrough","gd_disappear_data","gd_disappear_help","gd_dungeon_floor"],"toDay":304}
 ]
 },
 "schema":"p3r.rules.v3",
@@ -911,6 +911,7 @@
 {"edition":"game_data_reload","id":"gd_community_event","kind":"game_data","note":"Social Link points needed per rank","path":"rules/sources/aqiu_gamedata/CommunityEventDataAsset.tsv","sha256":"acb05e40ce04dfb0649c7e1d5f171407c3a2a3f0179eaf1b06d67de96e23a487","url":"https://raw.githubusercontent.com/aqiu384/megaten-database/master/src/p3r/Content/Xrd777/Community/Event/CommunityEventDataAsset.tsv"},
 {"edition":"game_data_reload","id":"gd_disappear_data","kind":"game_data","note":"Missing-person table: StartMonth/StartDays and LimitMonth/LimitDays of each of the 20 people","path":"rules/sources/aqiu_gamedata/DisappearDataAsset.tsv","sha256":"3ffa5bb6ccaa0132ecd16a9203550213caa4d5de28a8d40165241e423352cfcb","url":"https://raw.githubusercontent.com/aqiu384/megaten-database/main/src/p3r/Content/Xrd777/UI/Tables/DisappearDataAsset.tsv"},
 {"edition":"game_data_reload","id":"gd_disappear_help","kind":"game_data","note":"Missing-person board text","path":"rules/sources/aqiu_gamedata/BMD_DisappearHelp.tsv","sha256":"35c0c85f0865ae3389aeb70b99e4fe245c645de5c7f22214142e0b99562746fa","url":"https://github.com/aqiu384/megaten-database (src/p3r/Content/Xrd777/…, located by filename)"},
+{"edition":"game_data_reload","id":"gd_dungeon_floor","kind":"game_data","note":"Tartarus floors: missingPersonID 1..20 identifies the 20 missing people; higher IDs are not people","path":"rules/sources/aqiu_gamedata/DT_FldDungeonFloor.tsv","sha256":"073df3c6b6dd68dba3857ac164f9cb605f3243a07bc836136192fee14ae3257b","url":"https://github.com/aqiu384/megaten-database/blob/8f87f212e206748b71298a52eb1eaec1efed6161/src/p3r/Content/Xrd777/Field/Data/DataTable/DT_FldDungeonFloor.tsv"},
 {"edition":"game_data_reload","id":"gd_general_coefficient","kind":"game_data","note":"Social Link bonus multipliers","path":"rules/sources/aqiu_gamedata/DT_GeneralCoefficient.tsv","sha256":"4a8954f79036abbeb6f1271bd33ebd3ca11b062a71db9ea62fa4007ba7a36b84","url":"https://raw.githubusercontent.com/aqiu384/megaten-database/master/src/p3r/Content/Xrd777/Community/Coefficient/General/DT_GeneralCoefficient.tsv"},
 {"edition":"game_data_reload","id":"gd_hero_parameter","kind":"game_data","note":"Social stat level thresholds","path":"rules/sources/aqiu_gamedata/HeroParameterDataAsset.tsv","sha256":"80f319f14ebe7f348d9e4e1119369063c026e6387ed1f10147a7a2c7c706b649","url":"https://raw.githubusercontent.com/aqiu384/megaten-database/master/src/p3r/Content/Xrd777/Community/Parameter/HeroParameterDataAsset.tsv"},
 {"edition":"game_data_reload","id":"gd_holiday_schedule","kind":"game_data","note":"Sunday/holiday invitation dates","path":"rules/sources/aqiu_gamedata/HolidayScheduleDataAsset.tsv","sha256":"0cd67444fdf384c50d359fe63d5cf166928764cfdcf5e730f235b8df67330d19","url":"https://raw.githubusercontent.com/aqiu384/megaten-database/master/src/p3r/Content/Xrd777/Community/Holiday/Schedule/HolidayScheduleDataAsset.tsv"},

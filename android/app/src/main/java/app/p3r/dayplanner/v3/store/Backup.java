@@ -48,6 +48,8 @@ public final class Backup {
         public String profileJson;
         /** {@code Rules.version} the backup was exported under, or null when missing. */
         public String rulesVersion;
+        /** Favorites and purchased Persona DLC packs; absent in older backups. */
+        public String compendiumJson;
         public final List<CheckpointRow> checkpoints = new ArrayList<>();
         public final List<EventRow> events = new ArrayList<>();
 
@@ -83,6 +85,9 @@ public final class Backup {
         root.put("exportedMillis", exportedMillis);
         root.put("rulesVersion", rulesVersion == null ? "" : rulesVersion);
         root.put("profile", data.profileJson == null ? JSONObject.NULL : new JSONObject(data.profileJson));
+        if (data.compendiumJson != null) {
+            root.put("compendium", new JSONObject(data.compendiumJson));
+        }
         JSONArray checkpoints = new JSONArray();
         for (CheckpointRow c : data.checkpoints) {
             JSONObject o = new JSONObject();
@@ -135,6 +140,11 @@ public final class Backup {
             Data data = new Data();
             data.rulesVersion = optString(root, "rulesVersion");
             readProfile(root, data);
+            if (root.has("compendium") && !root.isNull("compendium")) {
+                JSONObject choices = root.getJSONObject("compendium");
+                app.p3r.dayplanner.v3.compendium.CompendiumChoices.fromJson(choices);
+                data.compendiumJson = Canonical.of(choices);
+            }
             readCheckpoints(root, data);
             readEvents(root, data);
             return data;

@@ -225,6 +225,30 @@ public class PeriodTipsTest {
         assertEquals(Rules.slot(35, false), item.slot);
     }
 
+    @Test public void rescueCatalogueShowsFloorsAndNamesWithoutNeedingAForecast() {
+        Rules rules = rules();
+        Rules.RescueGroup group = new Rules.RescueGroup();
+        group.id = "rescue.floors";
+        group.fromDay = 45;
+        group.toDay = 60;
+        group.count = 2;
+        Rules.RescuePerson a = new Rules.RescuePerson();
+        a.id = 9;
+        a.floor = 120;
+        a.nameZh = "北村文吉";
+        Rules.RescuePerson b = new Rules.RescuePerson();
+        b.id = 1;
+        b.floor = 50;
+        b.nameEn = "Ayako Yoshimoto";
+        group.people.add(a);
+        group.people.add(b);
+        rules.reminders.rescueGroups.add(group);
+        Plan.Reminder item = find(PeriodTips.collect(rules, at(50, false), null), group.id);
+        assertTrue(item.textZh.contains("50F、120F"));
+        assertTrue(item.detailZh.contains("50F · Ayako Yoshimoto\n120F · 北村文吉"));
+        assertFalse(item.detailZh.contains("已确认救出"));
+    }
+
     @Test public void plannedRescueOnLimitEveningIsAdviceAndNotConfirmedCompletion() {
         Rules rules = rules();
         Rules.RescueGroup group = new Rules.RescueGroup();

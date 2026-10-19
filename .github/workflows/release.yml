@@ -189,6 +189,7 @@ jobs:
         run: |
           python3 rules/build/build_p3r_rules.py --check
           python3 -m unittest discover -s rules/build -p 'test_*.py'
+          python3 scripts/validate_persona_data.py
 
       - name: Test, lint and assemble the signed release
         working-directory: android

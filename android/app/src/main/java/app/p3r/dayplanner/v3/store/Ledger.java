@@ -108,6 +108,19 @@ public final class Ledger implements AutoCloseable {
                 new Object[]{key, String.valueOf(value)});
     }
 
+    /** Personal compendium choices, independent of the planner's profile and revisions. */
+    public String compendiumJson() {
+        try (Cursor c = db().rawQuery("SELECT value FROM meta WHERE key = ?",
+                new String[]{"compendium"})) {
+            return c.moveToFirst() ? c.getString(0) : null;
+        }
+    }
+
+    public void putCompendiumJson(String json) {
+        db().execSQL("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)",
+                new Object[]{"compendium", json});
+    }
+
     // ------------------------------------------------------------------------------ profile
 
     /** Stored profile JSON, or null before the first save. */

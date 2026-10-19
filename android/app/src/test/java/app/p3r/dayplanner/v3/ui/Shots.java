@@ -101,6 +101,11 @@ final class Shots {
      * ({@link #checkNumeralWords}), and the line breaks of {@link #checkLines}.
      */
     static void checkTypography(View view, String where) {
+        checkTypography(view, where, false);
+    }
+
+    /** Bilingual catalogue names are deliberate; all layout and internal-id checks still apply. */
+    static void checkTypography(View view, String where, boolean bilingual) {
         if (view.getVisibility() != View.VISIBLE) {
             return;
         }
@@ -112,10 +117,10 @@ final class Shots {
             assertTrue(where + ": CJK in italic face: " + text, !(cjk && (italic || t.getPaint().getTextSkewX() != 0)));
             assertTrue(where + ": raw id shown: " + text, !text.matches(".*\\b[a-z]+[_:][a-z_:0-9]+\\b.*"));
             // A class or exam answer the guide spells in capitals (「MAY BLUES」「MADRID」「JUNE」) is quoted verbatim.
-            String latin = text.replaceAll("RANK|MAX|Lv|P3R|ATLUS|Reload|Barlow|Condensed|SIL|DVD", "")
+            String latin = text.replaceAll("RANK|MAX|Lv|P3R|ATLUS|SEGA|Reload|Barlow|Condensed|SIL|DVD|DLC|aqiu384|Megaten|Database|Fusion|Tools|Unlicense", "")
                 .replaceAll("[a-z0-9.-]+\\.[a-z]{2,}", "").replaceAll("\\b[IVX]+\\b", "")
                 .replaceAll("「[A-Z][A-Z .'-]*」", "");
-            assertTrue(where + ": English shown to the player: " + text, !latin.matches("(?s).*[A-Za-z]{2,}.*"));
+            assertTrue(where + ": English shown to the player: " + text, bilingual || !latin.matches("(?s).*[A-Za-z]{2,}.*"));
             checkNumeralWords(t, where);
             if (t.getLayout() != null && t.getLineCount() > 0 && t.getMaxLines() > 1 && t.getHeight() > 0) {
                 int needed = t.getLayout().getLineBottom(t.getLineCount() - 1) + t.getCompoundPaddingTop()
@@ -127,7 +132,7 @@ final class Shots {
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++) {
-                checkTypography(group.getChildAt(i), where);
+                checkTypography(group.getChildAt(i), where, bilingual);
             }
         }
     }

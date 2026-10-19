@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import app.p3r.dayplanner.v3.engine.Outcome;
+import app.p3r.dayplanner.v3.compendium.CompendiumPrefs;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.store.Canonical;
 import app.p3r.dayplanner.v3.store.TestRules;
@@ -18,6 +19,7 @@ import org.robolectric.annotation.Config;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /** 备份与恢复: export → import round trip, atomic replacement, idempotent import. */
 @RunWith(RobolectricTestRunner.class)
@@ -27,6 +29,55 @@ public class PlannerServiceBackupTest extends ServiceTestBase {
     private static final int MAY12_EVE = TestRules.slot(TestRules.MAY_12, true);
     private static final int MAY13_DAY = TestRules.slot(TestRules.MAY_12 + 1, false);
     private static final int MAY13_EVE = TestRules.slot(TestRules.MAY_12 + 1, true);
+
+    @Test
+    public void compendiumChoicesSurviveBackupWithoutChangingTheSchedule() throws Exception {
+        onboard(MAY12_DAY);
+        settle();
+        long stateRevision = rev();
+        long profileRevision = service.snapshot().profileRevision;
+        CompendiumPrefs prefs = new CompendiumPrefs(context);
+        prefs.setFavorite("persona_118", true);
+        prefs.setOwnedDlc(Set.of("p5r_1", "p4g"));
+        assertEquals(Set.of("persona_118"), new CompendiumPrefs(context).favorites());
+        assertEquals(stateRevision, rev());
+        assertEquals(profileRevision, service.snapshot().profileRevision);
+
+        String backup = service.exportBackup();
+        JSONObject choices = new JSONObject(backup).getJSONObject("compendium");
+        service = open("compendium-restored.db");
+        assertTrue(service.importBackup(id(), backup).ok);
+        assertEquals(Canonical.of(choices), Canonical.of(
+            new JSONObject(service.exportBackup()).getJSONObject("compendium")));
+    }
+
+    @Test
+    public void invalidCompendiumChoicesRejectTheWholeImport() throws Exception {
+        onboard(MAY12_DAY);
+        CompendiumPrefs prefs = new CompendiumPrefs(context);
+        prefs.setFavorite("persona_118", true);
+        String before = stripTime(service.exportBackup());
+        JSONObject damaged = new JSONObject(service.exportBackup());
+        damaged.getJSONObject("compendium").put("favorites", new org.json.JSONArray().put(42));
+        assertFalse(service.importBackup(id(), damaged.toString()).ok);
+        assertEquals(before, stripTime(service.exportBackup()));
+        assertEquals(Set.of("persona_118"), prefs.favorites());
+    }
+
+    @Test
+    public void oldBackupsKeepCurrentCompendiumChoicesAndImportRetriesKeepNewFavorites() throws Exception {
+        onboard(MAY12_DAY);
+        CompendiumPrefs prefs = new CompendiumPrefs(context);
+        prefs.setFavorite("persona_118", true);
+        JSONObject old = new JSONObject(service.exportBackup());
+        old.remove("compendium");
+        String command = id();
+        assertTrue(service.importBackup(command, old.toString()).ok);
+        assertEquals(Set.of("persona_118"), prefs.favorites());
+        prefs.setFavorite("persona_119", true);
+        assertTrue(service.importBackup(command, old.toString()).duplicate);
+        assertEquals(Set.of("persona_118", "persona_119"), prefs.favorites());
+    }
 
     @Test
     public void exportImportRoundTripIsByteStable() throws Exception {

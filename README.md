@@ -1,4 +1,4 @@
-# P3R 规划 · 《女神异闻录3 Reload》社群日程安排
+# P3R 规划 · 日程、提示、图鉴与合成
 
 离线运行的 Android 应用 + 桌面小组件。根据你**现在的存档状态**和想 MAX 的社群，把从今天到 1 月 31 日的**每一个白天和晚上**都排好，并且整份安排前后自洽：每一步对现金、个人能力值（学力/魅力/勇气）、社群 RANK、解锁进度和塔尔塔罗斯次数的影响都会推演下去，后面的安排建立在前面的结果之上。
 
@@ -28,12 +28,17 @@
 <img src="docs/screenshots/widget_answers.png" width="320" alt="小组件上的回答">
 <img src="docs/screenshots/result_tower.png" width="230" alt="塔尔塔罗斯结果">
 </p>
+<p>
+<img src="docs/screenshots/compendium.png" width="230" alt="面具图鉴与搜索">
+<img src="docs/screenshots/persona_detail.png" width="230" alt="面具属性和技能">
+<img src="docs/screenshots/fusion.png" width="230" alt="合成配方">
+</p>
 
 ## 下载
 
-下载正式版 [P3R-Planner-3.4.2.apk](https://github.com/nobrainmonkey/P3R_widget/releases/download/v3.4.2/P3R-Planner-3.4.2.apk)，在手机上打开安装即可（需要允许“安装未知应用”）。完整说明和校验文件见 [3.4.2 Release](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.4.2)。
+下载正式版 [P3R-Planner-3.5.0.apk](https://github.com/nobrainmonkey/P3R_widget/releases/download/v3.5.0/P3R-Planner-3.5.0.apk)，在手机上打开安装即可（需要允许“安装未知应用”）。完整说明和校验文件见 [3.5.0 Release](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.5.0)。
 
-**正式版安装**：[3.4.2](docs/RELEASE_NOTES_3.4.2.md) 沿用 3.3.0 签名，可以直接覆盖 3.3.0～3.4.1 并保留进度。3.2.0 及更早版本的更新步骤见[签名与迁移说明](docs/RELEASE_SIGNING.md)。
+**正式版安装**：[3.5.0](docs/RELEASE_NOTES_3.5.0.md) 沿用 3.3.0 签名，可以直接覆盖 3.3.0～3.4.2 并保留进度。3.2.0 及更早版本的更新步骤见[签名与迁移说明](docs/RELEASE_SIGNING.md)。
 
 **从 3.0.x 更新**：3.1.0 去掉了「我的 → 逐日攻略」，更新后就看不到它的打勾进度了。想保留的话，**更新前**先打开逐日攻略，点右上角的菜单按钮打开「设置」，再点「导出进度备份」（这个文件可以导入旧版 2.0.0 “P3R” 的固定攻略）。已经更新了也不要紧：打勾进度并没有被删除，仍然留在手机上；从 3.1.1 起，「我的 → 备份与恢复」里有「旧版逐日攻略」一节，点「导出打勾进度」就能导出同样的文件（手机上没有打过勾的进度时，不会显示这一节）。桌面上的「P3R 逐日攻略」小组件更新后会失效，长按移除即可；「P3R 每日安排」不受影响。
 
@@ -64,6 +69,7 @@
 6. **规划设置**：可以选「尽量都体验」（默认）或「尽量多 MAX」。可开启「深度修改」，设置会保留；以后每次记录进度或修改规划设置，自动重排给 12 秒预算。
 7. **可选目标**：在「社群」页为 9 名队友分别选特性「不追求 / 解锁 / 强化」，默认不追求；选的时候可核对两种宿舍活动实际做过几次。「解锁」只争取任一种活动满 3 次，「强化」才争取两种各满 3 次；已经达成的目标不再为特性安排。没有宿舍特性的社群不会显示这个选项。也可勾选想看的羁绊剧情（顺平、真田、虎狼丸、天田、荒垣）；11 月后会用「结缘网站的字条」把多出来的晚上换成社群好感。
 8. **想安排园艺**：在「同步现状 → 宿舍活动」开启「允许安排园艺」，并提前种好作物。园艺默认关闭，种苗费用和作物状态需要自己准备、确认。
+9. **查面具与合成**：在「提示」或「我的」打开「图鉴与合成」。可搜中英文名称和技能，按塔罗牌、等级筛选、排序，收藏常用面具。点开面具可看相性、技能和合成配方，配方里的材料可以继续点开；「合成」里也能直接选两个材料。先勾选已购买的面具 DLC，结果会按你的组合变化。收藏和 DLC 会随备份保存。
 
 所有记录都能撤销（「我的 → 记录历史」），之后改目标或人格面具设置也不会改写已经确认过的记录。
 
@@ -88,6 +94,8 @@
 ## 数据来源
 
 优先使用从 P3R 游戏文件中提取的数据表（社群点数阈值、加成系数、能力值阈值、休息日邀约日期、塔尔塔罗斯区块开放日、官方简体中文名称），其次是 Reload 专用的社群日历和攻略站，并排除 P3/FES/P3P 的旧数据。每条规则都记录了来源和可信度，详见 `rules/build/REPORT.md` 与 `rules/sources/SOURCES.json`。
+
+图鉴与合成参考 [aqiu384 / Megaten Database](https://github.com/aqiu384/megaten-database) 和 [Megaten Fusion Tools](https://github.com/aqiu384/megaten-fusion-tool)；后者代码使用 Unlicense。面具和技能优先采用游戏官方简中、英文名称，不收录图片。
 
 ## 从源码构建
 

@@ -1100,9 +1100,11 @@ final class Planner {
         /**
          * Up to {@code candidates} options to roll out, the base choice included in the count but not
          * returned: first one per category (best two meetings, best admitted/gate unlock or gateway
-         * meeting outside the top two, best stat/job, best dorm project, Tartarus, best dating-site
+         * meeting, best stat/job, best dorm project, Tartarus, best dating-site
          * note, Link Episode), ordered by H; when K is larger than that, the next best remaining
-         * actions by H.
+         * actions by H. For K >= 2 the best unlock/gateway survives the final cut alongside the base
+         * choice. Goal-serving gateways compare goal priority first, so an ordinary unlock cannot
+         * suppress an unmet prerequisite of a selected goal.
          */
         private int[] diverse(int n, int baseIdx) {
             if (candidateMode == CandidateMode.NORMAL_TOP_K) {
@@ -1133,7 +1135,7 @@ final class Planner {
                     }
                 } else if (type == Kernel.T_UNLOCK) {
                     if (anyUnlock < 0 || scores[i] > scores[anyUnlock]) anyUnlock = i;
-                    if (h.isAdmittedOrGate(Kernel.target(code)) && (unlock < 0 || scores[i] > scores[unlock])) {
+                    if (h.isAdmittedOrGate(Kernel.target(code)) && betterGateway(i, unlock)) {
                         unlock = i;
                     }
                 } else if (type == Kernel.T_ACT) {
@@ -1148,13 +1150,12 @@ final class Planner {
                     if (episode < 0 || scores[i] > scores[episode]) episode = i;
                 }
             }
-            if (unlock < 0) {
-                for (int i = 0; i < n; i++) {
-                    if (i == social1 || i == social2 || Heuristics.vetoed(scores[i])) continue;
-                    int code = buf[i];
-                    if (Kernel.type(code) == Kernel.T_MEET && h.opensGate(Kernel.target(code))) {
-                        if (unlock < 0 || scores[i] > scores[unlock]) unlock = i;
-                    }
+            for (int i = 0; i < n; i++) {
+                if (Heuristics.vetoed(scores[i])) continue;
+                int code = buf[i];
+                if (Kernel.type(code) == Kernel.T_MEET && h.opensGate(Kernel.target(code))
+                        && betterGateway(i, unlock)) {
+                    unlock = i;
                 }
             }
             if (unlock < 0 && anyUnlock >= 0 && (social2 < 0 || scores[anyUnlock] > scores[social2])) {
@@ -1164,6 +1165,7 @@ final class Planner {
             for (int r : new int[]{social1, social2, unlock, act, dorm, tower, note, episode}) {
                 if (r >= 0 && !picked.contains(r)) picked.add(r);
             }
+            if (!Heuristics.vetoed(scores[baseIdx]) && !picked.contains(baseIdx)) picked.add(baseIdx);
             picked.sort(this::byScore);
             if (candidates > picked.size()) {
                 List<Integer> rest = new ArrayList<>();
@@ -1172,6 +1174,9 @@ final class Planner {
                 for (int i = 0; i < rest.size() && picked.size() < candidates; i++) picked.add(rest.get(i));
             }
             int limit = Math.min(picked.size(), candidates);
+            if (candidates >= 2 && unlock >= 0 && picked.indexOf(unlock) >= limit) {
+                picked.set(limit - 1, unlock);
+            }
             boolean baseVetoed = Heuristics.vetoed(scores[baseIdx]);
             int[] out = new int[limit];
             int c = 0;
@@ -1180,6 +1185,24 @@ final class Planner {
                 if (idx != baseIdx || baseVetoed) out[c++] = buf[idx];
             }
             return Arrays.copyOf(out, c);
+        }
+
+        /** The same bounded action selection used by run, excluding its separately tried base. */
+        int[] rolloutCandidates(SimState state) {
+            int n = Kernel.legal(m, state, buf);
+            return n == 0 ? new int[0] : diverse(n, scoreAll(state, n));
+        }
+
+        private boolean betterGateway(int candidate, int current) {
+            if (current < 0) return true;
+            int priority = h.goalPriority(Kernel.target(buf[candidate]));
+            int other = h.goalPriority(Kernel.target(buf[current]));
+            if (priority != other) {
+                if (priority < 0) return false;
+                if (other < 0) return true;
+                return priority < other;
+            }
+            return byScore(candidate, current) < 0;
         }
 
         private int[] oldDiverse(int n, int baseIdx) {

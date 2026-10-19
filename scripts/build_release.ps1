@@ -11,7 +11,7 @@ $env:P3R_QA_DIR = Join-Path $Root "qa_out"
 
 $KeystoreProps = Join-Path $Root ".signing\keystore.properties"
 if (-not (Test-Path $KeystoreProps)) {
-    Write-Warning ".signing/keystore.properties missing -- the release APK will be signed with the debug key"
+    throw ".signing/keystore.properties is required; restore the private signing backup first."
 }
 
 Push-Location $Root
@@ -20,6 +20,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "rules build check failed" }
     & python -m unittest rules/build/test_build.py
     if ($LASTEXITCODE -ne 0) { throw "rules unit tests failed" }
+    & python scripts/validate_persona_data.py
+    if ($LASTEXITCODE -ne 0) { throw "Persona data check failed" }
 } finally {
     Pop-Location
 }
@@ -46,6 +48,11 @@ try {
 
     $CertOut = & apksigner.bat verify --print-certs $Apk
     if ($LASTEXITCODE -ne 0) { throw "apksigner verification failed" }
+    $ExpectedCert = "83d4395bcac9e7b33b20f3bd2b1327c856e56a6f0bd4816c52a42550a2b653ba"
+    $CertLines = @($CertOut | Select-String -Pattern '^Signer #[0-9]+ certificate SHA-256 digest: ([0-9a-fA-F]+)$')
+    if ($CertLines.Count -ne 1 -or $CertLines[0].Matches[0].Groups[1].Value.ToLowerInvariant() -ne $ExpectedCert) {
+        throw "Release must retain the 3.3.0 signing certificate ($ExpectedCert)"
+    }
     $CertOut | Select-Object -First 4
 
     Copy-Item -Path $Apk -Destination $OutApk -Force

@@ -493,6 +493,7 @@ public final class PlannerService implements PlannerApi {
             try {
                 Backup.Data data = new Backup.Data();
                 data.profileJson = ledger.profileJson();
+                data.compendiumJson = ledger.compendiumJson();
                 data.checkpoints.addAll(ledger.checkpoints());
                 data.events.addAll(ledger.allEvents());
                 return Backup.write(data, model.view.rules.version, wiring.clock.getAsLong());
@@ -806,6 +807,9 @@ public final class PlannerService implements PlannerApi {
             }
             if (data.profileJson != null) {
                 ledger.putProfileJson(data.profileJson);
+            }
+            if (data.compendiumJson != null) {
+                ledger.putCompendiumJson(data.compendiumJson);
             }
             ledger.bumpProfileRevision();
             long latest = data.latestCheckpointId();

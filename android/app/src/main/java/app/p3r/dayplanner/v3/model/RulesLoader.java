@@ -1046,6 +1046,7 @@ public final class RulesLoader {
             if (!o.isNull("rescueGroups")) {
                 JSONArray groups = reqArray(o, "rescueGroups", "reminders");
                 Set<String> groupIds = new HashSet<>();
+                Set<Integer> missingPersonIds = new HashSet<>();
                 for (int i = 0; i < groups.length(); i++) {
                     String where = "reminders.rescueGroups[" + i + "]";
                     JSONObject g = reqObject(groups, i, where);
@@ -1058,6 +1059,21 @@ public final class RulesLoader {
                     group.toDay = dayInRange(g, "toDay", where);
                     if (group.toDay < group.fromDay) throw fail(where + " ends before it starts");
                     group.count = intInRange(g, "count", where, 1, 100);
+                    if (g.has("people")) {
+                        JSONArray people = reqArray(g, "people", where);
+                        if (people.length() != group.count) throw fail(where + ".people must match count");
+                        for (int k = 0; k < people.length(); k++) {
+                            String personWhere = where + ".people[" + k + "]";
+                            JSONObject personJson = reqObject(people, k, personWhere);
+                            Rules.RescuePerson person = new Rules.RescuePerson();
+                            person.id = intInRange(personJson, "id", personWhere, 1, 20);
+                            if (!missingPersonIds.add(person.id)) throw fail(personWhere + ".id is duplicated");
+                            person.nameEn = reqString(personJson, "nameEn", personWhere);
+                            person.nameZh = optString(personJson, "nameZh", personWhere);
+                            person.floor = intInRange(personJson, "floor", personWhere, 1, 264);
+                            group.people.add(person);
+                        }
+                    }
                     JSONArray rescues = reqArray(g, "rescueIds", where);
                     for (int k = 0; k < rescues.length(); k++) {
                         String id = rescues.getString(k);

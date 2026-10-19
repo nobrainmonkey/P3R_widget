@@ -404,6 +404,12 @@
    "url": "https://www.rpgsite.net/guide/15390-persona-3-reload-missing-person-quest-missing-people-list-locations-deadlines-rewards",
    "edition": "reload",
    "retrieved": "2026-10-14"
+  },
+  {
+   "path": "aqiu_gamedata/DT_FldDungeonFloor.tsv",
+   "sha256": "073df3c6b6dd68dba3857ac164f9cb605f3243a07bc836136192fee14ae3257b",
+   "url": "https://github.com/aqiu384/megaten-database/blob/8f87f212e206748b71298a52eb1eaec1efed6161/src/p3r/Content/Xrd777/Field/Data/DataTable/DT_FldDungeonFloor.tsv",
+   "edition": "game_data_reload"
   }
  ]
 }

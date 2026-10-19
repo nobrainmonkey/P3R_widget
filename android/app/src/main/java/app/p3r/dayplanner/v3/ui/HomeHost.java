@@ -29,6 +29,11 @@ interface HomeHost {
     /** Pushes a full-screen sub-page with a back arrow. */
     void pushPage(String title, View content);
 
+    /** A page with its own scrolling list and fixed controls. */
+    default void pushFillingPage(String title, View content) {
+        pushPage(title, content);
+    }
+
     /** Pops the top sub-page; returns false when none was open. */
     boolean popPage();
 

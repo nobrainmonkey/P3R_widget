@@ -184,6 +184,28 @@ public class RemindersLoaderTest {
 
     // ------------------------------------------------------------------ helpers
 
+    @Test public void missingPersonFloorsAreNamedUniqueAndMatchTheirGroupCount() throws JSONException {
+        Rules.RescuePerson ayako = PackFixture.rules().reminders.rescueGroups.get(0).people.get(0);
+        assertEquals(1, ayako.id);
+        assertEquals(50, ayako.floor);
+        assertEquals("Ayako Yoshimoto", ayako.displayName());
+
+        JSONObject root = PackFixture.tree();
+        root.getJSONObject("reminders").getJSONArray("rescueGroups").getJSONObject(0)
+                .getJSONArray("people").getJSONObject(0).put("floor", 0);
+        expect(root, "reminders.rescueGroups[0].people[0].floor");
+
+        root = PackFixture.tree();
+        root.getJSONObject("reminders").getJSONArray("rescueGroups").getJSONObject(0)
+                .put("people", new JSONArray());
+        expect(root, "reminders.rescueGroups[0].people must match count");
+
+        root = PackFixture.tree();
+        root.getJSONObject("reminders").getJSONArray("rescueGroups").getJSONObject(1)
+                .getJSONArray("people").getJSONObject(0).put("id", 1);
+        expect(root, "reminders.rescueGroups[1].people[0].id is duplicated");
+    }
+
     private static Rules.Reminder item(Rules r, String id) {
         for (Rules.Reminder x : r.reminders.items) if (x.id.equals(id)) return x;
         fail("no reminder " + id);

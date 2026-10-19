@@ -416,6 +416,9 @@ final class Heuristics {
     private double schoolWantNeed;
     /** Bonus per meeting (or unlock action) of a link for the gates it opens for other links. */
     private final double[] linkBonus;
+    /** Best active goal served by this link, including recursively unmet link-rank gates. */
+    private final int[] effectiveGoalRanks;
+    private final boolean[] goalPrerequisite;
     /** Affinity multiplier per link in the prepared state (its Persona × the Charm bonus). */
     private final double[] linkMult;
     /** Value per useful stat point of evening / daytime training. */
@@ -666,6 +669,9 @@ final class Heuristics {
         admitted = new boolean[n];
         order = new int[n];
         linkBonus = new double[n];
+        effectiveGoalRanks = new int[n];
+        Arrays.fill(effectiveGoalRanks, -1);
+        goalPrerequisite = new boolean[n];
         linkMult = new double[n];
     }
 
@@ -1055,6 +1061,7 @@ final class Heuristics {
         int day = slot >> 1;
         for (int l = 0; l < t.nLinks; l++) linkMult[l] = Kernel.mult(m, st, l);
         prepareDemand(st, day);
+        prepareGoalPriorities(st);
         Arrays.fill(eveValue, 0);
         Arrays.fill(dayValue, 0);
         Arrays.fill(datedEveValue, 0);
@@ -1241,8 +1248,8 @@ final class Heuristics {
     private boolean wantedMeetable(SimState st, int slot, int day) {
         int mask = t.meetMask[slot];
         for (int l = 0; mask != 0; l++, mask >>>= 1) {
-            if ((mask & 1) == 0 || demand[l] <= 0) continue;
-            if (tuning.goalFirst && effectiveGoalRank(st, l) < 0
+            if ((mask & 1) == 0 || (demand[l] <= 0 && goalPriority(l) < 0)) continue;
+            if (tuning.goalFirst && goalPriority(l) < 0
                     && !(m.goal[l] && st.rank[l] < m.target(l) && admitted[l])) continue;
             if (Kernel.meetLegal(m, st, l, day)) return true;
         }
@@ -1785,39 +1792,54 @@ final class Heuristics {
         if (type == Kernel.T_ACT) return goalPreparationPriority(st, Kernel.target(code), h);
         if (type != Kernel.T_MEET && type != Kernel.T_UNLOCK && type != Kernel.T_NOTE) return h;
         int l = Kernel.target(code);
-        int gr = effectiveGoalRank(st, l);
-        if (gr < 0 || h <= 0) return h;
+        int gr = goalPriority(l);
+        if (gr < 0 || vetoed(h)) return h;
         if (type == Kernel.T_NOTE) {
-            if (!goal[l] || st.rank[l] >= target[l] || Kernel.need(m, l, st.rank[l]) - st.pts[l] <= 0) return h;
+            if (h <= 0 || !goal[l] || st.rank[l] >= target[l] || Kernel.need(m, l, st.rank[l]) - st.pts[l] <= 0) return h;
             if (tuning.orderedNotes) {
                 return GOAL_FIRST_PREPARATION + GOAL_FIRST_STEP * (goalLinks.length - gr)
                         + Math.min(h, GOAL_FIRST_STEP - 1);
             }
             return goalNotePreparationPriority(st, l);
         }
-        if (h <= 1.0) return h; // a meeting that cannot add anything (banked points during a hold)
+        if (type == Kernel.T_MEET && !st.ready[l] && Kernel.held(m, st, l, st.rank[l] + 1, st.slot >> 1)
+                && st.pts[l] >= Kernel.need(m, l, st.rank[l])) return h;
         return GOAL_FIRST + GOAL_FIRST_STEP * (goalLinks.length - gr) + Math.min(h, GOAL_FIRST_STEP - 1);
     }
 
     /**
-     * Best (lowest) priority index in {@link #goalRank} that advancing link {@code l} serves in
-     * {@code st}: its own goal rank while below {@link #target}, or the goal rank of any unestablished
-     * goal whose link-rank prerequisite on {@code l} is not yet met (-1 when none).
+     * Backward priority through the unmet unlock graph: Tower -> Strength 4 -> Chariot 2.
+     * Established links no longer need their own unlock requirements; a prerequisite loses its
+     * inherited priority as soon as its required rank is reached. The best assigned priority also
+     * terminates cycles without recursive expansion during every action score.
      */
-    private int effectiveGoalRank(SimState st, int l) {
-        if (l < 0 || l >= t.nLinks || demand[l] <= 0) return -1;
-        int best = goal[l] && st.rank[l] < target[l] ? goalRank[l] : Integer.MAX_VALUE;
+    private void prepareGoalPriorities(SimState st) {
+        Arrays.fill(effectiveGoalRanks, -1);
+        Arrays.fill(goalPrerequisite, false);
         for (int g : goalLinks) {
-            if (st.rank[g] != 0 || demand[g] <= 0 || goalRank[g] >= best) continue;
-            int[] rl = m.reqLink[g];
-            for (int i = 0; i < rl.length; i++) {
-                if (rl[i] == l && st.rank[l] < m.reqLinkRank[g][i]) {
-                    best = goalRank[g];
-                    break;
-                }
-            }
+            if (demand[g] > 0) inheritGoalPriority(st, g, target[g], goalRank[g], false);
         }
-        return best == Integer.MAX_VALUE ? -1 : best;
+    }
+
+    private void inheritGoalPriority(SimState st, int l, int requiredRank, int priority, boolean prerequisite) {
+        if (l < 0 || l >= t.nLinks || st.rank[l] >= requiredRank || Kernel.lost(m, st, l, st.slot >> 1)) return;
+        if (st.rank[l] > 0 && !st.ready[l] && ((st.heldRank[l] == st.rank[l] + 1)
+                || (Kernel.held(m, st, l, st.rank[l] + 1, st.slot >> 1)
+                && st.pts[l] >= Kernel.need(m, l, st.rank[l])))) return;
+        if (prerequisite && st.rank[l] > 0
+                && meetingsBetween(l, st.rank[l], st.pts[l], st.ready[l], requiredRank, linkMult[l]) >= INF) return;
+        if (prerequisite) goalPrerequisite[l] = true;
+        if (effectiveGoalRanks[l] >= 0 && effectiveGoalRanks[l] <= priority) return;
+        effectiveGoalRanks[l] = priority;
+        if (st.rank[l] != 0) return;
+        for (int i = 0; i < m.reqLink[l].length; i++) {
+            inheritGoalPriority(st, m.reqLink[l][i], m.reqLinkRank[l][i], priority, true);
+        }
+    }
+
+    /** Priority of the best active goal this link advances in the prepared state, or -1. */
+    int goalPriority(int l) {
+        return l >= 0 && l < effectiveGoalRanks.length ? effectiveGoalRanks[l] : -1;
     }
 
     private double preparationWeight(int link) {
@@ -1924,12 +1946,12 @@ final class Heuristics {
 
     /** True when advancing link {@code l} is an active goal, opens a gate, or is a non-deferred link admitted to reach MAX. */
     boolean isAdmittedOrGate(int l) {
-        return l >= 0 && l < admitted.length && (goal[l] || linkBonus[l] > 0 || (admitted[l] && !m.goal[l]));
+        return l >= 0 && l < admitted.length && (goal[l] || goalPrerequisite[l] || linkBonus[l] > 0 || (admitted[l] && !m.goal[l]));
     }
 
     /** True when advancing link {@code l} currently unlocks a prerequisite gate for another wanted link. */
     boolean opensGate(int l) {
-        return l >= 0 && l < linkBonus.length && linkBonus[l] > 0;
+        return l >= 0 && l < linkBonus.length && (goalPrerequisite[l] || linkBonus[l] > 0);
     }
 
     private double meetScore(SimState st, int l) {

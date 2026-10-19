@@ -588,8 +588,22 @@ public final class Rules {
         public int count;
         /** Ids of {@link Rules#rescues} in this group (the people the engine models), possibly empty. */
         public List<String> rescueIds = new ArrayList<>();
+        /** All the group's missing people, including their fixed Tartarus floors. */
+        public List<RescuePerson> people = new ArrayList<>();
         /** What failing this group's rescue locks (「救不出来的话，伊莉莎白的第 97 号委托就做不了。」), or null. */
         public String locksZh;
+    }
+
+    /** Missing-person board identity and its fixed location; separate from confirmed rescue progress. */
+    public static final class RescuePerson {
+        public int id;
+        public String nameEn;
+        public String nameZh;
+        public int floor;
+
+        public String displayName() {
+            return nameZh == null || nameZh.isEmpty() ? nameEn : nameZh;
+        }
     }
 
     /** The {@code reminders} section of the pack; the engine words 上课犯困, 保健室 and 失踪者 against the plan. */

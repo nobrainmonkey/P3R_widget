@@ -172,6 +172,37 @@ public class RemindersTest {
 
     // ------------------------------------------------------------------ 5. 失踪者
 
+    @Test public void plannedTripListsEveryRescueFloorInAscendingOrderAcrossArrivalGroups() {
+        Rules r = ReminderFixtures.rules();
+        Rules.RescuePerson first = new Rules.RescuePerson();
+        first.id = 9;
+        first.nameZh = "北村文吉";
+        first.floor = 120;
+        r.reminders.rescueGroups.get(0).people.add(first);
+        Rules.RescuePerson laterLow = new Rules.RescuePerson();
+        laterLow.id = 1;
+        laterLow.nameEn = "Ayako Yoshimoto";
+        laterLow.floor = 50;
+        Rules.RescuePerson laterHigh = new Rules.RescuePerson();
+        laterHigh.id = 12;
+        laterHigh.nameZh = "舞子";
+        laterHigh.floor = 146;
+        r.reminders.rescueGroups.get(1).people.addAll(Arrays.asList(laterHigh, laterLow));
+        SimState start = ReminderFixtures.start(r, 20, 1, 1, 1);
+        Plan plan = ReminderFixtures.plan(r, start,
+                ReminderFixtures.codes(r, start, Arrays.asList(eve(43)), -1, 0), -1);
+        Plan.Reminder tower = find(plan, "rescue.05-11.tower");
+        assertTrue(tower.textZh.endsWith("50F、120F、146F"));
+        assertTrue(tower.shortZh.contains("50F、120F、146F"));
+        assertTrue(tower.detailZh.contains("50F · Ayako Yoshimoto\n120F · 北村文吉\n146F · 舞子"));
+        assertEquals("displaying a plan must not mark people rescued", 0L, start.rescued);
+        Plan early = ReminderFixtures.plan(r, start,
+                ReminderFixtures.codes(r, start, Arrays.asList(eve(40)), -1, 0), -1);
+        Plan.Reminder earlyTower = find(early, "rescue.05-11.tower");
+        assertTrue(earlyTower.textZh.endsWith("120F"));
+        assertFalse("future arrivals do not belong to an earlier visit", earlyTower.detailZh.contains("146F"));
+    }
+
     @Test
     public void missingPeopleRescuedOnThePlannedTartarusEvening() {
         Rules r = ReminderFixtures.rules();

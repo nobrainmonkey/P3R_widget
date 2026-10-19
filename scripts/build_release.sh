@@ -7,6 +7,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck disable=SC1091
 source "$ROOT/.toolchain/env.sh"
 export P3R_QA_DIR="$ROOT/qa_out"
+python3 "$ROOT/rules/build/build_p3r_rules.py" --check
+python3 -m unittest discover -s "$ROOT/rules/build" -p 'test_*.py'
+python3 "$ROOT/scripts/validate_persona_data.py"
 cd "$ROOT/android"
 
 if [[ ! -f "$ROOT/.signing/keystore.properties" ]]; then

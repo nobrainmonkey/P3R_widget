@@ -645,6 +645,15 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
 
     @Override
     public void pushPage(String title, View content) {
+        pushPage(title, content, false);
+    }
+
+    @Override
+    public void pushFillingPage(String title, View content) {
+        pushPage(title, content, true);
+    }
+
+    private void pushPage(String title, View content, boolean fillsPage) {
         LinearLayout page = Ui.column(this);
         page.setBackground(new OceanDrawable(Ui.col(this, R.color.p3r_navy_800), Ui.col(this, R.color.p3r_navy_900),
             Ui.col(this, R.color.p3r_navy_950), Ui.col(this, R.color.p3r_royal_500), Ui.col(this, R.color.p3r_cyan_300)));
@@ -665,17 +674,25 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         hp.leftMargin = Ui.dp(this, 4);
         bar.addView(heading, hp);
         page.addView(bar, Ui.matchWrap());
-        ScrollView scroll = new ScrollView(this);
-        scroll.setClipToPadding(false);
-        scroll.setVerticalScrollBarEnabled(false);
-        FrameLayout holder = new FrameLayout(this);
-        Ui.pad(holder, Ui.GUTTER, 8, Ui.GUTTER, 32);
-        holder.addView(content, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT));
-        scroll.addView(holder, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT));
-        scroll.setPadding(0, 0, 0, bottomInset);
-        page.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+        if (fillsPage) {
+            FrameLayout holder = new FrameLayout(this);
+            holder.setPadding(0, 0, 0, bottomInset);
+            holder.addView(content, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+            page.addView(holder, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+        } else {
+            ScrollView scroll = new ScrollView(this);
+            scroll.setClipToPadding(false);
+            scroll.setVerticalScrollBarEnabled(false);
+            FrameLayout holder = new FrameLayout(this);
+            Ui.pad(holder, Ui.GUTTER, 8, Ui.GUTTER, 32);
+            holder.addView(content, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+            scroll.addView(holder, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+            scroll.setPadding(0, 0, 0, bottomInset);
+            page.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+        }
         pageLayer.addView(page, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
         pages.push(page);
@@ -904,6 +921,11 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
 
     private MePage.Actions meActions() {
         return new MePage.Actions() {
+            @Override
+            public void openCompendium() {
+                pushFillingPage("图鉴与合成", CompendiumPage.create(HomeActivity.this));
+            }
+
             @Override
             public void openSettings() {
                 pushPage("规划设置", SettingsPage.build(HomeActivity.this));

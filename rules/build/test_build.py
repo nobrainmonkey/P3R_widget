@@ -462,8 +462,19 @@ class BuildTest(unittest.TestCase):
         limits = [builder.day_of_md(md) for md in ("09-04", "12-01", "12-30")]
         self.assertEqual(builder.rescue_limit_witnesses(builder.Ledger(), people), limits)
         self.assertEqual(sum(n for _d, n in builder.walkthrough_rescues()), 20)
-        for record in self.pack["tartarus"]["rescues"] + self.pack["reminders"]["rescueGroups"]:
+        for record in self.pack["tartarus"]["rescues"]:
             self.assertEqual(record["src"], list(builder.RESCUE_SRC), record["id"])
+        for record in groups:
+            self.assertEqual(record["src"], [*builder.RESCUE_SRC, "gd_dungeon_floor"], record["id"])
+            self.assertEqual(record["count"], len(record["people"]), record["id"])
+        floor_people = {person["id"]: person for group in groups for person in group["people"]}
+        self.assertEqual(sorted(floor_people), list(range(1, 21)))
+        self.assertEqual([floor_people[i]["floor"] for i in range(1, 21)],
+                         [50, 56, 64, 79, 84, 101, 109, 114, 120, 135,
+                          140, 146, 159, 165, 177, 196, 209, 221, 232, 250])
+        self.assertEqual(floor_people[1]["nameEn"], "Ayako Yoshimoto")
+        self.assertEqual(floor_people[9]["nameZh"], "北村文吉")
+        self.assertEqual(floor_people[12]["nameZh"], "舞子")
         # The copy includes the deadline evening instead of incorrectly shortening the window.
         days = {d["md"]: d for d in self.pack["days"]}
         self.assertEqual(days["10-03"]["noteZh"],

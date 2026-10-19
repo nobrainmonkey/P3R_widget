@@ -16,6 +16,8 @@ import app.p3r.dayplanner.R;
 final class MePage {
     /** Callbacks for the entries that need the activity. */
     interface Actions {
+        default void openCompendium() {}
+
         void openSettings();
 
         void openHistory();
@@ -91,6 +93,10 @@ final class MePage {
         column.addView(entry(R.drawable.ui_ic_replan, FullReplanSheet.TITLE,
             replanning ? FullReplanSheet.runningText(d) : FullReplanSheet.SUBTITLE,
             FullReplanSheet.available(d) && !replanning, () -> FullReplanSheet.show(host)), spaced(8));
+
+        column.addView(Ui.sectionHeader(c, "游戏工具", null), spaced(16));
+        column.addView(entry(R.drawable.ui_ic_star, "图鉴与合成", "查面具、技能和合成配方",
+            true, actions::openCompendium), spaced(4));
 
         column.addView(Ui.sectionHeader(c, "其他", null), spaced(16));
         column.addView(entry(R.drawable.ui_ic_backup, "备份与恢复", "导出全部记录，或从备份恢复",

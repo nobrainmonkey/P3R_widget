@@ -1016,6 +1016,25 @@ public class RulesPackFactsTest {
         }
     }
 
+    @Test public void allTwentyMissingPeopleHaveTheirOwnFixedFloors() {
+        int[] expectedFloors = {50, 56, 64, 79, 84, 101, 109, 114, 120, 135,
+                140, 146, 159, 165, 177, 196, 209, 221, 232, 250};
+        Map<Integer, Rules.RescuePerson> people = new java.util.TreeMap<>();
+        for (Rules.RescueGroup group : r.reminders.rescueGroups) {
+            assertEquals(group.id, group.count, group.people.size());
+            for (Rules.RescuePerson person : group.people) {
+                assertNull("duplicate person " + person.id, people.put(person.id, person));
+            }
+        }
+        assertEquals(20, people.size());
+        for (int i = 0; i < expectedFloors.length; i++) {
+            assertEquals("missing-person board ID " + (i + 1), expectedFloors[i], people.get(i + 1).floor);
+            assertFalse(people.get(i + 1).nameEn.isEmpty());
+        }
+        assertEquals("北村文吉", people.get(9).displayName());
+        assertEquals("舞子", people.get(12).displayName());
+    }
+
     private int kind(String kind) {
         int n = 0;
         for (Rules.Reminder x : r.reminders.items) if (kind.equals(x.kind)) n++;

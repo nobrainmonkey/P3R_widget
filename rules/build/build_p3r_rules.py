@@ -45,7 +45,7 @@ PACK_PATH = ROOT / "android" / "app" / "src" / "main" / "assets" / "p3r" / "p3r_
 REPORT_PATH = ROOT / "rules" / "build" / "REPORT.md"
 
 SCHEMA = "p3r.rules.v3"
-PACK_VERSION = "3.4.0"
+PACK_VERSION = "3.5.0"
 GAME = "Persona 3 Reload (Xrd777, base game; excludes Episode Aigis/Astrea)"
 
 EPOCH = datetime.date(2009, 4, 1)
@@ -429,6 +429,8 @@ def build_sources() -> list[dict]:
         snap("gd_disappear_help", gd + "BMD_DisappearHelp.tsv", "game_data", "Missing-person board text"),
         snap("gd_disappear_data", gd + "DisappearDataAsset.tsv", "game_data",
              "Missing-person table: StartMonth/StartDays and LimitMonth/LimitDays of each of the 20 people"),
+        snap("gd_dungeon_floor", gd + "DT_FldDungeonFloor.tsv", "game_data",
+             "Tartarus floors: missingPersonID 1..20 identifies the 20 missing people; higher IDs are not people"),
         snap("gd_general_coefficient", gd + "DT_GeneralCoefficient.tsv", "game_data", "Social Link bonus multipliers"),
         snap("gd_hero_parameter", gd + "HeroParameterDataAsset.tsv", "game_data", "Social stat level thresholds"),
         snap("gd_holiday_schedule", gd + "HolidayScheduleDataAsset.tsv", "game_data", "Sunday/holiday invitation dates"),
@@ -3389,12 +3391,26 @@ def rescue_groups(ledger: Ledger) -> tuple[list[dict], list[tuple[int, int, str]
         raise BuildError("aqiu missing people disagree with the game's missing-person board (20 names, in order)")
     if [(first, last) for first, last, _name in people] != disappear_windows():
         raise BuildError("aqiu missing-people windows disagree with DisappearDataAsset (Start/Limit per person)")
-    groups: dict[tuple[int, int], list[str]] = {}
-    for first, last, name in people:
-        groups.setdefault((first, last), []).append(name)
+    floor_rows = read_tsv("DT_FldDungeonFloor")
+    person_column = floor_rows[0].index("missingPersonID")
+    floors: dict[int, int] = {}
+    for floor, row in enumerate(floor_rows[1:]):
+        person_id = int(row[person_column])
+        if not 1 <= person_id <= 20:
+            continue
+        if person_id in floors:
+            raise BuildError(f"DT_FldDungeonFloor: person {person_id} occurs more than once")
+        floors[person_id] = floor
+    if set(floors) != set(range(1, 21)):
+        raise BuildError("DT_FldDungeonFloor: expected one floor for each of missingPersonID 1..20")
+    groups: dict[tuple[int, int], list[tuple[int, str]]] = {}
+    for person_id, (first, last, name) in enumerate(people, 1):
+        groups.setdefault((first, last), []).append((person_id, name))
     out = []
     modelled = {RESCUE_EN[ident]: (ident, day_of_md(first), day_of_md(last)) for ident, _zh, first, last, _link in RESCUES}
-    for (first, last), names in sorted(groups.items()):
+    names_zh = {RESCUE_EN[ident]: zh for ident, zh, _first, _last, _link in RESCUES}
+    for (first, last), members in sorted(groups.items()):
+        names = [name for _person_id, name in members]
         ids = []
         for name in names:
             if name in modelled:
@@ -3403,7 +3419,10 @@ def rescue_groups(ledger: Ledger) -> tuple[list[dict], list[tuple[int, int, str]
                     raise BuildError(f"rescue {ident}: window {md_of(m_first)}-{md_of(m_last)} is not its aqiu group")
                 ids.append(ident)
         group = {"conf": "verified", "count": len(names), "fromDay": first, "id": f"rescue.{md_of(first)}",
-                 "rescueIds": ids, "src": list(RESCUE_SRC), "toDay": last}
+                 "people": [{"id": person_id, "nameEn": name, "floor": floors[person_id],
+                             **({"nameZh": names_zh[name]} if name in names_zh else {})}
+                            for person_id, name in sorted(members, key=lambda p: floors[p[0]])],
+                 "rescueIds": ids, "src": [*RESCUE_SRC, "gd_dungeon_floor"], "toDay": last}
         if md_of(first) in RESCUE_LOCKS:
             number, bullet = RESCUE_LOCKS[md_of(first)]
             who = bullet.split(" ")[3]
@@ -3418,7 +3437,9 @@ def rescue_groups(ledger: Ledger) -> tuple[list[dict], list[tuple[int, int, str]
     rescue_limit_witnesses(ledger, people)
     ledger.decide("reminders", "rescue", "失踪者: the 20 people of aqiu overworld (the same names, in the same order, "
                   "as the game's missing-person board; the same (missing, limit) days as DisappearDataAsset) in 13 "
-                  "(missing from, limit) groups; 北村文吉 and 舞子 are the modelled rescues (rescueIds). The engine "
+                  "(missing from, limit) groups. Individual people retain the board's id and English name; "
+                  "their floors come from DT_FldDungeonFloor.missingPersonID 1..20 (IDs above 20 are excluded). "
+                  "北村文吉 and 舞子 are the modelled rescues (rescueIds). The engine "
                   "words them against the plan: when they go missing, on the first planned Tartarus evening in the "
                   "window (rescued on that visit), or the day before the limit when no Tartarus evening is planned. The "
                   "limit evening still counts by the evidence (tartarus 'rescue deadline') but nobody has checked it in "
@@ -4219,8 +4240,15 @@ def validate_reminders(pack: dict, check_src) -> None:
         check_src(where, group)
         if group["count"] < 1 or not set(group["rescueIds"]) <= rescues or not group["fromDay"] <= group["toDay"]:
             raise BuildError(f"{where}: count >= 1, known rescueIds and fromDay <= toDay are required")
+        people = group["people"]
+        if len(people) != group["count"] or any(not 1 <= p["id"] <= 20 or not 1 <= p["floor"] <= 264
+                                                or not p["nameEn"] for p in people):
+            raise BuildError(f"{where}: one named person with a valid id and floor is required per count")
         if "locksZh" in group and not group["locksZh"]:
             raise BuildError(f"{where}: locksZh, when present, must not be empty")
+    person_ids = [p["id"] for group in rem["rescueGroups"] for p in group["people"]]
+    if sorted(person_ids) != list(range(1, 21)):
+        raise BuildError("reminders.rescueGroups: expected the 20 different missing-person board IDs")
     # The engine takes the limit evening as the last chance: it must be a Tartarus evening, and the night after
     # it must not be one (as the walkthrough and the game data have it).
     limits = [(f"reminders.rescueGroups[{g['id']}]", g["toDay"]) for g in rem["rescueGroups"]]

@@ -44,6 +44,11 @@ public class PlannerPolicyVersionTest extends ServiceTestBase {
     }
 
     @Test
+    public void previousUnlockCandidatePolicyReplansOnce() throws Exception {
+        assertOldPolicyReplans(3);
+    }
+
+    @Test
     public void policyVersionSurvivesJsonAndLegacyJsonDefaultsToZero() throws Exception {
         Plan fresh = new Plan();
         assertEquals(Plan.CURRENT_POLICY_VERSION, fresh.policyVersion);
