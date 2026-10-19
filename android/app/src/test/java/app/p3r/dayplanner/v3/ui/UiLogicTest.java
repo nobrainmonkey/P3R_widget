@@ -160,7 +160,7 @@ public class UiLogicTest {
         assertTrue(Assumptions.describe("ordinary_gain").contains("+10"));
         org.junit.Assert.assertNull("unknown ids have no visible copy", Assumptions.describe("some_new_id"));
         org.junit.Assert.assertNull(Assumptions.describe(null));
-        for (String line : Assumptions.global(new Profile())) {
+        for (String line : Assumptions.settings(new Profile(), rules)) {
             assertFalse(line, line.matches(".*[a-z_]{4,}.*"));
         }
     }
@@ -412,8 +412,7 @@ public class UiLogicTest {
         junpei.rewardZh = "每一话都有小奖励（能力值），之后的第 5 话可以合体人格面具「地狱天使」。";
         assertEquals("看完可以合体「地狱天使」Hell Biker", LinksPage.rewardLine(junpei));
         junpei.rewardZh = rewardZh;
-        assertEquals("在桐叶购物中心的放纵俱乐部买结缘网站的字条，当晚回宿舍用公用电脑给一个已解锁的社群加好感，不会直接升级。"
-            + "每张 3,000 日元。11月11日起能买到。", SettingsPage.datingNoteText(rules.datingNote));
+        assertEquals("11月11日起 · 每张 3,000 日元", SettingsPage.datingNoteText(rules.datingNote));
         assertEquals(java.util.Arrays.asList("游戏数据 · 1 项", "资料站 · 1 项"), InfoPages.sourceLines(rules.sources));
         assertEquals("小田桐秀利 · 男", Zh.person(rules.links[4]));
         assertEquals("特别课外活动部\n团体 · 男女", Zh.person(rules.links[0]));

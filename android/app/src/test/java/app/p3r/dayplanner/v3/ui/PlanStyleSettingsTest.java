@@ -21,15 +21,16 @@ import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.service.PlannerApi;
 
 /**
- * 安排风格 (DESIGN §20): the first card of 规划设置, the 规划说明 sentence, and the 羁绊剧情 default
- * of a profile made by onboarding.
+ * 安排风格 (DESIGN §20, DESIGN_3.6_UI): the two tiles at the top of 规划设置, the 当前设置 tag on 规划说明,
+ * the folded 「更多选项」 with 仔细重新安排, the page following the saved profile, and the 羁绊剧情
+ * default of a profile made by onboarding.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34, qualifiers = "zh-rCN-w360dp-h780dp-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class PlanStyleSettingsTest extends UiTestBase {
-    private static final String BREADTH_TEXT = "先把每个社群都解锁、都往上提，再冲 MAX；时间不够时更均衡。";
-    private static final String MAX_TEXT = "集中时间把尽量多的社群升到 MAX。";
+    private static final String BREADTH_TEXT = "每个社群都解锁、都往上提";
+    private static final String MAX_TEXT = "集中冲 MAX";
 
     private HomeActivity homeOn(String tab) {
         Intent intent = new Intent(RuntimeEnvironment.getApplication(), HomeActivity.class);
@@ -37,18 +38,23 @@ public class PlanStyleSettingsTest extends UiTestBase {
         return home(intent);
     }
 
+    private HomeActivity settings() {
+        HomeActivity a = homeOn("me");
+        Shots.click(a, "规划设置");
+        return a;
+    }
+
     @Test
-    public void styleIsTheFirstCardOfThePlanningSettings() {
+    public void styleTilesComeFirstOnThePlanningSettings() {
         assertEquals("尽量都体验", SettingsPage.STYLE_TEXT[0][0]);
         assertEquals(BREADTH_TEXT, SettingsPage.STYLE_TEXT[0][1]);
         assertEquals("尽量多 MAX", SettingsPage.STYLE_TEXT[1][0]);
         assertEquals(MAX_TEXT, SettingsPage.STYLE_TEXT[1][1]);
 
-        HomeActivity a = homeOn("me");
-        Shots.click(a, "规划设置");
+        HomeActivity a = settings();
         String text = Shots.allText(a.getWindow().getDecorView());
         int style = text.indexOf("安排风格");
-        assertTrue(text, style >= 0 && style < text.indexOf("社群点数"));
+        assertTrue(text, style >= 0 && style < text.indexOf("人格面具"));
         assertTrue(text.contains(BREADTH_TEXT));
         assertTrue(text.contains(MAX_TEXT));
         // The fixture's profile has no style of its own: 尽量都体验 is chosen.
@@ -63,6 +69,8 @@ public class PlanStyleSettingsTest extends UiTestBase {
         assertTrue(Shots.clickTarget(Shots.find(a, "尽量多 MAX")).isSelected());
         assertFalse(Shots.clickTarget(Shots.find(a, "尽量都体验")).isSelected());
         int saves = api.calls.size();
+        Shots.click(a, "尽量多 MAX");
+        assertEquals("tapping the chosen tile saves nothing", saves, api.calls.size());
 
         Shots.click(a, "尽量都体验");
         assertEquals(saves + 1, api.calls.size());
@@ -70,23 +78,27 @@ public class PlanStyleSettingsTest extends UiTestBase {
     }
 
     @Test
-    public void explainPageSaysWhatTheStyleDoes() {
-        assertEquals("默认「尽量都体验」：先把每个社群都解锁、都往上提，再冲 MAX；想集中冲 MAX，可在「规划设置」里改成「尽量多 MAX」。",
-            InfoPages.styleLine(new Profile()));
+    public void explainPageListsTheStyleAmongTheSettings() {
+        assertEquals("尽量都体验", Assumptions.settings(new Profile(), api.rules).get(0));
         Profile max = new Profile();
         max.style = Profile.Style.MAX;
-        assertEquals("你选了「尽量多 MAX」：集中时间把尽量多的社群升到 MAX；可在「规划设置」里改回「尽量都体验」。",
-            InfoPages.styleLine(max));
+        assertEquals("尽量多 MAX", Assumptions.settings(max, api.rules).get(0));
 
         HomeActivity a = homeOn("me");
         Shots.click(a, "规划说明");
-        assertTrue(Shots.has(a, InfoPages.styleLine(new Profile())));
+        assertTrue(Shots.has(a, "尽量都体验"));
+        assertFalse("no 是怎么排的 prose", Shots.has(a, "是怎么排的"));
         Shots.shot(a, "home_explain_style");
+        Shots.click(a, "去规划设置 ›");
+        assertEquals(2, a.pageDepth());
+        // The settings page lies on top of 规划说明 (its 「尽量都体验」 tile is found last).
+        java.util.List<View> found = Shots.findAll(a.getWindow().getDecorView(), "尽量都体验");
+        assertTrue(Shots.clickTarget(found.get(found.size() - 1)).isSelected());
 
         api.snap.profile.style = Profile.Style.MAX;
         HomeActivity b = homeOn("me");
         View page = InfoPages.explain(b);
-        assertTrue(Shots.allText(page).contains(InfoPages.styleLine(max)));
+        assertTrue(Shots.allText(page).contains("尽量多 MAX\n"));
     }
 
     @Test
@@ -138,14 +150,21 @@ public class PlanStyleSettingsTest extends UiTestBase {
     }
 
     @Test
-    public void deepChangesToggleSavesTheChoiceAndRestoresItWhenSettingsReopen() {
-        HomeActivity a = homeOn("me");
-        Shots.click(a, "规划设置");
-        ToggleRow row = (ToggleRow) Shots.clickTarget(Shots.find(a, "深度修改"));
+    public void deepChangesLiveUnderMoreOptionsAndRestoreWhenSettingsReopen() {
+        HomeActivity a = settings();
+        assertFalse("folded at first", Shots.has(a, SettingsPage.DEEP));
+        Shots.click(a, SettingsPage.MORE);
+        ToggleRow row = (ToggleRow) Shots.clickTarget(Shots.find(a, SettingsPage.DEEP));
         assertFalse(row.isChecked());
-        assertTrue(Shots.has(a, "每次修改后最多计算 12 秒"));
+        assertTrue(Shots.has(a, SettingsPage.DEEP_NOTE));
+        assertFalse("no engine budget in seconds", Shots.has(a, "每次修改后最多计算 12 秒"));
+        Shots.capture(a, false);
+        android.widget.ScrollView scroll = lastScroll(a.getWindow().getDecorView(), null);
+        scroll.scrollTo(0, 100_000);
+        Shots.shot(a, "home_settings_more");
+        scroll.scrollTo(0, 0);
         long revision = api.snap.profileRevision;
-        Shots.click(a, "深度修改");
+        Shots.click(a, SettingsPage.DEEP);
         assertEquals("saveProfile", api.last().method);
         assertEquals(revision, api.last().expectedRevision);
         assertTrue(api.last().profile.deepChanges);
@@ -153,11 +172,74 @@ public class PlanStyleSettingsTest extends UiTestBase {
 
         a.popPage();
         Shots.click(a, "规划设置");
-        row = (ToggleRow) Shots.clickTarget(Shots.find(a, "深度修改"));
+        // 「更多选项」 stays open once opened.
+        row = (ToggleRow) Shots.clickTarget(Shots.find(a, SettingsPage.DEEP));
         assertTrue(row.isChecked());
-        Shots.click(a, "深度修改");
+        Shots.click(a, SettingsPage.DEEP);
         assertFalse(api.last().profile.deepChanges);
         assertEquals("a preference change does not request a manual 30 s run", 0, api.deepReplanRequests);
         assertEquals(0, api.fullReplanRequests);
+
+        Shots.click(a, SettingsPage.MORE);
+        assertFalse(Shots.has(a, SettingsPage.DEEP));
+        a.popPage();
+        Shots.click(a, "规划设置");
+        assertFalse("closed again, and remembered", Shots.has(a, SettingsPage.DEEP));
+    }
+
+    @Test
+    public void moreOptionsSaveTheirProfileFields() {
+        HomeActivity a = settings();
+        Shots.click(a, SettingsPage.MORE);
+        boolean charm = api.snap.profile.charmBonus;
+        Shots.click(a, SettingsPage.CHARM);
+        assertEquals(!charm, api.last().profile.charmBonus);
+        boolean buffer = api.snap.profile.goalBuffer;
+        Shots.click(a, SettingsPage.GOAL_BUFFER);
+        assertEquals(!buffer, api.last().profile.goalBuffer);
+        boolean best = api.snap.profile.answers == Profile.AnswerPolicy.BEST;
+        Shots.click(a, SettingsPage.ANSWERS);
+        assertEquals(best ? Profile.AnswerPolicy.NONE : Profile.AnswerPolicy.BEST, api.last().profile.answers);
+        assertFalse("其余社群 lives on the 社群 tab only", Shots.has(a, "其余社群也尽量提升"));
+    }
+
+    @Test
+    public void aRejectedSavePutsTheControlBack() {
+        HomeActivity a = settings();
+        assertTrue(Shots.clickTarget(Shots.find(a, "尽量都体验")).isSelected());
+        api.nextReceipt = FakePlannerApi.stale();
+        Shots.click(a, "尽量多 MAX");
+        assertEquals("saveProfile", api.last().method);
+        assertEquals("the stored profile is unchanged", Profile.Style.BREADTH, api.snap.profile.style);
+        // The page follows what is saved: the tile goes back.
+        assertTrue(Shots.clickTarget(Shots.find(a, "尽量都体验")).isSelected());
+        assertFalse(Shots.clickTarget(Shots.find(a, "尽量多 MAX")).isSelected());
+        assertTrue(a.undoBar().isShowing());
+    }
+
+    private static android.widget.ScrollView lastScroll(View v, android.widget.ScrollView found) {
+        android.widget.ScrollView result = found;
+        if (v instanceof android.widget.ScrollView && v.isShown()) {
+            result = (android.widget.ScrollView) v;
+        }
+        if (v instanceof android.view.ViewGroup) {
+            android.view.ViewGroup g = (android.view.ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) {
+                result = lastScroll(g.getChildAt(i), result);
+            }
+        }
+        return result;
+    }
+
+    @Test
+    public void theTopSaysWhenThePlanIsBeingMadeAgain() {
+        api.snap.planning = true;
+        HomeActivity a = settings();
+        View busy = Shots.find(a, SettingsPage.BUSY);
+        assertTrue(busy.isShown());
+        api.snap.planning = false;
+        a.reload();
+        Shots.idle();
+        assertFalse(((View) busy.getParent()).getVisibility() == View.VISIBLE);
     }
 }

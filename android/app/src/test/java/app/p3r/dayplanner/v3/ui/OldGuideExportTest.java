@@ -60,7 +60,7 @@ public class OldGuideExportTest extends UiTestBase {
     /** As 3.0.x stored them (PlannerStore.acceptWebState: JSONObject.toString of the page's state). */
     private static final String COMPLETED = "{\"t001_01\":true,\"t002_01\":false,\"t005_03\":true,\"t005_07\":true}";
     private static final String SUBSTEPS = "{\"t005_03::0\":true,\"t005_03::1\":true,\"t005_03::2\":false}";
-    private static final String SUBTITLE = "3.0.x 逐日攻略里打过勾的 3 项还在手机上，导出后可以在旧版 2.0.0「P3R」里导入。";
+    private static final String SUBTITLE = "旧版逐日攻略里还有 3 项打过勾，导出后能在 2.0.0「P3R」里接着用。";
     private static final Uri DOC = Uri.parse(
         "content://com.android.externalstorage.documents/document/primary%3ADownload%2FP3R_%E6%89%93%E5%8D%A1.json");
     private static final Pattern EXPORTED_AT = Pattern.compile("\"exportedAt\": \"([^\"]+)\"");

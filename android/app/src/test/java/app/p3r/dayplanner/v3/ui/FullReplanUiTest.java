@@ -45,9 +45,7 @@ public class FullReplanUiTest extends UiTestBase {
         HomeActivity a = me();
         View row = entry(a);
         assertTrue(row.isEnabled());
-        String spoken = row.getContentDescription().toString();
-        assertTrue(spoken, spoken.startsWith(ENTRY) && spoken.contains(FullReplanSheet.SUBTITLE));
-        assertEquals("按现在的进度重新排一遍", FullReplanSheet.SUBTITLE);
+        assertEquals("从头重新安排", row.getContentDescription().toString());
         Shots.shot(a, "me_full_replan_entry");
 
         assertTrue(row.performClick());
@@ -72,8 +70,9 @@ public class FullReplanUiTest extends UiTestBase {
         assertEquals(0, api.fullReplanRequests);
         assertFalse(a.sheets().isShowing());
 
-        // Running: the entry says so and cannot be used again.
-        assertFalse(entry(a).isEnabled());
+        // Running: the entry says so and opens the sheet, which shows it (no second request).
+        assertTrue(entry(a).isEnabled());
+        assertEquals("从头重新安排，" + RUNNING, entry(a).getContentDescription().toString());
         assertTrue(Shots.has(a, RUNNING));
         a.requestDeepReplan();
         a.requestFullReplan();
@@ -98,24 +97,28 @@ public class FullReplanUiTest extends UiTestBase {
         api.snap.fullReplanning = true;
         running = me();
         View row = entry(running);
-        assertFalse(row.isEnabled());
-        assertEquals(0.45f, row.getAlpha(), 0.001f);
-        assertTrue("the subtitle says it is running", Shots.has(running, RUNNING));
+        // Running: the row says so and opens the sheet, which shows the run instead of a second request.
+        assertTrue(row.isEnabled());
+        assertEquals(1f, row.getAlpha(), 0.001f);
+        assertTrue("the row says it is running", Shots.has(running, RUNNING));
+        assertTrue(row.performClick());
+        Shots.idle();
+        assertTrue(running.sheets().isShowing());
+        Shots.find(running.sheets(), RUNNING);
+        assertEquals(0, api.fullReplanRequests + api.deepReplanRequests);
 
+        // Nothing left to plan, or nothing recorded yet: the row is left out, not dimmed.
         api = FakePlannerApi.midGame();
         api.snap.observed.slot = api.rules.lastSlot() + 1;
         api.snap.plan = Fixtures.planMid(api.rules, api.snap.observed);
         Api.setForTest(api);
         HomeActivity finished = me();
-        assertFalse(entry(finished).isEnabled());
-        assertTrue(Shots.has(finished, FullReplanSheet.SUBTITLE));
+        assertFalse(Shots.has(finished, ENTRY));
 
         api = FakePlannerApi.firstRun();
         Api.setForTest(api);
         HomeActivity fresh = me();
-        View off = entry(fresh);
-        assertFalse(off.isEnabled());
-        assertEquals(0.45f, off.getAlpha(), 0.001f);
+        assertFalse(Shots.has(fresh, ENTRY));
         FullReplanSheet.show(fresh);
         assertFalse("nothing to replan before onboarding", fresh.sheets().isShowing());
     }
@@ -262,6 +265,7 @@ public class FullReplanUiTest extends UiTestBase {
         HomeActivity a = home();
         a.pushPage("规划设置", SettingsPage.build(a));
         Shots.idle();
+        assertFalse("no caption about the planner", Shots.has(a, "按当前进度普通重排或深度计算："));
         Shots.click(a, ENTRY);
         assertTrue(a.sheets().isShowing());
         Shots.find(a.sheets(), "从头重新安排？");

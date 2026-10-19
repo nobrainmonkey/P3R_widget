@@ -639,31 +639,33 @@ public class ReviewFixesTest extends UiTestBase {
         HomeActivity a = homeOn("me");
         assertTrue(Shots.has(a, "修改进度"));
         assertFalse(Shots.has(a, "逐项修改进度"));
-        assertTrue(Shots.has(a, "安排"));
+        assertTrue(Shots.has(a, "同步现状"));
         assertFalse("规划 only in 规划设置 / 规划说明", Shots.has(a, "规划"));
         assertTrue(Shots.has(a, "规划设置"));
         assertFalse(text(a).contains("进塔"));
+        assertFalse("从头重新安排 has no engine jargon", text(a).contains("普通重排") || text(a).contains("深度计算"));
         Shots.shot(a, "home_me_terms");
         String settings = Shots.allText(SettingsPage.build(a));
         assertFalse(settings, settings.contains("进塔"));
-        assertTrue(settings.contains("按区块设置想去几次、最多几次（包括救失踪者）"));
-        assertTrue(settings.contains("12月24日的邀约"));
-        assertTrue(settings.contains("在桐叶购物中心的放纵俱乐部买结缘网站的字条"));
-        assertTrue(settings.contains("每次和目标社群的人见面前，会提醒你带哪个阿尔卡那的人格面具。"));
+        assertFalse(settings, settings.contains("社群点数") || settings.contains("回答方式") || settings.contains("不计回答加成"));
+        assertTrue(settings.contains("塔尔塔罗斯\n每个区块 2 次"));
+        assertTrue(settings.contains("平安夜\n都婉拒了"));
+        assertTrue(settings.contains("安排结缘网站的字条\n11月11日起 · 每张 3,000 日元"));
+        assertTrue(settings.contains(SettingsPage.PERSONA_QUESTION));
+        // The persona switch is three short segments; the 目标 reminder is said only while it is chosen.
+        assertEquals(java.util.Arrays.asList("都带", "只给目标", "不带"), java.util.Arrays.asList(SettingsPage.PERSONA_LABELS));
+        assertEquals(api.snap.profile.effectivePersonaMode() == Profile.PersonaMode.GOALS,
+            settings.contains(SettingsPage.PERSONA_GOALS_NOTE));
 
         assertEquals("安排好了，一直排到1月31日", PlanDiff.summary(api.rules, null, api.snap.plan, NOW));
-        List<String> global = Assumptions.global(Fixtures.profileMid());
-        assertTrue(global.contains("12月24日按都婉拒了邀约安排，可在「规划设置 → 平安夜」里改。"));
-        assertTrue(global.contains("1月21日放学后先空出来（送过顺平「白色切花」的话会有剧情）。"));
-        // 3.1.0 re-check: the glossary's 课堂提问 and 预计, and the 当天提醒 explained (GLOSSARY 「规划说明里写【当天提醒】」).
-        assertTrue(global.contains("课堂提问、上课犯困、保健室和考试名次的收益，完成后在「同步现状」更新。"));
-        assertTrue(global.contains("课堂提问和考试的答案、电视购物、伊莉莎白的委托、黄昏的碎片这些不会消耗时间的事，还有失踪者的期限，"
-                + "会在「今天别错过」和日程详情的「当天提醒」里提醒。"));
-        for (String line : global) assertFalse(line, line.contains("课堂答题") || line.contains("预测"));
-        assertEquals("这次探索要救出失踪者。", Assumptions.describe("rescue"));
-        for (String line : global) {
-            assertFalse(line, line.contains("进塔") || line.contains("1月21日白天"));
+        List<String> current = Assumptions.settings(Fixtures.profileMid(), api.rules);
+        assertTrue(current.toString(), current.contains("平安夜：都婉拒了"));
+        assertTrue(current.toString(), current.contains("塔尔塔罗斯：每个区块 2 次"));
+        for (String line : current) {
+            assertFalse(line, line.contains("进塔") || line.contains("规划") || line.contains("×1.51"));
         }
+        assertEquals("这次探索要救出失踪者。", Assumptions.describe("rescue"));
+        // The state wizard still words the three choices in full.
         assertTrue(SettingsPage.PERSONA_TEXT[1][1].contains("每次和目标社群的人见面前"));
     }
 

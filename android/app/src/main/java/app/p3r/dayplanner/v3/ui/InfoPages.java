@@ -1,104 +1,246 @@
 package app.p3r.dayplanner.v3.ui;
 
 import android.content.Context;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.engine.Plan;
+import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 
-/** 规划说明 and 关于: read-only explanation pages. */
+/**
+ * 规划说明 and 关于: read-only pages. 规划说明 is the plan at a glance — how many 社群 reach MAX, the
+ * span, each goal's forecast, the real problems and the settings it was made with; nothing about how
+ * the planner works. 关于 has the name, the version, the sources and the credits.
+ */
 final class InfoPages {
     private InfoPages() {}
 
-    /** 规划说明: what the 安排 covers, notes, the global assumptions in plain Chinese and sources. */
+    // ------------------------------------------------------------------ 规划说明
+
+    /** 规划说明: the hero, 目标, 需要注意 (only real problems) and 当前设置. */
     static View explain(HomeHost host) {
         Context c = host.activity();
         UiData d = host.data();
         LinearLayout column = Ui.column(c);
         Plan plan = d.plan();
-        if (plan != null) {
-            column.addView(Ui.sectionHeader(c, "现在的安排", null));
-            LinearLayout card = Ui.column(c);
-            card.setBackground(Ui.card(c));
-            Ui.pad(card, 16, 12, 16, 12);
-            if (PlanDiff.finished(plan)) {
-                card.addView(line(c, "日程已经全部结束。"));
-            } else {
-                card.addView(line(c, "从" + Zh.date(Rules.dayOf(plan.fromSlot)) + Zh.period(d.rules, plan.fromSlot)
-                    + "排到" + Zh.date(Rules.dayOf(plan.toSlot))));
-                String free = plan.summary.freeSlots > 0 ? "，自由活动 " + plan.summary.freeSlots + " 个时段" : "";
-                card.addView(line(c, "要做的事 " + plan.summary.usefulActions + " 件，剧情占用 " + plan.summary.lockedSlots
-                    + " 个时段" + free));
-            }
-            int maxed = 0;
-            for (int r : plan.summary.endRanks) {
-                if (r >= 10) {
-                    maxed++;
-                }
-            }
-            card.addView(line(c, "预计到最后 " + maxed + " 个社群升到 MAX"));
-            String budget = budgetLine(plan);
-            if (budget != null) {
-                card.addView(line(c, budget));
-            }
-            List<String> notes = notesBelow(plan);
-            column.addView(card, top(c, 4));
-            if (!notes.isEmpty()) {
-                column.addView(Ui.sectionHeader(c, "需要注意", null), top(c, 20));
-                column.addView(bullets(c, notes), top(c, 4));
-            }
+        column.addView(hero(c, d, plan));
+        List<String> problems = plan == null ? new ArrayList<>() : problems(plan);
+        View goals = plan == null ? null : goals(c, d, plan, problems);
+        if (goals != null) {
+            column.addView(goals, top(c, 24));
         }
-        column.addView(Ui.sectionHeader(c, "是怎么排的", null), top(c, plan == null ? 0 : 20));
-        List<String> how = new java.util.ArrayList<>();
-        how.add(styleLine(d.profile()));
-        how.addAll(Assumptions.global(d.profile(), d.rules));
-        column.addView(bullets(c, how), top(c, 4));
-
-        column.addView(Ui.sectionHeader(c, "资料来源", null), top(c, 20));
-        LinearLayout sources = Ui.column(c);
-        sources.setBackground(Ui.card(c));
-        Ui.pad(sources, 16, 12, 16, 12);
-        List<String> lines = sourceLines(d.rules.sources);
-        if (lines.isEmpty()) {
-            sources.addView(line(c, "没有附来源。"));
+        if (!problems.isEmpty()) {
+            LinearLayout box = Ui.column(c);
+            box.addView(header(c, "需要注意", false));
+            for (String text : problems) {
+                box.addView(problemLine(c, text), top(c, 8));
+            }
+            column.addView(box, top(c, 24));
         }
-        for (String text : lines) {
-            sources.addView(line(c, text));
-        }
-        TextView pack = Ui.caption(c, "数据版本 " + d.rules.packVersion.replaceAll("[^0-9.]", ""));
-        LinearLayout.LayoutParams pp = Ui.matchWrap();
-        pp.topMargin = Ui.dp(c, 8);
-        sources.addView(pack, pp);
-        column.addView(sources, top(c, 4));
+        column.addView(settings(host, d), top(c, 24));
         return column;
     }
 
-    /** The 是怎么排的 sentence on the 安排风格 (DESIGN §20): what the default does, or what the player chose. */
-    static String styleLine(Profile profile) {
-        if (profile != null && profile.style == Profile.Style.MAX) {
-            return "你选了「尽量多 MAX」：集中时间把尽量多的社群升到 MAX；可在「规划设置」里改回「尽量都体验」。";
+    /** The big number: how many 社群 the plan takes to MAX, its span, and a note when it was rushed. */
+    private static View hero(Context c, UiData d, Plan plan) {
+        LinearLayout card = Ui.column(c);
+        card.setBackground(Ui.heroCard(c));
+        Ui.pad(card, 22, 14, 18, 18);
+        if (plan == null) {
+            card.addView(Ui.headline(c, "正在安排到1月31日…"));
+            card.addView(new BusyStripe(c), top(c, 12));
+            return card;
         }
-        return "默认「尽量都体验」：先把每个社群都解锁、都往上提，再冲 MAX；想集中冲 MAX，可在「规划设置」里改成「尽量多 MAX」。";
+        if (PlanDiff.finished(plan)) {
+            card.addView(Ui.text(c, "日程全部结束", 22, Ui.col(c, R.color.p3r_white), true));
+            return card;
+        }
+        int maxed = 0;
+        for (int r : plan.summary.endRanks) {
+            if (r >= 10) {
+                maxed++;
+            }
+        }
+        LinearLayout row = Ui.row(c);
+        row.setGravity(Gravity.BOTTOM);
+        TextView number = Ui.numeral(c, String.valueOf(maxed), 12, Ui.col(c, R.color.p3r_cyan_400));
+        number.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 56);
+        number.setShadowLayer(0.01f, Ui.dp(c, 2), Ui.dp(c, 2), Ui.alpha(Ui.col(c, R.color.p3r_royal_500), 230));
+        number.setPadding(0, 0, Ui.dp(c, 6), Ui.dp(c, 2));
+        row.addView(number, Ui.wrap());
+        LinearLayout labels = Ui.column(c);
+        labels.addView(Ui.tag(c, "预计", Ui.alpha(Ui.col(c, R.color.p3r_cyan_200), 40),
+            Ui.col(c, R.color.p3r_cyan_200)), Ui.wrap());
+        labels.addView(Ui.mixed(c, "个社群升到 MAX", 17, Ui.col(c, R.color.p3r_white), true), top(c, 4));
+        LinearLayout.LayoutParams lp = Ui.weight(1);
+        lp.leftMargin = Ui.dp(c, 8);
+        lp.bottomMargin = Ui.dp(c, 8);
+        row.addView(labels, lp);
+        row.setContentDescription("预计 " + maxed + " 个社群升到 MAX");
+        card.addView(row);
+        card.addView(Ui.mixed(c, spanLine(d.rules, plan), 14, Ui.col(c, R.color.p3r_ice_100), false), top(c, 6));
+        String budget = budgetLine(plan);
+        if (budget != null) {
+            TextView chip = Ui.tag(c, budget, Ui.alpha(Ui.col(c, R.color.ui_gold), 40), Ui.col(c, R.color.ui_gold));
+            chip.setMaxLines(2);
+            LinearLayout.LayoutParams cp = Ui.wrap();
+            cp.topMargin = Ui.dp(c, 10);
+            card.addView(chip, cp);
+        }
+        return card;
+    }
+
+    /** 「从10月22日放学后排到1月31日」. */
+    static String spanLine(Rules rules, Plan plan) {
+        return "从" + Zh.date(Rules.dayOf(plan.fromSlot)) + Zh.period(rules, plan.fromSlot)
+            + "排到" + Zh.date(Rules.dayOf(plan.toSlot));
+    }
+
+    /**
+     * 目标: one row per goal, the arcana on the left and the forecast on the right (「11月20日 MAX」,
+     * 「已经 MAX」); a goal the plan misses is gold, with the plan's own reason under it (taken out of
+     * {@code problems}). Null without goals.
+     */
+    private static View goals(Context c, UiData d, Plan plan, List<String> problems) {
+        Profile profile = d.profile();
+        List<Integer> order = LinkStatus.goalOrder(profile);
+        if (order.isEmpty()) {
+            return null;
+        }
+        SimState obs = d.observed();
+        LinearLayout box = Ui.column(c);
+        box.addView(header(c, "目标", true));
+        for (int link : order) {
+            LinkStatus s = LinkStatus.of(d.rules, profile, obs, plan, link);
+            String name = d.rules.links[link].arcanaZh;
+            String reason = null;
+            for (int i = 0; i < problems.size(); i++) {
+                String note = problems.get(i);
+                if (note.startsWith(name + "：")) {
+                    reason = note.substring(name.length() + 1);
+                    problems.remove(i);
+                    break;
+                }
+            }
+            boolean trouble = goalTrouble(s);
+            LinearLayout row = Ui.column(c);
+            row.setBackground(new SystemList.Cursor(c, true).noSweep());
+            row.setMinimumHeight(Ui.dp(c, 48));
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            Ui.pad(row, 4, 8, 4, 9);
+            LinearLayout line = Ui.row(c);
+            line.addView(Ui.text(c, name, 16, Ui.col(c, R.color.p3r_white), true), Ui.weight(1));
+            String value = goalValue(s);
+            line.addView(Ui.mixed(c, value, 16, Ui.col(c, trouble ? R.color.ui_gold : R.color.p3r_cyan_300), true),
+                Ui.wrap());
+            row.addView(line, Ui.matchWrap());
+            if (reason != null) {
+                row.addView(Ui.mixed(c, reason, 13, Ui.col(c, R.color.ui_gold), false), top(c, 2));
+            }
+            row.setContentDescription(name + "，" + value + (reason == null ? "" : "，" + reason));
+            box.addView(row, Ui.matchWrap());
+        }
+        return box;
+    }
+
+    /** A goal this plan does not reach (or that cannot continue). */
+    static boolean goalTrouble(LinkStatus s) {
+        return s.lost || !(s.observed >= s.target || s.targetSlot >= 0 || s.story || s.projected >= s.target);
+    }
+
+    /** The forecast of a goal: 「11月20日 MAX」「已经 MAX」「停在 RANK 9」「无法继续」. */
+    static String goalValue(LinkStatus s) {
+        String goal = s.target >= 10 ? "MAX" : Zh.rank(s.target);
+        if (s.observed >= s.target) {
+            return s.target >= 10 ? "已经 MAX" : "已到 " + goal;
+        }
+        if (s.lost) {
+            return "无法继续";
+        }
+        if (s.targetSlot >= 0) {
+            return Zh.date(Rules.dayOf(s.targetSlot)) + " " + goal;
+        }
+        if (s.story) {
+            return "跟着剧情升";
+        }
+        if (s.projected >= s.target) {
+            return goal;
+        }
+        return s.projected > s.observed ? "停在 " + Zh.rank(s.projected) : "没排到 " + goal;
+    }
+
+    /** A section title with an optional 「预计」 tag and the fading rule. */
+    private static View header(Context c, String title, boolean estimate) {
+        LinearLayout line = Ui.row(c);
+        line.addView(Ui.headline(c, title), Ui.wrap());
+        if (estimate) {
+            TextView tag = Ui.tag(c, "预计", Ui.alpha(Ui.col(c, R.color.p3r_cyan_200), 40), Ui.col(c, R.color.p3r_cyan_200));
+            LinearLayout.LayoutParams tp = Ui.wrap();
+            tp.leftMargin = Ui.dp(c, 10);
+            line.addView(tag, tp);
+        }
+        View rule = Ui.fadingRule(c);
+        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, Math.max(1, Ui.dp(c, 1)), 1);
+        rp.leftMargin = Ui.dp(c, 12);
+        line.addView(rule, rp);
+        return line;
+    }
+
+    /** A gold blade and the problem in plain words. */
+    private static View problemLine(Context c, String text) {
+        LinearLayout row = Ui.row(c);
+        row.setGravity(Gravity.TOP);
+        TextView line = Ui.mixed(c, text, 14, Ui.col(c, R.color.p3r_ice_100), false);
+        line.setLineSpacing(0f, 1.25f);
+        View blade = new View(c);
+        blade.setBackground(new SlantedPanelDrawable().fill(Ui.col(c, R.color.ui_gold)).skew(Ui.dp(c, 2)));
+        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(Ui.dp(c, 4), Ui.dp(c, 16));
+        bp.topMargin = Ui.dp(c, 3);
+        bp.rightMargin = Ui.dp(c, 10);
+        row.addView(blade, bp);
+        row.addView(line, Ui.weight(1));
+        return row;
+    }
+
+    /** 当前设置: the profile as a few tags, and the way to change it. */
+    private static View settings(HomeHost host, UiData d) {
+        Context c = host.activity();
+        LinearLayout box = Ui.column(c);
+        box.addView(header(c, "当前设置", false));
+        FlowLayout tags = new FlowLayout(c, 8, 8);
+        for (String label : Assumptions.settings(d.profile(), d.rules)) {
+            tags.addView(Ui.tag(c, label, Ui.alpha(Ui.col(c, R.color.p3r_cyan_400), 34), Ui.col(c, R.color.p3r_ice_100)));
+        }
+        box.addView(tags, top(c, 10));
+        TextView go = Ui.quiet(c, "去规划设置 ›");
+        go.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        go.setOnClickListener(v -> host.pushPage("规划设置", SettingsPage.build(host)));
+        box.addView(go, top(c, 4));
+        return box;
     }
 
     /** How the plan's own note about running out of time starts (engine Labels.BUDGET_NOTE*). */
     static final String BUDGET_PREFIX = "这次没来得及算完";
     /** A note saying the one automatic re-run has already happened: only a new record replans. */
     private static final String RERUN_DONE = "记下一个结果后会重新安排";
-    /** 现在的安排 line while the one automatic re-run is still to come. */
-    static final String BUDGET_PENDING = "这次没来得及算完，稍后会自动再算一次。";
-    /** 现在的安排 line once that re-run happened (or this plan is it). */
-    static final String BUDGET_ROUGH = "这次没来得及算完，后半段是粗略安排；记下一个结果后会重新安排。";
+    /** The hero's chip while the one automatic re-run is still to come. */
+    static final String BUDGET_PENDING = "后半段还在细算，稍后自动更新";
+    /** The hero's chip once that re-run happened (or this plan is it). */
+    static final String BUDGET_ROUGH = "后半段先粗排，下次记录后再细算";
 
-    /** The 现在的安排 line of a plan whose time budget ran out, or null. */
+    /** The hero's chip for a plan whose time budget ran out, or null. */
     static String budgetLine(Plan plan) {
         if (plan == null || !plan.budgetExhausted) {
             return null;
@@ -123,15 +265,57 @@ final class InfoPages {
         return true;
     }
 
-    /** The plan's notes for 需要注意, without its time-budget note (the card above already says it). */
+    /** The plan's notes without its time-budget note (the hero's chip already says it). */
     static List<String> notesBelow(Plan plan) {
-        List<String> out = new java.util.ArrayList<>();
+        List<String> out = new ArrayList<>();
         for (String note : plan.summary.notesZh) {
-            if (!(plan.budgetExhausted && note != null && note.startsWith(BUDGET_PREFIX))) {
+            if (note != null && !note.startsWith(BUDGET_PREFIX)) {
                 out.add(note);
             }
         }
         return out;
+    }
+
+    /**
+     * 需要注意: the notes that change what the player does — a goal or 羁绊剧情 the plan misses, a
+     * 失踪者 not scheduled, too few nights for Tartarus, a last-evening rescue — in plain words. Forecasts
+     * (the 目标 list says them), settings restated and the time budget are left out.
+     */
+    static List<String> problems(Plan plan) {
+        List<String> out = new ArrayList<>();
+        for (String note : notesBelow(plan)) {
+            if (isProblem(note)) {
+                out.add(noteText(note));
+            }
+        }
+        return out;
+    }
+
+    /** Whether an engine note is a real problem rather than a forecast or a setting. */
+    static boolean isProblem(String note) {
+        if (note == null || note.trim().isEmpty()) {
+            return false;
+        }
+        boolean shortfall = note.contains("没排") || note.contains("停在") || note.contains("无法继续")
+            || note.contains("过了");
+        if (!shortfall && (note.contains("：预计 ") || note.contains("：预计能看完") || note.contains("：已经"))) {
+            return false;
+        }
+        return !(note.startsWith("其余社群：") || note.startsWith("预计有 ") || note.startsWith("优先留足")
+            || note.contains("人格面具，点数") || note.contains("多留一次见面") || note.startsWith("普通见面预计")
+            || (note.startsWith("安排了 ") && note.contains("结缘网站的字条")));
+    }
+
+    private static final java.util.regex.Pattern MISSED_RESCUES =
+        java.util.regex.Pattern.compile("^失踪者：有 (\\d+) 批救援没排上.*");
+
+    /** An engine note in the app's voice: a question with the fix instead of an instruction. */
+    static String noteText(String note) {
+        java.util.regex.Matcher m = MISSED_RESCUES.matcher(note);
+        if (m.matches()) {
+            return "失踪者：还有 " + m.group(1) + " 次救援没排上，去「规划设置 → 塔尔塔罗斯」把次数调高？";
+        }
+        return note.replace("，请在「", "，在「").replace("请在「", "在「");
     }
 
     /** Whether this plan is the service's one follow-up computation ({@code Plan.followUp}). */
@@ -139,7 +323,9 @@ final class InfoPages {
         return plan != null && plan.followUp;
     }
 
-    /** The installed versionName (「3.0.1」), or 「—」 when the package manager cannot say. */
+    // ------------------------------------------------------------------ 关于
+
+    /** The installed versionName (「3.6.0」), or 「—」 when the package manager cannot say. */
     static String versionName(Context c) {
         try {
             String v = c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
@@ -149,34 +335,76 @@ final class InfoPages {
         }
     }
 
-    /** 关于. */
+    /** 关于: the name on the version band, the privacy line, sources, credits and the font licence. */
     static View about(HomeHost host) {
         Context c = host.activity();
+        UiData d = host.data();
         LinearLayout column = Ui.column(c);
-        TextView name = Ui.text(c, "P3R 规划", 26, Ui.col(c, R.color.p3r_white), true);
-        column.addView(name);
-        column.addView(Ui.mixed(c, "版本 " + versionName(c), 14, Ui.col(c, R.color.p3r_cyan_300), false), top(c, 4));
-        LinearLayout card = Ui.column(c);
-        card.setBackground(Ui.card(c));
-        Ui.pad(card, 16, 12, 16, 12);
-        card.addView(line(c, "为《女神异闻录3 Reload》安排日程、查提示、查面具和合成。"));
-        card.addView(line(c, "全部计算都在手机上完成，不联网，不收集任何数据。"));
-        card.addView(line(c, "数字字体：Barlow Condensed（SIL 开放字体许可证）。"));
-        column.addView(card, top(c, 16));
-        column.addView(Ui.sectionHeader(c, "图鉴与合成资料", null), top(c, 20));
+
+        FrameLayout splash = new FrameLayout(c);
+        splash.setClipChildren(true);
+        TextView mark = new Ui.OutlinedText(c, "S.E.E.S.");
+        FrameLayout.LayoutParams mp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END | Gravity.TOP);
+        mp.topMargin = Ui.dp(c, 4);
+        mp.rightMargin = -Ui.dp(c, 24);
+        splash.addView(mark, mp);
+        LinearLayout head = Ui.column(c);
+        TextView name = Ui.text(c, "P3R 规划", 32, Ui.col(c, R.color.p3r_white), true);
+        name.setShadowLayer(0.01f, Ui.dp(c, 2), Ui.dp(c, 2), Ui.alpha(Ui.col(c, R.color.p3r_royal_500), 200));
+        head.addView(name, Ui.wrap());
+        String version = versionName(c);
+        TextView band = Ui.numeral(c, version, 12, Ui.col(c, R.color.p3r_navy_950));
+        band.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 26);
+        band.setBackground(new SlantedPanelDrawable().fill(Ui.col(c, R.color.p3r_cyan_400))
+            .slab(Ui.col(c, R.color.p3r_white), Ui.dp(c, 3), Ui.dp(c, 3)).skew(Ui.dp(c, 10)));
+        Ui.pad(band, 16, 4, 22, 6);
+        band.setContentDescription("版本 " + version);
+        LinearLayout.LayoutParams bp = Ui.wrap();
+        bp.topMargin = Ui.dp(c, 8);
+        head.addView(band, bp);
+        TextView what = Ui.body(c, "为《女神异闻录3 Reload》安排日程、查提示、查人格面具和合体。");
+        what.setLineSpacing(0f, 1.3f);
+        head.addView(what, top(c, 16));
+        head.addView(Ui.text(c, "全部在手机上计算，不联网，不收集数据。", 14, Ui.col(c, R.color.p3r_cyan_200), false),
+            top(c, 6));
+        splash.addView(head, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT));
+        column.addView(splash, Ui.matchWrap());
+
+        List<String> lines = d == null || d.rules == null ? new ArrayList<>() : sourceLines(d.rules.sources);
+        if (!lines.isEmpty()) {
+            LinearLayout sources = Ui.column(c);
+            sources.addView(header(c, "资料来源", false));
+            for (String text : lines) {
+                sources.addView(line(c, text), top(c, 4));
+            }
+            String pack = d.rules.packVersion == null ? "" : d.rules.packVersion.replaceAll("[^0-9.]", "");
+            if (!pack.isEmpty()) {
+                sources.addView(Ui.caption(c, "数据版本 " + pack), top(c, 6));
+            }
+            column.addView(sources, top(c, 26));
+        }
+
         LinearLayout credits = Ui.column(c);
-        credits.setBackground(Ui.card(c));
-        Ui.pad(credits, 16, 12, 16, 12);
-        credits.addView(sourceLink(c, "aqiu384 · Megaten Database", "https://github.com/aqiu384/megaten-database"));
+        credits.addView(header(c, "全书与合体资料", false));
+        credits.addView(sourceLink(c, "aqiu384 · Megaten Database", "https://github.com/aqiu384/megaten-database"),
+            top(c, 4));
         credits.addView(sourceLink(c, "aqiu384 · Fusion Tools（Unlicense）", "https://github.com/aqiu384/megaten-fusion-tool"));
-        credits.addView(line(c, "面具、技能与游戏文本：ATLUS / SEGA。"));
-        column.addView(credits, top(c, 4));
+        credits.addView(line(c, "人格面具、技能与游戏文本：ATLUS / SEGA。"), top(c, 6));
+        column.addView(credits, top(c, 26));
+
+        TextView font = Ui.text(c, "数字字体：Barlow Condensed（SIL 开放字体许可证）。", 12,
+            Ui.col(c, R.color.p3r_ink_faint), false);
+        column.addView(font, top(c, 32));
         return column;
     }
 
     private static TextView sourceLink(Context c, String name, String url) {
         TextView text = line(c, name + " ↗");
         text.setTextColor(Ui.col(c, R.color.p3r_cyan_300));
+        text.setMinHeight(Ui.dp(c, 40));
+        text.setGravity(Gravity.CENTER_VERTICAL);
         text.setOnClickListener(v -> {
             try {
                 c.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,
@@ -191,18 +419,8 @@ final class InfoPages {
     private static TextView line(Context c, String text) {
         TextView view = Ui.mixed(c, text, 14, Ui.col(c, R.color.p3r_ice_100), false);
         view.setLineSpacing(0f, 1.3f);
-        Ui.pad(view, 0, 4, 0, 4);
+        Ui.pad(view, 0, 2, 0, 2);
         return view;
-    }
-
-    private static View bullets(Context c, List<String> lines) {
-        LinearLayout card = Ui.column(c);
-        card.setBackground(Ui.card(c));
-        Ui.pad(card, 16, 10, 16, 10);
-        for (String text : lines) {
-            card.addView(Ui.bullet(c, line(c, text)));
-        }
-        return card;
     }
 
     /** Chinese name of a source kind, or null for kinds that are not listed. */
@@ -242,7 +460,7 @@ final class InfoPages {
             String name = kind == null ? "其他资料" : kind;
             counts.merge(name, 1, Integer::sum);
         }
-        List<String> out = new java.util.ArrayList<>();
+        List<String> out = new ArrayList<>();
         for (Map.Entry<String, Integer> e : counts.entrySet()) {
             out.add(e.getKey() + " · " + e.getValue() + " 项");
         }
