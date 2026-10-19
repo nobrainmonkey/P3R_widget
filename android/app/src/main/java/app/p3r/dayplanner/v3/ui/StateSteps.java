@@ -338,13 +338,13 @@ final class StateSteps {
 
     private View persona() {
         LinearLayout column = page("见面时通常带着同阿尔卡那的人格面具吗？",
-            "见面时带着和社群同阿尔卡那的人格面具，点数 ×1.51，升级更快。拿不准就选「不带/不一定」，安排会更保守。");
+            "携带和社群同阿尔卡那的人格面具见面时，好感点数 ×1.51，升级更快。");
         Profile.PersonaMode mode = draft.profile.effectivePersonaMode();
         column.addView(option("基本都带", SettingsPage.PERSONA_TEXT[0][1], mode == Profile.PersonaMode.ALL,
             () -> persona(Profile.PersonaMode.ALL)), top(20));
         column.addView(option("只给目标社群带", SettingsPage.PERSONA_TEXT[1][1],
             mode == Profile.PersonaMode.GOALS, () -> persona(Profile.PersonaMode.GOALS)), top(10));
-        column.addView(option("不带/不一定", "都按不带算，最保守（默认）。", mode == Profile.PersonaMode.NONE,
+        column.addView(option("不带/不一定", "按不携带计算（默认）。", mode == Profile.PersonaMode.NONE,
             () -> persona(Profile.PersonaMode.NONE)), top(10));
         column.addView(Ui.muted(c, "之后可以在「我的 → 规划设置」里随时修改。"), top(16));
         return column;
@@ -379,6 +379,11 @@ final class StateSteps {
 
     // ------------------------------------------------------------------ 日期
 
+    private String dateLockOf(int slot) {
+        String lock = draft.rules.lockOf(slot);
+        return !draft.profile.junpeiFlowers && Rules.LOCK_RESERVED.equals(lock) ? null : lock;
+    }
+
     private View date() {
         LinearLayout column = page("游戏里现在是几月几日？", draft.mode == StateDraft.Mode.ONBOARDING
             ? "灰色划掉的日子整天被剧情占用。"
@@ -389,7 +394,7 @@ final class StateSteps {
         picker.setListener(d -> {
             boolean evening = Rules.isEvening(draft.slot());
             int slot = Rules.slot(d, evening);
-            if (draft.rules.lockOf(slot) != null) {
+            if (dateLockOf(slot) != null) {
                 slot = Rules.slot(d, !evening);
             }
             draft.setSlot(slot);
@@ -401,16 +406,14 @@ final class StateSteps {
         String dayLabel = Zh.period(draft.rules, Rules.slot(day, false));
         SegmentedControl period = new SegmentedControl(c, Arrays.asList(dayLabel, "晚上"));
         period.setSelected(Rules.isEvening(draft.slot()) ? 1 : 0);
-        period.setSegmentEnabled(0, draft.rules.lockOf(Rules.slot(day, false)) == null);
-        period.setSegmentEnabled(1, draft.rules.lockOf(Rules.slot(day, true)) == null);
+        period.setSegmentEnabled(0, dateLockOf(Rules.slot(day, false)) == null);
+        period.setSegmentEnabled(1, dateLockOf(Rules.slot(day, true)) == null);
         period.setListener(i -> {
             draft.setSlot(Rules.slot(day, i == 1));
             callbacks.changed();
             callbacks.refresh();
         });
         column.addView(period, top(16));
-        TextView explain = Ui.muted(c, "「" + dayLabel + "」是回宿舍之前的自由时间，「晚上」是回到宿舍之后。");
-        column.addView(explain, top(6));
         LinearLayout summary = Ui.row(c);
         summary.setBackground(Ui.card(c).accent(Ui.col(c, R.color.p3r_cyan_400), Ui.dp(c, 4)));
         Ui.pad(summary, 18, 12, 14, 12);
@@ -418,7 +421,7 @@ final class StateSteps {
             17, Ui.col(c, R.color.p3r_white), true);
         summary.addView(chosen, Ui.weight(1));
         column.addView(summary, top(14));
-        String lock = draft.rules.lockOf(Rules.slot(day, !Rules.isEvening(draft.slot())));
+        String lock = dateLockOf(Rules.slot(day, !Rules.isEvening(draft.slot())));
         if (lock != null && draft.rules.lockReasonsZh.get(lock) != null) {
             String other = Rules.isEvening(draft.slot()) ? dayLabel : "晚上";
             column.addView(Ui.muted(c, "这天" + other + "是「" + draft.rules.lockReasonsZh.get(lock) + "」。"), top(6));
@@ -577,7 +580,7 @@ final class StateSteps {
 
     private View rankCell(Rules.Link link, List<Integer> order, SimState forecast) {
         int r = draft.rank(link.idx);
-        boolean edited = draft.rank[link.idx] != null;
+        boolean edited = draft.rank[link.idx] != null || draft.ready[link.idx] != null;
         boolean predicted = draft.isForecastRank(link.idx);
         LinearLayout cell = Ui.row(c);
         SlantedPanelDrawable bg = Ui.pressableCard(c);
@@ -592,7 +595,14 @@ final class StateSteps {
         roman.setMinWidth(Ui.dp(c, 34));
         cell.addView(roman, Ui.wrap());
         LinearLayout texts = Ui.column(c);
-        texts.addView(Ui.text(c, link.arcanaZh, 14, Ui.col(c, R.color.p3r_white), true));
+        LinearLayout topRow = Ui.row(c);
+        topRow.addView(Ui.text(c, link.arcanaZh, 14, Ui.col(c, R.color.p3r_white), true), Ui.weight(1));
+        if (link.genderZh != null && !link.genderZh.isEmpty()) {
+            TextView gender = Ui.text(c, Zh.dots(link.genderZh), 10, Ui.col(c, R.color.p3r_ink_faint), false);
+            gender.setSingleLine(true);
+            topRow.addView(gender, Ui.wrap());
+        }
+        texts.addView(topRow);
         String value = r == StateDraft.UNKNOWN ? "?" : Zh.rank(r);
         int color = r == StateDraft.UNKNOWN ? Ui.col(c, R.color.ui_gold)
             : r == 0 ? Ui.col(c, R.color.p3r_ink_faint) : Ui.col(c, R.color.p3r_cyan_300);
@@ -606,6 +616,11 @@ final class StateSteps {
         } else if (forecast != null && forecast.rank[link.idx] != r && r != StateDraft.UNKNOWN) {
             TextView tag = Ui.mixed(c, "预计 " + Zh.rankValue(forecast.rank[link.idx]), 10,
                 Ui.col(c, R.color.p3r_cyan_200), true);
+            LinearLayout.LayoutParams tp = Ui.wrap();
+            tp.leftMargin = Ui.dp(c, 6);
+            valueRow.addView(tag, tp);
+        } else if (draft.ready[link.idx] != null && draft.ready(link.idx) && r >= 1 && r < 10) {
+            TextView tag = Ui.text(c, "可升级", 10, Ui.col(c, R.color.p3r_cyan_200), true);
             LinearLayout.LayoutParams tp = Ui.wrap();
             tp.leftMargin = Ui.dp(c, 6);
             valueRow.addView(tag, tp);
@@ -630,6 +645,18 @@ final class StateSteps {
             public int currentRank(int linkIdx) {
                 return draft.rank(linkIdx);
             }
+
+            @Override
+            public boolean isReady(int linkIdx) {
+                return draft.ready(linkIdx);
+            }
+
+            @Override
+            public void onReadyChanged(int linkIdx, boolean ready) {
+                draft.setReady(linkIdx, ready);
+                callbacks.changed();
+                callbacks.refresh();
+            }
         }));
         return cell;
     }
@@ -637,7 +664,7 @@ final class StateSteps {
     // ------------------------------------------------------------------ 解锁进度
 
     private View unlock() {
-        LinearLayout column = page("解锁进度", "这些社群还没解锁，但需要提前做准备。告诉我已经做到哪一步了。");
+        LinearLayout column = page("解锁进度", "以下社群需要分步前置解锁，请选择当前已完成的步骤。");
         for (int linkIdx : draft.unlockLinks()) {
             Rules.Link link = draft.rules.links[linkIdx];
             LinearLayout card = Ui.column(c);

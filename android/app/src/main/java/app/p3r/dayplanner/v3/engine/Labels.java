@@ -45,9 +45,7 @@ final class Labels {
      * paying later would cost the link its target; once a fee is due within 14 days and affordable,
      * paid training and 结缘网站的字条 leave the fee plus the reserve; on a fee day they leave the reserve.
      */
-    static final String FEE_NOTE = "需要付钱解锁的社群：交完钱至少还留 " + yen(Kernel.FEE_RESERVE)
-            + "，只有晚交会赶不上升级目标时才会少于这个数；14 天内要交、钱也够交时，花钱提升能力和买结缘网站的字条"
-            + "不会动用要交的钱和这 " + yen(Kernel.FEE_RESERVE) + "，交钱当天也不会让手上少于 " + yen(Kernel.FEE_RESERVE);
+    static final String FEE_NOTE = "需要付钱解锁的社群：交完钱至少还留 " + yen(Kernel.FEE_RESERVE) + " 备用";
     /** The result-sheet answer for a story hold the player reports (outcome NOT_DONE, reason "hold"). */
     static final String HOLD_ANSWER = "剧情原因暂时升不了";
 
@@ -342,7 +340,7 @@ final class Labels {
             String to = fx.rankTo >= 10 ? "MAX" : "RANK " + fx.rankTo;
             core = fx.certain ? "这次见面一定能升到 " + to : "预计这次见面能升到 " + to;
         } else {
-            core = "好感还不够升级，先多见面几次";
+            core = "累积好感，为下次升级做准备";
         }
         return goal == null ? core : goal + "，" + core;
     }
@@ -508,7 +506,7 @@ final class Labels {
         if (ci >= 0 && ci < a.gain.length && a.gain[ci] > 0 && m.charmMult > 1 && st.statPts[ci] < h.t.statCap[ci]) {
             return "魅力升到 MAX 后，见面时点数 ×1.51";
         }
-        return "这个时段没有更划算的事，提升一下个人能力值";
+        return "利用空余时段提升个人能力值";
     }
 
     private int requiredLv(int l, int stat) {
@@ -525,7 +523,7 @@ final class Labels {
             return "攒钱，之后用来提升个人能力值";
         }
         if (!gains.isEmpty()) return "有收入，还能顺便提升" + statsOnly(a);
-        return "这个时段没有更好的安排，先赚点钱";
+        return "利用空余时段打工赚钱";
     }
 
     private String statsOnly(Rules.Activity a) {
@@ -586,7 +584,7 @@ final class Labels {
             if (left * 2 >= open) step.whyZh = "这个区块能去的晚上不多了，要去够 " + want + " 次";
             else step.whyZh = "这个区块要去 " + want + " 次，这个晚上去正合适";
         } else {
-            step.whyZh = "这个晚上没有更好的安排，去塔里练练级";
+            step.whyZh = "利用空余夜晚探索塔尔塔罗斯";
         }
     }
 
@@ -604,7 +602,7 @@ final class Labels {
         if (pressure >= 0.6 && pressure < Heuristics.INF) {
             step.whyZh = who(l) + "剩下的见面机会不多，晚上用" + NOTE_NAME + "先攒点好感";
         } else {
-            step.whyZh = "晚上没有更要紧的事，用" + NOTE_NAME + "给" + who(l) + "攒点好感";
+            step.whyZh = "利用晚上时间，用" + NOTE_NAME + "给" + who(l) + "攒点好感";
         }
         String how = note != null && !blank(note.howZh) ? note.howZh.trim()
                 : "在桐叶购物中心的放纵俱乐部买" + NOTE_NAME + "，当晚回宿舍用公用电脑给" + who(l) + "加好感";
@@ -727,9 +725,9 @@ final class Labels {
                 break;
         }
         if (p.hasAnyGoal() && p.goalBuffer) {
-            out.add("升级时间是估计值，「必须」「想要」目标已多留一次见面的余量");
+            out.add("「必须」「想要」目标每次升级已预留一次额外见面");
         } else {
-            out.add("升级时间按每次普通见面约 " + m.ordinaryGain + " 点好感（约 ♪♪）估计");
+            out.add("升级时间按每次普通见面 +" + m.ordinaryGain + " 点好感（约 ♪♪）计算");
         }
     }
 

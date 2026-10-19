@@ -645,7 +645,7 @@ public final class ResultActivity extends Activity {
             body.addView(Ui.body(this, dialogue), top(6));
         }
         if (!step.predicted.certain) {
-            body.addView(Ui.muted(this, "升级是按估计排的，结果以游戏为准。"), top(4));
+            body.addView(Ui.muted(this, "好感点数为预估，请按游戏内实际结果选择。"), top(4));
         }
         stepExtras(step, false, true);
         ToggleRow ready = readyToggle();

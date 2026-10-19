@@ -3,6 +3,8 @@ package app.p3r.dayplanner.v3.ui;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -131,6 +133,12 @@ public class UiLogicTest {
 
     @Test
     public void assumptionIdsNeverLeak() {
+        for (String id : app.p3r.dayplanner.v3.engine.Engine.assumptionIds()) {
+            String desc = Assumptions.describe(id);
+            assertNotNull("missing Chinese description for assumption id: " + id, desc);
+            assertNotEquals(id, Assumptions.GENERIC, desc);
+            assertFalse(desc, desc.matches(".*[a-z_]{4,}.*"));
+        }
         List<String> lines = Assumptions.describeAll(java.util.Arrays.asList("ordinary_gain", "some_new_id"), true);
         assertEquals(2, lines.size());
         assertTrue(lines.get(0).contains("+10"));
@@ -368,5 +376,56 @@ public class UiLogicTest {
         r.errorCode = "invalid";
         r.errorZh = "现金不能是负数";
         assertEquals("现金不能是负数", Messages.receiptError(r));
+    }
+
+    @Test
+    public void readyCueDraftEditPersistsAndDiffs() {
+        obs.ready[4] = false;
+        StateDraft d = new StateDraft(StateDraft.Mode.EDIT, rules, obs, Fixtures.profileMid(), plan, 12);
+        assertFalse(d.ready(4));
+        d.setReady(4, true);
+        assertTrue(d.ready(4));
+        SimState built = d.build();
+        assertTrue(built.ready[4]);
+        List<StateDraft.Change> changes = d.changes();
+        assertEquals(1, changes.size());
+        assertEquals("皇帝 下次见面", changes.get(0).labelZh);
+        assertEquals("还需累积好感", changes.get(0).beforeZh);
+        assertEquals("可直接升级", changes.get(0).afterZh);
+
+        DraftStore store = new DraftStore(org.robolectric.RuntimeEnvironment.getApplication());
+        store.save(d);
+        StateDraft restored = new StateDraft(StateDraft.Mode.EDIT, rules, obs, Fixtures.profileMid(), plan, 12);
+        store.restore(restored);
+        assertTrue(restored.ready(4));
+        StateDraft rebased = new StateDraft(StateDraft.Mode.EDIT, rules, obs, Fixtures.profileMid(), plan, 13);
+        rebased.copyEditsFrom(restored);
+        assertTrue(rebased.ready(4));
+    }
+
+    @Test
+    public void junpeiFlowersToggleOpensJanuary21Daytime() throws Exception {
+        int jan21Day = Rules.slot(Fixtures.day(1, 21), false);
+        rules.day(Fixtures.day(1, 21)).dayLock = Rules.LOCK_RESERVED;
+        Profile p = new Profile();
+        assertTrue(p.junpeiFlowers);
+        assertEquals(Rules.LOCK_RESERVED, p.lockOf(rules, jan21Day));
+        assertTrue(Assumptions.global(p, rules).contains("1月21日放学后先空出来（送过顺平「白色切花」的话会有剧情）。"));
+
+        p.junpeiFlowers = false;
+        Profile roundTrip = Profile.fromJson(p.toJson());
+        assertFalse(roundTrip.junpeiFlowers);
+        assertNull(roundTrip.lockOf(rules, jan21Day));
+        assertTrue(Assumptions.global(roundTrip, rules).contains("1月21日放学后按没有顺平的「白色切花」剧情正常安排。"));
+    }
+
+    @Test
+    public void unlockStepEditClearsLastStepDay() {
+        obs.lastStepDay[15] = Fixtures.OCT_22;
+        StateDraft d = new StateDraft(StateDraft.Mode.EDIT, rules, obs, Fixtures.profileMid(), plan, 12);
+        d.setUnlockStep(15, 2);
+        SimState built = d.build();
+        assertEquals(2, built.unlockStep[15]);
+        assertEquals(-1, built.lastStepDay[15]);
     }
 }

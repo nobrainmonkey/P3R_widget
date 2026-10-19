@@ -161,4 +161,9 @@ public final class Engine {
     public static List<String> validationWarnings(Rules rules, Profile profile, SimState observed, Plan plan) {
         return PlanValidator.check(rules, profile, observed, plan).warnings;
     }
+
+    /** All assumption ids the simulation kernel can attach to a forecast step. */
+    public static List<String> assumptionIds() {
+        return java.util.Collections.unmodifiableList(java.util.Arrays.asList(Kernel.ASSUMPTION_IDS));
+    }
 }

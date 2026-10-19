@@ -27,6 +27,8 @@ public final class Rules {
     public static final String LOCK_CHRISTMAS = "christmas_date";
     /** Label of {@link #LOCK_CHRISTMAS} when the pack does not declare one. */
     public static final String LOCK_CHRISTMAS_ZH = "平安夜约会";
+    /** Lock reason of a reserved story slot (1/21 daytime when Junpei received the white flowers). */
+    public static final String LOCK_RESERVED = "reserved";
     /** Month-day of Christmas Eve in {@link Day#md}. */
     public static final String CHRISTMAS_EVE_MD = "12-24";
 

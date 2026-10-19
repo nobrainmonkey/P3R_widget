@@ -62,7 +62,7 @@ final class Model {
 
     Model(Rules rules, Profile profile, Engine.Options options) {
         this.rules = rules;
-        this.t = Tables.of(rules, profile.christmasTaken() && rules.christmasEveDay() >= 0);
+        this.t = Tables.of(rules, profile.christmasTaken() && rules.christmasEveDay() >= 0, profile.junpeiFlowers);
         this.profile = profile;
         this.ordinaryGain = Math.max(1, rules.policy.ordinaryGain);
         this.personaFactor = Math.max(1.0, rules.policy.personaMult);

@@ -87,6 +87,7 @@ public final class StateDraft {
     Boolean cashUnknown;
     final Integer[] statLv = new Integer[3];
     final Integer[] rank = new Integer[Profile.LINKS];
+    final Boolean[] ready = new Boolean[Profile.LINKS];
     final Integer[] unlock = new Integer[Profile.LINKS];
     Integer floor;
     Integer towerVisits;
@@ -201,6 +202,18 @@ public final class StateDraft {
     /** Displayed rank; {@link #UNKNOWN} when the player chose "?". */
     public int rank(int link) {
         return rank[link] != null ? rank[link] : prefill().rank[link];
+    }
+
+    /** True when the link is marked ready to rank up on the next meeting. */
+    public boolean ready(int link) {
+        if (ready[link] != null) {
+            return ready[link];
+        }
+        int r = rank(link);
+        if (r == UNKNOWN || r == base.rank[link]) {
+            return base.ready[link];
+        }
+        return r == prefill().rank[link] && prefill().ready[link];
     }
 
     public int unlockStep(int link) {
@@ -401,7 +414,16 @@ public final class StateDraft {
 
     /** Sets a rank (0..10) or {@link #UNKNOWN}. */
     public void setRank(int link, int value) {
-        rank[link] = Math.max(UNKNOWN, Math.min(10, value));
+        int clamped = Math.max(UNKNOWN, Math.min(10, value));
+        if (clamped <= 0 || clamped >= 10 || (rank[link] != null && rank[link] != clamped)) {
+            ready[link] = null;
+        }
+        rank[link] = clamped;
+    }
+
+    /** Marks whether the game shows that this link will rank up on the next meeting. */
+    public void setReady(int link, boolean value) {
+        ready[link] = value;
     }
 
     public void setUnlockStep(int link, int value) {
@@ -470,29 +492,36 @@ public final class StateDraft {
         for (Rules.Link link : rules.links) {
             int i = link.idx;
             int r = rank(i);
-            if (r == p.rank[i]) {
-                continue;
+            if (r != p.rank[i]) {
+                if (r == UNKNOWN || r == base.rank[i]) {
+                    // "?" or the recorded RANK keeps the confirmed record (points, cue, unlock
+                    // progress), never the forecast shown after "是".
+                    s.rank[i] = base.rank[i];
+                    s.pts[i] = base.pts[i];
+                    s.ready[i] = base.ready[i];
+                    s.unlockStep[i] = base.unlockStep[i];
+                    s.lastStepDay[i] = base.lastStepDay[i];
+                } else {
+                    s.rank[i] = r;
+                    s.pts[i] = 0;
+                    s.ready[i] = false;
+                    if (r >= 1) {
+                        s.unlockStep[i] = Math.max(s.unlockStep[i], link.unlock.steps.size());
+                    }
+                }
             }
-            if (r == UNKNOWN || r == base.rank[i]) {
-                // "?" or the recorded RANK keeps the confirmed record (points, cue, unlock
-                // progress), never the forecast shown after "是".
-                s.rank[i] = base.rank[i];
-                s.pts[i] = base.pts[i];
-                s.ready[i] = base.ready[i];
-                s.unlockStep[i] = base.unlockStep[i];
-                s.lastStepDay[i] = base.lastStepDay[i];
-                continue;
-            }
-            s.rank[i] = r;
-            s.pts[i] = 0;
-            s.ready[i] = false;
-            if (r >= 1) {
-                s.unlockStep[i] = Math.max(s.unlockStep[i], link.unlock.steps.size());
+            if (ready[i] != null && s.rank[i] >= 1 && s.rank[i] < 10 && link.kind == Rules.LinkKind.MANUAL
+                    && s.rank[i] + 1 < link.threshold.length && link.threshold[s.rank[i] + 1] > 0) {
+                s.ready[i] = ready[i];
+                if (!ready[i] && s.pts[i] >= link.threshold[s.rank[i] + 1]) {
+                    s.pts[i] = 0;
+                }
             }
         }
         for (int i = 0; i < Profile.LINKS; i++) {
             if (unlock[i] != null && s.rank[i] == 0) {
                 s.unlockStep[i] = unlock[i];
+                s.lastStepDay[i] = -1;
             }
         }
         Rules.Block b = block();
@@ -574,6 +603,10 @@ public final class StateDraft {
             } else if (b == 0 && before.unlockStep[link.idx] != after.unlockStep[link.idx]) {
                 out.add(new Change(link.arcanaZh + " 解锁进度", unlockText(link, before.unlockStep[link.idx]),
                     unlockText(link, after.unlockStep[link.idx])));
+            } else if (b >= 1 && b < 10 && before.ready[link.idx] != after.ready[link.idx]) {
+                out.add(new Change(link.arcanaZh + " 下次见面",
+                    before.ready[link.idx] ? "可直接升级" : "还需累积好感",
+                    after.ready[link.idx] ? "可直接升级" : "还需累积好感"));
             }
         }
         if (before.floor != after.floor) {
@@ -712,6 +745,7 @@ public final class StateDraft {
         cashUnknown = other.cashUnknown;
         System.arraycopy(other.statLv, 0, statLv, 0, statLv.length);
         System.arraycopy(other.rank, 0, rank, 0, rank.length);
+        System.arraycopy(other.ready, 0, ready, 0, ready.length);
         System.arraycopy(other.unlock, 0, unlock, 0, unlock.length);
         floor = other.floor;
         towerVisits = other.towerVisits;

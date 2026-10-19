@@ -25,6 +25,8 @@ final class Tables {
     final Rules rules;
     /** Day whose both slots are taken by an accepted 12/24 invitation, or -1. */
     final int christmasDay;
+    /** Whether pack slots with lock {@link Rules#LOCK_RESERVED} (1/21 daytime) stay locked. */
+    final boolean junpeiFlowers;
     final int firstSlot;
     final int lastSlot;
     final int lastDay;
@@ -118,10 +120,12 @@ final class Tables {
 
     private static volatile Tables cached;
     private static volatile Tables cachedChristmas;
+    private static volatile Tables cachedNoFlowers;
+    private static volatile Tables cachedChristmasNoFlowers;
 
     /** Tables for a pack with every 12/24 invitation declined (see {@link #of(Rules, boolean)}). */
     static Tables of(Rules rules) {
-        return of(rules, false);
+        return of(rules, false, true);
     }
 
     /**
@@ -130,21 +134,41 @@ final class Tables {
      * ({@link Rules#LOCK_CHRISTMAS}) unless the pack already locks them.
      */
     static Tables of(Rules rules, boolean christmasTaken) {
-        Tables t = christmasTaken ? cachedChristmas : cached;
+        return of(rules, christmasTaken, true);
+    }
+
+    /**
+     * Tables for a pack, reusing the last instance for the same pack, Christmas Eve choice and
+     * 1/21 white-flowers reservation ({@link Rules#LOCK_RESERVED}).
+     */
+    static Tables of(Rules rules, boolean christmasTaken, boolean junpeiFlowers) {
+        Tables t = junpeiFlowers
+                ? (christmasTaken ? cachedChristmas : cached)
+                : (christmasTaken ? cachedChristmasNoFlowers : cachedNoFlowers);
         if (t != null && t.rules == rules) return t;
-        t = new Tables(rules, christmasTaken ? rules.christmasEveDay() : -1);
-        if (christmasTaken) cachedChristmas = t;
-        else cached = t;
+        t = new Tables(rules, christmasTaken ? rules.christmasEveDay() : -1, junpeiFlowers);
+        if (junpeiFlowers) {
+            if (christmasTaken) cachedChristmas = t;
+            else cached = t;
+        } else {
+            if (christmasTaken) cachedChristmasNoFlowers = t;
+            else cachedNoFlowers = t;
+        }
         return t;
     }
 
     Tables(Rules rules) {
-        this(rules, -1);
+        this(rules, -1, true);
     }
 
     Tables(Rules rules, int christmasDay) {
+        this(rules, christmasDay, true);
+    }
+
+    Tables(Rules rules, int christmasDay, boolean junpeiFlowers) {
         this.rules = rules;
         this.christmasDay = christmasDay;
+        this.junpeiFlowers = junpeiFlowers;
         this.firstSlot = rules.firstSlot();
         this.lastSlot = rules.lastSlot();
         this.lastDay = rules.lastDay;
@@ -182,6 +206,7 @@ final class Tables {
                 continue;
             }
             lock[slot] = rules.lockOf(slot);
+            if (!junpeiFlowers && Rules.LOCK_RESERVED.equals(lock[slot])) lock[slot] = null;
             if (lock[slot] == null && christmasDay >= 0 && Rules.dayOf(slot) == christmasDay) lock[slot] = Rules.LOCK_CHRISTMAS;
             if (lock[slot] != null) continue;
             int day = Rules.dayOf(slot);

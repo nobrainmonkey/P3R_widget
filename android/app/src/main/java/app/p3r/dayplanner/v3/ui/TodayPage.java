@@ -334,7 +334,7 @@ final class TodayPage {
         if (step == null) {
             TextView text = Ui.headline(c, d.plan() == null ? "正在排到1月31日的安排…" :"正在根据最新记录重新安排…");
             card.addView(text);
-            TextView sub = Ui.muted(c, "一般几秒钟就好，可以先去游戏里看看。");
+            TextView sub = Ui.muted(c, "正在计算日程，请稍候…");
             card.addView(sub, spaced(6));
             card.addView(new BusyStripe(c), spaced(14));
             return card;

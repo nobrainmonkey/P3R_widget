@@ -14,9 +14,10 @@ os="$(uname -s)"; arch="$(uname -m)"
 case "$os" in Darwin) jos=mac; sdkos=mac;; Linux) jos=linux; sdkos=linux;; *) echo "unsupported OS $os" >&2; exit 1;; esac
 case "$arch" in arm64|aarch64) jarch=aarch64;; x86_64|amd64) jarch=x64;; *) echo "unsupported arch $arch" >&2; exit 1;; esac
 
+TEMURIN_17_TAG="${TEMURIN_17_TAG:-jdk-17.0.14%2B7}"
 if ! ls -d jdk-17* >/dev/null 2>&1; then
-  echo "Downloading Temurin JDK 17 ($jos/$jarch)..."
-  curl -fsSL -o jdk17.tar.gz "https://api.adoptium.net/v3/binary/latest/17/ga/$jos/$jarch/jdk/hotspot/normal/eclipse"
+  echo "Downloading Temurin JDK 17 ($TEMURIN_17_TAG, $jos/$jarch)..."
+  curl -fsSL -o jdk17.tar.gz "https://api.adoptium.net/v3/binary/version/$TEMURIN_17_TAG/$jos/$jarch/jdk/hotspot/normal/eclipse"
   tar xzf jdk17.tar.gz && rm jdk17.tar.gz
 fi
 JDK_DIR="$(ls -d "$TC"/jdk-17* | head -1)"

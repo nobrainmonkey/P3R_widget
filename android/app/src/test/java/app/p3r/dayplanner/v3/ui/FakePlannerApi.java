@@ -275,6 +275,20 @@ final class FakePlannerApi implements PlannerApi {
 
     @Override
     public Receipt saveCheckpoint(String commandId, long expectedStateRevision, SimState observed, Profile profileOrNull) {
+        return saveCheckpoint(commandId, expectedStateRevision, -1L, observed, profileOrNull);
+    }
+
+    @Override
+    public Receipt saveCheckpoint(String commandId, long expectedStateRevision, long expectedProfileRevision,
+                                  SimState observed, Profile profileOrNull) {
+        synchronized (this) {
+            if (nextReceipt == null && profileOrNull != null && expectedProfileRevision >= 0
+                    && expectedProfileRevision != snap.profileRevision) {
+                calls.add(new Call("saveCheckpoint", commandId, expectedStateRevision, observed.slot, null, null, null,
+                    -1, observed, profileOrNull));
+                return stale();
+            }
+        }
         Receipt r = write(new Call("saveCheckpoint", commandId, expectedStateRevision, observed.slot, null, null, null, -1,
             observed, profileOrNull), true, false);
         if (r.ok) {
@@ -282,6 +296,8 @@ final class FakePlannerApi implements PlannerApi {
                 snap.observed = observed.copy();
                 if (profileOrNull != null) {
                     snap.profile = profileOrNull.copy();
+                    snap.profileRevision++;
+                    r.profileRevision = snap.profileRevision;
                 }
             }
         }

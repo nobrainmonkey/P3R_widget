@@ -229,6 +229,16 @@ public interface PlannerApi {
      */
     Receipt saveCheckpoint(String commandId, long expectedStateRevision, SimState observed, Profile profileOrNull);
 
+    /**
+     * Like {@link #saveCheckpoint(String, long, SimState, Profile)}, also checking
+     * {@code expectedProfileRevision} when {@code profileOrNull} is non-null and
+     * {@code expectedProfileRevision >= 0}.
+     */
+    default Receipt saveCheckpoint(String commandId, long expectedStateRevision, long expectedProfileRevision,
+                                   SimState observed, Profile profileOrNull) {
+        return saveCheckpoint(commandId, expectedStateRevision, observed, profileOrNull);
+    }
+
     Receipt saveProfile(String commandId, long expectedProfileRevision, Profile profile);
 
     /** Newest first, across all checkpoints; {@code limit <= 0} returns everything. */

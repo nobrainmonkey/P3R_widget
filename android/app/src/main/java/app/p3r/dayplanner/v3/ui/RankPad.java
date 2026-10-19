@@ -24,6 +24,14 @@ public final class RankPad {
 
         /** Current value to highlight for {@code link}. */
         int currentRank(int link);
+
+        /** True when {@code link} is marked ready to rank up on the next meeting. */
+        default boolean isReady(int link) {
+            return false;
+        }
+
+        /** Called when the player toggles "游戏提示下次就能升级" for {@code link}. */
+        default void onReadyChanged(int link, boolean ready) {}
     }
 
     private static final String[][] KEYS = {
@@ -39,6 +47,7 @@ public final class RankPad {
     private final TextView person;
     private final TextView progress;
     private final List<TextView> keys = new ArrayList<>();
+    private final CheckRow readyRow;
     private final TextView previous;
     private int position;
 
@@ -87,6 +96,15 @@ public final class RankPad {
             content.addView(Pads.keyRow(context, rowKeys));
         }
 
+        readyRow = new CheckRow(context, "游戏提示下次就能升级", false);
+        readyRow.setListener(checked -> {
+            int link = order.get(position);
+            listener.onReadyChanged(link, checked);
+        });
+        LinearLayout.LayoutParams readyParams = Ui.matchWrap();
+        readyParams.topMargin = Ui.dp(context, 8);
+        content.addView(readyRow, readyParams);
+
         LinearLayout actions = Ui.row(context);
         previous = Ui.secondary(context, "上一个");
         previous.setOnClickListener(v -> move(-1));
@@ -97,7 +115,7 @@ public final class RankPad {
         doneParams.leftMargin = Ui.dp(context, 12);
         actions.addView(done, doneParams);
         LinearLayout.LayoutParams actionsParams = Ui.matchWrap();
-        actionsParams.topMargin = Ui.dp(context, 16);
+        actionsParams.topMargin = Ui.dp(context, 12);
         content.addView(actions, actionsParams);
 
         dialog = Pads.bottomDialog(context, content);
@@ -141,6 +159,21 @@ public final class RankPad {
         render();
     }
 
+    private static boolean canReadyAt(Rules.Link l, int current) {
+        if (l.kind != Rules.LinkKind.MANUAL || current >= 10) {
+            return false;
+        }
+        if (current >= 1) {
+            return current + 1 < l.threshold.length && l.threshold[current + 1] > 0;
+        }
+        for (int r = 2; r < l.threshold.length; r++) {
+            if (l.threshold[r] > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void render() {
         Context context = dialog == null ? numeral.getContext() : dialog.getContext();
         int link = order.get(position);
@@ -166,6 +199,10 @@ public final class RankPad {
             key.setBackground(bg);
             key.setGravity(Gravity.CENTER);
         }
+        boolean canReady = canReadyAt(l, current);
+        readyRow.setChecked(canReady && listener.isReady(link));
+        readyRow.setEnabled(canReady);
+        readyRow.setAlpha(canReady ? 1f : 0.4f);
         previous.setEnabled(position > 0);
         previous.setAlpha(position > 0 ? 1f : 0.4f);
     }

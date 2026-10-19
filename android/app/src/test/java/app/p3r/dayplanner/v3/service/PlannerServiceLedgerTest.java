@@ -378,6 +378,29 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
         assertEquals(before, context.getSharedPreferences("p3r_native_progress_v1", Context.MODE_PRIVATE).getAll());
     }
 
+    @Test
+    public void checkpointRejectsStaleExpectedProfileRevisionWhenSavingProfile() {
+        onboard(MAY12_DAY);
+        long stateRev = service.snapshot().stateRevision;
+        long oldProfRev = service.snapshot().profileRevision;
+        Profile updated = new Profile();
+        updated.cashBuffer = 5_000;
+        assertTrue(service.saveProfile(id(), oldProfRev, updated).ok);
+        long newProfRev = service.snapshot().profileRevision;
+
+        SimState next = observed().copy();
+        next.cash = 25_000;
+        Profile wizardProfile = new Profile();
+        wizardProfile.christmasLink = "lovers";
+        PlannerApi.Receipt stale = service.saveCheckpoint(id(), stateRev, oldProfRev, next, wizardProfile);
+        assertFalse(stale.ok);
+        assertEquals(PlannerApi.Receipt.CODE_STALE, stale.errorCode);
+
+        PlannerApi.Receipt ok = service.saveCheckpoint(id(), stateRev, newProfRev, next, wizardProfile);
+        assertTrue(ok.ok);
+        assertEquals("lovers", service.snapshot().profile.christmasLink);
+    }
+
     private static void assertMessage(PlannerApi.Receipt r, String zh) {
         assertFalse("expected a rejection: " + zh, r.ok);
         assertEquals(zh, r.errorZh);

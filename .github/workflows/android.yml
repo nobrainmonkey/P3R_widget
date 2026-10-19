@@ -1,7 +1,7 @@
 name: Android CI
 on:
   push:
-    branches: [main]
+    branches: [main, 'feat/**']
   pull_request:
   workflow_dispatch:
 jobs:
@@ -11,6 +11,13 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify rules pack and run Python builder tests
+        run: |
+          python3 rules/build/build_p3r_rules.py --check
+          python3 -m unittest rules/build/test_build.py
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -26,15 +33,16 @@ jobs:
           key: robolectric-4.14.1-i7-${{ hashFiles('scripts/fetch_robolectric_jars.sh') }}
       - name: Fetch Robolectric SDK jars (with retries)
         run: scripts/fetch_robolectric_jars.sh "${{ runner.temp }}/p3r-toolchain"
-      - name: Unit tests and debug build
+      - name: Unit tests, lint, and debug build
         working-directory: android
         env:
           P3R_TOOLCHAIN: ${{ runner.temp }}/p3r-toolchain
           P3R_QA_DIR: ${{ runner.temp }}/qa_out
-        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintRelease :app:assembleDebug
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: qa-renders
           path: ${{ runner.temp }}/qa_out
           if-no-files-found: ignore
+

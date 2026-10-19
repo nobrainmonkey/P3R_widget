@@ -368,12 +368,13 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         SimState built = draft.build();
         Profile profile = draft.profileToSave();
         long rev = snap.stateRevision;
+        long profRev = snap.profileRevision;
         PlannerApi a = api;
         StateDraft current = draft;
         Async.run(this, () -> {
             String profileJson = profile == null ? "" : profile.toJson().toString();
             String id = CommandIds.of("checkpoint", rev, built.toJson().toString(), profileJson);
-            return a.saveCheckpoint(id, rev, built, profile);
+            return a.saveCheckpoint(id, rev, profRev, built, profile);
         }, receipt -> {
             setBusy(false);
             if (receipt.ok) {

@@ -357,7 +357,7 @@ final class Heuristics {
         int goalsCounted = 0;
         for (int l = 0; l < n; l++) {
             target[l] = goal[l] ? m.target(l) : 10;
-            otherW[l] = m.goal[l] && !goal[l] ? W_OTHER : wOther;
+            otherW[l] = m.goal[l] && !goal[l] ? WANT_BASE : wOther;
             wanted[l] = goal[l] || otherW[l] > 0;
             if (goal[l]) goalsCounted++;
         }
@@ -756,7 +756,8 @@ final class Heuristics {
         int mask = t.meetMask[slot];
         for (int l = 0; mask != 0; l++, mask >>>= 1) {
             if ((mask & 1) == 0 || demand[l] <= 0) continue;
-            if (tuning.goalFirst && !(goal[l] && st.rank[l] < target[l])) continue;
+            if (tuning.goalFirst && effectiveGoalRank(st, l) < 0
+                    && !(m.goal[l] && st.rank[l] < m.target(l) && admitted[l])) continue;
             if (Kernel.meetLegal(m, st, l, day)) return true;
         }
         return false;
@@ -1053,24 +1054,47 @@ final class Heuristics {
     }
 
     /**
-     * {@link Tuning#goalFirst}: a meeting or unlock step that moves a goal towards its target, or
-     * a dating-site note whose points still count for it, scores by the goal's place in the
-     * priority order ({@link #GOAL_FIRST}, {@link #GOAL_FIRST_NOTE}); anything else keeps {@code h}.
+     * {@link Tuning#goalFirst}: a meeting or unlock step that moves a goal (or an unmet link-rank
+     * prerequisite of an unestablished goal) towards its target, or a dating-site note whose points
+     * still count for it, scores by the goal's place in the priority order ({@link #GOAL_FIRST},
+     * {@link #GOAL_FIRST_NOTE}); anything else keeps {@code h}.
      */
     private double goalFirst(SimState st, int code, double h) {
         int type = Kernel.type(code);
         if (type != Kernel.T_MEET && type != Kernel.T_UNLOCK && type != Kernel.T_NOTE) return h;
         int l = Kernel.target(code);
-        if (!goal[l] || st.rank[l] >= target[l] || demand[l] <= 0 || h <= 0) return h;
+        int gr = effectiveGoalRank(st, l);
+        if (gr < 0 || h <= 0) return h;
         double base;
         if (type == Kernel.T_NOTE) {
-            if (Kernel.need(m, l, st.rank[l]) - st.pts[l] <= 0) return h;
+            if (!goal[l] || st.rank[l] >= target[l] || Kernel.need(m, l, st.rank[l]) - st.pts[l] <= 0) return h;
             base = GOAL_FIRST_NOTE;
         } else {
             if (h <= 1.0) return h; // a meeting that cannot add anything (banked points during a hold)
             base = GOAL_FIRST;
         }
-        return base + GOAL_FIRST_STEP * (goalLinks.length - goalRank[l]) + Math.min(h, GOAL_FIRST_STEP - 1);
+        return base + GOAL_FIRST_STEP * (goalLinks.length - gr) + Math.min(h, GOAL_FIRST_STEP - 1);
+    }
+
+    /**
+     * Best (lowest) priority index in {@link #goalRank} that advancing link {@code l} serves in
+     * {@code st}: its own goal rank while below {@link #target}, or the goal rank of any unestablished
+     * goal whose link-rank prerequisite on {@code l} is not yet met (-1 when none).
+     */
+    private int effectiveGoalRank(SimState st, int l) {
+        if (l < 0 || l >= t.nLinks || demand[l] <= 0) return -1;
+        int best = goal[l] && st.rank[l] < target[l] ? goalRank[l] : Integer.MAX_VALUE;
+        for (int g : goalLinks) {
+            if (st.rank[g] != 0 || demand[g] <= 0 || goalRank[g] >= best) continue;
+            int[] rl = m.reqLink[g];
+            for (int i = 0; i < rl.length; i++) {
+                if (rl[i] == l && st.rank[l] < m.reqLinkRank[g][i]) {
+                    best = goalRank[g];
+                    break;
+                }
+            }
+        }
+        return best == Integer.MAX_VALUE ? -1 : best;
     }
 
     /** The base policy's choice among {@code n} legal codes (FREE when none). */
@@ -1091,6 +1115,16 @@ final class Heuristics {
 
     static boolean vetoed(double h) {
         return h <= VETO / 2;
+    }
+
+    /** True when advancing link {@code l} is an active goal, opens a gate, or is a non-deferred link admitted to reach MAX. */
+    boolean isAdmittedOrGate(int l) {
+        return l >= 0 && l < admitted.length && (goal[l] || linkBonus[l] > 0 || (admitted[l] && !m.goal[l]));
+    }
+
+    /** True when advancing link {@code l} currently unlocks a prerequisite gate for another wanted link. */
+    boolean opensGate(int l) {
+        return l >= 0 && l < linkBonus.length && linkBonus[l] > 0;
     }
 
     private double meetScore(SimState st, int l) {

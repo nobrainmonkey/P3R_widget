@@ -628,6 +628,12 @@ public final class PlannerService implements PlannerApi {
     @Override
     public Receipt saveCheckpoint(String commandId, long expectedStateRevision, SimState observed,
                                   Profile profileOrNull) {
+        return saveCheckpoint(commandId, expectedStateRevision, -1L, observed, profileOrNull);
+    }
+
+    @Override
+    public Receipt saveCheckpoint(String commandId, long expectedStateRevision, long expectedProfileRevision,
+                                  SimState observed, Profile profileOrNull) {
         if (!isComplete(observed)) {
             return rejectNow(Rejection.invalid(observed == null
                     ? CommandCheck.ZH_STATE_MISSING : CommandCheck.ZH_STATE_INCOMPLETE));
@@ -643,6 +649,10 @@ public final class PlannerService implements PlannerApi {
                 return known;
             }
             if (expectedStateRevision != view.stateRevision) {
+                return stale();
+            }
+            if (profileOrNull != null && expectedProfileRevision >= 0
+                    && expectedProfileRevision != view.profileRevision) {
                 return stale();
             }
             Rejection r = CommandCheck.checkpoint(view.rules, observed);

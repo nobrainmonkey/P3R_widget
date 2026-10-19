@@ -280,6 +280,37 @@ public class StateWizardTest extends UiTestBase {
         Shots.shot(a, "state_edit_date_fullmoon");
     }
 
+    @Test
+    public void rankPadReadyCheckboxMarksNextMeetingRankUp() {
+        StateActivity a = stateController("edit").get();
+        jumpTo(a, StateSteps.Page.LINKS);
+        Shots.click(a, "皇帝，RANK 6，点按修改");
+        Shots.clickInDialog("游戏提示下次就能升级");
+        Shots.clickInDialog("好了");
+        assertTrue(a.draft().ready(4));
+        assertTrue(Shots.has(a, "可升级"));
+        jumpTo(a, StateSteps.Page.CONFIRM);
+        assertTrue(Shots.has(a, "皇帝 下次见面"));
+        assertTrue(Shots.has(a, "可直接升级"));
+        Shots.click(a, "保存并重新安排");
+        assertTrue(api.last().state.ready[4]);
+    }
+
+    @Test
+    public void profileRevisionConflictOnCheckpointRebasesAndKeepsEdits() {
+        StateActivity a = stateController("edit").get();
+        jumpTo(a, StateSteps.Page.LINKS);
+        Shots.click(a, "接受了岳羽由加莉的邀约");
+        jumpTo(a, StateSteps.Page.CONFIRM);
+        // Simulate a concurrent profile write changing profileRevision while the wizard was open.
+        api.snap.profileRevision++;
+        Shots.click(a, "保存并重新安排");
+        assertFalse(a.isFinishing());
+        assertNotNull(a.noticeText());
+        assertTrue(a.noticeText().contains("你填的内容都还在"));
+        assertEquals("lovers", a.draft().christmasLink());
+    }
+
     private static void jumpTo(StateActivity a, StateSteps.Page page) {
         for (int i = 0; i < 12 && a.currentPage() != page; i++) {
             Shots.click(a, "下一步");

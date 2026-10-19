@@ -56,6 +56,14 @@ final class Planner {
     /** For goals: the waste margin is this share of the goal's weight (2.5 slots earlier MAX). */
     static final double WASTE_GOAL_SHARE = 2.5 * Heuristics.EARLY_PER_SLOT;
 
+    enum CandidateMode {
+        NEW_DIVERSE,
+        OLD_DIVERSE,
+        NORMAL_TOP_K
+    }
+
+    static CandidateMode candidateMode = CandidateMode.NEW_DIVERSE;
+
     static boolean social(int code) {
         int type = Kernel.type(code);
         return type == Kernel.T_MEET || type == Kernel.T_UNLOCK;
@@ -631,7 +639,7 @@ final class Planner {
                         if (code == previous) margin = STABILITY_MARGIN;
                         if (improve && n >= 2) {
                             boolean meetable = (slot & 1) == 0 && socialLegal(n);
-                            for (int c : diverse(n, baseIdx)) {
+                            for (int c : diverse(slot, n, baseIdx)) {
                                 if (c == code) continue;
                                 if (System.nanoTime() > deadline || cancelled()) {
                                     improve = false;
@@ -710,11 +718,86 @@ final class Planner {
 
         /**
          * Up to {@code candidates} options to roll out, the base choice included in the count but not
-         * returned: first one per category (best meeting, second meeting, best stat/job, Tartarus,
-         * best dating-site note, Link Episode), ordered by H; when K is larger than that, the next
-         * best remaining actions by H.
+         * returned: first one per category (best two social actions, best admitted/gate unlock or
+         * gateway meeting outside the top two, best stat/job, Tartarus, best dating-site note, Link
+         * Episode), ordered by H; when K is larger than that, the next best remaining actions by H.
          */
-        private int[] diverse(int n, int baseIdx) {
+        private int[] diverse(int slot, int n, int baseIdx) {
+            if (candidateMode == CandidateMode.NORMAL_TOP_K) {
+                return topKNormal(n, baseIdx);
+            }
+            if (candidateMode == CandidateMode.OLD_DIVERSE) {
+                return oldDiverse(n, baseIdx);
+            }
+            int social1 = -1;
+            int social2 = -1;
+            int unlock = -1;
+            int anyUnlock = -1;
+            int act = -1;
+            int tower = -1;
+            int note = -1;
+            int episode = -1;
+            for (int i = 0; i < n; i++) {
+                if (Heuristics.vetoed(scores[i])) continue;
+                int code = buf[i];
+                int type = Kernel.type(code);
+                if (type == Kernel.T_MEET) {
+                    if (social1 < 0 || scores[i] > scores[social1]) {
+                        social2 = social1;
+                        social1 = i;
+                    } else if (social2 < 0 || scores[i] > scores[social2]) {
+                        social2 = i;
+                    }
+                } else if (type == Kernel.T_UNLOCK) {
+                    if (anyUnlock < 0 || scores[i] > scores[anyUnlock]) anyUnlock = i;
+                    if (h.isAdmittedOrGate(Kernel.target(code)) && (unlock < 0 || scores[i] > scores[unlock])) {
+                        unlock = i;
+                    }
+                } else if (type == Kernel.T_ACT) {
+                    if (act < 0 || scores[i] > scores[act]) act = i;
+                } else if (type == Kernel.T_TOWER) {
+                    if (tower < 0 || scores[i] > scores[tower]) tower = i;
+                } else if (type == Kernel.T_NOTE) {
+                    if (note < 0 || scores[i] > scores[note]) note = i;
+                } else if (type == Kernel.T_EPISODE) {
+                    if (episode < 0 || scores[i] > scores[episode]) episode = i;
+                }
+            }
+            if (unlock < 0) {
+                for (int i = 0; i < n; i++) {
+                    if (i == social1 || i == social2 || Heuristics.vetoed(scores[i])) continue;
+                    int code = buf[i];
+                    if (Kernel.type(code) == Kernel.T_MEET && h.opensGate(Kernel.target(code))) {
+                        if (unlock < 0 || scores[i] > scores[unlock]) unlock = i;
+                    }
+                }
+            }
+            if (unlock < 0 && anyUnlock >= 0 && (social2 < 0 || scores[anyUnlock] > scores[social2])) {
+                unlock = anyUnlock;
+            }
+            List<Integer> picked = new ArrayList<>(7);
+            for (int r : new int[]{social1, social2, unlock, act, tower, note, episode}) {
+                if (r >= 0 && !picked.contains(r)) picked.add(r);
+            }
+            picked.sort(this::byScore);
+            if (candidates > picked.size()) {
+                List<Integer> rest = new ArrayList<>();
+                for (int i = 0; i < n; i++) if (!picked.contains(i) && !Heuristics.vetoed(scores[i])) rest.add(i);
+                rest.sort(this::byScore);
+                for (int i = 0; i < rest.size() && picked.size() < candidates; i++) picked.add(rest.get(i));
+            }
+            int limit = Math.min(picked.size(), candidates);
+            boolean baseVetoed = Heuristics.vetoed(scores[baseIdx]);
+            int[] out = new int[limit];
+            int c = 0;
+            for (int i = 0; i < limit; i++) {
+                int idx = picked.get(i);
+                if (idx != baseIdx || baseVetoed) out[c++] = buf[idx];
+            }
+            return Arrays.copyOf(out, c);
+        }
+
+        private int[] oldDiverse(int n, int baseIdx) {
             int social1 = -1;
             int social2 = -1;
             int act = -1;
@@ -750,6 +833,23 @@ final class Planner {
                 rest.sort(this::byScore);
                 for (int i = 0; i < rest.size() && picked.size() < candidates; i++) picked.add(rest.get(i));
             }
+            int limit = Math.min(picked.size(), candidates);
+            boolean baseVetoed = Heuristics.vetoed(scores[baseIdx]);
+            int[] out = new int[limit];
+            int c = 0;
+            for (int i = 0; i < limit; i++) {
+                int idx = picked.get(i);
+                if (idx != baseIdx || baseVetoed) out[c++] = buf[idx];
+            }
+            return Arrays.copyOf(out, c);
+        }
+
+        private int[] topKNormal(int n, int baseIdx) {
+            List<Integer> picked = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+                if (!Heuristics.vetoed(scores[i])) picked.add(i);
+            }
+            picked.sort(this::byScore);
             int limit = Math.min(picked.size(), candidates);
             boolean baseVetoed = Heuristics.vetoed(scores[baseIdx]);
             int[] out = new int[limit];

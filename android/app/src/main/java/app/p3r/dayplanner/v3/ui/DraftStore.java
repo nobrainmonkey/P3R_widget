@@ -64,6 +64,11 @@ public final class DraftStore {
         }
         for (Rules.Link link : rules.links) {
             draft.rank[link.idx] = getInt(p + "link." + link.id + ".rank");
+            if (prefs.contains(p + "link." + link.id + ".ready")) {
+                draft.ready[link.idx] = prefs.getBoolean(p + "link." + link.id + ".ready", false);
+            } else {
+                draft.ready[link.idx] = null;
+            }
             draft.unlock[link.idx] = getInt(p + "link." + link.id + ".unlock");
             String tier = prefs.getString(p + "goal." + link.id + ".tier", null);
             if (tier != null) {
@@ -126,6 +131,11 @@ public final class DraftStore {
         }
         for (Rules.Link link : rules.links) {
             putInt(e, p + "link." + link.id + ".rank", draft.rank[link.idx]);
+            if (draft.ready[link.idx] != null) {
+                e.putBoolean(p + "link." + link.id + ".ready", draft.ready[link.idx]);
+            } else {
+                e.remove(p + "link." + link.id + ".ready");
+            }
             putInt(e, p + "link." + link.id + ".unlock", draft.unlock[link.idx]);
             if (draft.mode == StateDraft.Mode.ONBOARDING) {
                 e.putString(p + "goal." + link.id + ".tier", draft.profile.tier[link.idx].name());

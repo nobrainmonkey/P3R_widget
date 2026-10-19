@@ -69,6 +69,13 @@ public final class Profile {
      * taken (lock reason {@link Rules#LOCK_CHRISTMAS}, 「平安夜约会」). JSON key {@code christmasLink}.
      */
     public String christmasLink;
+    /**
+     * Reserve the 1/21 daytime slot for Junpei's white-flowers scene (default true: conservative,
+     * DESIGN §10.5). When false (the player did not buy and give Junpei the white flowers in
+     * November), slots whose pack lock is {@link Rules#LOCK_RESERVED} are open for daytime actions.
+     * JSON key {@code junpeiFlowers}.
+     */
+    public boolean junpeiFlowers = true;
     /** Keep at least this much cash when choosing optional purchases. */
     public int cashBuffer = 0;
     /** Activity ids the player does not want scheduled. */
@@ -111,12 +118,14 @@ public final class Profile {
     }
 
     /**
-     * Lock reason of {@code slot} under this profile: the pack's lock, else
+     * Lock reason of {@code slot} under this profile: the pack's lock (except
+     * {@link Rules#LOCK_RESERVED} when {@link #junpeiFlowers} is false), else
      * {@link Rules#LOCK_CHRISTMAS} for both slots of 12/24 when an invitation was accepted, else
      * null (free). Labels: {@link Rules#lockReasonZh}.
      */
     public String lockOf(Rules rules, int slot) {
         String lock = rules.lockOf(slot);
+        if (!junpeiFlowers && Rules.LOCK_RESERVED.equals(lock)) lock = null;
         if (lock != null || !christmasTaken()) return lock;
         return Rules.dayOf(slot) == rules.christmasEveDay() ? Rules.LOCK_CHRISTMAS : null;
     }
@@ -180,6 +189,7 @@ public final class Profile {
         o.put("towerCapByBlock", blockMap(towerCapByBlock));
         o.put("towerVisitsByBlock", blockMap(towerVisitsByBlock));
         if (christmasTaken()) o.put("christmasLink", christmasLink.trim());
+        o.put("junpeiFlowers", junpeiFlowers);
         JSONArray ex = new JSONArray();
         for (String s : excludedActivities) ex.put(s);
         o.put("excludedActivities", ex);
@@ -218,6 +228,7 @@ public final class Profile {
         readBlockMap(o.optJSONObject("towerVisitsByBlock"), p.towerVisitsByBlock);
         String christmas = o.isNull("christmasLink") ? null : o.optString("christmasLink", "").trim();
         p.christmasLink = christmas == null || christmas.isEmpty() ? null : christmas;
+        p.junpeiFlowers = o.optBoolean("junpeiFlowers", true);
         JSONArray ex = o.optJSONArray("excludedActivities");
         if (ex != null) {
             p.excludedActivities = new String[ex.length()];

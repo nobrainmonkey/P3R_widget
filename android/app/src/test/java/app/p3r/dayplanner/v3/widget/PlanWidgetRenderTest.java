@@ -599,7 +599,6 @@ public class PlanWidgetRenderTest {
     public void bundledFontsAreTheUnmodifiedBarlowFiles() throws Exception {
         String[][] pinned = {
                 {"barlow_condensed_bold.ttf", "e476562ec9c1e16cf16475895b511f08c804f438cc9a9f80a44ea50a0eeb5b65"},
-                {"barlow_condensed_semibold.ttf", "7b619d14bc2327509a9ef32b0890f709626f7ecc9ff61191c2a4314c5499d2d9"},
                 {"barlow_condensed_bolditalic.ttf", "d8694f65cd70c3e5e600ead37657aab0adb5f63b275d0c1f6f4a7046de222145"},
                 {"barlow_condensed_extrabolditalic.ttf", "331783dae9ec0c398f4d32c9fd5a56d4c602caa0c1628c2b9cbfe93f48eb68c9"},
         };

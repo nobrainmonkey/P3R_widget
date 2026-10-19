@@ -58,6 +58,9 @@ final class SettingsPage {
 
         column.addView(Ui.sectionHeader(c, "平安夜", null), gapTop(c, 20));
         column.addView(christmas(host, p), gapTop(c, 4));
+        column.addView(toggle(host, "留出顺平的「白色切花」剧情",
+            "送过顺平「白色切花」的话，1月21日放学后会有剧情；没送过可以关掉，腾出这天放学后。",
+            p.junpeiFlowers, (q, on) -> q.junpeiFlowers = on), gapTop(c, 8));
 
         column.addView(Ui.sectionHeader(c, "现金", null), gapTop(c, 20));
         column.addView(cashBuffer(host, p), gapTop(c, 4));
@@ -99,7 +102,7 @@ final class SettingsPage {
     static final String[][] PERSONA_TEXT = {
         {"基本都带", "所有社群的点数都按 ×1.51 算。"},
         {"只给目标社群带", "只有目标社群按 ×1.51 算；每次和目标社群的人见面前，会提醒你带哪个阿尔卡那的人格面具。"},
-        {"不带/不一定", "都按不带算，最保守。拿不准就选这个。"},
+        {"不带/不一定", "都按不带计算。"},
     };
 
     /** The 人格面具 question as three stacked choices (the labels are too long for one row). */

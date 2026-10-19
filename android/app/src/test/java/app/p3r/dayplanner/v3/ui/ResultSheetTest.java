@@ -114,7 +114,7 @@ public class ResultSheetTest extends UiTestBase {
         int slot = Rules.slot(Fixtures.day(10, 24), false);
         advanceTo(slot);
         ResultActivity a = result(slot, "meet:sun", Intents.MODE_RESULT);
-        assertTrue(Shots.has(a, "升级是按估计排的，结果以游戏为准。"));
+        assertTrue(Shots.has(a, "好感点数为预估，请按游戏内实际结果选择。"));
         Shots.shot(a, "result_social_rankup_estimate");
         assertTrue(Shots.has(a, "没升级"));
         assertTrue(Shots.has(a, "升到 RANK 8 了"));

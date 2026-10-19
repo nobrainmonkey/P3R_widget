@@ -154,6 +154,7 @@ final class PlanValidator {
          */
         private String lockAt(int s) {
             String lock = rules.lockOf(s);
+            if (!profile.junpeiFlowers && "reserved".equals(lock)) lock = null;
             if (lock != null || profile.christmasLink == null || profile.christmasLink.trim().isEmpty()) return lock;
             Rules.Day d = rules.day(s >> 1);
             return d != null && "12-24".equals(d.md) ? "christmas_date" : null;

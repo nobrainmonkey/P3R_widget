@@ -753,6 +753,225 @@ public class PlanRealPackTest {
         assertTrue("the scenarios pay unlock fees", payments >= 5);
     }
 
+    @Test
+    public void january21DaytimeIsOpenWhenJunpeiFlowersIsFalse() {
+        int jan21DaySlot = Rules.slot(dayOf(1, 21), false);
+        SimState start = Engine.advanceTo(rules, new Profile(), midGameState(), Rules.slot(dayOf(1, 18), false));
+
+        Profile reserved = new Profile();
+        Plan withFlowers = Engine.plan(rules, reserved, start, null, new Engine.Options());
+        assertTrue(Engine.validate(rules, reserved, start, withFlowers).isEmpty());
+        assertEquals("locked:reserved", withFlowers.at(jan21DaySlot).action);
+
+        Profile open = new Profile();
+        open.junpeiFlowers = false;
+        Plan withoutFlowers = Engine.plan(rules, open, start, null, new Engine.Options());
+        assertTrue(Engine.validate(rules, open, start, withoutFlowers).isEmpty());
+        assertFalse("1/21 daytime should not be locked when junpeiFlowers is false",
+                withoutFlowers.at(jan21DaySlot).action.startsWith("locked:"));
+    }
+
+    private static SimState earlyMidJuly20State() {
+        SimState s = newGame(dayOf(7, 20));
+        s.cash = 4_000;
+        s.cashExact = true;
+        setStat(s, "academics", 3);
+        setStat(s, "charm", 2);
+        setStat(s, "courage", 3);
+        setRank(s, "magician", 4);
+        setRank(s, "chariot", 4);
+        setRank(s, "emperor", 3);
+        setRank(s, "hierophant", 3);
+        setRank(s, "hermit", 2);
+        setRank(s, "strength", 2);
+        setRank(s, "hanged_man", 2);
+        setRank(s, "fortune", 1);
+        setRank(s, "justice", 1);
+        Rules.Block b = rules.blockOn(s.slot >> 1);
+        if (b != null) s.towerVisits[b.idx] = 1;
+        return s;
+    }
+
+    private static SimState earlyMidSept2State() {
+        SimState s = newGame(dayOf(9, 2));
+        s.cash = 8_000;
+        s.cashExact = true;
+        setStat(s, "academics", 4);
+        setStat(s, "charm", 3);
+        setStat(s, "courage", 4);
+        setRank(s, "magician", 5);
+        setRank(s, "chariot", 5);
+        setRank(s, "emperor", 5);
+        setRank(s, "hierophant", 4);
+        setRank(s, "hermit", 4);
+        setRank(s, "strength", 3);
+        setRank(s, "hanged_man", 3);
+        setRank(s, "fortune", 2);
+        setRank(s, "justice", 2);
+        setRank(s, "temperance", 2);
+        Rules.Block b = rules.blockOn(s.slot >> 1);
+        if (b != null) s.towerVisits[b.idx] = 1;
+        return s;
+    }
+
+    private static SimState lateGameNov25State() {
+        SimState s = newGame(dayOf(11, 25));
+        s.cash = 12_000;
+        s.cashExact = true;
+        setStat(s, "academics", 6);
+        setStat(s, "charm", 5);
+        setStat(s, "courage", 5);
+        setRank(s, "magician", 7);
+        setRank(s, "priestess", 5);
+        setRank(s, "empress", 1);
+        setRank(s, "emperor", 8);
+        setRank(s, "hierophant", 7);
+        setRank(s, "lovers", 5);
+        setRank(s, "chariot", 8);
+        setRank(s, "justice", 6);
+        setRank(s, "hermit", 7);
+        setRank(s, "fortune", 5);
+        setRank(s, "strength", 6);
+        setRank(s, "hanged_man", 6);
+        setRank(s, "temperance", 4);
+        setRank(s, "devil", 4);
+        setRank(s, "tower", 3);
+        setRank(s, "star", 4);
+        setRank(s, "moon", 5);
+        setRank(s, "sun", 7);
+        for (int i = 0; i < rules.rescues.length; i++) {
+            if (rules.rescues[i].toDay < dayOf(11, 25)) s.rescued |= 1L << i;
+        }
+        Rules.Block b = rules.blockOn(s.slot >> 1);
+        if (b != null) s.towerVisits[b.idx] = 1;
+        return s;
+    }
+
+    @Test
+    public void benchmarkCandidateModesAcrossGameStages() throws Exception {
+        Profile allLinks = new Profile();
+        Profile allEpisodes = new Profile();
+        String[] epIds = new String[rules.episodes.length];
+        for (int i = 0; i < rules.episodes.length; i++) epIds[i] = rules.episodes[i].id;
+        allEpisodes.episodeTracks = epIds;
+
+        // 6 romanceable female commus + Sun (7 MUST goals)
+        Profile heroinesPlusSun = must(
+                link("priestess"), link("empress"), link("lovers"),
+                link("justice"), link("strength"), link("aeon"), link("sun"));
+
+        // All 8 female commus (genderZh == "女") + Sun (9 MUST goals)
+        Profile allFemalePlusSun = must(
+                link("priestess"), link("empress"), link("lovers"),
+                link("justice"), link("hermit"), link("strength"),
+                link("hanged_man"), link("aeon"), link("sun"));
+
+        Profile mgThree = must(link("priestess"), link("empress"), link("lovers"));
+
+        SimState egFemaleStart = Engine.advanceTo(
+                rules, allFemalePlusSun, lateGameNov25State(), Rules.slot(dayOf(1, 8), false));
+        setStat(egFemaleStart, "academics", 6);
+        setStat(egFemaleStart, "charm", 6);
+        setStat(egFemaleStart, "courage", 6);
+        setRank(egFemaleStart, "priestess", 8);
+        setRank(egFemaleStart, "empress", 6);
+        setRank(egFemaleStart, "lovers", 9);
+        setRank(egFemaleStart, "justice", 8);
+        setRank(egFemaleStart, "hermit", 9);
+        setRank(egFemaleStart, "strength", 8);
+        setRank(egFemaleStart, "hanged_man", 9);
+        setRank(egFemaleStart, "sun", 9);
+        for (int i = 0; i < rules.rescues.length; i++) {
+            egFemaleStart.rescued |= 1L << i;
+        }
+
+        Object[][] scenarios = {
+            {"New Game (4/21) · All Commus", allLinks, newGame(dayOf(4, 21))},
+            {"New Game (4/21) · All Episodes + Commus", allEpisodes, newGame(dayOf(4, 21))},
+            {"New Game (4/21) · MUST: 6 Heroines + Sun (7)", heroinesPlusSun, newGame(dayOf(4, 21))},
+            {"New Game (4/21) · MUST: All 8 Female + Sun (9)", allFemalePlusSun, newGame(dayOf(4, 21))},
+            {"Early-Mid (7/20) · MUST: 6 Heroines + Sun (7)", heroinesPlusSun, earlyMidJuly20State()},
+            {"Early-Mid (7/20) · MUST: All 8 Female + Sun (9)", allFemalePlusSun, earlyMidJuly20State()},
+            {"Early-Mid (9/2) · MUST: 6 Heroines + Sun (7)", heroinesPlusSun, earlyMidSept2State()},
+            {"Early-Mid (9/2) · MUST: All 8 Female + Sun (9)", allFemalePlusSun, earlyMidSept2State()},
+            {"Mid Game (10/22) · All Commus (¥1k, Charm 3)", allLinks, midGameState()},
+            {"Mid Game (10/22) · MUST: Priestess, Empress, Lovers", mgThree, midGameState()},
+            {"Mid Game (10/22) · MUST: 6 Heroines + Sun (7)", heroinesPlusSun, midGameState()},
+            {"Mid Game (10/22) · MUST: All 8 Female + Sun (9)", allFemalePlusSun, midGameState()},
+            {"Late Game (11/25) · MUST: 6 Heroines + Sun (7)", heroinesPlusSun, lateGameNov25State()},
+            {"Late Game (11/25) · MUST: All 8 Female + Sun (9)", allFemalePlusSun, lateGameNov25State()},
+            {"End Game (1/8) · MUST: 6 Heroines + Sun (7)", heroinesPlusSun, egFemaleStart},
+            {"End Game (1/8) · MUST: All 8 Female + Sun (9)", allFemalePlusSun, egFemaleStart},
+        };
+
+        // Warm up JIT
+        Engine.plan(rules, allLinks, midGameState(), null, new Engine.Options());
+
+        StringBuilder md = new StringBuilder();
+        md.append("# Candidate Selection Mode Benchmark (All Female Commus + Sun)\n\n");
+        md.append("| Scenario | Mode | Opened | Total MAX | Rank Sum | Goals MAX | Goal End Ranks | Time (ms) |\n");
+        md.append("|---|---|---|---|---|---|---|---|\n");
+
+        try {
+            for (Object[] sc : scenarios) {
+                String name = (String) sc[0];
+                Profile prof = (Profile) sc[1];
+                SimState st = (SimState) sc[2];
+                String[] modeNames = {"Greedy (No Rollout)", "Normal (Top-K by H)", "Old Diverse", "New Diverse"};
+                for (int m = 0; m < 4; m++) {
+                    Engine.Options opt = new Engine.Options();
+                    if (m == 0) {
+                        opt.timeBudgetMillis = 0;
+                        Planner.candidateMode = Planner.CandidateMode.NEW_DIVERSE;
+                    } else if (m == 1) {
+                        Planner.candidateMode = Planner.CandidateMode.NORMAL_TOP_K;
+                    } else if (m == 2) {
+                        Planner.candidateMode = Planner.CandidateMode.OLD_DIVERSE;
+                    } else {
+                        Planner.candidateMode = Planner.CandidateMode.NEW_DIVERSE;
+                    }
+                    long t0 = System.nanoTime();
+                    Plan p = Engine.plan(rules, prof, st.copy(), null, opt);
+                    long ms = (System.nanoTime() - t0) / 1_000_000L;
+                    assertTrue(name + " [" + modeNames[m] + "] invalid",
+                            Engine.validate(rules, prof, st, p).isEmpty());
+                    int opened = 0;
+                    int maxed = 0;
+                    int rankSum = 0;
+                    for (int r : p.summary.endRanks) {
+                        if (r >= 1) opened++;
+                        if (r >= 10) maxed++;
+                        rankSum += r;
+                    }
+                    StringBuilder gStr = new StringBuilder();
+                    List<Integer> gOrder = goalOrder(prof);
+                    int goalsMaxed = 0;
+                    int goalsSum = 0;
+                    if (gOrder.isEmpty()) {
+                        gStr.append("—");
+                    } else {
+                        for (int g : gOrder) {
+                            if (gStr.length() > 0) gStr.append(", ");
+                            int er = p.summary.endRanks[g];
+                            if (er >= 10) goalsMaxed++;
+                            goalsSum += er;
+                            gStr.append(rules.links[g].arcanaZh).append("=").append(er);
+                        }
+                    }
+                    String gMaxSummary = gOrder.isEmpty() ? "—"
+                            : String.format("%d/%d (%d/%d)", goalsMaxed, gOrder.size(), goalsSum, gOrder.size() * 10);
+                    md.append(String.format("| %s | %s | %d/22 | %d/22 | %d/220 | %s | %s | %d ms |\n",
+                            name, modeNames[m], opened, maxed, rankSum, gMaxSummary, gStr, ms));
+                }
+            }
+        } finally {
+            Planner.candidateMode = Planner.CandidateMode.NEW_DIVERSE;
+        }
+        System.out.println(md);
+        File benchOut = new File(metricsFile().getParentFile(), "candidate_mode_benchmark.md");
+        Files.write(benchOut.toPath(), md.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
     // ------------------------------------------------------------------ metrics table (plan_metrics.md)
 
     /** One row of the metrics table per scenario run. */
