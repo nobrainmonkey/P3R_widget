@@ -1,0 +1,2248 @@
+{
+  "schema": "p3r.multistep_unlock_rules_candidate.v1",
+  "checkedAtUtc": "2026-10-13",
+  "sources": [
+    {
+      "id": "wiki453",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/453.html",
+      "edition": "Reload"
+    },
+    {
+      "id": "wiki420",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+      "edition": "Reload",
+      "evidenceType": "same-slot chart co-occurrence where explicit timing prose absent"
+    },
+    {
+      "id": "aqiu",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "edition": "Reload"
+    },
+    {
+      "id": "aqiu_overworld",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/overworld.html",
+      "edition": "Reload"
+    },
+    {
+      "id": "game8_tower",
+      "url": "https://game8.co/games/Persona-3-Reload/archives/439756",
+      "edition": "Reload"
+    },
+    {
+      "id": "megaten_mutatsu",
+      "url": "https://megatenwiki.com/wiki/Gameplay%3AMutatsu",
+      "edition": "mixed Portable/Reload protagonist prose; not independent original-game verification"
+    },
+    {
+      "id": "baseline",
+      "path": "/workspace/scratch/c0da63724a20/p3r_guide_audit/data.candidate.json",
+      "sha256": "ff93b7653ec19049667856a8f439f69d5f722772a21f57e504f85e145a3c68d1"
+    },
+    {
+      "id": "audited_display",
+      "path": "/workspace/scratch/c0da63724a20/p3r_guide_audit/display_metadata.json",
+      "sha256": "74f881cdbdeb193f831129d0c91ecf0bb88b266bb5c32ffffc4e5e5da7b727ed"
+    }
+  ],
+  "contract": {
+    "stateTransitions": "Advance only after successful actual interaction or a source-complete simulated action whose guards are all true. Unknown flags stay unknown. Never infer completed preparations from rank/date alone.",
+    "calendar": "Exact-date availability is mandatory; regular post-unlock weekdays do not automatically govern every pre-unlock conversation. Current offered interaction is acceptable evidence.",
+    "costs": "All JPY costs are in-game currency. Consume items/money once on successful transition; never double-charge already-completed observed preparation. Purchase and giving are distinct.",
+    "slotCost": "0 means no additional optional-slot consumption; embedded events require parent action cost already accounted. null means unresolved, not0 or1.",
+    "distinctDates": "Compare game ordinals. Exact historical date is optional: with known prep stage and unknown last date, use checkpoint date as conservative upper bound; schedule next distinct date after it. Same-day execution requires current-day completion timing confirmation.",
+    "idempotency": "A transition applies once from its exact fromStage; repeated tool/event delivery cannot spend again.",
+    "affinity": "Opening event rank1 only. No invented affinity credit.",
+    "chinese": "Exact existing guide/audited display only; foreign dialogue never translated into purported Chinese game text.",
+    "sourceEnvelope": "Optional sufficient gate under competing reports, default-off. Lower values cannot be labelled impossible.",
+    "productionEngineTested": false,
+    "partialInteractions": "Maiko food-only state is supported without consuming food twice. Interrupted Tower/Moon opening may be recorded as external observed progress; the aggregate rule cannot assume all substeps succeeded."
+  },
+  "models": [
+    {
+      "entityId": "p3r.social_link.justice",
+      "nameZhCn": "正义",
+      "stateField": "p3r.unlock.justice.stage",
+      "unknownStatePolicy": "Unknown is not stage0; use observed preparation flags or ask for current state. Never repay or consume an item from assumed history.",
+      "displayReferences": [
+        {
+          "taskId": "t012_01",
+          "date": "4月28日",
+          "rawRecord": {
+            "id": "t012_01",
+            "period": "放学后",
+            "kind": "action",
+            "title": "与学生会活动室门口的伏见千寻对话，有话想和你说（正义前置1）",
+            "where": "月光馆学园（按具体步骤定位）"
+          },
+          "auditedDisplay": {
+            "widgetTitle": "与学生会活动室门口的伏见千寻对话，有话想和你说（正义前置1）",
+            "locationLabel": "学园",
+            "appBullets": [
+              "与学生会活动室门口的伏见千寻对话，有话想和你说（正义前置1）"
+            ],
+            "extraNotes": [],
+            "hasDetails": false,
+            "dialogueChoices": [
+              "有话想和你说"
+            ],
+            "dialogueCue": ""
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        },
+        {
+          "taskId": "t014_02",
+          "date": "4月30日",
+          "rawRecord": {
+            "id": "t014_02",
+            "period": "放学后",
+            "kind": "action",
+            "title": "与学生会活动室门口的伏见千寻对话，我也是男性（正义前置2）",
+            "where": "月光馆学园（按具体步骤定位）"
+          },
+          "auditedDisplay": {
+            "widgetTitle": "与学生会活动室门口的伏见千寻对话，我也是男性（正义前置2）",
+            "locationLabel": "学园",
+            "appBullets": [
+              "与学生会活动室门口的伏见千寻对话，我也是男性（正义前置2）"
+            ],
+            "extraNotes": [],
+            "hasDetails": false,
+            "dialogueChoices": [
+              "我也是男性"
+            ],
+            "dialogueCue": ""
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        },
+        {
+          "taskId": "t016_01",
+          "date": "5月2日",
+          "rawRecord": {
+            "id": "t016_01",
+            "period": "放学后",
+            "kind": "action",
+            "title": "与学生会活动室门口的伏见千寻对话，问他一起出去玩吧（正义前置3）",
+            "where": "月光馆学园（按具体步骤定位）"
+          },
+          "auditedDisplay": {
+            "widgetTitle": "学生会活动室门口邀伏见千寻外出（正义前置3）",
+            "locationLabel": "学园 · 学生会活动室门口",
+            "appBullets": [
+              "与学生会活动室门口的伏见千寻对话",
+              "询问“一起出去玩吧”（正义前置3）"
+            ],
+            "extraNotes": [],
+            "hasDetails": true,
+            "dialogueChoices": [
+              "一起出去玩吧"
+            ],
+            "dialogueCue": ""
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        },
+        {
+          "taskId": "t021_02",
+          "date": "5月7日",
+          "rawRecord": {
+            "id": "t021_02",
+            "period": "放学后",
+            "kind": "action",
+            "title": "到教室前走廊和伏见千寻对话，正义解锁",
+            "where": "月光馆学园（按具体步骤定位）"
+          },
+          "auditedDisplay": {
+            "widgetTitle": "到教室前走廊和伏见千寻对话，正义解锁",
+            "locationLabel": "学园",
+            "appBullets": [
+              "到教室前走廊和伏见千寻对话，正义解锁"
+            ],
+            "extraNotes": [],
+            "hasDetails": false,
+            "dialogueChoices": [],
+            "dialogueCue": ""
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        }
+      ],
+      "transitions": [
+        {
+          "ruleId": "p3r.unlock.justice.conversation1",
+          "fromStage": "unstarted",
+          "toStage": "conversation1",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.justice",
+              "value": 0
+            },
+            {
+              "type": "link_rank_at_least",
+              "entityId": "p3r.social_link.emperor",
+              "value": 1
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.justice.introduction_interaction_available"
+            }
+          ],
+          "slotCost": 0,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.justice.stage",
+              "value": "conversation1"
+            },
+            {
+              "type": "set_current_date",
+              "field": "p3r.unlock.justice.lastSuccessfulConversationDate"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "804,873"
+            },
+            {
+              "sourceId": "wiki420",
+              "locator": "May2 lines424–430;May7 lines447–452"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": false,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "daytime"
+        },
+        {
+          "ruleId": "p3r.unlock.justice.conversation2",
+          "fromStage": "conversation1",
+          "toStage": "conversation2",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.justice",
+              "value": 0
+            },
+            {
+              "type": "link_rank_at_least",
+              "entityId": "p3r.social_link.emperor",
+              "value": 1
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.justice.introduction_interaction_available"
+            },
+            {
+              "type": "date_strictly_after",
+              "dateField": "p3r.unlock.justice.lastSuccessfulConversationDate"
+            }
+          ],
+          "slotCost": 0,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.justice.stage",
+              "value": "conversation2"
+            },
+            {
+              "type": "set_current_date",
+              "field": "p3r.unlock.justice.lastSuccessfulConversationDate"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "804,873"
+            },
+            {
+              "sourceId": "wiki420",
+              "locator": "May2 lines424–430;May7 lines447–452"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": false,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "daytime"
+        },
+        {
+          "ruleId": "p3r.unlock.justice.conversation3",
+          "fromStage": "conversation2",
+          "toStage": "conversation3",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.justice",
+              "value": 0
+            },
+            {
+              "type": "link_rank_at_least",
+              "entityId": "p3r.social_link.emperor",
+              "value": 1
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.justice.introduction_interaction_available"
+            },
+            {
+              "type": "date_strictly_after",
+              "dateField": "p3r.unlock.justice.lastSuccessfulConversationDate"
+            }
+          ],
+          "slotCost": 0,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.justice.stage",
+              "value": "conversation3"
+            },
+            {
+              "type": "set_current_date",
+              "field": "p3r.unlock.justice.lastSuccessfulConversationDate"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "804,873"
+            },
+            {
+              "sourceId": "wiki420",
+              "locator": "May2 lines424–430;May7 lines447–452"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": false,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "daytime",
+          "requiredOutcome": "Invitation to go out accepted as preparation; does not yet unlock link"
+        },
+        {
+          "ruleId": "p3r.unlock.justice.conversation4",
+          "fromStage": "conversation3",
+          "toStage": "unlocked",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.justice",
+              "value": 0
+            },
+            {
+              "type": "link_rank_at_least",
+              "entityId": "p3r.social_link.emperor",
+              "value": 1
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.justice.introduction_interaction_available"
+            },
+            {
+              "type": "date_strictly_after",
+              "dateField": "p3r.unlock.justice.lastSuccessfulConversationDate"
+            }
+          ],
+          "slotCost": 1,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.justice.stage",
+              "value": "unlocked"
+            },
+            {
+              "type": "set_link_rank",
+              "entityId": "p3r.social_link.justice",
+              "value": 1
+            },
+            {
+              "type": "set_current_date",
+              "field": "p3r.unlock.justice.lastSuccessfulConversationDate"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "804,873"
+            },
+            {
+              "sourceId": "wiki420",
+              "locator": "May2 lines424–430;May7 lines447–452"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": false,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "daytime",
+          "requiredOutcome": "Walk-home rank1 event completed",
+          "earliestSourceClaim": "05-07"
+        }
+      ],
+      "conflicts": [],
+      "unknowns": []
+    },
+    {
+      "entityId": "p3r.social_link.strength",
+      "nameZhCn": "力量",
+      "stateField": "p3r.unlock.strength.stage",
+      "unknownStatePolicy": "Unknown is not stage0; use observed preparation flags or ask for current state. Never repay or consume an item from assumed history.",
+      "displayReferences": [
+        {
+          "taskId": "t007_02",
+          "date": "4月23日",
+          "rawRecord": {
+            "id": "t007_02",
+            "period": "放学后",
+            "kind": "action",
+            "title": "前往运动场前走廊进入操场，加入田径社，战车解锁",
+            "where": "按第一步指示前往",
+            "steps": [
+              "大厅和结子对话选择：和她打招呼（1）/要不要一起走？（1）"
+            ]
+          },
+          "auditedDisplay": {
+            "widgetTitle": "操场加入田径社，解锁战车；邀结子同行",
+            "locationLabel": "学园 · 运动场前走廊",
+            "appBullets": [
+              "到运动场前走廊，进入操场加入田径社，战车解锁",
+              "社团事件后，在大厅与结子交谈",
+              "选择：和她打招呼（1）→要不要一起走？（1）"
+            ],
+            "extraNotes": [],
+            "hasDetails": true,
+            "dialogueChoices": [
+              "和她打招呼（1）",
+              "要不要一起走？（1）"
+            ],
+            "dialogueCue": ""
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        },
+        {
+          "taskId": "t008_01",
+          "date": "4月24日",
+          "rawRecord": {
+            "id": "t008_01",
+            "period": "放学后",
+            "kind": "action",
+            "title": "和教室内宫本对话，对话选择：是你毅力不够（2）/任意/任意",
+            "where": "月光馆学园 · 教室／田径社（战车）",
+            "steps": [
+              "确保身上持有“战车”面具，可以使用皮克希+佛钮司合成",
+              "战车RANK→2：大厅见遇到经理，对话选择和她打招呼（1）/",
+              "要不要一起走？（1）/任意，力量解锁"
+            ]
+          },
+          "auditedDisplay": {
+            "widgetTitle": "带战车面具找宫本，再到大厅邀经理同行，解锁力量",
+            "locationLabel": "学园 · 教室／田径社",
+            "appBullets": [
+              "确保身上持有“战车”面具，可以使用皮克希+佛钮司合成",
+              "和教室内宫本对话",
+              "对话选择：是你毅力不够（2）/任意/任意",
+              "战车RANK→2",
+              "在大厅遇到经理",
+              "对话选择：和她打招呼（1）/要不要一起走？（1）/任意",
+              "力量解锁"
+            ],
+            "extraNotes": [],
+            "hasDetails": true,
+            "dialogueChoices": [],
+            "dialogueCue": "宫本、结子分段选项，点开查看"
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        }
+      ],
+      "transitions": [
+        {
+          "ruleId": "p3r.unlock.strength.walk_home_invitation1",
+          "fromStage": "unstarted",
+          "toStage": "invited_once",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.strength",
+              "value": 0
+            },
+            {
+              "type": "link_rank_at_least",
+              "entityId": "p3r.social_link.chariot",
+              "value": 1
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.chariot.post_activity_yuko_prompt_open"
+            }
+          ],
+          "slotCost": 0,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.strength.stage",
+              "value": "invited_once"
+            },
+            {
+              "type": "copy_current_event_id",
+              "field": "p3r.unlock.strength.lastSportsEventId"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1000–1002,1083"
+            },
+            {
+              "sourceId": "baseline",
+              "locator": "t007_02,t008_01"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": true,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "embedded_post_chariot",
+          "requiresParentActionAlreadyConsumedSlot": true,
+          "requiredOutcome": "Greet Yuko and invite her to walk home",
+          "extraStandaloneActionAllowed": false
+        },
+        {
+          "ruleId": "p3r.unlock.strength.walk_home_invitation2",
+          "fromStage": "invited_once",
+          "toStage": "unlocked",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.strength",
+              "value": 0
+            },
+            {
+              "type": "link_rank_at_least",
+              "entityId": "p3r.social_link.chariot",
+              "value": 2
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.chariot.post_activity_yuko_prompt_open"
+            },
+            {
+              "type": "event_id_differs",
+              "field": "p3r.unlock.strength.lastSportsEventId"
+            }
+          ],
+          "slotCost": 0,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.strength.stage",
+              "value": "unlocked"
+            },
+            {
+              "type": "set_link_rank",
+              "entityId": "p3r.social_link.strength",
+              "value": 1
+            },
+            {
+              "type": "copy_current_event_id",
+              "field": "p3r.unlock.strength.lastSportsEventId"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1000–1002,1083"
+            },
+            {
+              "sourceId": "baseline",
+              "locator": "t007_02,t008_01"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": true,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "embedded_post_chariot",
+          "requiresParentActionAlreadyConsumedSlot": true,
+          "requiredOutcome": "Greet Yuko and invite her to walk home",
+          "extraStandaloneActionAllowed": false
+        }
+      ],
+      "conflicts": [],
+      "unknowns": [
+        {
+          "status": "not_proved",
+          "topic": "Recovery event timing after declining/missing the first two prompts; only current offered prompt observations authorize later recovery."
+        }
+      ]
+    },
+    {
+      "entityId": "p3r.social_link.hanged_man",
+      "nameZhCn": "倒悬者",
+      "stateField": "p3r.unlock.hanged_man.stage",
+      "unknownStatePolicy": "Unknown is not stage0; use observed preparation flags or ask for current state. Never repay or consume an item from assumed history.",
+      "displayReferences": [
+        {
+          "taskId": "t019_02",
+          "date": "5月5日",
+          "rawRecord": {
+            "id": "t019_02",
+            "period": "晚上",
+            "kind": "action",
+            "title": "到宿舍的自动贩卖机购买“莫乐蜜G”",
+            "where": "宿舍（按具体步骤定位）"
+          },
+          "auditedDisplay": {
+            "widgetTitle": "自动贩卖机购买“莫乐蜜G”",
+            "locationLabel": "宿舍",
+            "appBullets": [
+              "到宿舍的自动贩卖机购买“莫乐蜜G”"
+            ],
+            "extraNotes": [],
+            "hasDetails": false,
+            "dialogueChoices": [],
+            "dialogueCue": ""
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        },
+        {
+          "taskId": "t020_02",
+          "date": "5月6日",
+          "rawRecord": {
+            "id": "t020_02",
+            "period": "放学后",
+            "kind": "action",
+            "title": "到严户台右侧的章鱼烧购买一份“神秘章鱼烧”，然后",
+            "where": "严户台（按具体步骤定位）",
+            "steps": [
+              "到长鸣神社和小女孩对话"
+            ],
+            "hint": "带上5/5购买的莫乐蜜G，与神社的小女孩交谈时交付食物和饮料，并答应再来。"
+          },
+          "auditedDisplay": {
+            "widgetTitle": "买神秘章鱼烧，带莫乐蜜G到长鸣神社与小女孩对话",
+            "locationLabel": "严户台商店街 · 右侧章鱼烧店 → 长鸣神社",
+            "appBullets": [
+              "到严户台右侧的章鱼烧店购买一份“神秘章鱼烧”",
+              "带上5/5购买的“莫乐蜜G”，到长鸣神社和小女孩对话",
+              "交付食物和饮料，并答应再来"
+            ],
+            "extraNotes": [],
+            "hasDetails": true,
+            "dialogueChoices": [],
+            "dialogueCue": "交付后答应再来，点开查看"
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        },
+        {
+          "taskId": "t025_02",
+          "date": "5月11日",
+          "rawRecord": {
+            "id": "t025_02",
+            "period": "放学后",
+            "kind": "action",
+            "title": "到长鸣神社和小女孩对话，倒悬者解锁",
+            "where": "长鸣神社（按具体步骤定位）",
+            "hint": "她邀请一起玩时同意，不要拒绝。"
+          },
+          "auditedDisplay": {
+            "widgetTitle": "和小女孩对话，倒悬者解锁",
+            "locationLabel": "长鸣神社",
+            "appBullets": [
+              "到长鸣神社和小女孩对话，倒悬者解锁"
+            ],
+            "extraNotes": [
+              "她邀请一起玩时同意，不要拒绝。"
+            ],
+            "hasDetails": true,
+            "dialogueChoices": [],
+            "dialogueCue": "答应一起玩，点开查看提示"
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        }
+      ],
+      "transitions": [
+        {
+          "ruleId": "p3r.unlock.hanged_man.food_drink_and_promise",
+          "fromStage": "unstarted",
+          "toStage": "promised_return",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.hanged_man",
+              "value": 0
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.hanged_man.introduction_available"
+            },
+            {
+              "type": "month_day_at_least_cycle",
+              "value": "05-06"
+            },
+            {
+              "type": "inventory_at_least",
+              "itemId": "p3r.item.weird_takoyaki",
+              "quantity": 1
+            },
+            {
+              "type": "inventory_at_least",
+              "itemId": "p3r.item.mad_bull",
+              "quantity": 1
+            }
+          ],
+          "slotCost": 0,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [
+            {
+              "itemId": "p3r.item.weird_takoyaki",
+              "quantity": 1
+            },
+            {
+              "itemId": "p3r.item.mad_bull",
+              "quantity": 1
+            }
+          ],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.hanged_man.stage",
+              "value": "promised_return"
+            },
+            {
+              "type": "set_current_date",
+              "field": "p3r.unlock.hanged_man.promiseDate"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1093"
+            },
+            {
+              "sourceId": "wiki420",
+              "locator": "May6 lines443–446; food/drink then Emperor rank2"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": true,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "daytime",
+          "requiredOutcome": "Both items given and promise to return confirmed"
+        },
+        {
+          "ruleId": "p3r.unlock.hanged_man.return_and_play",
+          "fromStage": "promised_return",
+          "toStage": "unlocked",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.hanged_man",
+              "value": 0
+            },
+            {
+              "type": "date_strictly_after",
+              "dateField": "p3r.unlock.hanged_man.promiseDate"
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.hanged_man.rank1_interaction_available"
+            },
+            {
+              "type": "flag_true",
+              "flagId": "calendar.hanged_man.exact_date_legal"
+            }
+          ],
+          "slotCost": 1,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.hanged_man.stage",
+              "value": "unlocked"
+            },
+            {
+              "type": "set_link_rank",
+              "entityId": "p3r.social_link.hanged_man",
+              "value": 1
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1093"
+            },
+            {
+              "sourceId": "wiki420",
+              "locator": "May11 lines470–478"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": false,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "daytime",
+          "requiredOutcome": "Agree to play and complete opening event"
+        },
+        {
+          "ruleId": "p3r.unlock.hanged_man.give_food_only",
+          "fromStage": "unstarted",
+          "toStage": "food_given",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.hanged_man",
+              "value": 0
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.hanged_man.introduction_available"
+            },
+            {
+              "type": "month_day_at_least_cycle",
+              "value": "05-06"
+            },
+            {
+              "type": "inventory_at_least",
+              "itemId": "p3r.item.weird_takoyaki",
+              "quantity": 1
+            }
+          ],
+          "slotCost": 0,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [
+            {
+              "itemId": "p3r.item.weird_takoyaki",
+              "quantity": 1
+            }
+          ],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.hanged_man.stage",
+              "value": "food_given"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1093"
+            },
+            {
+              "sourceId": "wiki420",
+              "locator": "May6 lines443–446; food/drink then Emperor rank2"
+            },
+            {
+              "sourceId": "wiki453",
+              "locator": "1093 ordered food+drink preparation; split stages preserve partially observed inventory state"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": true,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "daytime",
+          "requiredOutcome": "Food given; drink and promise not yet completed"
+        },
+        {
+          "ruleId": "p3r.unlock.hanged_man.give_drink_and_promise",
+          "fromStage": "food_given",
+          "toStage": "promised_return",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.hanged_man",
+              "value": 0
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.hanged_man.introduction_available"
+            },
+            {
+              "type": "month_day_at_least_cycle",
+              "value": "05-06"
+            },
+            {
+              "type": "inventory_at_least",
+              "itemId": "p3r.item.mad_bull",
+              "quantity": 1
+            }
+          ],
+          "slotCost": 0,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [
+            {
+              "itemId": "p3r.item.mad_bull",
+              "quantity": 1
+            }
+          ],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.hanged_man.stage",
+              "value": "promised_return"
+            },
+            {
+              "type": "set_current_date",
+              "field": "p3r.unlock.hanged_man.promiseDate"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1093"
+            },
+            {
+              "sourceId": "wiki420",
+              "locator": "May6 lines443–446; food/drink then Emperor rank2"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": true,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "daytime",
+          "requiredOutcome": "Drink given and promise to return confirmed"
+        }
+      ],
+      "conflicts": [],
+      "unknowns": [
+        {
+          "status": "source_ambiguity",
+          "topic": "05-06 is introduction lower bound, not guaranteed rank1 date because return must be later."
+        }
+      ],
+      "purchaseReferences": [
+        {
+          "itemId": "p3r.item.weird_takoyaki",
+          "nameZhCn": "神秘章鱼烧",
+          "nameTaskId": "t020_02",
+          "priceJpy": 400,
+          "evidence": [
+            {
+              "sourceId": "aqiu_overworld",
+              "locator": "Octopia Takoyaki row565"
+            }
+          ],
+          "purchaseCostSeparateFromGiving": true
+        },
+        {
+          "itemId": "p3r.item.mad_bull",
+          "nameZhCn": "莫乐蜜G",
+          "nameTaskId": "t019_02",
+          "priceJpy": 110,
+          "evidence": [
+            {
+              "sourceId": "aqiu_overworld",
+              "locator": "Dorm2F vending row572"
+            }
+          ],
+          "purchaseCostSeparateFromGiving": true
+        }
+      ]
+    },
+    {
+      "entityId": "p3r.social_link.devil",
+      "nameZhCn": "恶魔",
+      "stateField": "p3r.unlock.devil.stage",
+      "unknownStatePolicy": "Unknown is not stage0; use observed preparation flags or ask for current state. Never repay or consume an item from assumed history.",
+      "displayReferences": [
+        {
+          "taskId": "t040_02",
+          "date": "5月30日",
+          "rawRecord": {
+            "id": "t040_02",
+            "period": "晚上",
+            "kind": "action",
+            "title": "桐叶购物中心喷泉前，和西装男对话，给2万元，恶魔前置2",
+            "where": "桐叶购物中心（按具体步骤定位）"
+          },
+          "auditedDisplay": {
+            "widgetTitle": "喷泉前与西装男对话，交2万日元（恶魔前置2）",
+            "locationLabel": "桐叶购物中心",
+            "appBullets": [
+              "桐叶购物中心喷泉前，和西装男对话，给2万元，恶魔前置2"
+            ],
+            "extraNotes": [],
+            "hasDetails": false,
+            "dialogueChoices": [],
+            "dialogueCue": ""
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        },
+        {
+          "taskId": "t043_03",
+          "date": "6月2日",
+          "rawRecord": {
+            "id": "t043_03",
+            "period": "晚上",
+            "kind": "action",
+            "title": "桐叶购物中心喷泉前，和西装男对话，给1万元，恶魔前置3",
+            "where": "桐叶购物中心（按具体步骤定位）"
+          },
+          "auditedDisplay": {
+            "widgetTitle": "喷泉前与西装男对话，交1万日元（恶魔前置3）",
+            "locationLabel": "桐叶购物中心",
+            "appBullets": [
+              "桐叶购物中心喷泉前，和西装男对话，给1万元，恶魔前置3"
+            ],
+            "extraNotes": [],
+            "hasDetails": false,
+            "dialogueChoices": [],
+            "dialogueCue": ""
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        },
+        {
+          "taskId": "t094_01",
+          "date": "7月28日",
+          "rawRecord": {
+            "id": "t094_01",
+            "period": "晚上",
+            "kind": "action",
+            "title": "到桐叶购物中心，和西装男对话给1万",
+            "where": "桐叶购物中心（按具体步骤定位）",
+            "steps": [
+              "恶魔解锁，并获得支线委托41的任务物品"
+            ]
+          },
+          "auditedDisplay": {
+            "widgetTitle": "与西装男对话，交1万日元",
+            "locationLabel": "桐叶购物中心",
+            "appBullets": [
+              "到桐叶购物中心，和西装男对话给1万",
+              "恶魔解锁，并获得支线委托41的任务物品"
+            ],
+            "extraNotes": [],
+            "hasDetails": true,
+            "dialogueChoices": [],
+            "dialogueCue": ""
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        }
+      ],
+      "transitions": [
+        {
+          "ruleId": "p3r.unlock.devil.payment1",
+          "fromStage": "unstarted",
+          "toStage": "paid1",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.devil",
+              "value": 0
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.devil.payment_interaction_available"
+            },
+            {
+              "type": "money_at_least",
+              "amountJpy": 20000
+            },
+            {
+              "type": "stat_rank_at_least",
+              "statId": "charm",
+              "value": 4
+            },
+            {
+              "type": "any_of",
+              "conditions": [
+                {
+                  "type": "flag_true",
+                  "flagId": "devil.prerequisite_accepted_observed"
+                },
+                {
+                  "type": "opt_in_sufficient_source_envelope",
+                  "envelopeId": "devil_hermit4",
+                  "conditions": [
+                    {
+                      "type": "link_rank_at_least",
+                      "entityId": "p3r.social_link.hermit",
+                      "value": 4
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "slotCost": 0,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 20000,
+          "itemCosts": [],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.devil.stage",
+              "value": "paid1"
+            },
+            {
+              "type": "set_current_date",
+              "field": "p3r.unlock.devil.lastPaymentDate"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1236"
+            },
+            {
+              "sourceId": "wiki420",
+              "locator": "June6 lines611–614:20000 then burger"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": false,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "evening"
+        },
+        {
+          "ruleId": "p3r.unlock.devil.payment2",
+          "fromStage": "paid1",
+          "toStage": "paid2",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.devil",
+              "value": 0
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.devil.payment_interaction_available"
+            },
+            {
+              "type": "money_at_least",
+              "amountJpy": 10000
+            },
+            {
+              "type": "date_strictly_after",
+              "dateField": "p3r.unlock.devil.lastPaymentDate"
+            }
+          ],
+          "slotCost": 0,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 10000,
+          "itemCosts": [],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.devil.stage",
+              "value": "paid2"
+            },
+            {
+              "type": "set_current_date",
+              "field": "p3r.unlock.devil.lastPaymentDate"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1236"
+            },
+            {
+              "sourceId": "wiki420",
+              "locator": "July4 lines724–726:10000 then DVD"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": false,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "evening"
+        },
+        {
+          "ruleId": "p3r.unlock.devil.payment3",
+          "fromStage": "paid2",
+          "toStage": "unlocked",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.devil",
+              "value": 0
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.devil.payment_interaction_available"
+            },
+            {
+              "type": "money_at_least",
+              "amountJpy": 10000
+            },
+            {
+              "type": "date_strictly_after",
+              "dateField": "p3r.unlock.devil.lastPaymentDate"
+            }
+          ],
+          "slotCost": 1,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 10000,
+          "itemCosts": [],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.devil.stage",
+              "value": "unlocked"
+            },
+            {
+              "type": "set_link_rank",
+              "entityId": "p3r.social_link.devil",
+              "value": 1
+            },
+            {
+              "type": "set_current_date",
+              "field": "p3r.unlock.devil.lastPaymentDate"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1236"
+            },
+            {
+              "sourceId": "wiki420",
+              "locator": "July25 lines780–783:10000 and Devil0→1"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": false,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "evening"
+        }
+      ],
+      "conflicts": [
+        "devil_hermit_rank_3_vs_4"
+      ],
+      "unknowns": [],
+      "totalRequiredPaymentJpy": 40000
+    },
+    {
+      "entityId": "p3r.social_link.tower",
+      "nameZhCn": "塔",
+      "stateField": "p3r.unlock.tower.stage",
+      "unknownStatePolicy": "Unknown is not stage0; use observed preparation flags or ask for current state. Never repay or consume an item from assumed history.",
+      "displayReferences": [
+        {
+          "taskId": "t081_04",
+          "date": "7月10日",
+          "rawRecord": {
+            "id": "t081_04",
+            "period": "晚上",
+            "kind": "action",
+            "title": "到放纵俱乐部和二楼和尚对话，然后去1楼和酒保对话",
+            "where": "桐叶购物中心 · 放纵俱乐部",
+            "steps": [
+              "点单选择基尔酒/血腥玛丽/卡西斯橙汁/乌龙茶",
+              "塔解锁"
+            ]
+          },
+          "auditedDisplay": {
+            "widgetTitle": "到放纵俱乐部和二楼和尚对话，然后去1楼和酒保对话",
+            "locationLabel": "桐叶购物中心 · 放纵俱乐部",
+            "appBullets": [
+              "到放纵俱乐部2楼，和和尚对话",
+              "然后去1楼和酒保对话",
+              "点单选择：基尔酒/血腥玛丽/卡西斯橙汁/乌龙茶",
+              "塔解锁"
+            ],
+            "extraNotes": [],
+            "hasDetails": true,
+            "dialogueChoices": [
+              "基尔酒",
+              "血腥玛丽",
+              "卡西斯橙汁",
+              "乌龙茶"
+            ],
+            "dialogueCue": ""
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        }
+      ],
+      "transitions": [
+        {
+          "ruleId": "p3r.unlock.tower.hear_rumor",
+          "fromStage": "unstarted",
+          "toStage": "rumor_heard",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.tower",
+              "value": 0
+            },
+            {
+              "type": "link_rank_at_least",
+              "entityId": "p3r.social_link.strength",
+              "value": 4
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.yuko.monk_rumor_available"
+            }
+          ],
+          "slotCost": null,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.tower.stage",
+              "value": "rumor_heard"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1265"
+            }
+          ],
+          "executionStatus": "observation_only_slot_cost_unresolved",
+          "sameDateAllowed": true,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "daytime",
+          "requiredOutcome": "Yuko mentions monk",
+          "planningEnabled": false
+        },
+        {
+          "ruleId": "p3r.unlock.tower.bar_service_and_opening",
+          "fromStage": "rumor_heard",
+          "toStage": "unlocked",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.tower",
+              "value": 0
+            },
+            {
+              "type": "link_rank_at_least",
+              "entityId": "p3r.social_link.strength",
+              "value": 4
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.tower.opening_interaction_available"
+            },
+            {
+              "type": "flag_true",
+              "flagId": "calendar.tower.exact_date_legal"
+            },
+            {
+              "type": "any_of",
+              "conditions": [
+                {
+                  "type": "flag_true",
+                  "flagId": "tower.courage_gate_passed_observed"
+                },
+                {
+                  "type": "opt_in_sufficient_source_envelope",
+                  "envelopeId": "tower_courage4",
+                  "conditions": [
+                    {
+                      "type": "stat_rank_at_least",
+                      "statId": "courage",
+                      "value": 4
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "slotCost": 1,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.tower.stage",
+              "value": "unlocked"
+            },
+            {
+              "type": "set_link_rank",
+              "entityId": "p3r.social_link.tower",
+              "value": 1
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1265,1310"
+            },
+            {
+              "sourceId": "wiki420",
+              "locator": "July11 lines748–751"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": true,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "evening",
+          "orderedSubsteps": [
+            "talk_to_monk",
+            "talk_to_bartender",
+            "submit_four_correct_orders",
+            "return_to_monk",
+            "complete_opening_event"
+          ],
+          "substepAdditionalSlotCosts": [
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "requiresConfirmedQuizSuccess": true,
+          "sourceAnswerEvidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1265",
+              "answers": [
+                "キール",
+                "ブラッディマリー",
+                "カシスオレンジ",
+                "ウーロン茶"
+              ]
+            },
+            {
+              "sourceId": "baseline",
+              "taskId": "t081_04",
+              "exactText": "点单选择基尔酒/血腥玛丽/卡西斯橙汁/乌龙茶"
+            },
+            {
+              "sourceId": "aqiu",
+              "locator": "1305–1308",
+              "answers": [
+                "Margarita",
+                "Bloody Mary",
+                "Screwdriver",
+                "Oolong Tea"
+              ],
+              "sameChineseOptionOrdinalBinding": false
+            }
+          ]
+        }
+      ],
+      "conflicts": [
+        "tower_courage_3_vs_4"
+      ],
+      "unknowns": [
+        {
+          "status": "not_proved",
+          "topic": "Rumor-only independent conversation slot cost; observation may initialize rumor_heard. Do not charge a full afternoon or assume free without verified timing."
+        }
+      ]
+    },
+    {
+      "entityId": "p3r.social_link.sun",
+      "nameZhCn": "太阳",
+      "stateField": "p3r.unlock.sun.stage",
+      "unknownStatePolicy": "Unknown is not stage0; use observed preparation flags or ask for current state. Never repay or consume an item from assumed history.",
+      "displayReferences": [
+        {
+          "taskId": "t106_02",
+          "date": "8月9日",
+          "rawRecord": {
+            "id": "t106_02",
+            "period": "白天",
+            "kind": "action",
+            "title": "到长鸣神社和消瘦的青年对话，太阳前置",
+            "where": "长鸣神社（按具体步骤定位）"
+          },
+          "auditedDisplay": {
+            "widgetTitle": "和消瘦的青年对话，太阳前置",
+            "locationLabel": "长鸣神社",
+            "appBullets": [
+              "到长鸣神社和消瘦的青年对话，太阳前置"
+            ],
+            "extraNotes": [],
+            "hasDetails": false,
+            "dialogueChoices": [],
+            "dialogueCue": ""
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        },
+        {
+          "taskId": "t129_02",
+          "date": "9月6日",
+          "rawRecord": {
+            "id": "t129_02",
+            "period": "白天",
+            "kind": "action",
+            "title": "到长鸣神社和消瘦的青年对话，太阳解锁",
+            "where": "长鸣神社（按具体步骤定位）"
+          },
+          "auditedDisplay": {
+            "widgetTitle": "和消瘦的青年对话，太阳解锁",
+            "locationLabel": "长鸣神社",
+            "appBullets": [
+              "到长鸣神社和消瘦的青年对话，太阳解锁"
+            ],
+            "extraNotes": [],
+            "hasDetails": false,
+            "dialogueChoices": [],
+            "dialogueCue": ""
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        }
+      ],
+      "transitions": [
+        {
+          "ruleId": "p3r.unlock.sun.ask_about_pen",
+          "fromStage": "unstarted",
+          "toStage": "pen_requested",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.sun",
+              "value": 0
+            },
+            {
+              "type": "link_rank_at_least",
+              "entityId": "p3r.social_link.hanged_man",
+              "value": 3
+            },
+            {
+              "type": "stat_rank_at_least",
+              "statId": "academics",
+              "value": 4
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.sun.pen_request_available"
+            }
+          ],
+          "slotCost": null,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.sun.stage",
+              "value": "pen_requested"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1432"
+            },
+            {
+              "sourceId": "aqiu",
+              "locator": "1400–1401"
+            }
+          ],
+          "executionStatus": "observation_only_slot_cost_unresolved",
+          "sameDateAllowed": true,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "daytime",
+          "planningEnabled": false
+        },
+        {
+          "ruleId": "p3r.unlock.sun.retrieve_pen",
+          "fromStage": "pen_requested",
+          "toStage": "pen_obtained",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.sun",
+              "value": 0
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.koromaru.pen_retrieval_available"
+            }
+          ],
+          "slotCost": null,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.sun.stage",
+              "value": "pen_obtained"
+            },
+            {
+              "type": "add_item",
+              "itemId": "p3r.item.red_fountain_pen",
+              "quantity": 1
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1432"
+            },
+            {
+              "sourceId": "aqiu",
+              "locator": "1402"
+            }
+          ],
+          "executionStatus": "observation_only_slot_cost_unresolved",
+          "sameDateAllowed": true,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "dorm_interaction",
+          "planningEnabled": false
+        },
+        {
+          "ruleId": "p3r.unlock.sun.return_pen_and_spend_time",
+          "fromStage": "pen_obtained",
+          "toStage": "unlocked",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.sun",
+              "value": 0
+            },
+            {
+              "type": "link_rank_at_least",
+              "entityId": "p3r.social_link.hanged_man",
+              "value": 3
+            },
+            {
+              "type": "stat_rank_at_least",
+              "statId": "academics",
+              "value": 4
+            },
+            {
+              "type": "inventory_at_least",
+              "itemId": "p3r.item.red_fountain_pen",
+              "quantity": 1
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.sun.rank1_interaction_available"
+            },
+            {
+              "type": "flag_true",
+              "flagId": "calendar.sun.exact_date_legal"
+            }
+          ],
+          "slotCost": 1,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [
+            {
+              "itemId": "p3r.item.red_fountain_pen",
+              "quantity": 1
+            }
+          ],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.sun.stage",
+              "value": "unlocked"
+            },
+            {
+              "type": "set_link_rank",
+              "entityId": "p3r.social_link.sun",
+              "value": 1
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1432,1452–1453"
+            },
+            {
+              "sourceId": "aqiu",
+              "locator": "1403"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": true,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "daytime",
+          "distinctDayRequirementProved": false
+        }
+      ],
+      "conflicts": [
+        "sun_08_09_vs_08_23"
+      ],
+      "unknowns": [
+        {
+          "status": "not_proved",
+          "topic": "Independent slot costs for pen request/retrieval; retain observations, do not simulate as known zero."
+        },
+        {
+          "status": "access_failed",
+          "topic": "Game8 August page full fetch returned402; searchable snippet supports08/09 preparation but cannot establish complete same-day timing."
+        }
+      ]
+    },
+    {
+      "entityId": "p3r.social_link.moon",
+      "nameZhCn": "月亮",
+      "stateField": "p3r.unlock.moon.stage",
+      "unknownStatePolicy": "Unknown is not stage0; use observed preparation flags or ask for current state. Never repay or consume an item from assumed history.",
+      "displayReferences": [
+        {
+          "taskId": "t081_03",
+          "date": "7月10日",
+          "rawRecord": {
+            "id": "t081_03",
+            "period": "放学后",
+            "kind": "action",
+            "title": "到桐叶购物中心，和胖乎乎的男生对话",
+            "where": "桐叶购物中心（按具体步骤定位）",
+            "steps": [
+              "选择费洛蒙咖啡/红色/叶隐盖饭，接着给他神秘食品，月亮解锁"
+            ]
+          },
+          "auditedDisplay": {
+            "widgetTitle": "与胖乎乎的男生对话，交神秘食品解锁月亮",
+            "locationLabel": "桐叶购物中心",
+            "appBullets": [
+              "到桐叶购物中心，和胖乎乎的男生对话",
+              "对话选择：费洛蒙咖啡/红色/叶隐盖饭",
+              "接着给他神秘食品，月亮解锁"
+            ],
+            "extraNotes": [],
+            "hasDetails": true,
+            "dialogueChoices": [
+              "费洛蒙咖啡",
+              "红色",
+              "叶隐盖饭"
+            ],
+            "dialogueCue": ""
+          },
+          "sourceOptionOrderVerifiedAgainstChineseGame": false,
+          "pointBindingEnabled": false
+        }
+      ],
+      "transitions": [
+        {
+          "ruleId": "p3r.unlock.moon.hear_gourmet_rumor",
+          "fromStage": "unstarted",
+          "toStage": "rumor_heard",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.moon",
+              "value": 0
+            },
+            {
+              "type": "link_rank_at_least",
+              "entityId": "p3r.social_link.magician",
+              "value": 3
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.kenji.gourmet_rumor_available"
+            }
+          ],
+          "slotCost": null,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.moon.stage",
+              "value": "rumor_heard"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1381"
+            },
+            {
+              "sourceId": "aqiu",
+              "locator": "1368–1370"
+            }
+          ],
+          "executionStatus": "observation_only_slot_cost_unresolved",
+          "sameDateAllowed": true,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "daytime",
+          "planningEnabled": false
+        },
+        {
+          "ruleId": "p3r.unlock.moon.quiz_food_and_opening",
+          "fromStage": "rumor_heard",
+          "toStage": "unlocked",
+          "guards": [
+            {
+              "type": "link_rank_equals",
+              "entityId": "p3r.social_link.moon",
+              "value": 0
+            },
+            {
+              "type": "link_rank_at_least",
+              "entityId": "p3r.social_link.magician",
+              "value": 3
+            },
+            {
+              "type": "stat_rank_at_least",
+              "statId": "charm",
+              "value": 2
+            },
+            {
+              "type": "flag_true",
+              "flagId": "current.moon.opening_interaction_available"
+            },
+            {
+              "type": "iso_weekday_in",
+              "values": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ]
+            },
+            {
+              "type": "inventory_at_least",
+              "itemId": "p3r.item.odd_morsel",
+              "quantity": 1
+            }
+          ],
+          "slotCost": 1,
+          "slotCostUnit": "additional_optional_slot",
+          "moneyCostJpy": 0,
+          "itemCosts": [
+            {
+              "itemId": "p3r.item.odd_morsel",
+              "quantity": 1
+            }
+          ],
+          "requiresConfirmedInteractionSuccess": true,
+          "effects": [
+            {
+              "type": "set_stage",
+              "field": "p3r.unlock.moon.stage",
+              "value": "unlocked"
+            },
+            {
+              "type": "set_link_rank",
+              "entityId": "p3r.social_link.moon",
+              "value": 1
+            }
+          ],
+          "evidence": [
+            {
+              "sourceId": "wiki453",
+              "locator": "1381,1424"
+            },
+            {
+              "sourceId": "aqiu",
+              "locator": "1371–1378"
+            },
+            {
+              "sourceId": "wiki420",
+              "locator": "May15 lines490–492"
+            }
+          ],
+          "executionStatus": "conditional_on_exact_availability_and_success",
+          "sameDateAllowed": true,
+          "sourceChoiceOrdinalBindingEnabled": false,
+          "slot": "daytime",
+          "orderedSubsteps": [
+            "pass_food_quiz",
+            "give_odd_morsel",
+            "agree_spend_time",
+            "complete_opening_event"
+          ],
+          "requiresConfirmedQuizSuccess": true,
+          "sourceAnswerEvidence": [
+            {
+              "sourceId": "baseline",
+              "taskId": "t081_03",
+              "exactText": "选择费洛蒙咖啡/红色/叶隐盖饭，接着给他神秘食品，月亮解锁"
+            },
+            {
+              "sourceId": "wiki453",
+              "locator": "1381",
+              "answers": [
+                "フェロモン珈琲",
+                "赤",
+                "はがくれ丼"
+              ]
+            }
+          ]
+        }
+      ],
+      "conflicts": [],
+      "unknowns": [
+        {
+          "status": "not_proved",
+          "topic": "Rumor-only conversation standalone slot cost; exact acquisition RNG for Odd Morsel not modeled."
+        }
+      ]
+    }
+  ],
+  "conflicts": [
+    {
+      "id": "devil_hermit_rank_3_vs_4",
+      "claims": [
+        {
+          "sourceId": "wiki453",
+          "locator": "1236",
+          "value": 4
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "1285",
+          "value": 3
+        }
+      ],
+      "exactValue": null,
+      "sufficientSourceEnvelope": 4,
+      "envelopeDefaultEnabled": false,
+      "belowEnvelopeMeansImpossible": false
+    },
+    {
+      "id": "tower_courage_3_vs_4",
+      "claims": [
+        {
+          "sourceId": "wiki453",
+          "locator": "1265",
+          "value": 3
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "1302",
+          "value": 4
+        },
+        {
+          "sourceId": "game8_tower",
+          "locator": "unlock requirement",
+          "value": 4
+        },
+        {
+          "sourceId": "megaten_mutatsu",
+          "locator": "shared protagonist paragraph",
+          "value": 3
+        }
+      ],
+      "exactValue": null,
+      "sufficientSourceEnvelope": 4,
+      "envelopeDefaultEnabled": false,
+      "belowEnvelopeMeansImpossible": false
+    },
+    {
+      "id": "sun_08_09_vs_08_23",
+      "claims": [
+        {
+          "sourceId": "wiki453",
+          "locator": "1430,1452",
+          "value": "08-09"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "842 overview",
+          "value": "08-23"
+        }
+      ],
+      "exactEarliestRank1Date": null,
+      "conservativeSufficientDate": "08-23",
+      "dateAloneSufficient": false,
+      "earlierDateMeansImpossible": false,
+      "resolution": "Require actual current opening availability plus completed pen chain; do not prohibit observed earlier opening."
+    },
+    {
+      "id": "tower_localized_drink_names",
+      "resolution": "Japanese/baseline drink labels differ from English guide labels. Preserve each as source evidence; never bind Chinese option ordinals from English."
+    }
+  ],
+  "validation": {
+    "modelCount": 7,
+    "transitionCount": 20,
+    "checkCount": 60,
+    "allPassed": true,
+    "fixtures": [
+      {
+        "id": "seven_links",
+        "passed": true
+      },
+      {
+        "id": "justice_four_conversations",
+        "passed": true
+      },
+      {
+        "id": "justice_first_three_free",
+        "passed": true
+      },
+      {
+        "id": "justice_distinct_day_steps",
+        "passed": true
+      },
+      {
+        "id": "strength_no_extra_slot",
+        "passed": true
+      },
+      {
+        "id": "strength_second_requires_distinct_sports_event",
+        "passed": true
+      },
+      {
+        "id": "hanged_giving_free_then_later_day",
+        "passed": true
+      },
+      {
+        "id": "devil_costs",
+        "passed": true
+      },
+      {
+        "id": "devil_slots",
+        "passed": true
+      },
+      {
+        "id": "devil_later_dates",
+        "passed": true
+      },
+      {
+        "id": "moon_sunday_unlock_excluded",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.justice.conversation1.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.justice.conversation1.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.justice.conversation2.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.justice.conversation2.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.justice.conversation3.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.justice.conversation3.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.justice.conversation4.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.justice.conversation4.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.justice.conversation4.sets_rank1",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.strength.walk_home_invitation1.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.strength.walk_home_invitation1.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.strength.walk_home_invitation2.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.strength.walk_home_invitation2.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.strength.walk_home_invitation2.sets_rank1",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.hanged_man.food_drink_and_promise.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.hanged_man.food_drink_and_promise.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.hanged_man.return_and_play.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.hanged_man.return_and_play.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.hanged_man.return_and_play.sets_rank1",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.devil.payment1.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.devil.payment1.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.devil.payment2.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.devil.payment2.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.devil.payment3.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.devil.payment3.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.devil.payment3.sets_rank1",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.tower.hear_rumor.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.tower.hear_rumor.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.tower.bar_service_and_opening.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.tower.bar_service_and_opening.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.tower.bar_service_and_opening.sets_rank1",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.sun.ask_about_pen.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.sun.ask_about_pen.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.sun.retrieve_pen.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.sun.retrieve_pen.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.sun.return_pen_and_spend_time.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.sun.return_pen_and_spend_time.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.sun.return_pen_and_spend_time.sets_rank1",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.moon.hear_gourmet_rumor.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.moon.hear_gourmet_rumor.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.moon.quiz_food_and_opening.requires_observed_success",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.moon.quiz_food_and_opening.unknown_slot_not_planned",
+        "passed": true
+      },
+      {
+        "id": "p3r.unlock.moon.quiz_food_and_opening.sets_rank1",
+        "passed": true
+      },
+      {
+        "id": "payment1_preserves_evening",
+        "passed": true
+      },
+      {
+        "id": "payment2_same_day_rejected",
+        "passed": true
+      },
+      {
+        "id": "payment2_preserves_evening",
+        "passed": true
+      },
+      {
+        "id": "payment3_consumes_one_evening",
+        "passed": true
+      },
+      {
+        "id": "duplicate_final_payment_no_double_charge",
+        "passed": true
+      },
+      {
+        "id": "insufficient_money_no_transition",
+        "passed": true
+      }
+    ]
+  },
+  "currentBaselinePolicy": {
+    "knownStageUnknownLastDate": "Use lastPossiblePrepOrdinal=checkpoint.date.ordinal; require newDate>lastPossiblePrepOrdinal. This is a scheduling bound, not fabricated history.",
+    "stageUnknown": "No default to unstarted; use current offered interaction or targeted present-state input. Never repay from assumed history.",
+    "noHistoryRequired": true
+  }
+}

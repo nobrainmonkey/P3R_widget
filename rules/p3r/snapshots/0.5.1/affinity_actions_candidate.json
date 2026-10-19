@@ -1,0 +1,160 @@
+{
+  "schema": "p3r.affinity_actions.v1",
+  "actions": [
+    {
+      "slot": "evening",
+      "slotCost": 1,
+      "labelZh": "使用结缘网站的字条",
+      "targetDomain": "already-unlocked normal non-max manual link; target eligibility must be offered in game",
+      "rankDelta": 0,
+      "affinityEffect": {
+        "op": "add_to_current_rank_lower_bound",
+        "value": 10,
+        "exactHiddenResult": null
+      },
+      "readinessEffect": "true only if new bound reaches enabled next-rank gate, otherwise unknown; never rank-up in this slot",
+      "guards": [
+        {
+          "field": "target.alreadyUnlocked",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "target.rank",
+          "op": "integer_between",
+          "value": [
+            1,
+            9
+          ]
+        },
+        {
+          "field": "target.relationshipState",
+          "op": "eq",
+          "value": "normal"
+        },
+        {
+          "field": "calendar.eveningFree",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "dorm.sharedPCUsable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "target.availableInDatingSiteMenu",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "inventory.datingSiteNoteQty",
+          "op": "gte",
+          "value": 1
+        }
+      ],
+      "effectsRequireActualOrExplicitConditionalCompletion": true,
+      "sourceRefs": [
+        "ordinary_hangout_rules_candidate.json/dating_site_alternative"
+      ],
+      "evidenceStatus": "corroborated_base_and_slot_cost_sale_date_conflict_retained",
+      "ruleId": "p3r.affinity.use_owned_dating_note",
+      "yenCost": 0,
+      "itemCosts": [
+        {
+          "itemId": "p3r.item.dating_site_note",
+          "quantity": 1
+        }
+      ],
+      "earliestDateHardGate": null
+    },
+    {
+      "slot": "evening",
+      "slotCost": 1,
+      "labelZh": "购买并使用结缘网站的字条",
+      "targetDomain": "already-unlocked normal non-max manual link; target eligibility must be offered in game",
+      "rankDelta": 0,
+      "affinityEffect": {
+        "op": "add_to_current_rank_lower_bound",
+        "value": 10,
+        "exactHiddenResult": null
+      },
+      "readinessEffect": "true only if new bound reaches enabled next-rank gate, otherwise unknown; never rank-up in this slot",
+      "guards": [
+        {
+          "field": "target.alreadyUnlocked",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "target.rank",
+          "op": "integer_between",
+          "value": [
+            1,
+            9
+          ]
+        },
+        {
+          "field": "target.relationshipState",
+          "op": "eq",
+          "value": "normal"
+        },
+        {
+          "field": "calendar.eveningFree",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "dorm.sharedPCUsable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "target.availableInDatingSiteMenu",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "cashLowerBound",
+          "op": "gte",
+          "value": 3000
+        },
+        {
+          "field": "clubAccessible",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "seller.datingSiteNoteOffered",
+          "op": "eq",
+          "value": true
+        }
+      ],
+      "effectsRequireActualOrExplicitConditionalCompletion": true,
+      "sourceRefs": [
+        "ordinary_hangout_rules_candidate.json/dating_site_alternative"
+      ],
+      "evidenceStatus": "corroborated_base_and_slot_cost_sale_date_conflict_retained",
+      "ruleId": "p3r.affinity.buy_and_use_dating_note",
+      "yenCost": 3000,
+      "itemCosts": [],
+      "earliestConservativeDate": {
+        "mmdd": "11-16",
+        "ordinal": 229
+      },
+      "sourceEarlierDateClaim": "11-11",
+      "inventoryAfterBundle": "unchanged; bought note is consumed once",
+      "buyOrOwnedPolicy": "If using an already owned note, select use_owned action instead; never charge acquisition twice."
+    }
+  ],
+  "ordinaryHangout": {
+    "kind": "qualitative_observation_policy",
+    "numericGain": null,
+    "rankDeltaInSameVisit": 0,
+    "outcome": "observe readiness for next ordinary visit",
+    "moneyCost": 0,
+    "slotCost": 1,
+    "sourceRef": "ordinary_hangout_rules_candidate.json"
+  },
+  "scope": "Late-game safe numeric affinity alternative. Does not fill unproved ordinary raw gain with10. Source option-order verification not involved because target selection has no invented dialogue answers."
+}

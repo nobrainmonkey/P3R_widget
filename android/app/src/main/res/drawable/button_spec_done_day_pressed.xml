@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Done button pressed: the face sinks onto its slab. Generated from widget design constants; keep edits consistent across siblings. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:left="4dp" android:top="6dp" android:width="9.01dp" android:height="31dp" android:gravity="left|top">
+        <vector android:width="9.01dp" android:height="31dp" android:viewportWidth="9.01" android:viewportHeight="31">
+            <path android:fillColor="#FF0642B7" android:pathData="M7.01,0L9.01,0L9.01,31L0,31Z" />
+        </vector>
+    </item>
+    <item android:left="12.01dp" android:top="6dp" android:right="8.01dp" android:bottom="3dp">
+        <shape android:shape="rectangle"><solid android:color="#FF0642B7" /></shape>
+    </item>
+    <item android:right="0dp" android:top="6dp" android:width="9.01dp" android:height="31dp" android:gravity="right|top">
+        <vector android:width="9.01dp" android:height="31dp" android:viewportWidth="9.01" android:viewportHeight="31">
+            <path android:fillColor="#FF0642B7" android:pathData="M0,0L9.01,0L2,31L0,31Z" />
+        </vector>
+    </item>
+    <item android:left="3dp" android:top="5dp" android:width="9.01dp" android:height="31dp" android:gravity="left|top">
+        <vector android:width="9.01dp" android:height="31dp" android:viewportWidth="9.01" android:viewportHeight="31">
+            <path android:fillColor="#FFE8FBFF" android:pathData="M7.01,0L9.01,0L9.01,31L0,31Z" />
+        </vector>
+    </item>
+    <item android:left="11.01dp" android:top="5dp" android:right="9.01dp" android:bottom="4dp">
+        <shape android:shape="rectangle"><solid android:color="#FFE8FBFF" /></shape>
+    </item>
+    <item android:right="1dp" android:top="5dp" android:width="9.01dp" android:height="31dp" android:gravity="right|top">
+        <vector android:width="9.01dp" android:height="31dp" android:viewportWidth="9.01" android:viewportHeight="31">
+            <path android:fillColor="#FFE8FBFF" android:pathData="M0,0L9.01,0L2,31L0,31Z" />
+        </vector>
+    </item>
+</layer-list>

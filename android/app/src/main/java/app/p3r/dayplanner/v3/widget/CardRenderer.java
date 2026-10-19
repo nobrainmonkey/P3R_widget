@@ -1,0 +1,1040 @@
+package app.p3r.dayplanner.v3.widget;
+
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.graphics.Paint;
+import android.graphics.Typeface;
+import android.os.Build;
+import android.text.StaticLayout;
+import android.text.TextPaint;
+import android.text.TextUtils;
+import android.util.DisplayMetrics;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.RemoteViews;
+
+import java.util.List;
+import java.util.Objects;
+
+import app.p3r.dayplanner.R;
+
+/**
+ * Turns a {@link CardModel} into the RemoteViews of one card (no click handling). Every call sets
+ * every view it touches, so a card never shows the XML sample text or a stale palette.
+ *
+ * <p>Only RemoteViews-safe setters are used (API 26+): text, text colour, image resource, image
+ * alpha, colour filter, background resource, compound drawables, visibility and enabled state.
+ */
+public final class CardRenderer {
+
+    static final int[] TICK_IDS = {
+            R.id.widget_tick_0, R.id.widget_tick_1, R.id.widget_tick_2, R.id.widget_tick_3,
+            R.id.widget_tick_4, R.id.widget_tick_5, R.id.widget_tick_6, R.id.widget_tick_7};
+    static final int[] DIGITS = {
+            R.drawable.widget_digit_0, R.drawable.widget_digit_1, R.drawable.widget_digit_2,
+            R.drawable.widget_digit_3, R.drawable.widget_digit_4, R.drawable.widget_digit_5,
+            R.drawable.widget_digit_6, R.drawable.widget_digit_7, R.drawable.widget_digit_8,
+            R.drawable.widget_digit_9};
+    static final int[] MOONS = {
+            R.drawable.widget_moon_0, R.drawable.widget_moon_1, R.drawable.widget_moon_2,
+            R.drawable.widget_moon_3, R.drawable.widget_moon_4, R.drawable.widget_moon_5,
+            R.drawable.widget_moon_6, R.drawable.widget_moon_7};
+    static final int[] SHAFTS = {
+            R.drawable.widget_shafts_0, R.drawable.widget_shafts_1, R.drawable.widget_shafts_2,
+            R.drawable.widget_shafts_3};
+    /** Image alpha of an arrow that cannot move further. */
+    static final int DISABLED_ARROW_ALPHA = 80;
+    /** Share of the palette's watermark alpha kept when text runs over the numeral. */
+    static final float FAINT_WATERMARK = 0.4f;
+
+    /** Ticks available in the layout; days with more entries show only the text progress. */
+    public static final int MAX_TICKS = 8;
+    /** Smallest title size the layouts' autosize may pick (sp). */
+    public static final float MIN_TITLE_SP = 12f;
+    /** Minimum gap between the plate's accent stripe and the status cluster (dp). */
+    private static final float STATUS_GAP_DP = 8f;
+    /** Right margin of the status cluster (dp). Mirrors the layout XML. */
+    private static final float STATUS_MARGIN_DP = 12f;
+    /** Gap above the tag/location row and above the cue line (dp). Mirrors the layout XML. */
+    private static final float ROW_GAP_DP = 4f;
+    /** Gap above the hint and side lines (dp). Mirrors the layout XML. */
+    private static final float EXTRA_GAP_DP = 3f;
+    /** Narrowest location worth drawing (dp of text): three characters; below it the row drops it. */
+    static final float MIN_LOCATION_DP = 33f;
+    /** Pin (or reminder mark) in front of the location and reminder lines plus its padding (dp). Mirrors the layout XML. */
+    private static final float PIN_DP = 15f;
+    /** Horizontal padding plus right margin of the tag chip (dp). Mirrors the layout XML. */
+    private static final float TAG_PADDING_DP = 16f;
+    private static final float TAG_MARGIN_DP = 8f;
+    /** Smallest share of its size a chip may take to stay on one line before it wraps instead. */
+    private static final float MIN_CHIP_SCALE = 0.85f;
+    /**
+     * Room (dp) a tall card's title box keeps beyond what the largest title size needs (measured as
+     * the layout's autosize does it), so rounding never makes the autosize pick a smaller size.
+     */
+    private static final float TITLE_SLACK_DP = 2f;
+    /** Share of a tall card's spare height that goes under the buttons, up to {@link #maxSpaceUnderButtonsDp}. */
+    private static final float UNDER_BUTTONS_SHARE = 0.3f;
+    /** Gap between the kind mark and the title (dp). Mirrors the layout XML. */
+    private static final float TITLE_ICON_GAP_DP = 4f;
+    /** Text size (sp), line spacing (dp) and top gap (dp) of the dialogue line. Mirrors the layout XML. */
+    static final float DIALOGUE_SP = 12f;
+    private static final float DIALOGUE_SPACING_DP = 1f;
+    private static final float DIALOGUE_GAP_DP = 3f;
+    /** Most lines an optional dialogue line ({@link CardModel#dialogueOptional}) may take. */
+    public static final int MAX_DIALOGUE_LINES = 2;
+
+    private CardRenderer() {}
+
+    /**
+     * Fixed vertical chrome of a card in dp (top margin, plate, body padding, action row, bottom
+     * padding), i.e. everything except the title/dialogue/meta/cue stack. Mirrors the layout XML.
+     */
+    public static float chromeHeightDp(WidgetSize size) {
+        return 2 * contentPaddingDp(size) + 40 + bodyVerticalPaddingDp(size) + 40;
+    }
+
+    /** Space above the plate and under the buttons in dp. Mirrors the layout XML. */
+    static float contentPaddingDp(WidgetSize size) {
+        return size == WidgetSize.REGULAR ? 8 : 6;
+    }
+
+    /** Most extra space (dp) a tall card adds under its buttons. */
+    static float maxSpaceUnderButtonsDp(WidgetSize size) {
+        return size == WidgetSize.REGULAR ? 6 : 4;
+    }
+
+    /** Horizontal padding of the body text in dp. Mirrors the layout XML. */
+    public static float bodyPaddingDp(WidgetSize size) {
+        switch (size) {
+            case REGULAR: return 14;
+            case COMPACT: return 12;
+            default: return 10;
+        }
+    }
+
+    /** Top plus bottom padding of the body in dp. Mirrors the layout XML. */
+    public static float bodyVerticalPaddingDp(WidgetSize size) {
+        return size == WidgetSize.REGULAR ? 6 + 6 : 3 + 3;
+    }
+
+    /** Text size (sp) of the tag and location in a bucket. Mirrors the layout XML. */
+    static float metaTextSp(WidgetSize size) {
+        return size == WidgetSize.REGULAR ? 12f : 11f;
+    }
+
+    /** Text size (sp) of the cue, hint and side lines in a bucket. Mirrors the layout XML. */
+    static float cueTextSp(WidgetSize size) {
+        return size == WidgetSize.REGULAR ? 11f : 10.5f;
+    }
+
+    /** Size (dp) of the kind mark left of the title. Mirrors the layout XML. */
+    static float titleIconDp(WidgetSize size) {
+        switch (size) {
+            case REGULAR: return 16;
+            case COMPACT: return 15;
+            default: return 14;
+        }
+    }
+
+    /** Largest title size (sp) the layout's autosize may pick. Mirrors the layout XML. */
+    static float maxTitleSp(WidgetSize size) {
+        switch (size) {
+            case REGULAR: return 19f;
+            case COMPACT: return 17f;
+            default: return 15f;
+        }
+    }
+
+    static boolean hasTitleIcon(CardModel model) {
+        return model.titleIcon != null && model.titleIcon != CardModel.TitleIcon.NONE;
+    }
+
+    /** Width (dp) the title wraps to: the body width minus the kind mark, if one is shown. */
+    static float titleWidthDp(CardModel model, WidgetSize size, float innerWidthDp) {
+        if (!hasTitleIcon(model)) return innerWidthDp;
+        return innerWidthDp - titleIconDp(size) - TITLE_ICON_GAP_DP;
+    }
+
+    /** Height (dp) of the first {@code lines} lines of the bold title at {@code sp} wrapped to {@code widthDp}. */
+    static float titleHeightDp(Context c, String title, float sp, float widthDp, int lines) {
+        if (isBlank(title)) return 0;
+        StaticLayout layout = layout(c, title, sp, Typeface.DEFAULT_BOLD, widthDp, Integer.MAX_VALUE, 0f);
+        int last = Math.max(0, Math.min(lines, layout.getLineCount()) - 1);
+        return layout.getLineBottom(last) / c.getResources().getDisplayMetrics().density;
+    }
+
+    /**
+     * Lines the title will take in a box {@code boxDp} high, following the layout's autosize: the
+     * largest size from {@link #maxTitleSp} down to {@link #MIN_TITLE_SP} whose text fits the box
+     * within {@code maxLines} lines.
+     */
+    static int titleLines(Context c, String title, WidgetSize size, float widthDp, float boxDp, int maxLines) {
+        if (isBlank(title)) return 1;
+        int lines = 1;
+        for (float sp = maxTitleSp(size); sp >= MIN_TITLE_SP - 0.01f; sp -= 1f) {
+            StaticLayout layout = layout(c, title, sp, Typeface.DEFAULT_BOLD, widthDp, Integer.MAX_VALUE, 0f);
+            lines = layout.getLineCount();
+            float height = layout.getHeight() / c.getResources().getDisplayMetrics().density;
+            if (lines <= maxLines && height <= boxDp) return lines;
+        }
+        return Math.min(lines, maxLines);
+    }
+
+    /**
+     * The title as the layout's autosize draws it in a box {@code boxDp} high: at the largest size
+     * from {@link #maxTitleSp} down to {@link #MIN_TITLE_SP} whose text fits the box within
+     * {@code maxLines} lines (at the smallest when none does), wrapped like the TextView wraps it.
+     */
+    static StaticLayout drawnTitle(Context c, String title, WidgetSize size, float widthDp, float boxDp, int maxLines) {
+        float density = c.getResources().getDisplayMetrics().density;
+        StaticLayout layout = null;
+        for (float sp = maxTitleSp(size); sp >= MIN_TITLE_SP - 0.01f; sp -= 1f) {
+            layout = autosizeLayout(c, title, sp, widthDp);
+            if (layout.getLineCount() <= maxLines && layout.getHeight() / density <= boxDp) return layout;
+        }
+        return layout;
+    }
+
+    /**
+     * {@code title} with every 「 · 」 at which the drawn title ({@link #drawnTitle}) wraps turned into a
+     * line break, the dot dropped: 「结缘网站的字条」/「山岸风花」 rather than a line ending in 「·」. The
+     * lines break where they did, so the title keeps its size and its lines.
+     */
+    static String wrapAtSeparators(Context c, String title, WidgetSize size, float widthDp, float boxDp, int maxLines) {
+        if (isBlank(title) || title.indexOf('·') < 0) return title;
+        StaticLayout layout = drawnTitle(c, title, size, widthDp, boxDp, maxLines);
+        int lines = Math.min(layout.getLineCount(), Math.max(1, maxLines));
+        int[] ends = new int[lines - 1];
+        for (int i = 0; i < ends.length; i++) ends[i] = layout.getLineEnd(i);
+        return CardText.breakAtSeparators(title, ends);
+    }
+
+    /**
+     * Height in dp that {@code text} needs at {@code sp} (current font scale) when wrapped to
+     * {@code widthDp}, limited to {@code maxLines}. Measured with the platform's text layout.
+     */
+    public static float textHeightDp(Context c, String text, float sp, boolean bold, float widthDp, int maxLines) {
+        return textHeightDp(c, text, sp, bold, widthDp, maxLines, 0f);
+    }
+
+    /** As {@link #textHeightDp(Context, String, float, boolean, float, int)} with extra line spacing. */
+    public static float textHeightDp(Context c, String text, float sp, boolean bold, float widthDp, int maxLines,
+                                     float lineSpacingExtraDp) {
+        return textHeightDp(c, text, sp, bold ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT, widthDp, maxLines, lineSpacingExtraDp);
+    }
+
+    private static float textHeightDp(Context c, String text, float sp, Typeface typeface, float widthDp, int maxLines,
+                                      float lineSpacingExtraDp) {
+        if (isBlank(text)) return 0;
+        return layout(c, text, sp, typeface, widthDp, maxLines, lineSpacingExtraDp).getHeight()
+                / c.getResources().getDisplayMetrics().density;
+    }
+
+    private static StaticLayout layout(Context c, String text, float sp, Typeface typeface, float widthDp, int maxLines,
+                                       float lineSpacingExtraDp) {
+        DisplayMetrics metrics = c.getResources().getDisplayMetrics();
+        TextPaint paint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        paint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, metrics));
+        paint.setTypeface(typeface);
+        int width = Math.max(1, Math.round(widthDp * metrics.density));
+        StaticLayout.Builder builder = StaticLayout.Builder.obtain(text, 0, text.length(), paint, width)
+                .setIncludePad(false)
+                .setLineSpacing(lineSpacingExtraDp * metrics.density, 1f)
+                .setMaxLines(Math.max(1, maxLines));
+        if (maxLines == 1) {
+            // Single-line rows (tag, location, cue, hint, side) ellipsize like their TextViews.
+            builder.setEllipsize(TextUtils.TruncateAt.END).setEllipsizedWidth(width);
+        }
+        boolean fitsOneLine = paint.measureText(text) <= width && text.indexOf('\n') < 0;
+        if (Build.VERSION.SDK_INT >= 28 && !fitsOneLine) {
+            // Like TextView for apps targeting P+: wrapped text (StaticLayout) gets the taller CJK
+            // fallback line spacing, single-line text (BoringLayout) keeps the primary font's.
+            builder.setUseLineSpacingFromFallbacks(true);
+        }
+        return builder.build();
+    }
+
+    /** Height in dp of the tag/location row of {@code model}, including its top gap (0 if hidden). */
+    public static float metaRowHeightDp(Context c, CardModel model, WidgetSize size) {
+        return metaRowHeightDp(c, model, size, 999);
+    }
+
+    /**
+     * As {@link #metaRowHeightDp(Context, CardModel, WidgetSize)} for a body {@code innerWidthDp}
+     * wide: a chip wrapped to two lines and text that has to be cut short are laid out like TextView
+     * does it (with the taller CJK fallback line height), at the width they really get.
+     */
+    static float metaRowHeightDp(Context c, CardModel model, WidgetSize size, float innerWidthDp) {
+        float sp = metaTextSp(size);
+        float chip = chipWidthDp(c, model, size);
+        boolean wraps = model.tagMaxLines > 1 && chip + TAG_MARGIN_DP > innerWidthDp;
+        float chipText = wraps ? innerWidthDp - TAG_MARGIN_DP - TAG_PADDING_DP : 999;
+        float tag = isBlank(model.tag) ? 0 : textHeightDp(c, model.tag, chipTextSp(model, size), numerals(c, Typeface.BOLD),
+                chipText, Math.max(1, model.tagMaxLines), 0) + 3;
+        float locationWidth = Math.max(1, innerWidthDp - (chip > 0 ? chip + TAG_MARGIN_DP : 0) - PIN_DP);
+        float location = isBlank(model.location) ? 0 : textHeightDp(c, model.location, sp, false, locationWidth, 1);
+        float row = Math.max(tag, location);
+        float gap = size == WidgetSize.REGULAR ? ROW_GAP_DP + 1 : ROW_GAP_DP;
+        return row == 0 ? 0 : row + gap;
+    }
+
+    /** Text size (sp) of the tag chip: the bucket's, or the smaller one {@link #fit} chose. */
+    static float chipTextSp(CardModel model, WidgetSize size) {
+        return model.tagTextSp > 0 ? model.tagTextSp : metaTextSp(size);
+    }
+
+    /** Width in dp of the tag chip on one line, padding included (0 without a tag). */
+    static float chipWidthDp(Context c, CardModel model, WidgetSize size) {
+        if (isBlank(model.tag)) return 0;
+        float fontScale = c.getResources().getConfiguration().fontScale;
+        return lineWidthDp(c, model.tag, chipTextSp(model, size) * fontScale, numerals(c, Typeface.BOLD)) + TAG_PADDING_DP;
+    }
+
+    /** Height in dp of the cue line including its top gap (0 if hidden). */
+    public static float cueRowHeightDp(Context c, CardModel model, WidgetSize size) {
+        return cueRowHeightDp(c, model, size, 999);
+    }
+
+    /** As {@link #cueRowHeightDp(Context, CardModel, WidgetSize)} for a body {@code widthDp} wide. */
+    static float cueRowHeightDp(Context c, CardModel model, WidgetSize size, float widthDp) {
+        if (isBlank(model.cue)) return 0;
+        return textHeightDp(c, model.cue, cueTextSp(size), false, widthDp, Math.max(1, model.cueMaxLines)) + ROW_GAP_DP;
+    }
+
+    /** Height in dp of the reminder line (with its 12dp mark) including its top gap (0 if hidden). */
+    static float hintRowHeightDp(Context c, CardModel model, WidgetSize size, float widthDp) {
+        if (isBlank(model.hint)) return 0;
+        float text = textHeightDp(c, model.hint, cueTextSp(size), false, Math.max(1, widthDp - PIN_DP), 1);
+        return Math.max(12f, text) + EXTRA_GAP_DP;
+    }
+
+    /** Height in dp of the side-step line ("顺便：…") including its top gap (0 if hidden). */
+    static float sideRowHeightDp(Context c, CardModel model, WidgetSize size, float widthDp) {
+        return isBlank(model.side) ? 0 : textHeightDp(c, model.side, cueTextSp(size), false, widthDp, 1) + EXTRA_GAP_DP;
+    }
+
+    /**
+     * The longest form of the location ({@link CardText#locationForms}: the floor range, then the
+     * mall or school, then the area go first) that fits whole beside the chip on a body
+     * {@code innerWidthDp} wide; null when not even {@link #MIN_LOCATION_DP} is left or no form fits.
+     * Guide text comes back shaped like the card's other guide text.
+     */
+    static String fitLocation(Context c, CardModel model, WidgetSize size, float innerWidthDp) {
+        if (isBlank(model.location)) return null;
+        float chip = chipWidthDp(c, model, size);
+        float room = innerWidthDp - (chip > 0 ? chip + TAG_MARGIN_DP : 0) - PIN_DP - 1; // 1dp for rounding
+        if (room < MIN_LOCATION_DP) return null;
+        float sizeDp = metaTextSp(size) * c.getResources().getConfiguration().fontScale;
+        for (String form : CardText.locationForms(model.location)) {
+            String shown = model.guideText ? CardText.guide(form, null) : form;
+            if (CardText.plain(shown).equals(CardText.plain(model.location))) shown = model.location;
+            if (lineWidthDp(c, shown, sizeDp, Typeface.DEFAULT) <= room) return shown;
+        }
+        return null;
+    }
+
+    /**
+     * The longest form of a one-line cue ({@link CardText#clauseForms}: the whole line, then its
+     * leading whole clauses) that fits a body {@code innerWidthDp} wide without "…"; null when none
+     * does. The whole line comes back as given.
+     */
+    static String fitCue(Context c, String cue, WidgetSize size, float innerWidthDp) {
+        if (isBlank(cue)) return null;
+        float sizeDp = cueTextSp(size) * c.getResources().getConfiguration().fontScale;
+        List<String> forms = CardText.clauseForms(cue);
+        for (int i = 0; i < forms.size(); i++) {
+            if (lineWidthDp(c, forms.get(i), sizeDp, Typeface.DEFAULT) <= innerWidthDp - 1) return i == 0 ? cue : forms.get(i); // 1dp for rounding
+        }
+        return null;
+    }
+
+    /**
+     * Renders {@code model} for a host size in dp: picks the size bucket and, on short cards, drops
+     * optional rows so the title keeps its lines (see {@link #fit}).
+     */
+    public static RemoteViews render(Context context, CardModel model, float widthDp, float heightDp) {
+        WidgetSize size = WidgetSize.of(widthDp, heightDp);
+        CardModel shaped = shaped(context, model, size, widthDp);
+        CardModel fitted = fitHeader(context, fit(context, shaped, size, widthDp, heightDp), size, widthDp);
+        return render(context, fitted, size);
+    }
+
+    /**
+     * {@code model} with its wrapping text shaped for line breaks ({@link CardText}), so it is measured
+     * exactly as it will wrap: the title (and its short form) keeps numbers with their words and, with
+     * {@link CardModel#keepWordsWhole}, names whole and every dialogue choice whole; with
+     * {@link CardModel#guideText} (the legacy guide, which shapes its choices itself) every word of the
+     * title and the location whole; the tag chip keeps every value whole. Returns {@code model}
+     * itself when nothing changes.
+     */
+    static CardModel shaped(Context c, CardModel model, WidgetSize size, float widthDp) {
+        String title;
+        String titleShort = model.titleShort;
+        String location = model.location;
+        if (model.guideText) {
+            title = guideTitle(c, model.title, model.location, size, titleWidthDp(model, size, widthDp - 2 * bodyPaddingDp(size)));
+            location = CardText.guide(model.location, null);
+        } else if (model.keepWordsWhole) {
+            title = CardText.title(model.title, CardText.locationWords(model.location));
+            titleShort = CardText.title(model.titleShort, CardText.locationWords(model.location));
+        } else {
+            title = keepNumbersTogether(model.title);
+            titleShort = keepNumbersTogether(model.titleShort);
+        }
+        String tag = CardText.chip(model.tag);
+        String dialogue = model.keepWordsWhole ? CardText.choices(model.dialogue) : model.dialogue;
+        String cue = model.keepWordsWhole && model.cueMaxLines > 1 ? CardText.sentence(model.cue) : model.cue;
+        boolean same = Objects.equals(title, model.title) && Objects.equals(dialogue, model.dialogue)
+                && Objects.equals(cue, model.cue) && Objects.equals(location, model.location)
+                && Objects.equals(titleShort, model.titleShort) && Objects.equals(tag, model.tag);
+        if (same) return model;
+        CardModel shown = model.copy();
+        shown.title = title;
+        shown.titleShort = titleShort;
+        shown.tag = tag;
+        shown.location = location;
+        shown.dialogue = dialogue;
+        shown.cue = cue;
+        return shown;
+    }
+
+    /**
+     * A legacy guide title as the card wraps it ({@link CardModel#guideText}): every word whole, the
+     * parts of its location included, and a quoted name whole when it fits one line of a title
+     * {@code titleWidthDp} wide at the bucket's largest size. The guide widget measures its title
+     * with this too.
+     */
+    public static String guideTitle(Context c, String title, String location, WidgetSize size, float titleWidthDp) {
+        float em = maxTitleSp(size) * c.getResources().getConfiguration().fontScale;
+        // Characters of a line at the largest title size, less about one for the two quote marks.
+        int quoted = (int) Math.floor(titleWidthDp / em) - 1;
+        return CardText.guide(title, CardText.locationWords(location), quoted);
+    }
+
+    /**
+     * The title with the spaces beside a number made non-breaking, so 「羁绊剧情 · 伊织顺平（第 2 话）」
+     * wraps before 「（」 and never as 「第 2」 / 「话）」.
+     */
+    static String keepNumbersTogether(String text) {
+        return CardText.keepNumbersTogether(text);
+    }
+
+    /** Plate numeral size in dp per bucket. Mirrors the layout XML. */
+    static float dateTextDp(WidgetSize size) {
+        switch (size) {
+            case REGULAR: return 27f;
+            case COMPACT: return 24f;
+            default: return 22f;
+        }
+    }
+
+    /** The bundled numeral face (plate date, tag chip) in {@code style}; bold system face if unavailable. */
+    static Typeface numerals(Context c, int style) {
+        try {
+            return Typeface.create(c.getResources().getFont(R.font.p3r_numerals), style);
+        } catch (RuntimeException e) {
+            return Typeface.DEFAULT_BOLD;
+        }
+    }
+
+    /** Width in dp of a single line of {@code text} at {@code sizeDp} (not scaled by font size). */
+    static float lineWidthDp(Context c, String text, float sizeDp, Typeface typeface) {
+        if (isBlank(text)) return 0;
+        float density = c.getResources().getDisplayMetrics().density;
+        TextPaint paint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        paint.setTextSize(sizeDp * density);
+        paint.setTypeface(typeface);
+        return paint.measureText(text) / density;
+    }
+
+    /** Estimated width in dp of the calendar plate for {@code model} (arrows, numerals, meta). */
+    static float plateWidthDp(Context c, CardModel model, WidgetSize size) {
+        float date = lineWidthDp(c, model.dateText, dateTextDp(size), numerals(c, Typeface.BOLD_ITALIC));
+        float chip = isBlank(model.weekdayZh) ? 0 : lineWidthDp(c, model.weekdayZh, 10f, Typeface.DEFAULT_BOLD) + 14;
+        boolean moon = size != WidgetSize.TINY && model.moonPhase >= 0;
+        float period = lineWidthDp(c, model.periodZh, 10.5f, Typeface.DEFAULT_BOLD) + (moon ? 13 : 0);
+        return 40 + date + 7 + Math.max(chip, period) + 40 + 10;
+    }
+
+    /** Width in dp of the progress label plus its ticks (0 when there is nothing to show). */
+    static float statusWidthDp(Context c, CardModel model) {
+        float fontScale = c.getResources().getConfiguration().fontScale;
+        float label = isBlank(model.progressLabel) ? 0
+                : lineWidthDp(c, model.progressLabel, 10f * fontScale, Typeface.DEFAULT_BOLD) + 4;
+        float ticks = 0;
+        for (CardModel.Tick tick : model.ticks) ticks += tick == CardModel.Tick.CURRENT ? 18 : 12;
+        return label + ticks;
+    }
+
+    /**
+     * Keeps the status cluster clear of the plate: drops the ticks when label and ticks do not fit
+     * beside it, and the whole cluster when even the label does not.
+     */
+    static CardModel fitHeader(Context c, CardModel model, WidgetSize size, float widthDp) {
+        if (size == WidgetSize.TINY || (isBlank(model.progressLabel) && model.ticks.isEmpty())) return model;
+        float room = widthDp - plateWidthDp(c, model, size) - STATUS_GAP_DP - STATUS_MARGIN_DP;
+        if (statusWidthDp(c, model) <= room) return model;
+        CardModel fitted = model.copy();
+        fitted.ticks.clear();
+        if (statusWidthDp(c, fitted) > room) fitted.progressLabel = null;
+        return fitted;
+    }
+
+    /** Title size (sp) worth keeping by giving up the optional cue line. */
+    static float comfortableTitleSp(WidgetSize size) {
+        switch (size) {
+            case REGULAR: return 16f;
+            case COMPACT: return 15f;
+            default: return 14f;
+        }
+    }
+
+    /**
+     * Gives the title room before optional rows. The cue line goes first (unless
+     * {@link CardModel#cueEssential}) when the title would otherwise drop below a comfortable size,
+     * then an optional dialogue line ({@link CardModel#dialogueOptional}; it also goes when it
+     * needs more than {@link #MAX_DIALOGUE_LINES} lines). When the title would not fit even at its
+     * smallest size, the reminder line goes, then the side-step line, then the tag/location row,
+     * then the cue; the body's padding goes before an essential instruction's second line or the
+     * chip's row. A title that would still end in "…" gives way to its short form
+     * ({@link CardModel#titleShort}) when that fits, and a title that wraps at a 「 · 」 drops the dot
+     * there ({@link #wrapAtSeparators}). The tag chip is never cut: the location beside
+     * it takes the room that is left, in its longest form that fits whole ({@link #fitLocation}),
+     * and a chip wider than the card takes a smaller size or, much wider, wraps after a 「、」. A
+     * one-line cue shows whole, or its leading whole clauses ({@link #fitCue}), or goes (an essential
+     * one stays). On a tall card the spare height is shared out above and below the text and under
+     * the buttons.
+     * Hides the day numeral behind a shown dialogue line and fades it behind other text. Returns
+     * {@code model} itself when nothing changes.
+     */
+    static CardModel fit(Context c, CardModel model, WidgetSize size, float widthDp, float heightDp) {
+        CardModel fitted = fitRows(c, model, size, widthDp, heightDp);
+        if (!isBlank(model.titleShort) && titleCut(c, fitted, size, widthDp)) {
+            CardModel shorter = model.copy();
+            shorter.title = model.titleShort;
+            shorter.titleShort = null;
+            CardModel refitted = fitRows(c, shorter, size, widthDp, heightDp);
+            if (!titleCut(c, refitted, size, widthDp)) return refitted;
+        }
+        return fitted;
+    }
+
+    /** Whether the fitted title needs more lines than it keeps even at its smallest size (it ends in "…"). */
+    static boolean titleCut(Context c, CardModel fitted, WidgetSize size, float widthDp) {
+        if (isBlank(fitted.title)) return false;
+        float titleWidth = titleWidthDp(fitted, size, widthDp - 2 * bodyPaddingDp(size));
+        StaticLayout layout = layout(c, fitted.title, MIN_TITLE_SP, Typeface.DEFAULT_BOLD, titleWidth, Integer.MAX_VALUE, 0f);
+        return layout.getLineCount() > Math.max(1, fitted.titleMaxLines);
+    }
+
+    private static CardModel edit(CardModel fitted, CardModel model) {
+        return fitted == model ? model.copy() : fitted;
+    }
+
+    private static CardModel fitRows(Context c, CardModel model, WidgetSize size, float widthDp, float heightDp) {
+        float innerWidth = widthDp - 2 * bodyPaddingDp(size);
+        float titleWidth = titleWidthDp(model, size, innerWidth);
+        int lines = Math.max(1, model.titleMaxLines);
+        float comfortable = textHeightDp(c, model.title, comfortableTitleSp(size), true, titleWidth, lines);
+        float smallest = textHeightDp(c, model.title, MIN_TITLE_SP, true, titleWidth, lines);
+        float dialogue = dialogueRowHeightDp(c, model, innerWidth);
+        CardModel fitted = model;
+        if (dialogue > 0 && model.dialogueOptional && dialogueLines(c, model.dialogue, innerWidth) > MAX_DIALOGUE_LINES) {
+            fitted = edit(fitted, model);
+            fitted.dialogue = null;
+            dialogue = 0;
+        }
+        // The chip is never cut short: a little wider than the card it takes a smaller size, much wider
+        // it wraps, and the location makes way.
+        float chip = chipWidthDp(c, model, size);
+        boolean wide = !isBlank(model.tag) && chip + TAG_MARGIN_DP > innerWidth;
+        float scale = wide ? (innerWidth - TAG_MARGIN_DP - TAG_PADDING_DP) / (chip - TAG_PADDING_DP) : 1;
+        float tagSp = wide && scale >= MIN_CHIP_SCALE ? (float) Math.floor(metaTextSp(size) * scale * 2) / 2 : 0;
+        int tagLines = wide && tagSp == 0 ? 2 : 1;
+        if (tagLines != model.tagMaxLines || tagSp != model.tagTextSp) {
+            fitted = edit(fitted, model);
+            fitted.tagMaxLines = tagLines;
+            fitted.tagTextSp = tagSp;
+        }
+        String location = wide ? null : fitLocation(c, model, size, innerWidth);
+        if (!Objects.equals(location, model.location)) {
+            fitted = edit(fitted, model);
+            fitted.location = location;
+        }
+        float padding = bodyVerticalPaddingDp(size);
+        float body = heightDp - chromeHeightDp(size) + (model.tightBody ? padding : 0);
+        float meta = metaRowHeightDp(c, fitted, size, innerWidth);
+        float hint = hintRowHeightDp(c, fitted, size, innerWidth);
+        float side = sideRowHeightDp(c, fitted, size, innerWidth);
+        float cue = cueRowHeightDp(c, fitted, size, innerWidth);
+        float reclaimed = 0; // body padding given up so an instruction keeps its lines or the chip its row
+        if (cue > 0 && fitted.cueMaxLines > 1 && smallest + dialogue + meta + hint + side + cue > body) {
+            float deficit = smallest + dialogue + meta + hint + side + cue - body;
+            if (model.cueEssential && !model.tightBody && deficit <= padding) {
+                // An instruction keeps its words: as much of the body's padding as it needs goes first.
+                reclaimed = deficit;
+                body += deficit;
+            } else {
+                // A wrapping cue that does not fit goes back to one line (ending in "…") before anything goes.
+                fitted = edit(fitted, model);
+                fitted.cueMaxLines = 1;
+                cue = cueRowHeightDp(c, fitted, size, innerWidth);
+            }
+        }
+        // A one-line cue is never cut inside a word or a sum with "…": it keeps its longest whole form
+        // (whole clauses) or, unless it is the card's instruction, goes.
+        if (cue > 0 && fitted.cueMaxLines <= 1) {
+            String whole = fitCue(c, fitted.cue, size, innerWidth);
+            if (whole == null && !model.cueEssential) {
+                fitted = edit(fitted, model);
+                fitted.cue = null;
+                cue = 0;
+            } else if (whole != null && !whole.equals(fitted.cue)) {
+                fitted = edit(fitted, model);
+                fitted.cue = whole;
+            }
+        }
+        if (cue > 0 && !model.cueEssential && comfortable + dialogue + meta + hint + side + cue > body) {
+            fitted = edit(fitted, model);
+            fitted.cue = null;
+            cue = 0;
+        }
+        // An optional dialogue line is the next extra to go: it never squeezes the title either.
+        if (dialogue > 0 && model.dialogueOptional && comfortable + dialogue + meta + hint + side + cue > body) {
+            fitted = edit(fitted, model);
+            fitted.dialogue = null;
+            dialogue = 0;
+        }
+        if (hint > 0 && smallest + dialogue + meta + hint + side + cue > body) {
+            fitted = edit(fitted, model);
+            fitted.hint = null;
+            hint = 0;
+        }
+        if (side > 0 && smallest + dialogue + meta + side + cue > body) {
+            fitted = edit(fitted, model);
+            fitted.side = null;
+            side = 0;
+        }
+        if (meta > 0 && smallest + dialogue + meta + cue > body) {
+            float deficit = smallest + dialogue + meta + cue - body;
+            if (!isBlank(fitted.tag) && !model.tightBody && reclaimed + deficit <= padding) {
+                // The chip is the step's key fact (RANK 4→5, 学力 +2): the body's padding goes first.
+                reclaimed += deficit;
+                body += deficit;
+            } else {
+                fitted = edit(fitted, model);
+                fitted.tag = null;
+                fitted.location = null;
+                meta = 0;
+            }
+        }
+        if (cue > 0 && smallest + dialogue + cue > body) {
+            fitted = edit(fitted, model);
+            fitted.cue = null;
+            cue = 0;
+        }
+        float rows = dialogue + meta + hint + side + cue;
+        // On the shortest cards even the smallest title may not fit all its lines: keep the lines that
+        // fit and let the last one end in "…" rather than be cut in half.
+        int fitLines = lines;
+        while (fitLines > 1 && titleHeightDp(c, fitted.title, MIN_TITLE_SP, titleWidth, fitLines) > body - rows) fitLines--;
+        if (fitLines != fitted.titleMaxLines) {
+            fitted = edit(fitted, model);
+            fitted.titleMaxLines = fitLines;
+        }
+        // A tall card would leave a band between the plate and a title sitting on the buttons: the title
+        // box shrinks to what the largest size needs (as the layout's autosize measures it, which may
+        // be a little taller than the drawn text) and the text sits centred between plate and buttons.
+        float sp = maxTitleSp(size);
+        float drawn = textHeightDp(c, fitted.title, sp, true, titleWidth, fitLines);
+        float inBox = Math.max(0, titleNeedDp(c, fitted.title, sp, titleWidth, fitLines) + TITLE_SLACK_DP - drawn);
+        float spare = body - rows - drawn - inBox;
+        float under = spare > 0 ? Math.min(spare * UNDER_BUTTONS_SHARE, maxSpaceUnderButtonsDp(size)) : 0;
+        float box = spare > 0 ? drawn + inBox : body - rows;
+        // A title that wraps at a 「 · 」 wraps there without the dot: no line ends in 「·」.
+        String wrapped = wrapAtSeparators(c, fitted.title, size, titleWidth, box, fitLines);
+        if (!Objects.equals(wrapped, fitted.title)) {
+            fitted = edit(fitted, model);
+            fitted.title = wrapped;
+        }
+        // A kind mark sits on the title's first line: a title that will wrap hangs from the top.
+        boolean top = hasTitleIcon(fitted) && titleLines(c, fitted.title, size, titleWidth, box, fitLines) > 1;
+        if (top != fitted.titleTop) {
+            fitted = edit(fitted, model);
+            fitted.titleTop = top;
+        }
+        float above = 0;
+        float below = 0;
+        if (spare > 0) {
+            // The box's own slack shows on the side the text does not hang from (it hangs from the
+            // top only where the title's gravity can be set).
+            float half = (spare - under + inBox) / 2;
+            boolean hangs = top && Build.VERSION.SDK_INT >= 31;
+            float slackSide = Math.max(0, half - inBox);
+            above = hangs ? spare - under - slackSide : slackSide;
+            below = spare - under - above;
+        }
+        // Reclaimed padding comes from above the buttons first: the plate keeps a gap over the title.
+        float reclaimedBelow = Math.min(reclaimed, padding / 2);
+        above -= reclaimed - reclaimedBelow;
+        below -= reclaimedBelow;
+        if (above != fitted.spaceAboveDp || below != fitted.spaceBelowDp || under != fitted.spaceUnderButtonsDp) {
+            fitted = edit(fitted, model);
+            fitted.spaceAboveDp = above;
+            fitted.spaceBelowDp = below;
+            fitted.spaceUnderButtonsDp = under;
+        }
+        // Full-width dialogue lines stay clear of the outlined day numeral (as the legacy guide does);
+        // other text that runs into it gets a fainter numeral.
+        if (dialogue > 0 && fitted.watermarkDay >= 0) {
+            fitted = edit(fitted, model);
+            fitted.watermarkDay = -1;
+        }
+        boolean faint = textReachesWatermark(c, fitted, size, widthDp);
+        if (faint != fitted.watermarkFaint) {
+            fitted = edit(fitted, model);
+            fitted.watermarkFaint = faint;
+        }
+        return fitted;
+    }
+
+    /**
+     * Height in dp the title needs at {@code sp} within {@code maxLines}, measured as the layout's
+     * autosize measures it (with the taller CJK fallback line height); infinite when it needs more lines.
+     */
+    static float titleNeedDp(Context c, String title, float sp, float widthDp, int maxLines) {
+        if (isBlank(title)) return 0;
+        StaticLayout layout = autosizeLayout(c, title, sp, widthDp);
+        if (layout.getLineCount() > Math.max(1, maxLines)) return Float.POSITIVE_INFINITY;
+        return layout.getHeight() / c.getResources().getDisplayMetrics().density;
+    }
+
+    /**
+     * The bold title at {@code sp} wrapped to {@code widthDp} as the layout's autosize lays it out: the
+     * TextView's high-quality line breaking and, on P+, the taller CJK fallback line height.
+     */
+    @SuppressLint("WrongConstant") // Layout's constant (API 23) is the value LineBreaker (API 29) names
+    private static StaticLayout autosizeLayout(Context c, String title, float sp, float widthDp) {
+        DisplayMetrics metrics = c.getResources().getDisplayMetrics();
+        TextPaint paint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        paint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, metrics));
+        paint.setTypeface(Typeface.DEFAULT_BOLD);
+        int width = Math.max(1, Math.round(widthDp * metrics.density));
+        StaticLayout.Builder builder = StaticLayout.Builder.obtain(title, 0, title.length(), paint, width).setIncludePad(false)
+                .setBreakStrategy(android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY);
+        if (Build.VERSION.SDK_INT >= 28) builder.setUseLineSpacingFromFallbacks(true);
+        return builder.build();
+    }
+
+    /** Height in dp of the outlined day numeral per bucket. Mirrors the layout XML. */
+    static float watermarkHeightDp(WidgetSize size) {
+        switch (size) {
+            case REGULAR: return 112;
+            case COMPACT: return 92;
+            default: return 84;
+        }
+    }
+
+    /** Width in dp of the outlined numeral of {@code day} (two digit slots, the second overlapping). */
+    static float watermarkWidthDp(Context c, int day, WidgetSize size) {
+        float height = watermarkHeightDp(size);
+        float overlap = size == WidgetSize.REGULAR ? 14 : 11;
+        int tens = day >= 10 ? day / 10 : day;
+        int units = day >= 10 ? day % 10 : 0; // a lone digit keeps the second slot's width
+        return digitWidthDp(c, tens, height) + digitWidthDp(c, units, height) - overlap;
+    }
+
+    private static float digitWidthDp(Context c, int digit, float heightDp) {
+        android.graphics.drawable.Drawable d = c.getDrawable(DIGITS[digit]);
+        if (d == null || d.getIntrinsicHeight() <= 0) return heightDp * 0.65f;
+        return heightDp * d.getIntrinsicWidth() / d.getIntrinsicHeight();
+    }
+
+    /**
+     * Whether a shown line of text reaches the outlined day numeral at the right edge (it spans the
+     * body's height): the title at its largest size, the tag/location row, the reminder, side and cue.
+     */
+    static boolean textReachesWatermark(Context c, CardModel m, WidgetSize size, float widthDp) {
+        if (m.watermarkDay < 1 || m.watermarkDay > 31) return false;
+        float scale = c.getResources().getConfiguration().fontScale;
+        float pad = bodyPaddingDp(size);
+        float inner = widthDp - 2 * pad;
+        float titleWidth = titleWidthDp(m, size, inner);
+        float reach = (inner - titleWidth) + widestLineDp(c, m.title, maxTitleSp(size), Typeface.DEFAULT_BOLD, titleWidth,
+                Math.max(1, m.titleMaxLines));
+        float chip = Math.min(inner, chipWidthDp(c, m, size));
+        float location = isBlank(m.location) ? 0 : PIN_DP + lineWidthDp(c, m.location, metaTextSp(size) * scale, Typeface.DEFAULT);
+        reach = Math.max(reach, (chip > 0 ? chip + TAG_MARGIN_DP : 0) + location);
+        float cueSp = cueTextSp(size);
+        if (!isBlank(m.hint)) reach = Math.max(reach, PIN_DP + lineWidthDp(c, m.hint, cueSp * scale, Typeface.DEFAULT));
+        if (!isBlank(m.side)) reach = Math.max(reach, lineWidthDp(c, m.side, cueSp * scale, Typeface.DEFAULT));
+        reach = Math.max(reach, widestLineDp(c, m.cue, cueSp, Typeface.DEFAULT, inner, Math.max(1, m.cueMaxLines)));
+        float numeral = widthDp + WATERMARK_BLEED_DP - watermarkWidthDp(c, m.watermarkDay, size);
+        return pad + Math.min(inner, reach) > numeral + WATERMARK_TOLERANCE_DP;
+    }
+
+    /** The numeral hangs this far past the right edge (dp). Mirrors the layout XML. */
+    private static final float WATERMARK_BLEED_DP = 2f;
+    /** Text may touch the numeral's (slanted, mostly empty) left edge by this much (dp). */
+    private static final float WATERMARK_TOLERANCE_DP = 4f;
+
+    /** Width in dp of the widest of the first {@code maxLines} lines of {@code text} wrapped to {@code widthDp}. */
+    private static float widestLineDp(Context c, String text, float sp, Typeface typeface, float widthDp, int maxLines) {
+        if (isBlank(text)) return 0;
+        StaticLayout layout = layout(c, text, sp, typeface, widthDp, Integer.MAX_VALUE, 0f);
+        float widest = 0;
+        for (int i = 0; i < Math.min(maxLines, layout.getLineCount()); i++) widest = Math.max(widest, layout.getLineWidth(i));
+        return widest / c.getResources().getDisplayMetrics().density;
+    }
+
+    /** Height in dp of the dialogue line including its top gap (0 if hidden). */
+    static float dialogueRowHeightDp(Context c, CardModel model, float widthDp) {
+        if (isBlank(model.dialogue)) return 0;
+        return DIALOGUE_GAP_DP + textHeightDp(c, model.dialogue, DIALOGUE_SP, false, widthDp, 20, DIALOGUE_SPACING_DP);
+    }
+
+    /**
+     * Whether every choice of {@code choices} (「A / B」) fits one line of the dialogue text at
+     * {@code widthDp}. Only then can {@link CardText#choices} keep each one whole: a longer choice is
+     * cut wherever the card's line breaker likes, which the measured height does not follow.
+     */
+    public static boolean choicesFitWhole(Context c, String choices, float widthDp) {
+        if (isBlank(choices)) return true;
+        for (String choice : CardText.plain(choices).split(java.util.regex.Pattern.quote(CardText.CHOICE_SEPARATOR))) {
+            String text = choice.trim();
+            if (!text.isEmpty() && dialogueLines(c, text, widthDp) > 1) return false;
+        }
+        return true;
+    }
+
+    /** Lines the dialogue text wraps to at {@code widthDp}. */
+    static int dialogueLines(Context c, String text, float widthDp) {
+        if (isBlank(text)) return 0;
+        return layout(c, text, DIALOGUE_SP, Typeface.DEFAULT, widthDp, Integer.MAX_VALUE, DIALOGUE_SPACING_DP).getLineCount();
+    }
+
+    /** Renders {@code model} into the layout of {@code size}. */
+    public static RemoteViews render(Context context, CardModel model, WidgetSize size) {
+        RemoteViews views = new RemoteViews(context.getPackageName(), size.layout);
+        WidgetPalette palette = model.palette();
+        applyBackground(views, model, palette);
+        applyPlate(context, views, model, palette, size);
+        applyStatus(context, views, model, palette, size);
+        applyBody(context, views, model, palette, size);
+        applyActions(context, views, model, palette, size);
+        return views;
+    }
+
+    private static void applyBackground(RemoteViews views, CardModel model, WidgetPalette palette) {
+        views.setInt(R.id.widget_root, "setBackgroundResource", palette.surface);
+        views.setImageViewResource(R.id.widget_shafts, SHAFTS[Math.floorMod(model.motif, SHAFTS.length)]);
+        views.setInt(R.id.widget_shafts, "setImageAlpha", palette.shaftImageAlpha);
+        int day = model.watermarkDay;
+        if (day < 1 || day > 31) {
+            views.setViewVisibility(R.id.widget_watermark, View.GONE);
+            return;
+        }
+        views.setViewVisibility(R.id.widget_watermark, View.VISIBLE);
+        int alpha = model.watermarkFaint ? Math.round(palette.watermarkImageAlpha * FAINT_WATERMARK) : palette.watermarkImageAlpha;
+        views.setInt(R.id.widget_watermark_tens, "setImageAlpha", alpha);
+        views.setInt(R.id.widget_watermark_units, "setImageAlpha", alpha);
+        if (day >= 10) {
+            views.setImageViewResource(R.id.widget_watermark_tens, DIGITS[day / 10]);
+            views.setImageViewResource(R.id.widget_watermark_units, DIGITS[day % 10]);
+            views.setViewVisibility(R.id.widget_watermark_units, View.VISIBLE);
+        } else {
+            // A lone digit sits one numeral in from the edge (the units slot keeps its width), so a
+            // narrow "1" reads as a numeral rather than a sliver on the border.
+            views.setImageViewResource(R.id.widget_watermark_tens, DIGITS[day]);
+            views.setImageViewResource(R.id.widget_watermark_units, DIGITS[0]);
+            views.setViewVisibility(R.id.widget_watermark_units, View.INVISIBLE);
+        }
+        views.setViewVisibility(R.id.widget_watermark_tens, View.VISIBLE);
+    }
+
+    private static void applyPlate(Context c, RemoteViews views, CardModel model, WidgetPalette palette, WidgetSize size) {
+        int plateInk = palette.plateInk(c);
+        views.setInt(R.id.widget_plate, "setBackgroundResource", palette.plate);
+        views.setTextViewText(R.id.widget_date, model.dateText);
+        views.setTextColor(R.id.widget_date, plateInk);
+        views.setContentDescription(R.id.widget_date, model.dateDescription);
+
+        setTextOrHide(views, R.id.widget_weekday, model.weekdayZh);
+        views.setInt(R.id.widget_weekday, "setBackgroundResource", palette.weekdayChip);
+        views.setTextColor(R.id.widget_weekday, palette.chipInk(c));
+
+        // The narrow plate has no room for the (decorative) moon next to 放学后.
+        boolean moon = size != WidgetSize.TINY && model.moonPhase >= 0 && model.moonPhase < MOONS.length;
+        views.setViewVisibility(R.id.widget_period_icon, moon ? View.VISIBLE : View.GONE);
+        if (moon) {
+            views.setImageViewResource(R.id.widget_period_icon, MOONS[model.moonPhase]);
+            views.setInt(R.id.widget_period_icon, "setColorFilter", plateInk);
+        }
+        setTextOrHide(views, R.id.widget_period_word, model.periodZh);
+        views.setTextColor(R.id.widget_period_word, plateInk);
+
+        applyArrow(views, R.id.widget_prev, model.arrowsVisible, model.prevEnabled, plateInk);
+        applyArrow(views, R.id.widget_next, model.arrowsVisible, model.nextEnabled, plateInk);
+    }
+
+    private static void applyArrow(RemoteViews views, int id, boolean visible, boolean enabled, int ink) {
+        views.setViewVisibility(id, visible ? View.VISIBLE : View.INVISIBLE);
+        views.setBoolean(id, "setEnabled", visible && enabled);
+        views.setInt(id, "setColorFilter", ink);
+        views.setInt(id, "setImageAlpha", enabled ? 255 : DISABLED_ARROW_ALPHA);
+    }
+
+    private static void applyStatus(Context c, RemoteViews views, CardModel model, WidgetPalette palette, WidgetSize size) {
+        boolean anything = model.progressLabel != null || !model.ticks.isEmpty();
+        boolean shown = size != WidgetSize.TINY && anything;
+        views.setViewVisibility(R.id.widget_status, shown || size == WidgetSize.REGULAR ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(R.id.widget_progress_row, shown ? View.VISIBLE : View.GONE);
+        if (size == WidgetSize.REGULAR) {
+            views.setImageViewResource(R.id.widget_sees_mark, palette.wordmark);
+        }
+        setTextOrHide(views, R.id.widget_progress, model.progressLabel);
+        int ink = palette.ink(c);
+        int accent = palette.accent(c);
+        views.setTextColor(R.id.widget_progress, ink);
+        views.setContentDescription(R.id.widget_progress_row, model.progressDescription);
+        for (int i = 0; i < TICK_IDS.length; i++) {
+            if (i >= model.ticks.size()) {
+                views.setViewVisibility(TICK_IDS[i], View.GONE);
+                continue;
+            }
+            CardModel.Tick tick = model.ticks.get(i);
+            views.setViewVisibility(TICK_IDS[i], View.VISIBLE);
+            views.setImageViewResource(TICK_IDS[i], tickDrawable(tick));
+            views.setInt(TICK_IDS[i], "setColorFilter", tick == CardModel.Tick.CURRENT ? accent : ink);
+        }
+    }
+
+    static int tickDrawable(CardModel.Tick tick) {
+        switch (tick) {
+            case DONE: return R.drawable.widget_tick_done;
+            case CURRENT: return R.drawable.widget_tick_current;
+            case LOCKED: return R.drawable.widget_tick_locked;
+            default: return R.drawable.widget_tick_pending;
+        }
+    }
+
+    private static void applyBody(Context c, RemoteViews views, CardModel model, WidgetPalette palette, WidgetSize size) {
+        // Body padding (none when tight) plus the spare height fit() shared out on a tall card, less
+        // what it gave up for an instruction on a short one.
+        float density = c.getResources().getDisplayMetrics().density;
+        int side = Math.round(bodyPaddingDp(size) * density);
+        float padding = model.tightBody ? 0 : bodyVerticalPaddingDp(size) / 2;
+        views.setViewPadding(R.id.widget_task_area, side, Math.round(Math.max(0, padding + model.spaceAboveDp) * density),
+                side, Math.round(Math.max(0, padding + model.spaceBelowDp) * density));
+        views.setViewPadding(R.id.widget_content, 0, 0, 0,
+                Math.round((contentPaddingDp(size) + model.spaceUnderButtonsDp) * density));
+        int ink = palette.ink(c);
+        int soft = palette.inkSoft(c);
+        views.setTextViewText(R.id.widget_task, keepNumbersTogether(model.title));
+        views.setTextColor(R.id.widget_task, ink);
+        views.setInt(R.id.widget_task, "setMaxLines", Math.max(1, model.titleMaxLines));
+        views.setContentDescription(R.id.widget_task_area, model.taskDescription);
+        int titleIcon = titleIconDrawable(model.titleIcon);
+        views.setViewVisibility(R.id.widget_title_icon, titleIcon == 0 ? View.GONE : View.VISIBLE);
+        if (Build.VERSION.SDK_INT >= 31) {
+            // TextView#setGravity is remotable from API 31; older launchers keep the mark on the last line.
+            int vertical = model.titleTop ? Gravity.TOP : Gravity.BOTTOM;
+            views.setInt(R.id.widget_title_row, "setGravity", vertical);
+            views.setInt(R.id.widget_task, "setGravity", Gravity.LEFT | vertical);
+        }
+        if (titleIcon != 0) {
+            views.setImageViewResource(R.id.widget_title_icon, titleIcon);
+            views.setInt(R.id.widget_title_icon, "setColorFilter", ink);
+        }
+
+        setTextOrHide(views, R.id.widget_dialogue_choices, model.dialogue);
+        views.setTextColor(R.id.widget_dialogue_choices, soft);
+
+        setTextOrHide(views, R.id.widget_tag, model.tag);
+        views.setInt(R.id.widget_tag, "setBackgroundResource", palette.tag);
+        views.setTextColor(R.id.widget_tag, palette.tagInk(c));
+        views.setInt(R.id.widget_tag, "setMaxLines", Math.max(1, model.tagMaxLines));
+        views.setTextViewTextSize(R.id.widget_tag, TypedValue.COMPLEX_UNIT_SP, chipTextSp(model, size));
+
+        setTextOrHide(views, R.id.widget_location, model.location);
+        views.setTextColor(R.id.widget_location, soft);
+        views.setTextViewCompoundDrawables(R.id.widget_location, palette.pin, 0, 0, 0);
+        boolean meta = !isBlank(model.tag) || !isBlank(model.location);
+        views.setViewVisibility(R.id.widget_meta_row, meta ? View.VISIBLE : View.GONE);
+
+        setTextOrHide(views, R.id.widget_hint, model.hint);
+        views.setTextColor(R.id.widget_hint, ink);
+        views.setTextViewCompoundDrawables(R.id.widget_hint, palette.hintIcon, 0, 0, 0);
+
+        setTextOrHide(views, R.id.widget_side, model.side);
+        views.setTextColor(R.id.widget_side, ink);
+
+        setTextOrHide(views, R.id.widget_detail_cue, model.cue);
+        views.setTextColor(R.id.widget_detail_cue, soft);
+        views.setInt(R.id.widget_detail_cue, "setMaxLines", Math.max(1, model.cueMaxLines));
+    }
+
+    /** Kind mark drawable (tinted with the ink at runtime), or 0 for none. */
+    static int titleIconDrawable(CardModel.TitleIcon icon) {
+        if (icon == null) return 0;
+        switch (icon) {
+            case NOTE: return R.drawable.widget_icon_note;
+            case EPISODE: return R.drawable.widget_icon_episode;
+            default: return 0;
+        }
+    }
+
+    private static void applyActions(Context c, RemoteViews views, CardModel model, WidgetPalette palette, WidgetSize size) {
+        // A 当前 that does nothing (status cards) reads dimmed like its outline, not just its glyph.
+        int ghost = palette.ghostInk(c, model.currentEnabled);
+        if (size == WidgetSize.TINY) {
+            // The narrow 当前 button keeps its label centred and drops the return glyph.
+            int side = Math.round(8 * c.getResources().getDisplayMetrics().density);
+            int top = Math.round(3 * c.getResources().getDisplayMetrics().density);
+            views.setViewVisibility(R.id.button_spec_return_icon, View.GONE);
+            views.setViewPadding(R.id.button_spec_current_text, side, top, side, top);
+        }
+        views.setViewVisibility(R.id.button_spec_current, model.currentVisible ? View.VISIBLE : View.GONE);
+        views.setInt(R.id.button_spec_current, "setBackgroundResource", palette.currentButton);
+        views.setBoolean(R.id.button_spec_current, "setEnabled", model.currentEnabled);
+        views.setTextViewText(R.id.button_spec_current_text, model.currentLabel);
+        views.setTextColor(R.id.button_spec_current_text, ghost);
+        views.setInt(R.id.button_spec_return_icon, "setColorFilter", palette.ghostInk(c));
+        views.setInt(R.id.button_spec_return_icon, "setImageAlpha", model.currentEnabled ? 255 : DISABLED_ARROW_ALPHA);
+        views.setContentDescription(R.id.button_spec_current, model.currentDescription);
+
+        int doneInk = palette.buttonInk(c, model.doneEnabled);
+        views.setInt(R.id.button_spec_done, "setBackgroundResource", palette.doneButton);
+        views.setBoolean(R.id.button_spec_done, "setEnabled", model.doneEnabled);
+        views.setTextViewText(R.id.button_spec_done_text, model.doneLabel);
+        views.setTextColor(R.id.button_spec_done_text, doneInk);
+        views.setContentDescription(R.id.button_spec_done, model.doneDescription);
+        boolean icon = model.doneIcon != CardModel.DoneIcon.NONE;
+        views.setViewVisibility(R.id.button_spec_check, icon ? View.VISIBLE : View.GONE);
+        if (!icon) {
+            // Without the trailing glyph the label centres on the whole face. The narrow face keeps
+            // just clear of its slanted ends so 「已经玩到这里」 fits on one line at font scale 1.15.
+            int side = Math.round((size == WidgetSize.TINY ? 6 : 10) * c.getResources().getDisplayMetrics().density);
+            views.setViewPadding(R.id.button_spec_done_text, side, 0, side, 0);
+        } else {
+            views.setImageViewResource(R.id.button_spec_check,
+                    model.doneIcon == CardModel.DoneIcon.UNDO ? R.drawable.widget_icon_undo : R.drawable.widget_icon_check);
+            // The glyph matches the label: a translucent tint would blend with the glyph's own navy,
+            // so tint with the opaque ink and carry its alpha as image alpha.
+            views.setInt(R.id.button_spec_check, "setColorFilter", doneInk | 0xFF000000);
+            views.setInt(R.id.button_spec_check, "setImageAlpha", doneInk >>> 24);
+        }
+    }
+
+    private static void setTextOrHide(RemoteViews views, int id, String text) {
+        boolean visible = !isBlank(text);
+        views.setViewVisibility(id, visible ? View.VISIBLE : View.GONE);
+        views.setTextViewText(id, visible ? text : "");
+    }
+
+    static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
+}

@@ -1,0 +1,65 @@
+{
+  "scope": "Data-level arithmetic/coverage fixtures; engine tests must separately replay these",
+  "fixtures": [
+    {
+      "id": "sun_rank6_four_dates",
+      "start": "01-02",
+      "linkId": "p3r.social_link.sun",
+      "rank": 6,
+      "target": 10,
+      "expectedDates": [
+        "01-03",
+        "01-10",
+        "01-17",
+        "01-24"
+      ],
+      "expectedResult": "reachable_within_supported_slice"
+    },
+    {
+      "id": "sun_rank5_only_four_dates",
+      "start": "01-02",
+      "linkId": "p3r.social_link.sun",
+      "rank": 5,
+      "target": 10,
+      "maximumSupportedRank": 9,
+      "expectedResult": "unmet_target_supported_link_calendar_exhausted"
+    },
+    {
+      "id": "devil_rank1_nine_dates",
+      "start": "01-02",
+      "linkId": "p3r.social_link.devil",
+      "rank": 1,
+      "target": 10,
+      "expectedVisitCount": 9
+    },
+    {
+      "id": "unmodeled_link",
+      "linkId": "p3r.social_link.priestess",
+      "expectedResult": "unsupported_not_impossible"
+    },
+    {
+      "id": "cap0_does_not_create_trip",
+      "stageId": "p3r.tower.stage_10",
+      "cap": 0,
+      "used": 0,
+      "expectedVisitCount": 0
+    },
+    {
+      "id": "jan29_no_safe_subset_date",
+      "start": "01-29",
+      "expectedExplorationStatus": "unknown_other_nights_not_modelled"
+    },
+    {
+      "id": "trip_money_unknown",
+      "action": "p3r.action.explore_stage_10",
+      "expectedCashDelta": null,
+      "expectedFloorDelta": null
+    },
+    {
+      "id": "rebase_requires_no_history",
+      "requiredInput": "currentCheckpoint",
+      "history": null,
+      "expectedResult": "accepted_if_current_fields_sufficient"
+    }
+  ]
+}

@@ -1,0 +1,215 @@
+{
+ "retrieved": "2026-10-13",
+ "note": "Third-party snapshots used to compile assets/p3r/p3r_rules.json. aqiu_gamedata = tables extracted from P3R (Xrd777) game files by aqiu384/megaten-database; not an ATLUS publication. Not shipped in the APK. Every entry names the edition it describes (vocabulary in 'editions'; Reload-only source policy in rules/build/REPORT.md section 1); the builder checks the hashes, editions and Steam URLs.",
+ "editions": {
+  "reload": "About Persona 3 Reload only (official Steam text, Reload forum threads, Reload-only guides and community pages).",
+  "game_data_reload": "Tables extracted from the Persona 3 Reload (Xrd777) game files.",
+  "cn_guide_reload": "Simplified Chinese walkthrough of Persona 3 Reload.",
+  "reload+portable": "States the fact for Reload and Portable alike; corroboration only.",
+  "mixed": "Multi-edition page or post (P3/FES/Portable/Reload); only its Reload section is used, as corroboration."
+ },
+ "files": [
+  {
+   "path": "steam_schinese/ach_english.html",
+   "sha256": "100d8359a29926e3d6a63b024df10061fc5bff283c6a3d8cc2db9226634f6f54",
+   "url": "https://steamcommunity.com/stats/2161700/achievements/?l=english",
+   "edition": "reload"
+  },
+  {
+   "path": "steam_schinese/ach_english.txt",
+   "sha256": "24acfdbeb9cb76a202f0781734db9557f73dca25755895d8558d5e1ea2b72d1d",
+   "url": "https://steamcommunity.com/stats/2161700/achievements/?l=english",
+   "derivedFrom": "steam_schinese/ach_english.html (visible text)",
+   "edition": "reload"
+  },
+  {
+   "path": "steam_schinese/ach_japanese.html",
+   "sha256": "6fde57d2f9ef67b8057ce33c736e345611b2ab53959de7ec2dca058f1b98e743",
+   "url": "https://steamcommunity.com/stats/2161700/achievements/?l=japanese",
+   "edition": "reload"
+  },
+  {
+   "path": "steam_schinese/ach_japanese.txt",
+   "sha256": "7465ef7e8bfb18bf2d3a63b7c1bf9c0c96939962b5c4cd70f81dbd5e804fd466",
+   "url": "https://steamcommunity.com/stats/2161700/achievements/?l=japanese",
+   "derivedFrom": "steam_schinese/ach_japanese.html (visible text)",
+   "edition": "reload"
+  },
+  {
+   "path": "steam_schinese/ach_schinese.html",
+   "sha256": "0ce3d034a48bf2d5a762ab1947e37029903aab1688f0846c276623220dc81d1c",
+   "url": "https://steamcommunity.com/stats/2161700/achievements/?l=schinese",
+   "edition": "reload"
+  },
+  {
+   "path": "steam_schinese/ach_schinese.txt",
+   "sha256": "d8e8e4231216d3a3a21092a668feb8238aaf18af40c460b9c1d47a1ba958d290",
+   "url": "https://steamcommunity.com/stats/2161700/achievements/?l=schinese",
+   "derivedFrom": "steam_schinese/ach_schinese.html (visible text)",
+   "edition": "reload"
+  },
+  {
+   "path": "steam_schinese/d_4206993388794169488.html",
+   "sha256": "6da7cebeaf455deb8c69a13eb12daaf41dd4fc5fc73f41a20009521cb9f06c55",
+   "url": "https://steamcommunity.com/app/2161700/discussions/0/4206993388794169488/",
+   "edition": "reload"
+  },
+  {
+   "path": "steam_schinese/d_4206993639701168068.html",
+   "sha256": "440a70ce043a2a6a74e0b02e391fa66fbd2e900d7f33e3dd4d12ced37f0039ee",
+   "url": "https://steamcommunity.com/app/2161700/discussions/0/4206993639701168068/",
+   "edition": "reload"
+  },
+  {
+   "path": "steam_schinese/d_4206994023684392768.html",
+   "sha256": "336ac9eadf47ab3c9545a92e60968975af8fe644911d6e17f58829028aa258f1",
+   "url": "https://steamcommunity.com/app/2161700/discussions/0/4206994023684392768/",
+   "edition": "reload"
+  },
+  {
+   "path": "steam_schinese/p3r_sc.html",
+   "sha256": "fc69c7d3600d869256f33c10654a9dfed45a3e8fafb89de5866b92a6a7b341e8",
+   "url": "https://store.steampowered.com/app/2161700/",
+   "edition": "reload"
+  },
+  {
+   "path": "steam_schinese/p3r_sc.txt",
+   "sha256": "288b4d5ecbc5eed6f1c1b3912993ab07be7d516c73108ea95185e8ecf2b76f35",
+   "url": "https://store.steampowered.com/app/2161700/",
+   "derivedFrom": "steam_schinese/p3r_sc.html (visible text)",
+   "edition": "reload"
+  },
+  {
+   "path": "cn_guides/3dm_p42.html",
+   "sha256": "7dd357ecd7eeef4b4b8b15a092b18f7ac74b43ff887050e369256e4832d085c7",
+   "url": "https://www.3dmgame.com/gl/3928716_42.html",
+   "edition": "cn_guide_reload"
+  },
+  {
+   "path": "aqiu_gamedata/ActivityDataAsset.tsv",
+   "sha256": "250d83b38ff305e4b633d5d79668861f6318fb2ad1176e5859bcf1ca98cf5d24",
+   "url": "https://raw.githubusercontent.com/aqiu384/megaten-database/master/src/p3r/Content/Xrd777/Activity/ActivityDataAsset.tsv",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/BMD_ArbeitHelp.tsv",
+   "sha256": "2506833097a0c4e6bb07342d7e34dcca4e5300066ba34082a28c737739eb3d56",
+   "url": "https://github.com/aqiu384/megaten-database (src/p3r/Content/Xrd777/…, located by filename)",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/BMD_DisappearHelp.tsv",
+   "sha256": "35c0c85f0865ae3389aeb70b99e4fe245c645de5c7f22214142e0b99562746fa",
+   "url": "https://github.com/aqiu384/megaten-database (src/p3r/Content/Xrd777/…, located by filename)",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/CommunityEventDataAsset.tsv",
+   "sha256": "acb05e40ce04dfb0649c7e1d5f171407c3a2a3f0179eaf1b06d67de96e23a487",
+   "url": "https://raw.githubusercontent.com/aqiu384/megaten-database/master/src/p3r/Content/Xrd777/Community/Event/CommunityEventDataAsset.tsv",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/CommunityPresentDataAsset.tsv",
+   "sha256": "cc3015f36c706a38bb5c84787c36f7248b6baec4078339c5180fb46daef0ac3a",
+   "url": "https://raw.githubusercontent.com/aqiu384/megaten-database/master/src/p3r/Content/Xrd777/Community/Present/CommunityPresentDataAsset.tsv",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/CommunityRankDataAsset.tsv",
+   "sha256": "05dcad9e959819ce2b7fc53d56f36cfcbfb4158dfbb7e968c5d92d6ec715af15",
+   "url": "https://github.com/aqiu384/megaten-database (src/p3r/Content/Xrd777/…, located by filename)",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/DT_FldMailOrderTable.tsv",
+   "sha256": "e866c900990e797cd27c91562b6688c9c58d4e94366f51e2dc16fe6844497dbf",
+   "url": "https://github.com/aqiu384/megaten-database (src/p3r/Content/Xrd777/…, located by filename)",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/DT_GeneralCoefficient.tsv",
+   "sha256": "4a8954f79036abbeb6f1271bd33ebd3ca11b062a71db9ea62fa4007ba7a36b84",
+   "url": "https://raw.githubusercontent.com/aqiu384/megaten-database/master/src/p3r/Content/Xrd777/Community/Coefficient/General/DT_GeneralCoefficient.tsv",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/DT_Hero_Parameter_Name.tsv",
+   "sha256": "27dcfb10efe6de27e347b63b9f9a0049d6a25c5b3eb72613a342474c5fa5a372",
+   "url": "https://raw.githubusercontent.com/aqiu384/megaten-database/master/src/p3r/Content/Xrd777/Community/Parameter/DT_Hero_Parameter_Name.tsv",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/DatPlayerFirstNameDataAsset.tsv",
+   "sha256": "18cdda8e3082ccc86396db0117f98466d0b1f8c4157d9a93c80255bde2d82e94",
+   "url": "https://github.com/aqiu384/megaten-database (src/p3r/Content/Xrd777/…, located by filename)",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/DatPlayerLastNameDataAsset.tsv",
+   "sha256": "8abcb0a351a2e841d485e6ce134db21fceff81bcaca87b9d0fea7ecf592e4164",
+   "url": "https://github.com/aqiu384/megaten-database (src/p3r/Content/Xrd777/…, located by filename)",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/DatPlayerNameDataAsset.tsv",
+   "sha256": "b748445947a13867af71d1afc96364342d187fa47c40f0980f2a3f286060aa34",
+   "url": "https://github.com/aqiu384/megaten-database (src/p3r/Content/Xrd777/…, located by filename)",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/DatRaceDataAsset.tsv",
+   "sha256": "6056d745a3c94241ea34d226966607d112c256ad9171d505e701f13d5f94be56",
+   "url": "https://github.com/aqiu384/megaten-database (src/p3r/Content/Xrd777/…, located by filename)",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/DatSocialLinkDataAsset.tsv",
+   "sha256": "4b64f57dba14708bb96133e31f38f6a6275c0087fbc8456d9ff6f0a44f8536bf",
+   "url": "https://github.com/aqiu384/megaten-database (src/p3r/Content/Xrd777/…, located by filename)",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/HeroParameterDataAsset.tsv",
+   "sha256": "80f319f14ebe7f348d9e4e1119369063c026e6387ed1f10147a7a2c7c706b649",
+   "url": "https://raw.githubusercontent.com/aqiu384/megaten-database/master/src/p3r/Content/Xrd777/Community/Parameter/HeroParameterDataAsset.tsv",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/HolidayScheduleDataAsset.tsv",
+   "sha256": "0cd67444fdf384c50d359fe63d5cf166928764cfdcf5e730f235b8df67330d19",
+   "url": "https://raw.githubusercontent.com/aqiu384/megaten-database/master/src/p3r/Content/Xrd777/Community/Holiday/Schedule/HolidayScheduleDataAsset.tsv",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/MoviesDataAsset.tsv",
+   "sha256": "329c7eebf6885f9d30653447feeb05153c9f09127c4bf671bbde6f5764cf8dc8",
+   "url": "https://raw.githubusercontent.com/aqiu384/megaten-database/master/src/p3r/Content/Xrd777/SeasonEvent/Movies/MoviesDataAsset.tsv",
+   "edition": "game_data_reload"
+  },
+  {
+   "path": "aqiu_gamedata/overworld.md",
+   "sha256": "5b40f5b47a69cbb4fb1d166426428c82cf4c67b798b7379576cabeeede9c1526",
+   "url": "https://github.com/aqiu384/megaten-database (src/p3r/Content/Xrd777/…, located by filename)",
+   "edition": "reload"
+  },
+  {
+   "path": "aqiu_gamedata/tartarus.md",
+   "sha256": "36735bbc86f39fcec3272d7f7f0013c4f1b6b9bc0c4eac0237789595fd297e15",
+   "url": "https://github.com/aqiu384/megaten-database (src/p3r/Content/Xrd777/…, located by filename)",
+   "edition": "reload"
+  },
+  {
+   "path": "aqiu_pages/social-events.html",
+   "sha256": "404dea95268f8344576b33d9595037b08bfb89be7a390449b41635d22c3e4ec8",
+   "url": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+   "edition": "reload"
+  },
+  {
+   "path": "aqiu_pages/social_events_day_calendar.json",
+   "sha256": "75f6f2db1e3108ef5a317a0f82a22e6a2755a2fce6721582a0b8151bada68041",
+   "derivedFrom": "aqiu_pages/social-events.html (parsed day calendar)",
+   "edition": "reload"
+  }
+ ]
+}

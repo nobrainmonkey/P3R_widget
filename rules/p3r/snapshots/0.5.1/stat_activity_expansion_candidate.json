@@ -1,0 +1,1727 @@
+{
+  "schemaVersion": "stat-activity-expansion-candidate-1",
+  "checkedAt": "2026-10-13",
+  "gameEdition": "persona_3_reload_main_game",
+  "sources": [
+    {
+      "id": "wiki469",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/469.html",
+      "authority": "community_reload_page_with_known_internal_errors"
+    },
+    {
+      "id": "aqiu",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "authority": "community_structured_reload_guide"
+    },
+    {
+      "id": "baseline",
+      "path": "/workspace/scratch/c0da63724a20/p3r_guide_audit/data.candidate.json",
+      "sha256": "ff93b7653ec19049667856a8f439f69d5f722772a21f57e504f85e145a3c68d1"
+    }
+  ],
+  "actions": [
+    {
+      "actionId": "meal_wakatsu_regular",
+      "labelZhHans": "定食若津 · 普通餐点",
+      "locationZhHans": "严户台 · 定食若津",
+      "gameEdition": "persona_3_reload_main_game",
+      "planningStatus": "enabled_with_preconditions",
+      "slots": [
+        "day",
+        "night"
+      ],
+      "isoWeekdays": [
+        1,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "slotCost": 1,
+      "slotCostUnit": "one_day_or_night_free_time_slot",
+      "yenCost": 680,
+      "yenIncome": 0,
+      "statDelta": {
+        "academics": 3
+      },
+      "statDeltaMode": "exact_base_unboosted",
+      "repeatable": true,
+      "oneUse": false,
+      "maxUsesPerSlot": 1,
+      "inventoryCost": [],
+      "prerequisites": [
+        {
+          "field": "calendar.slotState",
+          "op": "eq",
+          "value": "free"
+        },
+        {
+          "field": "calendar.exactDateActionAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "locationAccessible",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "temperanceStatBonusActive",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "yen",
+          "op": "gte",
+          "value": 680
+        }
+      ],
+      "missingPreconditionPolicy": "unknown_do_not_schedule",
+      "dateExceptionsSource": "external_verified_calendar_or_current_game_availability_observation_required",
+      "referenceTaskIds": [
+        "t062_03"
+      ],
+      "localizationEvidence": [
+        {
+          "taskId": "t062_03",
+          "rawRecord": {
+            "id": "t062_03",
+            "period": "晚上",
+            "kind": "action",
+            "title": "勇气满了的到严户台二楼的定食若津点餐，学力+♪♪",
+            "where": "严户台（按具体步骤定位）"
+          }
+        }
+      ],
+      "labelPolicy": "Exact baseline place/menu names; added action words are generic UI prose, not a claim of official item localization.",
+      "evidenceStatus": "corroborated_community_claim",
+      "evidence": [
+        {
+          "sourceId": "wiki469",
+          "locator": "313;569–586"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "716"
+        }
+      ],
+      "conflicts": []
+    },
+    {
+      "actionId": "meal_hagakure_regular",
+      "labelZhHans": "叶隐拉面 · 普通餐点",
+      "locationZhHans": "严户台 · 叶隐拉面",
+      "gameEdition": "persona_3_reload_main_game",
+      "planningStatus": "enabled_with_preconditions",
+      "slots": [
+        "day",
+        "night"
+      ],
+      "isoWeekdays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "slotCost": 1,
+      "slotCostUnit": "one_day_or_night_free_time_slot",
+      "yenCost": 900,
+      "yenIncome": 0,
+      "statDelta": {
+        "charm": 3
+      },
+      "statDeltaMode": "exact_base_unboosted",
+      "repeatable": true,
+      "oneUse": false,
+      "maxUsesPerSlot": 1,
+      "inventoryCost": [],
+      "prerequisites": [
+        {
+          "field": "calendar.slotState",
+          "op": "eq",
+          "value": "free"
+        },
+        {
+          "field": "calendar.exactDateActionAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "locationAccessible",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "temperanceStatBonusActive",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "yen",
+          "op": "gte",
+          "value": 900
+        }
+      ],
+      "missingPreconditionPolicy": "unknown_do_not_schedule",
+      "dateExceptionsSource": "external_verified_calendar_or_current_game_availability_observation_required",
+      "referenceTaskIds": [
+        "t067_02"
+      ],
+      "localizationEvidence": [
+        {
+          "taskId": "t067_02",
+          "rawRecord": {
+            "id": "t067_02",
+            "period": "晚上",
+            "kind": "action",
+            "title": "到严户台2楼的叶隐拉面点餐，魅力+♪♪",
+            "where": "严户台（按具体步骤定位）"
+          }
+        }
+      ],
+      "labelPolicy": "Exact baseline place/menu names; added action words are generic UI prose, not a claim of official item localization.",
+      "evidenceStatus": "corroborated_community_claim",
+      "evidence": [
+        {
+          "sourceId": "wiki469",
+          "locator": "372;569–586"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "721"
+        }
+      ],
+      "conflicts": []
+    },
+    {
+      "actionId": "meal_wilduck_regular",
+      "labelZhHans": "怀老鸭汉堡 · 普通餐点",
+      "locationZhHans": "严户台商店街 · 怀老鸭汉堡",
+      "gameEdition": "persona_3_reload_main_game",
+      "planningStatus": "enabled_with_preconditions",
+      "slots": [
+        "day",
+        "night"
+      ],
+      "isoWeekdays": [
+        1,
+        2,
+        3,
+        5,
+        6,
+        7
+      ],
+      "slotCost": 1,
+      "slotCostUnit": "one_day_or_night_free_time_slot",
+      "yenCost": 1000,
+      "yenIncome": 0,
+      "statDelta": {
+        "courage": 3
+      },
+      "statDeltaMode": "exact_base_unboosted",
+      "repeatable": true,
+      "oneUse": false,
+      "maxUsesPerSlot": 1,
+      "inventoryCost": [],
+      "prerequisites": [
+        {
+          "field": "calendar.slotState",
+          "op": "eq",
+          "value": "free"
+        },
+        {
+          "field": "calendar.exactDateActionAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "locationAccessible",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "temperanceStatBonusActive",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "yen",
+          "op": "gte",
+          "value": 1000
+        }
+      ],
+      "missingPreconditionPolicy": "unknown_do_not_schedule",
+      "dateExceptionsSource": "external_verified_calendar_or_current_game_availability_observation_required",
+      "referenceTaskIds": [
+        "t005_06"
+      ],
+      "localizationEvidence": [
+        {
+          "taskId": "t005_06",
+          "rawRecord": {
+            "id": "t005_06",
+            "period": "放学后",
+            "kind": "action",
+            "title": "到怀老鸭汉堡用餐，勇气+♪♪",
+            "where": "严户台商店街 · 怀老鸭汉堡"
+          }
+        }
+      ],
+      "labelPolicy": "Exact baseline place/menu names; added action words are generic UI prose, not a claim of official item localization.",
+      "evidenceStatus": "corroborated_community_claim",
+      "evidence": [
+        {
+          "sourceId": "wiki469",
+          "locator": "408;569–586"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "726"
+        }
+      ],
+      "conflicts": []
+    },
+    {
+      "actionId": "meal_wakatsu_secret",
+      "labelZhHans": "定食若津 · 水产全席套餐",
+      "locationZhHans": "严户台 · 定食若津",
+      "gameEdition": "persona_3_reload_main_game",
+      "planningStatus": "enabled_with_preconditions",
+      "slots": [
+        "night"
+      ],
+      "isoWeekdays": [
+        1,
+        4,
+        5,
+        7
+      ],
+      "slotCost": 1,
+      "slotCostUnit": "one_day_or_night_free_time_slot",
+      "yenCost": 900,
+      "yenIncome": 0,
+      "statDelta": {
+        "academics": 4
+      },
+      "statDeltaMode": "exact_base_unboosted",
+      "repeatable": true,
+      "oneUse": false,
+      "maxUsesPerSlot": 1,
+      "inventoryCost": [],
+      "prerequisites": [
+        {
+          "field": "calendar.slotState",
+          "op": "eq",
+          "value": "free"
+        },
+        {
+          "field": "calendar.exactDateActionAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "locationAccessible",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "temperanceStatBonusActive",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "yen",
+          "op": "gte",
+          "value": 900
+        },
+        {
+          "field": "stats.charm.rank",
+          "op": "gte",
+          "value": 3
+        },
+        {
+          "field": "menu.wakatsu.secretUnlockedObserved",
+          "op": "eq",
+          "value": true
+        }
+      ],
+      "missingPreconditionPolicy": "unknown_do_not_schedule",
+      "dateExceptionsSource": "external_verified_calendar_or_current_game_availability_observation_required",
+      "referenceTaskIds": [
+        "t069_03"
+      ],
+      "localizationEvidence": [
+        {
+          "taskId": "t069_03",
+          "rawRecord": {
+            "id": "t069_03",
+            "period": "晚上",
+            "kind": "action",
+            "title": "到严户台的定食若津点餐“水产全席套餐”，学力升级LV4",
+            "where": "严户台（按具体步骤定位）"
+          }
+        }
+      ],
+      "labelPolicy": "Exact baseline place/menu names; added action words are generic UI prose, not a claim of official item localization.",
+      "evidenceStatus": "corroborated_community_claim",
+      "evidence": [
+        {
+          "sourceId": "wiki469",
+          "locator": "319–321;587–603"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "703,717"
+        }
+      ],
+      "conflicts": []
+    },
+    {
+      "actionId": "meal_hagakure_secret",
+      "labelZhHans": "叶隐拉面 · 隐藏餐点",
+      "locationZhHans": "严户台 · 叶隐拉面",
+      "gameEdition": "persona_3_reload_main_game",
+      "planningStatus": "enabled_with_preconditions",
+      "slots": [
+        "night"
+      ],
+      "isoWeekdays": [
+        2,
+        3,
+        5
+      ],
+      "slotCost": 1,
+      "slotCostUnit": "one_day_or_night_free_time_slot",
+      "yenCost": 1200,
+      "yenIncome": 0,
+      "statDelta": {
+        "charm": 4
+      },
+      "statDeltaMode": "exact_base_unboosted",
+      "repeatable": true,
+      "oneUse": false,
+      "maxUsesPerSlot": 1,
+      "inventoryCost": [],
+      "prerequisites": [
+        {
+          "field": "calendar.slotState",
+          "op": "eq",
+          "value": "free"
+        },
+        {
+          "field": "calendar.exactDateActionAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "locationAccessible",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "temperanceStatBonusActive",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "yen",
+          "op": "gte",
+          "value": 1200
+        },
+        {
+          "field": "stats.courage.rank",
+          "op": "gte",
+          "value": 3
+        },
+        {
+          "field": "menu.hagakure.secretUnlockedObserved",
+          "op": "eq",
+          "value": true
+        }
+      ],
+      "missingPreconditionPolicy": "unknown_do_not_schedule",
+      "dateExceptionsSource": "external_verified_calendar_or_current_game_availability_observation_required",
+      "referenceTaskIds": [
+        "t067_02"
+      ],
+      "localizationEvidence": [
+        {
+          "taskId": "t067_02",
+          "rawRecord": {
+            "id": "t067_02",
+            "period": "晚上",
+            "kind": "action",
+            "title": "到严户台2楼的叶隐拉面点餐，魅力+♪♪",
+            "where": "严户台（按具体步骤定位）"
+          }
+        }
+      ],
+      "labelPolicy": "Exact baseline place/menu names; added action words are generic UI prose, not a claim of official item localization.",
+      "evidenceStatus": "corroborated_community_claim",
+      "evidence": [
+        {
+          "sourceId": "wiki469",
+          "locator": "377–379;587–603"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "704,722"
+        }
+      ],
+      "conflicts": []
+    },
+    {
+      "actionId": "meal_wilduck_weekend",
+      "labelZhHans": "怀老鸭汉堡 · 周末怀老鸭套餐",
+      "locationZhHans": "严户台商店街 · 怀老鸭汉堡",
+      "gameEdition": "persona_3_reload_main_game",
+      "planningStatus": "enabled_with_preconditions",
+      "slots": [
+        "night"
+      ],
+      "isoWeekdays": [
+        6,
+        7
+      ],
+      "slotCost": 1,
+      "slotCostUnit": "one_day_or_night_free_time_slot",
+      "yenCost": 1200,
+      "yenIncome": 0,
+      "statDelta": {
+        "courage": 4
+      },
+      "statDeltaMode": "exact_base_unboosted",
+      "repeatable": true,
+      "oneUse": false,
+      "maxUsesPerSlot": 1,
+      "inventoryCost": [],
+      "prerequisites": [
+        {
+          "field": "calendar.slotState",
+          "op": "eq",
+          "value": "free"
+        },
+        {
+          "field": "calendar.exactDateActionAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "locationAccessible",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "temperanceStatBonusActive",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "yen",
+          "op": "gte",
+          "value": 1200
+        },
+        {
+          "field": "burgerChallenge.succeededObserved",
+          "op": "eq",
+          "value": true
+        }
+      ],
+      "missingPreconditionPolicy": "unknown_do_not_schedule",
+      "dateExceptionsSource": "external_verified_calendar_or_current_game_availability_observation_required",
+      "referenceTaskIds": [
+        "t055_07"
+      ],
+      "localizationEvidence": [
+        {
+          "taskId": "t055_07",
+          "rawRecord": {
+            "id": "t055_07",
+            "period": "晚上",
+            "kind": "action",
+            "title": "去严户台怀老鸭汉堡，点餐周末怀老鸭套餐，勇气+♪♪，奖杯解锁",
+            "where": "严户台（按具体步骤定位）"
+          }
+        }
+      ],
+      "labelPolicy": "Exact baseline place/menu names; added action words are generic UI prose, not a claim of official item localization.",
+      "evidenceStatus": "corroborated_community_claim",
+      "evidence": [
+        {
+          "sourceId": "wiki469",
+          "locator": "413–414;587–603"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "705,727"
+        }
+      ],
+      "conflicts": []
+    },
+    {
+      "actionId": "karaoke_mall",
+      "labelZhHans": "桐叶购物中心 · 唱卡拉OK",
+      "locationZhHans": "桐叶购物中心",
+      "gameEdition": "persona_3_reload_main_game",
+      "planningStatus": "enabled_with_preconditions",
+      "slots": [
+        "day",
+        "night"
+      ],
+      "isoWeekdays": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "slotCost": 1,
+      "slotCostUnit": "one_day_or_night_free_time_slot",
+      "yenCost": 800,
+      "yenIncome": 0,
+      "statDelta": {
+        "courage": 2
+      },
+      "statDeltaMode": "exact_base_unboosted",
+      "repeatable": true,
+      "oneUse": false,
+      "maxUsesPerSlot": 1,
+      "inventoryCost": [],
+      "prerequisites": [
+        {
+          "field": "calendar.slotState",
+          "op": "eq",
+          "value": "free"
+        },
+        {
+          "field": "calendar.exactDateActionAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "locationAccessible",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "temperanceStatBonusActive",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "yen",
+          "op": "gte",
+          "value": 800
+        }
+      ],
+      "missingPreconditionPolicy": "unknown_do_not_schedule",
+      "dateExceptionsSource": "external_verified_calendar_or_current_game_availability_observation_required",
+      "referenceTaskIds": [
+        "t007_04"
+      ],
+      "localizationEvidence": [
+        {
+          "taskId": "t007_04",
+          "rawRecord": {
+            "id": "t007_04",
+            "period": "晚上",
+            "kind": "action",
+            "title": "电玩大巡游游玩“青春高校”，魅力+♪♪",
+            "where": "桐叶购物中心（按具体步骤定位）"
+          }
+        }
+      ],
+      "labelPolicy": "Exact baseline place/menu names; added action words are generic UI prose, not a claim of official item localization.",
+      "evidenceStatus": "corroborated_community_claim",
+      "evidence": [
+        {
+          "sourceId": "wiki469",
+          "locator": "407;662–678"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "725"
+        }
+      ],
+      "conflicts": [
+        "wiki_karaoke_header_column_error"
+      ],
+      "officialVenueNameZhHans": null
+    },
+    {
+      "actionId": "movie_academics_day",
+      "labelZhHans": "港湾人工岛站 · 看电影",
+      "locationZhHans": "港湾人工岛站 · 电影院",
+      "gameEdition": "persona_3_reload_main_game",
+      "planningStatus": "enabled_with_preconditions",
+      "slots": [
+        "day"
+      ],
+      "isoWeekdays": [
+        3,
+        6
+      ],
+      "slotCost": 1,
+      "slotCostUnit": "one_day_or_night_free_time_slot",
+      "yenCost": 1500,
+      "yenIncome": 0,
+      "statDelta": {
+        "academics": 4
+      },
+      "statDeltaMode": "exact_base_unboosted",
+      "repeatable": true,
+      "oneUse": false,
+      "maxUsesPerSlot": 1,
+      "inventoryCost": [],
+      "prerequisites": [
+        {
+          "field": "calendar.slotState",
+          "op": "eq",
+          "value": "free"
+        },
+        {
+          "field": "calendar.exactDateActionAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "locationAccessible",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "temperanceStatBonusActive",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "yen",
+          "op": "gte",
+          "value": 1500
+        },
+        {
+          "field": "movie.regularProgramAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "movie.currentProgramStat",
+          "op": "eq",
+          "value": "academics"
+        }
+      ],
+      "missingPreconditionPolicy": "unknown_do_not_schedule",
+      "dateExceptionsSource": "external_verified_calendar_or_current_game_availability_observation_required",
+      "referenceTaskIds": [
+        "t005_03"
+      ],
+      "localizationEvidence": [
+        {
+          "taskId": "t005_03",
+          "field": "substeps",
+          "exactText": "港湾人工岛站：电影院附近喷泉旁长椅"
+        }
+      ],
+      "labelPolicy": "Exact baseline place/menu names; added action words are generic UI prose, not a claim of official item localization.",
+      "evidenceStatus": "corroborated_community_claim",
+      "evidence": [
+        {
+          "sourceId": "wiki469",
+          "locator": "323;681–698"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "719"
+        }
+      ],
+      "conflicts": [],
+      "excludesSpecialFestivalOrInvitation": true
+    },
+    {
+      "actionId": "movie_charm_day",
+      "labelZhHans": "港湾人工岛站 · 看电影",
+      "locationZhHans": "港湾人工岛站 · 电影院",
+      "gameEdition": "persona_3_reload_main_game",
+      "planningStatus": "enabled_with_preconditions",
+      "slots": [
+        "day"
+      ],
+      "isoWeekdays": [
+        2,
+        5
+      ],
+      "slotCost": 1,
+      "slotCostUnit": "one_day_or_night_free_time_slot",
+      "yenCost": 1500,
+      "yenIncome": 0,
+      "statDelta": {
+        "charm": 4
+      },
+      "statDeltaMode": "exact_base_unboosted",
+      "repeatable": true,
+      "oneUse": false,
+      "maxUsesPerSlot": 1,
+      "inventoryCost": [],
+      "prerequisites": [
+        {
+          "field": "calendar.slotState",
+          "op": "eq",
+          "value": "free"
+        },
+        {
+          "field": "calendar.exactDateActionAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "locationAccessible",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "temperanceStatBonusActive",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "yen",
+          "op": "gte",
+          "value": 1500
+        },
+        {
+          "field": "movie.regularProgramAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "movie.currentProgramStat",
+          "op": "eq",
+          "value": "charm"
+        }
+      ],
+      "missingPreconditionPolicy": "unknown_do_not_schedule",
+      "dateExceptionsSource": "external_verified_calendar_or_current_game_availability_observation_required",
+      "referenceTaskIds": [
+        "t005_03"
+      ],
+      "localizationEvidence": [
+        {
+          "taskId": "t005_03",
+          "field": "substeps",
+          "exactText": "港湾人工岛站：电影院附近喷泉旁长椅"
+        }
+      ],
+      "labelPolicy": "Exact baseline place/menu names; added action words are generic UI prose, not a claim of official item localization.",
+      "evidenceStatus": "corroborated_community_claim",
+      "evidence": [
+        {
+          "sourceId": "wiki469",
+          "locator": "381;681–698"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "724"
+        }
+      ],
+      "conflicts": [],
+      "excludesSpecialFestivalOrInvitation": true
+    },
+    {
+      "actionId": "movie_courage_day",
+      "labelZhHans": "港湾人工岛站 · 看电影",
+      "locationZhHans": "港湾人工岛站 · 电影院",
+      "gameEdition": "persona_3_reload_main_game",
+      "planningStatus": "enabled_with_preconditions",
+      "slots": [
+        "day"
+      ],
+      "isoWeekdays": [
+        1,
+        4
+      ],
+      "slotCost": 1,
+      "slotCostUnit": "one_day_or_night_free_time_slot",
+      "yenCost": 1500,
+      "yenIncome": 0,
+      "statDelta": {
+        "courage": 4
+      },
+      "statDeltaMode": "exact_base_unboosted",
+      "repeatable": true,
+      "oneUse": false,
+      "maxUsesPerSlot": 1,
+      "inventoryCost": [],
+      "prerequisites": [
+        {
+          "field": "calendar.slotState",
+          "op": "eq",
+          "value": "free"
+        },
+        {
+          "field": "calendar.exactDateActionAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "locationAccessible",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "temperanceStatBonusActive",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "yen",
+          "op": "gte",
+          "value": 1500
+        },
+        {
+          "field": "movie.regularProgramAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "movie.currentProgramStat",
+          "op": "eq",
+          "value": "courage"
+        }
+      ],
+      "missingPreconditionPolicy": "unknown_do_not_schedule",
+      "dateExceptionsSource": "external_verified_calendar_or_current_game_availability_observation_required",
+      "referenceTaskIds": [
+        "t005_03"
+      ],
+      "localizationEvidence": [
+        {
+          "taskId": "t005_03",
+          "field": "substeps",
+          "exactText": "港湾人工岛站：电影院附近喷泉旁长椅"
+        }
+      ],
+      "labelPolicy": "Exact baseline place/menu names; added action words are generic UI prose, not a claim of official item localization.",
+      "evidenceStatus": "corroborated_community_claim",
+      "evidence": [
+        {
+          "sourceId": "wiki469",
+          "locator": "416;681–698"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "729"
+        }
+      ],
+      "conflicts": [],
+      "excludesSpecialFestivalOrInvitation": true
+    },
+    {
+      "actionId": "coffee_chagall_day",
+      "labelZhHans": "夏卡尔 · 费洛蒙咖啡",
+      "locationZhHans": "桐叶购物中心 · 夏卡尔",
+      "gameEdition": "persona_3_reload_main_game",
+      "planningStatus": "enabled_with_preconditions",
+      "slots": [
+        "day"
+      ],
+      "isoWeekdays": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "slotCost": 1,
+      "slotCostUnit": "one_day_or_night_free_time_slot",
+      "yenCost": 500,
+      "yenIncome": 0,
+      "statDelta": {
+        "charm": 2
+      },
+      "statDeltaMode": "exact_base_unboosted",
+      "repeatable": true,
+      "oneUse": false,
+      "maxUsesPerSlot": 1,
+      "inventoryCost": [],
+      "prerequisites": [
+        {
+          "field": "calendar.slotState",
+          "op": "eq",
+          "value": "free"
+        },
+        {
+          "field": "calendar.exactDateActionAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "locationAccessible",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "temperanceStatBonusActive",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "yen",
+          "op": "gte",
+          "value": 500
+        }
+      ],
+      "missingPreconditionPolicy": "unknown_do_not_schedule",
+      "dateExceptionsSource": "external_verified_calendar_or_current_game_availability_observation_required",
+      "referenceTaskIds": [
+        "t163_03",
+        "t081_03"
+      ],
+      "localizationEvidence": [
+        {
+          "taskId": "t163_03",
+          "rawRecord": {
+            "id": "t163_03",
+            "period": "晚上",
+            "kind": "action",
+            "title": "晚上去夏卡尔兼职",
+            "where": "桐叶购物中心 · 夏卡尔咖啡店"
+          }
+        },
+        {
+          "taskId": "t081_03",
+          "rawRecord": {
+            "id": "t081_03",
+            "period": "放学后",
+            "kind": "action",
+            "title": "到桐叶购物中心，和胖乎乎的男生对话",
+            "where": "桐叶购物中心（按具体步骤定位）",
+            "steps": [
+              "选择费洛蒙咖啡/红色/叶隐盖饭，接着给他神秘食品，月亮解锁"
+            ]
+          }
+        }
+      ],
+      "labelPolicy": "Exact baseline place/menu names; added action words are generic UI prose, not a claim of official item localization.",
+      "evidenceStatus": "corroborated_community_claim",
+      "evidence": [
+        {
+          "sourceId": "wiki469",
+          "locator": "645–661"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "720"
+        }
+      ],
+      "conflicts": []
+    },
+    {
+      "actionId": "burger_challenge_success",
+      "labelZhHans": "怀老鸭汉堡 · 挑战大胃王",
+      "locationZhHans": "严户台商店街 · 怀老鸭汉堡",
+      "gameEdition": "persona_3_reload_main_game",
+      "planningStatus": "enabled_with_preconditions",
+      "slots": [
+        "night"
+      ],
+      "isoWeekdays": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "slotCost": 1,
+      "slotCostUnit": "one_day_or_night_free_time_slot",
+      "yenCost": 1800,
+      "yenIncome": 0,
+      "statDelta": {
+        "academics": 4,
+        "charm": 4,
+        "courage": 4
+      },
+      "statDeltaMode": "exact_base_unboosted",
+      "repeatable": false,
+      "oneUse": true,
+      "maxUsesPerSlot": 1,
+      "inventoryCost": [],
+      "prerequisites": [
+        {
+          "field": "calendar.slotState",
+          "op": "eq",
+          "value": "free"
+        },
+        {
+          "field": "calendar.exactDateActionAvailable",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "locationAccessible",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "temperanceStatBonusActive",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "yen",
+          "op": "gte",
+          "value": 1800
+        },
+        {
+          "field": "request.1.completedObserved",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "request.9.completedObserved",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "request.11.acceptedObserved",
+          "op": "eq",
+          "value": true
+        },
+        {
+          "field": "burgerChallenge.succeededObserved",
+          "op": "eq",
+          "value": false
+        },
+        {
+          "field": "burgerChallenge.correctChoicesConfirmed",
+          "op": "eq",
+          "value": true
+        }
+      ],
+      "missingPreconditionPolicy": "unknown_do_not_schedule",
+      "dateExceptionsSource": "external_verified_calendar_or_current_game_availability_observation_required",
+      "referenceTaskIds": [
+        "t048_04"
+      ],
+      "localizationEvidence": [
+        {
+          "taskId": "t048_04",
+          "rawRecord": {
+            "id": "t048_04",
+            "period": "晚上",
+            "kind": "action",
+            "title": "严户台怀老鸭汉堡挑战大胃王",
+            "where": "严户台（按具体步骤定位）",
+            "steps": [
+              "选择不去看汉堡堆成的山并继续吃/毫不停歇的吃下去/一边吃一边想象酸的东西",
+              "完成挑战，魅力、学力、勇气+♪♪",
+              "（大胃王任务需要完成9号任务后才会解锁）"
+            ]
+          }
+        }
+      ],
+      "labelPolicy": "Exact baseline place/menu names; added action words are generic UI prose, not a claim of official item localization.",
+      "evidenceStatus": "wiki_claim_with_baseline_sequence_crosscheck",
+      "evidence": [
+        {
+          "sourceId": "wiki469",
+          "locator": "604–622"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "Regular activities prerequisite705; numerical delta primarily Wiki469"
+        }
+      ],
+      "conflicts": [],
+      "effects": [
+        {
+          "field": "burgerChallenge.succeededObserved",
+          "op": "set",
+          "value": true
+        },
+        {
+          "field": "request.11.objectiveSatisfied",
+          "op": "set",
+          "value": true
+        }
+      ],
+      "requestReportCompletionNotImplied": true,
+      "exactChineseGuideChoiceSequence": [
+        "选择不去看汉堡堆成的山并继续吃/毫不停歇的吃下去/一边吃一边想象酸的东西",
+        "完成挑战，魅力、学力、勇气+♪♪",
+        "（大胃王任务需要完成9号任务后才会解锁）"
+      ],
+      "pointOrForeignOptionOrdinalBindingEnabled": false,
+      "failureNotSuccessfulDelta": {
+        "yenCost": 1800,
+        "slotCost": 1,
+        "statDelta": {
+          "courage": 3
+        },
+        "requestCompleted": false,
+        "evidence": [
+          {
+            "sourceId": "wiki469",
+            "locator": "622"
+          }
+        ],
+        "planningStatus": "outcome_record_only_not_desired_plan_action"
+      }
+    }
+  ],
+  "menuUnlockObservationRules": [
+    {
+      "ruleId": "p3r.menu.wakatsu.observe_secret",
+      "parentActionId": "meal_wakatsu_regular",
+      "conditions": [
+        {
+          "field": "slot",
+          "op": "eq",
+          "value": "night"
+        },
+        {
+          "field": "isoWeekday",
+          "op": "in",
+          "value": [
+            1,
+            4,
+            5,
+            7
+          ]
+        },
+        {
+          "field": "secretMenuMentionObserved",
+          "op": "eq",
+          "value": true
+        }
+      ],
+      "effects": [
+        {
+          "field": "menu.wakatsu.secretUnlockedObserved",
+          "op": "set",
+          "value": true
+        }
+      ],
+      "additionalSlotCost": 0,
+      "extraMealSameSlotAllowed": false,
+      "evidence": [
+        {
+          "sourceId": "wiki469",
+          "locator": "321,602"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "703"
+        }
+      ]
+    },
+    {
+      "ruleId": "p3r.menu.hagakure.observe_secret",
+      "parentActionId": "meal_hagakure_regular",
+      "conditions": [
+        {
+          "field": "slot",
+          "op": "eq",
+          "value": "night"
+        },
+        {
+          "field": "isoWeekday",
+          "op": "in",
+          "value": [
+            2,
+            3,
+            5
+          ]
+        },
+        {
+          "field": "secretMenuMentionObserved",
+          "op": "eq",
+          "value": true
+        }
+      ],
+      "effects": [
+        {
+          "field": "menu.hagakure.secretUnlockedObserved",
+          "op": "set",
+          "value": true
+        }
+      ],
+      "additionalSlotCost": 0,
+      "extraMealSameSlotAllowed": false,
+      "evidence": [
+        {
+          "sourceId": "wiki469",
+          "locator": "379,602"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "704"
+        }
+      ]
+    }
+  ],
+  "conflicts": [
+    {
+      "id": "wiki_karaoke_header_column_error",
+      "sourceId": "wiki469",
+      "locator": "667–668",
+      "claim": "Header says fee none and weekday800yen; fields are misplaced.",
+      "resolution": "Use explicit prose678 plus summary407 and aqiu725:800yen, Monday–Saturday, courage+2."
+    },
+    {
+      "id": "wrong_edition_rows_not_imported",
+      "sourceId": "wiki469",
+      "locator": "305,459 onward and summary301–302",
+      "claim": "Page contains fatigue/cold wording and inconsistent library/job summaries.",
+      "resolution": "Those rows are not authority for this expansion. Only mutually corroborated restaurant,coffee,karaoke,movie rows imported."
+    }
+  ],
+  "runtimeContract": {
+    "unknownAvailability": "Never schedule from weekday alone. Require exact current-date/slot/action availability and known location access.",
+    "temperance": "All exact base deltas require temperanceStatBonusActive=false. True or unknown blocks this exact model; bonus arithmetic not silently applied.",
+    "calendar": "No globally free calendar or invented extra slots. Day means available daytime/after-school free slot, not permission to skip class.",
+    "repeats": "At most one selected activity per slot; successful one-time challenge cannot repeat for rewards. Regular movies are distinct from invitations/festivals.",
+    "menuFlags": "Stat level alone does not unlock secret meals. Require observed menu flag; ordinary meal can record an observed mention only on eligible night.",
+    "costs": "Costs are game yen, atomically deducted with action completion; no negative balances or duplicate spending.",
+    "productionEngineTested": false
+  },
+  "unknowns": [
+    {
+      "status": "not_researched",
+      "topic": "Complete exceptional closures and movie replacement schedule; require exact-date observation/calendar adapter."
+    },
+    {
+      "status": "not_proved",
+      "topic": "Exact current-game Chinese names for regular meal products, special Hagakure dish and karaoke venue; generic UI labels used."
+    },
+    {
+      "status": "not_imported",
+      "topic": "Temperance arcana numerical bonus; baseline-only guard retained."
+    }
+  ],
+  "validation": {
+    "actionCount": 12,
+    "repeatableActionCount": 11,
+    "oneUseActionCount": 1,
+    "checkCount": 103,
+    "allPassed": true,
+    "fixtures": [
+      {
+        "id": "meal_wakatsu_regular.all_guards",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_regular.reject_calendar.slotState",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_regular.reject_calendar.exactDateActionAvailable",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_regular.reject_locationAccessible",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_regular.reject_temperanceStatBonusActive",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_regular.reject_yen",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_regular.unknown_date",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_regular.one_slot",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_regular.all_guards",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_regular.reject_calendar.slotState",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_regular.reject_calendar.exactDateActionAvailable",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_regular.reject_locationAccessible",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_regular.reject_temperanceStatBonusActive",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_regular.reject_yen",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_regular.unknown_date",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_regular.one_slot",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_regular.all_guards",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_regular.reject_calendar.slotState",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_regular.reject_calendar.exactDateActionAvailable",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_regular.reject_locationAccessible",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_regular.reject_temperanceStatBonusActive",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_regular.reject_yen",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_regular.unknown_date",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_regular.one_slot",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_secret.all_guards",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_secret.reject_calendar.slotState",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_secret.reject_calendar.exactDateActionAvailable",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_secret.reject_locationAccessible",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_secret.reject_temperanceStatBonusActive",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_secret.reject_yen",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_secret.unknown_date",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_secret.one_slot",
+        "passed": true
+      },
+      {
+        "id": "meal_wakatsu_secret.reject_missing_menu.wakatsu.secretUnlockedObserved",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_secret.all_guards",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_secret.reject_calendar.slotState",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_secret.reject_calendar.exactDateActionAvailable",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_secret.reject_locationAccessible",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_secret.reject_temperanceStatBonusActive",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_secret.reject_yen",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_secret.unknown_date",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_secret.one_slot",
+        "passed": true
+      },
+      {
+        "id": "meal_hagakure_secret.reject_missing_menu.hagakure.secretUnlockedObserved",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_weekend.all_guards",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_weekend.reject_calendar.slotState",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_weekend.reject_calendar.exactDateActionAvailable",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_weekend.reject_locationAccessible",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_weekend.reject_temperanceStatBonusActive",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_weekend.reject_yen",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_weekend.unknown_date",
+        "passed": true
+      },
+      {
+        "id": "meal_wilduck_weekend.one_slot",
+        "passed": true
+      },
+      {
+        "id": "karaoke_mall.all_guards",
+        "passed": true
+      },
+      {
+        "id": "karaoke_mall.reject_calendar.slotState",
+        "passed": true
+      },
+      {
+        "id": "karaoke_mall.reject_calendar.exactDateActionAvailable",
+        "passed": true
+      },
+      {
+        "id": "karaoke_mall.reject_locationAccessible",
+        "passed": true
+      },
+      {
+        "id": "karaoke_mall.reject_temperanceStatBonusActive",
+        "passed": true
+      },
+      {
+        "id": "karaoke_mall.reject_yen",
+        "passed": true
+      },
+      {
+        "id": "karaoke_mall.unknown_date",
+        "passed": true
+      },
+      {
+        "id": "karaoke_mall.one_slot",
+        "passed": true
+      },
+      {
+        "id": "movie_academics_day.all_guards",
+        "passed": true
+      },
+      {
+        "id": "movie_academics_day.reject_calendar.slotState",
+        "passed": true
+      },
+      {
+        "id": "movie_academics_day.reject_calendar.exactDateActionAvailable",
+        "passed": true
+      },
+      {
+        "id": "movie_academics_day.reject_locationAccessible",
+        "passed": true
+      },
+      {
+        "id": "movie_academics_day.reject_temperanceStatBonusActive",
+        "passed": true
+      },
+      {
+        "id": "movie_academics_day.reject_yen",
+        "passed": true
+      },
+      {
+        "id": "movie_academics_day.unknown_date",
+        "passed": true
+      },
+      {
+        "id": "movie_academics_day.one_slot",
+        "passed": true
+      },
+      {
+        "id": "movie_charm_day.all_guards",
+        "passed": true
+      },
+      {
+        "id": "movie_charm_day.reject_calendar.slotState",
+        "passed": true
+      },
+      {
+        "id": "movie_charm_day.reject_calendar.exactDateActionAvailable",
+        "passed": true
+      },
+      {
+        "id": "movie_charm_day.reject_locationAccessible",
+        "passed": true
+      },
+      {
+        "id": "movie_charm_day.reject_temperanceStatBonusActive",
+        "passed": true
+      },
+      {
+        "id": "movie_charm_day.reject_yen",
+        "passed": true
+      },
+      {
+        "id": "movie_charm_day.unknown_date",
+        "passed": true
+      },
+      {
+        "id": "movie_charm_day.one_slot",
+        "passed": true
+      },
+      {
+        "id": "movie_courage_day.all_guards",
+        "passed": true
+      },
+      {
+        "id": "movie_courage_day.reject_calendar.slotState",
+        "passed": true
+      },
+      {
+        "id": "movie_courage_day.reject_calendar.exactDateActionAvailable",
+        "passed": true
+      },
+      {
+        "id": "movie_courage_day.reject_locationAccessible",
+        "passed": true
+      },
+      {
+        "id": "movie_courage_day.reject_temperanceStatBonusActive",
+        "passed": true
+      },
+      {
+        "id": "movie_courage_day.reject_yen",
+        "passed": true
+      },
+      {
+        "id": "movie_courage_day.unknown_date",
+        "passed": true
+      },
+      {
+        "id": "movie_courage_day.one_slot",
+        "passed": true
+      },
+      {
+        "id": "coffee_chagall_day.all_guards",
+        "passed": true
+      },
+      {
+        "id": "coffee_chagall_day.reject_calendar.slotState",
+        "passed": true
+      },
+      {
+        "id": "coffee_chagall_day.reject_calendar.exactDateActionAvailable",
+        "passed": true
+      },
+      {
+        "id": "coffee_chagall_day.reject_locationAccessible",
+        "passed": true
+      },
+      {
+        "id": "coffee_chagall_day.reject_temperanceStatBonusActive",
+        "passed": true
+      },
+      {
+        "id": "coffee_chagall_day.reject_yen",
+        "passed": true
+      },
+      {
+        "id": "coffee_chagall_day.unknown_date",
+        "passed": true
+      },
+      {
+        "id": "coffee_chagall_day.one_slot",
+        "passed": true
+      },
+      {
+        "id": "burger_challenge_success.all_guards",
+        "passed": true
+      },
+      {
+        "id": "burger_challenge_success.reject_calendar.slotState",
+        "passed": true
+      },
+      {
+        "id": "burger_challenge_success.reject_calendar.exactDateActionAvailable",
+        "passed": true
+      },
+      {
+        "id": "burger_challenge_success.reject_locationAccessible",
+        "passed": true
+      },
+      {
+        "id": "burger_challenge_success.reject_temperanceStatBonusActive",
+        "passed": true
+      },
+      {
+        "id": "burger_challenge_success.reject_yen",
+        "passed": true
+      },
+      {
+        "id": "burger_challenge_success.unknown_date",
+        "passed": true
+      },
+      {
+        "id": "burger_challenge_success.one_slot",
+        "passed": true
+      },
+      {
+        "id": "burger_challenge_success.reject_missing_request.1.completedObserved",
+        "passed": true
+      },
+      {
+        "id": "burger_challenge_success.reject_missing_request.9.completedObserved",
+        "passed": true
+      },
+      {
+        "id": "burger_challenge_success.reject_missing_request.11.acceptedObserved",
+        "passed": true
+      },
+      {
+        "id": "regular_meals_all_three_points",
+        "passed": true
+      },
+      {
+        "id": "no_duplicate_existing_night_action",
+        "passed": true
+      }
+    ]
+  }
+}

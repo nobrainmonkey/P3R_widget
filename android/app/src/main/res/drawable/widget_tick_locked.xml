@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Progress tick: story-locked slot. Generated from widget design constants; keep edits consistent across siblings. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="12dp" android:height="8dp"
+    android:viewportWidth="12" android:viewportHeight="8">
+    <path android:fillColor="#FF0A2A5C" android:pathData="M2.36,3.2L10,3.2L9.64,4.8L2,4.8Z" />
+</vector>

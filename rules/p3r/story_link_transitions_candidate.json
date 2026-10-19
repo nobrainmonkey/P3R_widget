@@ -1,0 +1,2000 @@
+{
+  "schema": "p3r.story_link_transitions_candidate.v1",
+  "checkedAtUtc": "2026-10-13",
+  "sources": [
+    {
+      "id": "wiki453",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/453.html",
+      "edition": "Reload",
+      "type": "community_wiki"
+    },
+    {
+      "id": "aqiu",
+      "url": "https://aqiu384.github.io/megaten-database/p3r/social-events",
+      "edition": "Reload",
+      "type": "structured_community_guide"
+    },
+    {
+      "id": "pharos",
+      "url": "https://megatenwiki.com/wiki/Gameplay%3APharos",
+      "edition": "Explicitly shared Persona 3/FES/Portable/Reload table",
+      "type": "community_wiki"
+    },
+    {
+      "id": "powerpyx",
+      "url": "https://www.powerpyx.com/persona-3-reload-100-walkthrough/",
+      "edition": "Reload",
+      "type": "walkthrough"
+    },
+    {
+      "id": "game8_july",
+      "url": "https://game8.co/games/Persona-3-Reload/archives/443551",
+      "edition": "Reload"
+    },
+    {
+      "id": "game8_august",
+      "url": "https://game8.co/games/Persona-3-Reload/archives/443668",
+      "edition": "Reload"
+    },
+    {
+      "id": "game8_november",
+      "url": "https://game8.co/games/Persona-3-Reload/archives/444307",
+      "edition": "Reload"
+    },
+    {
+      "id": "neoseeker_judgement",
+      "url": "https://www.neoseeker.com/persona-3-reload/guides/Judgement_Social_Link",
+      "edition": "Reload",
+      "warning": "Rank8 floor252 contradicts Wiki453 and aqiu floor253; retain conflict"
+    },
+    {
+      "id": "gamefaqs_january",
+      "url": "https://gamefaqs.gamespot.com/xbox-series-x/409940-persona-3-reload/faqs/81159/january",
+      "edition": "Reload",
+      "locator": "253F gatekeeper sequence;255F Judgement10;256F border"
+    }
+  ],
+  "contract": {
+    "scope": "Fool, Death and Judgement automatic milestone effects, not optional social actions",
+    "dateSemantics": "MM-DD school-year cycle April through following January; no real-year assumption",
+    "confirmation": "Only trusted completed-story/boss/entry observations can set the corresponding flags. Passing a date is insufficient. Flag IDs are semantic adapter keys, not extracted game flag addresses.",
+    "slotSemantics": "Effects consume zero additional optional slots. Underlying story/expedition scheduling determines occupied slots; zero marginal cost never grants an extra free slot. Multiple ordered Judgement milestones can occur in one expedition.",
+    "arbitraryCurrentState": "Use observed current rank; do not reconstruct missing history from date or highest floor. Conflicting prior rank requires reconciliation. Explicit current-rank observation may initialize state independently.",
+    "skipSemantics": "Fool7→9 and Death1→3,3→5,6→8,8→10 are single milestones. Never synthesize the skipped intermediate ranks as separate actions.",
+    "noRescueInference": true,
+    "noAdditionalAffinityOrAnswerRequirements": true,
+    "productionIntegrationTested": false
+  },
+  "transitions": [
+    {
+      "ruleId": "p3r.story_link.fool.rank1",
+      "entityId": "p3r.social_link.fool",
+      "nameZhCn": "愚者",
+      "fromRank": 0,
+      "toRank": 1,
+      "expectedMonthDay": "04-18",
+      "eventPhase": "evening",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.04_18.joins_sees",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.fool",
+          "value": 0
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.fool",
+          "value": 1
+        }
+      ],
+      "sourceEventDescription": "Automatic story establishment",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "279"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "Fool Rank 1; lines846-855"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.04_18.joins_sees",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events."
+    },
+    {
+      "ruleId": "p3r.story_link.fool.rank2",
+      "entityId": "p3r.social_link.fool",
+      "nameZhCn": "愚者",
+      "fromRank": 1,
+      "toRank": 2,
+      "expectedMonthDay": "04-20",
+      "eventPhase": "dark_hour",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.04_20.first_tartarus_exploration_completed",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.fool",
+          "value": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.fool",
+          "value": 2
+        }
+      ],
+      "sourceEventDescription": "After first Tartarus exploration",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "290"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "Fool Rank 2; lines846-855"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.04_20.first_tartarus_exploration_completed",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events."
+    },
+    {
+      "ruleId": "p3r.story_link.fool.rank3",
+      "entityId": "p3r.social_link.fool",
+      "nameZhCn": "愚者",
+      "fromRank": 2,
+      "toRank": 3,
+      "expectedMonthDay": "05-09",
+      "eventPhase": "dark_hour",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.05_09.mandatory_battle_completed",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.fool",
+          "value": 2
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.fool",
+          "value": 3
+        }
+      ],
+      "sourceEventDescription": "After dated mandatory story boss battle",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "291"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "Fool Rank 3; lines846-855"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.05_09.mandatory_battle_completed",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events."
+    },
+    {
+      "ruleId": "p3r.story_link.fool.rank4",
+      "entityId": "p3r.social_link.fool",
+      "nameZhCn": "愚者",
+      "fromRank": 3,
+      "toRank": 4,
+      "expectedMonthDay": "07-07",
+      "eventPhase": "dark_hour",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.07_07.mandatory_battle_completed",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.fool",
+          "value": 3
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.fool",
+          "value": 4
+        }
+      ],
+      "sourceEventDescription": "After dated mandatory story boss battle",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "292"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "Fool Rank 4; lines846-855"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.07_07.mandatory_battle_completed",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events."
+    },
+    {
+      "ruleId": "p3r.story_link.fool.rank5",
+      "entityId": "p3r.social_link.fool",
+      "nameZhCn": "愚者",
+      "fromRank": 4,
+      "toRank": 5,
+      "expectedMonthDay": "07-22",
+      "eventPhase": "daytime",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.07_22.yakushima_beach_event_completed",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.fool",
+          "value": 4
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.fool",
+          "value": 5
+        }
+      ],
+      "sourceEventDescription": "After Yakushima beach story event",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "293"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "Fool Rank 5; lines846-855"
+        },
+        {
+          "sourceId": "game8_july",
+          "locator": "July20–22 summer trip includes Fool5"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.07_22.yakushima_beach_event_completed",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events.",
+      "conflictIds": [
+        "fool_rank5_date_discrepancy"
+      ]
+    },
+    {
+      "ruleId": "p3r.story_link.fool.rank6",
+      "entityId": "p3r.social_link.fool",
+      "nameZhCn": "愚者",
+      "fromRank": 5,
+      "toRank": 6,
+      "expectedMonthDay": "11-02",
+      "eventPhase": "evening",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.11_02.team_conversation_completed",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.fool",
+          "value": 5
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.fool",
+          "value": 6
+        }
+      ],
+      "sourceEventDescription": "After team conversation",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "294"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "Fool Rank 6; lines846-855"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.11_02.team_conversation_completed",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events."
+    },
+    {
+      "ruleId": "p3r.story_link.fool.rank7",
+      "entityId": "p3r.social_link.fool",
+      "nameZhCn": "愚者",
+      "fromRank": 6,
+      "toRank": 7,
+      "expectedMonthDay": "11-04",
+      "eventPhase": "evening",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.11_04.team_story_event_completed",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.fool",
+          "value": 6
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.fool",
+          "value": 7
+        }
+      ],
+      "sourceEventDescription": "After evening story event",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "295"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "Fool Rank 7; lines846-855"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.11_04.team_story_event_completed",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events."
+    },
+    {
+      "ruleId": "p3r.story_link.fool.rank9",
+      "entityId": "p3r.social_link.fool",
+      "nameZhCn": "愚者",
+      "fromRank": 7,
+      "toRank": 9,
+      "expectedMonthDay": "11-28",
+      "eventPhase": "evening",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.11_28.team_story_event_completed",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.fool",
+          "value": 7
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.fool",
+          "value": 9
+        }
+      ],
+      "sourceEventDescription": "Automatic jump; no standalone rank8 event",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "297"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "Fool Rank 9; lines846-855"
+        },
+        {
+          "sourceId": "game8_november",
+          "locator": "November28 evening Fool9 before optional Tartarus entry"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.11_28.team_story_event_completed",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events."
+    },
+    {
+      "ruleId": "p3r.story_link.fool.rank10",
+      "entityId": "p3r.social_link.fool",
+      "nameZhCn": "愚者",
+      "fromRank": 9,
+      "toRank": 10,
+      "expectedMonthDay": "12-31",
+      "eventPhase": "evening",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.12_31.continue_january_story_completed",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.fool",
+          "value": 9
+        },
+        {
+          "type": "flag_true",
+          "flagId": "p3r.story.route.continue_january"
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.fool",
+          "value": 10
+        }
+      ],
+      "sourceEventDescription": "Good-ending continuation event completed",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "298"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "Fool Rank 10; lines846-855"
+        },
+        {
+          "sourceId": "powerpyx",
+          "locator": "December31 evening; good-ending choices precede Fool10 and Judgement1"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.12_31.continue_january_story_completed",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events."
+    },
+    {
+      "ruleId": "p3r.story_link.death.rank1",
+      "entityId": "p3r.social_link.death",
+      "nameZhCn": "死神",
+      "fromRank": 0,
+      "toRank": 1,
+      "expectedMonthDay": "06-12",
+      "eventPhase": "dark_hour",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.06_12.pharos_event_completed",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.death",
+          "value": 0
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.death",
+          "value": 1
+        }
+      ],
+      "sourceEventDescription": "Automatic story event; skipped rank numbers are not separate visits",
+      "evidence": [
+        {
+          "sourceId": "aqiu",
+          "locator": "Death Rank 1; lines1245-1256"
+        },
+        {
+          "sourceId": "pharos",
+          "locator": "Death Ranks table row 1; explicitly no ranks2/4/7/9"
+        },
+        {
+          "sourceId": "powerpyx",
+          "locator": "06-12 Dark Hour; Death Rank 1"
+        },
+        {
+          "sourceId": "wiki453",
+          "locator": "1146–1148 opening date06/12"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.06_12.pharos_event_completed",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events."
+    },
+    {
+      "ruleId": "p3r.story_link.death.rank3",
+      "entityId": "p3r.social_link.death",
+      "nameZhCn": "死神",
+      "fromRank": 1,
+      "toRank": 3,
+      "expectedMonthDay": "07-12",
+      "eventPhase": "dark_hour",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.07_12.pharos_event_completed",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.death",
+          "value": 1
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.death",
+          "value": 3
+        }
+      ],
+      "sourceEventDescription": "Automatic story event; skipped rank numbers are not separate visits",
+      "evidence": [
+        {
+          "sourceId": "aqiu",
+          "locator": "Death Rank 3; lines1245-1256"
+        },
+        {
+          "sourceId": "pharos",
+          "locator": "Death Ranks table row 3; explicitly no ranks2/4/7/9"
+        },
+        {
+          "sourceId": "powerpyx",
+          "locator": "07-12 Dark Hour; Death Rank 3"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.07_12.pharos_event_completed",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events.",
+      "conflictIds": [
+        "death_wiki_shifted_early_dates"
+      ]
+    },
+    {
+      "ruleId": "p3r.story_link.death.rank5",
+      "entityId": "p3r.social_link.death",
+      "nameZhCn": "死神",
+      "fromRank": 3,
+      "toRank": 5,
+      "expectedMonthDay": "08-07",
+      "eventPhase": "dark_hour",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.08_07.pharos_event_completed",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.death",
+          "value": 3
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.death",
+          "value": 5
+        }
+      ],
+      "sourceEventDescription": "Automatic story event; skipped rank numbers are not separate visits",
+      "evidence": [
+        {
+          "sourceId": "aqiu",
+          "locator": "Death Rank 5; lines1245-1256"
+        },
+        {
+          "sourceId": "pharos",
+          "locator": "Death Ranks table row 5; explicitly no ranks2/4/7/9"
+        },
+        {
+          "sourceId": "powerpyx",
+          "locator": "08-07 Dark Hour; Death Rank 5"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.08_07.pharos_event_completed",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events.",
+      "conflictIds": [
+        "death_wiki_shifted_early_dates"
+      ]
+    },
+    {
+      "ruleId": "p3r.story_link.death.rank6",
+      "entityId": "p3r.social_link.death",
+      "nameZhCn": "死神",
+      "fromRank": 5,
+      "toRank": 6,
+      "expectedMonthDay": "09-12",
+      "eventPhase": "dark_hour",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.09_12.pharos_event_completed",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.death",
+          "value": 5
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.death",
+          "value": 6
+        }
+      ],
+      "sourceEventDescription": "Automatic story event; skipped rank numbers are not separate visits",
+      "evidence": [
+        {
+          "sourceId": "aqiu",
+          "locator": "Death Rank 6; lines1245-1256"
+        },
+        {
+          "sourceId": "pharos",
+          "locator": "Death Ranks table row 6; explicitly no ranks2/4/7/9"
+        },
+        {
+          "sourceId": "powerpyx",
+          "locator": "09-12 Dark Hour; Death Rank 6"
+        },
+        {
+          "sourceId": "wiki453",
+          "locator": "1157–1161"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.09_12.pharos_event_completed",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events."
+    },
+    {
+      "ruleId": "p3r.story_link.death.rank8",
+      "entityId": "p3r.social_link.death",
+      "nameZhCn": "死神",
+      "fromRank": 6,
+      "toRank": 8,
+      "expectedMonthDay": "10-06",
+      "eventPhase": "dark_hour",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.10_06.pharos_event_completed",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.death",
+          "value": 6
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.death",
+          "value": 8
+        }
+      ],
+      "sourceEventDescription": "Automatic story event; skipped rank numbers are not separate visits",
+      "evidence": [
+        {
+          "sourceId": "aqiu",
+          "locator": "Death Rank 8; lines1245-1256"
+        },
+        {
+          "sourceId": "pharos",
+          "locator": "Death Ranks table row 8; explicitly no ranks2/4/7/9"
+        },
+        {
+          "sourceId": "powerpyx",
+          "locator": "10-06 Dark Hour; Death Rank 8"
+        },
+        {
+          "sourceId": "wiki453",
+          "locator": "1157–1161"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.10_06.pharos_event_completed",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events."
+    },
+    {
+      "ruleId": "p3r.story_link.death.rank10",
+      "entityId": "p3r.social_link.death",
+      "nameZhCn": "死神",
+      "fromRank": 8,
+      "toRank": 10,
+      "expectedMonthDay": "11-04",
+      "eventPhase": "early_morning",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.11_04.pharos_event_completed",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.death",
+          "value": 8
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.death",
+          "value": 10
+        }
+      ],
+      "sourceEventDescription": "Automatic story event; skipped rank numbers are not separate visits",
+      "evidence": [
+        {
+          "sourceId": "aqiu",
+          "locator": "Death Rank 10; lines1245-1256"
+        },
+        {
+          "sourceId": "pharos",
+          "locator": "Death Ranks table row 10; explicitly no ranks2/4/7/9"
+        },
+        {
+          "sourceId": "powerpyx",
+          "locator": "11-04 Early Morning; Death Rank 10"
+        },
+        {
+          "sourceId": "wiki453",
+          "locator": "1157–1161"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.11_04.pharos_event_completed",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events."
+    },
+    {
+      "ruleId": "p3r.story_link.judgement.rank1",
+      "entityId": "p3r.social_link.judgement",
+      "nameZhCn": "审判",
+      "fromRank": 0,
+      "toRank": 1,
+      "expectedMonthDay": "12-31",
+      "eventPhase": "evening",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.story.12_31.continue_january_story_completed",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.judgement",
+          "value": 0
+        },
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.fool",
+          "value": 10
+        },
+        {
+          "type": "flag_true",
+          "flagId": "p3r.story.route.continue_january"
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.judgement",
+          "value": 1
+        }
+      ],
+      "sourceEventDescription": "Judgement starts after Fool MAX on continuation branch",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "1464,1479"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "1415"
+        },
+        {
+          "sourceId": "powerpyx",
+          "locator": "December31 evening"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.story.12_31.continue_january_story_completed",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events.",
+      "sameMilestoneApplyAfterRuleId": "p3r.story_link.fool.rank10"
+    },
+    {
+      "ruleId": "p3r.story_link.judgement.rank2",
+      "entityId": "p3r.social_link.judgement",
+      "nameZhCn": "审判",
+      "fromRank": 1,
+      "toRank": 2,
+      "expectedMonthDay": null,
+      "eventPhase": "within_tartarus_expedition",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.tartarus.adamah.floor_227.entered",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.judgement",
+          "value": 1
+        },
+        {
+          "type": "flag_true",
+          "flagId": "p3r.story.route.continue_january"
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.judgement",
+          "value": 2
+        }
+      ],
+      "sourceEventDescription": "Adamah floor227: entry",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "1469"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "1416"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.tartarus.adamah.floor_227.entered",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events.",
+      "earliestMonthDay": "01-01",
+      "requiresActiveTartarusExpedition": true,
+      "tartarusMilestone": {
+        "floor": 227,
+        "kind": "entered",
+        "highestFloorAloneSufficient": false,
+        "rescueImplied": false
+      }
+    },
+    {
+      "ruleId": "p3r.story_link.judgement.rank3",
+      "entityId": "p3r.social_link.judgement",
+      "nameZhCn": "审判",
+      "fromRank": 2,
+      "toRank": 3,
+      "expectedMonthDay": null,
+      "eventPhase": "within_tartarus_expedition",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.tartarus.adamah.floor_230.gatekeeper_defeated",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.judgement",
+          "value": 2
+        },
+        {
+          "type": "flag_true",
+          "flagId": "p3r.story.route.continue_january"
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.judgement",
+          "value": 3
+        }
+      ],
+      "sourceEventDescription": "Adamah floor230: gatekeeper victory",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "1470"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "1417"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.tartarus.adamah.floor_230.gatekeeper_defeated",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events.",
+      "earliestMonthDay": "01-01",
+      "requiresActiveTartarusExpedition": true,
+      "tartarusMilestone": {
+        "floor": 230,
+        "kind": "gatekeeper_defeated",
+        "highestFloorAloneSufficient": false,
+        "rescueImplied": false
+      }
+    },
+    {
+      "ruleId": "p3r.story_link.judgement.rank4",
+      "entityId": "p3r.social_link.judgement",
+      "nameZhCn": "审判",
+      "fromRank": 3,
+      "toRank": 4,
+      "expectedMonthDay": null,
+      "eventPhase": "within_tartarus_expedition",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.tartarus.adamah.floor_236.gatekeeper_defeated",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.judgement",
+          "value": 3
+        },
+        {
+          "type": "flag_true",
+          "flagId": "p3r.story.route.continue_january"
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.judgement",
+          "value": 4
+        }
+      ],
+      "sourceEventDescription": "Adamah floor236: gatekeeper victory",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "1471"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "1418"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.tartarus.adamah.floor_236.gatekeeper_defeated",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events.",
+      "earliestMonthDay": "01-01",
+      "requiresActiveTartarusExpedition": true,
+      "tartarusMilestone": {
+        "floor": 236,
+        "kind": "gatekeeper_defeated",
+        "highestFloorAloneSufficient": false,
+        "rescueImplied": false
+      }
+    },
+    {
+      "ruleId": "p3r.story_link.judgement.rank5",
+      "entityId": "p3r.social_link.judgement",
+      "nameZhCn": "审判",
+      "fromRank": 4,
+      "toRank": 5,
+      "expectedMonthDay": null,
+      "eventPhase": "within_tartarus_expedition",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.tartarus.adamah.floor_241.gatekeeper_defeated",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.judgement",
+          "value": 4
+        },
+        {
+          "type": "flag_true",
+          "flagId": "p3r.story.route.continue_january"
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.judgement",
+          "value": 5
+        }
+      ],
+      "sourceEventDescription": "Adamah floor241: gatekeeper victory",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "1472"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "1419"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.tartarus.adamah.floor_241.gatekeeper_defeated",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events.",
+      "earliestMonthDay": "01-01",
+      "requiresActiveTartarusExpedition": true,
+      "tartarusMilestone": {
+        "floor": 241,
+        "kind": "gatekeeper_defeated",
+        "highestFloorAloneSufficient": false,
+        "rescueImplied": false
+      }
+    },
+    {
+      "ruleId": "p3r.story_link.judgement.rank6",
+      "entityId": "p3r.social_link.judgement",
+      "nameZhCn": "审判",
+      "fromRank": 5,
+      "toRank": 6,
+      "expectedMonthDay": null,
+      "eventPhase": "within_tartarus_expedition",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.tartarus.adamah.floor_246.gatekeeper_defeated",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.judgement",
+          "value": 5
+        },
+        {
+          "type": "flag_true",
+          "flagId": "p3r.story.route.continue_january"
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.judgement",
+          "value": 6
+        }
+      ],
+      "sourceEventDescription": "Adamah floor246: gatekeeper victory",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "1473"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "1420"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.tartarus.adamah.floor_246.gatekeeper_defeated",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events.",
+      "earliestMonthDay": "01-01",
+      "requiresActiveTartarusExpedition": true,
+      "tartarusMilestone": {
+        "floor": 246,
+        "kind": "gatekeeper_defeated",
+        "highestFloorAloneSufficient": false,
+        "rescueImplied": false
+      }
+    },
+    {
+      "ruleId": "p3r.story_link.judgement.rank7",
+      "entityId": "p3r.social_link.judgement",
+      "nameZhCn": "审判",
+      "fromRank": 6,
+      "toRank": 7,
+      "expectedMonthDay": null,
+      "eventPhase": "within_tartarus_expedition",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.tartarus.adamah.floor_247.gatekeeper_defeated",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.judgement",
+          "value": 6
+        },
+        {
+          "type": "flag_true",
+          "flagId": "p3r.story.route.continue_january"
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.judgement",
+          "value": 7
+        }
+      ],
+      "sourceEventDescription": "Adamah floor247: gatekeeper victory",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "1474"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "1421"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.tartarus.adamah.floor_247.gatekeeper_defeated",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events.",
+      "earliestMonthDay": "01-01",
+      "requiresActiveTartarusExpedition": true,
+      "tartarusMilestone": {
+        "floor": 247,
+        "kind": "gatekeeper_defeated",
+        "highestFloorAloneSufficient": false,
+        "rescueImplied": false
+      }
+    },
+    {
+      "ruleId": "p3r.story_link.judgement.rank8",
+      "entityId": "p3r.social_link.judgement",
+      "nameZhCn": "审判",
+      "fromRank": 7,
+      "toRank": 8,
+      "expectedMonthDay": null,
+      "eventPhase": "within_tartarus_expedition",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.tartarus.adamah.floor_253.gatekeeper_defeated",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.judgement",
+          "value": 7
+        },
+        {
+          "type": "flag_true",
+          "flagId": "p3r.story.route.continue_january"
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.judgement",
+          "value": 8
+        }
+      ],
+      "sourceEventDescription": "Adamah floor253: gatekeeper victory",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "1475"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "1422"
+        },
+        {
+          "sourceId": "gamefaqs_january",
+          "locator": "253F first gatekeeper in final three-boss sequence"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.tartarus.adamah.floor_253.gatekeeper_defeated",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events.",
+      "earliestMonthDay": "01-01",
+      "requiresActiveTartarusExpedition": true,
+      "tartarusMilestone": {
+        "floor": 253,
+        "kind": "gatekeeper_defeated",
+        "highestFloorAloneSufficient": false,
+        "rescueImplied": false
+      },
+      "conflictIds": [
+        "judgement_rank8_floor_typo"
+      ]
+    },
+    {
+      "ruleId": "p3r.story_link.judgement.rank9",
+      "entityId": "p3r.social_link.judgement",
+      "nameZhCn": "审判",
+      "fromRank": 8,
+      "toRank": 9,
+      "expectedMonthDay": null,
+      "eventPhase": "within_tartarus_expedition",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.tartarus.adamah.floor_254.gatekeeper_defeated",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.judgement",
+          "value": 8
+        },
+        {
+          "type": "flag_true",
+          "flagId": "p3r.story.route.continue_january"
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.judgement",
+          "value": 9
+        }
+      ],
+      "sourceEventDescription": "Adamah floor254: gatekeeper victory",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "1476"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "1423"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.tartarus.adamah.floor_254.gatekeeper_defeated",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events.",
+      "earliestMonthDay": "01-01",
+      "requiresActiveTartarusExpedition": true,
+      "tartarusMilestone": {
+        "floor": 254,
+        "kind": "gatekeeper_defeated",
+        "highestFloorAloneSufficient": false,
+        "rescueImplied": false
+      }
+    },
+    {
+      "ruleId": "p3r.story_link.judgement.rank10",
+      "entityId": "p3r.social_link.judgement",
+      "nameZhCn": "审判",
+      "fromRank": 9,
+      "toRank": 10,
+      "expectedMonthDay": null,
+      "eventPhase": "within_tartarus_expedition",
+      "trigger": {
+        "type": "confirmed_completed_milestone",
+        "flagId": "p3r.tartarus.adamah.floor_255.gatekeeper_defeated",
+        "flagValue": true,
+        "requiresSamePlaythrough": true,
+        "dateAloneSufficient": false
+      },
+      "conditions": [
+        {
+          "type": "rank_equals",
+          "entityId": "p3r.social_link.judgement",
+          "value": 9
+        },
+        {
+          "type": "flag_true",
+          "flagId": "p3r.story.route.continue_january"
+        }
+      ],
+      "effects": [
+        {
+          "type": "set_rank",
+          "entityId": "p3r.social_link.judgement",
+          "value": 10
+        }
+      ],
+      "sourceEventDescription": "Adamah floor255: gatekeeper victory",
+      "evidence": [
+        {
+          "sourceId": "wiki453",
+          "locator": "1477"
+        },
+        {
+          "sourceId": "aqiu",
+          "locator": "1424"
+        },
+        {
+          "sourceId": "gamefaqs_january",
+          "locator": "255F final gatekeeper gives Judgement10 before256F border"
+        }
+      ],
+      "executionStatus": "conditional_on_trusted_milestone_observation",
+      "optionalAction": false,
+      "additionalOptionalSlotsConsumed": 0,
+      "affinityRequired": false,
+      "idempotencyKey": "p3r.tartarus.adamah.floor_255.gatekeeper_defeated",
+      "replayPolicy": "Do not replay a completed milestone or regress an already higher rank. Inconsistent prior rank needs reconciliation, not invented intermediate events.",
+      "earliestMonthDay": "01-01",
+      "requiresActiveTartarusExpedition": true,
+      "tartarusMilestone": {
+        "floor": 255,
+        "kind": "gatekeeper_defeated",
+        "highestFloorAloneSufficient": false,
+        "rescueImplied": false
+      }
+    }
+  ],
+  "absentStandaloneRanks": {
+    "p3r.social_link.fool": [
+      8
+    ],
+    "p3r.social_link.death": [
+      2,
+      4,
+      7,
+      9
+    ]
+  },
+  "conflicts": [
+    {
+      "id": "death_wiki_shifted_early_dates",
+      "claims": [
+        {
+          "sourceId": "wiki453",
+          "rows": {
+            "rank3": "06-12",
+            "rank5": "07-12"
+          },
+          "locator": "1154,1156"
+        },
+        {
+          "sourceId": "aqiu",
+          "rows": {
+            "rank1": "06-12",
+            "rank3": "07-12",
+            "rank5": "08-07"
+          }
+        },
+        {
+          "sourceId": "pharos",
+          "rows": {
+            "rank1": "06-12",
+            "rank3": "07-12",
+            "rank5": "08-07"
+          }
+        },
+        {
+          "sourceId": "powerpyx",
+          "rows": {
+            "rank1": "06-12",
+            "rank3": "07-12",
+            "rank5": "08-07"
+          }
+        }
+      ],
+      "resolution": "Use independently corroborated Reload dates; retain Wiki table discrepancy. No invented events for omitted ranks."
+    },
+    {
+      "id": "fool_rank5_date_discrepancy",
+      "claims": [
+        {
+          "sourceId": "wiki453",
+          "date": "07-22"
+        },
+        {
+          "sourceId": "aqiu",
+          "date": "07-22"
+        },
+        {
+          "sourceId": "powerpyx",
+          "date": "07-23"
+        },
+        {
+          "sourceId": "game8_july",
+          "dateRange": [
+            "07-20",
+            "07-22"
+          ]
+        }
+      ],
+      "resolution": "Prefer07-22 but execute only confirmed beach-story milestone, never calendar date alone."
+    },
+    {
+      "id": "judgement_rank8_floor_typo",
+      "claims": [
+        {
+          "sourceId": "neoseeker_judgement",
+          "floor": 252
+        },
+        {
+          "sourceId": "wiki453",
+          "floor": 253
+        },
+        {
+          "sourceId": "aqiu",
+          "floor": 253
+        },
+        {
+          "sourceId": "gamefaqs_january",
+          "floor": 253
+        }
+      ],
+      "resolution": "Use floor253 gatekeeper victory; do not award from252 or arrival253."
+    },
+    {
+      "id": "phase_granularity",
+      "claims": [
+        {
+          "sourceId": "aqiu",
+          "value": "Death early ranks labelled evening, max daytime"
+        },
+        {
+          "sourceId": "powerpyx",
+          "value": "Death early ranks Dark Hour, max Early Morning"
+        }
+      ],
+      "resolution": "Preserve finer event phases; no additional optional evening action charged."
+    }
+  ],
+  "unknowns": [
+    {
+      "status": "not_researched",
+      "topic": "Actual game event-flag addresses and savefile decoding"
+    },
+    {
+      "status": "not_proved_by_sources",
+      "topic": "Fine-grained cutscene boundaries within each stated phase; requires observation adapter"
+    },
+    {
+      "status": "out_of_scope",
+      "topic": "Combat feasibility, resources, rescue state and expedition slot/calendar availability"
+    }
+  ],
+  "validation": {
+    "transitionCount": 25,
+    "entityCount": 3,
+    "checkCount": 85,
+    "allPassed": true,
+    "fixtures": [
+      {
+        "testId": "p3r.story_link.fool.rank1.observed_milestone",
+        "expectedRank": 1,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank1.date_without_milestone",
+        "expectedRank": 0,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank1.idempotent",
+        "expectedRank": 1,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank2.observed_milestone",
+        "expectedRank": 2,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank2.date_without_milestone",
+        "expectedRank": 1,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank2.idempotent",
+        "expectedRank": 2,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank3.observed_milestone",
+        "expectedRank": 3,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank3.date_without_milestone",
+        "expectedRank": 2,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank3.idempotent",
+        "expectedRank": 3,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank4.observed_milestone",
+        "expectedRank": 4,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank4.date_without_milestone",
+        "expectedRank": 3,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank4.idempotent",
+        "expectedRank": 4,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank5.observed_milestone",
+        "expectedRank": 5,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank5.date_without_milestone",
+        "expectedRank": 4,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank5.idempotent",
+        "expectedRank": 5,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank6.observed_milestone",
+        "expectedRank": 6,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank6.date_without_milestone",
+        "expectedRank": 5,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank6.idempotent",
+        "expectedRank": 6,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank7.observed_milestone",
+        "expectedRank": 7,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank7.date_without_milestone",
+        "expectedRank": 6,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank7.idempotent",
+        "expectedRank": 7,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank9.observed_milestone",
+        "expectedRank": 9,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank9.date_without_milestone",
+        "expectedRank": 7,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank9.idempotent",
+        "expectedRank": 9,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank10.observed_milestone",
+        "expectedRank": 10,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank10.date_without_milestone",
+        "expectedRank": 9,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank10.idempotent",
+        "expectedRank": 10,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank1.observed_milestone",
+        "expectedRank": 1,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank1.date_without_milestone",
+        "expectedRank": 0,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank1.idempotent",
+        "expectedRank": 1,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank3.observed_milestone",
+        "expectedRank": 3,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank3.date_without_milestone",
+        "expectedRank": 1,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank3.idempotent",
+        "expectedRank": 3,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank5.observed_milestone",
+        "expectedRank": 5,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank5.date_without_milestone",
+        "expectedRank": 3,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank5.idempotent",
+        "expectedRank": 5,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank6.observed_milestone",
+        "expectedRank": 6,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank6.date_without_milestone",
+        "expectedRank": 5,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank6.idempotent",
+        "expectedRank": 6,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank8.observed_milestone",
+        "expectedRank": 8,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank8.date_without_milestone",
+        "expectedRank": 6,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank8.idempotent",
+        "expectedRank": 8,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank10.observed_milestone",
+        "expectedRank": 10,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank10.date_without_milestone",
+        "expectedRank": 8,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.death.rank10.idempotent",
+        "expectedRank": 10,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank1.observed_milestone",
+        "expectedRank": 1,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank1.date_without_milestone",
+        "expectedRank": 0,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank1.idempotent",
+        "expectedRank": 1,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank2.observed_milestone",
+        "expectedRank": 2,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank2.date_without_milestone",
+        "expectedRank": 1,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank2.idempotent",
+        "expectedRank": 2,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank3.observed_milestone",
+        "expectedRank": 3,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank3.date_without_milestone",
+        "expectedRank": 2,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank3.idempotent",
+        "expectedRank": 3,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank4.observed_milestone",
+        "expectedRank": 4,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank4.date_without_milestone",
+        "expectedRank": 3,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank4.idempotent",
+        "expectedRank": 4,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank5.observed_milestone",
+        "expectedRank": 5,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank5.date_without_milestone",
+        "expectedRank": 4,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank5.idempotent",
+        "expectedRank": 5,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank6.observed_milestone",
+        "expectedRank": 6,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank6.date_without_milestone",
+        "expectedRank": 5,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank6.idempotent",
+        "expectedRank": 6,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank7.observed_milestone",
+        "expectedRank": 7,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank7.date_without_milestone",
+        "expectedRank": 6,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank7.idempotent",
+        "expectedRank": 7,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank8.observed_milestone",
+        "expectedRank": 8,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank8.date_without_milestone",
+        "expectedRank": 7,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank8.idempotent",
+        "expectedRank": 8,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank9.observed_milestone",
+        "expectedRank": 9,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank9.date_without_milestone",
+        "expectedRank": 8,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank9.idempotent",
+        "expectedRank": 9,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank10.observed_milestone",
+        "expectedRank": 10,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank10.date_without_milestone",
+        "expectedRank": 9,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank10.idempotent",
+        "expectedRank": 10,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank3.floor_alone_no_victory",
+        "expectedRank": 2,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank4.floor_alone_no_victory",
+        "expectedRank": 3,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank5.floor_alone_no_victory",
+        "expectedRank": 4,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank6.floor_alone_no_victory",
+        "expectedRank": 5,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank7.floor_alone_no_victory",
+        "expectedRank": 6,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank8.floor_alone_no_victory",
+        "expectedRank": 7,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank9.floor_alone_no_victory",
+        "expectedRank": 8,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank10.floor_alone_no_victory",
+        "expectedRank": 9,
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.fool.rank10.bad_route_no_award",
+        "passed": true
+      },
+      {
+        "testId": "p3r.story_link.judgement.rank1.bad_route_no_award",
+        "passed": true
+      }
+    ]
+  }
+}

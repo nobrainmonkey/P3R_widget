@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Outlined numeral 3 for the widget day watermark (day-surface alpha baked in; night dims
+     it with image alpha). Glyph outline from Barlow Condensed
+     ExtraBold Italic (SIL OFL 1.1, docs/licenses/BarlowCondensed-OFL.txt). Generated; do not hand-edit. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="50.3dp" android:height="77.4dp"
+    android:viewportWidth="503" android:viewportHeight="774">
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="14" android:strokeAlpha="0.36"
+        android:strokeLineJoin="round"
+        android:pathData="M427,452Q427,471 423,513L413,578Q400,653 342.5,699.5Q285,746 202,746Q121,746 72.5,704.5Q24,663 24,595Q24,582 25,575Q26,558 30,522Q32,510 43,510L180,510Q191,510 191,520Q191,531 189.5,541.5Q188,552 188,561Q188,581 196,592Q204,603 219,603Q235,603 246.5,591.5Q258,580 263,560L272,495L274,473Q277,449 277,426Q277,409 268.5,399Q260,389 246,389Q230,389 211,405Q205,409 202,409Q200,409 194,405L133,329Q130,324 130,321Q130,317 135,312L265,185Q270,179 264,179L97,179Q92,179 89,175.5Q86,172 87,167L101,50Q102,45 105.5,41.5Q109,38 114,38L468,38Q473,38 476,41.5Q479,45 478,50L464,171Q463,178 456,185L336,310Q332,316 337,316Q380,319 405.5,358Q431,397 427,452Z" />
+</vector>

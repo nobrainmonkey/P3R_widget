@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shared action row: 当前 (ghost, left) and 完成 (primary, right). 40dp hit targets around a 34dp
+     parallelogram silhouette. Defaults are the day palette; CardRenderer switches palette at runtime. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/button_spec_row"
+    android:layout_width="match_parent"
+    android:layout_height="40dp"
+    android:baselineAligned="false"
+    android:layoutDirection="ltr"
+    android:orientation="horizontal">
+
+    <FrameLayout
+        android:id="@+id/button_spec_current"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_weight="4"
+        android:background="@drawable/button_spec_current_day"
+        android:clickable="true"
+        android:contentDescription="当前：回到下一项要做的安排"
+        android:focusable="true">
+
+        <ImageView
+            android:id="@+id/button_spec_return_icon"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_gravity="left|center_vertical"
+            android:layout_marginLeft="9dp"
+            android:duplicateParentState="true"
+            android:importantForAccessibility="no"
+            android:src="@drawable/widget_icon_return" />
+
+        <TextView
+            android:id="@+id/button_spec_current_text"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:autoSizeMaxTextSize="15sp"
+            android:autoSizeMinTextSize="11sp"
+            android:autoSizeStepGranularity="1sp"
+            android:autoSizeTextType="uniform"
+            android:duplicateParentState="true"
+            android:gravity="center"
+            android:importantForAccessibility="no"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:paddingLeft="25dp"
+            android:paddingTop="3dp"
+            android:paddingRight="8dp"
+            android:paddingBottom="3dp"
+            android:text="当前"
+            android:textColor="#FF0A2A5C"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </FrameLayout>
+
+    <FrameLayout
+        android:layout_width="8dp"
+        android:layout_height="40dp" />
+
+    <FrameLayout
+        android:id="@+id/button_spec_done"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:layout_weight="6"
+        android:background="@drawable/button_spec_done_day"
+        android:clickable="true"
+        android:contentDescription="完成：记录这一项"
+        android:focusable="true">
+
+        <TextView
+            android:id="@+id/button_spec_done_text"
+            android:layout_width="match_parent"
+            android:layout_height="31dp"
+            android:layout_marginTop="3dp"
+            android:layout_marginRight="4dp"
+            android:autoSizeMaxTextSize="16sp"
+            android:autoSizeMinTextSize="11sp"
+            android:autoSizeStepGranularity="1sp"
+            android:autoSizeTextType="uniform"
+            android:duplicateParentState="true"
+            android:gravity="center"
+            android:importantForAccessibility="no"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:paddingLeft="10dp"
+            android:paddingRight="30dp"
+            android:text="完成"
+            android:textColor="#FF0A2A5C"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/button_spec_check"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:layout_gravity="right|top"
+            android:layout_marginTop="9.5dp"
+            android:layout_marginRight="14dp"
+            android:duplicateParentState="true"
+            android:importantForAccessibility="no"
+            android:src="@drawable/widget_icon_check" />
+    </FrameLayout>
+</LinearLayout>

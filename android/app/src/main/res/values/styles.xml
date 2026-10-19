@@ -1,0 +1,25 @@
+<resources>
+ <!-- Legacy guide (WebView) theme: unchanged colours. -->
+ <style name="AppTheme" parent="android:style/Theme.Material.NoActionBar">
+   <item name="android:fontFamily">sans</item>
+   <item name="android:statusBarColor">#062D91</item>
+   <item name="android:navigationBarColor">#062676</item>
+   <item name="android:windowLightStatusBar">false</item>
+   <item name="android:windowActionModeOverlay">true</item>
+   <item name="android:windowBackground">#0642B7</item>
+ </style>
+ <!-- v3 app theme; the UI module refines colours in res/values/ui_theme.xml. -->
+ <style name="P3R.App" parent="android:style/Theme.Material.NoActionBar">
+   <item name="android:windowBackground">#06123A</item>
+   <item name="android:statusBarColor">#06123A</item>
+   <item name="android:navigationBarColor">#06123A</item>
+   <item name="android:colorAccent">#3CE4FF</item>
+ </style>
+ <style name="P3R.Sheet" parent="android:style/Theme.Material.NoActionBar">
+   <item name="android:windowIsTranslucent">true</item>
+   <item name="android:windowBackground">@android:color/transparent</item>
+   <item name="android:backgroundDimEnabled">true</item>
+   <item name="android:windowAnimationStyle">@android:style/Animation.Translucent</item>
+   <item name="android:colorAccent">#3CE4FF</item>
+ </style>
+</resources>

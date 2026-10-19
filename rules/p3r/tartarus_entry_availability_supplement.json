@@ -1,0 +1,496 @@
+{
+  "schema": "p3r.tartarus_entry_availability_supplement.v1",
+  "checkedAtUtc": "2026-10-13",
+  "snapshotMutation": false,
+  "edition": "P3R-base",
+  "sources": [
+    {
+      "id": "wiki420",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/420.html",
+      "sha256": "381b057794b21349959afc62f61b6c4c9a05dabba85bffc449d18235abe067c7",
+      "edition": "Reload explicit",
+      "use": "Positive expedition witnesses, not all-night availability or outcome guarantees"
+    },
+    {
+      "id": "wiki425",
+      "url": "https://w.atwiki.jp/wiki10_persona3/pages/425.html",
+      "use": "Reload floor block constraints only; not night-entry permission"
+    },
+    {
+      "id": "pst_dates",
+      "url": "https://www.playstationtrophies.org/game/persona-3-reload/guide/all-key-dates",
+      "use": "Optional Tartarus access opens April21"
+    },
+    {
+      "id": "neoseeker_april",
+      "url": "https://www.neoseeker.com/persona-3-reload/walkthrough/April",
+      "use": "April21 explanation: entry depends on navigator presence; do not carry early Mitsuru-specific rule into all later dates"
+    },
+    {
+      "id": "closure_pack",
+      "file": "global_slot_locks_expansion_candidate.json",
+      "use": "Explicit dated whole-slot and dungeon-only restrictions"
+    }
+  ],
+  "availabilityTiers": [
+    {
+      "id": "observed_current_entry",
+      "status": "observed",
+      "guards": [
+        "current slot is evening and unspent",
+        "current in-game departure option offered and usable",
+        "optional exploration unlocked",
+        "known active stage or observed block reconciled",
+        "cap remaining known and greater than0",
+        "no unresolved observation/source conflict"
+      ],
+      "observationFields": [
+        "tartarus.entryAvailableObserved=true",
+        "tartarus.entryObservationDateOrdinal=currentDate",
+        "tartarus.entryObservationSlot=evening"
+      ],
+      "validity": "Observation applies only to this checkpoint night; never copied to future dates",
+      "beforeEntryCheckRequired": true
+    },
+    {
+      "id": "source_positive_future_night",
+      "status": "conditional_source_witness",
+      "guards": [
+        "date matches positiveNightWitnesses or existing separately sourced January28 rule",
+        "future evening not already spent/reserved",
+        "normal story progression to this date explicitly assumed",
+        "no explicit whole-slot or dungeon-only closure",
+        "no known party/navigator/story restriction preventing departure",
+        "known operational stage or observed block; cap remaining known and greater than0"
+      ],
+      "beforeEntryCheckRequired": true,
+      "guaranteedEntry": false,
+      "policy": "Prefer these source-positive dates over routine-night assumptions when suitable; witness does not require source social ranks or target floors"
+    },
+    {
+      "id": "routine_future_evening",
+      "status": "conditional_candidate_not_verified_available",
+      "guards": [
+        "date between April21 and January30 inclusive",
+        "optional exploration unlocked or normal progression through its unlock explicitly assumed",
+        "future evening has capacity under the existing disclosed calendar policy",
+        "no explicit whole-slot lock or dungeon-only closure",
+        "no known departure/navigator restriction",
+        "operational stage identified or current stage supplied with valid date scope",
+        "cap remaining known and greater than0"
+      ],
+      "assumptionId": "A.tartarus_routine_evening_entry_subject_to_check",
+      "beforeEntryCheckRequired": true,
+      "guaranteedEntry": false,
+      "candidateGenerationEnabled": true,
+      "use": "A planning reservation and before-entry checkpoint, not a theorem that every unlisted night is free",
+      "failure": "If departure is unavailable, release reservation, record no visit and replan; keep stage cap and used-count knowledge"
+    }
+  ],
+  "positiveNightWitnesses": [
+    {
+      "id": "p3r.tartarus.witness.04-24",
+      "date": {
+        "mmdd": "04-24",
+        "ordinal": 23
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[3]/tbody/tr/td[3]/table/tr[20]/td[4]",
+      "normalizedCellSha256": "54a8a6e70957ec960ed48d8a4bf25025d99e1afc73b7a0ba7a6de97d9f4cf7d7",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    },
+    {
+      "id": "p3r.tartarus.witness.05-01",
+      "date": {
+        "mmdd": "05-01",
+        "ordinal": 30
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[5]/tbody/tr/td[3]/table/tr[2]/td[4]",
+      "normalizedCellSha256": "cb477b45fc070ced0a2c99b5130771b0cbb7449b16d43afb9ce624a544f00165",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    },
+    {
+      "id": "p3r.tartarus.witness.05-11",
+      "date": {
+        "mmdd": "05-11",
+        "ordinal": 40
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[5]/tbody/tr/td[3]/table/tr[12]/td[4]",
+      "normalizedCellSha256": "87fbf61d300fd3441fd5485ae361e27267443ada6796628807375396602f5bce",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    },
+    {
+      "id": "p3r.tartarus.witness.05-24",
+      "date": {
+        "mmdd": "05-24",
+        "ordinal": 53
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[5]/tbody/tr/td[3]/table/tr[25]/td[4]",
+      "normalizedCellSha256": "d68292461e289225a45f6d5c2cac394fc8ea1f3e41768d9ee7251ae6d5dfd7be",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    },
+    {
+      "id": "p3r.tartarus.witness.06-14",
+      "date": {
+        "mmdd": "06-14",
+        "ordinal": 74
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[7]/tbody/tr/td[3]/table/tr[15]/td[4]",
+      "normalizedCellSha256": "2b2a4160138010a85e7b084476c7801e45e0c0e83e7cf1eccbdeff7bdc99d21b",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    },
+    {
+      "id": "p3r.tartarus.witness.07-03",
+      "date": {
+        "mmdd": "07-03",
+        "ordinal": 93
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[9]/tbody/tr/td[3]/table/tr[4]/td[4]",
+      "normalizedCellSha256": "a229ffed7f0f561eaf4bfad83fe6b787a6a73854c91869278cdc386ab87e1367",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    },
+    {
+      "id": "p3r.tartarus.witness.08-03",
+      "date": {
+        "mmdd": "08-03",
+        "ordinal": 124
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[11]/tbody/tr/td[3]/table/tr[4]/td[4]",
+      "normalizedCellSha256": "8f8982f3ee33d502c1e43962d7c374367893f2f5a41462d96fb9d8cac8bc04f1",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    },
+    {
+      "id": "p3r.tartarus.witness.08-28",
+      "date": {
+        "mmdd": "08-28",
+        "ordinal": 149
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[11]/tbody/tr/td[3]/table/tr[29]/td[4]",
+      "normalizedCellSha256": "dcf1d390d36056ca532da47842a159a884494691d458335cb46bd4402dfc6ab2",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    },
+    {
+      "id": "p3r.tartarus.witness.09-04",
+      "date": {
+        "mmdd": "09-04",
+        "ordinal": 156
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[13]/tbody/tr/td[3]/table/tr[5]/td[4]",
+      "normalizedCellSha256": "95c37c3519f1d67cf8a88905f6d53716496cb2e5365d1e2502e18802acd8d442",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    },
+    {
+      "id": "p3r.tartarus.witness.10-03",
+      "date": {
+        "mmdd": "10-03",
+        "ordinal": 185
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[15]/tbody/tr/td[3]/table/tr[4]/td[4]",
+      "normalizedCellSha256": "56a18c1265a81c4b35472b63ca4c036c7a882c60ea06d4fe79d78e5fbb544eac",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    },
+    {
+      "id": "p3r.tartarus.witness.10-30",
+      "date": {
+        "mmdd": "10-30",
+        "ordinal": 212
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[15]/tbody/tr/td[3]/table/tr[31]/td[4]",
+      "normalizedCellSha256": "dffab9c31ced4161205153923dca510d5abb675a63c44961baf4a97939aa13de",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    },
+    {
+      "id": "p3r.tartarus.witness.11-21",
+      "date": {
+        "mmdd": "11-21",
+        "ordinal": 234
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[17]/tbody/tr/td[3]/table/tr[22]/td[4]",
+      "normalizedCellSha256": "9189389bfe682148e423c211b4f58d57c3dfdd412737e99b7cd2b5514ec5ea7f",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    },
+    {
+      "id": "p3r.tartarus.witness.12-01",
+      "date": {
+        "mmdd": "12-01",
+        "ordinal": 244
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[19]/tbody/tr/td[3]/table/tr[2]/td[4]",
+      "normalizedCellSha256": "1bbd2490e99b464ee46d3b8323d6f5b7fdbaab8f37fe77fea7a93416d2f8f982",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    },
+    {
+      "id": "p3r.tartarus.witness.12-30",
+      "date": {
+        "mmdd": "12-30",
+        "ordinal": 273
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[19]/tbody/tr/td[3]/table/tr[31]/td[4]",
+      "normalizedCellSha256": "dd065b8b1422615685885fc44744a3deb23efa8208576b36978aabfe29684e18",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    },
+    {
+      "id": "p3r.tartarus.witness.01-01",
+      "date": {
+        "mmdd": "01-01",
+        "ordinal": 275
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[21]/tbody/tr/td[3]/table/tr[2]/td[4]",
+      "normalizedCellSha256": "41219ff8ca49a5928caf75a6931caf2d0eae545726443441141844e3b38e3824",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    },
+    {
+      "id": "p3r.tartarus.witness.01-20",
+      "date": {
+        "mmdd": "01-20",
+        "ordinal": 294
+      },
+      "slot": "evening",
+      "evidenceStatus": "Reload_wiki_positive_route_witness_conditional_on_story_context",
+      "sourceId": "wiki420",
+      "xpath": "/html/body/div[1]/div/div[2]/div[3]/div[1]/table[21]/tbody/tr/td[3]/table/tr[21]/td[4]",
+      "normalizedCellSha256": "f3f8053e26aa156ee9226a2b4f03e357bc46cc62e8b3b9cc5f379184aa9293a3",
+      "claims": "Optional expedition selected on this night; route target cash/floors/ranks do not become action requirements or promised outcomes",
+      "requiresFixedRouteRank": false
+    }
+  ],
+  "knownDungeonOnlyClosedDates": [
+    {
+      "mmdd": "07-11",
+      "ordinal": 101,
+      "weekday": 6
+    },
+    {
+      "mmdd": "07-12",
+      "ordinal": 102,
+      "weekday": 7
+    },
+    {
+      "mmdd": "07-19",
+      "ordinal": 109,
+      "weekday": 7
+    },
+    {
+      "mmdd": "07-23",
+      "ordinal": 113,
+      "weekday": 4
+    },
+    {
+      "mmdd": "07-29",
+      "ordinal": 119,
+      "weekday": 3
+    },
+    {
+      "mmdd": "08-02",
+      "ordinal": 123,
+      "weekday": 7
+    },
+    {
+      "mmdd": "08-07",
+      "ordinal": 128,
+      "weekday": 5
+    },
+    {
+      "mmdd": "08-15",
+      "ordinal": 136,
+      "weekday": 6
+    },
+    {
+      "mmdd": "11-20",
+      "ordinal": 233,
+      "weekday": 5
+    },
+    {
+      "mmdd": "11-22",
+      "ordinal": 235,
+      "weekday": 7
+    },
+    {
+      "mmdd": "11-30",
+      "ordinal": 243,
+      "weekday": 1
+    },
+    {
+      "mmdd": "12-02",
+      "ordinal": 245,
+      "weekday": 3
+    },
+    {
+      "mmdd": "12-03",
+      "ordinal": 246,
+      "weekday": 4
+    },
+    {
+      "mmdd": "12-04",
+      "ordinal": 247,
+      "weekday": 5
+    },
+    {
+      "mmdd": "12-05",
+      "ordinal": 248,
+      "weekday": 6
+    },
+    {
+      "mmdd": "12-06",
+      "ordinal": 249,
+      "weekday": 7
+    },
+    {
+      "mmdd": "12-07",
+      "ordinal": 250,
+      "weekday": 1
+    },
+    {
+      "mmdd": "12-08",
+      "ordinal": 251,
+      "weekday": 2
+    },
+    {
+      "mmdd": "12-09",
+      "ordinal": 252,
+      "weekday": 3
+    },
+    {
+      "mmdd": "12-13",
+      "ordinal": 256,
+      "weekday": 7
+    }
+  ],
+  "globalLockRefs": [
+    "global_slot_locks_expansion_candidate.json/retainedLockClaims",
+    "global_slot_locks_expansion_candidate.json/newWholeSlotLockClaims"
+  ],
+  "partyPolicy": {
+    "fullPartyRequired": false,
+    "evidence": "Wiki420 May11 explicitly proposes exploration with three characters; missing one party member is not a universal closure",
+    "specificRequiredNavigatorRosterCalendarComplete": false,
+    "currentDepartureOptionIsPreferredObservation": true,
+    "allMembersPresentNotAssumed": true,
+    "noOldGameFatigueRule": "Old Wiki59/P3P manual are not used as Reload fatigue or entry rules"
+  },
+  "narrativeAndFloorPolicy": {
+    "stageOrFloorAloneProvesEntry": false,
+    "normalStoryProgressionSupportsConditionalCandidate": true,
+    "stageIdentityContract": "stage_identification_contract.json",
+    "ambiguousStageGap": "Resolve current block or leave candidate unreserved; never open a fresh cap bucket from disputed date alone",
+    "mandatoryTutorialsAndFinalOperation": "Separate from optional action; April20,June13 andJanuary31 do not use ordinary optional-night rule"
+  },
+  "actionSemantics": {
+    "slot": "evening",
+    "slotCost": 1,
+    "labelZh": "探索塔尔塔罗斯",
+    "beforeEntryLabelZh": "在宿舍确认今晚能否探索",
+    "expectedMoney": null,
+    "expectedFloor": null,
+    "visitCountEffect": "One idempotent completed optional session; reservation is not a completed visit",
+    "unknownUsedVisits": "No zero default; resolve before cap-respecting reservation",
+    "returnInputs": "net cash delta OR absolute balance plus highest floor; separate observations for rescues/boss victories",
+    "noRemainingNightAction": true
+  },
+  "fixtureExpectations": [
+    {
+      "date": "10-03",
+      "tier": "source_positive_future_night",
+      "guaranteedEntry": false
+    },
+    {
+      "date": "10-30",
+      "tier": "source_positive_future_night",
+      "guaranteedEntry": false
+    },
+    {
+      "date": "10-07",
+      "tier": "routine_future_evening",
+      "condition": "only if all guards and explicit conditional policy hold",
+      "guaranteedEntry": false
+    },
+    {
+      "date": "12-05",
+      "tier": null,
+      "reason": "known dungeon-only closure; ordinary social/stat evening remains separately evaluated"
+    },
+    {
+      "date": "07-23",
+      "tier": null,
+      "reason": "return evening may support other activities, but source says Tartarus closed"
+    },
+    {
+      "date": "01-31",
+      "tier": null,
+      "reason": "mandatory final operation outside optional rule"
+    },
+    {
+      "date": "10-30",
+      "knownUsedVisits": null,
+      "reservationAllowed": false,
+      "reason": "unknown cap usage is not0"
+    }
+  ],
+  "validation": {
+    "16_unique_positive_dates": true,
+    "October_two_witnesses": true,
+    "no_witness_known_closure_overlap": true,
+    "no_cash_or_floor_guarantee": true,
+    "all_future_tiers_conditional": true,
+    "no_snapshot_mutations": true
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "reviewer": "independent read-only source audit (agent), 2026-10-13, at commit ee992e5",
+  "followUp": "The one schedule-affecting note (Aeon weekdays) was fixed in 8226a2e: Aeon meets Mon/Wed/Fri/Sat only (strictest Reload claim; conflict avail.aeon.tuethu in rules/build/REPORT.md).",
+  "verdict": "pass_with_notes",
+  "summary": "No use of Persona 3 / FES / Portable (P3P) data for any shipped rule: every pack record cites at least one Reload source, and 'mixed'-edition sources appear only as corroboration next to Reload sources. All pinned snapshots are genuinely Reload: the Steam pages are app 2161700 with Reload-only achievements (Shift, Theurgy, Twilight Fragments); the aqiu game-data files come from src/p3r/Content/Xrd777 (P3R's game files) and three re-fetched upstream copies are byte-identical; the CN guide and 3DM page contain Reload-only content (神通法, 黄昏碎片, 羁绊剧情, 结缘网站的字条). All 33 sha256 pins in SOURCES.json and all 40 local files cited by the pack match. Missing-person windows (9/12–10/3, 10/21–11/2) match Reload guides (P3P guides give 10/4 and 11/3); Tartarus floor ranges (Thebel 2–22F …) are Reload's, not FES's (2–16F …). The builder's --check and its 17 self-tests pass without modifying files. Notes: 12 web sources are not pinned, Reload guides disagree on a few weekday sets, and two evidence files use shared-edition pages as corroboration.",
+  "fact_checks": [
+    {"fact": "Lovers (Yukari) unlock", "pack_value": "Charm Lv6, from 7/25, Mon/Wed/Thu/Sat after school", "reference": "aqiu social-events; https://game8.co/games/Persona-3-Reload/archives/435602; https://www.rpgsite.net/guide/15321-persona-3-reload-100-max-social-link-guide", "result": "match"},
+    {"fact": "Priestess (Fuuka) unlock", "pack_value": "Courage Lv6 + Fortune R1, from 6/19, Mon/Fri/Sat", "reference": "aqiu; Game8 435602", "result": "match"},
+    {"fact": "Empress (Mitsuru) unlock", "pack_value": "Academics Lv6, from 11/21 (exam first place told to the player)", "reference": "aqiu; Game8 435602; RPGsite", "result": "match"},
+    {"fact": "Hermit (Maya) unlock", "pack_value": "4/29 via the room laptop; Sundays and holidays", "reference": "aqiu; Game8 435602; RPGsite", "result": "match"},
+    {"fact": "Tower (Mutatsu) unlock", "pack_value": "Courage Lv4 + Strength R4, Thu–Sun evenings", "reference": "https://game8.co/games/Persona-3-Reload/archives/439756; aqiu", "result": "match"},
+    {"fact": "Devil (Tanaka) unlock", "pack_value": "Charm Lv4 + Hermit R4; ¥20,000/¥10,000/¥10,000; Tue/Sat evenings", "reference": "https://game8.co/games/Persona-3-Reload/archives/439755; aqiu (Hermit R3, stricter R4 kept)", "result": "match"},
+    {"fact": "Moon (Nozomi) unlock", "pack_value": "Charm Lv2 + Magician R3 + Odd Morsel", "reference": "aqiu; Prima; PC Invasion; Game8", "result": "match"},
+    {"fact": "Sun (Akinari) unlock", "pack_value": "Academics Lv4 + Hanged Man R3 + red pen; earliest establishment 8/23; Sundays", "reference": "aqiu; Game8 435602; RPGsite", "result": "match"},
+    {"fact": "Full-moon operations and end date", "pack_value": "4/9, 5/9, 6/8, 7/7, 8/6, 9/5, 10/4, 11/3; finale 1/31", "reference": "https://samurai-gamers.com/persona-3-reload/p3re-full-moon-operations-guide/", "result": "match"},
+    {"fact": "Missing-person rescue windows", "pack_value": "北村文吉 9/12–10/3; 舞子 10/21–11/2", "reference": "aqiu overworld; BMD_DisappearHelp.tsv; PC Invasion / Prima Reload guides", "result": "match"},
+    {"fact": "Tartarus block open dates and floors", "pack_value": "4/21 2–22F, 5/10 23–43, 6/13 44–69, 7/9 70–92, 8/8 93–118, 9/10 119–144, 10/6 145–172, 11/6 173–198, 12/3 199–226, 1/1 227–256", "reference": "ActivityDataAsset.tsv (identical upstream); https://primagames.com/gaming/how-many-tartarus-floors-are-in-persona-3-reload-all-blocks-listed", "result": "match"},
+    {"fact": "Dating-site note", "pack_value": "From 11/11, evening, ¥3,000 at Club Escapade, +10 points, Courage Lv2", "reference": "aqiu overworld; https://www.siliconera.com/how-to-get-shared-computer-urls-in-persona-3-reload/", "result": "match"},
+    {"fact": "Sunday/holiday invitations", "pack_value": "35 dates, 77 invitations", "reference": "HolidayScheduleDataAsset.tsv (identical upstream)", "result": "match"},
+    {"fact": "Social Link multipliers", "pack_value": "persona 1.51, charm 1.51, examTop 1.51, examGood 1.21", "reference": "DT_GeneralCoefficient.tsv; https://megatenwiki.com/wiki/Confidant", "result": "match"},
+    {"fact": "Stat level thresholds", "pack_value": "Academics Lv6 = 230, Charm Lv6 = 100, Courage Lv6 = 80", "reference": "HeroParameterDataAsset.tsv; Prima P3R stats guide", "result": "match"},
+    {"fact": "Justice and Hanged Man openings", "pack_value": "Justice from 5/7 (Emperor R1 + 3 talks); Hanged Man from 5/6", "reference": "Game8 435602; aqiu", "result": "match"},
+    {"fact": "Star (Mamoru) unlock", "pack_value": "Courage Lv4, from 8/5, Wed/Fri/Sun", "reference": "aqiu; Game8 435602", "result": "match"},
+    {"fact": "Aeon (Aigis) meeting days", "pack_value": "from 1/8; was Mon–Sat (aqiu), now Mon/Wed/Fri/Sat", "reference": "Game8 435602; https://www.pcinvasion.com/persona-3-reload-aigis-answers-and-aeon-social-link-guide/; https://primagames.com/gaming/persona-3-reload-aigis-answers-and-aeon-social-link-guide; https://gameshorizon.com/guides/how-to-unlock-all-social-links-in-persona-3-reload/", "result": "unverifiable → fixed", "note": "Tuesday/Thursday cells were unconfirmed; dropped by the strictest-claim rule in 8226a2e."}
+  ],
+  "builder_checks": "python3 rules/build/build_p3r_rules.py --check: pack and report are up to date. python3 rules/build/test_build.py: 17 tests OK (Reload-source enforcement, manifest URL/edition tests, committed-outputs-current).",
+  "issues": [
+    {"severity": "minor", "what": "12 web sources have no pinned snapshot (atwiki pages return 403 to automated fetches; their Reload status rests on recorded page titles such as 'コミュ全MAXチャート/リロード')."},
+    {"severity": "minor", "what": "Reload guides disagree on some meeting weekdays; the pack follows the stricter claim (Star without Tuesday, Empress Mon/Fri only 12/7–12/12, and now Aeon Mon/Wed/Fri/Sat)."},
+    {"severity": "minor", "what": "Empress's extra requirement (first place in an exam, per aqiu) is told to the player, not modelled (documented exception)."},
+    {"severity": "minor", "what": "ev_story_links also uses a MegaTen Wiki table shared across editions, as corroboration only; its values agree with Reload sources."},
+    {"severity": "minor", "what": "The 3DM snapshot captured only the guide's navigation; the six zh Tartarus block names come from its table of contents."}
+  ]
+}

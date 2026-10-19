@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reminder mark before the hint line ("记得带上…") on the night surface. Keep edits consistent across siblings. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="12dp" android:height="12dp"
+    android:viewportWidth="12" android:viewportHeight="12">
+    <path android:fillColor="#FFCFEFFF" android:fillType="evenOdd"
+        android:pathData="M6,0.9L11.1,6L6,11.1L0.9,6Z M5.25,3.1L6.75,3.1L6.55,6.9L5.45,6.9Z M5.25,7.7L6.75,7.7L6.75,9.1L5.25,9.1Z" />
+</vector>

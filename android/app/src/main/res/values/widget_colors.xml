@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget palette (owned by the widget module). Surfaces keep the shipped day cyan / night deep blue;
+     plates and primary buttons use the P3R royal/cyan/white family. Contrast notes are against the
+     surface the colour sits on. -->
+<resources>
+    <!-- Day: cyan surface #0FB1F5. Navy ink is 5.8:1; white on the royal plate is 8.5:1. -->
+    <color name="widget_day_ink">@color/p3r_widget_ink_day</color>
+    <color name="widget_day_ink_soft">#FF0D3268</color>
+    <color name="widget_day_plate_ink">#FFFFFFFF</color>
+    <color name="widget_day_chip_ink">#FF0642B7</color>
+    <color name="widget_day_tag_ink">#FFFFFFFF</color>
+    <color name="widget_day_accent">#FF0642B7</color>
+    <color name="widget_day_button_ink">@color/p3r_widget_ink_day</color>
+    <color name="widget_day_button_ink_disabled">#990A2A5C</color>
+    <!-- 当前 label while the button does nothing (status cards); matches the dimmed outline. -->
+    <color name="widget_day_ghost_ink_disabled">#800A2A5C</color>
+
+    <!-- Night: deep-blue surface #034572. White ink is 10:1; navy on the cyan plate is 12:1. -->
+    <color name="widget_night_ink">@color/p3r_white</color>
+    <color name="widget_night_ink_soft">#FFCFEFFF</color>
+    <color name="widget_night_plate_ink">#FF06123A</color>
+    <color name="widget_night_chip_ink">@color/p3r_cyan_400</color>
+    <color name="widget_night_tag_ink">#FF06123A</color>
+    <color name="widget_night_accent">@color/p3r_cyan_400</color>
+    <color name="widget_night_button_ink">#FF0A2A5C</color>
+    <color name="widget_night_button_ink_disabled">#B3A8E7FF</color>
+    <color name="widget_night_ghost_ink">#FFE8FBFF</color>
+    <color name="widget_night_ghost_ink_disabled">#80E8FBFF</color>
+</resources>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget day surface on Android 12+: corners follow the launcher's widget radius. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/p3r_widget_day" />
+    <corners android:radius="@android:dimen/system_app_widget_background_radius" />
+</shape>

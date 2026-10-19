@@ -1,0 +1,104 @@
+{
+  "schema": "p3r.missing_rules_ledger.v1",
+  "checkedAt": "2026-10-13",
+  "purpose": "Distinguish facts not found in checked sources from available-but-unmodeled work and intentional observed outcomes",
+  "items": [
+    {
+      "id": "ordinary_hangout_raw_gain",
+      "status": "researched_not_established",
+      "known": "Known choice-free visit and next-visit rank-up timing; exact raw increment not found in checked Reload-specific sources",
+      "impact": "Blocks exact number of filler visits before next rank",
+      "evidence": "ordinary_hangout_rules_candidate.json; AppMedia77578729; Wiki455; Steam3152126713",
+      "nextStep": "Use observed readiness or source-backed alternative affinity action; no note-to-point inference"
+    },
+    {
+      "id": "modifier_rounding",
+      "status": "conflicting_or_unstated",
+      "known": "Matching arcana/charm6/exam factors sourced; per-answer versus aggregate rounding not established",
+      "impact": "Blocks exact boosted point simulation",
+      "evidence": "affinity_model_evidence.json",
+      "nextStep": "Base-only lower bounds remain usable; discrete local lookup stays separate"
+    },
+    {
+      "id": "manual_unlock_actions",
+      "status": "structured_adapter_pending_with_explicit_conflicts",
+      "known": "All19 manual link introduction procedures:11 direct/compound,7 staged chains,1 forced milestone",
+      "impact": "Allows selected locked goals to derive stats, prerequisite links and preparation",
+      "evidence": "simple_unlock_rules_candidate.json;multistep_unlock_rules_candidate.json;unlock_compound_alternatives.json",
+      "nextStep": "Map typed guards, compound slot costs, current preparation state and explicit disputed prerequisite policy"
+    },
+    {
+      "id": "story_links",
+      "status": "source_available_adapter_pending",
+      "known": "25 automatic/milestone transitions collected with conflicts and skipped ranks",
+      "impact": "Automatic goals and stage/story baselines",
+      "evidence": "story_link_transitions_candidate.json",
+      "nextStep": "Require explicit completed-event facts, no date-only rank awards"
+    },
+    {
+      "id": "chinese_answer_point_binding",
+      "status": "game_evidence_not_collected",
+      "known": "79 literal guide display references available; foreign order not verified against Simplified Chinese game choices",
+      "impact": "Cannot present source ordinals as verified Chinese choices or bind guide text to raw values",
+      "evidence": "guide_dialogue_reference_map.json",
+      "nextStep": "Keep optional future optimal-answer assumption and reconcile actual result"
+    },
+    {
+      "id": "tower_boundaries",
+      "status": "operational_windows_crosschecked_physical_flags_unobserved",
+      "known": "June14/July18/December10 operational boundaries supported; nominal earlier claims retained as conflicts and conservative gaps",
+      "impact": "Automatic stage assignment at those boundaries",
+      "evidence": "tower_boundary_semantics_evidence.json;stage_identification_contract.json",
+      "nextStep": "Use conservative interiors or current observed block; preserve caps and reconcile prior records"
+    },
+    {
+      "id": "full_global_slot_locks",
+      "status": "partially_researched_source_view_available",
+      "known": "All19 manual calendar positive candidates prepared; global locks and exceptions only partial",
+      "impact": "Unconditional full-calendar feasibility proof",
+      "evidence": "calendar_execution_extension.json; calendar_global_constraints_candidate.json",
+      "nextStep": "Source-conditional plans with explicit story assumptions and known counterexamples"
+    },
+    {
+      "id": "job_exact_wages",
+      "status": "source_available_not_enabled",
+      "known": "All3 jobs/12 wage tiers collected; exact shift boundaries and software state unvalidated",
+      "impact": "Exact wage forecasts",
+      "evidence": "jobs_wage_rules_candidate.json",
+      "nextStep": "Guarded Chagall minimum2500 with interval money and actual reconciliation"
+    },
+    {
+      "id": "additional_stat_activities",
+      "status": "structured_adapter_pending",
+      "known": "5 existing plus11 additional repeatable actions and1 burger challenge, with source costs/gates; optional base-only lower-bound mode handles unknown nonnegative temporary bonus",
+      "impact": "Cost/time optimality rather than basic stat reachability",
+      "evidence": "stat_activity_expansion_candidate.json;stat_lower_bound_adapter_contract.json",
+      "nextStep": "Map action availability and lower-bound state separately from exact stat values"
+    },
+    {
+      "id": "holiday_invitation_actions",
+      "status": "source_available_not_yet_modeled",
+      "known": "75 D cells and per-link invitation tables exist",
+      "impact": "Additional affinity opportunities",
+      "evidence": "calendar_full_candidate.json; public Gameplay pages",
+      "nextStep": "Distinct invitation state and branch conditions, never ordinary rank-up"
+    },
+    {
+      "id": "reverse_repair_actions",
+      "status": "not_yet_researched",
+      "known": "Reversal-causing answers modeled; full repair procedure not collected",
+      "impact": "Planning from a reversed current link",
+      "evidence": "manual_link_models.json",
+      "nextStep": "Return repair-prerequisite unknown rather than impossible"
+    },
+    {
+      "id": "tower_income",
+      "status": "intentionally_observed_not_forecast",
+      "known": "No safe guaranteed net income or highest-floor effect from one trip",
+      "impact": "Not a missing rule to fill with expected money",
+      "evidence": "integration_contract.json",
+      "nextStep": "Accept net cash OR absolute balance plus observed highest floor; idempotent one visit"
+    }
+  ],
+  "claimPolicy": "Not found in checked sources does not mean data does not exist publicly. No category proves a selected goal impossible."
+}

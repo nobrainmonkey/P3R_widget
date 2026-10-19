@@ -1,0 +1,58 @@
+{
+  "schema": "p3r.observation_meeting_policy.v1",
+  "scope": "Adaptive playable next action where affinity readiness is unknown; no bounded completion forecast",
+  "sourceRefs": [
+    "ordinary_hangout_rules_candidate.json",
+    "calendar_execution_extension.json",
+    "manual_link_models.json"
+  ],
+  "eligibility": [
+    "current rank1..9",
+    "already unlocked",
+    "normal relationship",
+    "guarded positive date or observed offered interaction",
+    "free slot and all entity/story guards satisfied"
+  ],
+  "preInteractionObservation": {
+    "required": "Inspect whether the game currently offers a rank-up event or an ordinary meeting",
+    "unknownBranchPolicy": "Offer an observation checkpoint without asserting rankDelta=0 or rankDelta=1",
+    "observationOnlySlotCost": 0,
+    "observationOnlyCaution": "No consumptive interaction or slot spend until the player actually chooses it; no invented in-game Chinese prompt"
+  },
+  "branches": [
+    {
+      "when": "rank_up_event_confirmed",
+      "policy": "Use existing rank event with observed/declared answer path and reconcile completed outcome"
+    },
+    {
+      "when": "ordinary_non_rank_up_meeting_confirmed",
+      "slotCost": 1,
+      "rankDelta": 0,
+      "affinityGainQualitative": "increases",
+      "numericGain": null,
+      "effect": "preserve known lower bound but do not increment it by an invented amount; exact affinity becomes unknown; record observed readiness for next meeting",
+      "sameSlotRankUp": false
+    }
+  ],
+  "adaptiveRepeatPolicy": {
+    "repeatOnlyAfterObservation": true,
+    "stopWhen": [
+      "ready for next rank event",
+      "no guarded opportunity before planning horizon",
+      "player changes goal or declines action"
+    ],
+    "forecastVisitCount": null,
+    "guaranteedFinishDate": null,
+    "feasibilityStatus": "unknown_if_depends_on_unbounded_ordinary_gain",
+    "unsupportedIsImpossible": false,
+    "noInfiniteSyntheticUnroll": true,
+    "recommendedUiAction": "前往会面，确认是否可升阶",
+    "postMeetingUiAction": "会面后确认下次能否升阶"
+  },
+  "constraints": [
+    "A qualitative positive gain does not establish a numeric lower bound in the model units",
+    "Do not assume one ordinary meeting always establishes readiness",
+    "Observing readiness false is valid only at the observed current rank and point in time; later affinity actions invalidate that observation",
+    "Stat base-gain lower bounds do not establish ordinary affinity gain bounds"
+  ]
+}
