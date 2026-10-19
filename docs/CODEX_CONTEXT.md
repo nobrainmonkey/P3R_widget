@@ -1,7 +1,7 @@
 # P3R planner repository context
 
-Reference for continuing the owner's existing project. Updated for the 3.5.0 compendium,
-fusion tools, rescue floors and unlock prerequisite fixes on branch `work`.
+Reference for continuing the owner's existing project. Updated for the released 3.5.0 compendium,
+continuous fusion basket, previous-day corrections, rescue floors and unlock prerequisite fixes.
 This is an orientation snapshot; check newer code and owner decisions before implementing changes.
 
 ## Product and current baseline
@@ -19,6 +19,9 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 - The owner released 3.4.2 at `52e9b9d`; 3.5.0 builds on those changes. See
   [release signing](RELEASE_SIGNING.md) for the verified current public APK and CI evidence.
   Retain the 3.3.0 signing certificate for in-place updates.
+- Public `v3.5.0` points to `9848ac51251dbb1dfc51e67ce7e10a664c607091`. Full CI
+  `39247004731` passed (1,280 tests, one skipped); publisher `39248976870` succeeded.
+  The public APK and checksum were downloaded and compared with the signed local files.
 - Player-facing language is natural Simplified Chinese using Reload terminology. Preserve
   the established navy/cyan P3R presentation, slanted panels, condensed numerals, day/night
   widget palettes and fade, readable answers, and action-specific result sheets.
@@ -47,6 +50,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 | [3.3.0 change notes](RELEASE_NOTES_3.3.0.md) | Period tips, dated group study, dorm characteristics, gardening preparation and widget sizes. |
 | [3.4.0 change notes](RELEASE_NOTES_3.4.0.md) | Dated training needs, automatic summer classes, conditional invitations, story display and tips search. |
 | [3.4.1 change notes](RELEASE_NOTES_3.4.1.md) | Goal-prefix coverage, joint prerequisites, shared school calendars, useful dating notes and manual deep search. |
+| [3.5.0 change notes](RELEASE_NOTES_3.5.0.md) | Compendium, fusion basket, previous-day corrections, rescue floors and prerequisite candidates. |
 | [3.1.0 specification](specs/SPEC_3.1.0.md) | Full replan, reminders, legacy removal, widget answers and breadth planning. |
 | [Chinese glossary](GLOSSARY_zh.md) | Exact UI terms, sentence style and deadline wording. |
 | [Rules report](../rules/build/REPORT.md) | Generated source decisions, confidence, coverage and modeling gaps. |

@@ -14,6 +14,14 @@
 
 私有持久备份已上传并回读校验，恢复材料也已验证。
 
+[3.5.0 正式版](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.5.0) 于 2026-10-19 发布，沿用上述证书，可覆盖 3.3.0～3.4.2。源码 `9848ac51251dbb1dfc51e67ce7e10a664c607091` 的完整 Android CI [39247004731](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39247004731) 已通过：1,280 项测试，1 项跳过，零失败。正式签名构建和 release lint 通过，经[预构建包发布流程 39248976870](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39248976870) 发布为 latest，非草稿、非预发布。
+
+最终 `P3R-Planner-3.5.0.apk` 为 **1,090,748 bytes**，SHA-256 为：
+
+`a79ce11f00a567c8f21b78cc7d09a305974f06ad8dadb6d9e63e7a2c569d1836`
+
+已下载公开 APK 和校验文件回读，两者均与本地发布文件逐字节一致；核对 tag 指向上述源码、包名、版本码 41、非调试属性、签名、zipalign，以及内嵌规则和图鉴数据与提交一致。Release 恰有 APK 和 88-byte 校验文件两个附件，发布 ID 为 `417242786`。
+
 [3.4.2 正式版](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.4.2) 于 2026-10-19 发布。本地 1,199 项单元测试、规则测试、release lint 和正式签名构建均通过，沿用上述证书，可覆盖 3.3.0～3.4.1。
 
 最终 `P3R-Planner-3.4.2.apk` 为 **991,076 bytes**，SHA-256 为：
