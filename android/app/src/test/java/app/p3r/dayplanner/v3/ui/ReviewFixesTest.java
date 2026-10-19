@@ -184,11 +184,13 @@ public class ReviewFixesTest extends UiTestBase {
         assertEquals("看完第 2 话了吗？", ResultActivity.episodeQuestion(junpei, obs));
         assertEquals("这一话看完了吗？", ResultActivity.episodeQuestion(null, obs));
         assertEquals("看完第 1 话了吗？", ResultActivity.episodeQuestion(akihiko, obs));
-        assertEquals("羁绊剧情不加社群点数。每一话都有小奖励（能力值或顺平的能力），看完第 4 话可以拿到道具「顺平的棒球帽」。",
+        // Only the reward: the sheet no longer explains that episodes add no link points.
+        assertEquals("每一话都有小奖励（能力值或顺平的能力），看完第 4 话可以拿到道具「顺平的棒球帽」。",
             ResultActivity.episodeNote(junpei));
-        assertEquals("羁绊剧情不加社群点数。", ResultActivity.episodeNote(akihiko));
+        assertEquals("", ResultActivity.episodeNote(akihiko));
+        assertEquals("", ResultActivity.episodeNote(null));
         junpei.rewardZh = "每一话都有小奖励（能力值）";
-        assertEquals("羁绊剧情不加社群点数。每一话都有小奖励（能力值）。", ResultActivity.episodeNote(junpei));
+        assertEquals("每一话都有小奖励（能力值）。", ResultActivity.episodeNote(junpei));
         for (String s : new String[]{ResultActivity.episodeNote(junpei), LinksPage.rewardLine(junpei)}) {
             assertFalse(s, s.contains("。。"));
             assertFalse(s, s.contains("看完能拿到每"));
@@ -240,18 +242,18 @@ public class ReviewFixesTest extends UiTestBase {
     @Test
     public void ui2_queueReturnsToTheResultPanelAfterCannot() {
         ResultActivity a = result(NOW + 2, "meet:lovers", Intents.MODE_RESULT);
-        Shots.click(a, "逐项核对");
-        Shots.click(a, "做不了");
-        assertTrue(Shots.has(a, "这个时段没能照安排做？"));
+        Shots.click(a, "一项项对");
+        Shots.click(a, TodayPage.CANNOT_LABEL);
+        assertTrue(Shots.has(a, "怎么没做成？"));
         Shots.click(a, "对方不在");
         assertEquals(Outcome.Code.SKIPPED, api.last().outcome.code);
         assertFalse(finishing(a));
         // Item 2 opens on its own panel, not on the reasons.
-        assertFalse(Shots.has(a, "这个时段没能照安排做？"));
-        assertTrue(Shots.has(a, "完成了，和预计一样"));
+        assertFalse(Shots.has(a, "怎么没做成？"));
+        assertTrue(Shots.has(a, "做完了"));
         assertTrue(Shots.has(a, "补记 2/3"));
         Shots.shot(a, "result_catchup_queue_after_cannot");
-        Shots.click(a, "完成了，和预计一样");
+        Shots.click(a, "做完了");
         assertTrue(Shots.has(a, "见面了"));
         Shots.click(a, "见面了");
         assertTrue(finishing(a));
@@ -261,11 +263,11 @@ public class ReviewFixesTest extends UiTestBase {
     @Test
     public void ui2_excludingAnActivityKeepsTheQueueGoing() {
         ResultActivity a = result(NOW + 2, "meet:lovers", Intents.MODE_RESULT);
-        Shots.click(a, "逐项核对");
+        Shots.click(a, "一项项对");
         Shots.click(a, "升到 RANK 7 了");
-        Shots.click(a, "做不了");
-        Shots.click(a, "我不想做");
-        Shots.click(a, "以后不再安排");
+        Shots.click(a, TodayPage.CANNOT_LABEL);
+        Shots.click(a, "不想做");
+        Shots.click(a, "以后别排了");
         assertEquals("saveProfile", api.last().method);
         assertFalse(finishing(a));
         assertTrue(Shots.has(a, "见面了"));
@@ -301,7 +303,7 @@ public class ReviewFixesTest extends UiTestBase {
         assertNotNull(a.sideRow());
         assertTrue(a.sideRow().isChecked());
         a.sideRow().setChecked(false);
-        Shots.click(a, "完成了，和预计一样");
+        Shots.click(a, "做完了");
         assertFalse(api.last().outcome.sideDone);
         assertEquals("咖啡店「夏卡尔」打工 · 顺便的事没做", UndoCenter.take().summaryZh);
     }
@@ -421,14 +423,14 @@ public class ReviewFixesTest extends UiTestBase {
     public void ui5_resultSheetSaysTheRecordsAreUnreadable() {
         breakTheStore();
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
-        assertTrue(Shots.has(a, "暂时读不到记录"));
+        assertTrue(Shots.has(a, "记录没读出来"));
         assertTrue(Shots.has(a, Messages.LOAD_RETRY));
         assertTrue(Shots.has(a, "重试"));
-        assertFalse(Shots.has(a, "还没有设置游戏进度"));
-        assertFalse(Shots.has(a, "去设置"));
+        assertFalse(Shots.has(a, "还没开始设置"));
+        assertFalse(Shots.has(a, "开始设置"));
         Shots.shot(a, "result_load_failed");
         Shots.click(a, "重试");
-        assertTrue(Shots.has(a, "暂时读不到记录"));
+        assertTrue(Shots.has(a, "记录没读出来"));
         assertTrue(api.calls.isEmpty());
     }
 
@@ -460,12 +462,12 @@ public class ReviewFixesTest extends UiTestBase {
     public void ui6_reachedHereOnAStoryDayEndsCleanly() {
         int target = storyDayAfterTwoOpenSlots();
         ResultActivity a = resultController(target, api.snap.plan.at(target).action, Intents.MODE_RESULT, true).get();
-        assertTrue(Shots.has(a, "前面还有 2 项没记录"));
-        Shots.click(a, "都照安排做完了");
+        assertTrue(Shots.has(a, "前面 2 项也照安排做了吗？"));
+        Shots.click(a, "都做了");
         assertEquals(2, api.callsOf("recordOutcome").size());
-        assertFalse(Shots.has(a, "这一项已经记录过了"));
-        assertTrue(Shots.has(a, "已补记前面的安排。"));
-        assertTrue(Shots.has(a, "这段时间由剧情安排，不用记录。游戏里过完后，接着照「今天」的下一项玩就行。"));
+        assertFalse(Shots.has(a, "这项已经记过了"));
+        assertTrue(Shots.has(a, ResultActivity.CAUGHT_UP));
+        assertTrue(Shots.has(a, "剧情时段，不用记。"));
         Shots.shot(a, "result_catchup_story_day");
         Shots.click(a, "好的");
         assertTrue(finishing(a));
@@ -475,22 +477,22 @@ public class ReviewFixesTest extends UiTestBase {
     public void ui6_queueTowardAStoryDayEndsCleanly() {
         int target = storyDayAfterTwoOpenSlots();
         ResultActivity a = resultController(target, api.snap.plan.at(target).action, Intents.MODE_RESULT, true).get();
-        Shots.click(a, "逐项核对");
+        Shots.click(a, "一项项对");
         for (int i = 0; i < 2; i++) {
-            Shots.click(a, Shots.has(a, "没去成") ? "没去成" : "做不了");
-            Shots.click(a, "对方不在");
+            Shots.click(a, Shots.has(a, "没去成") ? "没去成" : TodayPage.CANNOT_LABEL);
+            Shots.click(a, "剧情占用了");
         }
         assertEquals(2, api.callsOf("recordOutcome").size());
-        assertFalse(Shots.has(a, "这一项已经记录过了"));
-        assertTrue(Shots.has(a, "这段时间由剧情安排，不用记录。游戏里过完后，接着照「今天」的下一项玩就行。"));
+        assertFalse(Shots.has(a, "这项已经记过了"));
+        assertTrue(Shots.has(a, "剧情时段，不用记。"));
     }
 
     @Test
     public void ui6_anEarlierSlotWithoutCatchUpStillSaysAlreadyRecorded() {
         api.snap.observed.slot = NOW + 1;
         ResultActivity a = resultController(NOW, "meet:emperor", Intents.MODE_RESULT, true).get();
-        assertTrue(Shots.has(a, "这一项已经记录过了"));
-        assertFalse(Shots.has(a, "已补记前面的安排。"));
+        assertTrue(Shots.has(a, "这项已经记过了"));
+        assertFalse(Shots.has(a, ResultActivity.CAUGHT_UP));
     }
 
     // ------------------------------------------------------------------ UI-7 / audit I3(2): recorded 没救出
@@ -581,7 +583,7 @@ public class ReviewFixesTest extends UiTestBase {
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
         assertTrue(Shots.has(a, "升到 MAX 了吗？"));
         assertTrue(Shots.has(a, "升到 MAX 了"));
-        assertTrue(Shots.has(a, "现在是 RANK 9，这次见面预计会升级。"));
+        assertTrue(Shots.has(a, "RANK 9 → MAX"));
         assertFalse(text(a).contains("RANK MAX"));
         Shots.shot(a, "result_social_rankup_max");
         Shots.click(a, "升到 MAX 了");

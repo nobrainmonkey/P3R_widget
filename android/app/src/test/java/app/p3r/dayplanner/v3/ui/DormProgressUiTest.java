@@ -176,9 +176,9 @@ public class DormProgressUiTest extends UiTestBase {
         assertEquals(StepKind.DORM, StepKind.of(step));
         assertTrue(StepKind.oneTap(step));
         ResultActivity activity = result(step.slot, step.action, "result");
-        assertTrue(Shots.has(activity, "宿舍活动完成了吗？"));
-        assertFalse(Shots.has(activity, "现在学力是几级？"));
-        Shots.click(activity, "没完成");
+        assertTrue(Shots.has(activity, "做完了吗？"));
+        assertFalse(Shots.has(activity, "学力现在几级？"));
+        Shots.click(activity, "没做成");
         assertEquals(app.p3r.dayplanner.v3.engine.Outcome.Code.NOT_DONE, api.last().outcome.code);
     }
 

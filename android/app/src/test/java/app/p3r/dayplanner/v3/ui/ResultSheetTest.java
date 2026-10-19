@@ -49,10 +49,11 @@ public class ResultSheetTest extends UiTestBase {
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_OTHER);
         assertTrue(Shots.has(a, "休息日邀约 · 收到短信才选 · 只加好感"));
         Shots.click(a, "魔术师 · 友近健二");
-        assertTrue(Shots.has(a, "收到短信并赴约了吗？"));
+        assertTrue(Shots.has(a, "赴约了吗？"));
+        assertTrue(Shots.has(a, "休息日邀约"));
         assertFalse(Shots.has(a, "升到 RANK 4 了"));
         assertNull(Dialogue.line(api.rules, api.snap.profile, invite));
-        Shots.click(a, "游戏提示下次就能升级");
+        Shots.click(a, ResultActivity.READY_CUE);
         Shots.click(a, "赴约了");
         assertEquals("invite:magician", api.last().actionKey);
         assertEquals(Outcome.Code.AS_PREDICTED, api.last().outcome.code);
@@ -82,13 +83,20 @@ public class ResultSheetTest extends UiTestBase {
     }
 
     @Test
-    public void personaHintAndSideStepsOnTheSheet() {
+    public void sideStepsOnTheSheetWithoutThePreActionInfo() {
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
-        assertTrue(Shots.has(a, "记得带上「皇帝」阿尔卡那的人格面具"));
+        // The step is done already: no persona reminder, venue, answers or how-to before the answer.
+        String all = Shots.allText(a.getWindow().getDecorView());
+        assertFalse(all, all.contains("记得带上「皇帝」阿尔卡那的人格面具"));
+        assertFalse(all, all.contains("月光馆学园 学生会室"));
+        assertFalse(all, all.contains("回答："));
+        assertFalse(all, all.contains("怎么做"));
+        assertFalse(all, all.contains("现在是 RANK"));
+        assertTrue(Shots.has(a, "RANK 6 → 7"));
         assertTrue(Shots.has(a, "顺便：听西胁结子说起奇怪的和尚"));
         assertNotNull(a.sideRow());
         assertTrue(a.sideRow().isChecked());
-        Shots.click(a, "顺便的事也做了");
+        Shots.click(a, ResultActivity.SIDE_DONE);
         assertFalse(a.sideRow().isChecked());
         Shots.shot(a, "result_social_side_unchecked");
         Shots.click(a, "升到 RANK 7 了");
@@ -117,22 +125,53 @@ public class ResultSheetTest extends UiTestBase {
     }
 
     @Test
-    public void noRankUpWithReadyCue() {
+    public void noRankUpAsksForTheReadyCueNext() {
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
-        Shots.click(a, "游戏提示下次就能升级");
+        assertFalse("no switch before the answer", Shots.has(a, "游戏提示下次就能升级"));
         Shots.click(a, "没升级");
+        assertTrue("nothing saved yet", api.calls.isEmpty());
+        assertTrue(Shots.has(a, ResultActivity.CUE_QUESTION));
+        Shots.shot(a, "result_social_no_rankup_cue");
+        Shots.click(a, "提示了");
         Outcome o = api.last().outcome;
         assertEquals(Outcome.Code.NO_RANK_UP, o.code);
         assertEquals(6, o.rank);
         assertTrue(o.readyCue);
+        assertTrue(finishing(a));
+    }
+
+    @Test
+    public void noRankUpWithoutTheCueCarriesTheSideAnswer() {
+        ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
+        Shots.click(a, ResultActivity.SIDE_DONE);
+        Shots.click(a, "没升级");
+        // Back returns to the rank-up panel with the answer kept.
+        a.onBackPressed();
+        Shots.idle();
+        assertFalse(finishing(a));
+        assertTrue(Shots.has(a, "升到 RANK 7 了"));
+        assertFalse(a.sideRow().isChecked());
+        Shots.click(a, "没升级");
+        Shots.click(a, "没有");
+        Outcome o = api.last().outcome;
+        assertEquals(Outcome.Code.NO_RANK_UP, o.code);
+        assertFalse(o.readyCue);
+        assertFalse(o.sideDone);
+        assertEquals("皇帝 · 没升级 · 顺便的事没做", UndoCenter.take().summaryZh);
     }
 
     @Test
     public void otherResultsExpandAndRecordHold() {
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
-        Shots.click(a, "其他结果…");
+        Shots.click(a, ResultActivity.OTHER_RESULTS);
         Shots.shot(a, "result_social_other");
-        Shots.click(a, "剧情原因暂时升不了");
+        // No rank is preselected (a chip records on tap), and 「未解锁」 is never offered.
+        for (int r = 5; r <= 8; r++) {
+            assertFalse(Shots.find(a, "RANK " + r).isSelected());
+        }
+        assertFalse(Shots.has(a, "RANK 4"));
+        assertFalse("没见到 is 做不了 → 对方不在", Shots.has(a, "没见到"));
+        Shots.click(a, ResultActivity.HOLD);
         Outcome o = api.last().outcome;
         assertEquals(Outcome.Code.NOT_DONE, o.code);
         assertEquals(Outcomes.REASON_HOLD, o.reason);
@@ -147,6 +186,7 @@ public class ResultSheetTest extends UiTestBase {
         Shots.shot(a, "result_social_rankup_estimate");
         assertTrue(Shots.has(a, "没升级"));
         assertTrue(Shots.has(a, "升到 RANK 8 了"));
+        assertTrue("one 预计 tag", Shots.has(a, "预计"));
         // "其他结果…" stays collapsed until asked for: its rank chips are not on screen.
         assertFalse(Shots.has(a, "RANK 9"));
     }
@@ -180,8 +220,11 @@ public class ResultSheetTest extends UiTestBase {
         int slot = Rules.slot(Fixtures.day(10, 25), false);
         advanceTo(slot);
         ResultActivity a = result(slot, "unlock:devil:1", Intents.MODE_RESULT);
+        assertTrue(Shots.has(a, "这一步做完了吗？"));
+        assertTrue(Shots.has(a, "第 2/3 步"));
+        assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("解锁恶魔社群前的准备"));
         Shots.shot(a, "result_unlock");
-        Shots.click(a, "没完成");
+        Shots.click(a, "没做完");
         assertEquals(Outcome.Code.NOT_DONE, api.last().outcome.code);
         assertEquals("unlock:devil:1", api.last().actionKey);
     }
@@ -191,8 +234,9 @@ public class ResultSheetTest extends UiTestBase {
         int slot = NOW + 1;
         advanceTo(slot);
         ResultActivity a = result(slot, "act:study_room", Intents.MODE_RESULT);
+        assertTrue(Shots.has(a, "做完了吗？"));
         Shots.shot(a, "result_stat");
-        Shots.click(a, "完成了，和预计一样");
+        Shots.click(a, "做完了");
         assertEquals(Outcome.Code.AS_PREDICTED, api.last().outcome.code);
         assertEquals("act:study_room", api.last().actionKey);
     }
@@ -203,6 +247,8 @@ public class ResultSheetTest extends UiTestBase {
         advanceTo(slot);
         ResultActivity a = result(slot, "act:study_room", Intents.MODE_RESULT);
         Shots.click(a, "结果不一样…");
+        // One primary on screen: 保存 replaces 做完了.
+        assertFalse(Shots.has(a, "做完了"));
         Shots.shot(a, "result_stat_different");
         Shots.click(a, "Lv.5");
         Shots.click(a, "保存");
@@ -217,16 +263,19 @@ public class ResultSheetTest extends UiTestBase {
         int slot = Rules.slot(Fixtures.day(10, 23), true);
         advanceTo(slot);
         ResultActivity a = result(slot, "act:job_chagall", Intents.MODE_RESULT);
-        assertTrue(Shots.has(a, "预计 +3,000 日元 · 魅力 +1 勇气 +1"));
+        assertTrue(Shots.has(a, "+3,000 日元 · 魅力 +1 勇气 +1"));
+        assertFalse(Shots.has(a, "预计 +3,000 日元 · 魅力 +1 勇气 +1"));
         assertTrue(Shots.has(a, "顺便：在商城 2楼借给田中社长 5,000 日元"));
         Shots.shot(a, "result_job");
         Shots.click(a, "结果不一样…");
-        Shots.click(a, "点这里输入");
+        // The field shows the forecast balance; tapped, the keypad opens inline (no dialog, no 确定).
+        assertTrue(Shots.has(a, "打工后的现金，21,500 日元"));
+        Shots.click(a, "打工后的现金");
+        assertNull(org.robolectric.shadows.ShadowDialog.getLatestDialog());
         Shots.shot(a, "result_job_cashpad");
-        Shots.clickInDialog("2");
-        Shots.clickInDialog("1");
-        Shots.clickInDialog("000");
-        Shots.clickInDialog("确定");
+        Shots.click(a, "2");
+        Shots.click(a, "1");
+        Shots.click(a, "000");
         Shots.click(a, "保存");
         Outcome o = api.last().outcome;
         assertEquals(Outcome.Code.OTHER, o.code);
@@ -279,7 +328,10 @@ public class ResultSheetTest extends UiTestBase {
         advanceTo(slot);
         ResultActivity a = result(slot, "tower:3", Intents.MODE_RESULT);
         TowerPanel panel = a.towerPanel();
-        assertFalse(panel.cashModeControl().segment(1).isEnabled());
+        // Only the balance can be typed: the 这次多了多少 tab is not offered at all.
+        assertFalse(panel.cashModeControl().isShown());
+        assertFalse(Shots.has(a, "这次多了多少"));
+        assertTrue(Shots.has(a, "出塔后的现金"));
         assertFalse(panel.saveButton().isEnabled());
         Shots.shot(a, "result_tower_unknown_cash");
     }
@@ -303,6 +355,8 @@ public class ResultSheetTest extends UiTestBase {
         advanceTo(slot);
         ResultActivity a = result(slot, "free", Intents.MODE_RESULT);
         Shots.shot(a, "result_free");
+        assertFalse("nothing was planned, nothing to fall through", Shots.has(a, TodayPage.CANNOT_LABEL));
+        assertTrue(Shots.has(a, "做了别的…"));
         Shots.click(a, "继续");
         assertEquals("free", api.last().actionKey);
         assertEquals(Outcome.Code.AS_PREDICTED, api.last().outcome.code);
@@ -313,6 +367,11 @@ public class ResultSheetTest extends UiTestBase {
     @Test
     public void cannotRecordsSkipReason() {
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_CANNOT);
+        assertTrue(Shots.has(a, "怎么没做成？"));
+        // Only the reasons that fit a meeting.
+        assertFalse(Shots.has(a, "没开门"));
+        assertFalse(Shots.has(a, "钱不够"));
+        assertTrue(Shots.has(a, ResultActivity.OTHER_INSTEAD));
         Shots.shot(a, "result_cannot");
         Shots.click(a, "对方不在");
         Outcome o = api.last().outcome;
@@ -326,9 +385,10 @@ public class ResultSheetTest extends UiTestBase {
         int slot = NOW + 1;
         advanceTo(slot);
         ResultActivity a = result(slot, "act:study_room", Intents.MODE_CANNOT);
-        Shots.click(a, "我不想做");
+        Shots.click(a, "不想做");
+        assertTrue(Shots.has(a, "以后还排「在宿舍房间学习」吗？"));
         Shots.shot(a, "result_cannot_exclude");
-        Shots.click(a, "以后不再安排");
+        Shots.click(a, "以后别排了");
         assertEquals("unwilling", api.callsOf("recordOutcome").get(0).outcome.reason);
         FakePlannerApi.Call save = api.last();
         assertEquals("saveProfile", save.method);
@@ -352,9 +412,9 @@ public class ResultSheetTest extends UiTestBase {
     public void catchUpAllAsPlannedChainsRevisions() {
         int target = NOW + 3;
         ResultActivity a = result(target, "act:job_chagall", Intents.MODE_RESULT);
-        assertTrue(Shots.has(a, "前面还有 3 项没记录"));
+        assertTrue(Shots.has(a, "前面 3 项也照安排做了吗？"));
         Shots.shot(a, "result_catchup");
-        Shots.click(a, "都照安排做完了");
+        Shots.click(a, "都做了");
         assertEquals(3, api.callsOf("recordOutcome").size());
         for (int i = 0; i < 3; i++) {
             FakePlannerApi.Call c = api.callsOf("recordOutcome").get(i);
@@ -362,7 +422,8 @@ public class ResultSheetTest extends UiTestBase {
             assertEquals(Fixtures.STATE_REV + i, c.expectedRevision);
             assertEquals(Outcome.Code.AS_PREDICTED, c.outcome.code);
         }
-        assertTrue(Shots.has(a, "完成了，和预计一样"));
+        assertTrue(Shots.has(a, "做完了"));
+        assertTrue(Shots.has(a, ResultActivity.CAUGHT_UP));
         Shots.shot(a, "result_catchup_done");
     }
 
@@ -373,9 +434,9 @@ public class ResultSheetTest extends UiTestBase {
         api.snap.plan = Fixtures.planMid(api.rules, api.snap.observed);
         int target = Rules.slot(Fixtures.day(11, 6), false);
         ResultActivity a = resultController(target, api.snap.plan.at(target).action, Intents.MODE_RESULT, true).get();
-        assertTrue(Shots.has(a, "前面还有 3 项没记录"));
+        assertTrue(Shots.has(a, "前面 3 项也照安排做了吗？"));
         Shots.shot(a, "result_catchup_locks");
-        Shots.click(a, "都照安排做完了");
+        Shots.click(a, "都做了");
         java.util.List<FakePlannerApi.Call> records = api.callsOf("recordOutcome");
         assertEquals(3, records.size());
         assertEquals(Rules.slot(Fixtures.day(11, 2), true), records.get(0).slot);
@@ -384,7 +445,7 @@ public class ResultSheetTest extends UiTestBase {
         for (FakePlannerApi.Call c : records) {
             assertFalse(c.actionKey.startsWith("locked:"));
         }
-        assertEquals("已补记前面的安排。", a.bannerText());
+        assertEquals(ResultActivity.CAUGHT_UP, a.bannerText());
         assertEquals(target, api.snap.observed.slot);
     }
 
@@ -394,7 +455,7 @@ public class ResultSheetTest extends UiTestBase {
         api.snap.plan = Fixtures.planMid(api.rules, api.snap.observed);
         int target = Rules.slot(Fixtures.day(11, 6), false);
         ResultActivity a = resultController(target, api.snap.plan.at(target).action, Intents.MODE_RESULT, true).get();
-        Shots.click(a, "逐项核对");
+        Shots.click(a, "一项项对");
         assertTrue(Shots.has(a, "补记 1/4"));
         Shots.shot(a, "result_catchup_queue_locks");
     }
@@ -404,10 +465,11 @@ public class ResultSheetTest extends UiTestBase {
         int slot = Rules.slot(Fixtures.day(10, 26), true);
         advanceTo(slot);
         ResultActivity a = result(slot, "note:priestess", Intents.MODE_RESULT);
-        assertTrue(Shots.has(a, "用结缘网站的字条给山岸风花加好感了吗？"));
+        assertTrue(Shots.has(a, "给山岸风花用上了吗？"));
         assertTrue(Shots.has(a, "怎么做 · 3 步"));
+        assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("只加好感，不会直接升级"));
         Shots.shot(a, "result_note");
-        Shots.click(a, "没买到/没用");
+        Shots.click(a, "没用成");
         assertEquals(Outcome.Code.NOT_DONE, api.last().outcome.code);
         assertEquals("note:priestess", api.last().actionKey);
     }
@@ -430,7 +492,8 @@ public class ResultSheetTest extends UiTestBase {
         // The title says whose episode it is; the question only names the episode.
         assertTrue(Shots.has(a, "羁绊剧情 · 伊织顺平"));
         assertTrue(Shots.has(a, "看完第 2 话了吗？"));
-        assertTrue(Shots.has(a, "羁绊剧情不加社群点数。每一话都有小奖励（能力值或顺平的能力），看完第 4 话可以拿到道具「顺平的棒球帽」。"));
+        assertTrue(Shots.has(a, "每一话都有小奖励（能力值或顺平的能力），看完第 4 话可以拿到道具「顺平的棒球帽」。"));
+        assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("不加社群点数"));
         assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("。。"));
         Shots.shot(a, "result_episode");
         Shots.click(a, "没看成");
@@ -444,8 +507,11 @@ public class ResultSheetTest extends UiTestBase {
         int slot = Rules.slot(Fixtures.day(10, 25), false);
         advanceTo(slot);
         ResultActivity a = result(slot, "unlock:devil:1", Intents.MODE_RESULT);
+        // Folded to one row; open on request to look back at what was done.
+        assertFalse(Shots.has(a, "找到穿西装的田中社长，和他说话"));
+        Shots.click(a, "怎么做 · 3 步");
         assertTrue(Shots.has(a, "找到穿西装的田中社长，和他说话"));
-        Shots.click(a, "完成了");
+        Shots.click(a, "做完了");
         assertEquals(Outcome.Code.AS_PREDICTED, api.last().outcome.code);
     }
 
@@ -463,14 +529,14 @@ public class ResultSheetTest extends UiTestBase {
         api.snap.observed.slot = api.rules.lastSlot() + 1;
         api.snap.plan = Fixtures.planMid(api.rules, api.snap.observed);
         ResultActivity a = result(Rules.slot(Fixtures.day(1, 31), false), "act:study_room", Intents.MODE_RESULT);
-        assertTrue(Shots.has(a, "日程已经全部结束"));
+        assertTrue(Shots.has(a, TodayPage.FINISHED_TITLE));
         assertTrue(api.calls.isEmpty());
     }
 
     @Test
     public void explicitCatchUpModeFromTheWidget() {
         ResultActivity a = resultController(NOW + 3, "act:job_chagall", Intents.MODE_CATCHUP, false).get();
-        assertTrue(Shots.has(a, "前面还有 3 项没记录"));
+        assertTrue(Shots.has(a, "前面 3 项也照安排做了吗？"));
         assertTrue(api.calls.isEmpty());
     }
 
@@ -478,13 +544,13 @@ public class ResultSheetTest extends UiTestBase {
     public void catchUpOneByOne() {
         int target = NOW + 2;
         ResultActivity a = result(target, "meet:lovers", Intents.MODE_RESULT);
-        Shots.click(a, "逐项核对");
+        Shots.click(a, "一项项对");
         assertTrue(Shots.has(a, "升到 RANK 7 了"));
         Shots.shot(a, "result_catchup_queue");
         Shots.click(a, "升到 RANK 7 了");
         assertFalse(finishing(a));
-        assertTrue(Shots.has(a, "完成了，和预计一样"));
-        Shots.click(a, "完成了，和预计一样");
+        assertTrue(Shots.has(a, "做完了"));
+        Shots.click(a, "做完了");
         assertTrue(Shots.has(a, "见面了"));
         Shots.click(a, "见面了");
         assertTrue(finishing(a));
@@ -495,7 +561,7 @@ public class ResultSheetTest extends UiTestBase {
     public void catchUpFromHereSkipsEarlierSlots() {
         int target = NOW + 2;
         ResultActivity a = result(target, "meet:lovers", Intents.MODE_RESULT);
-        Shots.click(a, "前面的都没做");
+        Shots.click(a, "前面都没做");
         assertEquals(2, api.callsOf("recordOutcome").size());
         assertEquals(Outcome.Code.SKIPPED, api.callsOf("recordOutcome").get(0).outcome.code);
         assertTrue(Shots.has(a, "见面了"));
@@ -512,7 +578,7 @@ public class ResultSheetTest extends UiTestBase {
         intent.putExtra(Intents.EXTRA_STATE_REV, Fixtures.STATE_REV - 1);
         ResultActivity a = Robolectric.buildActivity(ResultActivity.class, intent).setup().get();
         Shots.idle();
-        assertTrue(Shots.has(a, "安排已更新，这是现在的下一项。"));
+        assertTrue(Shots.has(a, ResultActivity.STALE_INFO));
         assertTrue(Shots.has(a, "升到 RANK 7 了"));
         assertTrue(api.calls.isEmpty());
         Shots.shot(a, "result_stale");
@@ -551,8 +617,12 @@ public class ResultSheetTest extends UiTestBase {
         Shots.click(a, "力量 · 西胁结子");
         a.onBackPressed();
         Shots.idle();
-        assertTrue(Shots.has(a, "这个时段做了什么？"));
+        assertTrue(Shots.has(a, "做了什么？"));
         assertFalse(finishing(a));
+        // The sheet opened on the list: back from the list closes it.
+        a.onBackPressed();
+        Shots.idle();
+        assertTrue(finishing(a));
     }
 
     @Test
@@ -586,6 +656,129 @@ public class ResultSheetTest extends UiTestBase {
         assertNotNull(restored);
         assertEquals(99, restored.floorStepper().getValue());
         assertEquals("进塔前 18,500 → 出塔后 30,000 日元（+11,500）", restored.previewText());
+    }
+
+    // ------------------------------------------------------------------ panel stack
+
+    @Test
+    public void backFromCannotReturnsToTheResultPanel() {
+        ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
+        Shots.click(a, TodayPage.CANNOT_LABEL);
+        assertTrue(Shots.has(a, "怎么没做成？"));
+        Shots.click(a, ResultActivity.OTHER_INSTEAD);
+        assertTrue(Shots.has(a, "做了什么？"));
+        a.onBackPressed();
+        Shots.idle();
+        assertTrue(Shots.has(a, "怎么没做成？"));
+        a.onBackPressed();
+        Shots.idle();
+        assertFalse(finishing(a));
+        assertTrue(Shots.has(a, "升到 RANK 7 了"));
+        assertTrue(api.calls.isEmpty());
+        a.onBackPressed();
+        Shots.idle();
+        assertTrue("only the entry panel closes the sheet", finishing(a));
+    }
+
+    @Test
+    public void cannotOpenedDirectlyClosesOnBack() {
+        ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_CANNOT);
+        a.onBackPressed();
+        Shots.idle();
+        assertTrue(finishing(a));
+    }
+
+    @Test
+    public void statDifferentGoesBackToTheOneTapAnswer() {
+        int slot = NOW + 1;
+        advanceTo(slot);
+        ResultActivity a = result(slot, "act:study_room", Intents.MODE_RESULT);
+        Shots.click(a, "结果不一样…");
+        assertTrue(Shots.has(a, "学力现在几级？"));
+        a.onBackPressed();
+        Shots.idle();
+        assertTrue(Shots.has(a, "做完了"));
+        assertFalse(finishing(a));
+    }
+
+    @Test
+    public void freeSlotOffersWhatWasDoneInstead() {
+        int slot = Rules.slot(Fixtures.day(10, 25), true);
+        advanceTo(slot);
+        ResultActivity a = result(slot, "free", Intents.MODE_RESULT);
+        Shots.click(a, "做了别的…");
+        assertTrue(Shots.has(a, "做了什么？"));
+        a.onBackPressed();
+        Shots.idle();
+        assertTrue(Shots.has(a, "继续"));
+        assertTrue(api.calls.isEmpty());
+    }
+
+    // ------------------------------------------------------------------ copy and reasons
+
+    @Test
+    public void meetingRecordsTheReadyCueFromItsCompactCheck() {
+        int slot = Rules.slot(Fixtures.day(10, 23), false);
+        advanceTo(slot);
+        ResultActivity a = result(slot, "meet:lovers", Intents.MODE_RESULT);
+        assertTrue(Shots.has(a, "RANK 4"));
+        assertFalse(Shots.has(a, "没见到"));
+        Shots.click(a, ResultActivity.READY_CUE);
+        Shots.click(a, "见面了");
+        assertEquals(Outcome.Code.AS_PREDICTED, api.last().outcome.code);
+        assertTrue(api.last().outcome.readyCue);
+    }
+
+    @Test
+    public void meetingOtherResultsOfferTheStoryHold() {
+        int slot = Rules.slot(Fixtures.day(10, 23), false);
+        advanceTo(slot);
+        ResultActivity a = result(slot, "meet:lovers", Intents.MODE_RESULT);
+        assertFalse(Shots.has(a, ResultActivity.HOLD));
+        Shots.click(a, ResultActivity.OTHER_RESULTS);
+        Shots.click(a, ResultActivity.HOLD);
+        assertEquals(Outcomes.REASON_HOLD, api.last().outcome.reason);
+        assertEquals("恋爱 · 剧情卡住了", UndoCenter.take().summaryZh);
+    }
+
+    @Test
+    public void cannotReasonsFollowTheStep() {
+        java.util.List<String> meet = ResultActivity.reasonsFor(api.snap.plan.at(NOW));
+        assertEquals(java.util.Arrays.asList("story", "absent", "unwilling"), meet);
+        java.util.List<String> study = ResultActivity.reasonsFor(api.snap.plan.at(NOW + 1));
+        assertEquals(java.util.Arrays.asList("story", "closed", "unwilling"), study);
+        Plan.Step unlock = api.snap.plan.at(Rules.slot(Fixtures.day(10, 25), false));
+        // Lending the president 10,000 日元 costs money.
+        assertTrue(ResultActivity.reasonsFor(unlock).contains("money"));
+        assertTrue(ResultActivity.reasonsFor(unlock).contains("absent"));
+        assertEquals("第 2/3 步", ResultActivity.unlockProgress("解锁恶魔社群前的准备（第 2 步，共 3 步）"));
+        assertEquals("完成后就解锁了", ResultActivity.unlockProgress("完成后塔社群就解锁了"));
+        assertNull(ResultActivity.unlockProgress("塔社群需要勇气达到 Lv.4。"));
+    }
+
+    @Test
+    public void correctionGoneSaysSoBriefly() {
+        Intent intent = new Intent(RuntimeEnvironment.getApplication(), ResultActivity.class);
+        intent.putExtra(Intents.EXTRA_CORRECT_SEQ, 12345L);
+        ResultActivity a = Robolectric.buildActivity(ResultActivity.class, intent).setup().get();
+        Shots.idle();
+        assertTrue(Shots.has(a, "这条记录刚改过"));
+        Shots.click(a, "好的");
+        assertTrue(finishing(a));
+        assertTrue(api.calls.isEmpty());
+    }
+
+    @Test
+    public void saveErrorUsesTheErrorLookAndStays() {
+        api.nextReceipt = FakePlannerApi.stale();
+        api.nextReceipt.errorCode = "invalid";
+        api.nextReceipt.errorZh = null;
+        ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
+        Shots.click(a, "升到 RANK 7 了");
+        assertFalse(finishing(a));
+        assertEquals(Messages.GENERIC_ERROR, a.bannerText());
+        assertTrue(Shots.has(a, Messages.GENERIC_ERROR));
+        Shots.shot(a, "result_save_error");
     }
 
     private void advanceTo(int slot) {

@@ -21,14 +21,14 @@ public final class Outcomes {
     static {
         SKIP_REASONS.put("story", "剧情占用了");
         SKIP_REASONS.put("absent", "对方不在");
-        SKIP_REASONS.put("closed", "地点没开");
+        SKIP_REASONS.put("closed", "没开门");
         SKIP_REASONS.put("money", "钱不够");
-        SKIP_REASONS.put("unwilling", "我不想做");
+        SKIP_REASONS.put("unwilling", "不想做");
     }
 
-    /** Reason id for "剧情原因暂时升不了" (docs/DESIGN_v3.md §10.2). */
+    /** Reason id for 「剧情卡住了，升不了」 (docs/DESIGN_v3.md §10.2). */
     public static final String REASON_HOLD = "hold";
-    /** Reason id for "做了列表以外的事". */
+    /** Reason id for 「都不是，没什么收获」 (something off the list, no gains). */
     public static final String REASON_OTHER = "other";
 
     private Outcomes() {}
@@ -108,19 +108,19 @@ public final class Outcomes {
         return o;
     }
 
-    /** "没见到": the slot passed without meeting the person. */
+    /** The slot passed without meeting the person (same record as 做不了 → 对方不在). */
     public static Outcome notMet() {
         return skipped("absent", -1);
     }
 
-    /** "剧情原因暂时升不了": story hold, the link is frozen until the player reports progress. */
+    /** 「剧情卡住了，升不了」: story hold, the link is frozen until the player reports progress. */
     public static Outcome hold() {
         Outcome o = Outcome.of(Outcome.Code.NOT_DONE);
         o.reason = REASON_HOLD;
         return o;
     }
 
-    /** Attempted but not completed (unlock step "没完成", note "没买到/没用", episode "没看成"). */
+    /** Attempted but not completed (unlock step 「没做完」, note 「没用成」, episode 「没看成」). */
     public static Outcome notDone() {
         return Outcome.of(Outcome.Code.NOT_DONE);
     }
@@ -233,7 +233,7 @@ public final class Outcomes {
         return rank >= 10 ? name + " 升到 MAX" : name + " " + Zh.rank(rank);
     }
 
-    /** Undo-bar text after recording, e.g. "皇帝 RANK 7", "恋爱 · 见面", "跳过 · 对方不在". */
+    /** Message-bar text after recording, e.g. 「皇帝 RANK 7」「恋爱 · 见面」「皇帝 · 对方不在」. */
     public static String summary(Rules rules, Plan.Step step, Outcome outcome) {
         String text = mainSummary(rules, step, outcome);
         return outcome.sideDone || step == null || step.side.isEmpty() ? text : text + " · 顺便的事没做";
@@ -249,13 +249,14 @@ public final class Outcomes {
                 return name + " · 没升级";
             case SKIPPED:
                 if (REASON_OTHER.equals(outcome.reason)) {
-                    return "做了列表以外的事";
+                    return "做了别的事";
                 }
                 String label = SKIP_REASONS.get(outcome.reason);
-                return label == null ? "跳过 · " + name : "跳过 · " + label;
+                label = label == null ? "没做" : label;
+                return name.isEmpty() ? label : name + " · " + label;
             case NOT_DONE:
                 if (REASON_HOLD.equals(outcome.reason)) {
-                    return name + " · 剧情原因暂时升不了";
+                    return name + " · 剧情卡住了";
                 }
                 if (kind == StepKind.NOTE) {
                     return name + " · 没用结缘网站的字条";
@@ -271,7 +272,7 @@ public final class Outcomes {
                 if (outcome.cashBalance >= 0) {
                     return name + " · 现金 " + Zh.yen(outcome.cashBalance);
                 }
-                return name + " · 已更正";
+                return name + " · 改了结果";
             case AS_PREDICTED:
             default:
                 if (step != null && step.action != null && step.action.startsWith("invite:")) {
