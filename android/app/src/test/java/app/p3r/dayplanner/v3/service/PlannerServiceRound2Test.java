@@ -91,10 +91,25 @@ public class PlannerServiceRound2Test extends ServiceTestBase {
         assertTrue(towerRow.correctable);
         assertEquals(2_500, towerRow.tower.amount);
         assertTrue(meeting.undoable);
-        assertFalse("meetings have no correction form", meeting.correctable);
+        assertTrue("recorded meetings now have a historical correction form", meeting.correctable);
         assertNull(meeting.tower);
         assertFalse(checkpoint.undoable);
         assertFalse(checkpoint.correctable);
+
+        PlannerApi.OutcomeCorrection context = service.outcomeCorrection(meeting.seq);
+        assertNotNull(context);
+        assertEquals(meeting.seq, context.targetSeq);
+        assertEquals(MAY12_DAY, context.slot);
+        assertEquals("meet:emperor", context.actionKey);
+        assertEquals(6, context.beforeState.rank[TestRules.EMPEROR]);
+        PlannerApi.Receipt corrected = service.correctOutcome(id(), context.stateRevision, context.targetSeq,
+                Outcome.of(Outcome.Code.NO_RANK_UP));
+        assertTrue(corrected.errorZh, corrected.ok);
+        assertEquals(6, observed().rank[TestRules.EMPEROR]);
+        assertEquals("the recorded evening stays in place", MAY13_DAY, observed().slot);
+        assertEquals(1, observed().towerVisits[1]);
+        assertEquals(22, observed().floor);
+        assertEquals(12_500, observed().cash);
     }
 
     @Test

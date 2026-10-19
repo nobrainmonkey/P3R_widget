@@ -94,7 +94,7 @@ final class FakePlannerApi implements PlannerApi {
         api.snap.eventsSinceCheckpoint = 9;
         api.alternatives = Fixtures.alternatives(r, obs.slot);
         // Flags as the real service sets them (HistoryText): undoable = a record after the latest
-        // checkpoint (seq 94) that is not voided; correctable = undoable and a tower record.
+        // checkpoint (seq 94) that is not voided; action outcomes and tower visits are correctable.
         api.history.add(item(98, obs.slot - 1, "outcome", "10月21日 晚上 · 在宿舍房间学习 · 学力 +2", false, true));
         HistoryItem tower = item(97, obs.slot - 3, "tower", "10月20日 晚上 · 探索塔尔塔罗斯 · 到达 96F · 余额 18,500 日元",
             false, true);
@@ -130,8 +130,8 @@ final class FakePlannerApi implements PlannerApi {
 
     /**
      * A history row; {@code afterCheckpoint} = recorded after the latest 同步现状. The flags follow
-     * the real service: undoable for non-voided records after the checkpoint, correctable only for
-     * undoable tower records.
+     * the real service: non-voided records after the checkpoint are undoable; action outcomes,
+     * their corrections and tower visits are correctable.
      */
     static HistoryItem item(long seq, int slot, String kind, String text, boolean voided, boolean afterCheckpoint) {
         HistoryItem h = new HistoryItem();
