@@ -153,7 +153,6 @@ public class ReauditWordingTest extends UiTestBase {
 
     @Test
     public void routeNoteAndDatingSiteNoteUseTheGlossaryWords() {
-        assertEquals("安排不会要求你走恋爱路线", LinksPage.ROUTE_NOTE);
         assertEquals("结缘网站的字条", StepKind.NOTE.tagZh);
         Plan.Step note = new Plan.Step();
         note.slot = Fixtures.SLOT_NOW + 1;
@@ -165,8 +164,10 @@ public class ReauditWordingTest extends UiTestBase {
 
         HomeActivity a = home();
         a.selectTab(HomeActivity.TAB_LINKS);
-        assertTrue(Shots.has(a, LinksPage.ROUTE_NOTE));
-        assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("规划不会"));
+        // The route is a plain choice in 社群详情 (「回答按哪条路线？」), without a reassuring note.
+        String links = Shots.allText(a.getWindow().getDecorView());
+        assertFalse(links.contains("规划不会"));
+        assertFalse(links.contains("恋爱路线"));
     }
 
     private static void assertNoSlashDates(String text) {

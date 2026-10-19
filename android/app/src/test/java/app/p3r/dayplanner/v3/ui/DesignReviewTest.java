@@ -178,15 +178,25 @@ public class DesignReviewTest extends UiTestBase {
 
     @Test
     public void missedGoalFooterIsTwoPlainClauses() {
-        String foot = LinkStatus.shortfall("MAX", 5, 9, "女皇");
-        assertEquals("这次的安排里没排到 MAX，先保证了女皇", foot);
-        assertEquals("这次的安排里排到 RANK 9，没排到 MAX", LinkStatus.shortfall("MAX", 5, 9, null));
-        // Any card width: no line ends with an opening bracket or inside 「没排到」.
+        // The tile says where the time went; the detail sheet adds what to do about it.
+        String foot = LinkStatus.tradedLine("女皇");
+        assertEquals("时间先给了女皇", foot);
+        String sheet = LinkStatus.shortfall("MAX", 5, 9, "女皇");
+        assertEquals("时间先给了女皇。想先冲它，就排到女皇前面", sheet);
+        assertEquals("这次排到 RANK 9。想冲 MAX，就把它往前排", LinkStatus.shortfall("MAX", 5, 9, null));
+        // Any tile width: no line ends with an opening bracket or a comma at a line start.
         for (int w = 90; w <= 200; w += 4) {
-            TextView t = drawn(foot, 12, false, w);
+            TextView t = drawn(foot, 13, false, w);
             Shots.checkLines(t, foot + " @" + w + "dp");
             for (String line : lines(t)) {
                 assertFalse(line, line.endsWith("（") || line.startsWith("，"));
+            }
+        }
+        for (int w = 200; w <= 330; w += 10) {
+            TextView t = drawn(sheet, 15, false, w);
+            Shots.checkLines(t, sheet + " @" + w + "dp");
+            for (String line : lines(t)) {
+                assertFalse(line, line.startsWith("，") || line.startsWith("。"));
             }
         }
     }
@@ -338,7 +348,7 @@ public class DesignReviewTest extends UiTestBase {
         Plan plan = api.snap.plan;
         plan.summary.maxSlot[4] = -1;
         plan.summary.endRanks[4] = 10;
-        assertEquals("预计 1月31日前升到 MAX",
+        assertEquals("1月31日前升到 MAX",
             LinkStatus.of(api.rules, api.snap.profile, api.snap.observed, plan, 4).footZh);
         HomeActivity s = homeOn("schedule");
         String all = Shots.allText(s.getWindow().getDecorView());
@@ -650,6 +660,8 @@ public class DesignReviewTest extends UiTestBase {
 
     private void routeSegmentsClearTheSlantedEdges(String where) {
         HomeActivity a = homeOn("links");
+        // The route is picked in 社群详情.
+        Shots.click(a, "女教皇 · 山岸风花，RANK 5 → 9，时间先给了皇帝");
         Shots.capture(a, false);
         int segments = 0;
         for (TextView t : AuditFixesTest.textViews(a.getWindow().getDecorView())) {

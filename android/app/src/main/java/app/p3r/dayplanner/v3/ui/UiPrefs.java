@@ -12,6 +12,7 @@ final class UiPrefs {
     static final String NAME = "p3r_v3_ui";
     private static final String KEY_LEVEL = "tower.level";
     private static final String KEY_BANNER = "banner.dismissedFor";
+    private static final String KEY_LINKS_SECTION = "links.section";
 
     private UiPrefs() {}
 
@@ -33,5 +34,17 @@ final class UiPrefs {
 
     static void setBannerDismissedFor(Context context, long lastRecordMillis) {
         prefs(context).edit().putLong(KEY_BANNER, lastRecordMillis).apply();
+    }
+
+    /**
+     * The 社群 tab's last sub-tab (社群 / 羁绊剧情 / 队友特性). Read on the first bind, after the
+     * background load has already opened these preferences.
+     */
+    static int linksSection(Context context) {
+        return prefs(context).getInt(KEY_LINKS_SECTION, 0);
+    }
+
+    static void setLinksSection(Context context, int section) {
+        prefs(context).edit().putInt(KEY_LINKS_SECTION, section).apply();
     }
 }
