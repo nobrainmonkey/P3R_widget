@@ -91,7 +91,8 @@ public class StateWizardTest extends UiTestBase {
         Shots.click(a, "魔术师，未解锁，点按修改");
         Shots.shot(a, "state_rankpad");
         Shots.clickInDialog("3");
-        Shots.clickInDialog("RANK MAX");
+        // The glossary never writes 「RANK MAX」, also not to TalkBack.
+        Shots.clickInDialog("MAX");
         assertEquals(3, a.draft().rank(1));
         assertEquals(10, a.draft().rank(2));
         Shots.clickInDialog("好了");

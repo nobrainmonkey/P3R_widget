@@ -218,31 +218,56 @@ public class AuditFixesTest extends UiTestBase {
     @Test
     public void romanceableCardsOfferTheRouteAndStoryLinksHaveNoTierChip() {
         HomeActivity a = homeOn("links");
-        assertTrue(Shots.has(a, LinksPage.ROUTE_NOTE));
-        assertTrue(Shots.has(a, "女教皇 路线：朋友。" + LinksPage.ROUTE_NOTE));
-        assertTrue("default is 朋友", Shots.find(a, "女教皇 路线：朋友。" + LinksPage.ROUTE_NOTE).isSelected());
-        assertFalse("not romanceable", Shots.has(a, "皇帝 路线：朋友。" + LinksPage.ROUTE_NOTE));
+        // The route is chosen in 社群详情, not repeated on every romanceable tile.
+        assertFalse(Shots.has(a, "女教皇 路线：朋友"));
         assertFalse("story links have no tier chip", Shots.has(a, "愚者 目标：未选，点按切换"));
         assertTrue(Shots.has(a, "剧情自动推进"));
-        Shots.click(a, "女教皇 路线：恋人。" + LinksPage.ROUTE_NOTE);
+        Shots.click(a, "皇帝 · 小田桐秀利，RANK 6 → MAX，11月20日 升到 MAX");
+        assertTrue(a.sheets().isShowing());
+        assertFalse("not romanceable", Shots.has(a, "皇帝 路线：朋友"));
+        a.sheets().dismiss();
+        Shots.idle();
+        Shots.click(a, "愚者 · 特别课外活动部，RANK 7，剧情自动推进");
+        assertTrue(Shots.has(a, "这个社群跟着剧情推进"));
+        assertFalse("no goal for a story link", Shots.has(a, "愚者 目标：未选"));
+        a.sheets().dismiss();
+        Shots.idle();
+        Shots.click(a, "女教皇 · 山岸风花，RANK 5 → 9，时间先给了皇帝");
+        assertTrue(Shots.has(a, "回答按哪条路线？"));
+        assertTrue("default is 朋友", Shots.find(a, "女教皇 路线：朋友").isSelected());
+        assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("安排不会要求你走恋爱路线"));
+        Shots.click(a, "女教皇 路线：恋人");
         Profile p = lastProfile();
         assertEquals(Profile.Route.ROMANCE, p.route[2]);
         assertEquals(Profile.Route.UNDECIDED, p.route[6]);
+        // The tile says 恋人 once the route is chosen.
+        a.sheets().dismiss();
+        Shots.idle();
+        assertTrue(Shots.has(a, "恋人"));
     }
 
     @Test
     public void linkCardsUseOneDateFormatAndNameLockedLinks() {
         HomeActivity a = homeOn("links");
-        assertTrue(Shots.has(a, "预计 11月20日 升到 MAX"));
-        // 恶魔: not unlocked yet, planned to RANK 7.
-        assertTrue(Shots.has(a, "未解锁 → RANK 7"));
+        // One 「预计」 on the page (the MAX count); the tiles' dates need none.
+        assertTrue(Shots.has(a, "11月20日 升到 MAX"));
+        assertEquals(1, Shots.findAll(a.getWindow().getDecorView(), "预计").size());
+        // 恶魔: not unlocked yet, planned to RANK 7 (said once, on the tile's description).
+        assertTrue(Shots.has(a, "恶魔 · 田中社长，未解锁 → RANK 7"));
         String all = Shots.allText(a.getWindow().getDecorView());
         assertFalse(all, all.contains("RANK 0"));
         assertFalse(all, all.contains("11/20"));
         assertFalse(all, all.contains("时间不够"));
-        assertFalse(all, all.contains("团体·男女"));
-        assertTrue(all, all.contains("这次的安排里没排到 MAX，先保证了皇帝"));
-        assertTrue(all, all.contains("团体 · 男女"));
+        assertFalse(all, all.contains("这次的安排里"));
+        assertFalse(all, all.contains("暂时不安排"));
+        assertTrue(all, all.contains("时间先给了皇帝"));
+        // Person names only: no gender label on the tiles.
+        assertTrue(all, all.contains("特别课外活动部"));
+        assertFalse(all, all.contains("男女"));
+        // 永劫's card numeral is the pack's (the game prints XX), not the arcana number's.
+        assertEquals("XX", LinkStatus.numeral(api.rules.links[21]));
+        api.rules.links[21].numeral = "XX";
+        assertEquals("XX", LinkStatus.numeral(api.rules.links[21]));
         assertEquals("未解锁 → RANK 2", Zh.rankStep(0, 2));
         assertEquals("未解锁 → MAX", Zh.rankStep(0, 10));
         assertEquals("RANK 6 → 7", Zh.rankStep(6, 7));

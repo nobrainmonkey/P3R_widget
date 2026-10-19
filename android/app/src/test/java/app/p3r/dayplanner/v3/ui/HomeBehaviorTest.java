@@ -107,15 +107,56 @@ public class HomeBehaviorTest extends UiTestBase {
         intent.putExtra(Intents.EXTRA_TAB, "links");
         HomeActivity a = home(intent);
         Shots.click(a, "魔术师 目标：未选，点按切换");
+        // Shown at once, saved shortly after the last tap.
+        assertTrue(Shots.has(a, "魔术师 目标：想要，点按切换"));
+        assertTrue(api.calls.isEmpty());
+        shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(LinksPage.TIER_SAVE_DELAY_MS));
         FakePlannerApi.Call save = api.last();
         assertEquals("saveProfile", save.method);
         assertEquals(Fixtures.PROFILE_REV, save.expectedRevision);
         assertEquals(Profile.Tier.WANT, save.profile.tier[1]);
         assertEquals(Profile.Tier.WANT, a.data().profile().tier[1]);
-        // A second edit right after uses the new revision (no false conflict).
+        // 想要 → 必须 → 未选 in quick taps: one save, never with the 必须 in between, and with the
+        // new revision (no false conflict).
         Shots.click(a, "魔术师 目标：想要，点按切换");
+        Shots.click(a, "魔术师 目标：必须，点按切换");
+        assertEquals(1, api.callsOf("saveProfile").size());
+        shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(LinksPage.TIER_SAVE_DELAY_MS));
+        assertEquals(2, api.callsOf("saveProfile").size());
         assertEquals(Fixtures.PROFILE_REV + 1, api.last().expectedRevision);
-        assertEquals(Profile.Tier.MUST, api.last().profile.tier[1]);
+        assertEquals(Profile.Tier.NONE, api.last().profile.tier[1]);
+    }
+
+    @Test
+    public void tierTapsAreSavedWhenLeavingTheTab() {
+        Intent intent = new Intent(org.robolectric.RuntimeEnvironment.getApplication(), HomeActivity.class);
+        intent.putExtra(Intents.EXTRA_TAB, "links");
+        HomeActivity a = home(intent);
+        Shots.click(a, "魔术师 目标：未选，点按切换");
+        assertTrue(api.calls.isEmpty());
+        a.selectTab(HomeActivity.TAB_TODAY);
+        Shots.idle();
+        assertEquals("saveProfile", api.last().method);
+        assertEquals(Profile.Tier.WANT, api.last().profile.tier[1]);
+        // Nothing left to save when the timer would have run.
+        shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(LinksPage.TIER_SAVE_DELAY_MS));
+        assertEquals(1, api.callsOf("saveProfile").size());
+    }
+
+    @Test
+    public void linkDetailSheetSavesTierAndRouteAtOnce() {
+        Intent intent = new Intent(org.robolectric.RuntimeEnvironment.getApplication(), HomeActivity.class);
+        intent.putExtra(Intents.EXTRA_TAB, "links");
+        HomeActivity a = home(intent);
+        Shots.click(a, "女教皇 · 山岸风花，RANK 5 → 9，时间先给了皇帝");
+        assertTrue(a.sheets().isShowing());
+        assertTrue(Shots.has(a, "时间先给了皇帝。想先冲它，就排到皇帝前面"));
+        Shots.click(a, "女教皇 目标：必须");
+        assertEquals(Profile.Tier.MUST, api.last().profile.tier[2]);
+        Shots.click(a, "女教皇 路线：恋人");
+        assertEquals(Profile.Route.ROMANCE, api.last().profile.route[2]);
+        assertEquals(Profile.Tier.MUST, api.last().profile.tier[2]);
+        assertTrue("every control saves at once; no save button", a.sheets().isShowing());
     }
 
     @Test
@@ -123,9 +164,17 @@ public class HomeBehaviorTest extends UiTestBase {
         Intent intent = new Intent(org.robolectric.RuntimeEnvironment.getApplication(), HomeActivity.class);
         intent.putExtra(Intents.EXTRA_TAB, "links");
         HomeActivity a = home(intent);
+        Shots.click(a, "调整顺序");
+        assertTrue(a.sheets().isShowing());
+        // A move that is not possible is not offered (皇帝 is first among 必须, 恋爱 last).
+        assertFalse(Shots.has(a, "上移 皇帝"));
+        assertFalse(Shots.has(a, "下移 恋爱"));
         Shots.click(a, "上移 恋爱");
         Profile saved = api.last().profile;
         assertTrue(saved.order[6] < saved.order[4]);
+        // The sheet shows the new order right away.
+        assertTrue(Shots.has(a, "下移 恋爱"));
+        assertFalse(Shots.has(a, "上移 恋爱"));
     }
 
     @Test
@@ -203,6 +252,7 @@ public class HomeBehaviorTest extends UiTestBase {
         intent.putExtra(Intents.EXTRA_TAB, "links");
         HomeActivity a = home(intent);
         assertTrue(Shots.has(a, "羁绊剧情"));
+        Shots.click(a, "羁绊剧情");
         Shots.click(a, "真田明彦 · 共 3 话，已关闭");
         // Opting in mid-game first asks how many episodes were already watched.
         assertTrue(a.sheets().isShowing());

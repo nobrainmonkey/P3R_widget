@@ -62,11 +62,13 @@ public class ReviewFixesTest extends UiTestBase {
         // The checkpoint only changes the episodes: a recorded 没救出 stays as recorded.
         api.snap.observed.rescueFailed = 2L;
         HomeActivity a = homeOn("links");
+        Shots.click(a, "羁绊剧情");
         Shots.click(a, "真田明彦 · 共 3 话，已关闭");
         assertTrue(a.sheets().isShowing());
         assertTrue(Shots.has(a, "羁绊剧情 · 真田明彦"));
         assertTrue(Shots.has(a, "已经看了几话？"));
         assertTrue(Shots.has(a, "全部 3 话"));
+        assertFalse("no reassurance under the question", text(a).contains("看过的不会再排进安排里"));
         assertTrue(api.calls.isEmpty());
         Shots.shot(a, "home_links_episode_watched");
         Shots.click(a, "真田明彦：已看 2 话");
@@ -83,11 +85,13 @@ public class ReviewFixesTest extends UiTestBase {
         assertFalse(a.sheets().isShowing());
         assertEquals("已记录：羁绊剧情 · 真田明彦 · 已看 2 话", a.undoBar().messageText().toString());
         assertTrue(Shots.has(a, "真田明彦 · 共 3 话，已开启"));
+        assertTrue(Shots.has(a, "2/3"));
     }
 
     @Test
     public void f3_closingTheQuestionLeavesTheTrackOff() {
         HomeActivity a = homeOn("links");
+        Shots.click(a, "羁绊剧情");
         Shots.click(a, "真田明彦 · 共 3 话，已关闭");
         assertTrue(a.sheets().isShowing());
         a.onBackPressed();
@@ -102,6 +106,7 @@ public class ReviewFixesTest extends UiTestBase {
         api = FakePlannerApi.firstRun();
         Api.setForTest(api);
         HomeActivity a = homeOn("links");
+        Shots.click(a, "羁绊剧情");
         Shots.click(a, "真田明彦 · 共 3 话，已关闭");
         assertFalse(a.sheets().isShowing());
         assertEquals("saveProfile", api.last().method);
@@ -177,14 +182,14 @@ public class ReviewFixesTest extends UiTestBase {
         assertEquals("羁绊剧情不加社群点数。", ResultActivity.episodeNote(akihiko));
         junpei.rewardZh = "每一话都有小奖励（能力值）";
         assertEquals("羁绊剧情不加社群点数。每一话都有小奖励（能力值）。", ResultActivity.episodeNote(junpei));
-        for (String s : new String[]{ResultActivity.episodeNote(junpei), LinksPage.episodeSummary(junpei, 1)}) {
+        for (String s : new String[]{ResultActivity.episodeNote(junpei), LinksPage.rewardLine(junpei)}) {
             assertFalse(s, s.contains("。。"));
             assertFalse(s, s.contains("看完能拿到每"));
             assertFalse(s, s.contains("看完全部能拿到"));
         }
-        assertEquals("白天 · 5月12日–1月29日能看 · 已看 1 话\n每一话都有小奖励（能力值）。",
-            LinksPage.episodeSummary(junpei, 1));
-        assertEquals("晚上 · 6月2日–1月28日能看", LinksPage.episodeSummary(akihiko, 0));
+        // The 羁绊剧情 row: the reward as one clause, nothing about when the episodes can be watched.
+        assertEquals("每一话都有小奖励（能力值）", LinksPage.rewardLine(junpei));
+        assertNull(LinksPage.rewardLine(akihiko));
 
         assertEquals("", Zh.sentence(null));
         assertEquals("", Zh.sentence("  "));
@@ -398,7 +403,8 @@ public class ReviewFixesTest extends UiTestBase {
         PlannerApi.Snapshot snap = api.snapshot();
         LinksPage page = new LinksPage(a);
         page.bind(new UiData(null, snap, null, false, 0));
-        assertTrue(Shots.allText(page.view()).contains("游戏资料暂时读不出来"));
+        assertTrue(Shots.allText(page.view()).contains(LinksPage.RULES_MISSING));
+        assertEquals("游戏资料没读出来，稍后再打开看看", LinksPage.RULES_MISSING);
     }
 
     @Test
