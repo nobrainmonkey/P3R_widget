@@ -1,9 +1,11 @@
 package app.p3r.dayplanner.v3.ui;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PathMeasure;
 import android.view.Gravity;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -14,7 +16,7 @@ import app.p3r.dayplanner.R;
 
 /**
  * Compact checkbox row: a slanted box with a check mark and a label, the whole row one ≥ 48 dp
- * touch target, announced as a checkbox ("顺便的事也做了").
+ * touch target, announced as a checkbox ("顺便的事也做了"). Ticking draws the mark in (120 ms).
  */
 public final class CheckRow extends LinearLayout {
     /** Change callback. */
@@ -56,8 +58,9 @@ public final class CheckRow extends LinearLayout {
     }
 
     public void setChecked(boolean value) {
+        boolean ticking = value && !checked && Ui.animationsEnabled() && isAttachedToWindow();
         checked = value;
-        box.invalidate();
+        box.refresh(ticking);
         setContentDescription(label + (value ? "，已勾选" : "，未勾选"));
     }
 
@@ -77,10 +80,42 @@ public final class CheckRow extends LinearLayout {
     private final class Box extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Path path = new Path();
+        private final Path tick = new Path();
+        private final PathMeasure measure = new PathMeasure();
+        /** How much of the tick is drawn (0..1). */
+        private float drawn = 1f;
+        private ValueAnimator animator;
 
         Box(Context context) {
             super(context);
             setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+        }
+
+        /** Redraws for the current state; {@code tickIn} draws the new mark in. */
+        void refresh(boolean tickIn) {
+            if (animator != null) {
+                animator.cancel();
+                animator = null;
+            }
+            drawn = 1f;
+            if (tickIn) {
+                drawn = 0f;
+                animator = ValueAnimator.ofFloat(0f, 1f);
+                animator.setDuration(120);
+                animator.setInterpolator(Motion.EASE);
+                animator.addUpdateListener(a -> {
+                    drawn = (float) a.getAnimatedValue();
+                    invalidate();
+                });
+                animator.start();
+            }
+            invalidate();
+        }
+
+        @Override
+        protected void onDetachedFromWindow() {
+            refresh(false);
+            super.onDetachedFromWindow();
         }
 
         @Override
@@ -111,7 +146,19 @@ public final class CheckRow extends LinearLayout {
                 path.moveTo(w * 0.30f, h * 0.52f);
                 path.lineTo(w * 0.45f, h * 0.74f);
                 path.lineTo(w * 0.74f, h * 0.26f);
-                canvas.drawPath(path, paint);
+                if (drawn >= 1f) {
+                    canvas.drawPath(path, paint);
+                } else if (drawn > 0f) {
+                    measure.setPath(path, false);
+                    float length = 0f;
+                    do {
+                        length += measure.getLength();
+                    } while (measure.nextContour());
+                    measure.setPath(path, false);
+                    tick.reset();
+                    measure.getSegment(0f, length * drawn, tick, true);
+                    canvas.drawPath(tick, paint);
+                }
             }
         }
     }

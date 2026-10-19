@@ -188,14 +188,20 @@ public class HomeBehaviorTest extends UiTestBase {
         HomeActivity a = home();
         a.selectTab(HomeActivity.TAB_ME);
         Shots.click(a, "规划设置");
-        Shots.click(a, "基本都带");
+        Shots.click(a, "都带");
         assertEquals(Profile.PersonaMode.ALL, api.last().profile.personaMode);
         assertTrue(api.last().profile.personaBonus);
-        Shots.click(a, "不带/不一定");
+        assertFalse(Shots.has(a, SettingsPage.PERSONA_GOALS_NOTE));
+        Shots.click(a, "只给目标");
+        assertEquals(Profile.PersonaMode.GOALS, api.last().profile.effectivePersonaMode());
+        assertTrue("the reminder is said only for 只给目标", Shots.has(a, SettingsPage.PERSONA_GOALS_NOTE));
+        Shots.click(a, "不带");
         assertEquals(Profile.PersonaMode.NONE, api.last().profile.effectivePersonaMode());
         assertFalse(api.last().profile.personaBonus);
-        Shots.click(a, "结缘网站的字条，已开启");
+        assertFalse(Shots.has(a, SettingsPage.PERSONA_GOALS_NOTE));
+        Shots.click(a, "安排结缘网站的字条，已开启");
         assertFalse(api.last().profile.datingNotes);
+        assertTrue(Shots.has(a, "安排结缘网站的字条，已关闭"));
     }
 
     @Test
@@ -245,7 +251,7 @@ public class HomeBehaviorTest extends UiTestBase {
         Shots.click(a, "粘贴文字");
         assertTrue(a.sheets().isShowing());
         Shots.click(a, "恢复");
-        assertEquals("先粘贴备份内容。", a.undoBar().messageText().toString());
+        assertEquals(BackupPage.EMPTY_PASTE, a.undoBar().messageText().toString());
         assertEquals(a.undoBar(), root.getChildAt(root.getChildCount() - 1));
         Shots.capture(a, false);
         a.placeUndo();

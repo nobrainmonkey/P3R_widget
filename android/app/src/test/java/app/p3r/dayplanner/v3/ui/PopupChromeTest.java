@@ -115,6 +115,28 @@ public class PopupChromeTest extends UiTestBase {
         assertTrue(api.calls.isEmpty());
     }
 
+    @Test
+    public void aDestructiveConfirmationOffersAQuietWayOut() {
+        HomeActivity a = home();
+        AtomicInteger confirmations = new AtomicInteger();
+        Dialog dialog = ConfirmDialog.showDestructive(a, "用这份备份替换现在的记录？", "换了就回不去了。", "替换",
+            confirmations::incrementAndGet);
+        View decor = dialog.getWindow().getDecorView();
+        assertTrue(Shots.findAll(decor, "取消").isEmpty());
+        TextView ok = (TextView) Shots.find(decor, "替换");
+        assertEquals("navy ink on the red face", a.getColor(app.p3r.dayplanner.R.color.p3r_navy_950),
+            ok.getCurrentTextColor());
+        Shots.shot(a, "popup_confirmation_destructive");
+        Shots.clickInDialog(ConfirmDialog.NOT_NOW);
+        assertFalse(dialog.isShowing());
+        assertEquals(0, confirmations.get());
+        Dialog again = ConfirmDialog.showDestructive(a, "用这份备份替换现在的记录？", null, "替换",
+            confirmations::incrementAndGet);
+        Shots.clickInDialog("替换");
+        assertFalse(again.isShowing());
+        assertEquals(1, confirmations.get());
+    }
+
     private static void choose(HomeActivity a, String label) {
         assertTrue(a.sheets().isShowing());
         View choice = Shots.find(a.sheets().content(), label);

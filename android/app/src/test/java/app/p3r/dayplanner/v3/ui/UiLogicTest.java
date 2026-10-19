@@ -161,7 +161,7 @@ public class UiLogicTest {
         assertEquals(1, lines.size());
         assertTrue(lines.get(0).contains("+10"));
         assertTrue(Assumptions.describeAll(java.util.List.of("unknown"), true).isEmpty());
-        for (String line : Assumptions.global(new Profile())) {
+        for (String line : Assumptions.settings(new Profile(), rules)) {
             assertFalse(line, line.matches(".*[a-z_]{4,}.*"));
         }
     }
@@ -387,8 +387,7 @@ public class UiLogicTest {
                 + "每一话都有小奖励（能力值或顺平的能力），看完第 4 话可以拿到道具「顺平的棒球帽」。",
             LinksPage.episodeSummary(junpei, 1));
         assertTrue(LinksPage.episodeSummary(junpei, 4).contains("已经看完"));
-        assertEquals("在桐叶购物中心的放纵俱乐部买结缘网站的字条，当晚回宿舍用公用电脑给一个已解锁的社群加好感，不会直接升级。"
-            + "每张 3,000 日元。11月11日起能买到。", SettingsPage.datingNoteText(rules.datingNote));
+        assertEquals("11月11日起 · 每张 3,000 日元", SettingsPage.datingNoteText(rules.datingNote));
         assertEquals(java.util.Arrays.asList("游戏数据 · 1 项", "资料站 · 1 项"), InfoPages.sourceLines(rules.sources));
         assertEquals("小田桐秀利 · 男", Zh.person(rules.links[4]));
         assertEquals("特别课外活动部\n团体 · 男女", Zh.person(rules.links[0]));

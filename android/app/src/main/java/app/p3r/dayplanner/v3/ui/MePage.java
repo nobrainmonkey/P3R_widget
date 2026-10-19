@@ -10,8 +10,10 @@ import android.widget.TextView;
 import app.p3r.dayplanner.R;
 
 /**
- * 我的 tab: entry points to 同步现状, 修改进度, 记录历史, 规划设置, 规划说明, 从头重新安排,
- * 备份与恢复, 添加桌面小组件 and 关于.
+ * 我的 tab, after the game's SYSTEM menu: the page header, a progress hero like the home-screen
+ * widget (the date plate of the next slot, [修改进度] [同步现状]; 「开始设置」 before onboarding), and
+ * one flat list: 记录历史, 规划设置, 规划说明, 从头重新安排, 备份与恢复, 添加桌面小组件, 关于 (with the
+ * version). Rows that cannot be used are left out instead of dimmed.
  */
 final class MePage {
     /** Callbacks for the entries that need the activity. */
@@ -43,7 +45,7 @@ final class MePage {
         scroll.setClipToPadding(false);
         scroll.setVerticalScrollBarEnabled(false);
         column = Ui.column(c);
-        Ui.pad(column, Ui.GUTTER, 8, Ui.GUTTER, 24);
+        Ui.pad(column, Ui.GUTTER, 12, Ui.GUTTER, 24);
         scroll.addView(column, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT));
     }
@@ -58,46 +60,29 @@ final class MePage {
 
     void bind(UiData d) {
         column.removeAllViews();
-        TextView title = Ui.text(c, "我的", 28, Ui.col(c, R.color.p3r_white), true);
-        Ui.pad(title, 0, 8, 0, 0);
-        column.addView(title);
-        String status;
-        if (!d.hasState()) {
-            status = "还没有设置游戏进度";
-        } else if (Slots.finished(d.rules, d.observed())) {
-            status = "游戏进度：日程已经全部结束 · 已记录 " + d.snap.eventsSinceCheckpoint + " 条";
-        } else {
-            status = "游戏进度：" + Zh.slot(d.rules, d.currentSlot()) + " · 已记录 " + d.snap.eventsSinceCheckpoint + " 条";
-        }
-        column.addView(Ui.mixed(c, status, 13, Ui.col(c, R.color.p3r_ink_muted), false), spaced(4));
+        column.addView(Ui.pageHeader(c, "我的", "SYSTEM", null), Ui.matchWrap());
+        column.addView(progress(d), spaced(18));
 
-        column.addView(Ui.sectionHeader(c, "游戏进度", null), spaced(16));
+        LinearLayout list = Ui.column(c);
         boolean has = d.hasState();
-        column.addView(entry(R.drawable.ui_ic_sync, "同步现状", "离开一段时间后，对照游戏核对进度",
-            has, () -> host.openState("sync")), spaced(4));
-        column.addView(entry(R.drawable.ui_ic_edit, has ? "修改进度" : "开始设置",
-            has ? "逐项核对日期、现金、个人能力值和社群" : "选目标并填写现在的游戏进度",
-            true, () -> host.openState(has ? "edit" : "onboarding")), spaced(8));
-        column.addView(entry(R.drawable.ui_ic_history, "记录历史", "撤销或修改之前的记录",
-            has, actions::openHistory), spaced(8));
-
-        // "规划" is only the app name and the two menu names below (docs/GLOSSARY_zh.md).
-        column.addView(Ui.sectionHeader(c, "安排", null), spaced(16));
-        column.addView(entry(R.drawable.ui_ic_settings, "规划设置", "安排风格、人格面具、塔尔塔罗斯、平安夜等",
-            true, actions::openSettings), spaced(4));
-        column.addView(entry(R.drawable.ui_ic_info, "规划说明", "怎么排的、数据从哪来",
-            true, actions::openExplain), spaced(8));
-        boolean replanning = FullReplanSheet.running(d);
-        column.addView(entry(R.drawable.ui_ic_replan, FullReplanSheet.TITLE,
-            replanning ? FullReplanSheet.runningText(d) : FullReplanSheet.SUBTITLE,
-            FullReplanSheet.available(d) && !replanning, () -> FullReplanSheet.show(host)), spaced(8));
-
-        column.addView(Ui.sectionHeader(c, "其他", null), spaced(16));
-        column.addView(entry(R.drawable.ui_ic_backup, "备份与恢复", "导出全部记录，或从备份恢复",
-            true, actions::openBackup), spaced(4));
-        column.addView(entry(R.drawable.ui_ic_widget, "添加桌面小组件", "在桌面上看下一步，点「完成」直接记录",
-            true, actions::addWidget), spaced(8));
-        column.addView(entry(R.drawable.ui_ic_star, "关于", null, true, actions::openAbout), spaced(8));
+        if (has) {
+            list.addView(SystemList.menuRow(c, R.drawable.ui_ic_history, "记录历史", actions::openHistory));
+        }
+        list.addView(SystemList.menuRow(c, R.drawable.ui_ic_settings, "规划设置", actions::openSettings));
+        if (has) {
+            list.addView(SystemList.menuRow(c, R.drawable.ui_ic_info, "规划说明", actions::openExplain));
+        }
+        View replan = replanRow(c, host, d);
+        if (replan != null) {
+            list.addView(replan);
+        }
+        list.addView(SystemList.menuRow(c, R.drawable.ui_ic_backup, "备份与恢复", actions::openBackup));
+        list.addView(SystemList.menuRow(c, R.drawable.ui_ic_widget, "添加桌面小组件", actions::addWidget));
+        list.addView(SystemList.menuRow(c, R.drawable.ui_ic_star, "关于", actions::openAbout)
+            .setValue(InfoPages.versionName(c)));
+        column.addView(list, spaced(14));
+        // Pushed pages (规划设置, 塔尔塔罗斯) follow what is saved.
+        SystemList.dispatch(c, d);
     }
 
     private LinearLayout.LayoutParams spaced(int topDp) {
@@ -106,32 +91,62 @@ final class MePage {
         return p;
     }
 
-    /** A menu entry: icon, title, optional subtitle and a chevron; ≥ 56 dp tall. */
-    static LinearLayout entry(Context c, int icon, String title, String subtitle, boolean enabled, Runnable action) {
-        LinearLayout row = Ui.row(c);
-        row.setMinimumHeight(Ui.dp(c, 60));
-        row.setBackground(Ui.pressableCard(c));
-        Ui.pad(row, 16, 10, 12, 10);
-        row.addView(Ui.icon(c, icon, Ui.col(c, R.color.p3r_cyan_400), 22));
-        LinearLayout texts = Ui.column(c);
-        texts.addView(Ui.text(c, title, 16, Ui.col(c, R.color.p3r_white), true));
-        if (subtitle != null) {
-            texts.addView(Ui.text(c, subtitle, 12, Ui.col(c, R.color.p3r_ink_muted), false));
+    /**
+     * The progress hero: 「游戏进度」 over the date plate of the next slot, then [修改进度] [同步现状];
+     * 「还没设置进度」 + [开始设置] before onboarding; 「日程全部结束」 + [修改进度] after Jan 31.
+     */
+    private View progress(UiData d) {
+        LinearLayout card = Ui.column(c);
+        card.setBackground(Ui.heroCard(c));
+        Ui.pad(card, 22, 14, 18, 18);
+        TextView label = Ui.text(c, "游戏进度", 13, Ui.col(c, R.color.p3r_cyan_200), true);
+        card.addView(label);
+        if (!d.hasState()) {
+            card.addView(Ui.text(c, "还没设置进度", 22, Ui.col(c, R.color.p3r_white), true), spaced(6));
+            TextView start = Ui.primary(c, "开始设置");
+            start.setOnClickListener(v -> host.openState("onboarding"));
+            card.addView(start, spaced(16));
+            return card;
         }
-        LinearLayout.LayoutParams tp = Ui.weight(1);
-        tp.leftMargin = Ui.dp(c, 14);
-        row.addView(texts, tp);
-        row.addView(Ui.icon(c, R.drawable.ui_ic_chevron, Ui.col(c, R.color.p3r_ink_faint), 18));
-        row.setClickable(true);
-        row.setFocusable(true);
-        row.setEnabled(enabled);
-        row.setAlpha(enabled ? 1f : 0.45f);
-        row.setContentDescription(subtitle == null ? title : title + "，" + subtitle);
-        row.setOnClickListener(v -> action.run());
-        return row;
+        LinearLayout buttons = Ui.row(c);
+        buttons.setBaselineAligned(false);
+        if (Slots.finished(d.rules, d.observed()) && d.snap.storyDisplay == null) {
+            card.addView(Ui.text(c, "日程全部结束", 22, Ui.col(c, R.color.p3r_white), true), spaced(6));
+            TextView edit = Ui.quiet(c, "修改进度");
+            edit.setOnClickListener(v -> host.openState("edit"));
+            buttons.addView(edit, Ui.wrap());
+            card.addView(buttons, spaced(10));
+            return card;
+        }
+        DatePlate plate = new DatePlate(c, false);
+        plate.bind(d.rules, d.displaySlot());
+        card.addView(plate, spaced(4));
+        card.addView(Ui.text(c, "玩了一阵子？", 14, Ui.col(c, R.color.p3r_ink_muted), false), spaced(12));
+        TextView edit = Ui.secondary(c, "修改进度");
+        edit.setOnClickListener(v -> host.openState("edit"));
+        buttons.addView(edit, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1));
+        TextView sync = Ui.primary(c, "同步现状");
+        sync.setOnClickListener(v -> host.openState("sync"));
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1);
+        sp.leftMargin = Ui.dp(c, 12);
+        buttons.addView(sync, sp);
+        card.addView(buttons, spaced(8));
+        return card;
     }
 
-    private LinearLayout entry(int icon, String title, String subtitle, boolean enabled, Runnable action) {
-        return entry(c, icon, title, subtitle, enabled, action);
+    /**
+     * The 从头重新安排 row (我的 and the foot of 规划设置): null when there is nothing left to plan;
+     * while one runs it says so with the busy stripe and still opens the sheet, which shows it.
+     */
+    static SystemList.Row replanRow(Context c, HomeHost host, UiData d) {
+        boolean running = FullReplanSheet.running(d);
+        if (!running && !FullReplanSheet.available(d)) {
+            return null;
+        }
+        SystemList.Row row = SystemList.menuRow(c, R.drawable.ui_ic_replan, FullReplanSheet.TITLE,
+            () -> FullReplanSheet.show(host));
+        row.setNote(running ? FullReplanSheet.runningText(d) : null);
+        row.setBusy(running);
+        return row;
     }
 }
