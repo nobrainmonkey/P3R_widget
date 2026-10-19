@@ -56,6 +56,7 @@ final class FakePlannerApi implements PlannerApi {
     final Snapshot snap = new Snapshot();
     final List<Call> calls = new ArrayList<>();
     final List<HistoryItem> history = new ArrayList<>();
+    final java.util.Map<Long, OutcomeCorrection> corrections = new java.util.HashMap<>();
     final List<Listener> listeners = new ArrayList<>();
     List<Plan.Step> alternatives = new ArrayList<>();
     /** When set, returned (once) instead of a success receipt. */
@@ -135,13 +136,16 @@ final class FakePlannerApi implements PlannerApi {
     static HistoryItem item(long seq, int slot, String kind, String text, boolean voided, boolean afterCheckpoint) {
         HistoryItem h = new HistoryItem();
         h.seq = seq;
+        h.originalSeq = "outcome".equals(kind) || "skip".equals(kind) || "tower".equals(kind) ? seq : -1;
         h.slot = slot;
         h.kind = kind;
         h.summaryZh = text;
         h.voided = voided;
-        boolean record = "outcome".equals(kind) || "skip".equals(kind) || "tower".equals(kind) || "tower_fix".equals(kind);
+        boolean record = "outcome".equals(kind) || "skip".equals(kind) || "outcome_fix".equals(kind)
+                || "tower".equals(kind) || "tower_fix".equals(kind);
         h.undoable = record && afterCheckpoint && !voided;
-        h.correctable = h.undoable && "tower".equals(kind);
+        h.correctable = h.undoable && ("tower".equals(kind) || "outcome".equals(kind)
+                || "skip".equals(kind) || "outcome_fix".equals(kind));
         h.createdMillis = System.currentTimeMillis() - (100 - seq) * 3_600_000L;
         return h;
     }
@@ -287,6 +291,23 @@ final class FakePlannerApi implements PlannerApi {
     public Receipt correctTower(String commandId, long expectedStateRevision, long targetSeq, TowerReturn corrected) {
         return write(new Call("correctTower", commandId, expectedStateRevision, corrected.slot, null, null, corrected,
             targetSeq, null, null), true, false);
+    }
+
+    @Override
+    public OutcomeCorrection outcomeCorrection(long targetSeq) {
+        OutcomeCorrection correction = corrections.get(targetSeq);
+        if (correction != null) correction.stateRevision = snap.stateRevision;
+        return correction;
+    }
+
+    @Override
+    public Receipt correctOutcome(String commandId, long expectedStateRevision, long targetSeq, Outcome replacement) {
+        OutcomeCorrection correction = corrections.get(targetSeq);
+        if (correction == null) return invalid("这条记录不能修改");
+        Receipt receipt = write(new Call("correctOutcome", commandId, expectedStateRevision, correction.slot,
+                correction.actionKey, replacement, null, targetSeq, null, null), true, false);
+        if (receipt.ok) correction.outcome = replacement;
+        return receipt;
     }
 
     @Override

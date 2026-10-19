@@ -21,6 +21,8 @@ public final class Intents {
     public static final String EXTRA_STATE_REV = "p3r.stateRev";
     /** "result" (default) | "cannot" (做不了) | "other" (改做别的) | "catchup" (Done on a future item). */
     public static final String EXTRA_MODE = "p3r.mode";
+    /** Existing outcome record to correct; saves replace its result and preserve its original slot/action. */
+    public static final String EXTRA_CORRECT_SEQ = "p3r.correctSeq";
 
     // StateActivity
     /** "onboarding" | "sync" | "edit". */

@@ -92,8 +92,13 @@ final class CommandCheck {
         if (r != null) {
             return r;
         }
-        Action action = Action.parse(view.rules, actionKey);
-        if (!knownAction(view.rules, action)) {
+        return outcomeValues(view.rules, view.observed, actionKey, outcome);
+    }
+
+    /** Visible values of an outcome, checked against the state at its own historical slot. */
+    static Rejection outcomeValues(Rules rules, SimState before, String actionKey, Outcome outcome) {
+        Action action = Action.parse(rules, actionKey);
+        if (!knownAction(rules, action)) {
             return Rejection.invalid(ZH_UNKNOWN_ACTION);
         }
         if (outcome.rank < -1 || outcome.rank > 10) {
@@ -107,14 +112,14 @@ final class CommandCheck {
                 return Rejection.invalid(ZH_STAT_RANGE);
             }
         }
-        r = cashBalance(outcome.cashBalance);
+        Rejection r = cashBalance(outcome.cashBalance);
         if (r != null) {
             return r;
         }
         if (outcome.reason != null && !REASON_ID.matcher(outcome.reason).matches()) {
             return Rejection.invalid(ZH_REASON);
         }
-        r = sideKeys(view.rules, outcome.sideKeys);
+        r = sideKeys(rules, outcome.sideKeys);
         if (r != null) {
             return r;
         }
@@ -122,10 +127,20 @@ final class CommandCheck {
             if (action.type != Action.Type.MEET) {
                 return Rejection.invalid(ZH_RANK_UP_NOT_MEETING);
             }
-            if (outcome.rank >= 0 && outcome.rank <= view.observed.rank[action.target]) {
+            if (outcome.rank >= 0 && outcome.rank <= before.rank[action.target]) {
                 return Rejection.invalid(ZH_RANK_NOT_HIGHER);
             }
         }
+        return null;
+    }
+
+    static Rejection outcomeTarget(LedgerView view, EventRow target, SimState before) {
+        if (target == null || !(EventKind.OUTCOME.equals(target.kind) || EventKind.SKIP.equals(target.kind)))
+            return Rejection.invalid("找不到要修改的行动记录");
+        if (target.checkpointId != view.checkpointId) return Rejection.invalid(ZH_FIX_OLD);
+        if (target.voided) return Rejection.invalid(ZH_FIX_VOIDED);
+        if (before == null || target.slot() >= view.observed.slot)
+            return Rejection.invalid("这条记录暂时不能修改，请先核对当前进度");
         return null;
     }
 

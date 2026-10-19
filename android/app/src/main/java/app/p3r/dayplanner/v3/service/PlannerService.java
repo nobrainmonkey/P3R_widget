@@ -21,6 +21,7 @@ import app.p3r.dayplanner.v3.store.EventKind;
 import app.p3r.dayplanner.v3.store.EventRow;
 import app.p3r.dayplanner.v3.store.Ledger;
 import app.p3r.dayplanner.v3.store.OutcomeRecord;
+import app.p3r.dayplanner.v3.store.OutcomeFix;
 import app.p3r.dayplanner.v3.store.Replayer;
 import app.p3r.dayplanner.v3.store.StateShape;
 import app.p3r.dayplanner.v3.store.TowerIncome;
@@ -426,6 +427,38 @@ public final class PlannerService implements PlannerApi {
     }
 
     @Override
+    public OutcomeCorrection outcomeCorrection(long targetSeq) {
+        awaitLoaded();
+        synchronized (lock) {
+            if (ledger == null || model.view == null) return null;
+            try {
+                LedgerView view = currentViewLocked();
+                EventRow target = outcomeTarget(ledger.event(targetSeq));
+                SimState before = target == null ? null : stateBefore(view, target.seq);
+                if (CommandCheck.outcomeTarget(view, target, before) != null) return null;
+                OutcomeRecord record = effectiveOutcome(view, target);
+                Action action = currentOutcomeAction(view.rules, record);
+                if (action == null) return null;
+                OutcomeCorrection context = new OutcomeCorrection();
+                context.targetSeq = target.seq;
+                context.stateRevision = view.stateRevision;
+                context.slot = record.slot;
+                context.actionKey = action.key(view.rules);
+                context.outcome = Outcome.fromJson(record.outcome.toJson());
+                if (context.outcome.sideDone && record.side != null)
+                    context.outcome.sideKeys = currentSideKeys(view.rules, record);
+                if (context.outcome.code == Outcome.Code.AS_PREDICTED && context.outcome.rank < 0 && record.rankAfter >= 0)
+                    context.outcome.rank = record.rankAfter;
+                context.beforeState = before.copy();
+                return context;
+            } catch (JSONException | RuntimeException e) {
+                Log.w(TAG, "outcome correction could not be read", e);
+                return null;
+            }
+        }
+    }
+
+    @Override
     public List<Plan.Step> alternatives(int slot) {
         awaitLoaded();
         Model m = model;
@@ -549,14 +582,19 @@ public final class PlannerService implements PlannerApi {
      * </ul>
      */
     private OutcomeRecord resolved(LedgerView view, OutcomeRecord record) {
+        return resolved(view, record, view.observed, true);
+    }
+
+    private OutcomeRecord resolved(LedgerView view, OutcomeRecord record, SimState initial, boolean usePlan) {
         try {
             Rules rules = view.rules;
-            Action action = Action.parse(rules, record.actionKey);
+            Action action = currentOutcomeAction(rules, record);
             Outcome outcome = record.outcome;
-            SimState start = view.observed;
+            SimState start = initial;
             List<String> side = null;
             if (outcome.sideDone) {
-                List<String> asked = outcome.sideKeys != null ? outcome.sideKeys : plannedSide(view, record.slot, action);
+                List<String> asked = outcome.sideKeys != null ? outcome.sideKeys
+                        : usePlan ? plannedSide(view, record.slot, action) : null;
                 Engine.SideSteps done = wiring.applier.sideSteps(rules, view.profile, start, action, asked);
                 side = done.applied;
                 start = done.state;
@@ -689,6 +727,57 @@ public final class PlannerService implements PlannerApi {
                 return r.toReceipt();
             }
             return append(view, commandId, view.checkpointId, EventKind.TOWER_FIX, json);
+        });
+    }
+
+    @Override
+    public Receipt correctOutcome(String commandId, long expectedStateRevision, long targetSeq, Outcome replacement) {
+        if (replacement == null || replacement.code == null) return rejectNow(Rejection.invalid(ZH_OUTCOME_MISSING));
+        if (replacement.statLv == null || replacement.statLv.length != SimState.STATS)
+            return rejectNow(Rejection.invalid(CommandCheck.ZH_STAT_RANGE));
+        return write(commandId, false, view -> {
+            EventRow target = outcomeTarget(ledger.event(targetSeq));
+            long seq = target == null ? targetSeq : target.seq;
+            String fingerprint = Canonical.sha256(Canonical.of(new JSONObject().put("target", seq)
+                    .put("outcome", replacement.toJson())));
+            Receipt known = existing(commandId, EventKind.OUTCOME_FIX, fingerprint);
+            if (known != null) return known;
+            if (expectedStateRevision != view.stateRevision) return stale();
+            SimState before = target == null ? null : stateBefore(view, target.seq);
+            Rejection rejected = CommandCheck.outcomeTarget(view, target, before);
+            if (rejected != null) return rejected.toReceipt();
+            OutcomeRecord effective = effectiveOutcome(view, target);
+            Action action = currentOutcomeAction(view.rules, effective);
+            rejected = CommandCheck.outcomeValues(view.rules, before,
+                    action == null ? effective.actionKey : action.key(view.rules), replacement);
+            if (rejected != null) return rejected.toReceipt();
+            Outcome edited = Outcome.fromJson(replacement.toJson());
+            if (edited.sideDone && edited.sideKeys == null && effective.side != null)
+                edited.sideKeys = currentSideKeys(view.rules, effective);
+            OutcomeRecord original = OutcomeRecord.fromJson(target.payload());
+            OutcomeRecord record = new OutcomeRecord(original.slot, original.actionKey, edited, original.stepId);
+            record = resolved(view, record, before, false);
+            String json = Canonical.of(new OutcomeFix(target.seq, record, fingerprint).toJson());
+            CheckpointRow checkpoint = ledger.latestCheckpoint();
+            Replayer replay = new Replayer(view.rules, view.profile, wiring.applier);
+            SimState start = checkpoint.stateFor(view.rules).state;
+            java.util.Set<Long> baselineRows = new java.util.HashSet<>();
+            Replayer.Result baseline = replay.replay(start, view.chain, (row, pre, post, tower) -> {
+                if (!row.voided) baselineRows.add(row.seq);
+            });
+            List<EventRow> trial = new ArrayList<>(view.chain);
+            long trialSeq = trial.isEmpty() ? target.seq + 1 : trial.get(trial.size() - 1).seq + 1;
+            trial.add(new EventRow(trialSeq, commandId, view.checkpointId, EventKind.OUTCOME_FIX,
+                    json, false, wiring.clock.getAsLong(), view.rules.version));
+            java.util.Set<Long> correctedRows = new java.util.HashSet<>();
+            Replayer.Result corrected = replay.replay(start, trial, (row, pre, post, tower) -> {
+                if (!row.voided) correctedRows.add(row.seq);
+            });
+            if (!correctedRows.contains(target.seq) || !correctedRows.containsAll(baselineRows)
+                    || !baseline.problemRows.containsAll(corrected.problemRows)
+                    || corrected.problems > baseline.problems || corrected.state.slot != baseline.state.slot)
+                return Rejection.invalid("修改后有记录无法接续，请核对这次结果和后面的记录").toReceipt();
+            return append(view, commandId, view.checkpointId, EventKind.OUTCOME_FIX, json);
         });
     }
 
@@ -1510,6 +1599,10 @@ public final class PlannerService implements PlannerApi {
      * so a retry of the same command matches even though the state has moved on since.
      */
     private static String fingerprintOf(EventRow row) {
+        if (EventKind.OUTCOME_FIX.equals(row.kind)) {
+            try { return OutcomeFix.fromJson(row.payload()).commandSha256; }
+            catch (JSONException e) { return Canonical.sha256(row.json); }
+        }
         if (EventKind.isJournal(row.kind)) {
             try {
                 return row.payload().optString("payloadSha256", "");
@@ -1549,6 +1642,41 @@ public final class PlannerService implements PlannerApi {
         }
         EventRow tower = ledger.event(row.target());
         return tower != null && EventKind.TOWER.equals(tower.kind) ? tower : row;
+    }
+
+    private EventRow outcomeTarget(EventRow row) {
+        if (row == null || !EventKind.OUTCOME_FIX.equals(row.kind)) return row;
+        EventRow target = ledger.event(row.target());
+        return target == null ? row : target;
+    }
+
+    private static OutcomeRecord effectiveOutcome(LedgerView view, EventRow target) throws JSONException {
+        OutcomeRecord record = Replayer.effectiveOutcomeFixes(view.chain).get(target.seq);
+        if (record != null) return record;
+        record = OutcomeRecord.fromJson(target.payload());
+        if (EventKind.SKIP.equals(target.kind)) record.outcome.code = Outcome.Code.SKIPPED;
+        return record;
+    }
+
+    private static Action currentOutcomeAction(Rules rules, OutcomeRecord record) {
+        Action action = Action.parse(rules, record.actionKey);
+        if (action != null && action.type == Action.Type.UNLOCK_STEP && record.stepId != null) {
+            Rules.Link link = rules.links[action.target];
+            for (int i = 0; i < link.unlock.steps.size(); i++)
+                if (record.stepId.equals(link.unlock.steps.get(i).id)) return Action.unlock(action.target, i);
+            return null;
+        }
+        return action;
+    }
+
+    private static List<String> currentSideKeys(Rules rules, OutcomeRecord record) {
+        List<String> current = new ArrayList<>();
+        for (String key : record.side) {
+            String stepId = record.sideStepIds.get(key);
+            Action action = currentOutcomeAction(rules, new OutcomeRecord(record.slot, key, record.outcome, stepId));
+            current.add(action == null ? key : action.key(rules));
+        }
+        return current;
     }
 
     /** Values of tower row {@code target} now in effect: its latest non-voided correction, else its own. */

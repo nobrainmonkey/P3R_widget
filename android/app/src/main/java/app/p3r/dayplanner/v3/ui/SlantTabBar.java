@@ -41,7 +41,7 @@ public final class SlantTabBar extends LinearLayout {
         setOrientation(HORIZONTAL);
         setWillNotDraw(false);
         setGravity(Gravity.CENTER_VERTICAL);
-        Ui.pad(this, 8, 6, 8, 6);
+        Ui.pad(this, titles.length > 5 ? 4 : 8, 6, titles.length > 5 ? 4 : 8, 6);
         for (int i = 0; i < titles.length; i++) {
             final int index = i;
             LinearLayout tab = Ui.column(context);
@@ -64,8 +64,8 @@ public final class SlantTabBar extends LinearLayout {
             labelParams.topMargin = Ui.dp(context, 2);
             tab.addView(label, labelParams);
             LayoutParams params = new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1);
-            params.leftMargin = Ui.dp(context, 3);
-            params.rightMargin = Ui.dp(context, 3);
+            params.leftMargin = Ui.dp(context, titles.length > 5 ? 1 : 3);
+            params.rightMargin = Ui.dp(context, titles.length > 5 ? 1 : 3);
             addView(tab, params);
             tabs.add(tab);
             icons.add(icon);

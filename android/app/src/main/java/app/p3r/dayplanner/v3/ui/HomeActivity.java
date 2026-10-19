@@ -47,14 +47,16 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     static final int TAB_SCHEDULE = 1;
     static final int TAB_LINKS = 2;
     static final int TAB_TIPS = 3;
-    static final int TAB_ME = 4;
-    static final String[] TAB_KEYS = {"today", "schedule", "links", "tips", "me"};
+    static final int TAB_COMPENDIUM = 4;
+    static final int TAB_ME = 5;
+    static final String[] TAB_KEYS = {"today", "schedule", "links", "tips", "compendium", "me"};
     /** Height of a sub-page's top bar (back button + title). */
     private static final int PAGE_BAR_DP = 60;
     /** Extra on result-sheet intents launched from inside the app (enables the undo bar). */
     static final String EXTRA_FROM_APP = "p3r.ui.fromApp";
 
     private final Deque<View> pages = new ArrayDeque<>();
+    private View leavingPage;
     private final AtomicLong stateRevision = new AtomicLong(-1);
     private final AtomicLong profileRevision = new AtomicLong(-1);
     private PlannerApi api;
@@ -88,6 +90,9 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     private LinksPage links;
     private TipsPage tips;
     private MePage me;
+    private LinearLayout compendium;
+    private View compendiumContent;
+    private boolean compendiumOpened;
     private int tab = TAB_TODAY;
     private int pendingOpenSlot = -1;
     private boolean started;
@@ -384,7 +389,11 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         links = new LinksPage(this);
         tips = new TipsPage(this);
         me = new MePage(this, meActions());
-        tabViews = new View[]{today.view(), schedule.view(), links.view(), tips.view(), me.view()};
+        compendium = Ui.column(this);
+        TextView compendiumTitle = Ui.text(this, "图鉴与合成", 28, Ui.col(this, R.color.p3r_white), true);
+        Ui.pad(compendiumTitle, Ui.GUTTER, 12, Ui.GUTTER, 4);
+        compendium.addView(compendiumTitle);
+        tabViews = new View[]{today.view(), schedule.view(), links.view(), tips.view(), compendium, me.view()};
         for (View v : tabViews) {
             contentFrame.addView(v, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
@@ -411,9 +420,9 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         contentFrame.addView(errorView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
         column.addView(contentFrame, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
-        tabBar = new SlantTabBar(this, new String[]{"今天", "日程", "社群", "提示", "我的"}, new int[]{
+        tabBar = new SlantTabBar(this, new String[]{"今天", "日程", "社群", "提示", "图鉴", "我的"}, new int[]{
             R.drawable.ui_ic_tab_today, R.drawable.ui_ic_tab_schedule, R.drawable.ui_ic_tab_links,
-            R.drawable.ui_ic_tab_tips, R.drawable.ui_ic_tab_me});
+            R.drawable.ui_ic_tab_tips, R.drawable.ui_ic_mask, R.drawable.ui_ic_tab_me});
         tabBar.setListener(this::selectTab);
         column.addView(tabBar, Ui.matchWrap());
         root.addView(column, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -530,6 +539,14 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     @Override
     public void selectTab(int index) {
         tab = Math.max(0, Math.min(TAB_KEYS.length - 1, index));
+        if (tab == TAB_COMPENDIUM && !failed && !compendiumOpened) {
+            compendiumOpened = true;
+            compendiumContent = CompendiumPage.create(this);
+            compendium.addView(compendiumContent,
+                new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+        } else if (tab == TAB_COMPENDIUM && !failed) {
+            CompendiumPage.refresh(compendiumContent);
+        }
         for (int i = 0; i < tabViews.length; i++) {
             tabViews[i].setVisibility(i == tab && !failed ? View.VISIBLE : View.GONE);
         }
@@ -653,7 +670,59 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         pushPage(title, content, true);
     }
 
+    @Override
+    public void replaceFillingPage(String title, View content) {
+        finishPageExit();
+        View previous = pages.poll();
+        pushPage(title, content, true);
+        if (previous == null) return;
+        if (Ui.animationsEnabled()) {
+            previous.animate().cancel();
+            previous.animate().alpha(0f).setDuration(160).withEndAction(() -> pageLayer.removeView(previous)).start();
+        } else {
+            pageLayer.removeView(previous);
+        }
+    }
+
+    @Override
+    public void returnToPage(View rootContent) {
+        View destination = null;
+        for (View candidate : pages) {
+            View current = rootContent;
+            while (current != null) {
+                if (current == candidate) { destination = candidate; break; }
+                ViewParent parent = current.getParent();
+                current = parent instanceof View ? (View) parent : null;
+            }
+            if (destination != null) break;
+        }
+        boolean tabWorkspace = false;
+        if (destination == null) {
+            View current = rootContent;
+            while (current != null) {
+                if (current == compendium) { tabWorkspace = true; break; }
+                ViewParent parent = current.getParent();
+                current = parent instanceof View ? (View) parent : null;
+            }
+        }
+        if (destination == null && !tabWorkspace) return;
+        if (pages.peek() == destination) {
+            if (tabWorkspace) selectTab(TAB_COMPENDIUM);
+            return;
+        }
+        finishPageExit();
+        View top = pages.poll();
+        while (pages.peek() != destination) {
+            View skipped = pages.poll();
+            skipped.animate().cancel();
+            pageLayer.removeView(skipped);
+        }
+        animatePageExit(top);
+        if (tabWorkspace) selectTab(TAB_COMPENDIUM);
+    }
+
     private void pushPage(String title, View content, boolean fillsPage) {
+        finishPageExit();
         LinearLayout page = Ui.column(this);
         page.setBackground(new OceanDrawable(Ui.col(this, R.color.p3r_navy_800), Ui.col(this, R.color.p3r_navy_900),
             Ui.col(this, R.color.p3r_navy_950), Ui.col(this, R.color.p3r_royal_500), Ui.col(this, R.color.p3r_cyan_300)));
@@ -698,21 +767,45 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         pages.push(page);
         placeUndo();
         if (Ui.animationsEnabled()) {
-            page.setTranslationX(Ui.dp(this, 48));
+            page.setTranslationX(Ui.dp(this, 32));
             page.setAlpha(0f);
-            page.animate().translationX(0).alpha(1f).setDuration(180).start();
+            page.animate().translationX(0).alpha(1f).setDuration(200)
+                .setInterpolator(new android.view.animation.PathInterpolator(0.2f, 0f, 0f, 1f)).start();
         }
     }
 
     @Override
     public boolean popPage() {
+        if (leavingPage != null) return true;
         View page = pages.poll();
         if (page == null) {
             return false;
         }
-        pageLayer.removeView(page);
-        placeUndo();
+        animatePageExit(page);
         return true;
+    }
+
+    private void animatePageExit(View page) {
+        page.animate().cancel();
+        if (Ui.animationsEnabled()) {
+            leavingPage = page;
+            page.animate().translationX(Ui.dp(this, 32)).alpha(0f).setDuration(180)
+                .setInterpolator(new android.view.animation.PathInterpolator(0.4f, 0f, 1f, 1f))
+                .withEndAction(() -> {
+                    if (leavingPage == page) finishPageExit();
+                }).start();
+        } else {
+            pageLayer.removeView(page);
+        }
+        placeUndo();
+    }
+
+    private void finishPageExit() {
+        if (leavingPage == null) return;
+        View page = leavingPage;
+        leavingPage = null;
+        page.animate().withEndAction(null).cancel();
+        pageLayer.removeView(page);
     }
 
     /** Number of open sub-pages (tests). */
@@ -921,11 +1014,6 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
 
     private MePage.Actions meActions() {
         return new MePage.Actions() {
-            @Override
-            public void openCompendium() {
-                pushFillingPage("图鉴与合成", CompendiumPage.create(HomeActivity.this));
-            }
-
             @Override
             public void openSettings() {
                 pushPage("规划设置", SettingsPage.build(HomeActivity.this));

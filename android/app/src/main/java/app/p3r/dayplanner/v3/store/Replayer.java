@@ -16,6 +16,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 
 /**
  * Derives the observed state: a checkpoint plus a replay of the rows recorded after it
@@ -94,14 +96,18 @@ public final class Replayer {
         public final List<TowerGain> towerGains;
         /** Rows that could not be applied as recorded (see the class comment). */
         public final int problems;
+        /** Observed rows with replay problems, so corrections cannot trade a new failure for an old one. */
+        public final Set<Long> problemRows;
         /** Automatically traversed story slots, for display only; -1 when none. */
         public final int skippedStoryFrom;
         public final int skippedStoryTo;
 
-        Result(SimState state, List<TowerGain> towerGains, int problems, int skippedStoryFrom, int skippedStoryTo) {
+        Result(SimState state, List<TowerGain> towerGains, int problems, Set<Long> problemRows,
+               int skippedStoryFrom, int skippedStoryTo) {
             this.state = state;
             this.towerGains = Collections.unmodifiableList(towerGains);
             this.problems = problems;
+            this.problemRows = Collections.unmodifiableSet(new HashSet<>(problemRows));
             this.skippedStoryFrom = skippedStoryFrom;
             this.skippedStoryTo = skippedStoryTo;
         }
@@ -120,12 +126,15 @@ public final class Replayer {
     /** Mutable state of one replay. */
     private static final class Run {
         final Map<Long, TowerRecord> fixes;
+        final Map<Long, OutcomeRecord> outcomeFixes;
         final List<TowerGain> gains = new ArrayList<>();
         final Trace trace;
         int problems;
+        final Set<Long> problemRows = new HashSet<>();
 
-        Run(Map<Long, TowerRecord> fixes, Trace trace) {
+        Run(Map<Long, TowerRecord> fixes, Map<Long, OutcomeRecord> outcomeFixes, Trace trace) {
             this.fixes = fixes;
+            this.outcomeFixes = outcomeFixes;
             this.trace = trace;
         }
     }
@@ -136,7 +145,7 @@ public final class Replayer {
      * {@link CheckpointRow#stateFor}).
      */
     public Result replay(SimState checkpoint, List<EventRow> rows, Trace trace) {
-        Run run = new Run(effectiveFixes(rows), trace);
+        Run run = new Run(effectiveFixes(rows), effectiveOutcomeFixes(rows), trace);
         SimState state = StateShape.fit(checkpoint, rules);
         for (EventRow row : rows) {
             if (!EventKind.isObserved(row.kind)) {
@@ -146,6 +155,7 @@ public final class Replayer {
                 traceVoided(state, row, run);
                 continue;
             }
+            int beforeProblems = run.problems;
             try {
                 SimState next = applyRow(state, row, run, run.trace);
                 if (next == null) {
@@ -160,12 +170,15 @@ public final class Replayer {
                 if (slot >= state.slot) {
                     state = advance(state, slot + 1);
                 }
+            } finally {
+                if (run.problems > beforeProblems) run.problemRows.add(row.seq);
             }
         }
         int beforeStory = state.slot;
         state = advance(state, StateShape.firstOpenSlot(rules, profile, state.slot));
         int storyFrom = beforeStory < state.slot ? beforeStory : -1;
-        return new Result(state, run.gains, run.problems, storyFrom, storyFrom < 0 ? -1 : state.slot - 1);
+        return new Result(state, run.gains, run.problems, run.problemRows,
+                storyFrom, storyFrom < 0 ? -1 : state.slot - 1);
     }
 
     /**
@@ -177,7 +190,7 @@ public final class Replayer {
             return;
         }
         try {
-            Run scratch = new Run(run.fixes, run.trace);
+            Run scratch = new Run(run.fixes, run.outcomeFixes, run.trace);
             applyRow(state, row, scratch, run.trace);
         } catch (JSONException | RuntimeException e) {
             Log.w(TAG, "voided row " + row.seq + " cannot be described", e);
@@ -206,12 +219,13 @@ public final class Replayer {
             tower.sideStepIds = own.sideStepIds;
             after = applyTower(before, tower, row.seq, run);
         } else {
-            OutcomeRecord record = OutcomeRecord.fromJson(row.payload());
+            boolean corrected = run.outcomeFixes.containsKey(row.seq);
+            OutcomeRecord record = corrected ? run.outcomeFixes.get(row.seq) : OutcomeRecord.fromJson(row.payload());
             Action action = resolve(record, slot, run);
             Outcome outcome = Outcome.fromJson(record.outcome.toJson());
             outcome.activityAffinityLink = record.activityAffinityLink;
             outcome.activityAffinityPts = record.activityAffinityPts;
-            if (EventKind.SKIP.equals(row.kind)) {
+            if (!corrected && EventKind.SKIP.equals(row.kind)) {
                 outcome.code = Outcome.Code.SKIPPED;
             }
             SimState start = before;
@@ -411,6 +425,21 @@ public final class Replayer {
                         TowerRecord.fromJson(row.payload().getJSONObject("tower")));
             } catch (JSONException e) {
                 Log.w(TAG, "tower fix " + row.seq + " is malformed", e);
+            }
+        }
+        return fixes;
+    }
+
+    /** Latest non-voided replacement per original outcome, applied at the original row's slot. */
+    public static Map<Long, OutcomeRecord> effectiveOutcomeFixes(List<EventRow> rows) {
+        Map<Long, OutcomeRecord> fixes = new HashMap<>();
+        for (EventRow row : rows) {
+            if (row.voided || !EventKind.OUTCOME_FIX.equals(row.kind)) continue;
+            try {
+                OutcomeFix fix = OutcomeFix.fromJson(row.payload());
+                fixes.put(fix.target, fix.record);
+            } catch (JSONException | RuntimeException e) {
+                Log.w(TAG, "outcome fix " + row.seq + " is malformed", e);
             }
         }
         return fixes;

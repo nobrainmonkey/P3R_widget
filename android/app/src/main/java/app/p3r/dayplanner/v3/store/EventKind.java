@@ -20,6 +20,8 @@ public final class EventKind {
     public static final String TOWER = "tower";
     /** Replacement values for an earlier tower record: {@code {target, tower}}. Never adds a visit. */
     public static final String TOWER_FIX = "tower_fix";
+    /** Replacement of an earlier outcome/skip: {@link OutcomeFix}; no new time slot. */
+    public static final String OUTCOME_FIX = "outcome_fix";
     /** Undo marker for an earlier row: {@code {target}}. */
     public static final String VOID = "void";
     /** Journal row of a saved checkpoint: {@code {checkpointId, payloadSha256}}. */
@@ -41,11 +43,11 @@ public final class EventKind {
 
     /** True for rows the player may undo with a {@link #VOID}. */
     public static boolean isVoidable(String kind) {
-        return isObserved(kind) || TOWER_FIX.equals(kind);
+        return isObserved(kind) || TOWER_FIX.equals(kind) || OUTCOME_FIX.equals(kind);
     }
 
     /** True for every kind this version understands. */
     public static boolean isKnown(String kind) {
-        return isObserved(kind) || isJournal(kind) || TOWER_FIX.equals(kind) || VOID.equals(kind);
+        return isVoidable(kind) || isJournal(kind) || VOID.equals(kind);
     }
 }

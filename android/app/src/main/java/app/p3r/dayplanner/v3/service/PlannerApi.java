@@ -132,9 +132,11 @@ public interface PlannerApi {
 
     final class HistoryItem {
         public long seq;
+        /** Original observed row this entry edits, or its own seq for an observed row; -1 otherwise. */
+        public long originalSeq = -1;
         public long createdMillis;
         public int slot;
-        /** outcome | skip | tower | tower_fix | void | checkpoint | import. */
+        /** outcome | skip | outcome_fix | tower | tower_fix | void | checkpoint | import. */
         public String kind;
         /** e.g. "5月12日 晚上 · 探索塔尔塔罗斯 · 到达 27F · 出塔后余额 14,750 日元". */
         public String summaryZh;
@@ -146,8 +148,8 @@ public interface PlannerApi {
          */
         public boolean undoable;
         /**
-         * {@link #undoable} and a tower record ({@code kind == "tower"}), so {@code correctTower}
-         * accepts it: show 修改 only when this is true. Prefill the form from {@link #tower}.
+         * A current, non-voided tower, outcome, skip or outcome correction that can be edited.
+         * Tower forms use {@link #tower}; other forms use {@link #outcomeCorrection}.
          */
         public boolean correctable;
         /**
@@ -156,6 +158,17 @@ public interface PlannerApi {
          * values. Null for other kinds.
          */
         public TowerReturn tower;
+    }
+
+    /** Detached historical values for editing an outcome without moving or erasing later records. */
+    final class OutcomeCorrection {
+        public long targetSeq;
+        public long stateRevision;
+        public int slot;
+        public String actionKey;
+        public Outcome outcome;
+        /** Replayed state at the original slot, immediately before this action. */
+        public SimState beforeState;
     }
 
     /** Tower return as entered on the quick sheet: exactly one of net change or balance. */
@@ -245,6 +258,21 @@ public interface PlannerApi {
      * may also be a correction row; its tower record is then corrected.
      */
     Receipt correctTower(String commandId, long expectedStateRevision, long targetSeq, TowerReturn corrected);
+
+    /** Current effective outcome and state before an editable record, or null when unavailable. */
+    default OutcomeCorrection outcomeCorrection(long targetSeq) { return null; }
+
+    /**
+     * Replaces an earlier outcome/skip in the current checkpoint and replays the later records.
+     * Its original action and slot stay fixed. A target may also be an outcome correction row.
+     * Invalid replacements are rejected atomically; the original record stays in history.
+     */
+    default Receipt correctOutcome(String commandId, long expectedStateRevision, long targetSeq, Outcome replacement) {
+        Receipt receipt = new Receipt();
+        receipt.errorCode = "invalid";
+        receipt.errorZh = "这条记录暂时不能修改";
+        return receipt;
+    }
 
     /**
      * Undo an earlier record of the current checkpoint (appends a void marker, then replays).

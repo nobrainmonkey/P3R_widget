@@ -7,6 +7,9 @@ import static org.junit.Assert.assertTrue;
 
 import app.p3r.dayplanner.v3.engine.Outcome;
 import app.p3r.dayplanner.v3.compendium.CompendiumPrefs;
+import app.p3r.dayplanner.v3.compendium.Compendium;
+import app.p3r.dayplanner.v3.compendium.FusionBasket;
+import app.p3r.dayplanner.v3.compendium.FusionCalculator;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.store.Canonical;
 import app.p3r.dayplanner.v3.store.TestRules;
@@ -29,6 +32,48 @@ public class PlannerServiceBackupTest extends ServiceTestBase {
     private static final int MAY12_EVE = TestRules.slot(TestRules.MAY_12, true);
     private static final int MAY13_DAY = TestRules.slot(TestRules.MAY_12 + 1, false);
     private static final int MAY13_EVE = TestRules.slot(TestRules.MAY_12 + 1, true);
+
+    @Test
+    public void nestedFusionBasketAndRegistrationsRoundTripAndCraftingKeepsMaterialsRegistered() throws Exception {
+        onboard(MAY12_DAY);
+        Compendium data;
+        try (java.io.InputStream input = context.getAssets().open(Compendium.ASSET_NAME)) {
+            data = Compendium.load(input);
+        }
+        FusionCalculator calculator = new FusionCalculator(data, Set.of());
+        String orpheus = data.personaByKey("Orpheus").id;
+        String power = data.personaByKey("Power").id;
+        String naga = data.personaByKey("Naga").id;
+        String fortuna = data.personaByKey("Fortuna").id;
+        FusionCalculator.Recipe targetRecipe = calculator.fuse(orpheus, power);
+        FusionCalculator.Recipe powerRecipe = calculator.fuse(naga, fortuna);
+        assertEquals(power, powerRecipe.result.id);
+        FusionBasket basket = new FusionBasket();
+        assertTrue(basket.addGoal(targetRecipe));
+        assertTrue(basket.chooseRecipe(powerRecipe));
+        CompendiumPrefs prefs = new CompendiumPrefs(context);
+        prefs.setBasket(basket);
+        prefs.setOwned(orpheus, true);
+        prefs.setOwned(fortuna, true);
+        prefs.setFavorite(power, true);
+        prefs.setOwnedDlc(Set.of("p4g"));
+        assertEquals(Set.of(orpheus, fortuna), prefs.ownedPersonas());
+        assertEquals(Canonical.of(basket.toJson()), Canonical.of(prefs.basket().toJson()));
+
+        String exported = service.exportBackup();
+        JSONObject choices = new JSONObject(exported).getJSONObject("compendium");
+        PlannerService restored = open("fusion-basket-restored.db");
+        assertTrue(restored.importBackup(id(), exported).ok);
+        assertEquals(Canonical.of(choices), Canonical.of(
+            new JSONObject(restored.exportBackup()).getJSONObject("compendium")));
+
+        prefs.setOwned(naga, true);
+        prefs.recordFusion(powerRecipe);
+        assertEquals(Set.of(orpheus, power, naga, fortuna), prefs.ownedPersonas());
+        assertEquals(Set.of(power), prefs.favorites());
+        assertEquals(Set.of("p4g"), prefs.ownedDlc());
+        assertEquals(Canonical.of(basket.toJson()), Canonical.of(prefs.basket().toJson()));
+    }
 
     @Test
     public void compendiumChoicesSurviveBackupWithoutChangingTheSchedule() throws Exception {

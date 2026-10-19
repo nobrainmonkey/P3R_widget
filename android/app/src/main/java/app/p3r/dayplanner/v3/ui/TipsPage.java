@@ -89,13 +89,7 @@ final class TipsPage {
             ViewGroup.LayoutParams.MATCH_PARENT));
         LinearLayout controls = Ui.column(c);
         Ui.pad(controls, Ui.GUTTER, 12, Ui.GUTTER, 4);
-        LinearLayout titleRow = Ui.row(c);
-        titleRow.addView(Ui.text(c, "提示", 28, Ui.col(c, R.color.p3r_white), true), Ui.weight(1));
-        TextView compendium = Ui.chip(c, "图鉴与合成", false);
-        compendium.setTag("open_compendium");
-        compendium.setOnClickListener(v -> host.pushFillingPage("图鉴与合成", CompendiumPage.create(host)));
-        titleRow.addView(compendium, Ui.wrap());
-        controls.addView(titleRow);
+        controls.addView(Ui.text(c, "提示", 28, Ui.col(c, R.color.p3r_white), true));
         search = new EditText(c);
         search.setTag("tips_search");
         search.setSingleLine(true);

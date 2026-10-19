@@ -34,6 +34,14 @@ interface HomeHost {
         pushPage(title, content);
     }
 
+    default void replaceFillingPage(String title, View content) {
+        popPage();
+        pushFillingPage(title, content);
+    }
+
+    /** Returns to a still-open workspace without rebuilding its search or selections. */
+    default void returnToPage(View rootContent) {}
+
     /** Pops the top sub-page; returns false when none was open. */
     boolean popPage();
 

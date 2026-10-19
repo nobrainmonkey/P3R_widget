@@ -13,8 +13,8 @@ import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
 
 /**
- * 记录历史: newest first. Records that still shape the current progress get [撤销], tower returns
- * also [修改] (a correction that never adds a visit); older records say they predate the last
+ * 记录历史: newest first. Records that still shape the current progress get [撤销] and [修改]
+ * when their values can be corrected; older records say they predate the last
  * 同步现状. Undo appends a void marker; later state is recomputed from the rest.
  */
 final class HistoryPage {
@@ -22,22 +22,56 @@ final class HistoryPage {
     private static final String TOWER = "tower";
     /** Kinds that record what happened in a slot (as opposed to journal rows such as 同步现状). */
     private static final java.util.Set<String> RECORD_KINDS = new java.util.HashSet<>(
-        java.util.Arrays.asList("outcome", "skip", TOWER, "tower_fix"));
+        java.util.Arrays.asList("outcome", "skip", "outcome_fix", TOWER, "tower_fix"));
 
     private final HomeHost host;
     private final Context c;
     private final LinearLayout column;
+    private final Integer day;
 
-    private HistoryPage(HomeHost host) {
+    private HistoryPage(HomeHost host, Integer day) {
         this.host = host;
         this.c = host.activity();
+        this.day = day;
         column = Ui.column(c);
     }
 
     static View build(HomeHost host) {
-        HistoryPage page = new HistoryPage(host);
+        HistoryPage page = new HistoryPage(host, null);
         page.load();
         return page.column;
+    }
+
+    static View buildForDay(HomeHost host, int day) {
+        HistoryPage page = new HistoryPage(host, day);
+        page.load();
+        return page.column;
+    }
+
+    static List<PlannerApi.HistoryItem> forDay(List<PlannerApi.HistoryItem> items, int day) {
+        List<PlannerApi.HistoryItem> out = new java.util.ArrayList<>();
+        for (PlannerApi.HistoryItem item : items) {
+            if (item.slot >= 0 && Rules.dayOf(item.slot) == day) out.add(item);
+        }
+        return out;
+    }
+
+    static PlannerApi.HistoryItem activeAtSlot(List<PlannerApi.HistoryItem> items, int slot) {
+        PlannerApi.HistoryItem original = null;
+        for (PlannerApi.HistoryItem item : items) {
+            if (item.slot != slot || item.voided
+                    || !("outcome".equals(item.kind) || "skip".equals(item.kind) || TOWER.equals(item.kind))) continue;
+            if (original == null || item.seq > original.seq) original = item;
+        }
+        if (original == null) return null;
+        PlannerApi.HistoryItem active = original;
+        for (PlannerApi.HistoryItem item : items) {
+            if (item.slot == slot && !item.voided && item.originalSeq == original.seq
+                    && ("outcome_fix".equals(item.kind) || "tower_fix".equals(item.kind)) && item.seq > active.seq) {
+                active = item;
+            }
+        }
+        return active;
     }
 
     private void load() {
@@ -50,9 +84,10 @@ final class HistoryPage {
     }
 
     private void show(List<PlannerApi.HistoryItem> items) {
+        if (day != null) items = forDay(items, day);
         column.removeAllViews();
         if (items.isEmpty()) {
-            column.addView(Ui.body(c, "还没有记录。在「今天」里点「完成」后，记录会出现在这里。"));
+            column.addView(Ui.body(c, day == null ? "还没有记录。在「今天」里点「完成」后，记录会出现在这里。" : "这天没有记录。"));
             return;
         }
         column.addView(Ui.muted(c, "撤销后会按剩下的记录重新计算，后面的安排也会随之更新。"));
@@ -80,13 +115,23 @@ final class HistoryPage {
         String meta = (item.voided ? "已撤销 · " : "") + Zh.age(System.currentTimeMillis(), item.createdMillis) + "记录";
         bottom.addView(Ui.caption(c, meta), Ui.weight(1));
         // PlannerApi.HistoryItem: 撤销 for every record that still shapes the progress (undoable),
-        // 修改 only where the store accepts a correction (correctable: tower records) and the
-        // record's own values are known to prefill the form.
+        // 修改 only where the store accepts a correction and can supply the original values.
         if (!item.voided && item.undoable) {
             if (item.correctable && TOWER.equals(item.kind) && item.tower != null) {
                 TextView fix = Ui.quiet(c, "修改");
                 fix.setContentDescription("修改这条记录：" + item.summaryZh);
                 fix.setOnClickListener(v -> openCorrection(item));
+                bottom.addView(fix, Ui.wrap());
+            } else if (item.correctable && ("outcome".equals(item.kind) || "skip".equals(item.kind)
+                    || "outcome_fix".equals(item.kind))) {
+                TextView fix = Ui.quiet(c, "修改");
+                fix.setContentDescription("修改这条记录：" + item.summaryZh);
+                fix.setOnClickListener(v -> {
+                    android.content.Intent intent = new android.content.Intent(c, ResultActivity.class);
+                    intent.putExtra(app.p3r.dayplanner.v3.Intents.EXTRA_CORRECT_SEQ, item.seq);
+                    intent.putExtra(HomeActivity.EXTRA_FROM_APP, true);
+                    host.activity().startActivity(intent);
+                });
                 bottom.addView(fix, Ui.wrap());
             }
             TextView undo = Ui.quiet(c, "撤销");

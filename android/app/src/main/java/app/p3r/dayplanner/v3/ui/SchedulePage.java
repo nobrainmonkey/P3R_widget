@@ -17,6 +17,7 @@ import java.util.List;
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.model.Rules;
+import app.p3r.dayplanner.v3.service.PlannerApi;
 
 /**
  * 日程 tab: the whole remaining calendar as a ListView with month headers and one row per day
@@ -52,6 +53,10 @@ final class SchedulePage {
     private final Adapter adapter = new Adapter();
     private UiData data;
     private String scrolledForPlan;
+    private long historyRevision = Long.MIN_VALUE;
+    private int historyCursorDay = -1;
+    private boolean historyLoading;
+    private List<PlannerApi.HistoryItem> history = new ArrayList<>();
 
     SchedulePage(HomeHost host) {
         this.host = host;
@@ -85,7 +90,7 @@ final class SchedulePage {
     void bind(UiData d) {
         data = d;
         Plan plan = d.displayPlan();
-        if (!d.hasState() || plan == null || PlanDiff.finished(plan)) {
+        if (!d.hasState() || plan == null) {
             String text;
             if (!d.hasState()) {
                 text = "先在「今天」里完成设置，这里会显示到1月31日的完整日程。";
@@ -102,8 +107,9 @@ final class SchedulePage {
         }
         empty.setVisibility(View.GONE);
         list.setVisibility(View.VISIBLE);
-        List<Item> items = buildItems(plan, d.displaySlot());
+        List<Item> items = buildItems(plan, d.displaySlot(), d.rules.firstDay);
         adapter.setItems(items);
+        loadHistory(d);
         if (!plan.planId.equals(scrolledForPlan)) {
             scrolledForPlan = plan.planId;
             int today = Rules.dayOf(Math.max(d.displaySlot(), plan.fromSlot));
@@ -118,9 +124,13 @@ final class SchedulePage {
 
     /** Summary, then for every day of the plan a month header when the month changes. */
     static List<Item> buildItems(Plan plan, int currentSlot) {
+        return buildItems(plan, currentSlot, 0);
+    }
+
+    static List<Item> buildItems(Plan plan, int currentSlot, int firstGameDay) {
         List<Item> items = new ArrayList<>();
         items.add(new Item(TYPE_SUMMARY, -1, -1));
-        int firstDay = Rules.dayOf(plan.fromSlot);
+        int firstDay = Math.max(firstGameDay, Rules.dayOf(currentSlot) - 1);
         int lastDay = Rules.dayOf(plan.toSlot);
         int month = -1;
         for (int day = firstDay; day <= lastDay; day++) {
@@ -132,6 +142,26 @@ final class SchedulePage {
             items.add(new Item(TYPE_DAY, day, m));
         }
         return items;
+    }
+
+    private void loadHistory(UiData d) {
+        long revision = d.snap.stateRevision;
+        int cursorDay = Rules.dayOf(d.displaySlot());
+        if (historyRevision == revision && historyCursorDay == cursorDay) return;
+        historyRevision = revision;
+        historyCursorDay = cursorDay;
+        historyLoading = true;
+        history = new ArrayList<>();
+        Async.run(host.activity(), () -> Api.get(c).history(80), items -> {
+            if (historyRevision != revision || historyCursorDay != cursorDay) return;
+            historyLoading = false;
+            history = items;
+            adapter.notifyDataSetChanged();
+        }, error -> {
+            if (historyRevision != revision || historyCursorDay != cursorDay) return;
+            historyLoading = false;
+            adapter.notifyDataSetChanged();
+        });
     }
 
     /** List adapter with three row types; day rows are recycled. */
@@ -300,11 +330,17 @@ final class SchedulePage {
             weekday.setText(wd);
             boolean weekend = info != null ? info.wd >= 6 : Zh.dateOf(day).getDayOfWeek().getValue() >= 6;
             weekday.setTextColor(weekend ? Ui.col(context, R.color.p3r_cyan_300) : Ui.col(context, R.color.p3r_ink_muted));
-            todayTag.setVisibility(today ? VISIBLE : GONE);
+            boolean previous = day == Rules.dayOf(current) - 1;
+            todayTag.setText(previous ? "昨天" : "今天");
+            todayTag.setVisibility(today || previous ? VISIBLE : GONE);
             boolean allLocked = true;
             for (int i = 0; i < 2; i++) {
                 int slot = Rules.slot(day, i == 1);
                 Plan.Step step = plan.at(slot);
+                boolean recorded = slot < current && (d.snap.storyDisplay == null || !d.snap.storyDisplay.contains(slot));
+                if (recorded) {
+                    step = recordedStep(d.rules, history, slot, historyLoading);
+                }
                 if (step == null) {
                     lines[i].setVisibility(GONE);
                     continue;
@@ -313,6 +349,7 @@ final class SchedulePage {
                 SlotRows.State state = slot < current ? SlotRows.State.DONE
                     : slot == current ? SlotRows.State.CURRENT : SlotRows.State.FUTURE;
                 lines[i].bind(d.rules, step, state, true);
+                if (recorded) lines[i].setContentDescription(Zh.period(d.rules, slot) + "，" + step.titleZh + "，查看或修改记录");
                 allLocked &= "locked".equals(step.kind);
                 final int target = slot;
                 lines[i].setOnClickListener(v -> host.openDetail(target));
@@ -335,5 +372,33 @@ final class SchedulePage {
             setContentDescription(Zh.date(day) + " " + wd + (today ? "，今天" : "")
                 + (reminderLine == null ? "" : "，" + reminderLine));
         }
+    }
+
+    /** Past rows describe the ledger, never a discarded prediction for the same slot. */
+    static Plan.Step recordedStep(Rules rules, List<PlannerApi.HistoryItem> items, int slot, boolean loading) {
+        PlannerApi.HistoryItem record = HistoryPage.activeAtSlot(items, slot);
+        Plan.Step step = new Plan.Step();
+        step.slot = slot;
+        step.action = "free";
+        step.kind = "free";
+        if (record != null) {
+            String summary = record.summaryZh == null ? "已记录" : record.summaryZh;
+            int divider = summary.indexOf(" · ");
+            String body = divider < 0 ? summary : summary.substring(divider + 3);
+            for (String prefix : new String[]{"修改了这次结果 · ", "修改了这次探索 · "}) {
+                if (body.startsWith(prefix)) {
+                    body = body.substring(prefix.length());
+                    break;
+                }
+            }
+            step.titleZh = body;
+            step.subtitleZh = "点按查看或修改";
+        } else {
+            String lock = rules.lockOf(slot);
+            step.titleZh = loading ? "正在读取记录…" : lock == null ? "暂无记录"
+                    : rules.lockReasonsZh.getOrDefault(lock, "剧情占用");
+            step.subtitleZh = "查看这天的记录";
+        }
+        return step;
     }
 }

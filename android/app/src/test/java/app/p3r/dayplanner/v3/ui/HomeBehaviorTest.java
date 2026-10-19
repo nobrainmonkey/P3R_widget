@@ -223,10 +223,10 @@ public class HomeBehaviorTest extends UiTestBase {
         a.selectTab(HomeActivity.TAB_ME);
         Shots.click(a, "记录历史");
         android.view.View page = a.getWindow().getDecorView();
-        // Tower record: both actions; an outcome: undo only; journal and older rows: none.
+        // Tower and outcome records: both actions; journal and older rows: none.
         assertTrue(Shots.has(a, "修改这条记录：10月20日 晚上 · 探索塔尔塔罗斯 · 到达 96F · 余额 18,500 日元"));
         assertTrue(Shots.has(a, "撤销这条记录：10月20日 放学后 · 皇帝 RANK 6"));
-        assertFalse(Shots.has(a, "修改这条记录：10月20日 放学后 · 皇帝 RANK 6"));
+        assertTrue(Shots.has(a, "修改这条记录：10月20日 放学后 · 皇帝 RANK 6"));
         assertFalse(Shots.has(a, "撤销这条记录：10月18日 · 同步现状"));
         assertFalse(Shots.has(a, "撤销这条记录：10月18日 放学后 · 女教皇 RANK 5"));
         assertTrue(Shots.findAll(page, "同步现状之前的记录").size() == 1);

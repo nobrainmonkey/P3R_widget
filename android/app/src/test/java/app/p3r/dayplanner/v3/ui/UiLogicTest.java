@@ -48,7 +48,7 @@ public class UiLogicTest {
         assertEquals("修学旅行，不能自由行动", SlotRows.subtitle(data.current()));
         List<SchedulePage.Item> days = SchedulePage.buildItems(data.displayPlan(), data.displaySlot());
         long dayRows = days.stream().filter(item -> item.type == 2).count();
-        assertEquals(Rules.dayOf(plan.toSlot) - Rules.dayOf(first) + 1L, dayRows);
+        assertEquals(Rules.dayOf(plan.toSlot) - Rules.dayOf(first) + 2L, dayRows);
         assertTrue(days.stream().anyMatch(item -> item.type == 2 && item.day == Rules.dayOf(first)));
         assertEquals("the installed forecast still starts at the next actionable slot", obs.slot, plan.fromSlot);
     }

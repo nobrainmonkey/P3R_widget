@@ -80,6 +80,9 @@ public final class ResultActivity extends Activity {
     private Bundle pendingTowerState;
     /** "顺便的事也做了" on the current panel, or null when the step has no side steps. */
     private CheckRow sideRow;
+    private long correctionSeq = -1;
+    private PlannerApi.OutcomeCorrection correction;
+    private Plan.Step correctionStep;
 
     // ------------------------------------------------------------------ lifecycle
 
@@ -138,6 +141,9 @@ public final class ResultActivity extends Activity {
         planIdExtra = intent.getStringExtra(Intents.EXTRA_PLAN_ID);
         stateRevExtra = intent.getLongExtra(Intents.EXTRA_STATE_REV, -1);
         fromApp = intent.getBooleanExtra(HomeActivity.EXTRA_FROM_APP, false);
+        correctionSeq = intent.getLongExtra(Intents.EXTRA_CORRECT_SEQ, -1);
+        correction = null;
+        correctionStep = null;
     }
 
     @Override
@@ -236,6 +242,8 @@ public final class ResultActivity extends Activity {
         Rules rules;
         PlannerApi.Snapshot snapshot;
         int level;
+        PlannerApi.OutcomeCorrection correction;
+        Plan.Step correctionStep;
     }
 
     private void load() {
@@ -246,6 +254,12 @@ public final class ResultActivity extends Activity {
             l.rules = l.api.rules();
             l.snapshot = l.api.snapshot();
             l.level = UiPrefs.towerLevel(app);
+            if (correctionSeq >= 0) {
+                l.correction = l.api.outcomeCorrection(correctionSeq);
+                if (l.correction != null && l.rules != null) {
+                    l.correctionStep = HistoricalOutcome.step(l.rules, l.snapshot.profile, l.correction);
+                }
+            }
             return l;
         }, l -> {
             api = l.api;
@@ -253,6 +267,8 @@ public final class ResultActivity extends Activity {
             Zh.useNames(rules);
             snap = l.snapshot;
             rememberedLevel = l.level;
+            correction = l.correction;
+            correctionStep = l.correctionStep;
             route();
         }, error -> showLoadFailed(null));
     }
@@ -268,6 +284,22 @@ public final class ResultActivity extends Activity {
         }
         if (obs == null) {
             showNotSetUp();
+            return;
+        }
+        if (correctionSeq >= 0) {
+            if (correction == null || correctionStep == null) {
+                body.removeAllViews();
+                body.addView(Ui.title(this, "这条记录已经更新"));
+                body.addView(Ui.body(this, "关闭后重新打开这天的记录。"), top(8));
+                body.addView(closeButton("关闭"), top(20));
+                return;
+            }
+            snap.observed = correction.beforeState.copy();
+            snap.stateRevision = correction.stateRevision;
+            slot = correction.slot;
+            actionKey = correction.actionKey;
+            if (banner == null) banner = "修改记录 · 原结果：" + Outcomes.summary(rules, correctionStep, correction.outcome);
+            render();
             return;
         }
         if (Slots.finished(rules, obs)) {
@@ -325,6 +357,7 @@ public final class ResultActivity extends Activity {
 
     /** The plan step the panel is about (the chosen alternative when there is one). */
     private Plan.Step step() {
+        if (correctionStep != null) return correctionStep;
         if (substitute != null) {
             return substitute;
         }
@@ -337,7 +370,7 @@ public final class ResultActivity extends Activity {
      * from the current record) or a step of a plan that matches the latest record.
      */
     private boolean predictionCurrent() {
-        return substitute != null || snap.planCurrent;
+        return correctionStep != null || substitute != null || snap.planCurrent;
     }
 
     // ------------------------------------------------------------------ rendering
@@ -545,7 +578,7 @@ public final class ResultActivity extends Activity {
         box.setBackground(Ui.card(this).accent(Ui.col(this, R.color.ui_gold), Ui.dp(this, 4)));
         Ui.pad(box, 16, 10, 12, 4);
         box.addView(StepViews.sideBlock(this, step, 14));
-        sideRow = new CheckRow(this, "顺便的事也做了", doneByDefault);
+        sideRow = new CheckRow(this, "顺便的事也做了", correction == null ? doneByDefault : correction.outcome.sideDone);
         LinearLayout.LayoutParams rp = Ui.matchWrap();
         rp.topMargin = Ui.dp(this, 4);
         box.addView(sideRow, rp);
@@ -670,7 +703,8 @@ public final class ResultActivity extends Activity {
     }
 
     private ToggleRow readyToggle() {
-        return new ToggleRow(this, "游戏提示下次就能升级", "没升级，但看到了这个提示时打开。", false);
+        return new ToggleRow(this, "游戏提示下次就能升级", "没升级，但看到了这个提示时打开。",
+                correction != null && correction.outcome.readyCue);
     }
 
     private static void toggle(View view) {
@@ -850,7 +884,7 @@ public final class ResultActivity extends Activity {
                 top(10));
             List<String> labels = new ArrayList<>();
             List<Integer> values = new ArrayList<>();
-            for (int lv = now; lv <= Math.min(6, now + 1); lv++) {
+            for (int lv = correction == null ? now : 1; lv <= (correction == null ? Math.min(6, now + 1) : 6); lv++) {
                 labels.add(Zh.lv(lv));
                 values.add(lv);
             }
@@ -858,6 +892,7 @@ public final class ResultActivity extends Activity {
             final int stat = i;
             // Preselect the forecast level (the prediction), never silently "no level-up".
             int predicted = current ? step.predicted.statLvAfter[i] : -1;
+            if (correction != null && correction.outcome.statLv[i] > 0) predicted = correction.outcome.statLv[i];
             int preset = predicted > 0 && values.contains(predicted) ? values.indexOf(predicted) : 0;
             seg.setSelected(preset);
             chosen[stat] = values.get(preset);
@@ -871,7 +906,8 @@ public final class ResultActivity extends Activity {
             amount.setOnClickListener(v -> {
                 CashPad.Options options = new CashPad.Options();
                 options.title = "打工后手上有多少钱？";
-                options.initial = obs.cashExact ? obs.cash + step.predicted.cashDelta : null;
+                options.initial = correction != null && correction.outcome.cashBalance >= 0
+                        ? correction.outcome.cashBalance : obs.cashExact ? obs.cash + step.predicted.cashDelta : null;
                 options.allowUnknown = false;
                 CashPad.show(this, options, value -> {
                     if (value != null) {
@@ -1040,6 +1076,7 @@ public final class ResultActivity extends Activity {
             render();
         });
         row.addView(cannot, Ui.weight(1));
+        if (correction != null) return row;
         TextView other = Ui.quiet(this, "改做别的…");
         other.setOnClickListener(v -> switchToOther());
         row.addView(other, Ui.weight(1));
@@ -1087,7 +1124,7 @@ public final class ResultActivity extends Activity {
             CashPad.show(this, options, value -> submit(step, Outcomes.skipped(reason, value == null ? -1 : value)));
             return;
         }
-        if ("unwilling".equals(reason) && "act:".regionMatches(0, step.action, 0, 4)) {
+        if (correction == null && "unwilling".equals(reason) && "act:".regionMatches(0, step.action, 0, 4)) {
             askExclude(step);
             return;
         }
@@ -1359,6 +1396,13 @@ public final class ResultActivity extends Activity {
         long rev = snap.stateRevision;
         String planId = snap.plan == null ? "" : snap.plan.planId;
         String id = CommandIds.of("result", rev, planId, step.slot, step.action, outcomeKey(outcome));
+        if (correction != null) {
+            long target = correction.targetSeq;
+            String fixId = CommandIds.of("outcome_fix", rev, target, outcomeKey(outcome));
+            Async.run(this, () -> a.correctOutcome(fixId, rev, target, outcome),
+                    receipt -> onReceipt(receipt, "已修改：" + summary, after), error -> onFailure());
+            return;
+        }
         Async.run(this, () -> a.recordOutcome(id, rev, step.slot, step.action, outcome),
             receipt -> onReceipt(receipt, summary, after), error -> onFailure());
     }
@@ -1398,6 +1442,12 @@ public final class ResultActivity extends Activity {
             return;
         }
         if (Messages.isStale(receipt)) {
+            if (correctionSeq >= 0) {
+                banner = Messages.STALE;
+                showLoading();
+                load();
+                return;
+            }
             banner = Messages.STALE;
             caughtUp = false;
             substitute = null;

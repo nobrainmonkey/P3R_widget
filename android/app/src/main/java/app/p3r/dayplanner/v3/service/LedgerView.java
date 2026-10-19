@@ -199,6 +199,7 @@ final class LedgerView {
         for (EventRow row : chain) {
             boolean isRecord = EventKind.isObserved(row.kind)
                     || EventKind.TOWER_FIX.equals(row.kind)
+                    || EventKind.OUTCOME_FIX.equals(row.kind)
                     || EventKind.VOID.equals(row.kind);
             if (isRecord) {
                 last = Math.max(last, row.created);

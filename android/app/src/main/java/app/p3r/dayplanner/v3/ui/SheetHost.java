@@ -20,6 +20,8 @@ public final class SheetHost extends FrameLayout {
     private final ScrollView scroller;
     private final FrameLayout body;
     private Runnable onDismiss;
+    private long motion;
+    private boolean closing;
 
     public SheetHost(Context context) {
         super(context);
@@ -61,6 +63,12 @@ public final class SheetHost extends FrameLayout {
 
     /** Shows {@code content} in the sheet (replacing any current one). */
     public void show(View content, Runnable onDismiss) {
+        boolean replacing = getVisibility() == VISIBLE;
+        motion++;
+        closing = false;
+        panel.animate().withEndAction(null).cancel();
+        scrim.animate().cancel();
+        body.animate().cancel();
         this.onDismiss = onDismiss;
         body.removeAllViews();
         body.addView(content, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -68,17 +76,30 @@ public final class SheetHost extends FrameLayout {
         scroller.scrollTo(0, 0);
         setVisibility(VISIBLE);
         bringToFront();
+        panel.setTranslationY(0);
+        panel.setAlpha(1f);
+        body.setTranslationY(0);
+        body.setAlpha(1f);
         if (Ui.animationsEnabled()) {
-            scrim.setAlpha(0f);
-            scrim.animate().alpha(1f).setDuration(160).start();
-            panel.setTranslationY(Ui.dp(getContext(), 120));
-            panel.setAlpha(0f);
-            panel.animate().translationY(0).alpha(1f).setDuration(200).start();
+            if (!replacing) scrim.setAlpha(0f);
+            scrim.animate().alpha(1f).setDuration(180).start();
+            if (replacing) {
+                body.setAlpha(0.3f);
+                body.setTranslationY(Ui.dp(getContext(), 8));
+                body.animate().translationY(0).alpha(1f).setDuration(140).start();
+            } else {
+                panel.setTranslationY(Ui.dp(getContext(), 48));
+                panel.setAlpha(0f);
+                panel.animate().translationY(0).alpha(1f).setDuration(220)
+                    .setInterpolator(new android.view.animation.PathInterpolator(0.2f, 0f, 0f, 1f)).start();
+            }
+        } else {
+            scrim.setAlpha(1f);
         }
     }
 
     public boolean isShowing() {
-        return getVisibility() == VISIBLE;
+        return getVisibility() == VISIBLE && !closing;
     }
 
     /** Top edge of the sheet panel in this view's coordinates, or -1 before it is laid out. */
@@ -88,17 +109,34 @@ public final class SheetHost extends FrameLayout {
 
     /** Closes the sheet; returns false when nothing was showing. */
     public boolean dismiss() {
+        if (closing) return true;
         if (!isShowing()) {
             return false;
         }
-        setVisibility(GONE);
-        body.removeAllViews();
+        closing = true;
+        long ticket = ++motion;
         Runnable callback = onDismiss;
         onDismiss = null;
+        panel.animate().withEndAction(null).cancel();
+        scrim.animate().cancel();
+        if (Ui.animationsEnabled()) {
+            scrim.animate().alpha(0f).setDuration(160).start();
+            panel.animate().translationY(Ui.dp(getContext(), 40)).alpha(0f).setDuration(160)
+                .withEndAction(() -> finishDismiss(ticket)).start();
+        } else {
+            finishDismiss(ticket);
+        }
         if (callback != null) {
             callback.run();
         }
         return true;
+    }
+
+    private void finishDismiss(long ticket) {
+        if (ticket != motion || !closing) return;
+        setVisibility(GONE);
+        body.removeAllViews();
+        closing = false;
     }
 
     /** The view currently shown (tests), or null. */

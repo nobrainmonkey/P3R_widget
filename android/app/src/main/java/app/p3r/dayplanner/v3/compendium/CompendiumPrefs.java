@@ -27,6 +27,14 @@ public final class CompendiumPrefs {
         return read().ownedDlc;
     }
 
+    public Set<String> ownedPersonas() {
+        return read().ownedPersonas;
+    }
+
+    public FusionBasket basket() {
+        return read().basket;
+    }
+
     private CompendiumChoices read() {
         try (Ledger ledger = new Ledger(context, PlanDb.FILE_NAME)) {
             return decode(ledger.compendiumJson());
@@ -37,12 +45,33 @@ public final class CompendiumPrefs {
         update(choices -> {
             Set<String> ids = new TreeSet<>(choices.favorites);
             if (favorite) ids.add(personaId); else ids.remove(personaId);
-            return new CompendiumChoices(ids, choices.ownedDlc);
+            return new CompendiumChoices(ids, choices.ownedDlc, choices.ownedPersonas, choices.basket);
         });
     }
 
     public void setOwnedDlc(Set<String> packs) {
-        update(choices -> new CompendiumChoices(choices.favorites, packs));
+        update(choices -> new CompendiumChoices(choices.favorites, packs, choices.ownedPersonas, choices.basket));
+    }
+
+    public void setOwned(String personaId, boolean owned) {
+        update(choices -> {
+            Set<String> ids = new TreeSet<>(choices.ownedPersonas);
+            if (owned) ids.add(personaId); else ids.remove(personaId);
+            return new CompendiumChoices(choices.favorites, choices.ownedDlc, ids, choices.basket);
+        });
+    }
+
+    public void setBasket(FusionBasket basket) {
+        update(choices -> new CompendiumChoices(choices.favorites, choices.ownedDlc, choices.ownedPersonas, basket));
+    }
+
+    /** Records a newly registered result. Registered materials remain summonable. */
+    public void recordFusion(FusionCalculator.Recipe recipe) {
+        update(choices -> {
+            Set<String> ids = new TreeSet<>(choices.ownedPersonas);
+            ids.add(recipe.result.id);
+            return new CompendiumChoices(choices.favorites, choices.ownedDlc, ids, choices.basket);
+        });
     }
 
     private interface Update {
@@ -67,7 +96,7 @@ public final class CompendiumPrefs {
         if (text == null) return CompendiumChoices.empty();
         try {
             return CompendiumChoices.fromJson(new JSONObject(text));
-        } catch (JSONException invalid) {
+        } catch (JSONException | IllegalArgumentException invalid) {
             return CompendiumChoices.empty();
         }
     }

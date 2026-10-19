@@ -69,10 +69,10 @@ Production Java lives under `android/app/src/main/java/app/p3r/dayplanner/v3/`.
 | --- | --- |
 | [model](../android/app/src/main/java/app/p3r/dayplanner/v3/model/) | `Rules`, `RulesLoader`, `Profile`: rule-pack parsing and validation, goals and preferences. Production `DefaultWiring` loads the asset through `RulesLoader`; `RulesAssets` is a separate cache helper. |
 | [engine](../android/app/src/main/java/app/p3r/dayplanner/v3/engine/) | `Engine` is the public facade. `Model`/`Tables` compile rules into arrays; `Kernel` applies transitions; `Simulator` exposes copy-based operations; `Heuristics`/`Planner` search; `PlanValidator` independently replays plans. Pure Java plus `org.json`. |
-| [compendium](../android/app/src/main/java/app/p3r/dayplanner/v3/compendium/) | `Compendium` loads the offline catalogue; `FusionCalculator` handles normal/same-arcana/fixed special fusion with three owned DLC packs; `CompendiumPrefs` stores favorites and DLC separately from scheduling assumptions. |
+| [compendium](../android/app/src/main/java/app/p3r/dayplanner/v3/compendium/) | `Compendium` loads the offline catalogue; `FusionCalculator` handles normal/same-arcana/fixed special fusion with three owned DLC packs; `CompendiumPrefs` stores favorites, registrations, DLC and the fusion basket separately from scheduling assumptions. |
 | [store](../android/app/src/main/java/app/p3r/dayplanner/v3/store/) | `PlanDb`, `Ledger`, `Replayer`, `PackLayout`, `Backup`: SQLite records, replay, rule-update remapping and backup format. |
 | [service](../android/app/src/main/java/app/p3r/dayplanner/v3/service/) | `PlannerApi`/`PlannerService`: shared boundary for app and widget. `CommandCheck` validates writes; `ReplanWorker` computes and validates plans in the background; `PeriodTips` collects the current block period's reminder catalogue independently of the plan. |
-| [ui](../android/app/src/main/java/app/p3r/dayplanner/v3/ui/) | `HomeActivity` and five tab pages, including `TipsPage`; `StateActivity`/`StateDraft` for setup and sync; `ResultActivity`/`Outcomes`/`TowerPanel` for results; `FullReplanSheet`/`PlanDiff` for fresh planning. Native Android Views, largely built in Java. |
+| [ui](../android/app/src/main/java/app/p3r/dayplanner/v3/ui/) | `HomeActivity` and six tab pages, including `TipsPage` and `CompendiumPage`; `StateActivity`/`StateDraft` for setup and sync; `ResultActivity`/`Outcomes`/`TowerPanel` for results; `FullReplanSheet`/`PlanDiff` for fresh planning. Native Android Views, largely built in Java. |
 | [widget](../android/app/src/main/java/app/p3r/dayplanner/v3/widget/) | `PlanWidget`, `PlanView`, `PlanItems`, `CardRenderer`, `CardText`, `WidgetWorker`: RemoteViews, task browsing, result actions, sizing and background work. `PaletteHost`/`FadeGuard` handle palette transitions. |
 | [rules builder](../rules/build/build_p3r_rules.py) | Python standard-library compiler for the shipped JSON asset and its generated report. |
 | [tests](../android/app/src/test/java/app/p3r/dayplanner/v3/) | JVM engine/model tests and Robolectric service, SQLite, UI and widget tests. |
@@ -81,14 +81,27 @@ The main data flow is: checkpoint plus recorded events → replayed observed sta
 state and profile → complete forecast plan → independent validation → revision-checked
 installation → app and widget. Results return through the service into the event ledger.
 
-3.5.0 adds a single 「图鉴与合成」 entry in 提示/我的. `CompendiumPage` keeps search,
-filters, favorites, details and fusion navigation together; it uses filling sub-pages with their
+3.5.0 adds the independent bottom 「图鉴」 tab as the sole main entry. `CompendiumPage`
+has internal 图鉴 / 合成 / 合成篮 navigation; search, quiet scope/filter tools and independent
+等级/阿尔卡那 sorting mode plus ascending/descending direction stay distinct from those tabs.
+It keeps favorites, details and fusion navigation together, using filling sub-pages with their
 own lists rather than nesting a list inside the ordinary sub-page ScrollView. The 194 summonable
 Personas (173 base + 21 DLC), official SC/English names, skills, chart and recipes are in
 `assets/p3r_compendium.json`; provenance and regeneration are in [PERSONA_DATA_SOURCES.md](PERSONA_DATA_SOURCES.md).
 No portraits are shipped; Episode Aigis is excluded. DLC ownership changes fusion ladders, not
 just list visibility. Favorites do not change the planner's assumed carried Arcana. These choices
 live in SQLite meta and round-trip through the normal backup; old backups keep current choices.
+The owner's continuous-fusion flow adds a persistent basket (multiple unique targets and selected
+ingredient recipes) plus a separate registered/summonable-Persona checklist. The owner explicitly
+clarified this means registered in the Compendium, not currently carried inventory. Chosen recipes
+expand a dependency tree and show ALL leaf summon quantities with registration status and
+prerequisite-first crafting steps on the same page; this does not change the validated fusion calculator. An explicit
+「记为已合成」 registers the result and never removes registrations of materials. Explicit chosen
+recipes remain selected even when their result is registered; collapsing a branch to a summon is
+a separate choice. Registrations do not change the calendar's Persona bonus assumptions.
+Browsing keeps one transient page above the existing workspace, supports direct
+ingredient recipe lookup and 「接着合成」, and preserves search/filter/list state. Sheets and page
+transitions cancel superseded animations so a previous dismissal cannot hide the next picker.
 
 Scheduling policy is now **4**: old policy3 forecasts are recomputed without changing records.
 NEW_DIVERSE reserves one unlock/prerequisite candidate within K (K≥2), including when an
@@ -371,9 +384,10 @@ their floors, shared by planned-visit reminders and period tips; IDs21–27 are 
 
 ## App and widget interaction
 
-- Tabs: **今天 / 日程 / 社群 / 提示 / 我的**. Setup and later sync preserve drafts and prefill
+- Tabs: **今天 / 日程 / 社群 / 提示 / 图鉴 / 我的**. Setup and later sync preserve drafts and prefill
   values. Result sheets ask only what matters to the action: rank-up/no rank-up, training
   correction, tower floor/cash/rescue, or an alternative action.
+- 日程保留前一天；已记录的结果通过 `OUTCOME_FIX` 更正原记录并重放后续记录，不重复记一次行动。
 - Widget arrows browse individual tasks; **当前** returns to the pending task;
   **完成** is the right-hand primary action. Training/jobs can record directly with undo;
   meetings and tower visits open result sheets. Story/status cards have their own actions.

@@ -51,7 +51,7 @@ public final class EventRow {
      * -1 for other kinds and malformed payloads.
      */
     public long target() {
-        if (!EventKind.VOID.equals(kind) && !EventKind.TOWER_FIX.equals(kind)) {
+        if (!EventKind.VOID.equals(kind) && !EventKind.TOWER_FIX.equals(kind) && !EventKind.OUTCOME_FIX.equals(kind)) {
             return -1;
         }
         try {

@@ -15,6 +15,7 @@ final class CompendiumQuery {
     static final int LEVEL_DESC = 1;
     static final int ARCANA = 2;
     static final int NAME = 3;
+    static final int ARCANA_DESC = 4;
 
     private CompendiumQuery() {}
 
@@ -36,14 +37,14 @@ final class CompendiumQuery {
         }
         Comparator<Compendium.Persona> byLevel = Comparator.comparingInt(p -> p.level);
         Comparator<Compendium.Persona> sort;
-        if (order == LEVEL_DESC) sort = byLevel.reversed();
-        else if (order == ARCANA) sort = Comparator.comparingInt(p -> {
+        if (order == ARCANA || order == ARCANA_DESC) sort = Comparator.comparingInt((Compendium.Persona p) -> {
             Compendium.Arcana value = data.arcana(p.arcana);
             return value == null ? Integer.MAX_VALUE : value.order;
-        });
-        else if (order == NAME) sort = Comparator.comparing(p -> p.nameZh);
+        }).thenComparing(byLevel);
+        else if (order == NAME) sort = Comparator.comparing((Compendium.Persona p) -> p.nameZh).thenComparing(byLevel);
         else sort = byLevel;
-        result.sort(sort.thenComparing(byLevel).thenComparing(p -> p.nameEn));
+        if (order == LEVEL_DESC || order == ARCANA_DESC) sort = sort.reversed();
+        result.sort(sort.thenComparing(p -> p.nameEn));
         return result;
     }
 

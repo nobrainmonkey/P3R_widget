@@ -8,10 +8,12 @@ import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.store.CheckpointRow;
+import app.p3r.dayplanner.v3.store.Canonical;
 import app.p3r.dayplanner.v3.store.EventKind;
 import app.p3r.dayplanner.v3.store.EventRow;
 import app.p3r.dayplanner.v3.store.OutcomeApplier;
 import app.p3r.dayplanner.v3.store.OutcomeRecord;
+import app.p3r.dayplanner.v3.store.OutcomeFix;
 import app.p3r.dayplanner.v3.store.PackLayout;
 import app.p3r.dayplanner.v3.store.Replayer;
 import app.p3r.dayplanner.v3.store.TowerRecord;
@@ -128,12 +130,18 @@ final class HistoryText {
         item.seq = row.seq;
         item.createdMillis = row.created;
         item.kind = row.kind;
+        item.originalSeq = EventKind.isObserved(row.kind) ? row.seq
+                : EventKind.OUTCOME_FIX.equals(row.kind) || EventKind.TOWER_FIX.equals(row.kind) ? row.target() : -1;
         item.voided = row.voided;
         item.undoable = row.checkpointId == currentCheckpointId
                 && currentCheckpointId != 0
                 && !row.voided
                 && EventKind.isVoidable(row.kind);
-        item.correctable = item.undoable && EventKind.TOWER.equals(row.kind);
+        boolean outcome = EventKind.OUTCOME.equals(row.kind) || EventKind.SKIP.equals(row.kind);
+        EventRow target = EventKind.OUTCOME_FIX.equals(row.kind) ? ctx.bySeq.get(row.target()) : row;
+        item.correctable = item.undoable && (EventKind.TOWER.equals(row.kind)
+                || (outcome || EventKind.OUTCOME_FIX.equals(row.kind)) && target != null && !target.voided
+                && ctx.traces.containsKey(target.seq));
         item.slot = slotOf(ctx, row);
         try {
             item.tower = towerValues(ctx, row);
@@ -192,6 +200,7 @@ final class HistoryText {
             case EventKind.TOWER:
                 return row.slot();
             case EventKind.TOWER_FIX:
+            case EventKind.OUTCOME_FIX:
             case EventKind.VOID: {
                 EventRow target = ctx.bySeq.get(row.target());
                 return target == null ? -1 : slotOf(ctx, target);
@@ -224,6 +233,12 @@ final class HistoryText {
             case EventKind.TOWER_FIX:
                 return ZhText.join("修改了这次探索",
                         towerDetails(ctx.rules, TowerRecord.fromJson(row.payload().getJSONObject("tower"))));
+            case EventKind.OUTCOME_FIX: {
+                OutcomeFix fix = OutcomeFix.fromJson(row.payload());
+                EventRow values = new EventRow(row.seq, row.commandId, row.checkpointId, fix.record.kind(),
+                        Canonical.of(fix.record.toJson()), row.voided, row.created, row.rulesVersion);
+                return ZhText.join("修改了这次结果", outcomeBody(ctx, values));
+            }
             case EventKind.VOID: {
                 EventRow target = ctx.bySeq.get(row.target());
                 return target == null ? "撤销了一条记录" : "撤销了「" + body(ctx, target) + "」";
@@ -247,6 +262,15 @@ final class HistoryText {
         }
         Action action = Action.parse(ctx.rules, record.actionKey);
         Traced traced = ctx.traces.get(row.seq);
+        // Original rows remain the original observation; a fix is a separate history entry.
+        for (EventRow edit : ctx.bySeq.values()) {
+            if (!edit.voided && EventKind.OUTCOME_FIX.equals(edit.kind) && edit.target() == row.seq) {
+                traced = null;
+                break;
+            }
+        }
+        if (record.rankAfter >= 0 && outcome.rank < 0 && outcome.code == Outcome.Code.AS_PREDICTED)
+            outcome.rank = record.rankAfter;
         String title = title(ctx.rules, action, traced);
         if (outcome.code == Outcome.Code.SKIPPED) {
             return ZhText.join(title, skipped(action, outcome.reason));
@@ -387,7 +411,8 @@ final class HistoryText {
         if (traced != null && traced.after.rank[link] != traced.before.rank[link]) {
             return ZhText.rankChange(traced.before.rank[link], traced.after.rank[link]);
         }
-        if (traced == null && outcome.code == Outcome.Code.RANK_UP) {
+        if (traced == null && (outcome.code == Outcome.Code.RANK_UP
+                || outcome.code == Outcome.Code.AS_PREDICTED && outcome.rank >= 0)) {
             return outcome.rank >= 0 ? (outcome.rank >= 10 ? "升到 MAX" : "升到 RANK " + outcome.rank) : "升级了";
         }
         String met = outcome.code == Outcome.Code.NO_RANK_UP ? ZhText.join("见面了", "没升级") : "见面了";

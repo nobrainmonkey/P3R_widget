@@ -25,6 +25,7 @@ import java.util.List;
 import app.p3r.dayplanner.v3.compendium.Compendium;
 import app.p3r.dayplanner.v3.compendium.CompendiumPrefs;
 import app.p3r.dayplanner.v3.compendium.FusionCalculator;
+import app.p3r.dayplanner.v3.compendium.FusionBasket;
 
 /** Real catalogue coverage and complete user journeys, independent of a current calendar. */
 @RunWith(RobolectricTestRunner.class)
@@ -40,6 +41,8 @@ public class CompendiumPageTest extends UiTestBase {
         }
         prefs = new CompendiumPrefs(RuntimeEnvironment.getApplication());
         prefs.setOwnedDlc(Collections.emptySet());
+        prefs.setBasket(new FusionBasket());
+        for (String id : prefs.ownedPersonas()) prefs.setOwned(id, false);
         for (String id : prefs.favorites()) prefs.setFavorite(id, false);
     }
 
@@ -73,7 +76,7 @@ public class CompendiumPageTest extends UiTestBase {
         ((EditText) tagged(activity, "compendium_min_level")).setText("20");
         ((EditText) tagged(activity, "compendium_max_level")).setText("70");
         Shots.click(activity, data.arcana("Lovers").nameZh);
-        Shots.click(activity, "等级 ↓");
+        tagged(activity, "compendium_sort_direction").performClick();
         Shots.click(activity, "应用");
         Shots.idle();
         ListView list = tagged(activity, "compendium_list");
@@ -90,6 +93,26 @@ public class CompendiumPageTest extends UiTestBase {
         Shots.click(activity, "重置");
         Shots.click(activity, "应用");
         assertEquals("173 个", text(activity, "compendium_count"));
+        assertCatalogueOrder(activity, false, false);
+
+        Shots.click(activity, "筛选");
+        tagged(activity, "compendium_sort_arcana").performClick();
+        assertEquals("升序 ↑", text(activity, "compendium_sort_direction"));
+        Shots.click(activity, "应用");
+        assertCatalogueOrder(activity, true, false);
+
+        Shots.click(activity, "筛选");
+        tagged(activity, "compendium_sort_direction").performClick();
+        assertTrue(tagged(activity, "compendium_sort_arcana").isSelected());
+        assertEquals("降序 ↓", text(activity, "compendium_sort_direction"));
+        Shots.click(activity, "应用");
+        assertCatalogueOrder(activity, true, true);
+
+        Shots.click(activity, "筛选");
+        tagged(activity, "compendium_sort_level").performClick();
+        assertEquals("降序 ↓", text(activity, "compendium_sort_direction"));
+        Shots.click(activity, "应用");
+        assertCatalogueOrder(activity, false, true);
     }
 
     @Test public void ownedDlcChangesTheActualFusionResult() {
@@ -126,8 +149,6 @@ public class CompendiumPageTest extends UiTestBase {
         Shots.click(activity, material.nameZh + " · " + data.arcana(material.arcana).nameZh + " Lv." + material.level);
         assertNotNull(tagged(activity, "persona_recipes_" + material.id));
         activity.onBackPressed();
-        activity.onBackPressed();
-        activity.onBackPressed();
         assertEquals("Alice", ((EditText) tagged(activity, "compendium_search")).getText().toString());
     }
 
@@ -152,17 +173,79 @@ public class CompendiumPageTest extends UiTestBase {
             Collections.emptySet(), false, CompendiumQuery.LEVEL_ASC).stream().findAny().isPresent());
     }
 
+    @Test public void secondaryMenuSurfacesRemainUsableAtPhoneSize() {
+        HomeActivity activity = open();
+        Shots.click(activity, "筛选");
+        capture(activity, "compendium_filter_sheet");
+        assertNotNull(tagged(activity, "compendium_min_level"));
+        assertNotNull(tagged(activity, "compendium_max_level"));
+        activity.dismissSheet();
+        tagged(activity, "compendium_dlc").performClick();
+        capture(activity, "compendium_dlc_sheet");
+        assertTrue(Shots.has(activity, "仅游戏本体"));
+        activity.dismissSheet();
+        tagged(activity, "fusion_tab").performClick();
+        capture(activity, "fusion_root");
+        tagged(activity, "fusion_material_1").performClick();
+        capture(activity, "fusion_material_picker");
+        ListView picker = tagged(activity, "fusion_picker_list");
+        assertTrue(picker.getAdapter().getCount() > 0);
+        assertTrue(picker.getHeight() > Ui.dp(activity, 120));
+    }
+
+    @Test public void selectingTheFirstMaterialKeepsTheNextSearchReadyForTyping() {
+        HomeActivity activity = open();
+        tagged(activity, "fusion_tab").performClick();
+        tagged(activity, "fusion_material_1").performClick();
+        EditText firstSearch = tagged(activity, "fusion_picker_search");
+        assertTrue("first search accepts typing focus", firstSearch.requestFocus());
+        firstSearch.setText("Orpheus");
+        assertTrue("typing keeps the first search focused", firstSearch.hasFocus());
+        choose(activity, "fusion_picker_list", data.personaByKey("Orpheus").id);
+        assertTrue(activity.sheets().isShowing());
+        EditText secondSearch = tagged(activity, "fusion_picker_search");
+        assertTrue("the next material gets its own empty search", firstSearch != secondSearch);
+        assertEquals("", secondSearch.getText().toString());
+        assertTrue("continue typing without tapping the search again", secondSearch.hasFocus());
+    }
+
+    @Test public void restoredToolChoicesRefreshWithoutDiscardingTheCurrentLookup() {
+        HomeActivity activity = open();
+        EditText search = tagged(activity, "compendium_search");
+        search.setText("Orpheus");
+        Compendium.Persona orpheus = data.personaByKey("Orpheus");
+        prefs.setFavorite(orpheus.id, true);
+        prefs.setOwned(orpheus.id, true);
+        prefs.setOwnedDlc(Collections.singleton("p5r_1"));
+        CompendiumPage.refresh(tagged(activity, "compendium_page"));
+        assertEquals("Orpheus", search.getText().toString());
+
+        Shots.click(activity, "收藏");
+        assertEquals("1 个", text(activity, "compendium_count"));
+        ListView list = tagged(activity, "compendium_list");
+        View row = list.getAdapter().getView(0, null, list);
+        assertEquals(orpheus.id, item(activity, 0).id);
+        assertTrue(row.findViewWithTag("persona_owned_" + orpheus.id).isSelected());
+
+        Shots.click(activity, "全部");
+        search.setText("Carmen");
+        assertTrue(contains(activity, data.personaByKey("Carmen").id));
+        prefs.setOwnedDlc(Collections.emptySet());
+        CompendiumPage.refresh(tagged(activity, "compendium_page"));
+        assertEquals("Carmen", search.getText().toString());
+        assertEquals("0 个", text(activity, "compendium_count"));
+    }
+
     private HomeActivity open() {
         HomeActivity activity = home();
-        activity.selectTab(HomeActivity.TAB_ME);
-        Shots.click(activity, "图鉴与合成");
+        activity.selectTab(HomeActivity.TAB_COMPENDIUM);
         Shots.idle();
         assertNotNull(tagged(activity, "compendium_page"));
         return activity;
     }
 
     private void pick(HomeActivity activity, String button, String query, String key) {
-        tagged(activity, button).performClick();
+        if (!activity.sheets().isShowing()) tagged(activity, button).performClick();
         ((EditText) tagged(activity, "fusion_picker_search")).setText(query);
         choose(activity, "fusion_picker_list", data.personaByKey(key).id);
         Shots.idle();
@@ -189,6 +272,19 @@ public class CompendiumPageTest extends UiTestBase {
         ListView list = tagged(activity, "compendium_list");
         for (int i = 0; i < list.getAdapter().getCount(); i++) if (item(activity, i).id.equals(id)) return true;
         return false;
+    }
+
+    private void assertCatalogueOrder(HomeActivity activity, boolean byArcana, boolean descending) {
+        ListView list = tagged(activity, "compendium_list");
+        assertTrue(list.getAdapter().getCount() > 1);
+        int previous = descending ? Integer.MAX_VALUE : Integer.MIN_VALUE;
+        for (int i = 0; i < list.getAdapter().getCount(); i++) {
+            Compendium.Persona persona = item(activity, i);
+            int key = persona.level + (byArcana ? data.arcana(persona.arcana).order * 100 : 0);
+            assertTrue("order at " + persona.nameEn + ": " + previous + " → " + key,
+                descending ? previous >= key : previous <= key);
+            previous = key;
+        }
     }
 
     private static String text(HomeActivity activity, String tag) {

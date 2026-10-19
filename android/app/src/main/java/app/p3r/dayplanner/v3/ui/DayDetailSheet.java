@@ -33,6 +33,10 @@ final class DayDetailSheet {
         DatePlate plate = new DatePlate(c, false);
         plate.bind(d.rules, slot);
         column.addView(plate);
+        if (slot < d.displaySlot() && (d.snap.storyDisplay == null || !d.snap.storyDisplay.contains(slot))) {
+            column.addView(HistoryPage.buildForDay(host, Rules.dayOf(slot)), top(c, 12));
+            return column;
+        }
         Rules.Day day = d.rules.day(Rules.dayOf(slot));
         if (day != null && day.noteZh != null && !day.noteZh.trim().isEmpty()) {
             LinearLayout note = Ui.row(c);

@@ -247,6 +247,20 @@ public final class Backup {
                 TowerRecord.fromJson(payload.getJSONObject("tower"));
                 requireTarget(row, earlier, EventKind.TOWER);
                 break;
+            case EventKind.OUTCOME_FIX: {
+                OutcomeFix fix = OutcomeFix.fromJson(payload);
+                EventRow target = earlier.get(fix.target);
+                if (target == null || target.checkpointId != row.checkpointId
+                        || !(EventKind.OUTCOME.equals(target.kind) || EventKind.SKIP.equals(target.kind))) {
+                    throw new Invalid(ZH_DAMAGED, "outcome correction has a bad target");
+                }
+                OutcomeRecord original = OutcomeRecord.fromJson(target.payload());
+                if (fix.record.slot != original.slot || !fix.record.actionKey.equals(original.actionKey)
+                        || !java.util.Objects.equals(fix.record.stepId, original.stepId)) {
+                    throw new Invalid(ZH_DAMAGED, "outcome correction moved the original action");
+                }
+                break;
+            }
             case EventKind.VOID:
                 requireTarget(row, earlier, null);
                 break;
