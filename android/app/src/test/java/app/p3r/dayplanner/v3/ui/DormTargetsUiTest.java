@@ -55,10 +55,12 @@ public class DormTargetsUiTest extends UiTestBase {
         return activity;
     }
 
+    /** The 社群 tab on its 队友特性 sub-tab. */
     private HomeActivity links() {
         HomeActivity activity = home();
         activity.selectTab(HomeActivity.TAB_LINKS);
         Shots.idle();
+        Shots.click(activity, "队友特性");
         return activity;
     }
 
@@ -72,13 +74,16 @@ public class DormTargetsUiTest extends UiTestBase {
         int[] stats = api.snap.observed.statPts.clone();
         HomeActivity activity = links();
         assertTrue(Shots.has(activity, "队友特性"));
-        Shots.click(activity, "伊织顺平 特性目标：不追求");
+        Shots.click(activity, "伊织顺平 特性目标：未选");
+        assertTrue(Shots.has(activity, DormTargets.RULE));
+        assertTrue(Shots.has(activity, "未解锁"));
         Shots.click(activity, "伊织顺平 特性目标：强化");
         Shots.click(activity, "和顺平种菜：3 次");
         assertTrue("edits wait for the save button", api.calls.isEmpty());
-        assertTrue(Shots.has(activity, "保存后记录：已解锁，未强化"));
+        // The stamp follows the counts being edited.
+        assertTrue(Shots.has(activity, "已解锁"));
         Shots.shot(activity, "links_dorm_target_edit");
-        Shots.click(activity, "保存并重新安排");
+        Shots.click(activity, "保存");
         assertEquals(1, api.calls.size());
         assertEquals("saveCheckpoint", api.last().method);
         assertEquals(Profile.DormTarget.UPGRADE, api.last().profile.dormTarget("dorm_junpei"));
@@ -94,10 +99,14 @@ public class DormTargetsUiTest extends UiTestBase {
     public void dismissingEditsLeavesProfileAndRecordedCountsUntouched() {
         installDormRules();
         HomeActivity activity = links();
-        Shots.click(activity, "伊织顺平 特性目标：不追求");
+        Shots.click(activity, "伊织顺平 特性目标：未选");
         Shots.click(activity, "伊织顺平 特性目标：解锁");
         Shots.click(activity, "和顺平看书：3 次");
-        Shots.click(activity, "取消");
+        // No 取消: back (or a swipe) discards.
+        assertFalse(Shots.has(activity, "取消"));
+        activity.onBackPressed();
+        Shots.idle();
+        assertFalse(activity.sheets().isShowing());
         assertTrue(api.calls.isEmpty());
         assertEquals(Profile.DormTarget.NONE, api.snap.profile.dormTarget("dorm_junpei"));
         assertEquals(0, api.snap.observed.used[READING]);
@@ -118,19 +127,21 @@ public class DormTargetsUiTest extends UiTestBase {
         plan.steps.add(step);
         api.snap.plan = plan;
         HomeActivity activity = links();
-        String text = Shots.allText(activity.getWindow().getDecorView());
-        assertTrue(text.contains("已记录：未解锁"));
-        assertTrue(text.contains("按当前安排预计：已解锁，未强化"));
-        Shots.click(activity, "伊织顺平 特性目标：不追求");
-        assertTrue(Shots.has(activity, "和顺平看书：2 次"));
+        Shots.click(activity, "伊织顺平 特性目标：未选");
+        // The forecast is a cyan tag beside the count, never the selected count itself.
+        assertTrue(Shots.has(activity, "预计 3"));
+        assertTrue(Shots.find(activity, "和顺平看书：2 次").isSelected());
+        assertFalse(Shots.find(activity, "和顺平看书：3 次").isSelected());
         Shots.click(activity, "伊织顺平 特性目标：解锁");
-        Shots.click(activity, "保存并重新安排");
+        Shots.click(activity, "保存");
         assertEquals("saveProfile", api.last().method);
         assertEquals(2, api.snap.observed.used[READING]);
         api.snap.planCurrent = false;
         activity.reload();
         Shots.idle();
-        assertFalse(Shots.allText(activity.getWindow().getDecorView()).contains("按当前安排预计："));
+        Shots.click(activity, "伊织顺平 特性目标：解锁");
+        assertTrue(activity.sheets().isShowing());
+        assertFalse(Shots.has(activity, "预计 3"));
     }
 
     @Test
@@ -138,13 +149,68 @@ public class DormTargetsUiTest extends UiTestBase {
         installDormRules();
         api.snap.observed.used[READING] = 7;
         HomeActivity activity = links();
-        Shots.click(activity, "伊织顺平 特性目标：不追求");
+        Shots.click(activity, "伊织顺平 特性目标：未选");
         Shots.click(activity, "和顺平看书：2 次");
         Shots.click(activity, "和顺平看书：3 次");
         Shots.click(activity, "伊织顺平 特性目标：强化");
-        Shots.click(activity, "保存并重新安排");
+        Shots.click(activity, "保存");
         assertEquals("saveProfile", api.last().method);
         assertEquals(7, api.snap.observed.used[READING]);
+    }
+
+    @Test
+    public void gardeningIsOnlyPlannedThroughItsOwnSwitch() {
+        installDormRules();
+        HomeActivity activity = links();
+        Shots.click(activity, "伊织顺平 特性目标：未选");
+        assertTrue(Shots.has(activity, "种菜也排进来，已关闭"));
+        Shots.click(activity, "种菜也排进来，已关闭");
+        assertTrue(api.calls.isEmpty());
+        Shots.click(activity, "保存");
+        assertEquals("saveProfile", api.last().method);
+        assertTrue(api.last().profile.planDormGardening);
+        assertEquals(Profile.DormTarget.NONE, api.last().profile.dormTarget("dorm_junpei"));
+    }
+
+    @Test
+    public void aNewRecordOfAnEditedCountReopensTheSheetInsteadOfOverwritingIt() {
+        installDormRules();
+        HomeActivity activity = links();
+        Shots.click(activity, "伊织顺平 特性目标：未选");
+        Shots.click(activity, "伊织顺平 特性目标：强化");
+        Shots.click(activity, "和顺平看书：3 次");
+        // Meanwhile the widget records a reading session.
+        api.snap.observed.used[READING] = 1;
+        api.snap.stateRevision++;
+        activity.reload();
+        Shots.idle();
+        Shots.click(activity, "保存");
+        assertTrue(api.calls.isEmpty());
+        assertTrue(activity.sheets().isShowing());
+        assertEquals(DormTargets.COUNTS_MOVED, activity.undoBar().messageText().toString());
+        // The player's target stays picked; the count shows the new record.
+        assertTrue(Shots.find(activity, "伊织顺平 特性目标：强化").isSelected());
+        assertTrue(Shots.find(activity, "和顺平看书：1 次").isSelected());
+        Shots.click(activity, "保存");
+        assertEquals("saveProfile", api.last().method);
+        assertEquals(Profile.DormTarget.UPGRADE, api.last().profile.dormTarget("dorm_junpei"));
+    }
+
+    @Test
+    public void aTargetChangeIsSavedOntoTheLatestProfile() {
+        installDormRules();
+        HomeActivity activity = links();
+        Shots.click(activity, "伊织顺平 特性目标：未选");
+        Shots.click(activity, "伊织顺平 特性目标：解锁");
+        // Another edit lands while the sheet is open.
+        api.snap.profile.tier[1] = Profile.Tier.WANT;
+        api.snap.profileRevision++;
+        activity.reload();
+        Shots.idle();
+        Shots.click(activity, "保存");
+        assertEquals("saveProfile", api.last().method);
+        assertEquals(Profile.DormTarget.UNLOCK, api.last().profile.dormTarget("dorm_junpei"));
+        assertEquals("the newer edit is kept", Profile.Tier.WANT, api.last().profile.tier[1]);
     }
 
     @Test
@@ -153,13 +219,11 @@ public class DormTargetsUiTest extends UiTestBase {
         api.snap.observed = null;
         api.snap.plan = null;
         HomeActivity activity = links();
-        assertTrue(Shots.has(activity, "尚未同步实际进度"));
-        assertFalse(Shots.has(activity, "已记录：未解锁"));
-        Shots.click(activity, "伊织顺平 特性目标：不追求");
-        assertTrue(Shots.has(activity, "可以先选目标。完成初始设置后，再到这里核对实际次数；这里不会替你创建游戏进度。"));
+        Shots.click(activity, "伊织顺平 特性目标：未选");
+        assertFalse("no counts before 开始设置", Shots.has(activity, "做过几次？"));
         assertFalse(Shots.has(activity, "和顺平看书：3 次"));
         Shots.click(activity, "伊织顺平 特性目标：解锁");
-        Shots.click(activity, "保存并重新安排");
+        Shots.click(activity, "保存");
         assertEquals("saveProfile", api.last().method);
         assertEquals(Profile.DormTarget.UNLOCK, api.last().profile.dormTarget("dorm_junpei"));
         assertTrue(api.snap.observed == null);
@@ -174,10 +238,22 @@ public class DormTargetsUiTest extends UiTestBase {
         api.rules = rules;
         api.snap.observed = new SimState(rules.blocks.length, rules.activities.length);
         api.snap.observed.slot = Fixtures.SLOT_NOW;
+        api.snap.observed.used[partners.get(2).activities.get(0).idx] = 3;
         api.snap.plan = null;
+        api.snap.profile.dormTargets.put(partners.get(0).id, Profile.DormTarget.UNLOCK);
         HomeActivity activity = links();
-        for (DormTargets.Partner partner : partners) assertTrue(Shots.has(activity, partner.name + " 特性目标：不追求"));
-        assertTrue(Shots.has(activity, "全部社群"));
+        for (DormTargets.Partner partner : partners) {
+            assertTrue(partner.name, Shots.has(activity, partner.name + " 特性目标："
+                + DormTargets.label(api.snap.profile.dormTarget(partner.id))));
+        }
+        assertTrue(Shots.has(activity, "解锁"));
+        assertTrue(Shots.has(activity, "已解锁"));
+        Shots.shot(activity, "links_dorm_grid");
+        // The sub-tab is remembered the next time the tab opens.
+        HomeActivity again = home();
+        again.selectTab(HomeActivity.TAB_LINKS);
+        Shots.idle();
+        assertTrue(Shots.has(again, partners.get(1).name + " 特性目标：未选"));
     }
 
     private static Rules readRealRules() throws Exception {

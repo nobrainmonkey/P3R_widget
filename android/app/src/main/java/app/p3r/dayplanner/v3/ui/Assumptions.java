@@ -1,15 +1,18 @@
 package app.p3r.dayplanner.v3.ui;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import app.p3r.dayplanner.v3.model.Profile;
+import app.p3r.dayplanner.v3.model.Rules;
 
 /**
  * Plain-Chinese explanations of planning assumptions. Plan steps carry assumption ids; the UI
- * never shows the ids themselves; unknown ids are omitted.
+ * never shows the ids themselves; unknown ids are omitted. {@link #settings} is 规划说明's
+ * 「当前设置」: the player's choices as short tags, not an explanation of the planner.
  */
 public final class Assumptions {
     private static final Map<String, String> TEXT = new LinkedHashMap<>();
@@ -47,7 +50,7 @@ public final class Assumptions {
     }
 
     /** Explanations for a step's ids; unknown ids have no visible copy. */
-    public static List<String> describeAll(List<String> ids, boolean estimate) {
+    public static List<String> describeAll(List<String> ids) {
         List<String> out = new ArrayList<>();
         if (ids != null) {
             for (String id : ids) {
@@ -60,53 +63,33 @@ public final class Assumptions {
         return out;
     }
 
-    /** The global assumptions for the 规划说明 page, reflecting the player's settings. */
-    public static List<String> global(Profile profile) {
-        return global(profile, null);
+    /** {@link #describeAll(List)}; {@code estimate} plays no part (the step's one 「预计」 tag says it). */
+    public static List<String> describeAll(List<String> ids, boolean estimate) {
+        return describeAll(ids);
     }
 
-    /** {@link #global(Profile)} with names from the rule pack (平安夜 invitation). */
-    public static List<String> global(Profile profile, app.p3r.dayplanner.v3.model.Rules rules) {
-        List<String> out = new ArrayList<>();
+    /**
+     * 规划说明's 「当前设置」 as short tags: 「尽量都体验」 「人格面具：不带」 「平安夜：都婉拒了」
+     * 「塔尔塔罗斯：每个区块 2 次」, plus the switches that are on and change what is scheduled.
+     */
+    public static List<String> settings(Profile profile, Rules rules) {
         Profile p = profile == null ? new Profile() : profile;
-        out.add("从你最后记录的时段开始，一直排到1月31日白天，每个白天和晚上都有安排。");
-        out.add("普通见面预计好感 +10；升级对话按最佳回答安排。");
-        switch (p.effectivePersonaMode()) {
-            case ALL:
-                out.add("已设置见面时都带同阿尔卡那的人格面具：所有社群的点数按 ×1.51 计算。");
-                break;
-            case GOALS:
-                out.add("已设置只给目标社群带同阿尔卡那的人格面具：目标社群的点数按 ×1.51 计算，其余社群按不带计算。"
-                    + "安排里会注明该带哪个阿尔卡那。");
-                break;
-            default:
-                out.add("按不带同阿尔卡那的人格面具计算（带上时点数 ×1.51），可在「规划设置」里改。");
-                break;
+        List<String> out = new ArrayList<>();
+        int style = Arrays.asList(SettingsPage.STYLES).indexOf(p.style);
+        out.add(SettingsPage.STYLE_TEXT[Math.max(0, style)][0]);
+        int persona = Arrays.asList(SettingsPage.PERSONA_MODES).indexOf(p.effectivePersonaMode());
+        out.add("人格面具：" + SettingsPage.PERSONA_LABELS[Math.max(0, persona)]);
+        out.add("平安夜：" + ChristmasChoice.shortAnswer(rules, p.christmasLink));
+        out.add("塔尔塔罗斯：" + SettingsPage.towerSummary(rules, p));
+        if (p.cashBuffer > 0) {
+            out.add("手上至少留 " + Zh.yen(p.cashBuffer));
         }
-        if (p.charmBonus) {
-            out.add("魅力达到 MAX 后，社群点数按 ×1.51 计算。");
+        if (p.datingNotes && rules != null && rules.datingNote != null) {
+            out.add("结缘网站的字条");
         }
-        if (p.goalBuffer) {
-            out.add("目标社群每次升级多留一次见面。");
+        if (p.deepChanges) {
+            out.add(SettingsPage.DEEP);
         }
-        out.add("每个时段优先安排目标社群见面，其次是打工、提升能力值等有收益的行动；没有可做的事时留作自由活动。");
-        if (p.datingNotes) {
-            out.add("结缘网站的字条能给一个已解锁、还没 MAX 的社群加好感，但不会直接升级；买得到之后才会安排。");
-        }
-        if (p.episodeTracks.length > 0) {
-            out.add("排进安排的羁绊剧情会在能看的日子留出时段（可在「社群」里勾选或取消）；它们不加社群点数。");
-        }
-        out.add("课堂提问、上课犯困、保健室和考试名次的收益，完成后在「同步现状」更新。");
-        out.add("课堂提问和考试的答案、电视购物、伊莉莎白的委托、黄昏的碎片这些不会消耗时间的事，还有失踪者的期限，"
-            + "会在「今天别错过」和日程详情的「当天提醒」里提醒。");
-        out.add("塔尔塔罗斯按「规划设置 → 塔尔塔罗斯」里每个区块想去几次、最多几次安排，救失踪者也算一次。");
-        if (p.christmasLink == null) {
-            out.add("12月24日按都婉拒了邀约安排，可在「规划设置 → 平安夜」里改。");
-        } else {
-            out.add("12月24日" + ChristmasChoice.answerText(rules, p.christmasLink)
-                + "：这天白天和晚上都留给约会，不安排别的事。");
-        }
-        out.add("1月21日放学后先空出来（送过顺平「白色切花」的话会有剧情）。");
         return out;
     }
 }

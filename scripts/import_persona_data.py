@@ -34,10 +34,11 @@ PACK_NAMES = {
     "p5r_2": "P5R Persona Set 2",
     "p4g": "P4G Persona Set",
 }
+# Attribute names as in the game's own table (DatAttrNameDataAsset zh-Hans).
 ELEMENTS = {
-    "sla": "斩击", "str": "打击", "pie": "贯穿", "fir": "火炎",
-    "ice": "冰冻", "ele": "电击", "win": "疾风", "lig": "光明",
-    "dar": "黑暗", "alm": "万能", "ail": "异常", "rec": "回复",
+    "sla": "斩击", "str": "打击", "pie": "贯穿", "fir": "火焰",
+    "ice": "冰冻", "ele": "电击", "win": "疾风", "lig": "神圣",
+    "dar": "暗黑", "alm": "万能", "ail": "异常", "rec": "恢复",
     "sup": "辅助", "spe": "特殊", "pas": "被动",
 }
 ACQUISITION_PATHS = [
@@ -63,21 +64,21 @@ TARGETS = {
 }
 TERMS = {
     "-": "", "Slash": "斩击", "Strike": "打击", "Pierce": "贯穿",
-    "Fire": "火炎", "Ice": "冰冻", "Elec": "电击", "Wind": "疾风",
-    "Light": "光明", "Dark": "黑暗", "Almighty": "万能",
+    "Fire": "火焰", "Ice": "冰冻", "Elec": "电击", "Wind": "疾风",
+    "Light": "神圣", "Dark": "暗黑", "Almighty": "万能",
     "Charm": "魅惑", "Poison": "中毒", "Distress": "动摇",
     "Confuse": "混乱", "Fear": "恐惧", "Rage": "愤怒", "Freeze": "冻结",
     "Shock": "触电", "Dizzy": "晕眩", "Down": "倒地", "Instakill": "即死",
     "instakill": "即死", "ailment": "异常状态", "ailments": "异常状态",
-    "Dark instakill": "黑暗即死", "Light instakill": "光明即死",
-    "HP restore": "HP回复", "SP restore": "SP回复", "HP + SP restore": "HP与SP回复",
+    "Dark instakill": "暗黑即死", "Light instakill": "神圣即死",
+    "HP restore": "HP恢复", "SP restore": "SP恢复", "HP + SP restore": "HP与SP恢复",
     "HP costs": "HP消耗", "SP costs": "SP消耗", "current HP": "当前HP",
     "Tarukaja": "攻击提升", "Rakukaja": "防御提升", "Sukukaja": "命中与回避提升",
     "Matarukaja": "全体攻击提升", "Marakukaja": "全体防御提升",
     "Masukukaja": "全体命中与回避提升", "Rebellion": "暴击率提升",
     "Tarukaja + Rakukaja + Sukukaja": "攻击、防御、命中与回避提升",
     "Tarunda + Rakunda + Sukunda": "攻击、防御、命中与回避降低",
-    "Charge + Concentrate": "蓄力与专心", "Diarahan + Amrita": "HP全回复并解除异常",
+    "Charge + Concentrate": "蓄力与专心", "Diarahan + Amrita": "HP全恢复并解除异常",
     "Life Drain + Spirit Drain": "吸取HP与SP", "Patra + Baisudi": "解除全部异常状态",
     "-kaja effects": "能力提升效果", "-kunda effects": "能力降低效果",
     "attack": "攻击", "defense": "防御", "hit and evasion": "命中与回避",
@@ -104,9 +105,9 @@ FMT_ZH = {
     "PersonaLifeDrainN": "造成$1伤害并$2", "AutoSkill": "战斗开始时发动$2",
     "FoulBreathN": "提高$2附着率，持续3回合",
     "RegenerateN": "每回合$2 $1%", "InvigorateN": "每回合$2 $1点",
-    "GrowthN": "未装备时获得$1%的$2", "LifeAidN": "战斗后回复$1%的最大HP/SP",
-    "Recarm": "复活并回复$1% HP", "Endure": "受到致命伤害时以1 HP存活，每场战斗1次",
-    "EnduringSoul": "受到致命伤害时HP全回复，每场战斗1次",
+    "GrowthN": "未装备时获得$1%的$2", "LifeAidN": "战斗后恢复$1%的最大HP/SP",
+    "Recarm": "复活并恢复$1% HP", "Endure": "受到致命伤害时以1 HP存活，每场战斗1次",
+    "EnduringSoul": "受到致命伤害时HP全恢复，每场战斗1次",
 }
 DIRECT_ZH = {
     "dmg dealt x$1 $2": "$2，伤害×$1",
@@ -114,7 +115,7 @@ DIRECT_ZH = {
     "$1% $2, user's HP reduced to 1": "$2 $1%，自身HP降至1",
     "Next $2 attack x$1 dmg and crit up": "下次$2攻击伤害×$1并提高暴击率",
     "$2 +$1% for 3 turns": "$2+$1%，持续3回合",
-    "$1% $2 + Sukukaja": "回复$1% HP并提升命中与回避",
+    "$1% $2 + Sukukaja": "恢复$1% HP并提升命中与回避",
     "$1% $2, ignores resistances": "$1%概率$2，无视耐性",
     "ignores resistances": "无视耐性",
     "9999 $2, reduces user's HP and SP to 1": "造成9999伤害，自身HP与SP降至1",
@@ -234,7 +235,7 @@ def skill_effect(row, templates):
         en_template = templates[condition[3:]] if condition.startswith("FMT") else condition
         zh_template = FMT_ZH[condition[3:]] if condition.startswith("FMT") else DIRECT_ZH[condition]
         if condition == "FMTExact" and effect in ("HP restore", "SP restore"):
-            zh_template = "回复$1% HP" if effect == "HP restore" else "回复$1% SP"
+            zh_template = "恢复$1% HP" if effect == "HP restore" else "恢复$1% SP"
         mod = format_number(modifier)
         en_parts.append(en_template.replace("$1", mod).replace("$2", effect))
         zh_parts.append(zh_template.replace("$1", mod).replace("$2", translate_term(effect)))
@@ -295,24 +296,25 @@ def build(tool_repo, database_repo):
                 continue
             if group["category"] == "Maxed Social Link":
                 if text == "Max all Social Links":
-                    unlock = {"type": "all_social", "textEn": text, "textZh": "所有社群达到MAX"}
+                    unlock = {"type": "all_social", "textEn": text, "textZh": "所有社群都升到 MAX"}
                 else:
                     arcana = text.removesuffix(" Rank 10")
                     unlock = {"type": "social", "arcana": arcana, "rank": 10,
-                              "textEn": text, "textZh": f"{race_names[arcana]['zh-Hans']}社群MAX"}
+                              "textEn": text, "textZh": f"{race_names[arcana]['zh-Hans']}社群升到 MAX"}
             elif group["category"] == "Maxed Teammate Link":
-                names = {"Junpei": "顺平", "Akihiko": "真田", "Koromaru": "虎狼丸", "Ken": "天田", "Shinjiro": "荒垣", "Ryoji": "望月绫时"}
+                names = {"Junpei": "伊织顺平", "Akihiko": "真田明彦", "Koromaru": "虎狼丸", "Ken": "天田乾",
+                         "Shinjiro": "荒垣真次郎", "Ryoji": "望月绫时"}
                 character = text.removesuffix(" Max Link")
                 unlock = {"type": "linked", "character": character, "textEn": text,
-                          "textZh": f"完成{names[character]}的全部支线事件"}
+                          "textZh": f"看完{names[character]}的全部羁绊剧情"}
             elif "Request #" in text:
                 request_id = int(text.split("#")[-1])
                 unlock = {"type": "request", "requestId": request_id, "textEn": text,
-                          "textZh": f"完成伊丽莎白委托#{request_id}"}
+                          "textZh": f"完成伊莉莎白的第 {request_id} 号委托"}
             else:
                 floor = int(text.split()[-1])
                 unlock = {"type": "floor", "floor": floor, "textEn": text,
-                          "textZh": f"探索塔尔塔罗斯至{floor}层"}
+                          "textZh": f"塔尔塔罗斯到达 {floor}F"}
             unlocks[key] = unlock
     personas = []
     for key, entry in sorted(demons.items(), key=lambda x: int(persona_ids[x[0]].split("_")[1])):
@@ -344,7 +346,7 @@ def build(tool_repo, database_repo):
             {"name": "Megami Tensei Fusion Tools", "author": "aqiu384", "url": "https://github.com/aqiu384/megaten-fusion-tool", "commit": TOOL_COMMIT, "license": "Unlicense"},
             {"name": "Megami Tensei Database", "author": "aqiu384", "url": "https://github.com/aqiu384/megaten-database", "commit": DATABASE_COMMIT, "license": "No separate license declared"},
         ],
-        "attribution": "图鉴数据与合成规则：aqiu384；游戏名称与文本：ATLUS / SEGA。",
+        "attribution": "全书数据与合体规则：aqiu384；游戏名称与文本：ATLUS / SEGA。",
         "acquisitionSource": {
             "repository": "https://github.com/aqiu384/megaten-database", "commit": DATABASE_COMMIT,
             "root": "src/p3r/Content/Xrd777/", "paths": ACQUISITION_PATHS,

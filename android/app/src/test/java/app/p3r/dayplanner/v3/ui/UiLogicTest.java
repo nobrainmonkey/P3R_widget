@@ -157,11 +157,10 @@ public class UiLogicTest {
 
     @Test
     public void assumptionIdsNeverLeak() {
-        List<String> lines = Assumptions.describeAll(java.util.Arrays.asList("ordinary_gain", "some_new_id"), true);
-        assertEquals(1, lines.size());
-        assertTrue(lines.get(0).contains("+10"));
-        assertTrue(Assumptions.describeAll(java.util.List.of("unknown"), true).isEmpty());
-        for (String line : Assumptions.global(new Profile())) {
+        assertTrue(Assumptions.describe("ordinary_gain").contains("+10"));
+        org.junit.Assert.assertNull("unknown ids have no visible copy", Assumptions.describe("some_new_id"));
+        org.junit.Assert.assertNull(Assumptions.describe(null));
+        for (String line : Assumptions.settings(new Profile(), rules)) {
             assertFalse(line, line.matches(".*[a-z_]{4,}.*"));
         }
     }
@@ -290,25 +289,43 @@ public class UiLogicTest {
         Plan other = Fixtures.planMid(rules, obs, obs.slot, "plan-2");
         other.steps.set(3, Fixtures.social(rules, obs.slot + 3, "moon", 3, 4, true, false));
         assertEquals(1, PlanDiff.changedSlots(plan, other, obs.slot));
-        assertEquals("已重新安排：这一周有 1 处变动", PlanDiff.summary(rules, plan, other, obs.slot));
+        assertEquals("已重新安排：这周 1 处有变", PlanDiff.summary(rules, plan, other, obs.slot));
         Plan far = Fixtures.planMid(rules, obs, obs.slot, "plan-3");
         int farIndex = far.steps.size() - 1;
         Plan.Step last = far.steps.get(farIndex);
         if (last.slot > Rules.slot(Rules.dayOf(obs.slot) + PlanDiff.NEAR_DAYS, true)) {
             far.steps.set(farIndex, Fixtures.social(rules, last.slot, "moon", 3, 4, true, false));
-            assertEquals("已重新安排：这一周不变，之后的安排顺着调整了", PlanDiff.summary(rules, plan, far, obs.slot));
+            org.junit.Assert.assertNull("later days are re-planned quietly", PlanDiff.summary(rules, plan, far, obs.slot));
         }
-        assertEquals("已重新安排：后面的安排没变", PlanDiff.summary(rules, plan, plan, obs.slot));
+        org.junit.Assert.assertNull("nothing changed: nothing said", PlanDiff.summary(rules, plan, plan, obs.slot));
     }
 
     @Test
     public void linkStatusFooters() {
         Profile p = Fixtures.profileMid();
-        assertEquals("预计 11月20日 升到 MAX", LinkStatus.of(rules, p, obs, plan, 4).footZh);
-        assertEquals("皇帝 6 → MAX · 预计 11月20日", LinkStatus.of(rules, p, obs, plan, 4).chipZh);
+        // A date needs no 「预计」: the cyan line is the forecast (the page has its one 「预计」).
+        assertEquals("11月20日 升到 MAX", LinkStatus.of(rules, p, obs, plan, 4).footZh);
+        assertEquals("皇帝 6 → MAX · 11月20日", LinkStatus.of(rules, p, obs, plan, 4).chipZh);
         assertEquals("剧情自动推进", LinkStatus.of(rules, p, obs, plan, 13).footZh);
-        assertEquals("这次的安排里没排到 MAX，先保证了皇帝", LinkStatus.of(rules, p, obs, plan, 2).footZh);
-        assertEquals("女教皇 5 → 9 · 没排到 MAX", LinkStatus.of(rules, p, obs, plan, 2).chipZh);
+        // A goal the plan traded away names the goal the time went to, without hedging.
+        LinkStatus priestess = LinkStatus.of(rules, p, obs, plan, 2);
+        assertEquals("时间先给了皇帝", priestess.footZh);
+        assertEquals("皇帝", priestess.blocker);
+        assertEquals("女教皇 5 → 9", priestess.chipZh);
+        assertEquals("时间先给了皇帝。想先冲它，就排到皇帝前面",
+            LinkStatus.shortfall("MAX", priestess.observed, priestess.projected, priestess.blocker));
+        assertEquals("这次排到 RANK 9。想冲 MAX，就把它往前排", LinkStatus.shortfall("MAX", 5, 9, null));
+        assertEquals("这次没排上。想冲 MAX，就把它往前排", LinkStatus.shortfall("MAX", 5, 5, null));
+        // A link that is not a goal is never reported as missing a target the player never set.
+        p.tier[2] = Profile.Tier.NONE;
+        assertEquals("", LinkStatus.of(rules, p, obs, plan, 2).footZh);
+        assertEquals("女教皇 5 → 9", LinkStatus.of(rules, p, obs, plan, 2).chipZh);
+        assertEquals("", LinkStatus.of(rules, p, obs, plan, 3).footZh);
+        // No plan yet: no placeholder line on 22 tiles.
+        assertEquals("", LinkStatus.of(rules, p, obs, null, 4).footZh);
+        obs.rank[4] = 10;
+        assertEquals("皇帝 MAX ✓", LinkStatus.of(rules, p, obs, plan, 4).chipZh);
+        assertEquals("", LinkStatus.of(rules, p, obs, plan, 4).footZh);
         obs.rescueFailed = 2L;
         assertTrue(LinkStatus.of(rules, p, obs, plan, 12).lost);
     }
@@ -375,20 +392,27 @@ public class UiLogicTest {
         obs.rescued = 0;
         LinkStatus hierophant = LinkStatus.of(rules, p, obs, plan, 5);
         assertTrue(hierophant.lost);
-        assertEquals("还没记录救出北村文吉，可以在「修改进度」里补上", hierophant.footZh);
+        assertFalse(hierophant.rescueFailed);
+        // A question; 社群详情 answers it with 「去修改进度」.
+        assertEquals("救出北村文吉了吗？", hierophant.footZh);
+        assertEquals("北村文吉", hierophant.rescue.zh);
         obs.rescueFailed = 1L;
-        assertEquals("没能救出失踪者，这个社群无法继续", LinkStatus.of(rules, p, obs, plan, 5).footZh);
+        assertEquals("没救出失踪者，无法继续", LinkStatus.of(rules, p, obs, plan, 5).footZh);
+        assertTrue(LinkStatus.of(rules, p, obs, plan, 5).rescueFailed);
     }
 
     @Test
     public void summariesForTheNewPanels() {
         Rules.Episode junpei = rules.episodes[0];
-        assertEquals("白天 · 5月12日–1月29日能看 · 已看 1 话\n"
-                + "每一话都有小奖励（能力值或顺平的能力），看完第 4 话可以拿到道具「顺平的棒球帽」。",
-            LinksPage.episodeSummary(junpei, 1));
-        assertTrue(LinksPage.episodeSummary(junpei, 4).contains("已经看完"));
-        assertEquals("在桐叶购物中心的放纵俱乐部买结缘网站的字条，当晚回宿舍用公用电脑给一个已解锁的社群加好感，不会直接升级。"
-            + "每张 3,000 日元。11月11日起能买到。", SettingsPage.datingNoteText(rules.datingNote));
+        // The row says what the end of the track gives; the window and time of day are the plan's business.
+        assertEquals("看完可以拿到「顺平的棒球帽」", LinksPage.rewardLine(junpei));
+        String rewardZh = junpei.rewardZh;
+        junpei.rewardZh = "每一话都有小奖励（能力值或顺平的能力），看完第 5 话可以合体人格面具「苏尔特尔」。";
+        assertEquals("看完可以合体「苏尔特尔」Surt", LinksPage.rewardLine(junpei));
+        junpei.rewardZh = "每一话都有小奖励（能力值），之后的第 5 话可以合体人格面具「地狱天使」。";
+        assertEquals("看完可以合体「地狱天使」Hell Biker", LinksPage.rewardLine(junpei));
+        junpei.rewardZh = rewardZh;
+        assertEquals("11月11日起 · 每张 3,000 日元", SettingsPage.datingNoteText(rules.datingNote));
         assertEquals(java.util.Arrays.asList("游戏数据 · 1 项", "资料站 · 1 项"), InfoPages.sourceLines(rules.sources));
         assertEquals("小田桐秀利 · 男", Zh.person(rules.links[4]));
         assertEquals("特别课外活动部\n团体 · 男女", Zh.person(rules.links[0]));

@@ -158,10 +158,11 @@ final class TodayPage {
 
     private void buildWelcome() {
         column.addView(Ui.gap(c, 120));
-        TextView kicker = Ui.numeral(c, "S.E.E.S.", 18, Ui.col(c, R.color.p3r_cyan_400));
-        kicker.setLetterSpacing(0.2f);
-        kicker.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        column.addView(kicker, Ui.wrap());
+        // The serif S.E.E.S. mark of the widget, as on the armbands.
+        ImageView mark = new ImageView(c);
+        mark.setImageResource(R.drawable.ui_logo_sees);
+        mark.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        column.addView(mark, new LinearLayout.LayoutParams(Ui.dp(c, 120), Ui.dp(c, 34)));
         TextView title = Ui.text(c, "从现在的存档开始", 32, Ui.col(c, R.color.p3r_white), true);
         title.setShadowLayer(0.01f, Ui.dp(c, 2), Ui.dp(c, 2), Ui.alpha(Ui.col(c, R.color.p3r_royal_500), 200));
         column.addView(title, spaced(6));

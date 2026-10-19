@@ -28,6 +28,8 @@ final class RankUpBurst extends View {
     private final TextPaint big = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final TextPaint bigShadow = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final TextPaint line = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+    /** Latin runs of the caption ("RANK 7"), in the numeral face like everywhere else. */
+    private final TextPaint lineLatin = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final Path path = new Path();
     private final String caption;
     private final String words;
@@ -52,6 +54,9 @@ final class RankUpBurst extends View {
         line.setTypeface(Typeface.DEFAULT_BOLD);
         line.setColor(Ui.col(context, R.color.p3r_navy_950));
         line.setTextSize(Ui.dp(context, 20));
+        lineLatin.setTypeface(face);
+        lineLatin.setColor(Ui.col(context, R.color.p3r_navy_950));
+        lineLatin.setTextSize(Ui.dp(context, 23));
         setClickable(true);
         setOnClickListener(v -> finish());
         setContentDescription(caption == null ? words : words + " " + caption);
@@ -162,12 +167,62 @@ final class RankUpBurst extends View {
         if (caption != null) {
             float sub = phase(0.3f, 0.2f);
             if (sub > 0f) {
-                float cw = line.measureText(caption);
-                float cx = (w - cw) / 2f - Ui.dp(getContext(), 20) * (1f - sub) + w * textOut;
-                line.setAlpha(Math.round(255 * sub * (1f - textOut)));
-                canvas.drawText(caption, cx, cy + bandH / 2f - Ui.dp(getContext(), 14), line);
+                int a = Math.round(255 * sub * (1f - textOut));
+                line.setAlpha(a);
+                lineLatin.setAlpha(a);
+                float cw = captionWidth();
+                // A long caption shrinks to fit the band instead of running off the screen.
+                float fit = Math.min(1f, (w - Ui.dp(getContext(), 48)) / Math.max(1f, cw));
+                float cx = (w - cw * fit) / 2f - Ui.dp(getContext(), 20) * (1f - sub) + w * textOut;
+                float cyText = cy + bandH / 2f - Ui.dp(getContext(), 14);
+                canvas.save();
+                canvas.scale(fit, fit, cx, cyText);
+                drawCaption(canvas, cx, cyText);
+                canvas.restore();
             }
         }
+    }
+
+    /** True for the characters drawn in the numeral face (Latin letters, digits, the arrow). */
+    private static boolean latin(char ch) {
+        return (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '→';
+    }
+
+    private float captionWidth() {
+        float width = 0f;
+        int i = 0;
+        while (i < caption.length()) {
+            int j = runEnd(i);
+            width += (latin(caption.charAt(i)) ? lineLatin : line).measureText(caption, i, j);
+            i = j;
+        }
+        return width;
+    }
+
+    private void drawCaption(Canvas canvas, float x, float y) {
+        int i = 0;
+        while (i < caption.length()) {
+            int j = runEnd(i);
+            TextPaint paint = latin(caption.charAt(i)) ? lineLatin : line;
+            canvas.drawText(caption, i, j, x, y, paint);
+            x += paint.measureText(caption, i, j);
+            i = j;
+        }
+    }
+
+    /** End of the run of the same face starting at {@code i}; a space stays with Latin before more Latin. */
+    private int runEnd(int i) {
+        boolean l = latin(caption.charAt(i));
+        int j = i + 1;
+        while (j < caption.length()) {
+            char ch = caption.charAt(j);
+            boolean next = ch == ' ' ? l && j + 1 < caption.length() && latin(caption.charAt(j + 1)) : latin(ch);
+            if (next != l) {
+                break;
+            }
+            j++;
+        }
+        return j;
     }
 
     @Override

@@ -45,8 +45,9 @@ public final class Ui {
         animations = enabled;
     }
 
+    /** Motion runs unless the tests turned it off or the player removed animations in the system settings. */
     public static boolean animationsEnabled() {
-        return animations;
+        return animations && android.animation.ValueAnimator.areAnimatorsEnabled();
     }
 
     public static int dp(Context context, float dp) {
@@ -193,7 +194,20 @@ public final class Ui {
     }
 
     public static TextView title(Context context, CharSequence value) {
-        return mixed(context, value, 24, col(context, R.color.p3r_white), true);
+        return heavy(mixed(context, value, 24, col(context, R.color.p3r_white), true));
+    }
+
+    /**
+     * The heaviest upright CJK weight the device has (900 on Android 9+, else bold), for display
+     * titles: the game's menus set their Chinese in a heavy gothic. Never italic.
+     */
+    public static <T extends TextView> T heavy(T view) {
+        if (Build.VERSION.SDK_INT >= 28) {
+            view.setTypeface(Typeface.create(Typeface.DEFAULT, 900, false));
+        } else {
+            view.setTypeface(Typeface.DEFAULT_BOLD);
+        }
+        return view;
     }
 
     public static TextView headline(Context context, CharSequence value) {
@@ -284,14 +298,13 @@ public final class Ui {
     // ------------------------------------------------------------------ surfaces
 
     /**
-     * Standard panel: borderless navy glass (lighter top-left, deeper bottom-right) with the two
-     * diagonal cuts and a short cyan highlight along the top-left cut instead of an outline.
+     * Standard panel: a borderless navy glass plate (lighter top-left, deeper bottom-right) with the
+     * two diagonal cuts. One per section to group rows, never one per row.
      */
     public static SlantedPanelDrawable card(Context context) {
         int cut = dp(context, 14);
         return new SlantedPanelDrawable()
             .gradient(col(context, R.color.ui_glass_top), col(context, R.color.ui_glass_bottom))
-            .cornerTick(alpha(col(context, R.color.p3r_cyan_400), 200), dp(context, 2))
             .cuts(cut, 0, cut, 0);
     }
 
@@ -356,11 +369,12 @@ public final class Ui {
     public static TextView quiet(Context context, CharSequence label) {
         TextView button = baseButton(context, label);
         button.setTextColor(col(context, R.color.p3r_cyan_300));
-        button.setTypeface(Typeface.DEFAULT);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         button.setBackground(new SlantedPanelDrawable()
             .fill(0)
             .pressedFill(col(context, R.color.ui_cyan_soft))
             .skew(dp(context, 8)));
+        Motion.pressable(button);
         return button;
     }
 
@@ -412,9 +426,8 @@ public final class Ui {
                 .slab(alpha(col(context, R.color.p3r_white), 210), dp(context, 2), dp(context, 2));
             chip.setTextColor(col(context, R.color.p3r_navy_950));
         } else {
-            bg.fill(alpha(col(context, R.color.p3r_navy_950), 140))
-                .pressedFill(col(context, R.color.p3r_navy_700))
-                .stroke(alpha(col(context, R.color.p3r_line), 150), dp(context, 1));
+            bg.fill(alpha(col(context, R.color.p3r_navy_950), 150))
+                .pressedFill(col(context, R.color.p3r_navy_700));
             chip.setTextColor(col(context, R.color.p3r_ice_100));
         }
         chip.setBackground(bg);
@@ -489,8 +502,8 @@ public final class Ui {
             TextView mark = new OutlinedText(context, kicker);
             android.widget.FrameLayout.LayoutParams markParams = new android.widget.FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END | Gravity.TOP);
-            markParams.topMargin = -dp(context, 6);
-            markParams.rightMargin = -dp(context, 20);
+            markParams.topMargin = -dp(context, 14);
+            markParams.rightMargin = -dp(context, 64);
             frame.addView(mark, markParams);
         }
         LinearLayout column = column(context);
@@ -503,7 +516,7 @@ public final class Ui {
         }
         LinearLayout line = row(context);
         line.setGravity(Gravity.BOTTOM);
-        TextView zh = mixed(context, title, 32, col(context, R.color.p3r_white), true);
+        TextView zh = heavy(mixed(context, title, 34, col(context, R.color.p3r_white), true));
         zh.setShadowLayer(0.01f, dp(context, 2), dp(context, 2), alpha(col(context, R.color.p3r_royal_500), 200));
         if (Build.VERSION.SDK_INT >= 28) {
             zh.setAccessibilityHeading(true);
@@ -548,7 +561,8 @@ public final class Ui {
         back.setOnClickListener(onBack);
         int size = dp(context, TOUCH);
         line.addView(back, new LinearLayout.LayoutParams(size, dp(context, 40)));
-        TextView heading = mixed(context, title, 24, col(context, R.color.p3r_white), true);
+        TextView heading = heavy(mixed(context, title, 24, col(context, R.color.p3r_white), true));
+        heading.setShadowLayer(0.01f, dp(context, 2), dp(context, 2), alpha(col(context, R.color.p3r_royal_500), 200));
         heading.setMaxLines(1);
         heading.setEllipsize(TextUtils.TruncateAt.END);
         if (Build.VERSION.SDK_INT >= 28) {
@@ -577,10 +591,12 @@ public final class Ui {
             super(context);
             setText(word);
             setTypeface(numerals(context));
-            setTextSize(TypedValue.COMPLEX_UNIT_DIP, 84);
+            setTextSize(TypedValue.COMPLEX_UNIT_DIP, 120);
             setIncludeFontPadding(false);
-            setMaxLines(1);
-            setTextColor(alpha(col(context, R.color.p3r_cyan_300), 34));
+            // One line that runs off the screen edge and is cropped there, never wrapped.
+            setSingleLine(true);
+            setHorizontallyScrolling(true);
+            setTextColor(alpha(col(context, R.color.p3r_cyan_300), 32));
             getPaint().setStyle(android.graphics.Paint.Style.STROKE);
             getPaint().setStrokeWidth(dp(context, 1.5f));
             setRotation(-8f);

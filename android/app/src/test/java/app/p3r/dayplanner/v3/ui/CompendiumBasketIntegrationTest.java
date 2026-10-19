@@ -1,6 +1,7 @@
 package app.p3r.dayplanner.v3.ui;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -66,6 +67,8 @@ public class CompendiumBasketIntegrationTest extends UiTestBase {
         chooseInPicker(activity, "Power");
         tag(activity, "fusion_add_basket").performClick();
         Shots.idle();
+        assertTrue("adding keeps the player on the fusion pane", tag(activity, "fusion_tab").isSelected());
+        assertEquals("已加入合体篮", activity.undoBar().messageText().toString());
         tag(activity, "basket_tab").performClick();
         Shots.idle();
         assertEquals(Collections.singletonList(narcissus), prefs.basket().goals());
@@ -84,21 +87,20 @@ public class CompendiumBasketIntegrationTest extends UiTestBase {
         assertNotNull("the first recipe is shown beside the material list", tag(activity, "basket_step_" + power));
         assertNotNull("the final recipe is on the same page", tag(activity, "basket_step_" + narcissus));
 
-        tag(activity, "basket_sort").performClick();
+        assertTrue("materials start by level, low to high", tag(activity, "basket_sort_level").isSelected());
+        assertEquals(Arrays.asList(orpheus, fortuna, naga), materialRows(activity));
         tag(activity, "basket_sort_level").performClick();
         Shots.idle();
-        assertEquals(Arrays.asList(orpheus, fortuna, naga), materialRows(activity));
-        tag(activity, "basket_sort_direction").performClick();
-        Shots.idle();
-        assertEquals(Arrays.asList(naga, fortuna, orpheus), materialRows(activity));
-        tag(activity, "basket_sort").performClick();
+        assertEquals("tapping the selected order flips it", Arrays.asList(naga, fortuna, orpheus), materialRows(activity));
         tag(activity, "basket_sort_arcana").performClick();
         Shots.idle();
+        assertTrue(tag(activity, "basket_sort_arcana").isSelected());
         assertEquals("switching modes retains the chosen direction",
             Arrays.asList(fortuna, naga, orpheus), materialRows(activity));
-        tag(activity, "basket_sort_direction").performClick();
+        tag(activity, "basket_sort_arcana").performClick();
         Shots.idle();
         assertEquals(Arrays.asList(orpheus, naga, fortuna), materialRows(activity));
+        assertEquals("还差 2 步", Shots.allText(tag(activity, "basket_goal_status_" + narcissus)).trim());
         capture(activity, "fusion_basket_expanded");
         captureSteps(activity, power);
 
@@ -110,9 +112,13 @@ public class CompendiumBasketIntegrationTest extends UiTestBase {
         assertEquals("registered materials still need to be summoned", set(orpheus, naga, fortuna), summonMaterials());
         assertEquals(Arrays.asList(orpheus, naga, fortuna), materialRows(activity));
         assertEquals(Collections.singleton(naga), unregisteredMaterials());
-        assertTrue(Shots.allText(tag(activity, "basket_missing_" + orpheus)).contains("召唤"));
-        assertTrue(Shots.allText(tag(activity, "basket_missing_" + fortuna)).contains("召唤"));
-        assertTrue(Shots.allText(tag(activity, "basket_missing_" + naga)).contains("未登录"));
+        assertTrue(tag(activity, "basket_owned_" + orpheus).isSelected());
+        assertTrue(tag(activity, "basket_owned_" + fortuna).isSelected());
+        assertFalse(tag(activity, "basket_owned_" + naga).isSelected());
+        assertTrue(tag(activity, "basket_owned_" + naga).getContentDescription().toString().startsWith("登录到全书"));
+        String materials = Shots.allText(tag(activity, "basket_page"));
+        assertTrue(materials, materials.contains("已登录 2/3"));
+        assertFalse("one word for registration", materials.contains("可召唤"));
         assertTrue(api.calls.isEmpty());
         capture(activity, "fusion_basket_registered_materials");
 
@@ -136,6 +142,73 @@ public class CompendiumBasketIntegrationTest extends UiTestBase {
         assertEquals(set(orpheus, naga, fortuna), new HashSet<>(materialRows(activity)));
         assertEquals(Collections.singleton(naga), unregisteredMaterials());
         assertTrue("the search and basket are game tools, not calendar edits", api.calls.isEmpty());
+
+        assertEquals("还差 1 步", Shots.allText(tag(activity, "basket_goal_status_" + narcissus)).trim());
+        tag(activity, "basket_complete_" + narcissus).performClick();
+        Shots.idle();
+        assertTrue(prefs.ownedPersonas().contains(narcissus));
+        assertEquals(data.persona(narcissus).nameZh + " 合出来了！", activity.undoBar().messageText().toString());
+        assertEquals("已登录", Shots.allText(tag(activity, "basket_goal_status_" + narcissus)).trim());
+        assertNotNull("a finished goal offers to leave the basket", tag(activity, "basket_done_remove_" + narcissus));
+        capture(activity, "fusion_basket_goal_done");
+    }
+
+    @Test public void stepMenuClearingAndUndoKeepTheBasketLogic() {
+        String narcissus = id("Narcissus"), orpheus = id("Orpheus"), power = id("Power");
+        FusionBasket basket = new FusionBasket();
+        assertTrue(basket.addGoal(calculator.fuse(orpheus, power)));
+        assertTrue(basket.chooseRecipe(calculator.recipesFor(power).get(0)));
+        prefs.setBasket(basket);
+        HomeActivity activity = open();
+        tag(activity, "basket_tab").performClick();
+        Shots.idle();
+        assertNotNull(tag(activity, "basket_progress"));
+
+        tag(activity, "basket_step_" + power).performClick();
+        assertTrue(activity.sheets().isShowing());
+        assertTrue(Shots.has(activity, "换个配方"));
+        capture(activity, "fusion_basket_step_menu");
+        tag(activity, "basket_summon_" + power).performClick();
+        Shots.idle();
+        assertEquals("「不合了，直接召唤」 collapses the branch", null, prefs.basket().chosenRecipe(power));
+        assertEquals(set(orpheus, power), summonMaterials());
+
+        String saved = prefs.basket().toJson().toString();
+        tag(activity, "basket_clear").performClick();
+        Shots.idle();
+        assertTrue(prefs.basket().goals().isEmpty());
+        assertNotNull(tag(activity, "basket_empty"));
+        assertTrue(activity.undoBar().hasAction());
+        capture(activity, "fusion_basket_empty");
+        activity.undoBar().performAction();
+        Shots.idle();
+        assertEquals("撤销 restores the basket as it was", saved, prefs.basket().toJson().toString());
+        assertNotNull(tag(activity, "basket_step_" + narcissus));
+
+        tag(activity, "basket_goal_menu_" + narcissus).performClick();
+        tag(activity, "basket_remove_" + narcissus).performClick();
+        Shots.idle();
+        assertTrue(prefs.basket().goals().isEmpty());
+        activity.undoBar().performAction();
+        Shots.idle();
+        assertEquals(Collections.singletonList(narcissus), prefs.basket().goals());
+    }
+
+    @Test public void anEmptyBasketGoesStraightToTheTargetPicker() {
+        HomeActivity activity = open();
+        tag(activity, "basket_tab").performClick();
+        Shots.idle();
+        assertTrue(Shots.has(activity, "合体篮是空的"));
+        tag(activity, "basket_browse").performClick();
+        assertTrue(activity.sheets().isShowing());
+        assertTrue(Shots.has(activity, "想合出谁？"));
+        chooseInPicker(activity, "Narcissus");
+        Shots.idle();
+        assertEquals("the recipes page opens", 1, activity.pageDepth());
+        tag(activity, "recipe_add_" + id("Narcissus") + "_0").performClick();
+        Shots.idle();
+        assertEquals(Collections.singletonList(id("Narcissus")), prefs.basket().goals());
+        assertEquals(1, activity.pageDepth());
     }
 
     private Set<String> summonMaterials() {

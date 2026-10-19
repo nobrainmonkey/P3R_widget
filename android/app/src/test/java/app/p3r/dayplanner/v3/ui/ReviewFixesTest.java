@@ -62,11 +62,13 @@ public class ReviewFixesTest extends UiTestBase {
         // The checkpoint only changes the episodes: a recorded 没救出 stays as recorded.
         api.snap.observed.rescueFailed = 2L;
         HomeActivity a = homeOn("links");
+        Shots.click(a, "羁绊剧情");
         Shots.click(a, "真田明彦 · 共 3 话，已关闭");
         assertTrue(a.sheets().isShowing());
         assertTrue(Shots.has(a, "羁绊剧情 · 真田明彦"));
         assertTrue(Shots.has(a, "已经看了几话？"));
         assertTrue(Shots.has(a, "全部 3 话"));
+        assertFalse("no reassurance under the question", text(a).contains("看过的不会再排进安排里"));
         assertTrue(api.calls.isEmpty());
         Shots.shot(a, "home_links_episode_watched");
         Shots.click(a, "真田明彦：已看 2 话");
@@ -83,11 +85,13 @@ public class ReviewFixesTest extends UiTestBase {
         assertFalse(a.sheets().isShowing());
         assertEquals("已记录：羁绊剧情 · 真田明彦 · 已看 2 话", a.undoBar().messageText().toString());
         assertTrue(Shots.has(a, "真田明彦 · 共 3 话，已开启"));
+        assertTrue(Shots.has(a, "2/3"));
     }
 
     @Test
     public void f3_closingTheQuestionLeavesTheTrackOff() {
         HomeActivity a = homeOn("links");
+        Shots.click(a, "羁绊剧情");
         Shots.click(a, "真田明彦 · 共 3 话，已关闭");
         assertTrue(a.sheets().isShowing());
         a.onBackPressed();
@@ -102,6 +106,7 @@ public class ReviewFixesTest extends UiTestBase {
         api = FakePlannerApi.firstRun();
         Api.setForTest(api);
         HomeActivity a = homeOn("links");
+        Shots.click(a, "羁绊剧情");
         Shots.click(a, "真田明彦 · 共 3 话，已关闭");
         assertFalse(a.sheets().isShowing());
         assertEquals("saveProfile", api.last().method);
@@ -184,14 +189,14 @@ public class ReviewFixesTest extends UiTestBase {
         assertEquals("羁绊剧情不加社群点数。", ResultActivity.episodeNote(akihiko));
         junpei.rewardZh = "每一话都有小奖励（能力值）";
         assertEquals("羁绊剧情不加社群点数。每一话都有小奖励（能力值）。", ResultActivity.episodeNote(junpei));
-        for (String s : new String[]{ResultActivity.episodeNote(junpei), LinksPage.episodeSummary(junpei, 1)}) {
+        for (String s : new String[]{ResultActivity.episodeNote(junpei), LinksPage.rewardLine(junpei)}) {
             assertFalse(s, s.contains("。。"));
             assertFalse(s, s.contains("看完能拿到每"));
             assertFalse(s, s.contains("看完全部能拿到"));
         }
-        assertEquals("白天 · 5月12日–1月29日能看 · 已看 1 话\n每一话都有小奖励（能力值）。",
-            LinksPage.episodeSummary(junpei, 1));
-        assertEquals("晚上 · 6月2日–1月28日能看", LinksPage.episodeSummary(akihiko, 0));
+        // The 羁绊剧情 row: the reward as one clause, nothing about when the episodes can be watched.
+        assertEquals("每一话都有小奖励（能力值）", LinksPage.rewardLine(junpei));
+        assertNull(LinksPage.rewardLine(akihiko));
 
         assertEquals("", Zh.sentence(null));
         assertEquals("", Zh.sentence("  "));
@@ -219,8 +224,10 @@ public class ReviewFixesTest extends UiTestBase {
         }
         assertFalse(Shots.has(a, "修改这条记录：10月20日 晚上 · 修改探索记录 · 到达 96F · 余额 19,000 日元"));
         assertTrue(Shots.has(a, "修改这条记录：10月21日 放学后 · 跳过 · 剧情占用了"));
-        // Only the row from before the latest 同步现状 says so.
-        assertEquals(1, Shots.findAll(page, "同步现状之前的记录").size());
+        // The latest 同步现状 is one divider; the rows under it have no buttons and no caption.
+        assertEquals(1, Shots.findAll(page, "10月18日 · 同步现状").size());
+        assertFalse(Shots.has(a, "撤销这条记录：10月18日 放学后 · 女教皇 RANK 5"));
+        assertFalse(Shots.allText(page).contains("同步现状之前的记录"));
         Shots.shot(a, "home_history_undo_all");
         Shots.click(a, "撤销这条记录：10月21日 放学后 · 跳过 · 剧情占用了");
         Shots.clickInDialog("撤销");
@@ -406,7 +413,8 @@ public class ReviewFixesTest extends UiTestBase {
         PlannerApi.Snapshot snap = api.snapshot();
         LinksPage page = new LinksPage(a);
         page.bind(new UiData(null, snap, null, false, 0));
-        assertTrue(Shots.allText(page.view()).contains("游戏资料暂时读不出来"));
+        assertTrue(Shots.allText(page.view()).contains(LinksPage.RULES_MISSING));
+        assertEquals("游戏资料没读出来，稍后再打开看看", LinksPage.RULES_MISSING);
     }
 
     @Test
@@ -640,31 +648,33 @@ public class ReviewFixesTest extends UiTestBase {
         HomeActivity a = homeOn("me");
         assertTrue(Shots.has(a, "修改进度"));
         assertFalse(Shots.has(a, "逐项修改进度"));
-        assertTrue(Shots.has(a, "安排"));
+        assertTrue(Shots.has(a, "同步现状"));
         assertFalse("规划 only in 规划设置 / 规划说明", Shots.has(a, "规划"));
         assertTrue(Shots.has(a, "规划设置"));
         assertFalse(text(a).contains("进塔"));
+        assertFalse("从头重新安排 has no engine jargon", text(a).contains("普通重排") || text(a).contains("深度计算"));
         Shots.shot(a, "home_me_terms");
         String settings = Shots.allText(SettingsPage.build(a));
         assertFalse(settings, settings.contains("进塔"));
-        assertTrue(settings.contains("按区块设置想去几次、最多几次（包括救失踪者）"));
-        assertTrue(settings.contains("12月24日的邀约"));
-        assertTrue(settings.contains("在桐叶购物中心的放纵俱乐部买结缘网站的字条"));
-        assertTrue(settings.contains("每次和目标社群的人见面前，会提醒你带哪个阿尔卡那的人格面具。"));
+        assertFalse(settings, settings.contains("社群点数") || settings.contains("回答方式") || settings.contains("不计回答加成"));
+        assertTrue(settings.contains("塔尔塔罗斯\n每个区块 2 次"));
+        assertTrue(settings.contains("平安夜\n都婉拒了"));
+        assertTrue(settings.contains("安排结缘网站的字条\n11月11日起 · 每张 3,000 日元"));
+        assertTrue(settings.contains(SettingsPage.PERSONA_QUESTION));
+        // The persona switch is three short segments; the 目标 reminder is said only while it is chosen.
+        assertEquals(java.util.Arrays.asList("都带", "只给目标", "不带"), java.util.Arrays.asList(SettingsPage.PERSONA_LABELS));
+        assertEquals(api.snap.profile.effectivePersonaMode() == Profile.PersonaMode.GOALS,
+            settings.contains(SettingsPage.PERSONA_GOALS_NOTE));
 
         assertEquals("安排好了，一直排到1月31日", PlanDiff.summary(api.rules, null, api.snap.plan, NOW));
-        List<String> global = Assumptions.global(Fixtures.profileMid());
-        assertTrue(global.contains("12月24日按都婉拒了邀约安排，可在「规划设置 → 平安夜」里改。"));
-        assertTrue(global.contains("1月21日放学后先空出来（送过顺平「白色切花」的话会有剧情）。"));
-        // 3.1.0 re-check: the glossary's 课堂提问 and 预计, and the 当天提醒 explained (GLOSSARY 「规划说明里写【当天提醒】」).
-        assertTrue(global.contains("课堂提问、上课犯困、保健室和考试名次的收益，完成后在「同步现状」更新。"));
-        assertTrue(global.contains("课堂提问和考试的答案、电视购物、伊莉莎白的委托、黄昏的碎片这些不会消耗时间的事，还有失踪者的期限，"
-                + "会在「今天别错过」和日程详情的「当天提醒」里提醒。"));
-        for (String line : global) assertFalse(line, line.contains("课堂答题") || line.contains("预测"));
-        assertEquals("这次探索要救出失踪者。", Assumptions.describe("rescue"));
-        for (String line : global) {
-            assertFalse(line, line.contains("进塔") || line.contains("1月21日白天"));
+        List<String> current = Assumptions.settings(Fixtures.profileMid(), api.rules);
+        assertTrue(current.toString(), current.contains("平安夜：都婉拒了"));
+        assertTrue(current.toString(), current.contains("塔尔塔罗斯：每个区块 2 次"));
+        for (String line : current) {
+            assertFalse(line, line.contains("进塔") || line.contains("规划") || line.contains("×1.51"));
         }
+        assertEquals("这次探索要救出失踪者。", Assumptions.describe("rescue"));
+        // The state wizard still words the three choices in full.
         assertTrue(SettingsPage.PERSONA_TEXT[1][1].contains("每次和目标社群的人见面前"));
     }
 

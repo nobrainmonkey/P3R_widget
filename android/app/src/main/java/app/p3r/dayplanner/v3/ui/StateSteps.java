@@ -235,15 +235,15 @@ final class StateSteps {
      * the right, and the kicker again as a huge faint outlined watermark (decoration only).
      */
     private View header(CharSequence question, String kicker, View trailing) {
-        FrameLayout frame = new FrameLayout(c);
+        LinearLayout column = Ui.column(c);
+        HeaderFrame frame = new HeaderFrame(c, column);
         frame.setClipChildren(true);
         TextView mark = new Ui.OutlinedText(c, kicker);
         FrameLayout.LayoutParams mp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END | Gravity.TOP);
-        mp.topMargin = -Ui.dp(c, 4);
-        mp.rightMargin = -Ui.dp(c, 24);
+        mp.topMargin = -Ui.dp(c, 10);
+        mp.rightMargin = -Ui.dp(c, 48);
         frame.addView(mark, mp);
-        LinearLayout column = Ui.column(c);
         TextView en = Ui.numeral(c, kicker, 15, Ui.col(c, R.color.p3r_cyan_400));
         en.setLetterSpacing(0.14f);
         en.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
@@ -251,7 +251,7 @@ final class StateSteps {
         column.addView(en, Ui.wrap());
         LinearLayout line = Ui.row(c);
         line.setGravity(Gravity.BOTTOM);
-        TextView q = Ui.mixed(c, question, 26, Ui.col(c, R.color.p3r_white), true);
+        TextView q = Ui.heavy(Ui.mixed(c, question, 26, Ui.col(c, R.color.p3r_white), true));
         q.setLineSpacing(0f, 1.08f);
         q.setShadowLayer(0.01f, Ui.dp(c, 2), Ui.dp(c, 2), Ui.alpha(Ui.col(c, R.color.p3r_royal_500), 200));
         if (Build.VERSION.SDK_INT >= 28) {
@@ -274,6 +274,25 @@ final class StateSteps {
         frame.addView(column, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT));
         return frame;
+    }
+
+    /**
+     * A header frame as tall as its text column: the giant watermark behind it is cropped there
+     * instead of pushing the page down (inside a ScrollView a MATCH_PARENT child cannot do that).
+     */
+    private static final class HeaderFrame extends FrameLayout {
+        private final View body;
+
+        HeaderFrame(android.content.Context context, View body) {
+            super(context);
+            this.body = body;
+        }
+
+        @Override
+        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            measureChild(body, widthMeasureSpec, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+            super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(body.getMeasuredHeight(), MeasureSpec.EXACTLY));
+        }
     }
 
     private LinearLayout page(CharSequence question, String kicker) {
@@ -1006,7 +1025,7 @@ final class StateSteps {
     // ------------------------------------------------------------------ 平安夜
 
     private View christmas() {
-        LinearLayout column = page("平安夜接受了谁的邀约？", "CHRISTMAS EVE");
+        LinearLayout column = page(ChristmasChoice.QUESTION, "CHRISTMAS EVE");
         String current = draft.christmasLink();
         List<LinearLayout> items = new ArrayList<>();
         items.add(answerPlate(ChristmasChoice.DECLINED, null, current == null, () -> christmas(null)));

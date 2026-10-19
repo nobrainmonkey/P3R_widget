@@ -156,6 +156,9 @@ public class HomeRenderTest extends UiTestBase {
         Intent intent = new Intent(RuntimeEnvironment.getApplication(), HomeActivity.class);
         intent.putExtra(Intents.EXTRA_TAB, "links");
         HomeActivity a = home(intent);
+        // The tiles start right under the goal strip: no instructions, no goal list above them.
+        assertTrue(Shots.has(a, "调整顺序"));
+        assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("点卡片右上角的标签切换"));
         Shots.shot(a, "home_links");
         findScroll(a.getWindow().getDecorView()).scrollTo(0, 1500);
         Shots.shot(a, "home_links_grid");
@@ -207,9 +210,11 @@ public class HomeRenderTest extends UiTestBase {
         Intent intent = new Intent(RuntimeEnvironment.getApplication(), HomeActivity.class);
         intent.putExtra(Intents.EXTRA_TAB, "links");
         HomeActivity a = home(intent);
-        assertTrue(Shots.has(a, "不加社群点数，但能拿到道具/特性；勾选后会在可看的日子留出时段。"));
-        Shots.capture(a, false);
-        lastScroll(a.getWindow().getDecorView(), null).scrollTo(0, 100_000);
+        assertFalse("the tracks have their own sub-tab", Shots.has(a, "羁绊剧情不加社群点数"));
+        Shots.click(a, "羁绊剧情");
+        assertTrue(Shots.has(a, "羁绊剧情不加社群点数"));
+        assertTrue(Shots.has(a, "看完可以拿到「顺平的棒球帽」"));
+        assertTrue(Shots.has(a, "1/4"));
         Shots.shot(a, "home_links_episodes");
     }
 

@@ -178,15 +178,25 @@ public class DesignReviewTest extends UiTestBase {
 
     @Test
     public void missedGoalFooterIsTwoPlainClauses() {
-        String foot = LinkStatus.shortfall("MAX", 5, 9, "女皇");
-        assertEquals("这次的安排里没排到 MAX，先保证了女皇", foot);
-        assertEquals("这次的安排里排到 RANK 9，没排到 MAX", LinkStatus.shortfall("MAX", 5, 9, null));
-        // Any card width: no line ends with an opening bracket or inside 「没排到」.
+        // The tile says where the time went; the detail sheet adds what to do about it.
+        String foot = LinkStatus.tradedLine("女皇");
+        assertEquals("时间先给了女皇", foot);
+        String sheet = LinkStatus.shortfall("MAX", 5, 9, "女皇");
+        assertEquals("时间先给了女皇。想先冲它，就排到女皇前面", sheet);
+        assertEquals("这次排到 RANK 9。想冲 MAX，就把它往前排", LinkStatus.shortfall("MAX", 5, 9, null));
+        // Any tile width: no line ends with an opening bracket or a comma at a line start.
         for (int w = 90; w <= 200; w += 4) {
-            TextView t = drawn(foot, 12, false, w);
+            TextView t = drawn(foot, 13, false, w);
             Shots.checkLines(t, foot + " @" + w + "dp");
             for (String line : lines(t)) {
                 assertFalse(line, line.endsWith("（") || line.startsWith("，"));
+            }
+        }
+        for (int w = 200; w <= 330; w += 10) {
+            TextView t = drawn(sheet, 15, false, w);
+            Shots.checkLines(t, sheet + " @" + w + "dp");
+            for (String line : lines(t)) {
+                assertFalse(line, line.startsWith("，") || line.startsWith("。"));
             }
         }
     }
@@ -338,11 +348,13 @@ public class DesignReviewTest extends UiTestBase {
         Plan plan = api.snap.plan;
         plan.summary.maxSlot[4] = -1;
         plan.summary.endRanks[4] = 10;
-        assertEquals("预计 1月31日前升到 MAX",
+        assertEquals("1月31日前升到 MAX",
             LinkStatus.of(api.rules, api.snap.profile, api.snap.observed, plan, 4).footZh);
         HomeActivity s = homeOn("schedule");
         String all = Shots.allText(s.getWindow().getDecorView());
-        assertTrue(all, all.contains("排到 1月31日 · 共 "));
+        // 日程 has no statistics line; the calendar ends on a spaced 「1月31日 · 日程结束」 plate.
+        assertFalse(all, all.contains("件事") || all.contains("排到"));
+        assertEquals("1月31日 · 日程结束", SchedulePage.endText(api.rules.lastDay));
         // The space after a number stays in the text face, so 「1 个时段」 does not look like 「1个时段」.
         CharSequence styled = NumeralSpan.styleLatinRuns(Zh.keepTogether("共 179 件事 · 2 个时段"),
             Ui.numerals(s), 1.14f);
@@ -607,14 +619,22 @@ public class DesignReviewTest extends UiTestBase {
     // ------------------------------------------------------------------ 18 estimates: styled bullets
 
     @Test
-    public void detailSheetEstimatesUseTheStyledBullet() {
+    public void detailSheetListsNoEstimatesAndBulletsStayCentred() {
         Intent intent = new Intent(RuntimeEnvironment.getApplication(), HomeActivity.class);
         intent.putExtra(Intents.EXTRA_OPEN_SLOT, Fixtures.SLOT_NOW + 2);
         HomeActivity a = home(intent);
         assertTrue(a.sheets().isShowing());
         Shots.capture(a, false);
+        String sheet = Shots.allText(a.sheets());
+        // Design §6.2: the day sheet never explains the plan (no 安排依据, no estimate notes).
+        assertFalse(sheet, sheet.contains("安排依据") || sheet.contains("普通见面预计好感"));
+        // The styled bullet (规划说明) still sits on the first line of its text.
+        android.widget.LinearLayout page = Ui.column(a);
+        page.addView(Ui.bullet(a, Ui.mixed(a, "普通见面预计好感 +10（约 ♪♪）。按见面时带着同阿尔卡那的人格面具计算，点数 ×1.51。",
+            13, Ui.col(a, app.p3r.dayplanner.R.color.p3r_ink_muted), false)));
+        Shots.render(page);
         int notes = 0;
-        for (TextView t : AuditFixesTest.textViews(a.getWindow().getDecorView())) {
+        for (TextView t : AuditFixesTest.textViews(page)) {
             String plain = Zh.plain(t.getText());
             assertFalse(plain, plain.startsWith("·"));
             if (!plain.startsWith("普通见面预计好感")) {
@@ -633,13 +653,15 @@ public class DesignReviewTest extends UiTestBase {
             assertTrue(middle + " in " + lineTop + "+" + lineHeight,
                 middle > lineTop + lineHeight * 0.3 && middle < lineTop + lineHeight * 0.7);
         }
-        assertTrue("the sheet lists the estimate", notes > 0);
+        assertTrue("the bullet row was laid out", notes > 0);
     }
 
     // ------------------------------------------------------------------ 19 朋友 / 恋人
 
     private void routeSegmentsClearTheSlantedEdges(String where) {
         HomeActivity a = homeOn("links");
+        // The route is picked in 社群详情.
+        Shots.click(a, "女教皇 · 山岸风花，RANK 5 → 9，时间先给了皇帝");
         Shots.capture(a, false);
         int segments = 0;
         for (TextView t : AuditFixesTest.textViews(a.getWindow().getDecorView())) {

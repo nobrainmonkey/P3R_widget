@@ -71,17 +71,33 @@ public class AuditFixesTest extends UiTestBase {
     public void towerSettingsListEveryBlockWithItsOwnSteppers() {
         HomeActivity a = homeOn("me");
         Shots.click(a, "规划设置");
-        Shots.click(a, "每个区块去几次");
+        assertTrue(Shots.has(a, "塔尔塔罗斯，每个区块 2 次"));
+        Shots.click(a, "塔尔塔罗斯");
         assertEquals(2, a.pageDepth());
+        assertFalse("no rules lecture up front", Shots.has(a, "每个区块按「想去几次」安排探索；「最多几次」包括救失踪者在内。"
+            + "设成 0 就不安排这个区块，也不会去救那里的失踪者。"));
+        assertTrue("the rule is said once, on the defaults", Shots.has(a, TowerSettingsPage.RESCUE_COUNTS));
+        // The open block comes first, the past ones are folded at the bottom.
+        String text = Shots.allText(a.getWindow().getDecorView());
+        assertTrue(text, text.indexOf("提齐亚") < text.indexOf("哈拉巴"));
+        assertFalse("folded", Shots.has(a, "台伯勒"));
+        Shots.click(a, "已经过了 3 个区块");
         for (Rules.Block b : api.rules.blocks) {
             assertTrue(b.zh, Shots.has(a, b.zh));
-            assertTrue(b.zh, Shots.has(a, TowerSettingsPage.blockLine(b)));
+            assertTrue(b.zh, Shots.has(a, b.floorsZh));
+            assertTrue(b.zh, Shots.has(a, Zh.dateRange(b.fromDay, b.toDay)));
+            assertTrue(b.zh, Shots.has(a, b.zh + "，" + TowerSettingsPage.blockLine(b)));
         }
-        assertTrue(Shots.has(a, "2–22F · 4月20日–6月12日"));
-        assertTrue(Shots.has(a, "舞子在10月21日–11月2日失踪，救人也算一次探索。"));
-        // Every block starts at the defaults (想去 2, 最多 4).
+        assertEquals("2–22F · 4月20日–6月12日", TowerSettingsPage.blockLine(api.rules.blocks[0]));
+        // A 失踪者 still to save is a tag on the block; one whose days are over is not.
+        assertTrue(Shots.has(a, "失踪者：舞子 · 10月21日–11月2日"));
+        assertFalse(Shots.has(a, "失踪者：北村文吉 · 9月12日–10月3日"));
+        // Every block starts at the defaults (想去 2, 最多 4), 最多 behind 「最多 4 次 ›」.
         assertEquals(2, stepper(a, "提齐亚（69–117F）想去几次").getValue());
+        assertFalse(Shots.has(a, "提齐亚（69–117F）最多几次"));
+        Shots.click(a, "提齐亚（69–117F）最多 4 次");
         assertEquals(4, stepper(a, "提齐亚（69–117F）最多几次").getValue());
+        Shots.capture(a, false);
         Shots.shot(a, "home_settings_tower");
 
         // 想去 above 最多 raises 最多 for that block only.
@@ -94,8 +110,10 @@ public class AuditFixesTest extends UiTestBase {
         assertEquals(2, p.visitsFor("arqa"));
         assertEquals(5, stepper(a, "提齐亚（69–117F）最多几次").getValue());
         assertTrue(Shots.has(a, "恢复默认"));
+        assertTrue(Shots.has(a, TowerSettingsPage.OWN));
 
         // 最多 below 想去 lowers 想去; 0 is allowed.
+        Shots.click(a, "台伯勒（2–22F）最多 4 次");
         stepper(a, "台伯勒（2–22F）最多几次").step(-4);
         p = lastProfile();
         assertEquals(0, p.capFor("thebel"));
@@ -113,11 +131,31 @@ public class AuditFixesTest extends UiTestBase {
         Shots.shot(a, "home_settings_tower_edited");
 
         // 恢复默认 drops a block's own values.
-        Shots.click(a, "恢复默认");
+        Shots.click(a, "台伯勒（2–22F）恢复默认");
         p = lastProfile();
         assertFalse(TowerSettingsPage.ownValues(p, "thebel"));
         assertEquals(3, p.visitsFor("thebel"));
         assertEquals(4, p.capFor("thebel"));
+
+        // Back on 规划设置 the row says what changed.
+        a.popPage();
+        Shots.idle();
+        assertTrue(Shots.has(a, "塔尔塔罗斯，单独设置了 1 个区块"));
+    }
+
+    @Test
+    public void aBlockWhoseRescueCannotHappenSaysSo() {
+        api.snap.profile.towerCapByBlock.put("tziah", 0);
+        HomeActivity a = homeOn("me");
+        Shots.click(a, "规划设置");
+        Shots.click(a, "塔尔塔罗斯");
+        assertTrue(Shots.has(a, "设成 0，舞子就救不出来了"));
+        assertEquals("a 最多 of its own is shown", 0, stepper(a, "提齐亚（69–117F）最多几次").getValue());
+        stepper(a, "提齐亚（69–117F）最多几次").step(+1);
+        assertFalse(Shots.has(a, "设成 0，舞子就救不出来了"));
+        Rules.Block nameless = new Rules.Block();
+        nameless.zh = "台伯勒";
+        assertEquals("no 「（null）」 in a label", "台伯勒", TowerSettingsPage.blockLabel(nameless));
     }
 
     @Test
@@ -145,22 +183,38 @@ public class AuditFixesTest extends UiTestBase {
     public void settingsChristmasListsRomanceableLinksAtRankOneOrAbove() {
         HomeActivity a = homeOn("me");
         Shots.click(a, "规划设置");
-        assertTrue(Shots.has(a, "12月24日的邀约"));
-        assertTrue(Shots.has(a, "都婉拒了"));
+        // One row on the page; the choices are on a sheet.
+        assertTrue(Shots.has(a, "平安夜，都婉拒了"));
+        assertFalse(Shots.has(a, "12月24日的邀约"));
+        assertFalse(Shots.has(a, "接受了山岸风花的邀约"));
+        Shots.click(a, "平安夜");
+        assertTrue(a.sheets().isShowing());
+        View sheet = a.sheets();
+        Shots.find(sheet, ChristmasChoice.QUESTION);
+        Shots.find(sheet, "都婉拒了");
         for (String person : new String[]{"山岸风花", "桐条美鹤", "岳羽由加莉", "伏见千寻", "西胁结子"}) {
-            assertTrue(person, Shots.has(a, "接受了" + person + "的邀约"));
+            assertEquals(person, 1, Shots.findAll(sheet, "接受了" + person + "的邀约").size());
+            Shots.find(sheet, person);
         }
-        assertFalse("story link / RANK 0", Shots.has(a, "接受了埃癸斯的邀约"));
-        assertFalse("not romanceable", Shots.has(a, "接受了友近健二的邀约"));
-        Shots.click(a, "接受了山岸风花的邀约");
-        assertEquals("priestess", lastProfile().christmasLink);
-        Shots.capture(a, false);
-        android.widget.ScrollView scroll = lastScroll(a.getWindow().getDecorView(), null);
-        View card = Shots.find(a, "12月24日的邀约");
-        scroll.scrollTo(0, Math.max(0, top(card) - 200));
+        assertTrue("story link / RANK 0", Shots.findAll(sheet, "接受了埃癸斯的邀约").isEmpty());
+        assertTrue("not romanceable", Shots.findAll(sheet, "接受了友近健二的邀约").isEmpty());
+        assertTrue("said only under the accepted choice", Shots.findAll(sheet, ChristmasChoice.ACCEPTED_NOTE).isEmpty());
         Shots.shot(a, "home_settings_christmas");
-        Shots.click(a, "都婉拒了");
+
+        Shots.clickTarget(Shots.find(sheet, "接受了山岸风花的邀约")).performClick();
+        Shots.idle();
+        assertEquals("priestess", lastProfile().christmasLink);
+        assertFalse("a pick closes the sheet", a.sheets().isShowing());
+        assertTrue(Shots.has(a, "平安夜，山岸风花"));
+
+        Shots.click(a, "平安夜");
+        Shots.find(a.sheets(), ChristmasChoice.ACCEPTED_NOTE);
+        assertTrue(Shots.clickTarget(Shots.find(a.sheets(), "接受了山岸风花的邀约")).isSelected());
+        Shots.shot(a, "home_settings_christmas_accepted");
+        Shots.clickTarget(Shots.find(a.sheets(), "都婉拒了")).performClick();
+        Shots.idle();
         assertNull(lastProfile().christmasLink);
+        assertTrue(Shots.has(a, "平安夜，都婉拒了"));
     }
 
     @Test
@@ -171,7 +225,7 @@ public class AuditFixesTest extends UiTestBase {
         a.draft().setSlot(Rules.slot(Fixtures.day(12, 21), false));
         a.refresh();
         StateWizardTest.openFromHub(a, "平安夜", StateSteps.Page.CHRISTMAS);
-        assertTrue(Shots.has(a, "平安夜接受了谁的邀约？"));
+        assertTrue(Shots.has(a, ChristmasChoice.QUESTION));
         assertTrue(Shots.has(a, "都婉拒了"));
         assertFalse("no explanation", Shots.allText(a.getWindow().getDecorView()).contains("默认按"));
         Shots.shot(a, "state_edit_christmas");
@@ -200,7 +254,7 @@ public class AuditFixesTest extends UiTestBase {
         Shots.click(b, StateSteps.SYNC_NO);
         b.draft().setSlot(Rules.slot(Fixtures.day(12, 21), false));
         jumpTo(b, StateSteps.Page.CHRISTMAS);
-        assertTrue(Shots.has(b, "平安夜接受了谁的邀约？"));
+        assertTrue(Shots.has(b, ChristmasChoice.QUESTION));
         Shots.shot(b, "state_sync_christmas");
         Shots.click(b, "都婉拒了");
         assertNull(b.draft().christmasLink());
@@ -215,12 +269,13 @@ public class AuditFixesTest extends UiTestBase {
         date.kind = "locked";
         date.titleZh = "";
         assertEquals("平安夜约会", SlotRows.title(api.rules, date));
-        List<String> global = Assumptions.global(Fixtures.profileMid(), api.rules);
-        assertTrue(global.contains("12月24日按都婉拒了邀约安排，可在「规划设置 → 平安夜」里改。"));
+        List<String> settings = Assumptions.settings(Fixtures.profileMid(), api.rules);
+        assertTrue(settings.toString(), settings.contains("平安夜：都婉拒了"));
         Profile accepted = Fixtures.profileMid();
         accepted.christmasLink = "priestess";
-        assertTrue(Assumptions.global(accepted, api.rules)
-            .contains("12月24日接受了山岸风花的邀约：这天白天和晚上都留给约会，不安排别的事。"));
+        assertTrue(Assumptions.settings(accepted, api.rules).contains("平安夜：山岸风花"));
+        assertEquals("接受了山岸风花的邀约", ChristmasChoice.answerText(api.rules, "priestess"));
+        assertEquals("山岸风花", ChristmasChoice.shortAnswer(api.rules, "priestess"));
     }
 
     // ------------------------------------------------------------------ 朋友 / 恋人 route
@@ -228,31 +283,56 @@ public class AuditFixesTest extends UiTestBase {
     @Test
     public void romanceableCardsOfferTheRouteAndStoryLinksHaveNoTierChip() {
         HomeActivity a = homeOn("links");
-        assertTrue(Shots.has(a, LinksPage.ROUTE_NOTE));
-        assertTrue(Shots.has(a, "女教皇 路线：朋友。" + LinksPage.ROUTE_NOTE));
-        assertTrue("default is 朋友", Shots.find(a, "女教皇 路线：朋友。" + LinksPage.ROUTE_NOTE).isSelected());
-        assertFalse("not romanceable", Shots.has(a, "皇帝 路线：朋友。" + LinksPage.ROUTE_NOTE));
+        // The route is chosen in 社群详情, not repeated on every romanceable tile.
+        assertFalse(Shots.has(a, "女教皇 路线：朋友"));
         assertFalse("story links have no tier chip", Shots.has(a, "愚者 目标：未选，点按切换"));
         assertTrue(Shots.has(a, "剧情自动推进"));
-        Shots.click(a, "女教皇 路线：恋人。" + LinksPage.ROUTE_NOTE);
+        Shots.click(a, "皇帝 · 小田桐秀利，RANK 6 → MAX，11月20日 升到 MAX");
+        assertTrue(a.sheets().isShowing());
+        assertFalse("not romanceable", Shots.has(a, "皇帝 路线：朋友"));
+        a.sheets().dismiss();
+        Shots.idle();
+        Shots.click(a, "愚者 · 特别课外活动部，RANK 7，剧情自动推进");
+        assertTrue(Shots.has(a, "这个社群跟着剧情推进"));
+        assertFalse("no goal for a story link", Shots.has(a, "愚者 目标：未选"));
+        a.sheets().dismiss();
+        Shots.idle();
+        Shots.click(a, "女教皇 · 山岸风花，RANK 5 → 9，时间先给了皇帝");
+        assertTrue(Shots.has(a, "回答按哪条路线？"));
+        assertTrue("default is 朋友", Shots.find(a, "女教皇 路线：朋友").isSelected());
+        assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("安排不会要求你走恋爱路线"));
+        Shots.click(a, "女教皇 路线：恋人");
         Profile p = lastProfile();
         assertEquals(Profile.Route.ROMANCE, p.route[2]);
         assertEquals(Profile.Route.UNDECIDED, p.route[6]);
+        // The tile says 恋人 once the route is chosen.
+        a.sheets().dismiss();
+        Shots.idle();
+        assertTrue(Shots.has(a, "恋人"));
     }
 
     @Test
     public void linkCardsUseOneDateFormatAndNameLockedLinks() {
         HomeActivity a = homeOn("links");
-        assertTrue(Shots.has(a, "预计 11月20日 升到 MAX"));
-        // 恶魔: not unlocked yet, planned to RANK 7.
-        assertTrue(Shots.has(a, "未解锁 → RANK 7"));
+        // One 「预计」 on the page (the MAX count); the tiles' dates need none.
+        assertTrue(Shots.has(a, "11月20日 升到 MAX"));
+        assertEquals(1, Shots.findAll(a.getWindow().getDecorView(), "预计").size());
+        // 恶魔: not unlocked yet, planned to RANK 7 (said once, on the tile's description).
+        assertTrue(Shots.has(a, "恶魔 · 田中社长，未解锁 → RANK 7"));
         String all = Shots.allText(a.getWindow().getDecorView());
         assertFalse(all, all.contains("RANK 0"));
         assertFalse(all, all.contains("11/20"));
         assertFalse(all, all.contains("时间不够"));
-        assertFalse(all, all.contains("团体·男女"));
-        assertTrue(all, all.contains("这次的安排里没排到 MAX，先保证了皇帝"));
-        assertTrue(all, all.contains("团体 · 男女"));
+        assertFalse(all, all.contains("这次的安排里"));
+        assertFalse(all, all.contains("暂时不安排"));
+        assertTrue(all, all.contains("时间先给了皇帝"));
+        // Person names only: no gender label on the tiles.
+        assertTrue(all, all.contains("特别课外活动部"));
+        assertFalse(all, all.contains("男女"));
+        // 永劫's card numeral is the pack's (the game prints XX), not the arcana number's.
+        assertEquals("XX", LinkStatus.numeral(api.rules.links[21]));
+        api.rules.links[21].numeral = "XX";
+        assertEquals("XX", LinkStatus.numeral(api.rules.links[21]));
         assertEquals("未解锁 → RANK 2", Zh.rankStep(0, 2));
         assertEquals("未解锁 → MAX", Zh.rankStep(0, 10));
         assertEquals("RANK 6 → 7", Zh.rankStep(6, 7));
@@ -489,9 +569,10 @@ public class AuditFixesTest extends UiTestBase {
     @Test
     public void meAndSettingsWording() {
         HomeActivity a = homeOn("me");
-        assertTrue(Shots.has(a, "安排风格、人格面具、塔尔塔罗斯、平安夜等"));
+        assertFalse("no subtitles on 我的", Shots.has(a, "安排风格、人格面具、塔尔塔罗斯、平安夜等"));
         Shots.click(a, "规划设置");
-        // ×1.51 is set in the numeral face in plain and mixed text alike.
+        Shots.click(a, SettingsPage.MORE);
+        // ×1.51 is set in the numeral face in plain and mixed text alike (the 人格面具 tag, 魅力 MAX).
         int styled = 0;
         for (TextView t : textViews(a.getWindow().getDecorView())) {
             String plain = Zh.plain(t.getText());
@@ -505,7 +586,7 @@ public class AuditFixesTest extends UiTestBase {
             assertTrue(plain, raw >= 0 && s.getSpans(raw, raw + 1, NumeralSpan.class).length > 0);
             styled++;
         }
-        assertTrue("several ×1.51 on the page", styled >= 3);
+        assertTrue("×1.51 on the 人格面具 tag and the 魅力 switch", styled >= 2);
     }
 
     // ------------------------------------------------------------------ CJK line breaks
@@ -573,7 +654,7 @@ public class AuditFixesTest extends UiTestBase {
         Shots.click(m, "规划设置");
         assertNoBreakInsideKeptText(m, "settings" + suffix);
         Shots.shot(m, "audit_settings" + suffix);
-        Shots.click(m, "每个区块去几次");
+        Shots.click(m, "塔尔塔罗斯");
         Shots.capture(m, false);
         assertNoBreakInsideKeptText(m, "settings_tower" + suffix);
         Shots.shot(m, "audit_settings_tower" + suffix);

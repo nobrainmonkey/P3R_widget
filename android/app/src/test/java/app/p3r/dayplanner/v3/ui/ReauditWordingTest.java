@@ -65,7 +65,8 @@ public class ReauditWordingTest extends UiTestBase {
             assertEquals(note, InfoPages.BUDGET_ROUGH, InfoPages.budgetLine(followUp));
             assertTrue(InfoPages.notesBelow(followUp).isEmpty());
         }
-        assertEquals("这次没来得及算完，后半段是粗略安排；记下一个结果后会重新安排。", InfoPages.BUDGET_ROUGH);
+        assertEquals("后半段先粗排，下次记录后再细算", InfoPages.BUDGET_ROUGH);
+        assertEquals("后半段还在细算，稍后自动更新", InfoPages.BUDGET_PENDING);
 
         // Plan.followUp (set by the service on its second computation) wins over an older note.
         assertFalse(InfoPages.followUpPending(true, true, Collections.singletonList(NOTE_PENDING)));
@@ -91,9 +92,9 @@ public class ReauditWordingTest extends UiTestBase {
         a.selectTab(HomeActivity.TAB_ME);
         Shots.click(a, "规划说明");
         String text = Shots.allText(a.getWindow().getDecorView());
-        assertEquals(text, 1, count(text, "这次没来得及算完"));
-        assertTrue(Shots.has(a, InfoPages.BUDGET_PENDING));
-        assertTrue("the other notes are still listed", Shots.has(a, "女教皇：这次的安排里没排到 MAX（先保证了皇帝）。"));
+        assertEquals("the engine's note is said once, as the hero's chip", 0, count(text, "这次没来得及算完"));
+        assertEquals(text, 1, count(text, InfoPages.BUDGET_PENDING));
+        assertTrue("the other notes are still listed", text.contains("这次的安排里没排到 MAX（先保证了皇帝）。"));
         Shots.shot(a, "explain_budget_pending");
     }
 
@@ -105,8 +106,8 @@ public class ReauditWordingTest extends UiTestBase {
         a.selectTab(HomeActivity.TAB_ME);
         Shots.click(a, "规划说明");
         String text = Shots.allText(a.getWindow().getDecorView());
-        assertFalse(text, text.contains("稍后会自动再算一次"));
-        assertEquals(text, 1, count(text, "这次没来得及算完"));
+        assertFalse(text, text.contains("稍后会自动再算一次") || text.contains(InfoPages.BUDGET_PENDING));
+        assertEquals(text, 0, count(text, "这次没来得及算完"));
         assertTrue(Shots.has(a, InfoPages.BUDGET_ROUGH));
         Shots.shot(a, "explain_budget_follow_up");
     }
@@ -153,7 +154,6 @@ public class ReauditWordingTest extends UiTestBase {
 
     @Test
     public void routeNoteAndDatingSiteNoteUseTheGlossaryWords() {
-        assertEquals("安排不会要求你走恋爱路线", LinksPage.ROUTE_NOTE);
         assertEquals("结缘网站的字条", StepKind.NOTE.tagZh);
         Plan.Step note = new Plan.Step();
         note.slot = Fixtures.SLOT_NOW + 1;
@@ -165,8 +165,10 @@ public class ReauditWordingTest extends UiTestBase {
 
         HomeActivity a = home();
         a.selectTab(HomeActivity.TAB_LINKS);
-        assertTrue(Shots.has(a, LinksPage.ROUTE_NOTE));
-        assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("规划不会"));
+        // The route is a plain choice in 社群详情 (「回答按哪条路线？」), without a reassuring note.
+        String links = Shots.allText(a.getWindow().getDecorView());
+        assertFalse(links.contains("规划不会"));
+        assertFalse(links.contains("恋爱路线"));
     }
 
     private static void assertNoSlashDates(String text) {
