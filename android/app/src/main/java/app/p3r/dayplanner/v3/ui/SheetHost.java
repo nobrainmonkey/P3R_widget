@@ -12,7 +12,9 @@ import app.p3r.dayplanner.R;
 
 /**
  * In-app bottom sheet layer: a dimmed scrim plus a panel with a diagonal top edge that slides up
- * from the bottom. One sheet at a time; {@link #dismiss()} is what the back key calls first.
+ * from the bottom ({@link SheetChrome}: bright top edge, grip). Dragging the grip down past
+ * {@value SheetChrome#DISMISS_DRAG} dp (or flinging it) closes the sheet. One sheet at a time;
+ * {@link #dismiss()} is what the back key calls first.
  */
 public final class SheetHost extends FrameLayout {
     private final View scrim;
@@ -34,11 +36,13 @@ public final class SheetHost extends FrameLayout {
         panel = Ui.column(context);
         panel.setBackground(SheetChrome.surface(context));
         panel.setClickable(true);
-        View handle = SheetChrome.handle(context);
-        LinearLayout.LayoutParams handleParams = new LinearLayout.LayoutParams(Ui.dp(context, 40), Ui.dp(context, 4));
-        handleParams.gravity = Gravity.CENTER_HORIZONTAL;
-        handleParams.topMargin = Ui.dp(context, 10);
-        panel.addView(handle, handleParams);
+        // The grip: drag the sheet down to close it.
+        View grip = SheetChrome.grip(context);
+        LinearLayout.LayoutParams gripParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+            Ui.dp(context, SheetChrome.GRIP));
+        gripParams.topMargin = Ui.dp(context, 2);
+        panel.addView(grip, gripParams);
+        SheetChrome.dragToDismiss(grip, panel, () -> !closing, this::dismiss);
 
         scroller = new ScrollView(context);
         scroller.setFillViewport(false);
@@ -121,8 +125,8 @@ public final class SheetHost extends FrameLayout {
         scrim.animate().cancel();
         if (Ui.animationsEnabled()) {
             scrim.animate().alpha(0f).setDuration(160).start();
-            panel.animate().translationY(Ui.dp(getContext(), 40)).alpha(0f).setDuration(160)
-                .withEndAction(() -> finishDismiss(ticket)).start();
+            panel.animate().translationY(SheetChrome.exitTranslation(panel)).alpha(0f).setDuration(160)
+                .setInterpolator(Motion.EASE).withEndAction(() -> finishDismiss(ticket)).start();
         } else {
             finishDismiss(ticket);
         }

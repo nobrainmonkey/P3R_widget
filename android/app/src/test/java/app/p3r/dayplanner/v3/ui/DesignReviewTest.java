@@ -165,11 +165,12 @@ public class DesignReviewTest extends UiTestBase {
     @Test
     public void questionsAndEllipsesAreFullWidth() {
         ResultActivity cannot = result(Fixtures.SLOT_NOW, "meet:emperor", Intents.MODE_CANNOT);
-        assertTrue(Shots.has(cannot, "这个时段没能照安排做？"));
-        assertTrue(Shots.has(cannot, "改做别的…"));
+        assertTrue(Shots.has(cannot, "怎么没做成？"));
+        assertTrue(Shots.has(cannot, ResultActivity.OTHER_INSTEAD));
         HomeActivity a = home();
         assertTrue(Shots.has(a, TodayPage.CANNOT_LABEL));
-        for (String label : new String[]{"这个时段没能照安排做？", "改做别的…", TodayPage.CANNOT_LABEL}) {
+        for (String label : new String[]{"怎么没做成？", ResultActivity.OTHER_INSTEAD, ResultActivity.OTHER_RESULTS,
+            TodayPage.CANNOT_LABEL}) {
             assertFalse(label, label.matches(".*[?!].*|.*\\.\\.\\..*"));
         }
     }
@@ -290,11 +291,14 @@ public class DesignReviewTest extends UiTestBase {
         Shots.capture(a, false);
         int visits = 0;
         for (TextView t : AuditFixesTest.textViews(a.getWindow().getDecorView())) {
-            if (Zh.plain(t.getText()).contains("本区块第")) {
+            String plain = Zh.plain(t.getText());
+            assertFalse(plain, plain.contains("本区块第"));
+            if (plain.contains("第 2 次")) {
                 visits++;
             }
         }
-        assertEquals("「本区块第 N 次」 once", 1, visits);
+        assertEquals("the visit once, as the 「第 2 次 · 最多 4 次」 chip", 1, visits);
+        assertTrue(Shots.has(a, "第 2 次 · 最多 4 次"));
         assertTrue(Shots.has(a, "奇颜之庭 阿尔卡（23–43F）"));
         assertEquals("提齐亚（69–117F）· 救出舞子", ResultActivity.withoutVisit("提齐亚（69–117F）· 本区块第 1 次 · 救出舞子"));
         assertEquals("阿尔卡", ResultActivity.withoutVisit("阿尔卡 · 本区块第 1 次"));

@@ -204,9 +204,12 @@ public class ScheduleHistoryUiTest extends UiTestBase {
         api.snap.observed.rank[4] = 9;
         int current = api.snap.observed.slot;
         ResultActivity activity = correction(correction.targetSeq);
-        assertTrue(Shots.has(activity, "现在是 RANK 6，这次见面预计会升级。"));
-        assertFalse("the historical action is fixed", Shots.has(activity, "改做别的…"));
+        assertTrue(Shots.has(activity, "RANK 6 → 7"));
+        assertTrue(Shots.has(activity, "原来记的是：皇帝 RANK 7"));
+        assertFalse("the historical action is fixed", Shots.has(activity, ResultActivity.OTHER_INSTEAD));
+        assertFalse("the historical action is fixed", Shots.has(activity, "做了别的…"));
         Shots.click(activity, "没升级");
+        Shots.click(activity, "没有");
         FakePlannerApi.Call call = api.last();
         assertEquals("correctOutcome", call.method);
         assertEquals(correction.targetSeq, call.targetSeq);
@@ -227,9 +230,12 @@ public class ScheduleHistoryUiTest extends UiTestBase {
         api.nextReceipt = FakePlannerApi.stale();
         api.snap.stateRevision++;
         Shots.click(activity, "没升级");
+        Shots.click(activity, "没有");
         assertFalse(activity.isFinishing());
-        assertTrue(Shots.has(activity, "现在是 RANK 6，这次见面预计会升级。"));
+        assertTrue(Shots.has(activity, Messages.STALE));
+        assertTrue(Shots.has(activity, "RANK 6 → 7"));
         Shots.click(activity, "没升级");
+        Shots.click(activity, "没有");
         assertEquals(correction.targetSeq, api.last().targetSeq);
         assertEquals(2, api.callsOf("correctOutcome").size());
         assertTrue(api.callsOf("recordOutcome").isEmpty());
@@ -238,7 +244,7 @@ public class ScheduleHistoryUiTest extends UiTestBase {
     @Test
     public void aRecordThatNoLongerBelongsToTheCheckpointCannotBeEdited() {
         ResultActivity activity = correction(91);
-        assertTrue(Shots.has(activity, "这条记录已经更新"));
+        assertTrue(Shots.has(activity, "这条记录刚改过"));
         assertTrue(api.calls.isEmpty());
     }
 

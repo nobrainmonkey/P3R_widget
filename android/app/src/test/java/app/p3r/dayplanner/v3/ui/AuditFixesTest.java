@@ -169,7 +169,7 @@ public class AuditFixesTest extends UiTestBase {
         int slot = Rules.slot(Fixtures.day(10, 24), true);
         api.snap.observed.slot = slot;
         ResultActivity r = result(slot, "tower:3", Intents.MODE_RESULT);
-        assertTrue(Shots.has(r, "本区块第 2 次 · 上限 6 次"));
+        assertTrue(Shots.has(r, "第 2 次 · 最多 6 次"));
     }
 
     // ------------------------------------------------------------------ 平安夜
@@ -466,7 +466,10 @@ public class AuditFixesTest extends UiTestBase {
         assertTrue(api.callsOf("recordTower").isEmpty());
         Shots.click(a, TowerPanel.FORGOT);
         assertTrue(panel.saveButton().isEnabled());
-        assertTrue(panel.previewText(), panel.previewText().startsWith("不记得钱了：这次的现金按没变记（+0）"));
+        assertTrue(panel.forgotCash());
+        // The selected chip says it; no line explaining how it is recorded.
+        assertEquals("", panel.previewText());
+        assertTrue(Shots.find(a, TowerPanel.FORGOT).isSelected());
         Shots.shot(a, "result_tower_forgot_cash");
         Shots.click(a, "保存");
         FakePlannerApi.Call call = api.last();
@@ -476,7 +479,7 @@ public class AuditFixesTest extends UiTestBase {
         assertEquals("maiko", call.tower.rescuedId);
         UndoCenter.Recorded recorded = UndoCenter.take();
         assertNotNull(recorded);
-        assertTrue(recorded.summaryZh, recorded.summaryZh.endsWith("现金按没变记"));
+        assertTrue(recorded.summaryZh, recorded.summaryZh.endsWith(" · 不记得钱了"));
     }
 
     @Test
@@ -501,7 +504,7 @@ public class AuditFixesTest extends UiTestBase {
         Shots.click(c.get(), TowerPanel.FORGOT);
         c.recreate();
         Shots.idle();
-        assertTrue("不记得钱了 survives rotation", c.get().towerPanel().previewText().startsWith("不记得钱了"));
+        assertTrue("不记得钱了 survives rotation", c.get().towerPanel().forgotCash());
         panel = c.get().towerPanel();
         panel.setAmountForTest(20_000);
         assertEquals("进塔前 18,500 → 出塔后 20,000 日元（+1,500）", panel.previewText());

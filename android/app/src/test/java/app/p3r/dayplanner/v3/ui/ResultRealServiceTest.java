@@ -95,6 +95,7 @@ public class ResultRealServiceTest extends UiTestBase {
         int from = real.snapshot().observed.rank[emperor];
         ResultActivity a = open(step);
         Shots.click(a, "没升级");
+        Shots.click(a, "没有");
         assertTrue(a.isFinishing());
 
         PlannerApi.Snapshot after = real.snapshot();
