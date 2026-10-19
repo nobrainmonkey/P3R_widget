@@ -152,10 +152,10 @@ public class DesignReviewTest extends UiTestBase {
         // 13.5 characters wide: 「吗？」 used to be left alone on the second line.
         TextView title = drawn(question, 22, true, 297);
         assertEquals(lines(title).toString(), "玩了吗？", lines(title).get(lines(title).size() - 1));
-        // The real page.
+        // The real page: 「上次记到 10月21日 晚上，之后照着安排玩了吗？」.
         StateActivity a = stateController("sync").get();
         Shots.capture(a, false);
-        TextView h1 = (TextView) Shots.find(a, question);
+        TextView h1 = (TextView) Shots.find(a, StateSteps.syncQuestion(a.draft()));
         List<String> shown = lines(h1);
         assertTrue(shown.toString(), shown.size() == 1 || shown.get(shown.size() - 1).length() >= 4);
     }

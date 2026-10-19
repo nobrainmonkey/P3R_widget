@@ -2,22 +2,30 @@ package app.p3r.dayplanner.v3.ui;
 
 import android.app.Dialog;
 import android.content.Context;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.RelativeSizeSpan;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import app.p3r.dayplanner.R;
 
 /**
- * Custom money keypad (no system keyboard): 0–9, 000, 退格, optional 不确定 and ± keys, live
- * thousands separators and the 日元 unit. The first digit typed replaces the prefilled value.
+ * Custom number keypad (no system keyboard): 0–9, 000, 退格, optional 不记得 and ± keys, live
+ * thousands separators and a unit (日元 by default). A prefilled value is shown selected (a cyan
+ * highlight): the first digit typed replaces it.
  *
  * <p>Two presentations: a bottom dialog with 确定 ({@link #show}), and an inline keypad embedded in
  * a page that reports every change immediately ({@link #inline}), which saves the player a tap.
  */
 public final class CashPad {
-    /** Result callback: the amount, or null when the player chose 不确定. */
+    /** Result callback: the amount, or null when the player chose 不记得. */
     public interface Listener {
         void onDone(Long value);
     }
@@ -30,28 +38,46 @@ public final class CashPad {
         public boolean allowUnknown = true;
         public boolean allowNegative;
         public String confirmLabel = "确定";
+        /** Unit after the number ("日元", "F"); null or empty for none. */
+        public String unit = "日元";
+        /** Largest value that can be typed (null: {@link #MAX_DIGITS} digits). */
+        public Long max;
+        /** Offer the 「000」 key (money); a small count gets a plain 0 key instead. */
+        public boolean tripleZero = true;
+        /** Small slanted tag beside a prefilled value (「预计」), dropped once the player types. */
+        public CharSequence badge;
     }
+
+    /** The answer for an amount the player does not remember. */
+    static final String UNKNOWN_LABEL = "不记得";
 
     private static final int MAX_DIGITS = 9;
 
     private final Dialog dialog;
     private final LinearLayout content;
     private final TextView display;
+    private final View badge;
     private final Listener listener;
     private final boolean inline;
+    private final String unit;
+    private final Long max;
     private final StringBuilder digits = new StringBuilder();
     private boolean negative;
     private boolean replaceOnType;
     private boolean unknown;
-    private TextView unknownChip;
+    private TextView unknownButton;
 
     private CashPad(Context context, Options options, Listener listener, boolean inline) {
         this.listener = listener;
         this.inline = inline;
+        this.unit = options.unit == null ? "" : options.unit;
+        this.max = options.max;
         content = Ui.column(context);
         if (!inline) {
             Ui.pad(content, 20, 20, 20, 16);
-            content.addView(SheetChrome.title(context, options.title));
+            if (options.title != null) {
+                content.addView(SheetChrome.title(context, options.title));
+            }
         }
         if (options.hint != null) {
             TextView hint = Ui.mixed(context, options.hint, 13, Ui.col(context, R.color.p3r_ink_muted), false);
@@ -59,35 +85,66 @@ public final class CashPad {
             p.topMargin = Ui.dp(context, 4);
             content.addView(hint, p);
         }
-        display = Ui.text(context, "", 36, Ui.col(context, R.color.p3r_white), true);
+
+        // The amount: a big numeral, right-aligned over a cyan hairline; the tag sits at the left.
+        FrameLayout field = new FrameLayout(context);
+        display = Ui.text(context, "", 40, Ui.col(context, R.color.p3r_white), true);
         display.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        display.setMinHeight(Ui.dp(context, 72));
-        Ui.pad(display, 16, 4, 20, 4);
-        display.setBackground(new SlantedPanelDrawable()
-            .fill(Ui.alpha(Ui.col(context, R.color.p3r_navy_950), 170))
-            .stroke(Ui.col(context, R.color.p3r_cyan_400), Ui.dp(context, 1.5f))
-            .skew(Ui.dp(context, 10)));
-        LinearLayout.LayoutParams displayParams = Ui.matchWrap();
-        displayParams.topMargin = Ui.dp(context, 12);
-        displayParams.bottomMargin = Ui.dp(context, 4);
-        content.addView(display, displayParams);
+        display.setMaxLines(1);
+        Ui.pad(display, 12, 2, 12, 2);
+        FrameLayout.LayoutParams dp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END | Gravity.CENTER_VERTICAL);
+        field.addView(display, dp);
+        if (options.badge != null) {
+            badge = Ui.tag(context, options.badge, Ui.alpha(Ui.col(context, R.color.p3r_cyan_200), 40),
+                Ui.col(context, R.color.p3r_cyan_200));
+            field.addView(badge, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.START | Gravity.CENTER_VERTICAL));
+        } else {
+            badge = null;
+        }
+        field.setMinimumHeight(Ui.dp(context, 68));
+        LinearLayout.LayoutParams fieldParams = Ui.matchWrap();
+        fieldParams.topMargin = Ui.dp(context, inline ? 4 : 12);
+        content.addView(field, fieldParams);
+        View rule = Ui.fadingRule(context);
+        rule.setScaleX(-1f);
+        content.addView(rule, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+            Math.max(1, Ui.dp(context, 2))));
+
+        if (inline && options.allowUnknown) {
+            // 「不记得」: a quiet text action under the amount, not a key.
+            unknownButton = Ui.quiet(context, UNKNOWN_LABEL);
+            unknownButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            unknownButton.setOnClickListener(v -> markUnknown());
+            LinearLayout.LayoutParams up = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+            up.gravity = Gravity.END;
+            content.addView(unknownButton, up);
+        }
 
         String[][] rows = {{"1", "2", "3"}, {"4", "5", "6"}, {"7", "8", "9"}};
-        for (String[] row : rows) {
-            content.addView(Pads.keyRow(context, digitKey(context, row[0]), digitKey(context, row[1]),
-                digitKey(context, row[2])));
+        for (int i = 0; i < rows.length; i++) {
+            String[] row = rows[i];
+            LinearLayout keys = Pads.keyRow(context, digitKey(context, row[0]), digitKey(context, row[1]),
+                digitKey(context, row[2]));
+            if (i == 0 && inline && !options.allowUnknown) {
+                ((LinearLayout.LayoutParams) keys.getLayoutParams()).topMargin = Ui.dp(context, 14);
+            }
+            content.addView(keys);
         }
         View back = Pads.iconKey(context, R.drawable.ui_ic_backspace, "退格");
         back.setOnClickListener(v -> backspace());
-        content.addView(Pads.keyRow(context, digitKey(context, "000"), digitKey(context, "0"), back));
+        View first = options.tripleZero ? digitKey(context, "000") : new View(context);
+        content.addView(Pads.keyRow(context, first, digitKey(context, "0"), back));
 
         LinearLayout actions = Ui.row(context);
         LinearLayout.LayoutParams actionsParams = Ui.matchWrap();
         actionsParams.topMargin = Ui.dp(context, 16);
-        if (options.allowUnknown) {
-            unknownChip = inline ? Ui.chip(context, "不确定", false) : Ui.secondary(context, "不确定");
-            unknownChip.setOnClickListener(v -> markUnknown());
-            actions.addView(unknownChip, inline ? Ui.wrap() : Ui.weight(1));
+        if (!inline && options.allowUnknown) {
+            unknownButton = Ui.secondary(context, UNKNOWN_LABEL);
+            unknownButton.setOnClickListener(v -> markUnknown());
+            actions.addView(unknownButton, Ui.weight(1));
         }
         if (options.allowNegative) {
             TextView sign = Ui.secondary(context, "±");
@@ -129,7 +186,7 @@ public final class CashPad {
 
     /**
      * An inline keypad view; {@code listener} receives the amount after every key (null after
-     * 不确定). {@code options.initial} null starts in the 不确定 state.
+     * 不记得). {@code options.initial} null starts in the 不记得 state.
      */
     public static View inline(Context context, Options options, Listener listener) {
         return new CashPad(context, options, listener, true).content;
@@ -156,6 +213,11 @@ public final class CashPad {
                 break;
             }
             digits.append(c);
+            if (max != null && Long.parseLong(digits.toString()) > max) {
+                digits.setLength(0);
+                digits.append(max);
+                break;
+            }
         }
         changed();
     }
@@ -180,6 +242,7 @@ public final class CashPad {
             return;
         }
         unknown = true;
+        replaceOnType = false;
         digits.setLength(0);
         changed();
     }
@@ -188,6 +251,11 @@ public final class CashPad {
     long value() {
         long v = digits.length() == 0 ? 0 : Long.parseLong(digits.toString());
         return negative ? -v : v;
+    }
+
+    /** What the 不记得 state or an amount looks like (tests). */
+    CharSequence displayText() {
+        return Zh.plain(display.getText());
     }
 
     private void changed() {
@@ -199,22 +267,49 @@ public final class CashPad {
 
     private void render() {
         Context context = display.getContext();
+        if (badge != null && !replaceOnType) {
+            badge.setVisibility(View.GONE);
+        }
         if (unknown) {
-            display.setText("不确定");
-            display.setTextSize(22);
-            display.setTextColor(Ui.col(context, R.color.p3r_cyan_300));
-            display.setContentDescription("现金不确定");
+            // A dim 「— 日元」: no amount yet, never the word 不确定 in the field.
+            display.setText(amount(context, "—"));
+            display.setTextColor(Ui.col(context, R.color.p3r_ink_faint));
+            display.setBackground(null);
+            display.setContentDescription("现金" + UNKNOWN_LABEL);
         } else {
             long v = value();
             String text = Zh.number(Math.abs(v));
-            display.setText(Ui.money(context, v < 0 ? "−" + text : text));
-            display.setTextSize(36);
+            display.setText(amount(context, v < 0 ? "−" + text : text));
             display.setTextColor(Ui.col(context, R.color.p3r_white));
-            display.setContentDescription(Zh.yen(v));
+            // A prefilled amount is drawn selected: typing replaces it.
+            display.setBackground(replaceOnType ? new SlantedPanelDrawable()
+                .fill(Ui.col(context, R.color.ui_cyan_soft)).skew(Ui.dp(context, 8)) : null);
+            display.setContentDescription(unit.isEmpty() ? String.valueOf(v)
+                : "日元".equals(unit) ? Zh.yen(v) : v + unit);
         }
-        if (unknownChip != null && inline) {
-            Ui.setChipSelected(unknownChip, unknown);
+        if (unknownButton != null && inline) {
+            unknownButton.setSelected(unknown);
+            unknownButton.setTextColor(Ui.col(context, unknown ? R.color.p3r_white : R.color.p3r_cyan_300));
         }
+    }
+
+    /** "25,050 日元": the number in the numeral face, the unit smaller, upright and cyan. */
+    private CharSequence amount(Context context, String number) {
+        SpannableStringBuilder sb = new SpannableStringBuilder(Ui.latin(context, number));
+        if (!unit.isEmpty()) {
+            // A Latin unit joins the number in its face ("96F"); a Chinese one stays upright ("2,500 日元").
+            boolean latin = unit.chars().allMatch(ch -> ch < 0x80);
+            int start = sb.length();
+            if (latin) {
+                sb.append(Ui.latin(context, unit));
+            } else {
+                sb.append(" ").append(unit);
+            }
+            sb.setSpan(new RelativeSizeSpan(latin ? 0.6f : 0.45f), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            sb.setSpan(new ForegroundColorSpan(Ui.col(context, R.color.p3r_cyan_300)), start, sb.length(),
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return sb;
     }
 
     private void finish(Long result) {

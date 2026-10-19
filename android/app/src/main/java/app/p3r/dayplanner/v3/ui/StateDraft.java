@@ -38,7 +38,7 @@ public final class StateDraft {
         }
     }
 
-    /** Answer to "这段时间基本照着安排玩了吗？". */
+    /** Answer to "上次记到 10月21日 晚上，之后照着安排玩了吗？" (基本照着玩了 / 玩了一部分 / 没怎么照着玩). */
     public enum SyncAnswer { YES, PARTLY, NO }
 
     /** Answer to "北村文吉救出来了吗？" (stored per rescue index). */
@@ -46,24 +46,34 @@ public final class StateDraft {
     public static final int RESCUE_DONE = 1;
     public static final int RESCUE_FAILED = 2;
 
-    /** RANK value meaning "?" (not sure — keep what was stored). */
+    /** RANK value meaning 「不记得」 (keep what was stored; on a first run saved as 未解锁). */
     public static final int UNKNOWN = -1;
 
-    /** How the first-run summary lists a link left at "?" (saved as 未解锁). */
-    public static final String UNSURE_RANK = "不确定（先按未解锁安排）";
-    /** Shown under a rescue the record says failed, while that answer is preselected. */
-    public static final String RECORDED_FAILURE_NOTE = "上次记录的结果，如果其实救出了请改。";
+    /** How a link left at {@link #UNKNOWN} reads in 同步现状 / 修改进度 (the record is kept). */
+    public static final String UNSURE_RANK = "不记得";
+    /** Tag beside a rescue the record says failed, while that answer is preselected. */
+    public static final String RECORDED_FAILURE_NOTE = "上次记录";
 
     /** One line of the confirmation diff ("皇帝 RANK 6 → 7"). */
     public static final class Change {
         public final String labelZh;
         public final String beforeZh;
         public final String afterZh;
+        /** Wizard page that edits this value ({@code StateSteps.Page} name), or null. */
+        public final String page;
+        /** The new value is the plan's forecast (after 「基本照着玩了」), not typed by the player. */
+        public final boolean forecast;
 
         Change(String labelZh, String beforeZh, String afterZh) {
+            this(labelZh, beforeZh, afterZh, null, false);
+        }
+
+        Change(String labelZh, String beforeZh, String afterZh, String page, boolean forecast) {
             this.labelZh = labelZh;
             this.beforeZh = beforeZh;
             this.afterZh = afterZh;
+            this.page = page;
+            this.forecast = forecast;
         }
     }
 
@@ -101,6 +111,8 @@ public final class StateDraft {
     /** 平安夜 answer: null = untouched, "" = 都婉拒了, else the id of the link whose invitation was accepted. */
     String christmas;
     String step;
+    /** Page a single page was opened from (修改哪一项？ or the review), null while walking the pages. */
+    String returnTo;
 
     private int cachedPrefillSlot = Integer.MIN_VALUE;
     private SyncAnswer cachedPrefillAnswer;
@@ -178,7 +190,7 @@ public final class StateDraft {
         return slot != null ? slot : base.slot;
     }
 
-    /** True when the player said "不确定" (or, on first run, has not entered the cash yet). */
+    /** True when the player said 「不记得」 (or, on first run, has not entered the cash yet). */
     public boolean cashUnknown() {
         if (cashUnknown != null) {
             return cashUnknown;
@@ -266,7 +278,7 @@ public final class StateDraft {
 
     /**
      * Displayed answer: the edit, else "救出了" when the record (or the forecast) says so, else
-     * "没救出" when the record says so (its window has closed), else "不确定". A recorded result is
+     * "没救出" when the record says so (its window has closed), else unknown ({@link #RESCUE_UNSURE}). A recorded result is
      * kept unless the player changes it here ({@link #build}).
      */
     public int rescueAnswer(int index) {
@@ -299,6 +311,26 @@ public final class StateDraft {
         for (Rules.Episode track : rules.episodes) {
             if (profile.wantsEpisodes(track.id)) {
                 out.add(track.idx);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Opted-in tracks worth asking about at the chosen date: an episode could be watched on or
+     * before it, or some are already counted as watched.
+     */
+    public List<Integer> visibleEpisodeTracks() {
+        List<Integer> out = new ArrayList<>();
+        int day = Rules.dayOf(slot());
+        for (int track : episodeTracks()) {
+            Rules.Episode e = rules.episodes[track];
+            boolean open = false;
+            for (int d = 0; d <= day && d < e.dayMask.length && !open; d++) {
+                open = e.dayMask[d] != 0;
+            }
+            if (open || episodesWatched(track) > 0) {
+                out.add(track);
             }
         }
         return out;
@@ -374,7 +406,7 @@ public final class StateDraft {
         return dormCounts[activity] == null && dormCount(prefill(), activity) != dormCount(base, activity);
     }
 
-    /** A milestone inferred from the displayed counts; the UI labels counts projected during confirmed sync. */
+    /** Trait reached with the displayed counts (「特性已强化」 / 「特性已解锁」), null when none yet. */
     public String dormMilestone(String partner) {
         int tracks = 0;
         int completed = 0;
@@ -384,9 +416,19 @@ public final class StateDraft {
                 if (dormCount(activity.idx) >= 3) completed++;
             }
         }
-        if (tracks >= 2 && completed == tracks) return "已达特性强化次数";
-        if (completed > 0) return "已达特性解锁次数";
-        return "每种活动做满 3 次可解锁特性";
+        if (tracks >= 2 && completed == tracks) return "特性已强化";
+        if (completed > 0) return "特性已解锁";
+        return null;
+    }
+
+    /** True when every displayed dorm count of the chosen date is 0 (「做过宿舍活动吗？」 comes first). */
+    public boolean noDormYet() {
+        for (Rules.Activity activity : dormActivities()) {
+            if (dormCount(activity.idx) > 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public void setDormGardening(boolean enabled) {
@@ -400,9 +442,17 @@ public final class StateDraft {
 
     // ------------------------------------------------------------------ 平安夜
 
-    /** The wizard asks about 12/24 from 12/20 on, and always in 修改进度. */
+    /**
+     * The wizard asks about 12/24 from 12/20 on (before that it is a 规划设置 matter), and only
+     * when someone could have invited the player.
+     */
     public boolean asksChristmas() {
-        return mode == Mode.EDIT || Rules.dayOf(slot()) >= ChristmasChoice.askFromDay();
+        return Rules.dayOf(slot()) >= ChristmasChoice.askFromDay() && !christmasCandidates().isEmpty();
+    }
+
+    /** Links whose 12/24 invitation can be chosen, with the displayed ranks. */
+    public List<Rules.Link> christmasCandidates() {
+        return ChristmasChoice.candidates(rules, i -> Math.max(0, rank(i)), christmasLink());
     }
 
     /** Link id of the accepted 12/24 invitation (the edit, else the profile's), null = 都婉拒了. */
@@ -624,45 +674,52 @@ public final class StateDraft {
         if (before == null) {
             return summaryForFirstRun(after);
         }
+        SimState shown = prefill();
         if (before.slot != after.slot) {
             // 「10月25日 白天」, as in the rest of the app's text (M/D is for date plates only).
-            out.add(new Change("日期", Zh.slot(rules, before.slot), Zh.slot(rules, after.slot)));
+            out.add(new Change("日期", Zh.slot(rules, before.slot), Zh.slot(rules, after.slot), "DATE", false));
         }
         if (before.cash != after.cash || before.cashExact != after.cashExact) {
-            out.add(new Change("现金", cashText(before), cashText(after)));
+            out.add(new Change("现金", cashText(before), cashText(after), "CASH", isForecastCash()));
         }
         for (int i = 0; i < Math.min(3, rules.stats.length); i++) {
             int a = rules.stats[i].levelFor(before.statPts[i]);
             int b = rules.stats[i].levelFor(after.statPts[i]);
             if (a != b) {
-                out.add(new Change(rules.stats[i].zh, Zh.lv(a), Zh.lv(b)));
+                out.add(new Change(rules.stats[i].zh, Zh.lv(a), Zh.lv(b), "STATS", isForecastStat(i)));
             }
         }
         for (Rules.Link link : rules.links) {
             int a = before.rank[link.idx];
             int b = after.rank[link.idx];
             if (a != b) {
-                out.add(new Change(link.arcanaZh, Zh.rank(a), Zh.rank(b)));
+                out.add(new Change(link.arcanaZh, Zh.rank(a), Zh.rank(b), "LINKS", isForecastRank(link.idx)));
             } else if (b == 0 && before.unlockStep[link.idx] != after.unlockStep[link.idx]) {
-                out.add(new Change(link.arcanaZh + " 解锁进度", unlockText(link, before.unlockStep[link.idx]),
-                    unlockText(link, after.unlockStep[link.idx])));
+                boolean predicted = unlock[link.idx] == null && rank[link.idx] == null
+                    && shown.unlockStep[link.idx] != base.unlockStep[link.idx];
+                out.add(new Change(link.arcanaZh + " · 准备", unlockText(link, before.unlockStep[link.idx]),
+                    unlockText(link, after.unlockStep[link.idx]), "UNLOCK", predicted));
             }
         }
         if (before.floor != after.floor) {
-            out.add(new Change("最高到达层", before.floor + "F", after.floor + "F"));
+            out.add(new Change("最高到达", before.floor + "F", after.floor + "F", "TOWER",
+                floor == null && shown.floor != base.floor));
         }
         for (int i = 0; i < rules.rescues.length && i < 63; i++) {
-            String a = rescueText(before, i);
-            String c = rescueText(after, i);
+            String a = rescueText(before, i, rescueOpen(i));
+            String c = rescueText(after, i, rescueOpen(i));
             if (!a.equals(c)) {
-                out.add(new Change("救出" + rules.rescues[i].zh, a, c));
+                long bit = 1L << i;
+                out.add(new Change("救出" + rules.rescues[i].zh, a, c, "TOWER",
+                    rescue[i] == null && (shown.rescued & bit) != (base.rescued & bit)));
             }
         }
         for (Rules.Episode track : rules.episodes) {
             int a = watched(rules, before, track.idx);
             int e = watched(rules, after, track.idx);
             if (a != e) {
-                out.add(new Change(Outcomes.episodeName(track), episodesText(track, a), episodesText(track, e)));
+                out.add(new Change(Outcomes.episodeName(track), episodesText(track, a), episodesText(track, e),
+                    "EPISODES", isForecastEpisodes(track.idx)));
             }
         }
         for (Rules.Activity activity : rules.activities) {
@@ -670,93 +727,106 @@ public final class StateDraft {
             int a = dormCount(before, activity.idx);
             int c = dormCount(after, activity.idx);
             if (a != c) {
-                out.add(new Change(activity.zh, a + " / 3 次", c + " / 3 次"));
+                out.add(new Change(activity.zh, a + " 次", c + " 次", "DORM", isForecastDormCount(activity.idx)));
             }
         }
         if (originalProfile.planDormGardening != profile.planDormGardening) {
-            out.add(new Change("安排园艺", originalProfile.planDormGardening ? "开启" : "关闭",
-                profile.planDormGardening ? "开启（提前种好作物）" : "关闭"));
+            out.add(new Change("安排园艺", originalProfile.planDormGardening ? "开" : "关",
+                profile.planDormGardening ? "开" : "关", "DORM", false));
         }
         Rules.Block b = block();
         if (b != null && b.idx < before.towerVisits.length && before.towerVisits[b.idx] != after.towerVisits[b.idx]) {
-            out.add(new Change(b.zh + " 已去", before.towerVisits[b.idx] + " 次", after.towerVisits[b.idx] + " 次"));
+            boolean predicted = towerVisits == null && b.idx < shown.towerVisits.length
+                && shown.towerVisits[b.idx] != base.towerVisits[b.idx];
+            out.add(new Change(b.zh + " 去过", before.towerVisits[b.idx] + " 次", after.towerVisits[b.idx] + " 次",
+                "TOWER", predicted));
         }
         String christmasBefore = originalProfile.christmasLink;
         String christmasAfter = christmasLink();
         if (christmasBefore == null ? christmasAfter != null : !christmasBefore.equals(christmasAfter)) {
             out.add(new Change("平安夜", ChristmasChoice.answerText(rules, christmasBefore),
-                ChristmasChoice.answerText(rules, christmasAfter)));
+                ChristmasChoice.answerText(rules, christmasAfter), "CHRISTMAS", false));
         }
         return out;
     }
 
-    private static String rescueText(SimState s, int index) {
+    /** "救出了" / "没救出"; not known: "还没" while the window runs, "—" once it has closed. */
+    private static String rescueText(SimState s, int index, boolean open) {
         long bit = 1L << index;
         if ((s.rescued & bit) != 0) {
             return "救出了";
         }
-        return (s.rescueFailed & bit) != 0 ? "没救出" : "不确定";
+        if ((s.rescueFailed & bit) != 0) {
+            return "没救出";
+        }
+        return open ? "还没" : "—";
     }
 
+    /** Links already unlocked in {@code s} (RANK 1 or above). */
+    int established(SimState s) {
+        int count = 0;
+        for (Rules.Link link : rules.links) {
+            if (link.idx < s.rank.length && s.rank[link.idx] > 0) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /** "已解锁 3 个" / "都还没解锁". */
+    static String establishedText(int count) {
+        return count > 0 ? "已解锁 " + count + " 个" : "都还没解锁";
+    }
+
+    /**
+     * What a first run saves, for the 准备好了？ page: the date, cash, the three stats, how many
+     * links are unlocked (a link left at 「?」 is saved as 未解锁, like any other), the goals, the
+     * 人格面具 answer, then the answers of the pages that came up for the chosen date.
+     */
     private List<Change> summaryForFirstRun(SimState after) {
         List<Change> out = new ArrayList<>();
-        out.add(new Change("日期", null, Zh.slot(rules, after.slot)));
-        out.add(new Change("现金", null, cashText(after)));
+        out.add(new Change("日期", null, Zh.slot(rules, after.slot), "DATE", false));
+        out.add(new Change("现金", null, cashText(after), "CASH", false));
         StringBuilder stats = new StringBuilder();
         for (int i = 0; i < Math.min(3, rules.stats.length); i++) {
             if (i > 0) {
-                stats.append("  ");
+                stats.append(" · ");
             }
             stats.append(rules.stats[i].zh).append(' ').append(Zh.lv(rules.stats[i].levelFor(after.statPts[i])));
         }
-        out.add(new Change("个人能力值", null, stats.toString()));
-        int established = 0;
-        List<Integer> unsure = new ArrayList<>();
-        for (Rules.Link link : rules.links) {
-            if (rank(link.idx) == UNKNOWN) {
-                unsure.add(link.idx);
-            } else if (link.idx < after.rank.length && after.rank[link.idx] > 0) {
-                established++;
-            }
-        }
-        String linksText = established > 0 ? "已解锁 " + established + " 个"
-            : unsure.isEmpty() ? "都还没解锁" : "没有确定已解锁的";
-        out.add(new Change("社群", null, linksText));
-        // "?" is saved as 未解锁 for now: say so for every such link, never silently.
-        for (int link : unsure) {
-            out.add(new Change(rules.links[link].arcanaZh, null, UNSURE_RANK));
-        }
+        out.add(new Change("个人能力值", null, stats.toString(), "STATS", false));
+        out.add(new Change("社群", null, establishedText(established(after)), "LINKS", false));
         List<Integer> goals = LinkStatus.goalOrder(profile);
-        out.add(new Change("目标", null, goals.isEmpty() ? "没有指定，所有社群尽量提升" : goalSummary(goals)));
-        out.add(new Change("人格面具", null, personaShort(profile.effectivePersonaMode())));
+        out.add(new Change("目标", null, goals.isEmpty() ? "没选，所有社群都尽量提升" : goalSummary(goals), "GOALS", false));
+        out.add(new Change("人格面具", null, personaShort(profile.effectivePersonaMode()), "PERSONA", false));
         for (int i : rescuesToAsk()) {
-            String answer = rescueText(after, i);
-            out.add(new Change("救出" + rules.rescues[i].zh, null, answer));
+            out.add(new Change("救出" + rules.rescues[i].zh, null, rescueText(after, i, rescueOpen(i)), "TOWER", false));
         }
-        for (int track : episodeTracks()) {
+        for (int track : visibleEpisodeTracks()) {
             Rules.Episode e = rules.episodes[track];
-            out.add(new Change(Outcomes.episodeName(e), null, episodesText(e, watched(rules, after, track))));
+            out.add(new Change(Outcomes.episodeName(e), null, episodesText(e, watched(rules, after, track)),
+                "EPISODES", false));
         }
         for (Rules.Activity activity : dormActivities()) {
             int count = dormCount(after, activity.idx);
-            if (count > 0) out.add(new Change(activity.zh, null, count + " / 3 次"));
+            if (count > 0) out.add(new Change(activity.zh, null, count + " 次", "DORM", false));
         }
-        if (profile.planDormGardening) out.add(new Change("安排园艺", null, "开启（提前种好作物）"));
+        if (profile.planDormGardening) out.add(new Change("安排园艺", null, "开", "DORM", false));
         if (asksChristmas()) {
-            out.add(new Change("平安夜", null, ChristmasChoice.answerText(rules, christmasLink())));
+            out.add(new Change("平安夜", null, ChristmasChoice.answerText(rules, christmasLink()), "CHRISTMAS", false));
         }
         return out;
     }
 
-    /** Short value for the confirm page ("只给目标社群带"). */
+    /** Short value for summaries ("只给目标社群带"). */
     static String personaShort(Profile.PersonaMode mode) {
         switch (mode) {
             case ALL:
-                return "基本都带";
+                return "都带";
             case GOALS:
                 return "只给目标社群带";
             default:
-                return "不带/不一定";
+                return "不带";
         }
     }
 
@@ -781,16 +851,18 @@ public final class StateDraft {
         return text.toString();
     }
 
-    private static String cashText(SimState s) {
-        return s.cashExact ? Zh.yen(s.cash) : "不确定";
+    /** "18,500 日元", or 「不记得」 when the amount is not known exactly. */
+    static String cashText(SimState s) {
+        return s.cashExact ? Zh.yen(s.cash) : CashPad.UNKNOWN_LABEL;
     }
 
+    /** "还没做" / "做完「再借给社长 10,000 日元」" (the last step done). */
     static String unlockText(Rules.Link link, int done) {
         if (done <= 0) {
-            return "还没开始";
+            return "还没做";
         }
         int index = Math.min(done, link.unlock.steps.size()) - 1;
-        return "已完成「" + link.unlock.steps.get(index).zh + "」";
+        return "做完「" + link.unlock.steps.get(index).zh + "」";
     }
 
     /** Carries the player's edits over to a draft rebased on a newer record (after a CAS conflict). */
@@ -812,6 +884,7 @@ public final class StateDraft {
             setChristmasLink(other.christmas.isEmpty() ? null : other.christmas);
         }
         step = other.step;
+        returnTo = other.returnTo;
         if (mode == Mode.ONBOARDING) {
             System.arraycopy(other.profile.tier, 0, profile.tier, 0, Profile.LINKS);
             System.arraycopy(other.profile.order, 0, profile.order, 0, Profile.LINKS);

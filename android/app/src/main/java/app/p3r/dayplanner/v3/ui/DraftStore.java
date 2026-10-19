@@ -48,6 +48,7 @@ public final class DraftStore {
         boolean rebased = prefs.getLong(p + "base.rev", Long.MIN_VALUE) != draft.baseRevision;
         Rules rules = draft.rules;
         draft.step = prefs.getString(p + "step", null);
+        draft.returnTo = prefs.getString(p + "step.return", null);
         String sync = prefs.getString(p + "sync", null);
         draft.sync = sync == null ? null : StateDraft.SyncAnswer.valueOf(sync);
         draft.slot = getInt(p + "slot");
@@ -114,6 +115,7 @@ public final class DraftStore {
         SharedPreferences.Editor e = prefs.edit();
         e.putLong(p + "base.rev", draft.baseRevision);
         putString(e, p + "step", draft.step);
+        putString(e, p + "step.return", draft.returnTo);
         putString(e, p + "sync", draft.sync == null ? null : draft.sync.name());
         putInt(e, p + "slot", draft.slot);
         if (draft.cash != null) {

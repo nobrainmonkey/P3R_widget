@@ -67,7 +67,7 @@ public class DormProgressUiTest extends UiTestBase {
         assertEquals(5, after.used[FIRST]);
         assertEquals(3, after.used[SECOND]);
         assertArrayEquals(observed.statPts, after.statPts);
-        assertEquals("已达特性强化次数", draft.dormMilestone("伊织顺平"));
+        assertEquals("特性已强化", draft.dormMilestone("伊织顺平"));
         assertEquals(0, observed.used[SECOND]);
     }
 
@@ -144,15 +144,19 @@ public class DormProgressUiTest extends UiTestBase {
         api.snap.observed = Fixtures.observedMid(rules);
         api.snap.observed.used[FIRST] = 3;
         StateActivity activity = stateController("edit").get();
-        goTo(activity, StateSteps.Page.DORM);
-        assertEquals(StateSteps.Page.DORM, activity.currentPage());
-        assertTrue(Shots.has(activity, "已达特性解锁次数"));
-        assertTrue(Shots.has(activity, "与顺平阅读 · 3 / 3 次"));
+        StateWizardTest.openFromHub(activity, "宿舍活动", StateSteps.Page.DORM);
+        assertTrue("a count is recorded: no 做过吗？ first", Shots.has(activity, "宿舍活动各做过几次？"));
+        assertTrue(Shots.has(activity, "特性已解锁"));
+        assertTrue(Shots.has(activity, "与顺平阅读"));
+        assertTrue(Shots.find(activity, "与顺平阅读：3 次").isSelected());
+        String text = Shots.allText(activity.getWindow().getDecorView());
+        assertFalse("no rule teaching", text.contains("做满 3 次"));
+        assertFalse(text.contains("/ 3 次"));
         Shots.click(activity, "与顺平园艺：3 次");
-        assertTrue(Shots.has(activity, "已达特性强化次数"));
+        assertTrue(Shots.has(activity, "特性已强化"));
         Shots.shot(activity, "state_dorm_progress");
-        goTo(activity, StateSteps.Page.CONFIRM);
-        Shots.click(activity, "保存并重新安排");
+        Shots.click(activity, "完成");
+        Shots.click(activity, "更新安排");
         assertEquals(3, api.last().state.used[SECOND]);
         assertFalse(api.last().profile != null && api.last().profile.planDormGardening);
     }
@@ -179,7 +183,7 @@ public class DormProgressUiTest extends UiTestBase {
     }
 
     @Test
-    public void realPackShowsAllEighteenCategoriesAndGardeningChoice() throws Exception {
+    public void realPackAsksFirstThenShowsAllEighteenCategories() throws Exception {
         Rules rules = null;
         for (String candidate : new String[]{"src/main/assets/p3r/p3r_rules.json", "app/src/main/assets/p3r/p3r_rules.json",
                 "android/app/src/main/assets/p3r/p3r_rules.json"}) {
@@ -194,14 +198,18 @@ public class DormProgressUiTest extends UiTestBase {
         api.snap.observed = new SimState(rules.blocks.length, rules.activities.length);
         api.snap.observed.slot = Fixtures.SLOT_NOW;
         StateActivity activity = stateController("edit").get();
-        goTo(activity, StateSteps.Page.DORM);
+        StateWizardTest.openFromHub(activity, "宿舍活动", StateSteps.Page.DORM);
         assertEquals(18, activity.draft().dormActivities().size());
+        // Nothing counted yet: one question first.
+        assertTrue(Shots.has(activity, "做过宿舍活动吗？"));
+        Shots.shot(activity, "state_dorm_gate");
+        Shots.click(activity, "做过");
+        assertTrue(Shots.has(activity, "宿舍活动各做过几次？"));
         for (Rules.Activity category : activity.draft().dormActivities()) {
             assertTrue(category.id, Shots.has(activity, category.zh + "：3 次"));
         }
-        assertFalse(activity.draft().profile.planDormGardening);
-        Shots.click(activity, "允许安排园艺（我会提前种好作物）");
-        assertTrue(activity.draft().profile.planDormGardening);
+        // Gardening is a planning choice of the 社群 tab's 队友特性, not part of the game state.
+        assertFalse(Shots.has(activity, "允许安排园艺（我会提前种好作物）"));
         Shots.shot(activity, "state_dorm_real_pack_top");
         android.widget.ScrollView scroll = scrollIn(activity.getWindow().getDecorView());
         org.junit.Assert.assertNotNull(scroll);
@@ -222,7 +230,16 @@ public class DormProgressUiTest extends UiTestBase {
         return null;
     }
 
-    private static void goTo(StateActivity activity, StateSteps.Page page) {
-        for (int i = 0; i < 13 && activity.currentPage() != page; i++) Shots.click(activity, "下一步");
+    @Test
+    public void notDoneYetSkipsThePage() {
+        Rules rules = dormRules();
+        api.rules = rules;
+        api.snap.observed = Fixtures.observedMid(rules);
+        StateActivity activity = stateController("edit").get();
+        StateWizardTest.openFromHub(activity, "宿舍活动", StateSteps.Page.DORM);
+        assertTrue(Shots.has(activity, "做过宿舍活动吗？"));
+        Shots.click(activity, "都没做过");
+        assertEquals(StateSteps.Page.HUB, activity.currentPage());
+        assertTrue(activity.draft().changes().isEmpty());
     }
 }
