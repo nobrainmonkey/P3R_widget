@@ -1,18 +1,22 @@
 package app.p3r.dayplanner.v3.ui;
 
 import android.content.Context;
+import android.graphics.drawable.Drawable;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.HorizontalScrollView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -22,13 +26,18 @@ import app.p3r.dayplanner.v3.compendium.CompendiumPrefs;
 import app.p3r.dayplanner.v3.compendium.FusionBasket;
 import app.p3r.dayplanner.v3.compendium.FusionCalculator;
 
-/** A persistent workbench around the existing calculator's recipes. */
+/**
+ * 合体篮: the goals (the one hero, with a bar of their fusion steps), the materials to summon or
+ * find, and the fusions in order. What the basket contains and how it is worked out is
+ * {@link FusionBasket}'s; this page shows it and records the player's choices.
+ */
 public final class FusionBasketPage {
     public interface Actions {
         void openPersona(String personaId);
         void chooseRecipe(String targetId, Consumer<FusionCalculator.Recipe> chosen);
         void onChanged();
-        default void browseRecipes() {}
+        /** 「挑一个人格面具」: the 想合出谁？ picker, then that Persona's recipes. */
+        default void pickTarget() {}
     }
 
     private static final String[] SORT_LABELS = {"等级", "阿尔卡那"};
@@ -39,14 +48,12 @@ public final class FusionBasketPage {
     private final CompendiumPrefs prefs;
     private final Actions actions;
     private final LinearLayout root;
-    private final LinearLayout header;
     private final ScrollView scroll;
     private final LinearLayout content;
     private FusionCalculator calculator;
     private FusionBasket basket;
     private FusionBasket.Summary summary;
     private Set<String> owned;
-    private FusionBasket clearedBasket;
     private int order;
     private boolean descending;
     private int refreshGeneration;
@@ -61,14 +68,12 @@ public final class FusionBasketPage {
         this.actions = actions;
         root = Ui.column(c);
         root.setTag("basket_page");
-        header = Ui.column(c);
-        Ui.pad(header, Ui.GUTTER, 0, Ui.GUTTER, 4);
-        root.addView(header);
         scroll = new ScrollView(c);
         scroll.setFillViewport(true);
         scroll.setClipToPadding(false);
+        scroll.setVerticalScrollBarEnabled(false);
         content = Ui.column(c);
-        Ui.pad(content, Ui.GUTTER, 4, Ui.GUTTER, 28);
+        Ui.pad(content, Ui.GUTTER, 4, Ui.GUTTER, 32);
         scroll.addView(content, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT));
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
@@ -89,372 +94,456 @@ public final class FusionBasketPage {
         basket = prefs.basket();
         owned = new HashSet<>(prefs.ownedPersonas());
         summary = basket.summarise(data, owned, calculator);
-        header.removeAllViews();
         content.removeAllViews();
         if (basket.goals().isEmpty()) {
             renderEmpty();
         } else {
-            renderHeader();
             renderGoals();
+            if (!summary.valid) renderInvalid();
             renderMaterials();
             renderSteps();
+            renderClear();
         }
         scroll.post(() -> scroll.scrollTo(0, y));
     }
 
+    /** Rows slide in when the player switches to the basket. */
+    void cascade() {
+        Motion.cascade(content);
+    }
+
     private void renderEmpty() {
         LinearLayout card = Ui.column(c);
-        card.setBackground(Ui.heroCard(c));
-        Ui.pad(card, 22, 26, 22, 24);
-        card.addView(Ui.numeral(c, "FUSION", 34, color(R.color.p3r_cyan_300)));
-        card.addView(Ui.title(c, "还没有合成目标"), top(12));
-        card.addView(Ui.body(c, "选好配方，加入合成篮"), top(8));
-        TextView browse = Ui.primary(c, "去查配方");
+        card.setTag("basket_empty");
+        card.setBackground(PersonaViews.withWatermark(c, Ui.heroCard(c), "FUSION"));
+        Ui.pad(card, 22, 30, 20, 22);
+        card.addView(Ui.title(c, "合体篮是空的"));
+        card.addView(Ui.body(c, "想合出谁？挑好配方放进来。"), top(8));
+        TextView browse = Ui.primary(c, "挑一个人格面具");
         browse.setTag("basket_browse");
-        browse.setOnClickListener(v -> actions.browseRecipes());
-        card.addView(browse, top(22));
-        if (clearedBasket != null) {
-            TextView undo = Ui.quiet(c, "撤销清空");
-            undo.setTag("basket_undo_clear");
-            undo.setOnClickListener(v -> {
-                prefs.setBasket(clearedBasket);
-                clearedBasket = null;
-                changed();
-            });
-            card.addView(undo, top(10));
-        }
+        browse.setOnClickListener(v -> actions.pickTarget());
+        card.addView(browse, top(24));
         content.addView(card, top(8));
     }
 
-    private void renderHeader() {
-        LinearLayout hero = Ui.row(c);
-        hero.setTag("basket_summary");
-        hero.setBackground(Ui.card(c));
-        Ui.pad(hero, 12, 2, 6, 2);
-        LinearLayout metrics = Ui.row(c);
-        metrics.addView(metric("目标", basket.goals().size(), "basket_goal_count"), Ui.weight(1));
-        metrics.addView(metric("召唤", count(summary.shopping), "basket_summon_count"), Ui.weight(1));
-        metrics.addView(metric("未登录", unregisteredCount(), "basket_missing_count"), Ui.weight(1));
-        hero.addView(metrics, Ui.weight(1));
-        TextView clear = Ui.quiet(c, "清空");
-        clear.setTextSize(13);
-        Ui.pad(clear, 10, 6, 10, 6);
-        clear.setTag("basket_clear");
-        clear.setOnClickListener(v -> {
-            clearedBasket = prefs.basket();
-            prefs.setBasket(new FusionBasket());
-            changed();
-            host.showMessage("已清空合成篮");
-        });
-        hero.addView(clear, Ui.wrap());
-        header.addView(hero);
-
-    }
-
-    private View metric(String label, int value, String tag) {
-        LinearLayout cell = Ui.row(c);
-        cell.addView(Ui.caption(c, label));
-        TextView number = Ui.numeral(c, Integer.toString(value), 22, color(R.color.p3r_cyan_300));
-        number.setTag(tag);
-        cell.addView(number, gapWrap(5));
-        return cell;
-    }
+    // ------------------------------------------------------------------ goals
 
     private void renderGoals() {
-        List<FusionBasket.Node> roots = new ArrayList<>(summary.roots);
-        roots.sort((a, b) -> personaOrder().compare(a.persona, b.persona));
-        HorizontalScrollView targetStrip = new HorizontalScrollView(c);
-        targetStrip.setHorizontalScrollBarEnabled(false);
-        targetStrip.setClipToPadding(false);
-        LinearLayout targets = Ui.row(c);
-        targets.setGravity(Gravity.TOP);
-        targetStrip.addView(targets);
-        int screenWidth = c.getResources().getDisplayMetrics().widthPixels;
-        int cardWidth = roots.size() == 1 ? screenWidth - Ui.dp(c, Ui.GUTTER * 2)
-            : Math.min(Ui.dp(c, 340), screenWidth - Ui.dp(c, Ui.GUTTER * 2 + 16));
-        for (FusionBasket.Node node : roots) {
-            Compendium.Persona persona = node.persona;
-            LinearLayout card = Ui.column(c);
-            card.setBackground(Ui.card(c));
-            Ui.pad(card, 12, 6, 8, 6);
-            LinearLayout row = Ui.row(c);
-            LinearLayout title = identity(persona);
-            title.setOnClickListener(v -> actions.openPersona(persona.id));
-            boolean registered = node.ownedQuantity >= node.quantity;
-            TextView metadata = (TextView) title.getChildAt(1);
-            metadata.setText(arcanaName(persona.arcana) + " · Lv." + persona.level + " · "
-                + (node.invalidRecipe ? "重选配方" : node.craftQuantity > 0 ? "待合成"
-                    : registered ? "可召唤" : "未登录"));
-            if (node.invalidRecipe) metadata.setTextColor(color(R.color.p3r_attention));
-            row.addView(title, Ui.weight(1));
-            TextView change = Ui.quiet(c, "配方");
-            change.setTextSize(13);
-            Ui.pad(change, 8, 6, 8, 6);
-            change.setTag("basket_recipe_" + persona.id);
-            change.setOnClickListener(v -> chooseRecipe(persona));
-            row.addView(change, Ui.wrap());
-            TextView remove = Ui.quiet(c, "移除");
-            remove.setTextSize(13);
-            Ui.pad(remove, 8, 6, 8, 6);
-            remove.setTag("basket_remove_" + persona.id);
-            remove.setContentDescription("移除合成目标 " + persona.nameZh);
-            remove.setOnClickListener(v -> {
-                FusionBasket current = prefs.basket();
-                current.removeGoal(persona.id);
-                prefs.setBasket(current);
-                changed();
-            });
-            row.addView(remove, Ui.wrap());
-            card.addView(row);
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(cardWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
-            if (targets.getChildCount() > 0) params.leftMargin = Ui.dp(c, 8);
-            targets.addView(card, params);
+        LinearLayout hero = Ui.column(c);
+        hero.setTag("basket_goals");
+        hero.setBackground(Ui.heroCard(c));
+        Ui.pad(hero, 22, 12, 6, 16);
+        hero.addView(Ui.text(c, "目标", 13, color(R.color.p3r_cyan_300), true));
+        int index = 0;
+        for (FusionBasket.Node node : summary.roots) {
+            if (index++ > 0) hero.addView(rule(), ruleParams());
+            hero.addView(goalBlock(node));
         }
-        content.addView(targetStrip, top(4));
+        if (!summary.steps.isEmpty()) {
+            LinearLayout.LayoutParams barParams = top(12);
+            barParams.rightMargin = Ui.dp(c, 14);
+            hero.addView(progress(), barParams);
+        }
+        content.addView(hero, top(8));
     }
+
+    /** One goal: name, English, its state (还差 N 步 / 已登录 / 配方要重选), level, and its menu. */
+    private View goalBlock(FusionBasket.Node node) {
+        Compendium.Persona persona = node.persona;
+        boolean registered = owned.contains(persona.id);
+        LinearLayout box = Ui.column(c);
+        box.setTag("basket_goal_" + persona.id);
+        LinearLayout row = Ui.row(c);
+        Ui.pad(row, 0, 4, 0, 4);
+        LinearLayout identity = Ui.column(c);
+        identity.setClickable(true);
+        identity.setFocusable(true);
+        identity.setOnClickListener(v -> actions.openPersona(persona.id));
+        TextView name = Ui.text(c, persona.nameZh, 26, color(R.color.p3r_white), true);
+        name.setMaxLines(1);
+        name.setEllipsize(TextUtils.TruncateAt.END);
+        identity.addView(name);
+        TextView english = Ui.text(c, Ui.latin(c, persona.nameEn + " · " + PersonaViews.arcanaName(data, persona.arcana)),
+            13, color(R.color.p3r_ink_muted), false);
+        english.setMaxLines(1);
+        english.setEllipsize(TextUtils.TruncateAt.END);
+        identity.addView(english);
+        TextView status;
+        if (node.invalidRecipe) {
+            status = Ui.text(c, "配方要重选", 15, color(R.color.ui_gold), true);
+        } else if (registered) {
+            status = Ui.text(c, "已登录", 15, color(R.color.p3r_cyan_400), true);
+            Drawable tick = Ui.tinted(c, R.drawable.ui_ic_check, color(R.color.p3r_cyan_400));
+            tick.setBounds(0, 0, Ui.dp(c, 16), Ui.dp(c, 16));
+            status.setCompoundDrawables(tick, null, null, null);
+            status.setCompoundDrawablePadding(Ui.dp(c, 4));
+        } else {
+            status = Ui.mixed(c, "还差 " + remainingSteps(node) + " 步", 15, color(R.color.p3r_cyan_300), true);
+        }
+        status.setTag("basket_goal_status_" + persona.id);
+        identity.addView(status, top(4));
+        identity.setContentDescription(persona.nameZh + "，" + persona.nameEn + "，" + Zh.plain(status.getText()));
+        row.addView(identity, Ui.weight(1));
+        row.addView(PersonaViews.level(c, persona.level, 34, color(R.color.p3r_cyan_400), 0.42f), Ui.wrap());
+        ImageView menu = Ui.icon(c, R.drawable.ui_ic_edit, color(R.color.p3r_cyan_300), 20);
+        menu.setScaleType(ImageView.ScaleType.CENTER);
+        menu.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        menu.setTag("basket_goal_menu_" + persona.id);
+        menu.setContentDescription(persona.nameZh + "：换配方或移出合体篮");
+        menu.setClickable(true);
+        menu.setFocusable(true);
+        menu.setBackground(new SlantedPanelDrawable().fill(0).pressedFill(color(R.color.ui_cyan_soft)).skew(Ui.dp(c, 6)));
+        menu.setOnClickListener(v -> openGoalMenu(persona));
+        LinearLayout.LayoutParams menuParams = new LinearLayout.LayoutParams(Ui.dp(c, 44), Ui.dp(c, 48));
+        menuParams.leftMargin = Ui.dp(c, 4);
+        row.addView(menu, menuParams);
+        box.addView(row);
+        if (registered && !node.invalidRecipe) {
+            TextView remove = Ui.quiet(c, "移出合体篮");
+            remove.setTextSize(14);
+            Ui.pad(remove, 0, 6, 12, 6);
+            remove.setTag("basket_done_remove_" + persona.id);
+            remove.setOnClickListener(v -> removeGoal(persona));
+            box.addView(remove, Ui.wrap());
+        }
+        return box;
+    }
+
+    /** The goal's fusions not yet registered (its own included). */
+    private int remainingSteps(FusionBasket.Node node) {
+        Set<String> steps = new LinkedHashSet<>();
+        collectSteps(node, steps);
+        int left = 0;
+        for (String id : steps) if (!owned.contains(id)) left++;
+        return left;
+    }
+
+    private void collectSteps(FusionBasket.Node node, Set<String> steps) {
+        if (node.craftQuantity > 0 || basket.chosenRecipe(node.persona.id) != null) steps.add(node.persona.id);
+        for (FusionBasket.Node child : node.children) collectSteps(child, steps);
+    }
+
+    /** One slanted segment per fusion step, filled once its result is registered. */
+    private View progress() {
+        LinearLayout bar = Ui.row(c);
+        bar.setTag("basket_progress");
+        int done = 0;
+        int index = 0;
+        for (FusionBasket.CraftStep step : summary.steps) {
+            boolean ok = owned.contains(step.result.id);
+            if (ok) done++;
+            View segment = new View(c);
+            SlantedPanelDrawable plate = new SlantedPanelDrawable().skew(Ui.dp(c, 4));
+            if (ok) plate.fill(color(R.color.p3r_cyan_400));
+            else plate.fill(Ui.alpha(color(R.color.p3r_navy_950), 150)).stroke(Ui.alpha(color(R.color.p3r_cyan_300), 110), Ui.dp(c, 1));
+            segment.setBackground(plate);
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, Ui.dp(c, 8), 1);
+            if (index++ > 0) p.leftMargin = Ui.dp(c, 4);
+            bar.addView(segment, p);
+        }
+        bar.setContentDescription("合体进度 " + done + "/" + summary.steps.size());
+        bar.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        return bar;
+    }
+
+    private void openGoalMenu(Compendium.Persona persona) {
+        LinearLayout sheet = menuSheet(persona.nameZh, null);
+        sheet.addView(menuItem("换配方", "basket_recipe_" + persona.id, () -> chooseRecipe(persona)), top(10));
+        sheet.addView(menuItem("移出合体篮", "basket_remove_" + persona.id, () -> removeGoal(persona)), top(6));
+        host.showSheet(sheet);
+    }
+
+    private void removeGoal(Compendium.Persona persona) {
+        FusionBasket before = prefs.basket();
+        FusionBasket current = prefs.basket();
+        current.removeGoal(persona.id);
+        prefs.setBasket(current);
+        changed();
+        PersonaViews.announce(host, "已把 " + persona.nameZh + " 移出合体篮", "撤销", () -> {
+            prefs.setBasket(before);
+            changed();
+        });
+    }
+
+    /** A DLC change left recipes that need an unowned pack: one banner, one fix. */
+    private void renderInvalid() {
+        LinearLayout banner = Ui.row(c);
+        banner.setTag("basket_invalid");
+        banner.setBackground(Ui.card(c).accent(color(R.color.ui_gold), Ui.dp(c, 4)));
+        Ui.pad(banner, 18, 8, 6, 8);
+        banner.addView(Ui.mixed(c, "有配方用到了没买的 DLC，重选一下？", 15, color(R.color.p3r_white), true), Ui.weight(1));
+        TextView fix = Ui.quiet(c, "重选");
+        fix.setTag("basket_reselect");
+        fix.setOnClickListener(v -> {
+            Compendium.Persona persona = data.persona(summary.invalidRecipes.get(0));
+            if (persona != null) chooseRecipe(persona);
+        });
+        banner.addView(fix, Ui.wrap());
+        content.addView(banner, top(12));
+    }
+
+    // ------------------------------------------------------------------ materials
 
     private void renderMaterials() {
-        LinearLayout section = Ui.row(c);
-        LinearLayout title = Ui.sectionHeader(c, "召唤清单", null);
-        title.setTag("basket_materials_tab");
-        title.setOnClickListener(v -> scrollTo(section));
-        section.addView(title, Ui.weight(1));
-        TextView sort = toolButton("排序：" + SORT_LABELS[order], false);
-        sort.setTag("basket_sort");
-        sort.setTextSize(12);
-        Ui.pad(sort, 8, 4, 8, 4);
-        sort.setOnClickListener(v -> openSort());
-        section.addView(sort, Ui.wrap());
-        TextView direction = toolButton(descending ? "↓" : "↑", true);
-        direction.setTag("basket_sort_direction");
-        direction.setContentDescription(descending ? "降序" : "升序");
-        direction.setTextSize(21);
-        direction.setMinWidth(Ui.dp(c, 48));
-        Ui.pad(direction, 8, 4, 8, 4);
-        direction.setOnClickListener(v -> {
-            descending = !descending;
-            refresh();
-        });
-        section.addView(direction, Ui.wrap());
-        content.addView(section, top(4));
-        if (!summary.valid) {
-            LinearLayout pending = Ui.column(c);
-            pending.setBackground(Ui.card(c));
-            Ui.pad(pending, 14, 14, 14, 10);
-            pending.addView(Ui.text(c, "有配方需要重选", 15, color(R.color.p3r_attention), true));
-            TextView choose = Ui.quiet(c, "重新选配方");
-            choose.setOnClickListener(v -> {
-                Compendium.Persona persona = data.persona(summary.invalidRecipes.get(0));
-                if (persona != null) chooseRecipe(persona);
+        int registered = 0;
+        for (FusionBasket.ShoppingItem item : summary.shopping) if (owned.contains(item.persona.id)) registered++;
+        content.addView(Ui.sectionHeader(c, "需要的素材", summary.shopping.isEmpty() ? null
+            : "已登录 " + registered + "/" + summary.shopping.size()), top(20));
+        if (summary.shopping.isEmpty()) return;
+        LinearLayout sort = Ui.row(c);
+        sort.setGravity(Gravity.END);
+        for (int i = 0; i < SORT_LABELS.length; i++) {
+            int mode = i;
+            boolean selected = order == i;
+            TextView chip = CompendiumControls.toolButton(c, SORT_LABELS[i] + (selected ? (descending ? " ↓" : " ↑") : ""),
+                selected);
+            chip.setTag("basket_sort_" + SORT_TAGS[i]);
+            chip.setContentDescription("按" + SORT_LABELS[i] + "排序" + (selected ? descending ? "，从高到低" : "，从低到高" : ""));
+            chip.setOnClickListener(v -> {
+                if (order == mode) descending = !descending;
+                else order = mode;
+                refresh();
             });
-            pending.addView(choose, top(6));
-            content.addView(pending, top(6));
+            LinearLayout.LayoutParams p = Ui.wrap();
+            if (i > 0) p.leftMargin = Ui.dp(c, 6);
+            sort.addView(chip, p);
         }
+        content.addView(sort, Ui.matchWrap());
+        boolean first = true;
         for (FusionBasket.ShoppingItem item : sorted(summary.shopping)) {
-            content.addView(materialCard(item), top(5));
+            if (!first) content.addView(rule(), ruleParams());
+            content.addView(materialRow(item));
+            first = false;
         }
     }
 
-    private View materialCard(FusionBasket.ShoppingItem item) {
+    /** ☐ 俄耳甫斯 ×2 / Orpheus · 愚者 Lv.1 … 怎么合？ */
+    private View materialRow(FusionBasket.ShoppingItem item) {
         Compendium.Persona persona = item.persona;
         boolean registered = owned.contains(persona.id);
-        LinearLayout card = Ui.row(c);
-        card.setTag("basket_missing_" + persona.id);
-        card.setBackground(Ui.card(c));
-        Ui.pad(card, 8, 5, 6, 5);
-        TextView check = ownedButton(persona);
-        card.addView(check, Ui.wrap());
-        LinearLayout title = identity(persona);
-        title.setOnClickListener(v -> actions.openPersona(persona.id));
-        TextView name = (TextView) title.getChildAt(0);
-        if (item.quantity > 1) name.setText(persona.nameZh + " ×" + item.quantity);
-        TextView metadata = (TextView) title.getChildAt(1);
-        metadata.setText(arcanaName(persona.arcana) + " · Lv." + persona.level + " · "
-            + (registered ? "可召唤" : "未登录"));
-        metadata.setTextSize(12);
-        if (registered) metadata.setTextColor(color(R.color.p3r_good));
+        LinearLayout row = Ui.row(c);
+        row.setTag("basket_missing_" + persona.id);
+        row.setMinimumHeight(Ui.dp(c, 60));
+        Ui.pad(row, 0, 4, 0, 4);
+        PersonaViews.Toggle check = new PersonaViews.Toggle(c, false);
+        check.setChecked(registered);
+        check.setTag("basket_owned_" + persona.id);
+        check.setContentDescription((registered ? "取消登录 " : "登录到全书 ") + persona.nameZh);
+        check.setOnClickListener(v -> {
+            prefs.setOwned(persona.id, !prefs.ownedPersonas().contains(persona.id));
+            changed();
+        });
+        row.addView(check, new LinearLayout.LayoutParams(Ui.dp(c, Ui.TOUCH), Ui.dp(c, Ui.TOUCH)));
+        LinearLayout identity = Ui.column(c);
+        identity.setClickable(true);
+        identity.setFocusable(true);
+        identity.setOnClickListener(v -> actions.openPersona(persona.id));
+        TextView name = Ui.text(c, persona.nameZh + (item.quantity > 1 ? " ×" + item.quantity : ""), 17,
+            color(R.color.p3r_white), true);
+        name.setMaxLines(1);
+        name.setEllipsize(TextUtils.TruncateAt.END);
+        identity.addView(name);
+        TextView sub = Ui.text(c, Ui.latin(c, persona.nameEn + " · " + PersonaViews.arcanaLevel(data, persona)), 12,
+            color(R.color.p3r_ink_muted), false);
+        sub.setMaxLines(1);
+        sub.setEllipsize(TextUtils.TruncateAt.END);
+        identity.addView(sub);
         if (!calculator.isAvailable(persona)) {
-            metadata.setText(arcanaName(persona.arcana) + " · Lv." + persona.level + " · 需 DLC");
-            metadata.setTextColor(color(R.color.p3r_attention));
+            identity.addView(Ui.tag(c, "需要 DLC", color(R.color.ui_gold), color(R.color.p3r_navy_950)), topWrap(4));
         }
-        card.addView(title, gapWeight(8));
-        TextView recipe = Ui.quiet(c, "配方");
-        recipe.setTextSize(13);
-        Ui.pad(recipe, 8, 4, 8, 4);
-        recipe.setMinWidth(Ui.dp(c, 48));
-        recipe.setTag("basket_expand_" + persona.id);
-        recipe.setContentDescription("查找 " + persona.nameZh + " 的配方");
-        recipe.setOnClickListener(v -> chooseRecipe(persona));
-        card.addView(recipe, Ui.wrap());
-        return card;
+        identity.setContentDescription(persona.nameZh + (item.quantity > 1 ? " " + item.quantity + " 个" : "")
+            + "，" + persona.nameEn + "，" + PersonaViews.arcanaLevel(data, persona));
+        LinearLayout.LayoutParams identityParams = Ui.weight(1);
+        identityParams.leftMargin = Ui.dp(c, 6);
+        row.addView(identity, identityParams);
+        TextView how = Ui.quiet(c, "怎么合？");
+        how.setTextSize(14);
+        Ui.pad(how, 10, 4, 10, 4);
+        how.setTag("basket_expand_" + persona.id);
+        how.setContentDescription("怎么合出" + persona.nameZh);
+        how.setOnClickListener(v -> chooseRecipe(persona));
+        row.addView(how, Ui.wrap());
+        return row;
     }
 
+    // ------------------------------------------------------------------ steps
+
     private void renderSteps() {
-        LinearLayout section = Ui.sectionHeader(c, "合成顺序", summary.steps.size() + " 步");
-        section.setTag("basket_steps_tab");
-        section.setOnClickListener(v -> scrollTo(section));
-        content.addView(section, top(8));
+        int done = 0;
+        for (FusionBasket.CraftStep step : summary.steps) if (owned.contains(step.result.id)) done++;
+        content.addView(Ui.sectionHeader(c, "合体顺序", summary.steps.isEmpty() ? null
+            : "完成 " + done + "/" + summary.steps.size()), top(22));
         if (summary.steps.isEmpty()) {
-            TextView message = Ui.body(c, "按召唤清单准备即可");
-            Ui.pad(message, 12, 10, 12, 10);
-            content.addView(message);
+            content.addView(Ui.body(c, "不用合体，直接召唤就行"), top(4));
             return;
         }
         int index = 0;
         for (FusionBasket.CraftStep step : summary.steps) {
-            LinearLayout card = Ui.row(c);
-            card.setTag("basket_step_" + step.result.id);
-            card.setBackground(Ui.card(c));
-            Ui.pad(card, 10, 6, 6, 6);
-            TextView number = Ui.numeral(c, String.format(java.util.Locale.ROOT, "%02d", ++index), 23,
-                color(R.color.p3r_cyan_300));
-            card.addView(number, new LinearLayout.LayoutParams(Ui.dp(c, 30), ViewGroup.LayoutParams.WRAP_CONTENT));
-            LinearLayout formula = Ui.column(c);
-            formula.setMinimumHeight(Ui.dp(c, 48));
-            formula.setGravity(Gravity.CENTER_VERTICAL);
-            formula.setClickable(true);
-            formula.setFocusable(true);
-            formula.setOnClickListener(v -> actions.openPersona(step.result.id));
-            StringBuilder ingredients = new StringBuilder();
-            for (Compendium.Persona ingredient : step.ingredients) {
-                if (ingredients.length() > 0) ingredients.append(" + ");
-                ingredients.append(ingredient.nameZh);
-            }
-            TextView sources = Ui.caption(c, ingredients);
-            sources.setTextSize(12);
-            sources.setMaxLines(2);
-            sources.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            formula.addView(sources);
-            TextView result = Ui.text(c, "→ " + step.result.nameZh
-                + (step.quantity > 1 ? " ×" + step.quantity : ""), 16, color(R.color.p3r_white), true);
-            formula.addView(result, top(2));
-            formula.setContentDescription(ingredients + "，合成 " + step.result.nameZh);
-            card.addView(formula, Ui.weight(1));
-            FusionCalculator.Recipe active = basket.selectedRecipe(step.result.id, calculator);
-            boolean valid = step.valid && !summary.invalidRecipes.contains(step.result.id) && active != null;
-            TextView done = Ui.chip(c, valid ? owned.contains(step.result.id) ? "✓" : "○" : "!",
-                valid && owned.contains(step.result.id));
-            done.setTextSize(20);
-            Ui.pad(done, 10, 6, 10, 6);
-            done.setMinWidth(Ui.dp(c, 48));
-            done.setMinHeight(Ui.dp(c, 48));
-            done.setMinimumHeight(Ui.dp(c, 48));
-            done.setTag("basket_complete_" + step.result.id);
-            done.setContentDescription(valid ? (owned.contains(step.result.id) ? "取消已登录 " : "标记已登录 ")
-                + step.result.nameZh : "重新选择 " + step.result.nameZh + " 的配方");
-            done.setOnClickListener(v -> {
-                if (!valid) { chooseRecipe(step.result); return; }
-                boolean registered = prefs.ownedPersonas().contains(step.result.id);
-                if (registered) prefs.setOwned(step.result.id, false); else prefs.recordFusion(active);
-                changed();
-            });
-            card.addView(done, gapWrap(5));
-            TextView more = Ui.quiet(c, "···");
-            more.setTextSize(22);
-            Ui.pad(more, 8, 4, 8, 4);
-            more.setMinWidth(Ui.dp(c, 48));
-            more.setTag("basket_actions_" + step.result.id);
-            more.setContentDescription(step.result.nameZh + " 的配方和素材操作");
-            more.setOnClickListener(v -> openStepActions(step));
-            card.addView(more, Ui.wrap());
-            content.addView(card, top(5));
+            if (index > 0) content.addView(rule(), ruleParams());
+            content.addView(stepRow(step, ++index));
         }
     }
 
-    private void openStepActions(FusionBasket.CraftStep step) {
-        LinearLayout sheet = Ui.column(c);
-        Ui.pad(sheet, Ui.GUTTER, 12, Ui.GUTTER, 24);
-        sheet.addView(SheetChrome.title(c, step.result.nameZh));
+    /** 01 那伽 + 福尔图娜 / 能天使 … ☐; tapping the row opens its three choices. */
+    private View stepRow(FusionBasket.CraftStep step, int number) {
+        Compendium.Persona result = step.result;
+        FusionCalculator.Recipe active = basket.selectedRecipe(result.id, calculator);
+        boolean valid = step.valid && !summary.invalidRecipes.contains(result.id) && active != null;
+        boolean done = valid && owned.contains(result.id);
+        LinearLayout row = Ui.row(c);
+        row.setTag("basket_step_" + result.id);
+        row.setMinimumHeight(Ui.dp(c, 64));
+        row.setClickable(true);
+        row.setFocusable(true);
+        row.setBackground(new PersonaViews.CursorDrawable(c));
+        Ui.pad(row, 0, 6, 0, 6);
+        TextView numeral = Ui.numeral(c, String.format(Locale.ROOT, "%02d", number), 30,
+            color(done ? R.color.p3r_ink_faint : R.color.p3r_cyan_400));
+        numeral.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        row.addView(numeral, new LinearLayout.LayoutParams(Ui.dp(c, 46), ViewGroup.LayoutParams.WRAP_CONTENT));
+        StringBuilder sources = new StringBuilder();
+        StringBuilder spoken = new StringBuilder();
         for (Compendium.Persona ingredient : step.ingredients) {
-            LinearLayout row = Ui.row(c);
-            row.setBackground(Ui.pressableCard(c));
-            Ui.pad(row, 12, 6, 8, 6);
-            LinearLayout name = identity(ingredient);
-            name.setOnClickListener(v -> {
-                host.dismissSheet();
-                actions.openPersona(ingredient.id);
-            });
-            row.addView(name, Ui.weight(1));
-            TextView lookup = Ui.quiet(c, "配方");
-            Ui.pad(lookup, 8, 4, 8, 4);
-            lookup.setTag("basket_expand_" + ingredient.id);
-            lookup.setOnClickListener(v -> {
-                host.dismissSheet();
-                chooseRecipe(ingredient);
-            });
-            row.addView(lookup);
-            row.addView(ownedButton(ingredient), gapWrap(5));
-            sheet.addView(row, top(6));
+            if (sources.length() > 0) {
+                sources.append(" + ");
+                spoken.append(" + ");
+            }
+            sources.append(ingredient.nameZh);
+            spoken.append(ingredient.nameZh).append("（").append(ingredient.nameEn).append("）");
         }
-        LinearLayout actions = Ui.row(c);
-        TextView change = Ui.secondary(c, "换配方");
-        change.setTag("basket_recipe_" + step.result.id);
-        change.setOnClickListener(v -> {
-            host.dismissSheet();
-            chooseRecipe(step.result);
-        });
-        actions.addView(change, Ui.weight(1));
-        TextView summon = Ui.primary(c, "直接召唤");
-        summon.setTag("basket_summon_" + step.result.id);
-        summon.setOnClickListener(v -> {
+        LinearLayout formula = Ui.column(c);
+        TextView from = Ui.text(c, sources, 13, color(done ? R.color.p3r_ink_faint : R.color.p3r_ink_muted), false);
+        from.setMaxLines(2);
+        from.setEllipsize(TextUtils.TruncateAt.END);
+        formula.addView(from);
+        LinearLayout line = Ui.row(c);
+        TextView name = Ui.text(c, result.nameZh + (step.quantity > 1 ? " ×" + step.quantity : ""), 17,
+            color(done ? R.color.p3r_ink_faint : R.color.p3r_white), true);
+        name.setMaxLines(1);
+        name.setEllipsize(TextUtils.TruncateAt.END);
+        line.addView(name, Ui.wrap());
+        if (done) {
+            TextView tag = Ui.tag(c, "已合体", color(R.color.ui_cyan_soft), color(R.color.p3r_cyan_300));
+            tag.setTextSize(12);
+            LinearLayout.LayoutParams p = Ui.wrap();
+            p.leftMargin = Ui.dp(c, 8);
+            line.addView(tag, p);
+        }
+        formula.addView(line, top(1));
+        row.addView(formula, Ui.weight(1));
+        row.setContentDescription(spoken + "，合出" + result.nameZh + "（" + result.nameEn + "）" + (done ? "，已合体" : ""));
+        row.setOnClickListener(v -> openStepMenu(step));
+        if (valid) {
+            PersonaViews.Toggle check = new PersonaViews.Toggle(c, false);
+            check.setChecked(done);
+            check.setTag("basket_complete_" + result.id);
+            check.setContentDescription(done ? "取消登录 " + result.nameZh : result.nameZh + " 合出来了");
+            check.setOnClickListener(v -> {
+                if (prefs.ownedPersonas().contains(result.id)) {
+                    prefs.setOwned(result.id, false);
+                } else {
+                    prefs.recordFusion(active);
+                    if (basket.containsGoal(result.id)) host.showMessage(result.nameZh + " 合出来了！");
+                }
+                changed();
+            });
+            row.addView(check, new LinearLayout.LayoutParams(Ui.dp(c, Ui.TOUCH), Ui.dp(c, Ui.TOUCH)));
+        } else {
+            TextView fix = Ui.numeral(c, "!", 22, color(R.color.ui_gold));
+            fix.setGravity(Gravity.CENTER);
+            fix.setTag("basket_complete_" + result.id);
+            fix.setContentDescription("重选" + result.nameZh + "的配方");
+            fix.setClickable(true);
+            fix.setFocusable(true);
+            fix.setBackground(new SlantedPanelDrawable().fill(Ui.alpha(color(R.color.p3r_navy_950), 120))
+                .pressedFill(color(R.color.ui_cyan_soft)).stroke(color(R.color.ui_gold), Ui.dp(c, 1.5f))
+                .skew(Ui.dp(c, 5)));
+            fix.setOnClickListener(v -> chooseRecipe(result));
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(Ui.dp(c, 40), Ui.dp(c, 40));
+            p.leftMargin = Ui.dp(c, 4);
+            p.rightMargin = Ui.dp(c, 4);
+            row.addView(fix, p);
+        }
+        return row;
+    }
+
+    private void openStepMenu(FusionBasket.CraftStep step) {
+        Compendium.Persona result = step.result;
+        StringBuilder formula = new StringBuilder();
+        for (Compendium.Persona ingredient : step.ingredients) {
+            if (formula.length() > 0) formula.append(" + ");
+            formula.append(ingredient.nameZh);
+        }
+        LinearLayout sheet = menuSheet(result.nameZh, formula + " → " + result.nameZh);
+        sheet.addView(menuItem("看 " + result.nameZh + " 的资料", "basket_open_" + result.id,
+            () -> actions.openPersona(result.id)), top(10));
+        sheet.addView(menuItem("换个配方", "basket_recipe_" + result.id, () -> chooseRecipe(result)), top(6));
+        sheet.addView(menuItem("不合了，直接召唤", "basket_summon_" + result.id, () -> {
             FusionBasket current = prefs.basket();
-            current.clearRecipe(step.result.id);
+            current.clearRecipe(result.id);
             prefs.setBasket(current);
-            host.dismissSheet();
             changed();
-        });
-        actions.addView(summon, gapWeight(8));
-        sheet.addView(actions, top(16));
+        }), top(6));
         host.showSheet(sheet);
     }
 
-    private TextView ownedButton(Compendium.Persona persona) {
-        boolean checked = owned.contains(persona.id);
-        TextView button = Ui.chip(c, checked ? "✓" : "○", checked);
-        button.setTag("basket_owned_" + persona.id);
-        button.setMinWidth(Ui.dp(c, 48));
-        button.setMinHeight(Ui.dp(c, 48));
-        button.setMinimumHeight(Ui.dp(c, 48));
-        button.setTextSize(20);
-        Ui.pad(button, 10, 6, 10, 6);
-        button.setContentDescription((checked ? "取消已登录 " : "标记已登录 ") + persona.nameZh);
-        button.setAccessibilityDelegate(new View.AccessibilityDelegate() {
-            @Override public void onInitializeAccessibilityNodeInfo(View view,
-                    android.view.accessibility.AccessibilityNodeInfo info) {
-                super.onInitializeAccessibilityNodeInfo(view, info);
-                info.setClassName("android.widget.CheckBox");
-                info.setCheckable(true);
-                info.setChecked(view.isSelected());
-            }
-        });
-        button.setOnClickListener(v -> {
-            boolean registered = !prefs.ownedPersonas().contains(persona.id);
-            prefs.setOwned(persona.id, registered);
-            button.setText(registered ? "✓" : "○");
-            Ui.setChipSelected(button, registered);
-            button.setContentDescription((registered ? "取消已登录 " : "标记已登录 ") + persona.nameZh);
+    // ------------------------------------------------------------------ clear
+
+    /** 「清空合体篮」 at the bottom: one tap, undone from the message bar. */
+    private void renderClear() {
+        TextView clear = Ui.quiet(c, "清空合体篮");
+        clear.setTextSize(14);
+        clear.setTag("basket_clear");
+        clear.setOnClickListener(v -> {
+            FusionBasket cleared = prefs.basket();
+            prefs.setBasket(new FusionBasket());
             changed();
+            PersonaViews.announce(host, "合体篮清空了", "撤销", () -> {
+                prefs.setBasket(cleared);
+                changed();
+            });
         });
-        return button;
+        LinearLayout.LayoutParams p = Ui.wrap();
+        p.topMargin = Ui.dp(c, 26);
+        p.gravity = Gravity.CENTER_HORIZONTAL;
+        content.addView(clear, p);
     }
 
-    private LinearLayout identity(Compendium.Persona persona) {
-        LinearLayout title = Ui.column(c);
-        title.setMinimumHeight(Ui.dp(c, 48));
-        title.setGravity(Gravity.CENTER_VERTICAL);
-        title.setClickable(true);
-        title.setFocusable(true);
-        title.addView(Ui.headline(c, persona.nameZh));
-        title.addView(Ui.caption(c, arcanaName(persona.arcana) + " · Lv." + persona.level), top(2));
-        title.setContentDescription(persona.nameZh + "，" + arcanaName(persona.arcana) + "，等级 " + persona.level);
-        return title;
+    // ------------------------------------------------------------------ helpers
+
+    private LinearLayout menuSheet(String title, String subtitle) {
+        LinearLayout sheet = Ui.column(c);
+        Ui.pad(sheet, 20, 12, 20, 24);
+        sheet.addView(SheetChrome.title(c, title));
+        if (subtitle != null) {
+            sheet.addView(Ui.text(c, subtitle, 14, color(R.color.p3r_ink_muted), false));
+        }
+        return sheet;
+    }
+
+    private View menuItem(String label, String tag, Runnable action) {
+        LinearLayout item = Ui.row(c);
+        item.setTag(tag);
+        item.setClickable(true);
+        item.setFocusable(true);
+        item.setMinimumHeight(Ui.dp(c, 52));
+        item.setBackground(Ui.band(c).pressedFill(color(R.color.ui_cyan_soft)));
+        Ui.pad(item, 18, 8, 14, 8);
+        item.addView(Ui.text(c, label, 16, color(R.color.p3r_white), true), Ui.weight(1));
+        item.addView(Ui.icon(c, R.drawable.ui_ic_chevron, color(R.color.p3r_cyan_300), 18));
+        item.setContentDescription(label);
+        item.setOnClickListener(v -> {
+            host.dismissSheet();
+            action.run();
+        });
+        return item;
     }
 
     private void chooseRecipe(Compendium.Persona persona) {
         actions.chooseRecipe(persona.id, recipe -> {
             FusionBasket current = prefs.basket();
             if (!current.chooseRecipe(recipe)) {
-                host.showMessage("素材绕回目标了，换一份配方");
+                host.showError(CompendiumPage.CYCLE);
                 return;
             }
             prefs.setBasket(current);
@@ -466,31 +555,6 @@ public final class FusionBasketPage {
         int before = refreshGeneration;
         actions.onChanged();
         if (before == refreshGeneration) refresh();
-    }
-
-    private void scrollTo(View section) {
-        int y = section.getTop();
-        if (Ui.animationsEnabled()) scroll.smoothScrollTo(0, y); else scroll.scrollTo(0, y);
-    }
-
-    private void openSort() {
-        LinearLayout sheet = Ui.column(c);
-        Ui.pad(sheet, Ui.GUTTER, 12, Ui.GUTTER, 24);
-        sheet.addView(SheetChrome.title(c, "合成篮排序"));
-        for (int i = 0; i < SORT_LABELS.length; i++) {
-            int selected = i;
-            TextView choice = Ui.chip(c, SORT_LABELS[i], order == i);
-            choice.setTag("basket_sort_" + SORT_TAGS[i]);
-            choice.setMinHeight(Ui.dp(c, 48));
-            SheetChrome.selectChoice(choice, order == i);
-            choice.setOnClickListener(v -> {
-                order = selected;
-                host.dismissSheet();
-                refresh();
-            });
-            sheet.addView(choice, top(10));
-        }
-        host.showSheet(sheet);
     }
 
     private Comparator<Compendium.Persona> personaOrder() {
@@ -510,32 +574,16 @@ public final class FusionBasketPage {
         return result;
     }
 
-    private int unregisteredCount() {
-        int count = 0;
-        for (FusionBasket.ShoppingItem item : summary.shopping) {
-            if (!owned.contains(item.persona.id)) count++;
-        }
-        return count;
+    private View rule() {
+        return Ui.fadingRule(c);
     }
 
-    private static int count(List<FusionBasket.ShoppingItem> values) {
-        int count = 0;
-        for (FusionBasket.ShoppingItem item : values) count += item.quantity;
-        return count;
-    }
-
-    private String arcanaName(String id) {
-        Compendium.Arcana arcana = data.arcana(id);
-        return arcana == null ? id : arcana.nameZh;
-    }
-
-    /** A small neutral control inside a full-size touch target. */
-    private TextView toolButton(String label, boolean iconOnly) {
-        TextView button = CompendiumControls.toolButton(c, label, false);
-        button.setMinWidth(Ui.dp(c, 48));
-        button.setBackground(new android.graphics.drawable.InsetDrawable(button.getBackground(),
-            Ui.dp(c, iconOnly ? 7 : 0), Ui.dp(c, 8), Ui.dp(c, iconOnly ? 7 : 0), Ui.dp(c, 8)));
-        return button;
+    private LinearLayout.LayoutParams ruleParams() {
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+            Math.max(1, Ui.dp(c, 1)));
+        p.topMargin = Ui.dp(c, 2);
+        p.bottomMargin = Ui.dp(c, 2);
+        return p;
     }
 
     private int color(int id) { return Ui.col(c, id); }
@@ -546,15 +594,9 @@ public final class FusionBasketPage {
         return params;
     }
 
-    private LinearLayout.LayoutParams gapWrap(int gap) {
+    private LinearLayout.LayoutParams topWrap(int gap) {
         LinearLayout.LayoutParams params = Ui.wrap();
-        params.leftMargin = Ui.dp(c, gap);
-        return params;
-    }
-
-    private LinearLayout.LayoutParams gapWeight(int gap) {
-        LinearLayout.LayoutParams params = Ui.weight(1);
-        params.leftMargin = Ui.dp(c, gap);
+        params.topMargin = Ui.dp(c, gap);
         return params;
     }
 }

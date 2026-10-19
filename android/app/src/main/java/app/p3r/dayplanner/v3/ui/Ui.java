@@ -580,6 +580,8 @@ public final class Ui {
             setTextSize(TypedValue.COMPLEX_UNIT_DIP, 84);
             setIncludeFontPadding(false);
             setMaxLines(1);
+            // One line, cropped by the header like the game's lettering ("COMPENDIUM" never wraps).
+            setHorizontallyScrolling(true);
             setTextColor(alpha(col(context, R.color.p3r_cyan_300), 34));
             getPaint().setStyle(android.graphics.Paint.Style.STROKE);
             getPaint().setStrokeWidth(dp(context, 1.5f));

@@ -394,7 +394,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         tips = new TipsPage(this);
         me = new MePage(this, meActions());
         compendium = Ui.column(this);
-        View compendiumTitle = Ui.pageHeader(this, "人格面具全书", "COMPENDIUM", null);
+        View compendiumTitle = Ui.pageHeader(this, "人格面具全书", "COMPENDIUM", CompendiumPage.dlcPlate(this));
         Ui.pad(compendiumTitle, Ui.GUTTER, 12, Ui.GUTTER, 4);
         compendium.addView(compendiumTitle);
         tabViews = new View[]{today.view(), schedule.view(), links.view(), tips.view(), compendium, me.view()};

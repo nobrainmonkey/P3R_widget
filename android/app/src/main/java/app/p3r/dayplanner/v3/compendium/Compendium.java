@@ -122,6 +122,14 @@ public final class Compendium {
         public final List<String> theurgySkillIds;
         public final List<Origin> origins;
         public final String unlockType, unlockTextZh, unlockTextEn;
+        /**
+         * The structured fusion condition, for wording it in the app's glossary style: the arcana
+         * and rank of a social link ("social"), the Elizabeth request number ("request"), the
+         * teammate whose link episodes unlock it ("linked") and the tower floor ("floor"). Empty
+         * or zero when the condition has no such part.
+         */
+        public final String unlockArcana, unlockCharacter;
+        public final int unlockRank, unlockRequestId, unlockFloor;
         private Persona(JSONObject row, int elementCount) throws JSONException {
             id = required(row, "id");
             key = required(row, "key");
@@ -160,6 +168,11 @@ public final class Compendium {
             unlockType = unlock == null ? "" : unlock.optString("type", "");
             unlockTextZh = unlock == null ? "" : unlock.optString("textZh", "");
             unlockTextEn = unlock == null ? "" : unlock.optString("textEn", "");
+            unlockArcana = unlock == null ? "" : unlock.optString("arcana", "");
+            unlockCharacter = unlock == null ? "" : unlock.optString("character", "");
+            unlockRank = unlock == null ? 0 : unlock.optInt("rank", 0);
+            unlockRequestId = unlock == null ? 0 : unlock.optInt("requestId", 0);
+            unlockFloor = unlock == null ? 0 : unlock.optInt("floor", 0);
         }
         public boolean isDlc() { return !dlc.isEmpty(); }
     }
@@ -186,6 +199,7 @@ public final class Compendium {
     private final List<DlcPack> dlcPacks;
     private final List<Source> sources;
     private final List<String> elements;
+    private final Map<String, String> elementNamesZh;
     private final List<SpecialRecipe> specialRecipes;
     private final Map<String, Map<String, String>> fusionChart;
 
@@ -194,6 +208,15 @@ public final class Compendium {
         check(root.getString("game").equals("p3r"), "Only the Reload base game is supported");
         elements = strings(root.getJSONArray("elements"));
         check(elements.size() == 10, "Reload requires 10 resistance elements");
+        Map<String, String> elementNames = new LinkedHashMap<>();
+        JSONObject names = root.optJSONObject("elementNamesZh");
+        if (names != null) {
+            for (java.util.Iterator<String> keys = names.keys(); keys.hasNext();) {
+                String key = keys.next();
+                elementNames.put(key, names.getString(key));
+            }
+        }
+        elementNamesZh = Collections.unmodifiableMap(elementNames);
 
         List<Arcana> arcanaRows = new ArrayList<>();
         Map<String, Arcana> arcanaMap = new LinkedHashMap<>();
@@ -311,6 +334,15 @@ public final class Compendium {
     public List<DlcPack> dlcPacks() { return dlcPacks; }
     public List<Source> sources() { return sources; }
     public List<String> elements() { return elements; }
+
+    /**
+     * The game's Simplified Chinese name of an element or skill type ("fir" → 火焰, "lig" → 神圣,
+     * "rec" → 恢复, "pas" → 被动); empty for an unknown code.
+     */
+    public String elementNameZh(String code) {
+        String name = code == null ? null : elementNamesZh.get(code);
+        return name == null ? "" : name;
+    }
     public List<SpecialRecipe> specialRecipes() { return specialRecipes; }
 
     /** Null means the arcana are absent from Reload's normal fusion table. */

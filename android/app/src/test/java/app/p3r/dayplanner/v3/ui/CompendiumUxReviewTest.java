@@ -111,10 +111,11 @@ public class CompendiumUxReviewTest extends UiTestBase {
         tag(activity, "fusion_tab").performClick();
         pickPair(activity, "Carmen", "Power");
         tag(activity, "compendium_dlc").performClick();
-        Shots.click(activity, "仅游戏本体");
-        Shots.click(activity, "保存");
+        tag(activity, "dlc_pack_p5r_1").performClick();
+        assertTrue("unticking the pack applies at once", prefs.ownedDlc().isEmpty());
+        Shots.click(activity, "好了");
         Shots.idle();
-        assertTrue(prefs.ownedDlc().isEmpty());
+        assertFalse(activity.sheets().isShowing());
         assertFalse(text(activity, "fusion_material_1").contains(persona("Carmen").nameZh));
         assertTrue(text(activity, "fusion_material_2").contains(persona("Power").nameZh));
         tag(activity, "compendium_tab").performClick();

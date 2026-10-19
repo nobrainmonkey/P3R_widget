@@ -26,7 +26,7 @@ public class HomeNavigationMotionTest extends UiTestBase {
     @Test public void replacingBrowsePagesKeepsOneWorkspaceAndReturnsWithoutLosingIt() {
         HomeActivity activity = home();
         View workspace = Ui.column(activity);
-        activity.pushFillingPage("图鉴与合成", workspace);
+        activity.pushFillingPage("人格面具全书", workspace);
         activity.pushFillingPage("第一个面具", Ui.body(activity, "第一个面具详情"));
         Ui.setAnimationsEnabled(true);
         activity.replaceFillingPage("第二个配方", Ui.body(activity, "第二个配方内容"));

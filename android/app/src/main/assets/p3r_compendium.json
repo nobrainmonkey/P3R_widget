@@ -17,7 +17,7 @@
       "license": "No separate license declared"
     }
   ],
-  "attribution": "图鉴数据与合成规则：aqiu384；游戏名称与文本：ATLUS / SEGA。",
+  "attribution": "全书数据与合体规则：aqiu384；游戏名称与文本：ATLUS / SEGA。",
   "acquisitionSource": {
     "repository": "https://github.com/aqiu384/megaten-database",
     "commit": "8f87f212e206748b71298a52eb1eaec1efed6161",
@@ -52,15 +52,15 @@
     "sla": "斩击",
     "str": "打击",
     "pie": "贯穿",
-    "fir": "火炎",
+    "fir": "火焰",
     "ice": "冰冻",
     "ele": "电击",
     "win": "疾风",
-    "lig": "光明",
-    "dar": "黑暗",
+    "lig": "神圣",
+    "dar": "暗黑",
     "alm": "万能",
     "ail": "异常",
-    "rec": "回复",
+    "rec": "恢复",
     "sup": "辅助",
     "spe": "特殊",
     "pas": "被动"
@@ -349,7 +349,7 @@
         "arcana": "Sun",
         "rank": 10,
         "textEn": "Sun Rank 10",
-        "textZh": "太阳社群MAX"
+        "textZh": "太阳社群升到 MAX"
       },
       "heartItemEn": "Carnage King's Gear",
       "heartLevel": 92
@@ -409,7 +409,7 @@
         "arcana": "Strength",
         "rank": 10,
         "textEn": "Strength Rank 10",
-        "textZh": "力量社群MAX"
+        "textZh": "力量社群升到 MAX"
       },
       "heartItemEn": "Wisdom King's Locks",
       "heartLevel": 79
@@ -469,7 +469,7 @@
         "arcana": "Hanged",
         "rank": 10,
         "textEn": "Hanged Rank 10",
-        "textZh": "倒悬者社群MAX"
+        "textZh": "倒悬者社群升到 MAX"
       },
       "heartItemEn": "Sacrifice God Wrap",
       "heartLevel": 79
@@ -900,7 +900,7 @@
         "arcana": "Hermit",
         "rank": 10,
         "textEn": "Hermit Rank 10",
-        "textZh": "隐者社群MAX"
+        "textZh": "隐者社群升到 MAX"
       },
       "heartItemEn": "Clay God Fragment",
       "heartLevel": 74
@@ -1075,7 +1075,7 @@
         "arcana": "Empress",
         "rank": 10,
         "textEn": "Empress Rank 10",
-        "textZh": "女皇社群MAX"
+        "textZh": "女皇社群升到 MAX"
       },
       "heartItemEn": "Black Pillar Shard",
       "heartLevel": 91
@@ -1823,7 +1823,7 @@
         "arcana": "Emperor",
         "rank": 10,
         "textEn": "Emperor Rank 10",
-        "textZh": "皇帝社群MAX"
+        "textZh": "皇帝社群升到 MAX"
       },
       "heartItemEn": "Eyepatch of Wisdom",
       "heartLevel": 81
@@ -2297,7 +2297,7 @@
       "unlock": {
         "type": "all_social",
         "textEn": "Max all Social Links",
-        "textZh": "所有社群达到MAX"
+        "textZh": "所有社群都升到 MAX"
       }
     },
     {
@@ -2703,7 +2703,7 @@
         "type": "request",
         "requestId": 77,
         "textEn": "Clear Elizabeth's Request #77",
-        "textZh": "完成伊丽莎白委托#77"
+        "textZh": "完成伊莉莎白的第 77 号委托"
       },
       "heartItemEn": "Soul Sea Driblet",
       "heartLevel": 22
@@ -3309,7 +3309,7 @@
         "arcana": "Lovers",
         "rank": 10,
         "textEn": "Lovers Rank 10",
-        "textZh": "恋爱社群MAX"
+        "textZh": "恋爱社群升到 MAX"
       },
       "heartItemEn": "Earth Goddess Ring",
       "heartLevel": 74
@@ -3450,7 +3450,7 @@
         "type": "request",
         "requestId": 24,
         "textEn": "Clear Elizabeth's Request #24",
-        "textZh": "完成伊丽莎白委托#24"
+        "textZh": "完成伊莉莎白的第 24 号委托"
       }
     },
     {
@@ -4314,7 +4314,7 @@
         "arcana": "Hierophant",
         "rank": 10,
         "textEn": "Hierophant Rank 10",
-        "textZh": "教皇社群MAX"
+        "textZh": "教皇社群升到 MAX"
       },
       "heartItemEn": "God Dragon Whiskers",
       "heartLevel": 78
@@ -4674,7 +4674,7 @@
         "type": "linked",
         "character": "Ryoji",
         "textEn": "Ryoji Max Link",
-        "textZh": "完成望月绫时的全部支线事件"
+        "textZh": "看完望月绫时的全部羁绊剧情"
       },
       "heartItemEn": "Black Sun Candle",
       "heartLevel": 82
@@ -4943,7 +4943,7 @@
         "arcana": "Moon",
         "rank": 10,
         "textEn": "Moon Rank 10",
-        "textZh": "月亮社群MAX"
+        "textZh": "月亮社群升到 MAX"
       },
       "heartItemEn": "Prayer Angel Garland",
       "heartLevel": 87
@@ -5731,7 +5731,7 @@
         "arcana": "Tower",
         "rank": 10,
         "textEn": "Tower Rank 10",
-        "textZh": "塔社群MAX"
+        "textZh": "塔社群升到 MAX"
       },
       "heartItemEn": "Bull Warrior Horns",
       "heartLevel": 94
@@ -5856,7 +5856,7 @@
         "arcana": "Priestess",
         "rank": 10,
         "textEn": "Priestess Rank 10",
-        "textZh": "女教皇社群MAX"
+        "textZh": "女教皇社群升到 MAX"
       },
       "heartItemEn": "Preceptress Silk",
       "heartLevel": 81
@@ -6124,7 +6124,7 @@
         "arcana": "Fool",
         "rank": 10,
         "textEn": "Fool Rank 10",
-        "textZh": "愚者社群MAX"
+        "textZh": "愚者社群升到 MAX"
       },
       "heartItemEn": "Susano-o's Cloth",
       "heartLevel": 84
@@ -6259,7 +6259,7 @@
         "type": "linked",
         "character": "Junpei",
         "textEn": "Junpei Max Link",
-        "textZh": "完成顺平的全部支线事件"
+        "textZh": "看完伊织顺平的全部羁绊剧情"
       },
       "heartItemEn": "Muspell Rock",
       "heartLevel": 66
@@ -7115,7 +7115,7 @@
         "arcana": "Death",
         "rank": 10,
         "textEn": "Death Rank 10",
-        "textZh": "死神社群MAX"
+        "textZh": "死神社群升到 MAX"
       },
       "heartItemEn": "Jaw of Death",
       "heartLevel": 85
@@ -7534,7 +7534,7 @@
         "type": "floor",
         "floor": 143,
         "textEn": "Tziah I 143",
-        "textZh": "探索塔尔塔罗斯至143层"
+        "textZh": "塔尔塔罗斯到达 143F"
       }
     },
     {
@@ -7591,7 +7591,7 @@
         "type": "request",
         "requestId": 78,
         "textEn": "Clear Elizabeth's Request #78",
-        "textZh": "完成伊丽莎白委托#78"
+        "textZh": "完成伊莉莎白的第 78 号委托"
       }
     },
     {
@@ -7645,7 +7645,7 @@
         "arcana": "Chariot",
         "rank": 10,
         "textEn": "Chariot Rank 10",
-        "textZh": "战车社群MAX"
+        "textZh": "战车社群升到 MAX"
       },
       "heartItemEn": "Thunder Whetstone",
       "heartLevel": 70
@@ -8375,7 +8375,7 @@
         "type": "request",
         "requestId": 49,
         "textEn": "Clear Elizabeth's Request #49",
-        "textZh": "完成伊丽莎白委托#49"
+        "textZh": "完成伊莉莎白的第 49 号委托"
       },
       "heartItemEn": "Unholy Wooden Doll",
       "heartLevel": 56
@@ -9434,7 +9434,7 @@
         "type": "linked",
         "character": "Koromaru",
         "textEn": "Koromaru Max Link",
-        "textZh": "完成虎狼丸的全部支线事件"
+        "textZh": "看完虎狼丸的全部羁绊剧情"
       },
       "heartItemEn": "King of Beasts Fang",
       "heartLevel": 68
@@ -9625,7 +9625,7 @@
         "arcana": "Magician",
         "rank": 10,
         "textEn": "Magician Rank 10",
-        "textZh": "魔术师社群MAX"
+        "textZh": "魔术师社群升到 MAX"
       },
       "heartItemEn": "Sword God Steel",
       "heartLevel": 80
@@ -10006,7 +10006,7 @@
         "type": "linked",
         "character": "Shinjiro",
         "textEn": "Shinjiro Max Link",
-        "textZh": "完成荒垣的全部支线事件"
+        "textZh": "看完荒垣真次郎的全部羁绊剧情"
       },
       "heartItemEn": "Hell's Muffler",
       "heartLevel": 70
@@ -10066,7 +10066,7 @@
         "arcana": "Devil",
         "rank": 10,
         "textEn": "Devil Rank 10",
-        "textZh": "恶魔社群MAX"
+        "textZh": "恶魔社群升到 MAX"
       },
       "heartItemEn": "Lord of Flies Wings",
       "heartLevel": 88
@@ -10212,7 +10212,7 @@
         "type": "floor",
         "floor": 225,
         "textEn": "Harabah II 225",
-        "textZh": "探索塔尔塔罗斯至225层"
+        "textZh": "塔尔塔罗斯到达 225F"
       },
       "heartItemEn": "Soul Sea Drop",
       "heartLevel": 75
@@ -10271,7 +10271,7 @@
         "type": "linked",
         "character": "Akihiko",
         "textEn": "Akihiko Max Link",
-        "textZh": "完成真田的全部支线事件"
+        "textZh": "看完真田明彦的全部羁绊剧情"
       },
       "heartItemEn": "Eye of Wadjet",
       "heartLevel": 72
@@ -10517,7 +10517,7 @@
         "type": "request",
         "requestId": 87,
         "textEn": "Clear Elizabeth's Request #87",
-        "textZh": "完成伊丽莎白委托#87"
+        "textZh": "完成伊莉莎白的第 87 号委托"
       },
       "heartItemEn": "Emperor's Sake Cup",
       "heartLevel": 86
@@ -10682,7 +10682,7 @@
         "type": "linked",
         "character": "Ken",
         "textEn": "Ken Max Link",
-        "textZh": "完成天田的全部支线事件"
+        "textZh": "看完天田乾的全部羁绊剧情"
       },
       "heartItemEn": "Archangel Wings",
       "heartLevel": 75
@@ -10984,7 +10984,7 @@
         "arcana": "Judgement",
         "rank": 10,
         "textEn": "Judgement Rank 10",
-        "textZh": "审判社群MAX"
+        "textZh": "审判社群升到 MAX"
       },
       "heartItemEn": "Savior's Augite",
       "heartLevel": 99
@@ -11044,7 +11044,7 @@
         "arcana": "Aeon",
         "rank": 10,
         "textEn": "Aeon Rank 10",
-        "textZh": "永劫社群MAX"
+        "textZh": "永劫社群升到 MAX"
       },
       "heartItemEn": "Contract Angel Wing",
       "heartLevel": 94
@@ -11104,7 +11104,7 @@
         "arcana": "Justice",
         "rank": 10,
         "textEn": "Justice Rank 10",
-        "textZh": "正义社群MAX"
+        "textZh": "正义社群升到 MAX"
       },
       "heartItemEn": "Immortal Angel Core",
       "heartLevel": 72
@@ -11235,7 +11235,7 @@
         "type": "floor",
         "floor": 82,
         "textEn": "Yabbashah I 82",
-        "textZh": "探索塔尔塔罗斯至82层"
+        "textZh": "塔尔塔罗斯到达 82F"
       }
     },
     {
@@ -11646,7 +11646,7 @@
         "arcana": "Temperance",
         "rank": 10,
         "textEn": "Temperance Rank 10",
-        "textZh": "节制社群MAX"
+        "textZh": "节制社群升到 MAX"
       },
       "heartItemEn": "Rainbow Snake Scale",
       "heartLevel": 77
@@ -11775,7 +11775,7 @@
         "arcana": "Fortune",
         "rank": 10,
         "textEn": "Fortune Rank 10",
-        "textZh": "命运社群MAX"
+        "textZh": "命运社群升到 MAX"
       },
       "heartItemEn": "Goddess Water Lily",
       "heartLevel": 79
@@ -12257,7 +12257,7 @@
         "type": "floor",
         "floor": 193,
         "textEn": "Harabah I 193",
-        "textZh": "探索塔尔塔罗斯至193层"
+        "textZh": "塔尔塔罗斯到达 193F"
       },
       "heartItemEn": "Soul Sea Drop",
       "heartLevel": 70
@@ -12381,7 +12381,7 @@
         "type": "request",
         "requestId": 81,
         "textEn": "Clear Elizabeth's Request #81",
-        "textZh": "完成伊丽莎白委托#81"
+        "textZh": "完成伊莉莎白的第 81 号委托"
       },
       "heartItemEn": "Fallen Angel Wing",
       "heartLevel": 97
@@ -12443,7 +12443,7 @@
         "arcana": "Star",
         "rank": 10,
         "textEn": "Star Rank 10",
-        "textZh": "星社群MAX"
+        "textZh": "星社群升到 MAX"
       }
     },
     {
@@ -15601,7 +15601,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "35 dmg dealt, HP restore",
-      "effectZh": "造成35伤害并HP回复",
+      "effectZh": "造成35伤害并HP恢复",
       "raw": {
         "rank": 2,
         "modifier": 35,
@@ -15626,7 +15626,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "20 dmg dealt, SP restore",
-      "effectZh": "造成20伤害并SP回复",
+      "effectZh": "造成20伤害并SP恢复",
       "raw": {
         "rank": 3,
         "modifier": 20,
@@ -16451,7 +16451,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "50 pwr, HP restore",
-      "effectZh": "威力50；HP回复",
+      "effectZh": "威力50；HP恢复",
       "raw": {
         "rank": 2,
         "modifier": 0,
@@ -16476,7 +16476,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "150 pwr, HP restore",
-      "effectZh": "威力150；HP回复",
+      "effectZh": "威力150；HP恢复",
       "raw": {
         "rank": 4,
         "modifier": 0,
@@ -16501,7 +16501,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "100% HP restore",
-      "effectZh": "回复100% HP",
+      "effectZh": "恢复100% HP",
       "raw": {
         "rank": 6,
         "modifier": 100,
@@ -16526,7 +16526,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "50 pwr, HP restore",
-      "effectZh": "威力50；HP回复",
+      "effectZh": "威力50；HP恢复",
       "raw": {
         "rank": 3,
         "modifier": 0,
@@ -16551,7 +16551,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "150 pwr, HP restore",
-      "effectZh": "威力150；HP回复",
+      "effectZh": "威力150；HP恢复",
       "raw": {
         "rank": 5,
         "modifier": 0,
@@ -16576,7 +16576,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "100% HP restore",
-      "effectZh": "回复100% HP",
+      "effectZh": "恢复100% HP",
       "raw": {
         "rank": 7,
         "modifier": 100,
@@ -16601,7 +16601,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Diarahan + Amrita",
-      "effectZh": "HP全回复并解除异常",
+      "effectZh": "HP全恢复并解除异常",
       "raw": {
         "rank": 8,
         "modifier": 100,
@@ -16626,7 +16626,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "50% HP restore after reviving",
-      "effectZh": "复活并回复50% HP",
+      "effectZh": "复活并恢复50% HP",
       "raw": {
         "rank": 3,
         "modifier": 50,
@@ -16651,7 +16651,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "100% HP restore after reviving",
-      "effectZh": "复活并回复100% HP",
+      "effectZh": "复活并恢复100% HP",
       "raw": {
         "rank": 6,
         "modifier": 100,
@@ -16676,7 +16676,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "100% HP restore, user's HP reduced to 1",
-      "effectZh": "HP回复 100%，自身HP降至1",
+      "effectZh": "HP恢复 100%，自身HP降至1",
       "raw": {
         "rank": 5,
         "modifier": 100,
@@ -17426,7 +17426,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "removes Fire resistance for 3 turns",
-      "effectZh": "解除火炎耐性，持续3回合",
+      "effectZh": "解除火焰耐性，持续3回合",
       "raw": {
         "rank": 3,
         "modifier": 0,
@@ -17526,7 +17526,7 @@
       "critical": 0,
       "unique": true,
       "effectEn": "700 pwr, 50% Dark instakill",
-      "effectZh": "威力700；50%概率黑暗即死",
+      "effectZh": "威力700；50%概率暗黑即死",
       "raw": {
         "rank": 0,
         "modifier": 50,
@@ -17826,7 +17826,7 @@
       "critical": 0,
       "unique": true,
       "effectEn": "50% HP restore + Sukukaja",
-      "effectZh": "回复50% HP并提升命中与回避",
+      "effectZh": "恢复50% HP并提升命中与回避",
       "raw": {
         "rank": 0,
         "modifier": 50,
@@ -18301,7 +18301,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Fire dmg taken x0.5",
-      "effectZh": "受到火炎伤害×0.5",
+      "effectZh": "受到火焰伤害×0.5",
       "raw": {
         "rank": 5,
         "modifier": 1050,
@@ -18326,7 +18326,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "nullifies Fire dmg taken",
-      "effectZh": "火炎无效",
+      "effectZh": "火焰无效",
       "raw": {
         "rank": 6,
         "modifier": 0,
@@ -18351,7 +18351,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "repels Fire dmg taken",
-      "effectZh": "反射火炎",
+      "effectZh": "反射火焰",
       "raw": {
         "rank": 7,
         "modifier": 0,
@@ -18376,7 +18376,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "drains Fire dmg taken",
-      "effectZh": "吸收火炎",
+      "effectZh": "吸收火焰",
       "raw": {
         "rank": 8,
         "modifier": 0,
@@ -18701,7 +18701,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Light dmg taken x0.5",
-      "effectZh": "受到光明伤害×0.5",
+      "effectZh": "受到神圣伤害×0.5",
       "raw": {
         "rank": 5,
         "modifier": 1050,
@@ -18726,7 +18726,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "nullifies Light dmg taken",
-      "effectZh": "光明无效",
+      "effectZh": "神圣无效",
       "raw": {
         "rank": 6,
         "modifier": 0,
@@ -18751,7 +18751,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "repels Light dmg taken",
-      "effectZh": "反射光明",
+      "effectZh": "反射神圣",
       "raw": {
         "rank": 7,
         "modifier": 0,
@@ -18776,7 +18776,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "drains Light dmg taken",
-      "effectZh": "吸收光明",
+      "effectZh": "吸收神圣",
       "raw": {
         "rank": 8,
         "modifier": 0,
@@ -18801,7 +18801,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Dark dmg taken x0.5",
-      "effectZh": "受到黑暗伤害×0.5",
+      "effectZh": "受到暗黑伤害×0.5",
       "raw": {
         "rank": 5,
         "modifier": 1050,
@@ -18826,7 +18826,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "nullifies Dark dmg taken",
-      "effectZh": "黑暗无效",
+      "effectZh": "暗黑无效",
       "raw": {
         "rank": 6,
         "modifier": 0,
@@ -18851,7 +18851,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "repels Dark dmg taken",
-      "effectZh": "反射黑暗",
+      "effectZh": "反射暗黑",
       "raw": {
         "rank": 7,
         "modifier": 0,
@@ -18876,7 +18876,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "drains Dark dmg taken",
-      "effectZh": "吸收黑暗",
+      "effectZh": "吸收暗黑",
       "raw": {
         "rank": 8,
         "modifier": 0,
@@ -19551,7 +19551,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Fire evasion x1.15",
-      "effectZh": "火炎回避率×1.15",
+      "effectZh": "火焰回避率×1.15",
       "raw": {
         "rank": 2,
         "modifier": 1115,
@@ -19576,7 +19576,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Fire evasion x1.4",
-      "effectZh": "火炎回避率×1.4",
+      "effectZh": "火焰回避率×1.4",
       "raw": {
         "rank": 5,
         "modifier": 1140,
@@ -19751,7 +19751,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Light evasion x1.15",
-      "effectZh": "光明回避率×1.15",
+      "effectZh": "神圣回避率×1.15",
       "raw": {
         "rank": 2,
         "modifier": 1115,
@@ -19776,7 +19776,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Light evasion x1.4",
-      "effectZh": "光明回避率×1.4",
+      "effectZh": "神圣回避率×1.4",
       "raw": {
         "rank": 5,
         "modifier": 1140,
@@ -19801,7 +19801,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Dark evasion x1.15",
-      "effectZh": "黑暗回避率×1.15",
+      "effectZh": "暗黑回避率×1.15",
       "raw": {
         "rank": 2,
         "modifier": 1115,
@@ -19826,7 +19826,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Dark evasion x1.4",
-      "effectZh": "黑暗回避率×1.4",
+      "effectZh": "暗黑回避率×1.4",
       "raw": {
         "rank": 5,
         "modifier": 1140,
@@ -19926,7 +19926,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "2% HP restore each turn",
-      "effectZh": "每回合HP回复 2%",
+      "effectZh": "每回合HP恢复 2%",
       "raw": {
         "rank": 3,
         "modifier": 2,
@@ -19951,7 +19951,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "4% HP restore each turn",
-      "effectZh": "每回合HP回复 4%",
+      "effectZh": "每回合HP恢复 4%",
       "raw": {
         "rank": 5,
         "modifier": 4,
@@ -19976,7 +19976,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "6% HP restore each turn",
-      "effectZh": "每回合HP回复 6%",
+      "effectZh": "每回合HP恢复 6%",
       "raw": {
         "rank": 6,
         "modifier": 6,
@@ -20001,7 +20001,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "3 SP restore each turn",
-      "effectZh": "每回合SP回复 3点",
+      "effectZh": "每回合SP恢复 3点",
       "raw": {
         "rank": 3,
         "modifier": 3,
@@ -20026,7 +20026,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "5 SP restore each turn",
-      "effectZh": "每回合SP回复 5点",
+      "effectZh": "每回合SP恢复 5点",
       "raw": {
         "rank": 5,
         "modifier": 5,
@@ -20051,7 +20051,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "7 SP restore each turn",
-      "effectZh": "每回合SP回复 7点",
+      "effectZh": "每回合SP恢复 7点",
       "raw": {
         "rank": 6,
         "modifier": 7,
@@ -20226,7 +20226,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Fire dmg dealt x1.25",
-      "effectZh": "火炎伤害×1.25",
+      "effectZh": "火焰伤害×1.25",
       "raw": {
         "rank": 3,
         "modifier": 1125,
@@ -20251,7 +20251,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Fire dmg dealt x1.5",
-      "effectZh": "火炎伤害×1.5",
+      "effectZh": "火焰伤害×1.5",
       "raw": {
         "rank": 6,
         "modifier": 1150,
@@ -20426,7 +20426,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Light dmg dealt x1.25",
-      "effectZh": "光明伤害×1.25",
+      "effectZh": "神圣伤害×1.25",
       "raw": {
         "rank": 3,
         "modifier": 1125,
@@ -20451,7 +20451,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Light dmg dealt x1.5",
-      "effectZh": "光明伤害×1.5",
+      "effectZh": "神圣伤害×1.5",
       "raw": {
         "rank": 6,
         "modifier": 1150,
@@ -20476,7 +20476,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Dark dmg dealt x1.25",
-      "effectZh": "黑暗伤害×1.25",
+      "effectZh": "暗黑伤害×1.25",
       "raw": {
         "rank": 3,
         "modifier": 1125,
@@ -20501,7 +20501,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Dark dmg dealt x1.5",
-      "effectZh": "黑暗伤害×1.5",
+      "effectZh": "暗黑伤害×1.5",
       "raw": {
         "rank": 6,
         "modifier": 1150,
@@ -20776,7 +20776,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Light instakill affliction rate x1.5",
-      "effectZh": "光明即死附着率×1.5",
+      "effectZh": "神圣即死附着率×1.5",
       "raw": {
         "rank": 4,
         "modifier": 1150,
@@ -20801,7 +20801,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Dark instakill affliction rate x1.5",
-      "effectZh": "黑暗即死附着率×1.5",
+      "effectZh": "暗黑即死附着率×1.5",
       "raw": {
         "rank": 4,
         "modifier": 1150,
@@ -21076,7 +21076,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "survive with 100% HP after a mortal blow once per battle",
-      "effectZh": "受到致命伤害时HP全回复，每场战斗1次",
+      "effectZh": "受到致命伤害时HP全恢复，每场战斗1次",
       "raw": {
         "rank": 8,
         "modifier": 100,
@@ -21101,7 +21101,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "8% max HP + SP restore after battle",
-      "effectZh": "战斗后回复8%的最大HP/SP",
+      "effectZh": "战斗后恢复8%的最大HP/SP",
       "raw": {
         "rank": 5,
         "modifier": 8,
@@ -21126,7 +21126,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "100% max HP + SP restore after battle",
-      "effectZh": "战斗后回复100%的最大HP/SP",
+      "effectZh": "战斗后恢复100%的最大HP/SP",
       "raw": {
         "rank": 9,
         "modifier": 100,
@@ -21151,7 +21151,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "HP restore skill pwr x1.5",
-      "effectZh": "HP回复技能效果×1.5",
+      "effectZh": "HP恢复技能效果×1.5",
       "raw": {
         "rank": 5,
         "modifier": 1150,
@@ -21176,7 +21176,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "Fire, Ice, Wind, Elec, Light, Dark evasion x1.15",
-      "effectZh": "火炎、冰冻、疾风、电击、光明、黑暗回避率×1.15",
+      "effectZh": "火焰、冰冻、疾风、电击、神圣、暗黑回避率×1.15",
       "raw": {
         "rank": 7,
         "modifier": 1115,
@@ -21376,7 +21376,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "50% chance to endure Light instakill",
-      "effectZh": "50%概率以1 HP承受光明即死",
+      "effectZh": "50%概率以1 HP承受神圣即死",
       "raw": {
         "rank": 4,
         "modifier": 50,
@@ -21401,7 +21401,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "100% chance to endure Light instakill",
-      "effectZh": "100%概率以1 HP承受光明即死",
+      "effectZh": "100%概率以1 HP承受神圣即死",
       "raw": {
         "rank": 5,
         "modifier": 100,
@@ -21426,7 +21426,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "50% chance to endure Dark instakill",
-      "effectZh": "50%概率以1 HP承受黑暗即死",
+      "effectZh": "50%概率以1 HP承受暗黑即死",
       "raw": {
         "rank": 4,
         "modifier": 50,
@@ -21451,7 +21451,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "100% chance to endure Dark instakill",
-      "effectZh": "100%概率以1 HP承受黑暗即死",
+      "effectZh": "100%概率以1 HP承受暗黑即死",
       "raw": {
         "rank": 5,
         "modifier": 100,
@@ -21776,7 +21776,7 @@
       "critical": 0,
       "unique": true,
       "effectEn": "Fire dmg dealt x1.75",
-      "effectZh": "火炎伤害×1.75",
+      "effectZh": "火焰伤害×1.75",
       "raw": {
         "rank": 0,
         "modifier": 1175,
@@ -21876,7 +21876,7 @@
       "critical": 0,
       "unique": true,
       "effectEn": "Light dmg dealt x1.75",
-      "effectZh": "光明伤害×1.75",
+      "effectZh": "神圣伤害×1.75",
       "raw": {
         "rank": 0,
         "modifier": 1175,
@@ -21901,7 +21901,7 @@
       "critical": 0,
       "unique": true,
       "effectEn": "Dark dmg dealt x1.75",
-      "effectZh": "黑暗伤害×1.75",
+      "effectZh": "暗黑伤害×1.75",
       "raw": {
         "rank": 0,
         "modifier": 1175,
@@ -21976,7 +21976,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "begins battle with Resist Fire for 3 turns",
-      "effectZh": "战斗开始时发动火炎耐性提升，持续3回合",
+      "effectZh": "战斗开始时发动火焰耐性提升，持续3回合",
       "raw": {
         "rank": 4,
         "modifier": 0,
@@ -22076,7 +22076,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "5 SP restore to ally when Shifting to them",
-      "effectZh": "换手给同伴时为其SP回复 5点",
+      "effectZh": "换手给同伴时为其SP恢复 5点",
       "raw": {
         "rank": 6,
         "modifier": 5,
@@ -22101,7 +22101,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "5 SP restore when receiving Shift",
-      "effectZh": "受到换手时SP回复 5点",
+      "effectZh": "受到换手时SP恢复 5点",
       "raw": {
         "rank": 6,
         "modifier": 5,
@@ -22126,7 +22126,7 @@
       "critical": 0,
       "unique": false,
       "effectEn": "8 SP restore when receiving Shift",
-      "effectZh": "受到换手时SP回复 8点",
+      "effectZh": "受到换手时SP恢复 8点",
       "raw": {
         "rank": 7,
         "modifier": 8,

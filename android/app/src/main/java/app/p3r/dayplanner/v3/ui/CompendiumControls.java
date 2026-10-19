@@ -2,12 +2,10 @@ package app.p3r.dayplanner.v3.ui;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.InsetDrawable;
-import android.graphics.drawable.StateListDrawable;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
@@ -16,45 +14,33 @@ import android.widget.TextView;
 
 import app.p3r.dayplanner.R;
 
-/** Quiet tools and scope selectors; the strong slanted tabs remain navigation only. */
+/**
+ * Quiet tool plates (filter, favorites, DLC, sort direction): slanted outlines inside a 48 dp
+ * target; an active tool turns cyan and shows a small dot. The strong slanted chips stay for
+ * navigation and choices. Also used by the 提示 filter.
+ */
 final class CompendiumControls {
     private CompendiumControls() {}
 
+    private static final View.AccessibilityDelegate BUTTON = new View.AccessibilityDelegate() {
+        @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(host, info);
+            info.setClassName("android.widget.Button");
+            info.setSelected(host.isSelected());
+        }
+    };
+
+    /** A square icon plate (no text) with {@code description} for TalkBack and the tooltip. */
     static TextView icon(Context c, String description, int drawableRes) {
         TextView button = new IconTool(c, drawableRes);
         button.setContentDescription(description);
         button.setTooltipText(description);
         button.setClickable(true);
         button.setFocusable(true);
-        button.setAccessibilityDelegate(new View.AccessibilityDelegate() {
-            @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
-                super.onInitializeAccessibilityNodeInfo(host, info);
-                info.setClassName("android.widget.Button");
-                info.setSelected(host.isSelected());
-            }
-        });
+        button.setAccessibilityDelegate(BUTTON);
+        Motion.pressable(button);
         setToolActive(button, false);
         return button;
-    }
-
-    /** Matched controls for the Persona's favorite and compendium registration state. */
-    static void setStateSelected(TextView button, boolean selected) {
-        Context c = button.getContext();
-        button.setSelected(selected);
-        button.setAccessibilityDelegate(new View.AccessibilityDelegate() {
-            @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
-                super.onInitializeAccessibilityNodeInfo(host, info);
-                info.setClassName("android.widget.CheckBox");
-                info.setCheckable(true);
-                info.setChecked(host.isSelected());
-            }
-        });
-        button.setTextColor(Ui.col(c, selected ? R.color.p3r_cyan_300 : R.color.p3r_ice_100));
-        button.setBackground(new SlantedPanelDrawable()
-            .fill(selected ? Ui.col(c, R.color.ui_cyan_soft) : Ui.col(c, R.color.p3r_navy_950))
-            .pressedFill(Ui.col(c, R.color.p3r_navy_700))
-            .stroke(Ui.col(c, selected ? R.color.p3r_cyan_300 : R.color.p3r_line_soft), Ui.dp(c, 1))
-            .skew(Ui.dp(c, 6)));
     }
 
     static TextView toolButton(Context c, CharSequence label, boolean active) {
@@ -63,16 +49,10 @@ final class CompendiumControls {
         button.setMinHeight(Ui.dp(c, 48));
         button.setMaxLines(1);
         button.setEllipsize(TextUtils.TruncateAt.END);
-        Ui.pad(button, 10, 8, 10, 8);
+        Ui.pad(button, 12, 8, 12, 8);
         button.setClickable(true);
         button.setFocusable(true);
-        button.setAccessibilityDelegate(new View.AccessibilityDelegate() {
-            @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
-                super.onInitializeAccessibilityNodeInfo(host, info);
-                info.setClassName("android.widget.Button");
-                info.setSelected(host.isSelected());
-            }
-        });
+        button.setAccessibilityDelegate(BUTTON);
         setToolActive(button, active);
         return button;
     }
@@ -81,64 +61,40 @@ final class CompendiumControls {
         Context c = button.getContext();
         button.setSelected(active);
         button.setTextColor(Ui.col(c, active ? R.color.p3r_cyan_300 : R.color.p3r_ice_100));
-        button.setTypeface(Typeface.DEFAULT);
-        int border = active ? Ui.alpha(Ui.col(c, R.color.p3r_cyan_300), 150)
-            : Ui.col(c, R.color.p3r_line_soft);
-        button.setBackground(background(c, Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 90), border));
+        button.setTypeface(active ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
+        int border = active ? Ui.col(c, R.color.p3r_cyan_400) : Ui.alpha(Ui.col(c, R.color.p3r_cyan_300), 110);
+        int fill = active ? Ui.col(c, R.color.ui_cyan_soft) : Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 120);
+        // An inset background would replace the label's padding with its insets.
+        int left = button.getPaddingLeft();
+        int top = button.getPaddingTop();
+        int right = button.getPaddingRight();
+        int bottom = button.getPaddingBottom();
+        button.setBackground(background(c, fill, border));
+        button.setPadding(left, top, right, bottom);
         if (button instanceof IconTool) {
             ((IconTool) button).icon.setTint(button.getCurrentTextColor());
-            button.invalidate();
-            return;
         }
-        Drawable[] icons = button.getCompoundDrawables();
-        Drawable indicator = null;
-        if (active) {
-            GradientDrawable dot = new GradientDrawable();
-            dot.setShape(GradientDrawable.OVAL);
-            dot.setColor(Ui.col(c, R.color.p3r_cyan_300));
-            dot.setBounds(0, 0, Ui.dp(c, 4), Ui.dp(c, 4));
-            indicator = dot;
-        }
-        button.setCompoundDrawables(icons[0], icons[1], indicator, icons[3]);
-        button.setCompoundDrawablePadding(Ui.dp(c, 5));
+        button.invalidate();
     }
 
-    static TextView scopeButton(Context c, String label, boolean selected) {
-        TextView button = toolButton(c, label, false);
-        setScopeSelected(button, selected);
-        return button;
-    }
-
-    static void setScopeSelected(TextView button, boolean selected) {
-        Context c = button.getContext();
-        button.setSelected(selected);
-        button.setTypeface(selected ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
-        button.setTextColor(Ui.col(c, selected ? R.color.p3r_white : R.color.p3r_ink_muted));
-        button.setBackground(background(c, selected ? Ui.col(c, R.color.p3r_navy_700) : Color.TRANSPARENT,
-            selected ? Ui.alpha(Ui.col(c, R.color.p3r_cyan_300), 90) : Color.TRANSPARENT));
-    }
-
+    /** A slanted outline plate, inset to sit inside the 48 dp target. */
     private static Drawable background(Context c, int fill, int border) {
-        StateListDrawable states = new StateListDrawable();
-        states.addState(new int[] {android.R.attr.state_pressed}, rounded(c, Ui.col(c, R.color.p3r_navy_700), border));
-        states.addState(new int[0], rounded(c, fill, border));
-        return new InsetDrawable(states, 0, Ui.dp(c, 8), 0, Ui.dp(c, 8));
-    }
-
-    private static GradientDrawable rounded(Context c, int fill, int border) {
-        GradientDrawable shape = new GradientDrawable();
-        shape.setColor(fill);
-        shape.setCornerRadius(Ui.dp(c, 6));
-        shape.setStroke(Ui.dp(c, 1), border);
-        return shape;
+        SlantedPanelDrawable plate = new SlantedPanelDrawable()
+            .fill(fill)
+            .pressedFill(Ui.col(c, R.color.p3r_navy_700))
+            .stroke(border, Ui.dp(c, 1.2f))
+            .skew(Ui.dp(c, 6));
+        return new InsetDrawable(plate, 0, Ui.dp(c, 4), 0, Ui.dp(c, 4));
     }
 
     private static final class IconTool extends TextView {
         private final Drawable icon;
+        private final Paint dot = new Paint(Paint.ANTI_ALIAS_FLAG);
 
         IconTool(Context c, int resource) {
             super(c);
             icon = c.getDrawable(resource).mutate();
+            dot.setColor(Ui.col(c, R.color.p3r_cyan_400));
             setMinWidth(Ui.dp(c, 48));
             setMaxWidth(Ui.dp(c, 48));
             setMinHeight(Ui.dp(c, 48));
@@ -148,11 +104,15 @@ final class CompendiumControls {
 
         @Override protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
-            int size = Ui.dp(getContext(), 24);
+            int size = Ui.dp(getContext(), 22);
             int left = (getWidth() - size) / 2;
             int top = (getHeight() - size) / 2;
             icon.setBounds(left, top, left + size, top + size);
             icon.draw(canvas);
+            if (isSelected()) {
+                float r = Ui.dp(getContext(), 3);
+                canvas.drawCircle(getWidth() - Ui.dp(getContext(), 9), Ui.dp(getContext(), 11), r, dot);
+            }
         }
     }
 }
