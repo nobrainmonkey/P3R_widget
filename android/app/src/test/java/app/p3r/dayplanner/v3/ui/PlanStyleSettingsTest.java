@@ -97,6 +97,10 @@ public class PlanStyleSettingsTest extends UiTestBase {
         assertArrayEquals(new String[]{"junpei", "akihiko"}, all);
         StateActivity a = stateController("onboarding").get();
         assertArrayEquals(all, a.draft().profile.episodeTracks);
+        // 羁绊剧情 is asked once an episode could have been watched (both tracks are open by 6/3).
+        assertFalse(StateSteps.pagesFor(a.draft()).contains(StateSteps.Page.EPISODES));
+        StateWizardTest.findPicker(a.getWindow().getDecorView()).pick(Fixtures.day(6, 3));
+        Shots.idle();
         for (int i = 0; i < 14 && a.currentPage() != StateSteps.Page.EPISODES; i++) {
             Shots.click(a, "下一步");
         }
@@ -105,7 +109,7 @@ public class PlanStyleSettingsTest extends UiTestBase {
         for (int i = 0; i < 14 && a.currentPage() != StateSteps.Page.CONFIRM; i++) {
             Shots.click(a, "下一步");
         }
-        Shots.click(a, "保存并开始安排");
+        Shots.click(a, "开始安排");
         FakePlannerApi.Call call = api.last();
         assertEquals("saveCheckpoint", call.method);
         assertArrayEquals(all, call.profile.episodeTracks);

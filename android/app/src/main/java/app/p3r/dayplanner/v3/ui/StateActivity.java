@@ -2,7 +2,13 @@ package app.p3r.dayplanner.v3.ui;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.RelativeSizeSpan;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -24,11 +30,27 @@ import app.p3r.dayplanner.v3.service.PlannerApi;
  * State wizard for onboarding, 同步现状 and 修改进度 ({@link Intents#EXTRA_STATE_MODE}).
  *
  * <p>One question per page, everything prefilled; the player only changes what differs from the
- * game. Unfinished input is kept per semantic field in {@link DraftStore} and survives rotation
- * and process death. Saving is a single CAS checkpoint write; a conflict reloads the newer record
- * and keeps the player's edits.
+ * game. 开始设置 asks where the game is first and the goals last; 同步现状 after 「基本照着玩了」
+ * goes from the date straight to the review; 修改进度 opens on 修改哪一项？, where one value is fixed
+ * and saved in a few taps (the full walk stays one tap away). A page opened from 修改哪一项？ or
+ * the review comes back there with 完成.
+ *
+ * <p>Unfinished input is kept per semantic field in {@link DraftStore} and survives rotation and
+ * process death. Saving is a single CAS checkpoint write; a conflict reloads the newer record and
+ * keeps the player's edits. Messages slide in briefly above the buttons, never as a pinned card.
  */
 public final class StateActivity extends Activity implements StateSteps.Callbacks {
+    /** A record arrived meanwhile (the widget's 完成, say): merged, the player looks once more. */
+    static final String CONFLICT = "刚有新记录，已经合进来了，再看一眼？";
+    /** A draft restored onto a newer record. */
+    static final String REBASED = "刚有新记录，你填的都还在";
+    /** A draft restored where it was left. */
+    static final String RESUMED = "接着上次填";
+    /** 今天 says 「已记录：游戏进度」 once the wizard has saved. */
+    static final String SAVED_SUMMARY = "游戏进度";
+    /** How long an ordinary message stays (ms); errors stay until the next page. */
+    private static final long NOTICE_MILLIS = 3000;
+
     private StateDraft.Mode mode;
     private PlannerApi api;
     private PlannerApi.Snapshot snap;
@@ -37,17 +59,28 @@ public final class StateActivity extends Activity implements StateSteps.Callback
     private StateSteps steps;
     private List<StateSteps.Page> pages;
     private int index;
+    /** The page a single page returns to (修改哪一项？ or the review); null while walking. */
+    private StateSteps.Page returnTo;
     private boolean busy;
+    private CharSequence busyLabel;
+    /** Shown once the next load has rendered (after a conflict). */
+    private String pendingNotice;
+    private String lastNotice;
 
-    private TextView title;
-    private TextView progress;
+    private TextView modeLabel;
+    private TextView counter;
     private StepBar stepBar;
     private ScrollView scroll;
     private FrameLayout content;
     private TextView back;
     private TextView next;
-    private TextView notice;
     private LinearLayout bottomBar;
+    private UndoBar messageBar;
+    private final Runnable hideNotice = () -> {
+        if (messageBar != null) {
+            messageBar.hide();
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +96,10 @@ public final class StateActivity extends Activity implements StateSteps.Callback
     @SuppressWarnings("deprecation")
     public void onBackPressed() {
         if (busy) {
+            return;
+        }
+        if (draft != null && returnTo != null) {
+            returnFromSingle();
             return;
         }
         int previous = draft == null ? -1 : neighbour(-1);
@@ -89,50 +126,55 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         close.setOnClickListener(v -> finish());
         int size = Ui.dp(this, Ui.TOUCH);
         bar.addView(close, new LinearLayout.LayoutParams(size, size));
-        title = Ui.text(this, titleFor(mode), 18, Ui.col(this, R.color.p3r_white), true);
+        modeLabel = Ui.text(this, titleFor(mode), 15, Ui.col(this, R.color.p3r_ink_muted), true);
         LinearLayout.LayoutParams tp = Ui.weight(1);
         tp.leftMargin = Ui.dp(this, 4);
-        bar.addView(title, tp);
-        progress = Ui.numeral(this, "", 20, Ui.col(this, R.color.p3r_cyan_400));
-        bar.addView(progress, Ui.wrap());
+        bar.addView(modeLabel, tp);
+        counter = Ui.numeral(this, "", 30, Ui.col(this, R.color.p3r_white));
+        counter.setVisibility(View.INVISIBLE);
+        bar.addView(counter, Ui.wrap());
         column.addView(bar, Ui.matchWrap());
         stepBar = new StepBar(this);
         LinearLayout.LayoutParams sp = Ui.matchWrap();
         sp.leftMargin = Ui.dp(this, Ui.GUTTER);
         sp.rightMargin = Ui.dp(this, Ui.GUTTER);
         sp.topMargin = Ui.dp(this, 4);
+        stepBar.setVisibility(View.INVISIBLE);
         column.addView(stepBar, sp);
 
+        // The page scrolls; messages slide in over its lower edge, just above the buttons.
+        FrameLayout stage = new FrameLayout(this);
         scroll = new ScrollView(this);
         scroll.setClipToPadding(false);
         scroll.setVerticalScrollBarEnabled(false);
         content = new FrameLayout(this);
-        Ui.pad(content, Ui.GUTTER, 20, Ui.GUTTER, 24);
+        // Room at the end so a message never hides the last row for good.
+        Ui.pad(content, Ui.GUTTER, 18, Ui.GUTTER, 72);
         scroll.addView(content, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT));
-        column.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
-
-        notice = Ui.text(this, "", 14, Ui.col(this, R.color.p3r_white), true);
-        notice.setBackground(Ui.card(this).accent(Ui.col(this, R.color.ui_gold), Ui.dp(this, 4)));
-        Ui.pad(notice, 18, 10, 14, 10);
-        notice.setVisibility(View.GONE);
-        LinearLayout.LayoutParams np = Ui.matchWrap();
-        np.leftMargin = Ui.dp(this, Ui.GUTTER);
-        np.rightMargin = Ui.dp(this, Ui.GUTTER);
-        np.bottomMargin = Ui.dp(this, 8);
-        column.addView(notice, np);
+        stage.addView(scroll, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT));
+        messageBar = new UndoBar(this);
+        FrameLayout.LayoutParams mp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
+        mp.leftMargin = Ui.dp(this, Ui.GUTTER);
+        mp.rightMargin = Ui.dp(this, Ui.GUTTER);
+        mp.bottomMargin = Ui.dp(this, 8);
+        stage.addView(messageBar, mp);
+        column.addView(stage, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
         bottomBar = Ui.row(this);
         Ui.pad(bottomBar, Ui.GUTTER, 10, Ui.GUTTER, 12);
-        back = Ui.secondary(this, "上一步");
-        back.setOnClickListener(v -> onBackPressed());
+        back = Ui.quiet(this, "上一步");
+        back.setOnClickListener(v -> onSecondary());
         bottomBar.addView(back, Ui.weight(1));
         next = Ui.primary(this, "下一步");
         next.setOnClickListener(v -> onNext());
-        LinearLayout.LayoutParams nextParams = Ui.weight(1.6f);
+        LinearLayout.LayoutParams nextParams = Ui.weight(2);
         nextParams.leftMargin = Ui.dp(this, 12);
         bottomBar.addView(next, nextParams);
-        bottomBar.setBackgroundColor(Ui.alpha(Ui.col(this, R.color.p3r_navy_950), 200));
+        bottomBar.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{
+            Ui.alpha(Ui.col(this, R.color.p3r_navy_950), 120), Ui.alpha(Ui.col(this, R.color.p3r_navy_950), 235)}));
         column.addView(bottomBar, Ui.matchWrap());
         root.addView(column, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
@@ -145,6 +187,7 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         TextView loading = Ui.muted(this, "正在读取…");
         content.addView(loading);
         next.setEnabled(false);
+        back.setVisibility(View.INVISIBLE);
     }
 
     private static String titleFor(StateDraft.Mode mode) {
@@ -213,11 +256,15 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         }, this::onLoaded, error -> showLoadFailed(null));
     }
 
-    /** "暂时读不到记录", the service's message and [重试] instead of a wizard page. */
+    /** 「记录没读出来」, the reason and [重试] instead of a wizard page; the X is the only way out. */
     private void showLoadFailed(String errorZh) {
         content.removeAllViews();
+        stepBar.setVisibility(View.INVISIBLE);
+        counter.setVisibility(View.INVISIBLE);
+        modeLabel.setVisibility(View.VISIBLE);
+        bottomBar.setVisibility(View.GONE);
         LinearLayout box = Ui.column(this);
-        box.addView(Ui.title(this, "暂时读不到记录"));
+        box.addView(Ui.title(this, "记录没读出来"));
         TextView body = Ui.body(this, Messages.loadFailed(errorZh));
         LinearLayout.LayoutParams bp = Ui.matchWrap();
         bp.topMargin = Ui.dp(this, 8);
@@ -234,8 +281,6 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         content.addView(box, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT));
         next.setEnabled(false);
-        next.setVisibility(View.INVISIBLE);
-        back.setText("关闭");
     }
 
     private void onLoaded(Loaded l) {
@@ -243,53 +288,103 @@ public final class StateActivity extends Activity implements StateSteps.Callback
             showLoadFailed(l.failedZh);
             return;
         }
-        next.setVisibility(View.VISIBLE);
+        bottomBar.setVisibility(View.VISIBLE);
         api = l.api;
         snap = l.snapshot;
         draft = l.draft;
         mode = draft.mode;
         Zh.useNames(draft.rules);
-        title.setText(titleFor(mode));
+        modeLabel.setText(titleFor(mode));
         steps = new StateSteps(this, draft, this);
         pages = StateSteps.skeletonFor(draft);
-        int start = 0;
-        if (draft.currentStep() != null) {
-            for (int i = 0; i < pages.size(); i++) {
-                if (pages.get(i).name().equals(draft.currentStep())) {
-                    start = i;
-                }
+        StateSteps.Page at = pageNamed(draft.currentStep());
+        StateSteps.Page from = pageNamed(draft.returnTo);
+        boolean resumed;
+        next.setEnabled(true);
+        if (at != null && from != null && at != from) {
+            show(at, from);
+            resumed = true;
+        } else {
+            int start = at == null ? 0 : pages.indexOf(at);
+            go(start, +1);
+            resumed = index > 0 || (draft.observed != null && !draft.changes().isEmpty());
+        }
+        String notice = pendingNotice;
+        pendingNotice = null;
+        if (notice != null) {
+            showNotice(notice, false);
+        } else if (l.restored == DraftStore.Restored.REBASED) {
+            showNotice(REBASED, false);
+        } else if (l.restored == DraftStore.Restored.SAME && resumed) {
+            showNotice(RESUMED, false);
+        }
+    }
+
+    private StateSteps.Page pageNamed(String name) {
+        if (name == null) {
+            return null;
+        }
+        for (StateSteps.Page page : pages) {
+            if (page.name().equals(name)) {
+                return page;
             }
         }
-        if (l.restored == DraftStore.Restored.REBASED) {
-            showNotice("记录有更新，已保留你填过的内容。");
-        } else if (l.restored == DraftStore.Restored.SAME && start > 0) {
-            showNotice("已恢复上次没填完的内容。");
-        }
-        next.setEnabled(true);
-        go(start, +1);
+        return null;
     }
 
     // ------------------------------------------------------------------ navigation
 
     /**
-     * Shows page {@code target} of the fixed page list ({@link StateSteps#skeletonFor}); a page that
-     * does not apply now is skipped in {@code direction}, so the counter keeps its total.
+     * Shows page {@code target} of the walk ({@link StateSteps#skeletonFor}); a page with nothing
+     * to ask now is skipped in {@code direction}.
      */
     private void go(int target, int direction) {
-        ensureUnlockPage();
         int i = Math.max(0, Math.min(pages.size() - 1, target));
         while (i > 0 && i < pages.size() - 1 && !StateSteps.applies(pages.get(i), draft)) {
             i += direction < 0 ? -1 : 1;
         }
         index = i;
-        StateSteps.Page page = pages.get(index);
-        draft.setStep(page.name());
+        returnTo = null;
+        draft.setStep(pages.get(index).name());
+        draft.returnTo = null;
         drafts.save(draft);
-        render();
-        scroll.scrollTo(0, 0);
+        enter(direction >= 0);
     }
 
-    /** First applicable page after (+1) or before (−1) the current one, or -1. */
+    /** Opens {@code page} on its own; 完成 (or back) returns to {@code from}. */
+    private void show(StateSteps.Page page, StateSteps.Page from) {
+        int at = pages.indexOf(page);
+        if (at < 0) {
+            return;
+        }
+        index = at;
+        returnTo = from;
+        draft.setStep(page.name());
+        draft.returnTo = from.name();
+        drafts.save(draft);
+        enter(true);
+    }
+
+    private void returnFromSingle() {
+        StateSteps.Page from = returnTo;
+        int at = pages.indexOf(from);
+        returnTo = null;
+        go(at < 0 ? 0 : at, -1);
+    }
+
+    private void enter(boolean forward) {
+        hideNotice();
+        render();
+        scroll.scrollTo(0, 0);
+        if (content.getChildCount() > 0) {
+            Motion.tabIn(content.getChildAt(0), forward);
+        }
+        for (ViewGroup list : steps.cascades()) {
+            Motion.cascade(list);
+        }
+    }
+
+    /** First page of the walk after (+1) or before (−1) the current one, or -1. */
     private int neighbour(int direction) {
         for (int i = index + direction; i >= 0 && i < pages.size(); i += direction) {
             if (StateSteps.applies(pages.get(i), draft)) {
@@ -299,17 +394,8 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         return -1;
     }
 
-    /**
-     * 解锁进度 is fixed in the list when the wizard opens; only when an edit makes it needed
-     * although it was not expected (a multi-step link set back to 未解锁) is it inserted.
-     */
-    private void ensureUnlockPage() {
-        if (!pages.contains(StateSteps.Page.UNLOCK) && StateSteps.applies(StateSteps.Page.UNLOCK, draft)) {
-            pages.add(pages.indexOf(StateSteps.Page.LINKS) + 1, StateSteps.Page.UNLOCK);
-            if (index > pages.indexOf(StateSteps.Page.LINKS)) {
-                index++;
-            }
-        }
+    private boolean hasChanges() {
+        return draft.observed == null || !draft.changes().isEmpty() || draft.profileChanged();
     }
 
     private void render() {
@@ -317,37 +403,94 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         content.removeAllViews();
         content.addView(steps.build(page), new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT));
-        progress.setText((index + 1) + "/" + pages.size());
-        progress.setContentDescription("第 " + (index + 1) + " 步，共 " + pages.size() + " 步：" + StateSteps.titleOf(page));
-        stepBar.set(index, pages.size());
-        back.setText(index == 0 ? "稍后再填" : "上一步");
-        boolean last = page == StateSteps.Page.CONFIRM;
-        boolean unchanged = last && draft.observed != null && draft.changes().isEmpty() && !draft.profileChanged();
-        if (last) {
-            next.setText(unchanged ? "完成" : mode == StateDraft.Mode.ONBOARDING ? "保存并开始安排" : "保存并重新安排");
+        boolean single = returnTo != null;
+        boolean hub = page == StateSteps.Page.HUB;
+        List<StateSteps.Page> walk = StateSteps.pagesFor(draft);
+        int position = single || hub ? -1 : walk.indexOf(page);
+        if (position >= 0) {
+            SpannableStringBuilder text = new SpannableStringBuilder(String.format(java.util.Locale.ROOT, "%02d",
+                position + 1));
+            int start = text.length();
+            text.append("/").append(String.valueOf(walk.size()));
+            text.setSpan(new RelativeSizeSpan(0.55f), start, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            text.setSpan(new ForegroundColorSpan(Ui.col(this, R.color.p3r_cyan_400)), start, text.length(),
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            counter.setText(text);
+            counter.setContentDescription("第 " + (position + 1) + " 步，共 " + walk.size() + " 步："
+                + StateSteps.titleOf(page));
+            counter.setVisibility(View.VISIBLE);
+            stepBar.set(position, walk.size());
+            stepBar.setVisibility(View.VISIBLE);
         } else {
-            next.setText("下一步");
+            counter.setText("");
+            counter.setVisibility(View.INVISIBLE);
+            stepBar.setVisibility(View.INVISIBLE);
         }
-        // On the opening question the three answers are the actions; "下一步" appears once answered.
-        boolean awaitingAnswer = page == StateSteps.Page.SYNC_INTRO && draft.sync() == null;
-        next.setVisibility(awaitingAnswer ? View.INVISIBLE : View.VISIBLE);
+        progress = position < 0 ? "" : (position + 1) + "/" + walk.size();
+        modeLabel.setVisibility(position <= 0 ? View.VISIBLE : View.INVISIBLE);
+
+        boolean changes = hasChanges();
+        if (single) {
+            back.setVisibility(View.GONE);
+            next.setText("完成");
+            next.setVisibility(View.VISIBLE);
+        } else if (hub) {
+            back.setText("逐项检查");
+            back.setVisibility(View.VISIBLE);
+            next.setText("更新安排");
+            next.setVisibility(changes ? View.VISIBLE : View.INVISIBLE);
+        } else {
+            back.setText("上一步");
+            back.setVisibility(neighbour(-1) >= 0 ? View.VISIBLE : View.INVISIBLE);
+            if (page == StateSteps.Page.CONFIRM) {
+                next.setText(!changes ? "好的" : mode == StateDraft.Mode.ONBOARDING ? "开始安排" : "更新安排");
+            } else {
+                next.setText("下一步");
+            }
+            // On the opening question the three answers are the actions; 下一步 appears once answered.
+            boolean awaitingAnswer = page == StateSteps.Page.SYNC_INTRO && draft.sync() == null;
+            next.setVisibility(awaitingAnswer ? View.INVISIBLE : View.VISIBLE);
+        }
+    }
+
+    /** The left button: 上一步, or 逐项检查 (the full walk) on 修改哪一项？. */
+    private void onSecondary() {
+        if (busy || draft == null) {
+            return;
+        }
+        if (pages.get(index) == StateSteps.Page.HUB && returnTo == null) {
+            go(pages.indexOf(StateSteps.Page.DATE), +1);
+            return;
+        }
+        onBackPressed();
     }
 
     private void onNext() {
         if (busy || draft == null) {
             return;
         }
-        if (pages.get(index) == StateSteps.Page.SYNC_INTRO && draft.sync() == null) {
+        if (returnTo != null) {
+            returnFromSingle();
+            return;
+        }
+        StateSteps.Page page = pages.get(index);
+        if (page == StateSteps.Page.HUB) {
+            if (hasChanges()) {
+                save();
+            }
+            return;
+        }
+        if (page == StateSteps.Page.SYNC_INTRO && draft.sync() == null) {
             draft.setSync(StateDraft.SyncAnswer.NO);
         }
-        if (pages.get(index) != StateSteps.Page.CONFIRM) {
+        if (page != StateSteps.Page.CONFIRM) {
             go(index + 1, +1);
             return;
         }
-        if (draft.observed != null && draft.changes().isEmpty() && !draft.profileChanged()) {
+        if (!hasChanges()) {
             drafts.clear(mode);
             if (mode == StateDraft.Mode.SYNC && snap != null) {
-                // Nothing changed in the game: the "游戏进度变了吗？" question is answered.
+                // Nothing changed in the game: the 「之后又玩了吗？」 question is answered.
                 UiPrefs.setBannerDismissedFor(this, snap.lastRecordMillis);
             }
             finish();
@@ -363,7 +506,9 @@ public final class StateActivity extends Activity implements StateSteps.Callback
 
     @Override
     public void next() {
-        if (index + 1 < pages.size()) {
+        if (returnTo != null) {
+            returnFromSingle();
+        } else if (index + 1 < pages.size()) {
             go(index + 1, +1);
         }
     }
@@ -371,9 +516,13 @@ public final class StateActivity extends Activity implements StateSteps.Callback
     @Override
     public void refresh() {
         int y = scroll.getScrollY();
-        ensureUnlockPage();
         render();
         scroll.post(() -> scroll.scrollTo(0, y));
+    }
+
+    @Override
+    public void open(StateSteps.Page page) {
+        show(page, pages.get(index));
     }
 
     // ------------------------------------------------------------------ save
@@ -393,34 +542,56 @@ public final class StateActivity extends Activity implements StateSteps.Callback
             setBusy(false);
             if (receipt.ok) {
                 drafts.clear(mode);
+                // 今天 shows 「已记录：游戏进度」 (no 撤销) when it comes back.
+                UndoCenter.post(-1, SAVED_SUMMARY);
                 finish();
                 return;
             }
             if (Messages.isStale(receipt)) {
-                showNotice("刚才有新的记录（比如在桌面小组件上点了完成），已经合并进来，你填的内容都还在，请再确认一次。");
+                pendingNotice = CONFLICT;
                 load(current);
                 return;
             }
-            showNotice(Messages.receiptError(receipt));
+            showNotice(Messages.receiptError(receipt), true);
         }, error -> {
             setBusy(false);
-            showNotice(Messages.GENERIC_ERROR);
+            showNotice(Messages.GENERIC_ERROR, true);
         });
     }
 
+    /** While saving the primary reads 「正在保存…」; afterwards its own label comes back. */
     private void setBusy(boolean value) {
         busy = value;
         next.setEnabled(!value);
         back.setEnabled(!value);
-        next.setText(value ? "正在保存…" : next.getText());
+        if (value) {
+            busyLabel = next.getText();
+            next.setText("正在保存…");
+        } else if (busyLabel != null) {
+            next.setText(busyLabel);
+            busyLabel = null;
+        }
     }
 
-    private void showNotice(String text) {
-        notice.setText(text);
-        notice.setVisibility(View.VISIBLE);
+    private void showNotice(String text, boolean error) {
+        lastNotice = text;
+        messageBar.removeCallbacks(hideNotice);
+        messageBar.show(text, null, null, error ? UndoBar.Style.ERROR : UndoBar.Style.RECORD);
+        if (!error) {
+            messageBar.postDelayed(hideNotice, NOTICE_MILLIS);
+        }
+    }
+
+    private void hideNotice() {
+        messageBar.removeCallbacks(hideNotice);
+        if (messageBar.isShowing()) {
+            messageBar.hide();
+        }
     }
 
     // ------------------------------------------------------------------ test hooks
+
+    private String progress = "";
 
     StateDraft draft() {
         return draft;
@@ -430,16 +601,27 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         return pages == null ? null : pages.get(index);
     }
 
-    /** The step counter ("5/10") (tests). */
+    /** The page a single page returns to, or null while walking (tests). */
+    StateSteps.Page returnPage() {
+        return returnTo;
+    }
+
+    /** The step counter ("5/9"), "" on 修改哪一项？ and on a single page (tests). */
     String progressText() {
-        return Zh.plain(progress.getText());
+        return progress;
     }
 
+    /** The message showing now, or null (tests). */
     String noticeText() {
-        return notice.getVisibility() == View.VISIBLE ? Zh.plain(notice.getText()) : null;
+        return messageBar.isShowing() ? lastNotice : null;
     }
 
-    /** Slanted segmented progress bar for the wizard. */
+    /** The primary button's label (tests). */
+    String primaryText() {
+        return Zh.plain(next.getText());
+    }
+
+    /** Slanted segmented progress bar for the wizard: one segment per page of the walk. */
     static final class StepBar extends View {
         private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
         private final android.graphics.Path path = new android.graphics.Path();

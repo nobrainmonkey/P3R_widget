@@ -111,19 +111,26 @@ public class ReviewFixesTest extends UiTestBase {
     @Test
     public void f3_wizardAsksWatchedEpisodesOfOptedInTracks() {
         StateActivity a = stateController("edit").get();
-        jumpTo(a, StateSteps.Page.EPISODES);
-        assertTrue(Shots.has(a, "羁绊剧情已经看了几话？"));
-        assertTrue(Shots.has(a, "伊织顺平 · 共 4 话"));
-        assertFalse("only opted-in tracks", Shots.has(a, "真田明彦 · 共 3 话"));
+        StateWizardTest.openFromHub(a, "羁绊剧情", StateSteps.Page.EPISODES);
+        assertTrue(Shots.has(a, "羁绊剧情看到第几话了？"));
+        assertTrue(Shots.has(a, "伊织顺平"));
+        assertFalse("only opted-in tracks", Shots.has(a, "真田明彦"));
+        assertFalse("the count is in the last chip only", text(a).contains("共 4 话"));
+        assertTrue(Shots.has(a, "全部 4 话"));
         assertEquals(1, a.draft().episodesWatched(0));
         Shots.shot(a, "state_edit_episodes");
         Shots.click(a, "伊织顺平：已看 3 话");
         assertEquals(3, a.draft().episodesWatched(0));
-        jumpTo(a, StateSteps.Page.CONFIRM);
-        assertTrue(text(a).contains("羁绊剧情 · 伊织顺平"));
-        assertTrue(text(a).contains("已看 3 话"));
-        Shots.shot(a, "state_edit_episodes_confirm");
-        Shots.click(a, "保存并重新安排");
+        Shots.click(a, "完成");
+        assertEquals(StateSteps.Page.HUB, a.currentPage());
+        assertTrue(Shots.has(a, "羁绊剧情，伊织顺平 已看 3 话，已改，点按修改"));
+        boolean listed = false;
+        for (StateDraft.Change change : a.draft().changes()) {
+            listed |= change.labelZh.equals("羁绊剧情 · 伊织顺平") && change.afterZh.equals("已看 3 话");
+        }
+        assertTrue(listed);
+        Shots.shot(a, "state_edit_episodes_hub");
+        Shots.click(a, "更新安排");
         FakePlannerApi.Call call = api.last();
         assertEquals("saveCheckpoint", call.method);
         assertEquals(3, call.state.episodes[0]);
@@ -421,11 +428,13 @@ public class ReviewFixesTest extends UiTestBase {
     public void ui5_wizardDoesNotStartOverUnreadableRecords() {
         breakTheStore();
         StateActivity a = stateController("sync").get();
-        assertTrue(Shots.has(a, "暂时读不到记录"));
+        assertTrue(Shots.has(a, "记录没读出来"));
+        assertTrue(Shots.has(a, Messages.LOAD_RETRY));
+        assertFalse("the X is the only way out", Shots.has(a, "关闭"));
         assertNull(a.currentPage());
         Shots.shot(a, "state_load_failed");
         Shots.click(a, "重试");
-        assertTrue(Shots.has(a, "暂时读不到记录"));
+        assertTrue(Shots.has(a, "记录没读出来"));
         assertTrue(api.calls.isEmpty());
     }
 
@@ -532,25 +541,25 @@ public class ReviewFixesTest extends UiTestBase {
     public void ui7_wizardPreselectsTheRecordedFailureWithANote() {
         maikoLostByReplay();
         StateActivity a = stateController("edit").get();
-        jumpTo(a, StateSteps.Page.TOWER);
+        StateWizardTest.openFromHub(a, "塔尔塔罗斯", StateSteps.Page.TOWER);
         assertTrue(Shots.has(a, StateDraft.RECORDED_FAILURE_NOTE));
         assertTrue("没救出 is preselected", Shots.find(a, "舞子：没救出").isSelected());
         assertFalse(Shots.find(a, "舞子：救出了").isSelected());
         Shots.shot(a, "state_edit_rescue_recorded_failure");
         // Another edit saves the record with the failure still in it.
         a.draft().setCash(30_000);
-        jumpTo(a, StateSteps.Page.CONFIRM);
-        Shots.click(a, "保存并重新安排");
+        Shots.click(a, "完成");
+        Shots.click(a, "更新安排");
         assertEquals("saveCheckpoint", api.last().method);
         assertEquals(30_000, api.last().state.cash);
         assertEquals(2L, api.last().state.rescueFailed & 2L);
 
         api.calls.clear();
         StateActivity b = stateController("edit").get();
-        jumpTo(b, StateSteps.Page.TOWER);
+        StateWizardTest.openFromHub(b, "塔尔塔罗斯", StateSteps.Page.TOWER);
         Shots.click(b, "舞子：救出了");
-        jumpTo(b, StateSteps.Page.CONFIRM);
-        Shots.click(b, "保存并重新安排");
+        Shots.click(b, "完成");
+        Shots.click(b, "更新安排");
         assertEquals(0L, api.last().state.rescueFailed & 2L);
         assertEquals(2L, api.last().state.rescued & 2L);
     }
@@ -660,16 +669,20 @@ public class ReviewFixesTest extends UiTestBase {
     }
 
     @Test
-    public void copy_onboardingPresetAndPersonaWording() {
+    public void copy_onboardingGoalsAndPersonaWording() {
         api = FakePlannerApi.firstRun();
         Api.setForTest(api);
         StateActivity a = stateController("onboarding").get();
-        assertTrue(Shots.has(a, "尽量全部升到 MAX"));
-        assertFalse(Shots.has(a, "尽量全部 MAX"));
+        jumpTo(a, StateSteps.Page.GOALS);
+        // Leaving every goal empty already raises every link: no preset, no planning switch here.
+        assertFalse(Shots.has(a, "尽量全部升到 MAX"));
+        assertFalse(Shots.has(a, "其余社群也尽量提升"));
+        assertTrue(Shots.has(a, "点一下想要，再点一下必须"));
         Shots.click(a, "下一步");
         assertEquals(StateSteps.Page.PERSONA, a.currentPage());
-        assertTrue(text(a).contains("每次和目标社群的人见面前，会提醒你带哪个阿尔卡那的人格面具。"));
+        assertTrue(text(a).contains("见面前提醒带哪个阿尔卡那"));
         assertFalse(text(a).contains("见目标前"));
+        assertFalse(text(a).contains("规划设置"));
         Shots.shot(a, "state_onboarding_persona_wording");
     }
 

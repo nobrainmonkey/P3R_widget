@@ -126,8 +126,13 @@ public class AuditFixesTest extends UiTestBase {
         HomeActivity a = home();
         assertTrue(Shots.has(a, "提齐亚 · 去过 1/6 次"));
         StateActivity s = stateController("edit").get();
-        jumpTo(s, StateSteps.Page.TOWER);
-        assertTrue(Shots.has(s, "这个区块最多去 6 次，可在「规划设置 → 塔尔塔罗斯」里修改。"));
+        StateWizardTest.openFromHub(s, "塔尔塔罗斯", StateSteps.Page.TOWER);
+        assertTrue(Shots.has(s, "提齐亚去过几次？"));
+        assertFalse("no settings path", Shots.allText(s.getWindow().getDecorView()).contains("规划设置"));
+        List<Stepper> steppers = StateWizardTest.steppers(s.getWindow().getDecorView());
+        Stepper visits = steppers.get(steppers.size() - 1);
+        visits.step(+10);
+        assertEquals("the block's own cap", 6, visits.getValue());
         int slot = Rules.slot(Fixtures.day(10, 24), true);
         api.snap.observed.slot = slot;
         ResultActivity r = result(slot, "tower:3", Intents.MODE_RESULT);
@@ -159,18 +164,22 @@ public class AuditFixesTest extends UiTestBase {
     }
 
     @Test
-    public void wizardAsksAboutChristmasInEditModeAndSavesIt() {
+    public void wizardAsksAboutChristmasFromDecember20AndSavesIt() {
         StateActivity a = stateController("edit").get();
-        jumpTo(a, StateSteps.Page.LINKS);
-        assertTrue(Shots.has(a, "12月24日的邀约"));
+        // Before 12/20 平安夜 is a 规划设置 matter: not part of 修改进度.
+        assertFalse(Shots.has(a, "平安夜"));
+        a.draft().setSlot(Rules.slot(Fixtures.day(12, 21), false));
+        a.refresh();
+        StateWizardTest.openFromHub(a, "平安夜", StateSteps.Page.CHRISTMAS);
+        assertTrue(Shots.has(a, "平安夜接受了谁的邀约？"));
+        assertTrue(Shots.has(a, "都婉拒了"));
+        assertFalse("no explanation", Shots.allText(a.getWindow().getDecorView()).contains("默认按"));
+        Shots.shot(a, "state_edit_christmas");
         Shots.click(a, "接受了岳羽由加莉的邀约");
         assertEquals("lovers", a.draft().christmasLink());
-        jumpTo(a, StateSteps.Page.CONFIRM);
-        assertTrue(Shots.has(a, "平安夜"));
-        assertTrue(Shots.has(a, "接受了岳羽由加莉的邀约"));
-        assertTrue(Shots.has(a, "将更新 1 项"));
-        Shots.shot(a, "state_edit_christmas_confirm");
-        Shots.click(a, "保存并重新安排");
+        assertEquals("one tap answers and goes back", StateSteps.Page.HUB, a.currentPage());
+        assertTrue(Shots.has(a, "平安夜，接受了岳羽由加莉的邀约，已改，点按修改"));
+        Shots.click(a, "更新安排");
         FakePlannerApi.Call call = api.last();
         assertEquals("saveCheckpoint", call.method);
         assertNotNull("the profile goes with the checkpoint", call.profile);
@@ -180,21 +189,22 @@ public class AuditFixesTest extends UiTestBase {
     @Test
     public void syncAsksAboutChristmasOnlyFromDecember20() {
         StateActivity a = stateController("sync").get();
-        Shots.click(a, "否");
+        Shots.click(a, StateSteps.SYNC_NO);
         assertEquals(StateSteps.Page.DATE, a.currentPage());
-        jumpTo(a, StateSteps.Page.LINKS);
-        assertFalse(Shots.has(a, "12月24日的邀约"));
+        assertFalse(StateSteps.pagesFor(a.draft()).contains(StateSteps.Page.CHRISTMAS));
+        jumpTo(a, StateSteps.Page.CONFIRM);
 
         api.calls.clear();
         RuntimeEnvironment.getApplication().getSharedPreferences(DraftStore.PREFS, 0).edit().clear().commit();
         StateActivity b = stateController("sync").get();
-        Shots.click(b, "否");
+        Shots.click(b, StateSteps.SYNC_NO);
         b.draft().setSlot(Rules.slot(Fixtures.day(12, 21), false));
-        jumpTo(b, StateSteps.Page.LINKS);
-        assertTrue(Shots.has(b, "12月24日的邀约"));
-        Shots.capture(b, false);
-        lastScroll(b.getWindow().getDecorView(), null).scrollTo(0, 100_000);
+        jumpTo(b, StateSteps.Page.CHRISTMAS);
+        assertTrue(Shots.has(b, "平安夜接受了谁的邀约？"));
         Shots.shot(b, "state_sync_christmas");
+        Shots.click(b, "都婉拒了");
+        assertNull(b.draft().christmasLink());
+        assertTrue("answered, the walk goes on", b.currentPage() != StateSteps.Page.CHRISTMAS);
     }
 
     @Test
@@ -291,32 +301,32 @@ public class AuditFixesTest extends UiTestBase {
     // ------------------------------------------------------------------ onboarding "?"
 
     @Test
-    public void onboardingListsUnsureRanksOnTheConfirmPage() {
+    public void onboardingSavesAnUnknownRankAsLockedWithoutSayingSo() {
         api = FakePlannerApi.firstRun();
         Api.setForTest(api);
         StateActivity a = stateController("onboarding").get();
         StateDraft d = a.draft();
         d.setSlot(Rules.slot(Fixtures.day(6, 1), false));
+        // A 「?」 from a draft of an older version: on a first run it is simply 未解锁.
         d.setRank(1, StateDraft.UNKNOWN);
         d.setRank(7, StateDraft.UNKNOWN);
         d.setRank(4, 3);
-        List<StateDraft.Change> changes = d.changes();
-        List<String> unsure = new ArrayList<>();
-        for (StateDraft.Change c : changes) {
-            if (StateDraft.UNSURE_RANK.equals(c.afterZh)) {
-                unsure.add(c.labelZh);
-            }
+        boolean counted = false;
+        for (StateDraft.Change c : d.changes()) {
+            assertFalse("no row per unknown link: " + c.labelZh, c.labelZh.equals("魔术师") || c.labelZh.equals("战车"));
             if ("社群".equals(c.labelZh)) {
                 assertEquals("已解锁 1 个", c.afterZh);
+                counted = true;
             }
         }
-        assertEquals(Arrays.asList("魔术师", "战车"), unsure);
+        assertTrue(counted);
         jumpTo(a, StateSteps.Page.CONFIRM);
-        assertTrue(Shots.has(a, "不确定（先按未解锁安排）"));
-        assertTrue(Shots.has(a, "魔术师"));
-        assertTrue(Shots.has(a, "战车"));
+        String text = Shots.allText(a.getWindow().getDecorView());
+        assertFalse(text.contains("不确定"));
+        assertFalse(text.contains("先按未解锁安排"));
+        assertTrue(Shots.has(a, "已解锁 1 个"));
         Shots.shot(a, "state_onboarding_unsure_ranks");
-        Shots.click(a, "保存并开始安排");
+        Shots.click(a, "开始安排");
         SimState saved = api.last().state;
         assertEquals("? is saved as 未解锁", 0, saved.rank[1]);
         assertEquals(0, saved.rank[7]);
@@ -324,15 +334,18 @@ public class AuditFixesTest extends UiTestBase {
     }
 
     @Test
-    public void allUnsureIsNotCalledAllLocked() {
+    public void aFirstRunWithoutUnlockedLinksSaysSoPlainly() {
         api = FakePlannerApi.firstRun();
         StateDraft d = new StateDraft(StateDraft.Mode.ONBOARDING, api.rules, null, new Profile(), null, 0);
         d.setRank(1, StateDraft.UNKNOWN);
+        boolean counted = false;
         for (StateDraft.Change c : d.changes()) {
             if ("社群".equals(c.labelZh)) {
-                assertEquals("没有确定已解锁的", c.afterZh);
+                assertEquals("都还没解锁", c.afterZh);
+                counted = true;
             }
         }
+        assertTrue(counted);
     }
 
     // ------------------------------------------------------------------ I3(3): recorded values after "是"
@@ -431,12 +444,13 @@ public class AuditFixesTest extends UiTestBase {
     // ------------------------------------------------------------------ stable step counter
 
     @Test
-    public void wizardStepCounterNeverChangesItsTotal() {
+    public void wizardStepCounterCountsOnlyThePagesShown() {
         StateActivity a = stateController("edit").get();
-        String first = a.progressText();
-        String total = first.substring(first.indexOf('/') + 1);
-        // Before 9/1 neither 恶魔 nor 塔 can be prepared: 解锁进度 does not apply, its number stays.
+        assertEquals("修改哪一项？ has no counter", "", a.progressText());
+        // Before 9/1 neither 恶魔 nor 塔 can be prepared: 解锁前的准备 is not asked and not counted.
         a.draft().setSlot(Rules.slot(Fixtures.day(8, 20), false));
+        Shots.click(a, "逐项检查");
+        int total = StateSteps.pagesFor(a.draft()).size();
         List<StateSteps.Page> seen = new ArrayList<>();
         List<String> counters = new ArrayList<>();
         for (int i = 0; i < 12 && a.currentPage() != StateSteps.Page.CONFIRM; i++) {
@@ -445,8 +459,8 @@ public class AuditFixesTest extends UiTestBase {
             Shots.click(a, "下一步");
         }
         counters.add(a.progressText());
-        for (String counter : counters) {
-            assertEquals(counters.toString(), total, counter.substring(counter.indexOf('/') + 1));
+        for (int i = 0; i < counters.size(); i++) {
+            assertEquals(counters.toString(), (i + 1) + "/" + total, counters.get(i));
         }
         assertFalse(seen.contains(StateSteps.Page.UNLOCK));
         assertEquals(total + "/" + total, a.progressText());
@@ -455,11 +469,11 @@ public class AuditFixesTest extends UiTestBase {
         a.onBackPressed();
         Shots.idle();
         assertEquals(StateSteps.Page.LINKS, a.currentPage());
-        // From 9/1 on the same page is asked, under the same total.
+        // From 9/1 on the page is asked, and counted.
         a.draft().setSlot(Rules.slot(Fixtures.day(10, 22), false));
         Shots.click(a, "下一步");
         assertEquals(StateSteps.Page.UNLOCK, a.currentPage());
-        assertTrue(a.progressText().endsWith("/" + total));
+        assertEquals("5/" + (total + 1), a.progressText());
     }
 
     private static void jumpBackTo(StateActivity a, StateSteps.Page page) {
