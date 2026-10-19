@@ -33,10 +33,13 @@ public class ScheduleJumpUiTest extends UiTestBase {
         Shots.capture(home, false);
         ListView list = findList(home.getWindow().getDecorView());
         assertNotNull(list);
+        assertTrue(dayVisible(list, Fixtures.OCT_22));
+        assertFalse("not offered while today is on screen", Shots.has(home, "回到今天"));
         scrollToMonth(home, list, 12);
         assertFalse(dayVisible(list, Fixtures.OCT_22));
         View jump = Shots.find(home, "回到今天");
         assertTrue("the shortcut is an icon, not another text button", jump instanceof ImageView);
+        assertEquals("the plate itself never turns", 0f, jump.getRotation(), 0.01f);
         Rect rect = new Rect();
         assertTrue(jump.getGlobalVisibleRect(rect));
         assertTrue(rect.width() >= Ui.dp(home, 48));
@@ -49,6 +52,7 @@ public class ScheduleJumpUiTest extends UiTestBase {
         Shots.capture(home, false);
         assertTrue(dayVisible(list, Fixtures.OCT_22));
         assertTrue("yesterday remains available", dayVisible(list, Fixtures.OCT_22 - 1));
+        assertFalse("back at today, the shortcut goes away", Shots.has(home, "回到今天"));
         Shots.shot(home, "home_schedule_jump_today");
     }
 

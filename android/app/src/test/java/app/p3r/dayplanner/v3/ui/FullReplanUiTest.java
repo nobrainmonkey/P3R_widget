@@ -16,9 +16,9 @@ import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.service.PlannerApi.FullReplanResult;
 
 /**
- * 从头重新安排 in the app (spec §1.1): the 我的 entry and the 规划设置 footer open one confirmation
- * sheet, one request per confirmation, the running line on 今天 with 「先不算了」, and every result
- * shown once.
+ * 从头重新安排 in the app: the 我的 entry and the 规划设置 footer open one confirmation sheet with one
+ * action (「重新安排」, the long search), one request per confirmation, 「停下」 on 今天 and in the
+ * running sheet, and every result said once in the message bar.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34, qualifiers = "zh-rCN-w360dp-h780dp-xxhdpi")
@@ -26,6 +26,7 @@ import app.p3r.dayplanner.v3.service.PlannerApi.FullReplanResult;
 public class FullReplanUiTest extends UiTestBase {
     private static final String ENTRY = "从头重新安排";
     private static final String RUNNING = "正在从头重新安排…";
+    private static final String CHANGED = "重新安排好了：这周 1 处有变";
 
     private HomeActivity me() {
         HomeActivity a = home();
@@ -44,7 +45,9 @@ public class FullReplanUiTest extends UiTestBase {
         HomeActivity a = me();
         View row = entry(a);
         assertTrue(row.isEnabled());
-        assertEquals("从头重新安排，普通重排或深度计算", row.getContentDescription().toString());
+        String spoken = row.getContentDescription().toString();
+        assertTrue(spoken, spoken.startsWith(ENTRY) && spoken.contains(FullReplanSheet.SUBTITLE));
+        assertEquals("按现在的进度重新排一遍", FullReplanSheet.SUBTITLE);
         Shots.shot(a, "me_full_replan_entry");
 
         assertTrue(row.performClick());
@@ -52,32 +55,30 @@ public class FullReplanUiTest extends UiTestBase {
         assertTrue(a.sheets().isShowing());
         View sheet = a.sheets();
         Shots.find(sheet, "从头重新安排？");
-        Shots.find(sheet, "按已记录的进度和规划设置，重新排到1月31日。");
-        Shots.find(sheet, "普通重排最多 8 秒；深度计算最多 30 秒。");
-        // The date is in the numeral face, as on 规划说明 and 我的.
-        android.widget.TextView body = (android.widget.TextView) Shots.find(sheet,
-            "按已记录的进度和规划设置，重新排到1月31日。");
-        CharSequence styled = body.getText();
-        int date = styled.toString().indexOf('3', styled.toString().indexOf("排到"));
-        assertTrue(styled.toString(), date > 0 && styled instanceof android.text.Spanned
-            && ((android.text.Spanned) styled).getSpans(date, date + 1, NumeralSpan.class).length > 0);
+        Shots.find(sheet, "最多半分钟，期间可以照常记录。");
         Shots.find(sheet, "先不了");
+        String all = Shots.allText(sheet);
+        for (String engine : new String[]{"深度计算", "普通重排", "秒", "规划设置"}) {
+            assertFalse("no engine modes or budgets: " + engine, all.contains(engine));
+        }
         Shots.shot(a, "full_replan_sheet");
-        assertEquals("nothing is asked before confirming", 0, api.fullReplanRequests);
+        assertEquals("nothing is asked before confirming", 0, api.deepReplanRequests + api.fullReplanRequests);
 
-        View go = Shots.clickTarget(Shots.find(sheet, ENTRY));
+        View go = Shots.clickTarget(Shots.find(sheet, FullReplanSheet.GO));
         go.performClick();
         go.performClick();
         Shots.idle();
-        assertEquals(1, api.fullReplanRequests);
+        assertEquals("the one action is the long search", 1, api.deepReplanRequests);
+        assertEquals(0, api.fullReplanRequests);
         assertFalse(a.sheets().isShowing());
 
-        // Running: the entry says so and cannot be used again; the footer's sheet shows it too.
+        // Running: the entry says so and cannot be used again.
         assertFalse(entry(a).isEnabled());
         assertTrue(Shots.has(a, RUNNING));
+        a.requestDeepReplan();
         a.requestFullReplan();
         Shots.idle();
-        assertEquals("a request is running: no second one", 1, api.fullReplanRequests);
+        assertEquals("a request is running: no second one", 1, api.deepReplanRequests + api.fullReplanRequests);
     }
 
     @Test
@@ -88,7 +89,7 @@ public class FullReplanUiTest extends UiTestBase {
         Shots.clickTarget(Shots.find(a.sheets(), "先不了")).performClick();
         Shots.idle();
         assertFalse(a.sheets().isShowing());
-        assertEquals(0, api.fullReplanRequests);
+        assertEquals(0, api.deepReplanRequests + api.fullReplanRequests);
     }
 
     @Test
@@ -107,7 +108,7 @@ public class FullReplanUiTest extends UiTestBase {
         Api.setForTest(api);
         HomeActivity finished = me();
         assertFalse(entry(finished).isEnabled());
-        assertTrue(Shots.has(finished, "普通重排或深度计算"));
+        assertTrue(Shots.has(finished, FullReplanSheet.SUBTITLE));
 
         api = FakePlannerApi.firstRun();
         Api.setForTest(api);
@@ -125,29 +126,48 @@ public class FullReplanUiTest extends UiTestBase {
         api.snap.planErrorZh = "生成安排时出了问题，现在的安排先不变";
         HomeActivity a = home();
         assertTrue(Shots.has(a, RUNNING));
-        assertTrue(Shots.has(a, "可以照常记录，记下的结果会一起算进去"));
-        assertFalse("no error card meanwhile", Shots.allText(a.getWindow().getDecorView()).contains("这次没能排好"));
+        assertFalse("no error card meanwhile", Shots.allText(a.getWindow().getDecorView()).contains("没排出来"));
         assertTrue("recording goes on as usual", Shots.has(a, "完成 ✓"));
         Shots.shot(a, "home_today_full_replanning");
 
-        Shots.click(a, "先不算了");
+        Shots.click(a, TodayPage.STOP_LABEL);
         assertEquals(1, api.fullReplanCancels);
     }
 
     @Test
-    public void eachResultIsShownOnceInTheMessageBarAndTheStatusLine() {
+    public void theRunningSheetOffersToStopInsteadOfASecondRequest() {
+        HomeActivity a = me();
+        entry(a).performClick();
+        Shots.idle();
+        Shots.clickTarget(Shots.find(a.sheets(), FullReplanSheet.GO)).performClick();
+        Shots.idle();
+        FullReplanSheet.show(a);
+        assertTrue(a.sheets().isShowing());
+        Shots.find(a.sheets(), RUNNING);
+        assertTrue(Shots.findAll(a.sheets(), FullReplanSheet.GO).isEmpty());
+        assertTrue(Shots.findAll(a.sheets(), "先不了").isEmpty());
+        Shots.shot(a, "full_replan_sheet_running");
+        Shots.clickTarget(Shots.find(a.sheets(), TodayPage.STOP_LABEL)).performClick();
+        Shots.idle();
+        assertFalse(a.sheets().isShowing());
+        assertEquals(1, api.fullReplanCancels);
+        assertEquals(1, api.deepReplanRequests);
+    }
+
+    @Test
+    public void eachResultIsShownOnceInTheMessageBar() {
         HomeActivity a = home();
         Object[][] cases = {
-            {FullReplanResult.CHANGED, "从头重新安排好了：这一周有 1 处变动"},
-            {FullReplanResult.UNCHANGED, "重新算过了，安排没有变化"},
-            {FullReplanResult.KEPT, "重新算过了，没找到更好的，现在的安排不变"},
-            {FullReplanResult.FAILED, "这次没能从头重新安排，现在的安排不变"},
-            {FullReplanResult.CANCELLED, "已停下，现在的安排不变"},
+            {FullReplanResult.CHANGED, CHANGED},
+            {FullReplanResult.UNCHANGED, "重新安排好了，和现在的一样"},
+            {FullReplanResult.KEPT, "重新安排好了，和现在的一样"},
+            {FullReplanResult.FAILED, "这次没排好，安排先不变"},
+            {FullReplanResult.CANCELLED, "已停下，安排没变"},
         };
         for (Object[] c : cases) {
             FullReplanResult result = (FullReplanResult) c[0];
             String text = (String) c[1];
-            a.requestFullReplan();
+            a.requestDeepReplan();
             Shots.idle();
             assertTrue(result + ": running at once", Shots.has(a, RUNNING));
             if (result == FullReplanResult.CHANGED) {
@@ -170,19 +190,19 @@ public class FullReplanUiTest extends UiTestBase {
             a.reload();
             Shots.idle();
             assertFalse(result + ": shown once", a.undoBar().isShowing());
-            assertTrue(result + ": still the status line", Shots.has(a, text));
+            assertFalse(result + ": not repeated on the page", Shots.has(a, text));
         }
-        assertEquals(cases.length, api.fullReplanRequests);
+        assertEquals(cases.length, api.deepReplanRequests);
     }
 
     /**
      * A record made during the run (今天 invites it) shows 「已记录：… 撤销」 for 8 s; a result that ends
-     * the run meanwhile does not take the bar and its 撤销 away. The status line still says it.
+     * the run meanwhile does not take the bar and its 撤销 away.
      */
     @Test
     public void aResultDoesNotTakeTheUndoOfARecordMadeDuringTheRun() {
         HomeActivity a = home();
-        a.requestFullReplan();
+        a.requestDeepReplan();
         Shots.idle();
         a.showUndo(7, "皇帝 RANK 7");
         assertEquals("已记录：皇帝 RANK 7", a.undoBar().messageText().toString());
@@ -192,7 +212,7 @@ public class FullReplanUiTest extends UiTestBase {
         Shots.idle();
         assertEquals("the record's bar stays", "已记录：皇帝 RANK 7", a.undoBar().messageText().toString());
         assertTrue("with its 撤销", a.undoBar().hasAction());
-        assertTrue("the result is in the status line", Shots.has(a, PlanDiff.FULL_KEPT));
+        assertEquals("the result is still known", PlanDiff.FULL_KEPT, a.data().changeSummary);
     }
 
     /**
@@ -212,7 +232,7 @@ public class FullReplanUiTest extends UiTestBase {
         Shots.idle();
         assertEquals(ticket, api.snap.fullReplanDoneTicket);
         assertTrue(a.undoBar().isShowing());
-        assertEquals("从头重新安排好了：这一周有 1 处变动", a.undoBar().messageText().toString());
+        assertEquals(CHANGED, a.undoBar().messageText().toString());
         a.undoBar().hide();
         api.fireChanged();
         Shots.idle();
@@ -231,9 +251,9 @@ public class FullReplanUiTest extends UiTestBase {
         api.snap.profile.tier[1] = Profile.Tier.NONE;
         assertEquals("optimistic", Profile.Tier.WANT, a.data().profile().tier[1]);
 
-        a.requestFullReplan();
+        a.requestDeepReplan();
         Shots.idle();
-        assertEquals(1, api.fullReplanRequests);
+        assertEquals(1, api.deepReplanRequests);
         assertEquals("what the service has", Profile.Tier.NONE, a.data().profile().tier[1]);
     }
 
@@ -242,13 +262,12 @@ public class FullReplanUiTest extends UiTestBase {
         HomeActivity a = home();
         a.pushPage("规划设置", SettingsPage.build(a));
         Shots.idle();
-        assertTrue(Shots.has(a, "按当前进度普通重排或深度计算："));
         Shots.click(a, ENTRY);
         assertTrue(a.sheets().isShowing());
         Shots.find(a.sheets(), "从头重新安排？");
-        Shots.clickTarget(Shots.find(a.sheets(), ENTRY)).performClick();
+        Shots.clickTarget(Shots.find(a.sheets(), FullReplanSheet.GO)).performClick();
         Shots.idle();
-        assertEquals(1, api.fullReplanRequests);
+        assertEquals(1, api.deepReplanRequests);
 
         // While it runs the sheet says so instead of offering a second request.
         a.dismissSheet();
@@ -258,40 +277,18 @@ public class FullReplanUiTest extends UiTestBase {
         Shots.click(a, ENTRY);
         assertTrue(a.sheets().isShowing());
         Shots.find(a.sheets(), RUNNING);
-        assertTrue(Shots.findAll(a.sheets(), ENTRY).isEmpty());
+        assertTrue(Shots.findAll(a.sheets(), FullReplanSheet.GO).isEmpty());
         assertTrue(Shots.findAll(a.sheets(), "先不了").isEmpty());
     }
 
     @Test
-    public void deepChoiceRequestsOnlyOneDeepRunAndShowsItsRunningState() {
-        HomeActivity a = me();
-        entry(a).performClick();
-        Shots.idle();
-        View deep = Shots.clickTarget(Shots.find(a.sheets(), "深度计算"));
-        View ordinary = Shots.clickTarget(Shots.find(a.sheets(), ENTRY));
-        deep.performClick();
-        deep.performClick();
-        ordinary.performClick();
-        Shots.idle();
-        assertEquals(1, api.deepReplanRequests);
-        assertEquals(0, api.fullReplanRequests);
-        assertTrue("deep mode survives the API snapshot used by the screen", api.snapshot().fullReplanDeep);
-        assertTrue(Shots.has(a, "正在深度计算…"));
-        assertFalse(entry(a).isEnabled());
-        assertFalse(a.sheets().isShowing());
-        a.requestDeepReplan();
-        Shots.idle();
-        assertEquals(1, api.deepReplanRequests);
-    }
-
-    @Test
-    public void aDeepRunFoundByANewScreenCanBeStoppedAndReportsItsOwnResult() {
+    public void aLongSearchFoundByANewScreenCanBeStoppedAndReportsItsOwnResult() {
         long ticket = api.requestDeepReplan();
         assertTrue("a recreated screen receives the deep mode", api.snapshot().fullReplanDeep);
         HomeActivity a = home();
-        assertTrue(Shots.has(a, "正在深度计算…"));
+        assertTrue("the long search is called like any other", Shots.has(a, RUNNING));
         assertTrue("recording remains available", Shots.has(a, "完成 ✓"));
-        Shots.click(a, "先不算了");
+        Shots.click(a, TodayPage.STOP_LABEL);
         assertEquals(1, api.fullReplanCancels);
 
         api.snap.plan = Fixtures.planMid(api.rules, api.snap.observed, api.snap.observed.slot, "plan-deep");
@@ -300,8 +297,8 @@ public class FullReplanUiTest extends UiTestBase {
         api.fireChanged();
         Shots.idle();
         assertEquals(ticket, api.snap.fullReplanDoneTicket);
-        assertEquals("深度计算好了：这一周有 1 处变动", a.undoBar().messageText().toString());
-        assertFalse(Shots.has(a, "正在深度计算…"));
+        assertEquals(CHANGED, a.undoBar().messageText().toString());
+        assertFalse(Shots.has(a, RUNNING));
         a.undoBar().hide();
         api.fireChanged();
         Shots.idle();

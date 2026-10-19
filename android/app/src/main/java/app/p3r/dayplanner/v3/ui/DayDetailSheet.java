@@ -1,26 +1,33 @@
 package app.p3r.dayplanner.v3.ui;
 
 import android.content.Context;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-
-import java.util.List;
 
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.Intents;
 import app.p3r.dayplanner.v3.engine.Plan;
+import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.StoryDisplay;
 
 /**
- * Detail sheet for one slot: the day's note, the day's 当日提醒 (「当天提醒」), what to do, where, the
- * 人格面具 reminder, dialogue hint, the "顺便" side steps, the numbered how-to, why it was chosen,
- * which estimates it relies on, and the actions that make sense for its position (record now,
- * change this slot, or "已经玩到这里" for a future item).
+ * Sheet for one slot: the date plate, the day's note in one line, then the step as on the 今天 hero
+ * (kind tag, title, the rank line with one 「预计」 tag, 人格面具, place, the real answers, 顺便, an
+ * urgent reason), its numbered 「怎么做」, the day's 「当天提醒」, and the hero's own actions: [做不了…]
+ * [完成] for the next slot, 「已经玩到这里」 for a later one, 「剧情已过，继续」 for a story day to pass.
+ * A past slot shows that day's records instead.
  */
 final class DayDetailSheet {
     private DayDetailSheet() {}
+
+    /** A slot the plan has nothing for. */
+    static final String NO_STEP = "这个时段还没有安排";
+    /** Catch up to a later slot (the result sheet then asks about the ones before it). */
+    static final String REACHED = "已经玩到这里";
 
     static View build(HomeHost host, int slot) {
         Context c = host.activity();
@@ -33,132 +40,216 @@ final class DayDetailSheet {
         DatePlate plate = new DatePlate(c, false);
         plate.bind(d.rules, slot);
         column.addView(plate);
+        int day = Rules.dayOf(slot);
         if (slot < d.displaySlot() && (d.snap.storyDisplay == null || !d.snap.storyDisplay.contains(slot))) {
-            column.addView(HistoryPage.buildForDay(host, Rules.dayOf(slot)), top(c, 12));
+            column.addView(HistoryPage.buildForDay(host, day, slot), top(c, 14));
             return column;
         }
-        Rules.Day day = d.rules.day(Rules.dayOf(slot));
-        if (day != null && day.noteZh != null && !day.noteZh.trim().isEmpty()) {
-            LinearLayout note = Ui.row(c);
-            note.setBackground(Ui.card(c).accent(Ui.col(c, R.color.ui_gold), Ui.dp(c, 4)));
-            Ui.pad(note, 14, 8, 12, 8);
-            note.addView(Ui.icon(c, R.drawable.ui_ic_info, Ui.col(c, R.color.ui_gold), 16));
-            TextView text = Ui.mixed(c, "这天：" + day.noteZh.trim(), 13, Ui.col(c, R.color.p3r_ice_100), false);
-            LinearLayout.LayoutParams tp = Ui.weight(1);
-            tp.leftMargin = Ui.dp(c, 8);
-            note.addView(text, tp);
-            column.addView(note, top(c, 10));
-        }
-        View reminders = ReminderViews.daySection(c, plan, Rules.dayOf(slot));
-        if (reminders != null) {
-            column.addView(reminders, top(c, 10));
+        String note = dayNote(d.rules, d.profile(), day, step);
+        if (note != null) {
+            TextView line = Ui.mixed(c, note, 13, Ui.col(c, R.color.p3r_cyan_300), true);
+            column.addView(line, top(c, 6));
         }
         if (step == null) {
-            column.addView(Ui.body(c, "这个时段不在现在的安排里。"), top(c, 12));
+            column.addView(Ui.body(c, NO_STEP), top(c, 16));
+            addReminders(c, column, plan, day);
             return column;
         }
         StepKind kind = StepKind.of(step);
-        TextView tag = Ui.text(c, kind.tagZh, 12, Ui.col(c, R.color.p3r_cyan_300), true);
-        column.addView(tag, top(c, 12));
-        column.addView(Ui.mixed(c, SlotRows.title(d.rules, step), 22, Ui.col(c, R.color.p3r_white), true), top(c, 2));
-        String subtitle = SlotRows.subtitle(step);
-        if (!subtitle.isEmpty()) {
-            column.addView(Ui.mixed(c, subtitle, 17, Ui.col(c, R.color.p3r_cyan_400), true), top(c, 2));
+        column.addView(stepBlock(c, d, step, kind), top(c, 16));
+        if (kind != StepKind.LOCKED && StepViews.hasHowTo(step)) {
+            column.addView(StepViews.howToSection(c, step.detailZh, false, true), top(c, 16));
         }
-        if (StepViews.hasHint(step) && kind != StepKind.LOCKED) {
-            column.addView(StepViews.hintChip(c, step.hintZh), top(c, 10));
+        addReminders(c, column, plan, day);
+        View actions = actions(host, d, step, kind);
+        if (actions != null) {
+            column.addView(actions, top(c, 22));
         }
-        if (step.locationZh != null && !step.locationZh.isEmpty()) {
-            LinearLayout loc = Ui.row(c);
-            loc.addView(Ui.icon(c, R.drawable.ui_ic_pin, Ui.col(c, R.color.p3r_ink_muted), 16));
-            TextView where = Ui.text(c, step.locationZh, 14, Ui.col(c, R.color.p3r_ice_100), false);
-            LinearLayout.LayoutParams wp = Ui.weight(1);
-            wp.leftMargin = Ui.dp(c, 6);
-            loc.addView(where, wp);
-            column.addView(loc, top(c, 10));
-        }
-        String dialogue = Dialogue.besideHowTo(d.rules, d.profile(), step);
-        if (dialogue != null) {
-            column.addView(Ui.body(c, dialogue), top(c, 8));
-        }
-        if (StepViews.hasSide(step)) {
-            column.addView(StepViews.sideBlock(c, step, 14), top(c, 10));
-        }
-        if (StepViews.hasHowTo(step)) {
-            column.addView(StepViews.howToSection(c, step.detailZh, false, true), top(c, 14));
-        }
-        if (step.whyZh != null && !step.whyZh.isEmpty()) {
-            column.addView(Ui.sectionHeader(c, "为什么这样安排", null), top(c, 14));
-            column.addView(Ui.mixed(c, step.whyZh, 14, Ui.col(c, R.color.p3r_ice_100), false));
-        }
-        List<String> notes = Assumptions.describeAll(step.assumptions, step.estimate);
-        if (!notes.isEmpty()) {
-            column.addView(Ui.sectionHeader(c, "安排依据", null), top(c, 14));
-            for (String note : notes) {
-                TextView line = Ui.mixed(c, note, 13, Ui.col(c, R.color.p3r_ink_muted), false);
-                line.setLineSpacing(0f, 1.25f);
-                column.addView(Ui.bullet(c, line), top(c, 4));
-            }
-        }
-        column.addView(actions(host, d, step, kind), top(c, 20));
         return column;
     }
 
+    private static void addReminders(Context c, LinearLayout column, Plan plan, int day) {
+        View reminders = ReminderViews.daySection(c, plan, day);
+        if (reminders != null) {
+            column.addView(reminders, top(c, 16));
+        }
+    }
+
+    /** Kind tag, title, the rank line, 人格面具, place, answers, 顺便 and an urgent reason. */
+    private static View stepBlock(Context c, UiData d, Plan.Step step, StepKind kind) {
+        LinearLayout box = Ui.column(c);
+        box.addView(TodayPage.kindTag(c, kind), Ui.wrap());
+        String title = SlotRows.title(d.rules, step);
+        box.addView(Ui.mixed(c, title, 24, Ui.col(c, R.color.p3r_white), true), top(c, 8));
+        if (kind == StepKind.LOCKED) {
+            String locked = lockedLine(step, title);
+            if (locked != null) {
+                box.addView(Ui.mixed(c, locked, 15, Ui.col(c, R.color.p3r_ink_muted), false), top(c, 4));
+            }
+            return box;
+        }
+        String subtitle = TodayPage.heroSubtitle(step, kind);
+        if (!subtitle.isEmpty()) {
+            LinearLayout subRow = Ui.row(c);
+            subRow.addView(Ui.mixed(c, subtitle, 20, Ui.col(c, R.color.p3r_cyan_400), true),
+                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+            if (step.estimate) {
+                TextView est = Ui.tag(c, "预计", Ui.alpha(Ui.col(c, R.color.p3r_cyan_200), 40),
+                    Ui.col(c, R.color.p3r_cyan_200));
+                LinearLayout.LayoutParams ep = Ui.wrap();
+                ep.leftMargin = Ui.dp(c, 10);
+                subRow.addView(est, ep);
+            }
+            box.addView(subRow, top(c, 2));
+        }
+        if (StepViews.hasHint(step)) {
+            box.addView(StepViews.hintChip(c, step.hintZh), top(c, 12));
+        }
+        if (step.locationZh != null && !step.locationZh.isEmpty()) {
+            LinearLayout loc = Ui.row(c);
+            loc.addView(Ui.icon(c, R.drawable.ui_ic_pin, Ui.col(c, R.color.p3r_cyan_300), 16));
+            TextView where = Ui.text(c, step.locationZh, 15, Ui.col(c, R.color.p3r_ice_100), false);
+            LinearLayout.LayoutParams wp = Ui.weight(1);
+            wp.leftMargin = Ui.dp(c, 6);
+            loc.addView(where, wp);
+            box.addView(loc, top(c, 12));
+        }
+        String dialogue = Dialogue.shown(Dialogue.besideHowTo(d.rules, d.profile(), step));
+        if (dialogue != null) {
+            box.addView(answer(c, dialogue), top(c, 10));
+        }
+        if (StepViews.hasSide(step)) {
+            box.addView(StepViews.sideBlock(c, step, 14), top(c, 10));
+        }
+        String reason = TodayPage.urgentReason(step.whyZh);
+        if (reason != null) {
+            LinearLayout urgent = Ui.row(c);
+            urgent.setGravity(Gravity.TOP);
+            urgent.addView(Ui.numeral(c, "!", 16, Ui.col(c, R.color.ui_gold)), Ui.wrap());
+            TextView why = Ui.mixed(c, reason, 14, Ui.col(c, R.color.ui_gold), false);
+            LinearLayout.LayoutParams rp = Ui.weight(1);
+            rp.leftMargin = Ui.dp(c, 8);
+            urgent.addView(why, rp);
+            box.addView(urgent, top(c, 10));
+        }
+        return box;
+    }
+
+    /** The guide's answers beside a thin cyan bar; 「要是升级了，答：…」 muted. */
+    private static View answer(Context c, String line) {
+        LinearLayout row = Ui.row(c);
+        View bar = new View(c);
+        bar.setBackgroundColor(Ui.col(c, R.color.p3r_cyan_300));
+        row.addView(bar, new LinearLayout.LayoutParams(Ui.dp(c, 3), ViewGroup.LayoutParams.MATCH_PARENT));
+        int ink = Dialogue.conditional(line) ? R.color.p3r_ink_muted : R.color.p3r_ice_100;
+        TextView text = Ui.mixed(c, line, 15, Ui.col(c, ink), false);
+        text.setLineSpacing(0f, 1.2f);
+        LinearLayout.LayoutParams tp = Ui.weight(1);
+        tp.leftMargin = Ui.dp(c, 10);
+        row.addView(text, tp);
+        return row;
+    }
+
+    /**
+     * The day's note as one line (「昭和之日」「期中考试放榜」), or null when there is none or the step
+     * says it already (a story day's 「暑期补习：学力 +3」). 12/24 says what the player chose.
+     */
+    static String dayNote(Rules rules, Profile profile, int day, Plan.Step step) {
+        Rules.Day info = rules == null ? null : rules.day(day);
+        String note = info == null || info.noteZh == null ? "" : info.noteZh.trim();
+        if (note.isEmpty()) {
+            return null;
+        }
+        if (note.startsWith("平安夜：")) {
+            // The pack explains how the plan treats the evening; the player only needs their choice.
+            String link = profile == null ? null : profile.christmasLink;
+            return "平安夜 · " + (link == null ? "邀约都婉拒了" : ChristmasChoice.answerText(rules, link));
+        }
+        if (step != null) {
+            for (String said : new String[]{step.subtitleZh, step.detailZh, step.titleZh}) {
+                if (said != null && Zh.clause(said).contains(Zh.clause(note))) {
+                    return null;
+                }
+            }
+        }
+        return Zh.clause(note);
+    }
+
+    /**
+     * The line under a story slot's title: its own note (a reserved slot says why it is kept), never
+     * 「这段时间不能自由行动」 or the title again; null when there is nothing more to say.
+     */
+    static String lockedLine(Plan.Step step, String title) {
+        String note = Zh.clause(step.subtitleZh);
+        note = note.replace("这段时间不能自由行动", "");
+        if (note.endsWith("，不能自由行动")) {
+            note = note.substring(0, note.length() - "，不能自由行动".length());
+        }
+        note = note.trim();
+        return note.isEmpty() || note.equals(title) ? null : note;
+    }
+
+    /** The actions of the 今天 hero for this slot, or null when there is nothing to do here. */
     private static View actions(HomeHost host, UiData d, Plan.Step step, StepKind kind) {
         Context c = host.activity();
         int current = d.currentSlot();
-        LinearLayout box = Ui.column(c);
         if (d.snap.storyDisplay != null && d.snap.storyDisplay.cursorSlot == step.slot) {
             TextView go = Ui.primary(c, StoryDisplay.CONTINUE_LABEL);
+            go.setContentDescription("剧情结束，继续到下一个时段");
             go.setOnClickListener(v -> {
                 host.dismissSheet();
                 host.commitDirect(step);
             });
-            box.addView(go);
-            return box;
+            return go;
         }
         if (d.snap.storyDisplay != null && d.snap.storyDisplay.contains(step.slot)) {
-            box.addView(Ui.muted(c, "这天被剧情占用，不能自由行动。游戏里过完后，在「今天」点继续。"));
-            return box;
+            return null;
         }
-        if (kind == StepKind.LOCKED && step.slot >= current) {
-            box.addView(Ui.muted(c, "这天被剧情占用，不能自由行动。"));
-            return box;
+        if (kind == StepKind.LOCKED && step.slot != current) {
+            return null;
         }
         if (step.slot < current) {
-            box.addView(Ui.muted(c, "这个时段已经记录过了。要更正可以去「我的 → 记录历史」。"));
-            return box;
+            // Recorded already (a slot shown before the story's cursor): its record can be changed.
+            TextView fix = Ui.secondary(c, "修改记录");
+            fix.setOnClickListener(v -> {
+                host.dismissSheet();
+                host.pushPage(SchedulePage.HISTORY, HistoryPage.build(host));
+            });
+            return fix;
         }
         if (step.slot > current) {
-            box.addView(Ui.muted(c, "这是之后的安排。如果游戏里已经玩到这里，点「已经玩到这里」，再确认前面没记录的几项。"));
-            TextView reach = Ui.primary(c, "已经玩到这里");
+            TextView reach = Ui.secondary(c, REACHED);
             reach.setOnClickListener(v -> {
                 host.dismissSheet();
                 host.openResult(step.slot, step.action, Intents.MODE_RESULT);
             });
-            box.addView(reach, top(c, 12));
-            return box;
+            return reach;
         }
         LinearLayout row = Ui.row(c);
+        row.setBaselineAligned(false);
         if (kind == StepKind.LOCKED) {
             TextView go = Ui.primary(c, "继续");
+            go.setContentDescription("剧情结束，继续到下一个时段");
             go.setOnClickListener(v -> {
                 host.dismissSheet();
                 host.commitDirect(step);
             });
             row.addView(go, Ui.weight(1));
-            box.addView(row);
-            return box;
+            return row;
         }
-        TextView change = Ui.secondary(c, "改做别的…");
-        change.setOnClickListener(v -> {
+        // Exactly the hero's pair: the 做不了 sheet offers the reasons and 「改做别的…」.
+        TextView cannot = Ui.secondary(c, TodayPage.CANNOT_LABEL);
+        cannot.setTextSize(15);
+        cannot.setContentDescription("做不了，选原因或改做别的");
+        Ui.pad(cannot, 10, 8, 10, 8);
+        cannot.setOnClickListener(v -> {
             host.dismissSheet();
-            host.openResult(step.slot, step.action, Intents.MODE_OTHER);
+            host.openResult(step.slot, step.action, Intents.MODE_CANNOT);
         });
-        row.addView(change, Ui.weight(1));
-        TextView record = Ui.primary(c, "完成 ✓");
-        record.setContentDescription("完成，记录结果");
-        record.setOnClickListener(v -> {
+        row.addView(cannot, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1));
+        TextView done = Ui.primary(c, TodayPage.DONE_LABEL);
+        done.setContentDescription("完成，记录结果");
+        done.setOnClickListener(v -> {
             host.dismissSheet();
             if (StepKind.oneTap(step)) {
                 host.commitDirect(step);
@@ -166,17 +257,10 @@ final class DayDetailSheet {
                 host.openResult(step.slot, step.action, Intents.MODE_RESULT);
             }
         });
-        LinearLayout.LayoutParams rp = Ui.weight(1);
-        rp.leftMargin = Ui.dp(c, 12);
-        row.addView(record, rp);
-        box.addView(row);
-        TextView cannot = Ui.quiet(c, "做不了");
-        cannot.setOnClickListener(v -> {
-            host.dismissSheet();
-            host.openResult(step.slot, step.action, Intents.MODE_CANNOT);
-        });
-        box.addView(cannot, top(c, 6));
-        return box;
+        LinearLayout.LayoutParams doneParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1.6f);
+        doneParams.leftMargin = Ui.dp(c, 14);
+        row.addView(done, doneParams);
+        return row;
     }
 
     private static LinearLayout.LayoutParams top(Context c, int dp) {

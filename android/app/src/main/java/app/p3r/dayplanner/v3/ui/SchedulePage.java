@@ -1,6 +1,14 @@
 package app.p3r.dayplanner.v3.ui;
 
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.ColorFilter;
+import android.graphics.LinearGradient;
+import android.graphics.Paint;
+import android.graphics.PixelFormat;
+import android.graphics.Rect;
+import android.graphics.Shader;
+import android.graphics.drawable.Drawable;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,7 +21,9 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.engine.Plan;
@@ -21,17 +31,22 @@ import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
 
 /**
- * 日程 tab: the whole remaining calendar as a ListView with month headers and one row per day
- * (白天/放学后 and 晚上 lines, kind icons, grey locks, "≈" for estimated rank-ups, a gold
- * 「提醒：…」 line for the day's 当日提醒). Today is
- * highlighted; tapping a line opens the day detail sheet.
+ * 日程 tab: the rest of the calendar as a borderless timeline. The 「日程 / CALENDAR」 header (with
+ * 记录历史 at its right), a big month numeral before each month, then one strip per day: the day
+ * numeral and its weekday plate (red on rest days, a moon on full moons), the two slots as slanted
+ * period tags and lines (one 「全天」 line for a day the story takes whole), and the day's 当日提醒 as
+ * gold chips. Today is the hero slab; yesterday is dimmed and shows what was recorded. The list ends
+ * with 「1月31日 · 日程结束」. The 「回到今天」 plate appears only while today is off-screen.
  */
 final class SchedulePage {
     private static final int TYPE_SUMMARY = 0;
     private static final int TYPE_MONTH = 1;
     private static final int TYPE_DAY = 2;
-    /** Under the summary: how to read the rows. */
-    static final String LEGEND = "带「≈」的升级是估计，灰色时段被剧情占用，金色的是顺便要做的事和当天提醒。";
+    private static final int TYPE_END = 3;
+    /** The header's icon button and the sub-page it opens. */
+    static final String HISTORY = "记录历史";
+    /** A past slot nothing was recorded for. */
+    static final String NO_RECORD = "—";
 
     /** One adapter entry. */
     static final class Item {
@@ -51,7 +66,7 @@ final class SchedulePage {
     private final FrameLayout root;
     private final ListView list;
     private final ImageView jumpToday;
-    private final TextView empty;
+    private final LinearLayout empty;
     private final Adapter adapter = new Adapter();
     private UiData data;
     private String scrolledForPlan;
@@ -59,11 +74,29 @@ final class SchedulePage {
     private int historyCursorDay = -1;
     private boolean historyLoading;
     private List<PlannerApi.HistoryItem> history = new ArrayList<>();
+    /** -1 hidden, 0 today above (arrow up), 1 today below (arrow down). */
+    private int jumpState = -1;
+    private boolean cascaded;
 
     SchedulePage(HomeHost host) {
         this.host = host;
         this.c = host.activity();
-        root = new FrameLayout(c);
+        root = new FrameLayout(c) {
+            @Override
+            protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+                super.onLayout(changed, left, top, right, bottom);
+                // A jump or a new calendar moves the list without a scroll callback.
+                updateJump(list.getFirstVisiblePosition(), list.getChildCount());
+            }
+
+            @Override
+            public void onVisibilityAggregated(boolean isVisible) {
+                super.onVisibilityAggregated(isVisible);
+                if (isVisible) {
+                    cascadeOnce();
+                }
+            }
+        };
         list = new ListView(c);
         list.setDivider(new android.graphics.drawable.ColorDrawable(0));
         list.setDividerHeight(Ui.dp(c, 8));
@@ -72,22 +105,31 @@ final class SchedulePage {
         list.setVerticalScrollBarEnabled(false);
         list.setPadding(Ui.dp(c, Ui.GUTTER), Ui.dp(c, 8), Ui.dp(c, Ui.GUTTER), Ui.dp(c, 88));
         list.setAdapter(adapter);
+        list.setOnScrollListener(new AbsListView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int first, int visible, int total) {
+                updateJump(first, visible);
+            }
+        });
         root.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
-        empty = Ui.body(c, "");
-        empty.setGravity(Gravity.CENTER);
-        Ui.pad(empty, 32, 0, 32, 0);
+        empty = Ui.column(c);
+        Ui.pad(empty, Ui.GUTTER, 8, Ui.GUTTER, 0);
+        empty.setVisibility(View.GONE);
         root.addView(empty, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
         jumpToday = new ImageView(c);
         jumpToday.setImageDrawable(Ui.tinted(c, R.drawable.ui_ic_up, Ui.col(c, R.color.p3r_navy_950)));
         jumpToday.setScaleType(ImageView.ScaleType.CENTER);
         jumpToday.setBackground(new SlantedPanelDrawable()
-            .fill(Ui.col(c, R.color.p3r_cyan_400))
+            .fill(Ui.col(c, R.color.p3r_white))
             .pressedFill(Ui.col(c, R.color.p3r_cyan_200))
-            .stroke(Ui.col(c, R.color.p3r_cyan_200), Ui.dp(c, 1))
+            .slab(Ui.col(c, R.color.p3r_cyan_400), Ui.dp(c, 3), Ui.dp(c, 3))
             .skew(Ui.dp(c, 8)));
-        jumpToday.setElevation(Ui.dp(c, 6));
         jumpToday.setContentDescription("回到今天");
         jumpToday.setTooltipText("回到今天");
         jumpToday.setClickable(true);
@@ -100,7 +142,9 @@ final class SchedulePage {
             }
         });
         jumpToday.setOnClickListener(v -> jumpToToday(true));
-        FrameLayout.LayoutParams jumpParams = new FrameLayout.LayoutParams(Ui.dp(c, 56), Ui.dp(c, 48),
+        // Kept in the layout while hidden (INVISIBLE), so it shows at its place at once.
+        jumpToday.setVisibility(View.INVISIBLE);
+        FrameLayout.LayoutParams jumpParams = new FrameLayout.LayoutParams(Ui.dp(c, 60), Ui.dp(c, 48),
             Gravity.BOTTOM | Gravity.END);
         jumpParams.rightMargin = Ui.dp(c, Ui.GUTTER);
         jumpParams.bottomMargin = Ui.dp(c, 16);
@@ -122,24 +166,12 @@ final class SchedulePage {
         data = d;
         Plan plan = d.displayPlan();
         if (!d.hasState() || plan == null) {
-            String text;
-            if (!d.hasState()) {
-                text = "先在「今天」里完成设置，这里会显示到1月31日的完整日程。";
-            } else if (plan == null) {
-                text = "正在排到1月31日的安排…";
-            } else {
-                text = "日程已经全部结束。";
-            }
-            empty.setText(text);
-            empty.setVisibility(View.VISIBLE);
-            list.setVisibility(View.GONE);
-            jumpToday.setVisibility(View.GONE);
-            adapter.setItems(new ArrayList<>());
+            showEmpty(d);
             return;
         }
         empty.setVisibility(View.GONE);
+        empty.removeAllViews();
         list.setVisibility(View.VISIBLE);
-        jumpToday.setVisibility(View.VISIBLE);
         List<Item> items = buildItems(plan, d.displaySlot(), d.rules.firstDay);
         adapter.setItems(items);
         loadHistory(d);
@@ -147,7 +179,41 @@ final class SchedulePage {
             scrolledForPlan = plan.planId;
             jumpToToday(false);
         }
+        cascadeOnce();
     }
+
+    /** No progress yet: 「还没设置进度」 + 开始设置; planning: 「正在安排…」; a failed plan: 重试. */
+    private void showEmpty(UiData d) {
+        list.setVisibility(View.GONE);
+        setJump(-1);
+        adapter.setItems(new ArrayList<>());
+        empty.removeAllViews();
+        empty.setVisibility(View.VISIBLE);
+        // Before the first setup there is no history to open.
+        empty.addView(headerView(d.hasState()), Ui.matchWrap());
+        LinearLayout box = Ui.column(c);
+        Ui.pad(box, 4, 0, 4, 0);
+        if (!d.hasState()) {
+            box.addView(Ui.text(c, NO_PROGRESS, 22, Ui.col(c, R.color.p3r_white), true));
+            TextView start = Ui.primary(c, "开始设置");
+            start.setOnClickListener(v -> host.openState("onboarding"));
+            box.addView(start, top(18));
+        } else if (d.snap.planErrorZh != null && !d.snap.planning && !d.snap.fullReplanning) {
+            box.addView(Ui.text(c, "安排没排出来", 22, Ui.col(c, R.color.p3r_white), true));
+            TextView retry = Ui.primary(c, "重试");
+            retry.setOnClickListener(v -> host.requestReplan());
+            box.addView(retry, top(18));
+        } else {
+            box.addView(Ui.text(c, PLANNING, 22, Ui.col(c, R.color.p3r_white), true));
+            box.addView(new BusyStripe(c), top(14));
+        }
+        empty.addView(box, top(96));
+    }
+
+    /** The 日程 tab before the first 同步现状 / 设置. */
+    static final String NO_PROGRESS = "还没设置进度";
+    /** The 日程 tab while the first plan is being made. */
+    static final String PLANNING = "正在安排…";
 
     private void jumpToToday(boolean smooth) {
         if (data == null || !data.hasState()) return;
@@ -157,6 +223,69 @@ final class SchedulePage {
             list.smoothScrollToPositionFromTop(position, Ui.dp(c, 8), 260);
         } else {
             list.setSelectionFromTop(position, Ui.dp(c, 8));
+        }
+    }
+
+    /** Rows cascade in the first time the tab is seen with its calendar. */
+    private void cascadeOnce() {
+        if (cascaded || !Ui.animationsEnabled() || adapter.items.isEmpty() || !root.isShown()) {
+            return;
+        }
+        cascaded = true;
+        list.post(() -> Motion.cascade(list));
+    }
+
+    /** Position of today's own row (not the scroll target), or -1. */
+    private int todayRow() {
+        if (data == null) return -1;
+        int today = Rules.dayOf(data.displaySlot());
+        int last = -1;
+        for (int i = 0; i < adapter.items.size(); i++) {
+            Item item = adapter.items.get(i);
+            if (item.type != TYPE_DAY) continue;
+            last = i;
+            if (item.day >= today) return i;
+        }
+        return last;
+    }
+
+    /** 「回到今天」 shows only while today's row is scrolled out, its arrow pointing to it. */
+    private void updateJump(int first, int visible) {
+        int today = todayRow();
+        if (today < 0 || list.getVisibility() != View.VISIBLE || visible == 0) {
+            setJump(-1);
+            return;
+        }
+        if (today < first) {
+            setJump(0);
+        } else if (today >= first + visible) {
+            setJump(1);
+        } else {
+            // Partly visible at an edge still counts as on screen only when most of it shows.
+            View row = list.getChildAt(today - first);
+            boolean clipped = row != null && (row.getBottom() < row.getHeight() / 2
+                || row.getTop() > list.getHeight() - list.getPaddingBottom() - row.getHeight() / 2);
+            setJump(clipped ? (row.getTop() < 0 ? 0 : 1) : -1);
+        }
+    }
+
+    private void setJump(int state) {
+        if (state == jumpState) return;
+        boolean wasShown = jumpState >= 0;
+        jumpState = state;
+        if (state >= 0) {
+            jumpToday.setImageDrawable(Ui.tinted(c, state == 1 ? R.drawable.ui_ic_down : R.drawable.ui_ic_up,
+                Ui.col(c, R.color.p3r_navy_950)));
+            jumpToday.setVisibility(View.VISIBLE);
+            if (!wasShown && Ui.animationsEnabled()) {
+                jumpToday.setAlpha(0f);
+                jumpToday.animate().alpha(1f).setDuration(150).start();
+            } else {
+                jumpToday.setAlpha(1f);
+            }
+        } else {
+            jumpToday.animate().cancel();
+            jumpToday.setVisibility(View.INVISIBLE);
         }
     }
 
@@ -181,6 +310,10 @@ final class SchedulePage {
         return buildItems(plan, currentSlot, 0);
     }
 
+    /**
+     * Header, then from the day before today (never before {@code firstGameDay}) to the plan's last
+     * day a month item before each month's first day and one item per day, then the closing plate.
+     */
     static List<Item> buildItems(Plan plan, int currentSlot, int firstGameDay) {
         List<Item> items = new ArrayList<>();
         items.add(new Item(TYPE_SUMMARY, -1, -1));
@@ -195,6 +328,7 @@ final class SchedulePage {
             }
             items.add(new Item(TYPE_DAY, day, m));
         }
+        items.add(new Item(TYPE_END, lastDay, month));
         return items;
     }
 
@@ -218,7 +352,7 @@ final class SchedulePage {
         });
     }
 
-    /** List adapter with three row types; day rows are recycled. */
+    /** List adapter with four row types; day rows are recycled. */
     private final class Adapter extends BaseAdapter {
         private List<Item> items = new ArrayList<>();
 
@@ -250,7 +384,7 @@ final class SchedulePage {
 
         @Override
         public int getViewTypeCount() {
-            return 3;
+            return 4;
         }
 
         @Override
@@ -268,9 +402,12 @@ final class SchedulePage {
             Item item = items.get(position);
             switch (item.type) {
                 case TYPE_SUMMARY:
-                    return summary();
+                    return convertView != null ? convertView : listHeader();
                 case TYPE_MONTH:
-                    return month(item.month);
+                    // The header's watermark already leaves room above the first month.
+                    return month(item.month, position == 1);
+                case TYPE_END:
+                    return end(item.day);
                 default:
                     DayRow row = convertView instanceof DayRow ? (DayRow) convertView : new DayRow(c);
                     row.bind(data, item.day);
@@ -279,44 +416,59 @@ final class SchedulePage {
         }
     }
 
-    private View summary() {
-        Plan plan = data.displayPlan();
-        LinearLayout box = Ui.column(c);
-        Ui.pad(box, 0, 8, 0, 4);
-        TextView title = Ui.text(c, "日程", 28, Ui.col(c, R.color.p3r_white), true);
-        box.addView(title);
-        // Spaced like every token of the line ("共 179 件事", "1 个时段"): "排到 1月31日".
-        String text = "排到 " + Zh.date(Rules.dayOf(plan.toSlot)) + " · 共 " + plan.summary.usefulActions + " 件事";
-        if (plan.summary.freeSlots > 0) {
-            text += " · " + plan.summary.freeSlots + " 个时段自由活动";
-        }
-        TextView sub = Ui.mixed(c, text, 13, Ui.col(c, R.color.p3r_ink_muted), false);
-        box.addView(sub);
-        TextView legend = Ui.mixed(c, LEGEND, 12, Ui.col(c, R.color.p3r_ink_faint), false);
-        LinearLayout.LayoutParams lp = Ui.matchWrap();
-        lp.topMargin = Ui.dp(c, 4);
-        box.addView(legend, lp);
-        box.setLayoutParams(new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+    // ------------------------------------------------------------------ header, months, end
+
+    /** The page header as the list's first row. */
+    private View listHeader() {
+        View header = headerView(true);
+        header.setLayoutParams(new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT));
-        return box;
+        return header;
     }
 
-    private View month(int month) {
+    private View headerView(boolean withHistory) {
+        if (!withHistory) {
+            View head = Ui.pageHeader(c, "日程", "CALENDAR", null);
+            Ui.pad(head, 0, 8, 0, 0);
+            return head;
+        }
+        ImageView history = new ImageView(c);
+        history.setImageDrawable(Ui.tinted(c, R.drawable.ui_ic_history, Ui.col(c, R.color.p3r_cyan_200)));
+        history.setScaleType(ImageView.ScaleType.CENTER);
+        history.setBackground(new SlantedPanelDrawable()
+            .fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 90))
+            .pressedFill(Ui.col(c, R.color.ui_cyan_soft))
+            .stroke(Ui.alpha(Ui.col(c, R.color.p3r_cyan_300), 160), Ui.dp(c, 1.2f))
+            .skew(Ui.dp(c, 6)));
+        history.setContentDescription(HISTORY);
+        history.setTooltipText(HISTORY);
+        history.setClickable(true);
+        history.setFocusable(true);
+        history.setOnClickListener(v -> host.pushPage(HISTORY, HistoryPage.build(host)));
+        history.setLayoutParams(new LinearLayout.LayoutParams(Ui.dp(c, 52), Ui.dp(c, Ui.TOUCH)));
+        View head = Ui.pageHeader(c, "日程", "CALENDAR", history);
+        Ui.pad(head, 0, 8, 0, 0);
+        return head;
+    }
+
+    private View month(int month, boolean first) {
         LinearLayout row = Ui.row(c);
         row.setGravity(Gravity.BOTTOM);
-        Ui.pad(row, 2, 20, 0, 6);
-        TextView number = Ui.numeral(c, String.valueOf(month), 36, Ui.col(c, R.color.p3r_cyan_400));
+        Ui.pad(row, 2, first ? 0 : 26, 0, 8);
+        TextView number = Ui.numeral(c, String.valueOf(month), 12, Ui.col(c, R.color.p3r_cyan_400));
+        number.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 48);
+        number.setShadowLayer(0.01f, Ui.dp(c, 2), Ui.dp(c, 2), Ui.alpha(Ui.col(c, R.color.p3r_royal_500), 230));
+        number.setPadding(0, 0, Ui.dp(c, 4), Ui.dp(c, 2));
         row.addView(number, Ui.wrap());
-        TextView unit = Ui.text(c, "月", 18, Ui.col(c, R.color.p3r_white), true);
+        TextView unit = Ui.text(c, "月", 20, Ui.col(c, R.color.p3r_white), true);
         LinearLayout.LayoutParams up = Ui.wrap();
-        up.leftMargin = Ui.dp(c, 4);
-        up.bottomMargin = Ui.dp(c, 4);
+        up.leftMargin = Ui.dp(c, 2);
+        up.bottomMargin = Ui.dp(c, 6);
         row.addView(unit, up);
-        View rule = new View(c);
-        rule.setBackground(new SlantedPanelDrawable().fill(Ui.col(c, R.color.p3r_line)).skew(Ui.dp(c, 2)));
+        View rule = Ui.fadingRule(c);
         LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, Ui.dp(c, 2), 1);
         rp.leftMargin = Ui.dp(c, 12);
-        rp.bottomMargin = Ui.dp(c, 10);
+        rp.bottomMargin = Ui.dp(c, 12);
         row.addView(rule, rp);
         row.setLayoutParams(new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -324,52 +476,101 @@ final class SchedulePage {
         return row;
     }
 
-    /** One calendar day: date column, the two slot lines and the gold 「提醒：…」 line of its 当日提醒. */
+    /** 「1月31日 · 日程结束」 under the last day. */
+    private View end(int lastDay) {
+        LinearLayout box = Ui.row(c);
+        box.setGravity(Gravity.CENTER_VERTICAL);
+        Ui.pad(box, 0, 24, 0, 8);
+        TextView plate = Ui.tag(c, endText(lastDay), Ui.col(c, R.color.p3r_white), Ui.col(c, R.color.p3r_navy_950));
+        box.addView(plate, Ui.wrap());
+        View rule = Ui.fadingRule(c);
+        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, Math.max(1, Ui.dp(c, 1)), 1);
+        rp.leftMargin = Ui.dp(c, 12);
+        box.addView(rule, rp);
+        box.setLayoutParams(new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT));
+        return box;
+    }
+
+    /** The closing plate's words. */
+    static String endText(int lastDay) {
+        return Zh.date(lastDay) + " · 日程结束";
+    }
+
+    // ------------------------------------------------------------------ day rows
+
+    /** One calendar day: date block, the slot lines and the gold chips of its 当日提醒. */
     private final class DayRow extends LinearLayout {
+        private final LinearLayout dateBlock;
         private final TextView dayNumber;
         private final TextView weekday;
-        private final TextView todayTag;
+        private final SlantedPanelDrawable weekdayPlate;
+        private final View moon;
+        private final MoonDrawable moonGlyph;
+        private final TextView dayTag;
         private final SlotRows.Line[] lines = new SlotRows.Line[2];
-        private final TextView reminders;
+        private final EmptyLine[] blanks = new EmptyLine[2];
+        private final LinearLayout reminders;
+        private final RuleDrawable rule;
 
         DayRow(Context context) {
             super(context);
             setOrientation(HORIZONTAL);
             setLayoutParams(new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
-            Ui.pad(this, 12, 8, 10, 8);
-            LinearLayout dateColumn = Ui.column(context);
-            dateColumn.setGravity(Gravity.CENTER_HORIZONTAL);
-            dayNumber = Ui.numeral(context, "", 28, Ui.col(context, R.color.p3r_white));
-            dateColumn.addView(dayNumber, Ui.wrap());
-            weekday = Ui.text(context, "", 12, Ui.col(context, R.color.p3r_ink_muted), true);
-            dateColumn.addView(weekday, Ui.wrap());
-            todayTag = Ui.text(context, "今天", 11, Ui.col(context, R.color.p3r_navy_950), true);
-            todayTag.setBackground(new SlantedPanelDrawable().fill(Ui.col(context, R.color.p3r_cyan_400))
-                .skew(Ui.dp(context, 4)));
-            Ui.pad(todayTag, 6, 0, 6, 0);
+            rule = new RuleDrawable(Ui.alpha(Ui.col(context, R.color.p3r_cyan_400), 70), Math.max(1, Ui.dp(context, 1)));
+            dateBlock = Ui.column(context);
+            dayNumber = Ui.numeral(context, "", 12, Ui.col(context, R.color.p3r_white));
+            dayNumber.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 32);
+            float shadow = Ui.dp(context, 2);
+            dayNumber.setShadowLayer(0.01f, shadow, shadow, Ui.alpha(Ui.col(context, R.color.p3r_royal_500), 230));
+            dayNumber.setPadding(0, 0, (int) shadow + Ui.dp(context, 2), (int) shadow);
+            dateBlock.addView(dayNumber, Ui.wrap());
+            LinearLayout plateRow = Ui.row(context);
+            weekday = Ui.text(context, "", 12, Ui.col(context, R.color.p3r_navy_950), true);
+            weekday.setGravity(Gravity.CENTER);
+            weekdayPlate = new SlantedPanelDrawable().fill(Ui.col(context, R.color.p3r_white)).skew(Ui.dp(context, 4));
+            weekday.setBackground(weekdayPlate);
+            Ui.pad(weekday, 6, 0, 7, 0);
+            plateRow.addView(weekday, Ui.wrap());
+            moonGlyph = new MoonDrawable(Ui.col(context, R.color.p3r_cyan_200), Ui.col(context, R.color.p3r_cyan_300),
+                Ui.dp(context, 1));
+            moon = new View(context);
+            moon.setBackground(moonGlyph);
+            moon.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+            LayoutParams moonParams = new LayoutParams(Ui.dp(context, 13), Ui.dp(context, 13));
+            moonParams.leftMargin = Ui.dp(context, 5);
+            plateRow.addView(moon, moonParams);
+            LayoutParams plateParams = Ui.wrap();
+            plateParams.topMargin = Ui.dp(context, 2);
+            dateBlock.addView(plateRow, plateParams);
+            dayTag = Ui.text(context, "", 12, Ui.col(context, R.color.p3r_navy_950), true);
+            dayTag.setGravity(Gravity.CENTER);
+            Ui.pad(dayTag, 6, 0, 7, 0);
             LayoutParams tagParams = Ui.wrap();
-            tagParams.topMargin = Ui.dp(context, 4);
-            dateColumn.addView(todayTag, tagParams);
-            addView(dateColumn, new LayoutParams(Ui.dp(context, 52), LayoutParams.WRAP_CONTENT));
+            tagParams.topMargin = Ui.dp(context, 5);
+            dateBlock.addView(dayTag, tagParams);
+            addView(dateBlock, new LayoutParams(Ui.dp(context, 58), LayoutParams.WRAP_CONTENT));
+
             LinearLayout slots = Ui.column(context);
             for (int i = 0; i < 2; i++) {
                 lines[i] = new SlotRows.Line(context);
                 lines[i].setClickable(true);
                 lines[i].setFocusable(true);
                 lines[i].setBackground(new SlantedPanelDrawable().fill(0)
-                    .pressedFill(Ui.col(context, R.color.ui_cyan_faint)));
+                    .pressedFill(Ui.col(context, R.color.ui_cyan_faint)).skew(Ui.dp(context, 6)));
                 slots.addView(lines[i], Ui.matchWrap());
+                blanks[i] = new EmptyLine(context);
+                slots.addView(blanks[i], Ui.matchWrap());
             }
-            reminders = Ui.text(context, "", 12, Ui.col(context, R.color.ui_gold), false);
-            reminders.setMaxLines(2);
-            reminders.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            reminders = Ui.row(context);
             LayoutParams reminderParams = Ui.matchWrap();
-            reminderParams.leftMargin = Ui.dp(context, 4);
-            reminderParams.bottomMargin = Ui.dp(context, 4);
+            reminderParams.leftMargin = Ui.dp(context, 2);
+            reminderParams.topMargin = Ui.dp(context, 2);
+            reminderParams.bottomMargin = Ui.dp(context, 2);
             slots.addView(reminders, reminderParams);
             LayoutParams slotParams = Ui.weight(1);
-            slotParams.leftMargin = Ui.dp(context, 8);
+            slotParams.leftMargin = Ui.dp(context, 4);
             addView(slots, slotParams);
         }
 
@@ -377,58 +578,235 @@ final class SchedulePage {
             Context context = getContext();
             Plan plan = d.displayPlan();
             int current = d.displaySlot();
-            boolean today = Rules.dayOf(current) == day;
+            int todayDay = Rules.dayOf(current);
+            boolean today = todayDay == day;
+            boolean previous = day == todayDay - 1;
             dayNumber.setText(String.valueOf(Zh.dateOf(day).getDayOfMonth()));
             Rules.Day info = d.rules.day(day);
             String wd = info != null ? Zh.weekday(info.wd) : Zh.weekdayOf(day);
             weekday.setText(wd);
-            boolean weekend = info != null ? info.wd >= 6 : Zh.dateOf(day).getDayOfWeek().getValue() >= 6;
-            weekday.setTextColor(weekend ? Ui.col(context, R.color.p3r_cyan_300) : Ui.col(context, R.color.p3r_ink_muted));
-            boolean previous = day == Rules.dayOf(current) - 1;
-            todayTag.setText(previous ? "昨天" : "今天");
-            todayTag.setVisibility(today || previous ? VISIBLE : GONE);
+            boolean rest = info != null && (info.type == Rules.DayType.SUNDAY || info.type == Rules.DayType.HOLIDAY);
+            weekdayPlate.fill(Ui.col(context, rest ? R.color.ui_holiday : R.color.p3r_white));
+            weekday.setTextColor(Ui.col(context, rest ? R.color.p3r_white : R.color.p3r_navy_950));
+            boolean full = info != null && (info.fullMoon || info.moon == 4);
+            moonGlyph.setPhase(4);
+            moon.setVisibility(full ? VISIBLE : GONE);
+            if (today) {
+                dayTag.setText("今天");
+                dayTag.setTextColor(Ui.col(context, R.color.p3r_navy_950));
+                dayTag.setBackground(new SlantedPanelDrawable().fill(Ui.col(context, R.color.p3r_cyan_400))
+                    .skew(Ui.dp(context, 4)));
+                dayTag.setVisibility(VISIBLE);
+            } else if (previous) {
+                dayTag.setText("昨天");
+                dayTag.setTextColor(Ui.col(context, R.color.p3r_ink_faint));
+                dayTag.setBackground(new SlantedPanelDrawable().stroke(Ui.col(context, R.color.p3r_ink_faint),
+                    Ui.dp(context, 1)).skew(Ui.dp(context, 4)));
+                dayTag.setVisibility(VISIBLE);
+            } else {
+                dayTag.setVisibility(GONE);
+            }
+
             boolean allLocked = true;
+            int target = -1;
+            Plan.Step[] steps = new Plan.Step[2];
+            boolean[] recorded = new boolean[2];
             for (int i = 0; i < 2; i++) {
                 int slot = Rules.slot(day, i == 1);
                 Plan.Step step = plan.at(slot);
-                boolean recorded = slot < current && (d.snap.storyDisplay == null || !d.snap.storyDisplay.contains(slot));
-                if (recorded) {
+                recorded[i] = slot < current && (d.snap.storyDisplay == null || !d.snap.storyDisplay.contains(slot));
+                if (recorded[i]) {
                     step = recordedStep(d.rules, history, slot, historyLoading);
                 }
-                if (step == null) {
-                    lines[i].setVisibility(GONE);
+                steps[i] = step;
+            }
+            // A day the story takes whole is one line: 「全天 · 满月作战」.
+            boolean allDay = steps[0] != null && steps[1] != null
+                && StepKind.of(steps[0]) == StepKind.LOCKED && StepKind.of(steps[1]) == StepKind.LOCKED
+                && SlotRows.title(d.rules, steps[0]).equals(SlotRows.title(d.rules, steps[1]));
+            for (int i = 0; i < 2; i++) {
+                int slot = Rules.slot(day, i == 1);
+                Plan.Step step = steps[i];
+                lines[i].setVisibility(GONE);
+                blanks[i].setVisibility(GONE);
+                if (step == null || (allDay && i == 1)) {
+                    continue;
+                }
+                allLocked &= StepKind.of(step) == StepKind.LOCKED;
+                if (recorded[i] && (NO_RECORD.equals(step.titleZh) || step.titleZh.isEmpty())) {
+                    // Nothing recorded there (or not read yet): a faint dash, nothing to open.
+                    blanks[i].bind(Zh.period(d.rules, slot), step.titleZh);
+                    blanks[i].setVisibility(VISIBLE);
                     continue;
                 }
                 lines[i].setVisibility(VISIBLE);
                 SlotRows.State state = slot < current ? SlotRows.State.DONE
                     : slot == current ? SlotRows.State.CURRENT : SlotRows.State.FUTURE;
                 lines[i].bind(d.rules, step, state, true);
-                if (recorded) lines[i].setContentDescription(Zh.period(d.rules, slot) + "，" + step.titleZh + "，查看或修改记录");
-                allLocked &= "locked".equals(step.kind);
-                final int target = slot;
-                lines[i].setOnClickListener(v -> host.openDetail(target));
+                if (allDay) {
+                    lines[i].setPeriod("全天");
+                }
+                boolean inert = recorded[i] && StepKind.of(step) == StepKind.LOCKED;
+                if (recorded[i] && !inert) {
+                    lines[i].setContentDescription(Zh.period(d.rules, slot) + "，" + step.titleZh + "，查看或修改记录");
+                }
+                lines[i].setClickable(!inert);
+                lines[i].setFocusable(!inert);
+                if (inert) {
+                    lines[i].setOnClickListener(null);
+                    lines[i].setClickable(false);
+                } else {
+                    final int open = slot;
+                    lines[i].setOnClickListener(v -> host.openDetail(open));
+                    if (target < 0) {
+                        target = slot;
+                    }
+                }
             }
+            if (today && current >= Rules.slot(day, false) && current <= Rules.slot(day, true)
+                    && (target < 0 || target < current)) {
+                target = current;
+            }
+
             String reminderLine = ReminderViews.scheduleLine(plan, day);
-            reminders.setText(reminderLine == null ? "" : reminderLine);
-            reminders.setVisibility(reminderLine == null ? GONE : VISIBLE);
-            reminders.setTextColor(Rules.slot(day, true) < current ? Ui.col(context, R.color.p3r_ink_faint)
-                : Ui.col(context, R.color.ui_gold));
+            bindReminders(plan, day, reminderLine, Rules.slot(day, true) < current);
+
             dayNumber.setTextColor(allLocked ? Ui.col(context, R.color.ui_locked) : Ui.col(context, R.color.p3r_white));
-            SlantedPanelDrawable bg = Ui.card(context);
+            dateBlock.setAlpha(previous ? 0.6f : 1f);
             if (today) {
-                bg.stroke(Ui.col(context, R.color.p3r_cyan_400), Ui.dp(context, 1.5f))
-                    .fill(Ui.col(context, R.color.ui_card_raised))
-                    .accent(Ui.col(context, R.color.p3r_cyan_400), Ui.dp(context, 4));
-            } else if (allLocked) {
-                bg.fill(Ui.col(context, R.color.ui_card_sunken));
+                setBackground(Ui.heroCard(context));
+                Ui.pad(this, 16, 12, 8, 12);
+            } else {
+                setBackground(rule);
+                Ui.pad(this, 4, 8, 0, 10);
             }
-            setBackground(bg);
+            // The date and the chips open the day too, when there is something to open.
+            for (View part : new View[]{dateBlock, reminders}) {
+                if (target >= 0) {
+                    final int open = target;
+                    part.setOnClickListener(v -> host.openDetail(open));
+                } else {
+                    part.setOnClickListener(null);
+                    part.setClickable(false);
+                }
+            }
             setContentDescription(Zh.date(day) + " " + wd + (today ? "，今天" : "")
                 + (reminderLine == null ? "" : "，" + reminderLine));
         }
+
+        /** The day's reminder labels as gold chips (at most three, then 「等」); read as 「提醒：…」. */
+        private void bindReminders(Plan plan, int day, String line, boolean past) {
+            reminders.removeAllViews();
+            if (line == null) {
+                reminders.setVisibility(GONE);
+                return;
+            }
+            Context context = getContext();
+            List<String> labels = labels(plan, day);
+            int shown = Math.min(ReminderViews.SCHEDULE_LABELS, labels.size());
+            for (int i = 0; i < shown; i++) {
+                TextView chip = ReminderViews.labelChip(context, labels.get(i));
+                LinearLayout.LayoutParams p = Ui.wrap();
+                p.rightMargin = Ui.dp(context, 6);
+                reminders.addView(chip, p);
+            }
+            if (labels.size() > shown) {
+                TextView more = Ui.text(context, "等", 12, Ui.col(context, R.color.ui_gold), true);
+                more.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+                reminders.addView(more, Ui.wrap());
+            }
+            reminders.setAlpha(past ? 0.45f : 1f);
+            reminders.setContentDescription(line);
+            reminders.setVisibility(VISIBLE);
+        }
     }
 
-    /** Past rows describe the ledger, never a discarded prediction for the same slot. */
+    /** The day's reminder labels in plan order, each once. */
+    private static List<String> labels(Plan plan, int day) {
+        Set<String> labels = new LinkedHashSet<>();
+        for (Plan.Reminder r : ReminderViews.ofDay(plan, day)) {
+            if (r.labelZh != null && !r.labelZh.trim().isEmpty()) {
+                labels.add(r.labelZh.trim());
+            }
+        }
+        return new ArrayList<>(labels);
+    }
+
+    /** A past slot without a record: its period tag and a faint dash; nothing to tap. */
+    private static final class EmptyLine extends LinearLayout {
+        private final TextView period;
+        private final TextView dash;
+
+        EmptyLine(Context c) {
+            super(c);
+            setOrientation(HORIZONTAL);
+            setGravity(Gravity.CENTER_VERTICAL);
+            setMinimumHeight(Ui.dp(c, 44));
+            period = Ui.text(c, "", 13, Ui.col(c, R.color.p3r_ink_faint), true);
+            period.setGravity(Gravity.CENTER);
+            period.setMinWidth(Ui.dp(c, 50));
+            Ui.pad(period, 4, 1, 4, 2);
+            period.setBackground(new SlantedPanelDrawable()
+                .stroke(Ui.alpha(Ui.col(c, R.color.p3r_ink_faint), 170), Ui.dp(c, 1)).skew(Ui.dp(c, 4)));
+            LayoutParams pp = Ui.wrap();
+            pp.rightMargin = Ui.dp(c, 38);
+            addView(period, pp);
+            dash = Ui.text(c, "", 16, Ui.col(c, R.color.p3r_ink_faint), false);
+            addView(dash, Ui.weight(1));
+        }
+
+        void bind(String periodZh, String text) {
+            period.setText(periodZh);
+            dash.setText(text);
+            setContentDescription(text.isEmpty() ? periodZh : periodZh + "，没有记录");
+        }
+    }
+
+    /** A hairline under a day strip, cyan at the left and fading out to the right. */
+    private static final class RuleDrawable extends Drawable {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final int color;
+        private final int height;
+        private int shaderWidth = -1;
+
+        RuleDrawable(int color, int height) {
+            this.color = color;
+            this.height = height;
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            Rect b = getBounds();
+            if (b.isEmpty()) return;
+            if (shaderWidth != b.width()) {
+                shaderWidth = b.width();
+                paint.setShader(new LinearGradient(b.left, 0, b.right, 0, color, color & 0x00FFFFFF,
+                    Shader.TileMode.CLAMP));
+            }
+            canvas.drawRect(b.left, b.bottom - height, b.right, b.bottom, paint);
+        }
+
+        @Override
+        public void setAlpha(int alpha) {
+            paint.setAlpha(alpha);
+        }
+
+        @Override
+        public void setColorFilter(ColorFilter colorFilter) {
+            paint.setColorFilter(colorFilter);
+        }
+
+        @Override
+        public int getOpacity() {
+            return PixelFormat.TRANSLUCENT;
+        }
+    }
+
+    /**
+     * Past rows describe the ledger, never a discarded prediction for the same slot: the record's
+     * result (date and correction prefixes dropped), the story lock when the calendar took the slot,
+     * else {@link #NO_RECORD} (blank while the records are still being read).
+     */
     static Plan.Step recordedStep(Rules rules, List<PlannerApi.HistoryItem> items, int slot, boolean loading) {
         PlannerApi.HistoryItem record = HistoryPage.activeAtSlot(items, slot);
         Plan.Step step = new Plan.Step();
@@ -436,23 +814,23 @@ final class SchedulePage {
         step.action = "free";
         step.kind = "free";
         if (record != null) {
-            String summary = record.summaryZh == null ? "已记录" : record.summaryZh;
-            int divider = summary.indexOf(" · ");
-            String body = divider < 0 ? summary : summary.substring(divider + 3);
-            for (String prefix : new String[]{"修改了这次结果 · ", "修改了这次探索 · "}) {
-                if (body.startsWith(prefix)) {
-                    body = body.substring(prefix.length());
-                    break;
-                }
-            }
-            step.titleZh = body;
-            step.subtitleZh = "点按查看或修改";
+            step.titleZh = HistoryPage.body(record.summaryZh);
         } else {
             String lock = rules.lockOf(slot);
-            step.titleZh = loading ? "正在读取记录…" : lock == null ? "暂无记录"
-                    : rules.lockReasonsZh.getOrDefault(lock, "剧情占用");
-            step.subtitleZh = "查看这天的记录";
+            if (lock != null) {
+                step.kind = "locked";
+                step.action = "locked:" + lock;
+                step.titleZh = rules.lockReasonsZh.getOrDefault(lock, "剧情占用");
+            } else {
+                step.titleZh = loading ? "" : NO_RECORD;
+            }
         }
         return step;
+    }
+
+    private LinearLayout.LayoutParams top(int dp) {
+        LinearLayout.LayoutParams p = Ui.matchWrap();
+        p.topMargin = Ui.dp(c, dp);
+        return p;
     }
 }

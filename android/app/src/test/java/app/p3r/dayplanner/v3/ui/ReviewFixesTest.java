@@ -212,8 +212,10 @@ public class ReviewFixesTest extends UiTestBase {
         }
         assertFalse(Shots.has(a, "修改这条记录：10月20日 晚上 · 修改探索记录 · 到达 96F · 余额 19,000 日元"));
         assertTrue(Shots.has(a, "修改这条记录：10月21日 放学后 · 跳过 · 剧情占用了"));
-        // Only the row from before the latest 同步现状 says so.
-        assertEquals(1, Shots.findAll(page, "同步现状之前的记录").size());
+        // The latest 同步现状 is one divider; the rows under it have no buttons and no caption.
+        assertEquals(1, Shots.findAll(page, "10月18日 · 同步现状").size());
+        assertFalse(Shots.has(a, "撤销这条记录：10月18日 放学后 · 女教皇 RANK 5"));
+        assertFalse(Shots.allText(page).contains("同步现状之前的记录"));
         Shots.shot(a, "home_history_undo_all");
         Shots.click(a, "撤销这条记录：10月21日 放学后 · 跳过 · 剧情占用了");
         Shots.clickInDialog("撤销");

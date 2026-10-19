@@ -40,11 +40,31 @@ final class HistoricalOutcome {
                 step.kind = activity.dormActivity() ? "dorm"
                         : activity.kind == Rules.ActivityKind.JOB ? "job" : "stat";
                 break;
-            case EPISODE:
+            case EPISODE: {
                 step.entity = rules.episodes[action.target].id;
-                step.titleZh = "羁绊剧情 · " + rules.episodes[action.target].personZh;
+                // The episode this record was for, as 记录历史 names it: 「羁绊剧情 · 伊织顺平（第 2 话）」.
+                int[] watched = record.beforeState == null ? null : record.beforeState.episodes;
+                int number = watched != null && action.target < watched.length ? watched[action.target] + 1 : -1;
+                step.titleZh = "羁绊剧情 · " + rules.episodes[action.target].personZh
+                        + (number >= 1 ? "（第 " + number + " 话）" : "");
                 step.kind = "episode";
                 break;
+            }
+            case TARTARUS:
+                // A skipped visit (「没去成」) is still the tower's slot, not a free one. The kind stays
+                // "free": the tower form records a new visit, which a correction must never do.
+                step.titleZh = "探索塔尔塔罗斯";
+                if (action.target >= 0 && action.target < rules.blocks.length) {
+                    step.subtitleZh = rules.blocks[action.target].zh;
+                }
+                step.kind = "free";
+                break;
+            case LOCKED: {
+                String reason = rules.lockReasonZh(action.reason);
+                step.titleZh = reason != null ? reason : "剧情";
+                step.kind = "locked";
+                break;
+            }
             default:
                 step.titleZh = "自由活动";
                 step.kind = "free";
