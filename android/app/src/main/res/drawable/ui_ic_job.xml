@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- UI module icon (original geometry). Tinted in code. -->
+<!-- UI module icon (original geometry): a coin with a yen sign cut out for 打工. Solid, angular P3R glyph; tinted in code. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
-    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" android:pathData="M3.5,12 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0" />
-    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.6" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" android:pathData="M8.6,6.8 L12,11.4 L15.4,6.8 M12,11.4 L12,17.6 M8.8,12.4 L15.2,12.4 M8.8,15 L15.2,15" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M15.98,2.39 L21.61,8.02 L21.61,15.98 L15.98,21.61 L8.02,21.61 L2.39,15.98 L2.39,8.02 L8.02,2.39 Z M10.8,11 L10.8,11.6 L7.6,11.6 L7.6,13.4 L10.8,13.4 L10.8,14.6 L7.6,14.6 L7.6,16.4 L10.8,16.4 L10.8,19.6 L13.2,19.6 L13.2,16.4 L16.4,16.4 L16.4,14.6 L13.2,14.6 L13.2,13.4 L16.4,13.4 L16.4,11.6 L13.2,11.6 L13.2,11 L17.1,4.6 L14.6,4.6 L12,8.9 L9.4,4.6 L6.9,4.6 Z" />
 </vector>

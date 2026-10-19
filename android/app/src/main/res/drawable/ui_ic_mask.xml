@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- UI module icon (original geometry): a half mask for 人格面具 reminders. Tinted in code. -->
+<!-- UI module icon (original geometry): the masquerade mask for 全书 and Persona reminders. Solid, angular P3R glyph; tinted in code. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd" android:pathData="M2.5,7.5 C6,5.6 9.3,6.2 12,8.2 C14.7,6.2 18,5.6 21.5,7.5 C21.8,12.4 19.2,16.4 15.6,16.2 C14,16.1 13,14.6 12,14.6 C11,14.6 10,16.1 8.4,16.2 C4.8,16.4 2.2,12.4 2.5,7.5 Z M5.6,10.6 C6.6,9.6 8.6,9.6 9.8,10.9 C8.6,12.2 6.6,12.1 5.6,10.6 Z M18.4,10.6 C17.4,9.6 15.4,9.6 14.2,10.9 C15.4,12.2 17.4,12.1 18.4,10.6 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M15.05,7.8 L18.89,7.6 L22.71,5.2 L20.89,11 L17.84,15.8 L13.62,18.2 L11.2,17.2 L10.42,14.8 L8.8,17.2 L6.02,18.2 L2.64,15.8 L1.29,11 L1.51,5.2 L4.49,7.6 L8.25,7.8 L11.3,9.8 Z M5.79,13.8 L9.21,12.6 L7.69,11 L3.76,10.6 Z M18.56,10.6 L14.49,11 L12.41,12.6 L15.39,13.8 Z" />
 </vector>

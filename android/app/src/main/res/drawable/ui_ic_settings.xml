@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- UI module icon (original geometry). Tinted in code. -->
+<!-- UI module icon (original geometry): three sliders with slanted knobs. Solid, angular P3R glyph; tinted in code. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
-    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" android:pathData="M3.5,6 L20.5,6 M3.5,12 L20.5,12 M3.5,18 L20.5,18" />
-    <path android:fillColor="#FFFFFFFF" android:pathData="M6.6,6 a2.4,2.4 0 1,0 4.8,0 a2.4,2.4 0 1,0 -4.8,0 M12.6,12 a2.4,2.4 0 1,0 4.8,0 a2.4,2.4 0 1,0 -4.8,0 M4.6,18 a2.4,2.4 0 1,0 4.8,0 a2.4,2.4 0 1,0 -4.8,0" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M2.4,4.35 L21.6,4.35 L21.6,6.05 L2.4,6.05 Z M2.4,11.15 L21.6,11.15 L21.6,12.85 L2.4,12.85 Z M2.4,17.95 L21.6,17.95 L21.6,19.65 L2.4,19.65 Z M7.5,2.1 L11.9,2.1 L10.8,8.3 L6.4,8.3 Z M14.3,8.9 L18.7,8.9 L17.6,15.1 L13.2,15.1 Z M6.9,15.7 L11.3,15.7 L10.2,21.9 L5.8,21.9 Z" />
 </vector>
