@@ -19,8 +19,8 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 - The owner released 3.4.2 at `52e9b9d`; 3.5.0 builds on those changes. See
   [release signing](RELEASE_SIGNING.md) for the verified current public APK and CI evidence.
   Retain the 3.3.0 signing certificate for in-place updates.
-- Public `v3.5.0` points to `9848ac51251dbb1dfc51e67ce7e10a664c607091`. Full CI
-  `39247004731` passed (1,280 tests, one skipped); publisher `39248976870` succeeded.
+- Public `v3.5.1` points to `4acf72109d4e8efb4b45910b49c397e8b2ef9b2b`. Full CI
+  `39319649477` passed (1,294 tests, one skipped); publisher `39321609609` succeeded.
   The public APK and checksum were downloaded and compared with the signed local files.
 - Player-facing language is natural Simplified Chinese using Reload terminology. Preserve
   the established navy/cyan P3R presentation, slanted panels, condensed numerals, day/night
