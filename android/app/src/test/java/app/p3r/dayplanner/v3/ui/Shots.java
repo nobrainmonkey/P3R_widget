@@ -120,9 +120,8 @@ final class Shots {
             String latin = text.replaceAll("RANK|MAX|Lv|P3R|ATLUS|SEGA|Reload|Barlow|Condensed|SIL|DVD|DLC|aqiu384|Megaten|Database|Fusion|Tools|Unlicense", "")
                 .replaceAll("[a-z0-9.-]+\\.[a-z]{2,}", "").replaceAll("\\b[IVX]+\\b", "")
                 .replaceAll("「[A-Z][A-Z .'-]*」", "");
-            // Decorative Latin lettering (the tab kickers and watermarks, 「RANK UP」) is hidden from
-            // TalkBack and never the only carrier of meaning; everything a player reads is Chinese.
-            boolean decorative = t.getImportantForAccessibility() == View.IMPORTANT_FOR_ACCESSIBILITY_NO;
+            // Decorative Latin (a page kicker or watermark, design §3) is hidden from TalkBack and never alone.
+            boolean decorative = !cjk && t.getImportantForAccessibility() == View.IMPORTANT_FOR_ACCESSIBILITY_NO;
             assertTrue(where + ": English shown to the player: " + text,
                 bilingual || decorative || !latin.matches("(?s).*[A-Za-z]{2,}.*"));
             checkNumeralWords(t, where);

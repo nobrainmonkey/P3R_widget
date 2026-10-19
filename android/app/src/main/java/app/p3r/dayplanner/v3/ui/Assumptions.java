@@ -46,20 +46,6 @@ public final class Assumptions {
         return id == null ? null : TEXT.get(id);
     }
 
-    /** Explanations for a step's ids; unknown ids have no visible copy. */
-    public static List<String> describeAll(List<String> ids, boolean estimate) {
-        List<String> out = new ArrayList<>();
-        if (ids != null) {
-            for (String id : ids) {
-                String text = describe(id);
-                if (text != null && !out.contains(text)) {
-                    out.add(text);
-                }
-            }
-        }
-        return out;
-    }
-
     /** The global assumptions for the 规划说明 page, reflecting the player's settings. */
     public static List<String> global(Profile profile) {
         return global(profile, null);

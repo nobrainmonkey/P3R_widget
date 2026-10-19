@@ -146,7 +146,7 @@ public class HomeBehaviorTest extends UiTestBase {
         intent.putExtra(Intents.EXTRA_OPEN_SLOT, Fixtures.SLOT_NOW + 1);
         HomeActivity a = home(intent);
         assertTrue(a.sheets().isShowing());
-        assertTrue(Shots.has(a, "这个时段已经记录过了。要更正可以去「我的 → 记录历史」。") || Shots.has(a, "已经玩到这里"));
+        assertTrue(Shots.has(a, DayDetailSheet.REACHED));
     }
 
     @Test
@@ -230,7 +230,12 @@ public class HomeBehaviorTest extends UiTestBase {
         assertTrue(Shots.has(a, "修改这条记录：10月20日 放学后 · 皇帝 RANK 6"));
         assertFalse(Shots.has(a, "撤销这条记录：10月18日 · 同步现状"));
         assertFalse(Shots.has(a, "撤销这条记录：10月18日 放学后 · 女教皇 RANK 5"));
-        assertTrue(Shots.findAll(page, "同步现状之前的记录").size() == 1);
+        assertFalse(Shots.has(a, "修改这条记录：10月18日 放学后 · 女教皇 RANK 5"));
+        // One divider plate says where the latest 同步现状 is; the rows under it need no caption.
+        assertEquals(1, Shots.findAll(page, "10月18日 · 同步现状").size());
+        assertFalse(Shots.allText(page).contains("同步现状之前的记录"));
+        String all = Shots.allText(page);
+        assertTrue(all, all.indexOf("10月18日 · 同步现状") < all.indexOf("女教皇 RANK 5"));
     }
 
     @Test

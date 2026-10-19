@@ -222,9 +222,10 @@ public class RemindersUiTest extends UiTestBase {
     public void theScheduleNamesTheDaysRemindersInGold() {
         remind();
         HomeActivity a = homeOn("schedule");
-        assertTrue(Shots.has(a, SchedulePage.LEGEND));
-        assertEquals("带「≈」的升级是估计，灰色时段被剧情占用，金色的是顺便要做的事和当天提醒。", SchedulePage.LEGEND);
+        // No legend: the gold chips are the day's reminders, read out as 「提醒：…」.
+        assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("灰色时段"));
         assertTrue(Shots.has(a, "提醒：课堂提问 · 电视购物 · 失踪者"));
+        assertTrue("one gold chip per label", Shots.has(a, "课堂提问") && Shots.has(a, "电视购物"));
         assertTrue(Shots.has(a, "提醒：保健室"));
         Shots.shot(a, "home_schedule_reminders");
         // At most three labels, then 「等」; each label once.

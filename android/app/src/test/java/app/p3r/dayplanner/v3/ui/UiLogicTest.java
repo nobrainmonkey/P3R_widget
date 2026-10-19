@@ -157,10 +157,9 @@ public class UiLogicTest {
 
     @Test
     public void assumptionIdsNeverLeak() {
-        List<String> lines = Assumptions.describeAll(java.util.Arrays.asList("ordinary_gain", "some_new_id"), true);
-        assertEquals(1, lines.size());
-        assertTrue(lines.get(0).contains("+10"));
-        assertTrue(Assumptions.describeAll(java.util.List.of("unknown"), true).isEmpty());
+        assertTrue(Assumptions.describe("ordinary_gain").contains("+10"));
+        org.junit.Assert.assertNull("unknown ids have no visible copy", Assumptions.describe("some_new_id"));
+        org.junit.Assert.assertNull(Assumptions.describe(null));
         for (String line : Assumptions.global(new Profile())) {
             assertFalse(line, line.matches(".*[a-z_]{4,}.*"));
         }
@@ -290,15 +289,15 @@ public class UiLogicTest {
         Plan other = Fixtures.planMid(rules, obs, obs.slot, "plan-2");
         other.steps.set(3, Fixtures.social(rules, obs.slot + 3, "moon", 3, 4, true, false));
         assertEquals(1, PlanDiff.changedSlots(plan, other, obs.slot));
-        assertEquals("已重新安排：这一周有 1 处变动", PlanDiff.summary(rules, plan, other, obs.slot));
+        assertEquals("已重新安排：这周 1 处有变", PlanDiff.summary(rules, plan, other, obs.slot));
         Plan far = Fixtures.planMid(rules, obs, obs.slot, "plan-3");
         int farIndex = far.steps.size() - 1;
         Plan.Step last = far.steps.get(farIndex);
         if (last.slot > Rules.slot(Rules.dayOf(obs.slot) + PlanDiff.NEAR_DAYS, true)) {
             far.steps.set(farIndex, Fixtures.social(rules, last.slot, "moon", 3, 4, true, false));
-            assertEquals("已重新安排：这一周不变，之后的安排顺着调整了", PlanDiff.summary(rules, plan, far, obs.slot));
+            org.junit.Assert.assertNull("later days are re-planned quietly", PlanDiff.summary(rules, plan, far, obs.slot));
         }
-        assertEquals("已重新安排：后面的安排没变", PlanDiff.summary(rules, plan, plan, obs.slot));
+        org.junit.Assert.assertNull("nothing changed: nothing said", PlanDiff.summary(rules, plan, plan, obs.slot));
     }
 
     @Test

@@ -63,7 +63,51 @@ public class ScheduleHistoryUiTest extends UiTestBase {
         history.add(0, FakePlannerApi.item(103, slot, "outcome_fix", "10月21日 晚上 · 修改记录", false, true));
         Plan.Step row = SchedulePage.recordedStep(api.rules, history, slot, false);
         assertEquals("在宿舍房间学习 · 学力 +2", row.titleZh);
-        assertEquals("点按查看或修改", row.subtitleZh);
+        assertTrue("no 「点按查看或修改」 under a recorded line", row.subtitleZh == null || row.subtitleZh.isEmpty());
+    }
+
+    /** A past slot nothing was recorded for is a faint dash (blank while reading); a story slot says the story. */
+    @Test
+    public void aPastSlotWithoutARecordIsADashAndAStorySlotNamesTheStory() {
+        int free = Fixtures.SLOT_NOW - 2;
+        List<PlannerApi.HistoryItem> none = new ArrayList<>();
+        assertEquals(SchedulePage.NO_RECORD, SchedulePage.recordedStep(api.rules, none, free, false).titleZh);
+        assertEquals("", SchedulePage.recordedStep(api.rules, none, free, true).titleZh);
+        int fullMoon = Rules.slot(Fixtures.day(11, 3), true);
+        assertEquals("full_moon", api.rules.lockOf(fullMoon));
+        Plan.Step story = SchedulePage.recordedStep(api.rules, none, fullMoon, false);
+        assertEquals(StepKind.LOCKED, StepKind.of(story));
+        assertEquals("满月作战", story.titleZh);
+
+        // On 日程: yesterday's 放学后 had no record here, so it is a dash and opens nothing.
+        api.history.removeIf(item -> item.slot == free);
+        HomeActivity home = home();
+        home.selectTab(HomeActivity.TAB_SCHEDULE);
+        Shots.capture(home, false);
+        android.view.View dash = Shots.find(home, SchedulePage.NO_RECORD);
+        for (android.view.View v = dash; !(v instanceof android.widget.ListView); v = (android.view.View) v.getParent()) {
+            assertFalse("nothing to open: " + v, v.isClickable());
+        }
+        assertFalse("no 「暂无记录」", Shots.has(home, "暂无记录"));
+        Shots.shot(home, "home_schedule_yesterday");
+    }
+
+    @Test
+    public void theRecordsOfThePastDaySheetStartWithTheTappedSlot() {
+        int evening = Fixtures.SLOT_NOW - 1;
+        int afternoon = Fixtures.SLOT_NOW - 2;
+        api.history.add(0, FakePlannerApi.item(99, afternoon, "outcome", "10月21日 放学后 · 在图书馆学习 · 学力 +2", false, true));
+        HomeActivity home = home();
+        home.openDetail(evening);
+        Shots.idle();
+        String all = Shots.allText(home.sheets());
+        assertTrue(all, all.indexOf("在宿舍房间学习 · 学力 +2") < all.indexOf("在图书馆学习 · 学力 +2"));
+        assertFalse("the date is on the plate, not on every row", all.contains("10月21日 晚上 · "));
+        home.dismissSheet();
+        home.openDetail(afternoon);
+        Shots.idle();
+        all = Shots.allText(home.sheets());
+        assertTrue(all, all.indexOf("在图书馆学习 · 学力 +2") < all.indexOf("在宿舍房间学习 · 学力 +2"));
     }
 
     @Test
