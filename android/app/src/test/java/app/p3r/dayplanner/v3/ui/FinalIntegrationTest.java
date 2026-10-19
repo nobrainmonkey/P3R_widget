@@ -62,8 +62,12 @@ public class FinalIntegrationTest extends UiTestBase {
         assertNull(Dialogue.besideHowTo(api.rules, api.snap.profile, step));
 
         api.snap.plan.steps.set(0, step);
+        // Before playing (the day sheet) the answers are shown once; after it (the result sheet) not at all.
+        HomeActivity home = home();
+        home.openDetail(NOW);
+        assertEquals(1, countTextViews(home.sheets(), "回答："));
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
-        assertEquals(1, countTextViews(a.getWindow().getDecorView(), "回答："));
+        assertEquals(0, countTextViews(a.getWindow().getDecorView(), "回答："));
         Shots.shot(a, "result_social_answers_once");
     }
 
@@ -72,8 +76,12 @@ public class FinalIntegrationTest extends UiTestBase {
         Plan.Step step = Fixtures.social(api.rules, NOW, "emperor", 6, 7, true, true);
         step.detailZh = "放学后到月光馆学园 · 学生会活动室找小田桐秀利";
         api.snap.plan.steps.set(0, step);
+        HomeActivity home = home();
+        home.openDetail(NOW);
+        assertEquals(1, countTextViews(home.sheets(), "回答："));
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
-        assertEquals(1, countTextViews(a.getWindow().getDecorView(), "回答："));
+        assertEquals("the step is done: no answers on the result sheet", 0,
+            countTextViews(a.getWindow().getDecorView(), "回答："));
     }
 
     @Test

@@ -104,11 +104,13 @@ public class UiLogicTest {
         Outcome absent = Outcomes.notMet();
         assertEquals(Outcome.Code.SKIPPED, absent.code);
         assertEquals("absent", absent.reason);
-        assertEquals("跳过 · 对方不在", Outcomes.summary(rules, emperor, absent));
+        assertEquals("皇帝 · 对方不在", Outcomes.summary(rules, emperor, absent));
+        assertFalse("never a rank-up message", HomeActivity.isRankUp(Outcomes.summary(rules, emperor, absent)));
 
         Outcome hold = Outcomes.hold();
         assertEquals(Outcome.Code.NOT_DONE, hold.code);
         assertEquals("hold", hold.reason);
+        assertEquals("皇帝 · 剧情卡住了", Outcomes.summary(rules, emperor, hold));
 
         Outcome money = Outcomes.skipped("money", 1200);
         assertEquals(1200, money.cashBalance);
@@ -393,7 +395,7 @@ public class UiLogicTest {
         assertEquals("小田桐秀利 · 男", Zh.person(rules.links[4]));
         assertEquals("特别课外活动部\n团体 · 男女", Zh.person(rules.links[0]));
         Plan.Step planned = plan.at(Fixtures.SLOT_NOW);
-        assertEquals("做了列表以外的事",
+        assertEquals("做了别的事",
             Outcomes.summary(rules, planned, Outcomes.withSide(Outcomes.skipped(Outcomes.REASON_OTHER, -1), true)));
         assertEquals(StepKind.NOTE, StepKind.of(plan.at(Rules.slot(Fixtures.day(10, 26), true))));
         assertEquals(StepKind.EPISODE, StepKind.of(plan.at(Rules.slot(Fixtures.day(10, 26), false))));

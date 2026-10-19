@@ -2,8 +2,11 @@ package app.p3r.dayplanner.v3.ui;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -15,21 +18,23 @@ import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
 
 /**
- * Tartarus return panel: 最高到达层 stepper (prefilled), cash as exactly one of 出塔后余额 | 这次多了多少
- * with a live preview ("进塔前 8,200 → 出塔后 14,750 日元"), optional 主角等级, and the rescue
- * question while a missing person can be saved. Used for new records and for corrections (which
- * never add a visit); a correction of a visit inside a rescue window asks the rescue question
- * again, preset from the record, so correcting the cash never drops a confirmed rescue.
+ * Tartarus return panel, in the order the player answers it after a night in the tower: the
+ * highest floor as a big HUD numeral between [−] [+] (prefilled, 「顶层」 jumps to the block's top),
+ * the rescue question while a missing person can be saved, the cash as exactly one of 出塔后余额 |
+ * 这次多了多少 typed on an inline keypad (「不记得了」 records a net change of 0), and the
+ * protagonist level on request. Used for new records and for corrections (which never add a
+ * visit); a correction of a visit inside a rescue window asks the rescue question again, preset
+ * from the record, so correcting the cash never drops a confirmed rescue.
  *
- * <p>A new record starts with an empty amount and 保存 disabled: the player types the amount, or
- * taps 「不记得钱了」, which records a net change of 0 and says so. When the plan predicts the
- * rescue on this visit, 「救出了」 is preselected.
+ * <p>A new record starts with an empty amount and 保存 disabled. When the cash before the visit is
+ * not known, only the balance can be typed (the 这次多了多少 tab is not offered). When the plan
+ * predicts the rescue on this visit, 「救出了」 is preselected.
  */
 final class TowerPanel extends LinearLayout {
-    /** Label of the "I don't remember the cash" action. */
-    static final String FORGOT = "不记得钱了";
-    /** Hint in the empty amount field. */
-    static final String PLACEHOLDER = "点这里输入";
+    /** Label of the "I don't remember the cash" chip. */
+    static final String FORGOT = "不记得了";
+    /** The empty amount field. */
+    static final String PLACEHOLDER = "—";
     /** Panel callbacks. */
     interface Listener {
         void onSave(PlannerApi.TowerReturn tower, String summaryZh);
@@ -46,20 +51,25 @@ final class TowerPanel extends LinearLayout {
     private final Stepper floor;
     private final SegmentedControl cashMode;
     private final TextView amountView;
+    private final FrameLayout padHolder;
     private final TextView preview;
     private final TextView save;
-    private final LinearLayout levelBox;
     private final TextView levelToggle;
+    private final LinearLayout levelRow;
     private final Stepper level;
     private final Rules.Rescue rescue;
     /** Editing an earlier record: the cash before that visit is not known here. */
     private final boolean correction;
+    /** The cash before the visit is known (the net change can be typed). */
+    private final boolean exactBefore;
     private SegmentedControl rescueAnswer;
-    private final TextView forgotButton;
+    private final TextView forgotChip;
     private Long amount;
-    /** 「不记得钱了」: saved as a net change of 0. */
+    /** 「不记得了」: saved as a net change of 0. */
     private boolean forgot;
     private boolean levelOn;
+    /** The inline keypad is open under the cash tabs. */
+    private boolean padOpen;
 
     /**
      * @param initial         values to edit (corrections), or null for a new record
@@ -79,11 +89,20 @@ final class TowerPanel extends LinearLayout {
         Rules.Block b = block >= 0 && block < rules.blocks.length ? rules.blocks[block] : null;
         int top = b != null ? b.top : maxTop(rules);
 
-        addView(label(c, "最高到达层"));
+        // ---- floor HUD
+        addView(caption(c, "最高到达层"));
         LinearLayout floorRow = Ui.row(c);
         int startFloor = initial != null ? initial.floor : Math.max(1, Math.min(top, observed.floor));
         floor = new Stepper(c, 1, top, startFloor);
         floor.setFormatter(v -> v + "F");
+        // The floor is Tartarus's key number: a big HUD numeral between the step buttons.
+        View value = floor.getChildCount() == 3 ? floor.getChildAt(1) : null;
+        if (value instanceof TextView) {
+            ((TextView) value).setTextSize(TypedValue.COMPLEX_UNIT_DIP, 44);
+            ((TextView) value).setTextColor(Ui.col(c, R.color.p3r_white));
+            ((TextView) value).setShadowLayer(0.01f, Ui.dp(c, 2), Ui.dp(c, 2),
+                Ui.alpha(Ui.col(c, R.color.p3r_royal_500), 230));
+        }
         floorRow.addView(floor, Ui.weight(1));
         TextView topChip = Ui.chip(c, "顶层 " + top + "F", false);
         topChip.setTextSize(13);
@@ -94,105 +113,131 @@ final class TowerPanel extends LinearLayout {
         LinearLayout.LayoutParams tp = Ui.wrap();
         tp.leftMargin = Ui.dp(c, 10);
         floorRow.addView(topChip, tp);
-        addView(floorRow, spaced(c, 6));
+        addView(floorRow, spaced(c, 2));
 
-        addView(label(c, "现金"), spaced(c, 18));
+        // ---- rescue (story-critical, so before the cash)
+        int day = Rules.dayOf(slot);
+        rescue = correction ? rescueOn(rules, day) : activeRescue(rules, observed, day);
+        if (rescue != null) {
+            LinearLayout plate = Ui.column(c);
+            plate.setBackground(new SlantedPanelDrawable()
+                .fill(Ui.alpha(Ui.col(c, R.color.ui_gold), 26))
+                .accent(Ui.col(c, R.color.ui_gold), Ui.dp(c, 4))
+                .skew(Ui.dp(c, 8)));
+            Ui.pad(plate, 18, 10, 12, 12);
+            plate.addView(Ui.text(c, rescue.zh + "救出来了吗？", 16, Ui.col(c, R.color.p3r_white), true));
+            rescueAnswer = new SegmentedControl(c, Arrays.asList("救出了", correction ? "没救出" : "还没"));
+            // Preset: the record (corrections), else the plan's prediction for this visit.
+            boolean saved = initial != null ? rescue.id.equals(initial.rescuedId)
+                : correction ? rescuedBit(rules, observed, rescue) : rescuePredicted;
+            rescueAnswer.setSelected(saved ? 0 : 1);
+            plate.addView(rescueAnswer, spaced(c, 8));
+            addView(plate, spaced(c, 16));
+        }
+
+        // ---- cash: exactly one field
+        exactBefore = observed.cashExact || correction;
+        LinearLayout cashHead = Ui.row(c);
+        cashHead.addView(caption(c, exactBefore ? "现金" : "出塔后的现金"), Ui.weight(1));
+        forgotChip = Ui.chip(c, FORGOT, false);
+        forgotChip.setTextSize(13);
+        forgotChip.setContentDescription("不记得钱了");
+        forgotChip.setVisibility(correction ? GONE : VISIBLE);
+        cashHead.addView(forgotChip, Ui.wrap());
+        addView(cashHead, spaced(c, 18));
         cashMode = new SegmentedControl(c, Arrays.asList("出塔后余额", "这次多了多少"));
-        cashMode.segment(0).setContentDescription("填写出塔后手上的钱");
-        cashMode.segment(1).setContentDescription("填写这次探索多了多少钱");
+        cashMode.segment(0).setContentDescription("填出塔后手上的钱");
+        cashMode.segment(1).setContentDescription("填这次多了多少钱");
+        // Without the cash before the visit only the balance can be typed: no second tab to tap.
+        cashMode.setVisibility(exactBefore ? VISIBLE : GONE);
         addView(cashMode, spaced(c, 6));
+        forgotChip.setOnClickListener(v -> {
+            forgot = !forgot;
+            amount = null;
+            padOpen = false;
+            // Neither cash field applies: the visit is saved as a net change of 0.
+            cashMode.setSelected(forgot ? -1 : 0);
+            render();
+        });
         amountView = Ui.text(c, "", 26, Ui.col(c, R.color.p3r_white), true);
         amountView.setGravity(Gravity.CENTER_VERTICAL | Gravity.END);
-        amountView.setMinHeight(Ui.dp(c, 56));
-        Ui.pad(amountView, 16, 4, 16, 4);
+        amountView.setMinHeight(Ui.dp(c, 64));
+        Ui.pad(amountView, 16, 4, 20, 4);
         amountView.setBackground(new SlantedPanelDrawable()
-            .fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 160))
+            .fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 170))
             .pressedFill(Ui.col(c, R.color.p3r_navy_700))
             .stroke(Ui.col(c, R.color.p3r_cyan_400), Ui.dp(c, 1.5f))
             .skew(Ui.dp(c, 10)));
         amountView.setClickable(true);
         amountView.setFocusable(true);
-        amountView.setOnClickListener(v -> {
-            if (forgot) {
-                forgot = false;
-                cashMode.setSelected(0);
-                render();
-            }
-            openPad();
-        });
+        amountView.setOnClickListener(v -> openPad());
         addView(amountView, spaced(c, 8));
-        preview = Ui.mixed(c, "", 13, Ui.col(c, R.color.p3r_cyan_200), false);
+        padHolder = new FrameLayout(c);
+        addView(padHolder, spaced(c, 4));
+        preview = Ui.mixed(c, "", 14, Ui.col(c, R.color.p3r_cyan_200), false);
         addView(preview, spaced(c, 6));
-        forgotButton = Ui.quiet(c, FORGOT);
-        forgotButton.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        forgotButton.setPadding(0, forgotButton.getPaddingTop(), 0, forgotButton.getPaddingBottom());
-        forgotButton.setContentDescription(FORGOT + "，现金按没变记");
-        forgotButton.setOnClickListener(v -> {
-            forgot = true;
-            amount = null;
-            // Neither cash field applies: the visit is saved as a net change of 0.
-            cashMode.setSelected(-1);
-            render();
-        });
-        forgotButton.setVisibility(correction ? GONE : VISIBLE);
-        addView(forgotButton, spaced(c, 2));
 
-        boolean exactBefore = observed.cashExact || correction;
-        cashMode.setSegmentEnabled(1, exactBefore);
         if (initial != null) {
             cashMode.setSelected(initial.balanceMode || !exactBefore ? 0 : 1);
             amount = initial.amount;
             forgot = initial.cashUnknown;
         } else {
-            // Nothing is assumed: the amount starts empty and 保存 waits for it (or 「不记得钱了」).
+            // Nothing is assumed: the amount starts empty and 保存 waits for it (or 「不记得了」).
             cashMode.setSelected(0);
             amount = null;
         }
         cashMode.setListener(i -> {
             forgot = false;
             amount = correction && i == 1 ? Long.valueOf(0L) : null;
+            if (padOpen) {
+                showPad();
+            }
             render();
         });
 
-        levelToggle = Ui.quiet(c, "＋ 记录主角等级（可选）");
+        // ---- protagonist level, on request
+        levelToggle = Ui.quiet(c, "记一下主角等级");
         levelToggle.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        levelToggle.setPadding(0, levelToggle.getPaddingTop(), 0, levelToggle.getPaddingBottom());
-        levelToggle.setOnClickListener(v -> setLevelOn(!levelOn));
-        addView(levelToggle, spaced(c, correction ? 12 : 0));
-        levelBox = Ui.column(c);
+        Ui.pad(levelToggle, 0, 8, 12, 8);
+        levelToggle.setOnClickListener(v -> setLevelOn(true));
+        addView(levelToggle, spaced(c, 12));
+        levelRow = Ui.row(c);
+        levelRow.addView(caption(c, "主角等级"), Ui.wrap());
         int lastLevel = initial != null && initial.level != null ? initial.level : rememberedLevel;
-        level = new Stepper(c, 1, 99, lastLevel);
+        level = new Stepper(c, 1, 99, lastLevel).compact();
         level.setFormatter(v -> "Lv." + v);
-        levelBox.addView(level);
-        addView(levelBox, spaced(c, 4));
+        LinearLayout.LayoutParams lp = Ui.weight(1);
+        lp.leftMargin = Ui.dp(c, 12);
+        levelRow.addView(level, lp);
+        ImageView clear = Ui.icon(c, R.drawable.ui_ic_close, Ui.col(c, R.color.p3r_ink_muted), 20);
+        clear.setScaleType(ImageView.ScaleType.CENTER);
+        clear.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
+        clear.setContentDescription("不记主角等级");
+        clear.setClickable(true);
+        clear.setBackground(new SlantedPanelDrawable().fill(0).pressedFill(Ui.col(c, R.color.ui_cyan_soft)));
+        clear.setOnClickListener(v -> setLevelOn(false));
+        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(Ui.dp(c, Ui.TOUCH), Ui.dp(c, Ui.TOUCH));
+        cp.leftMargin = Ui.dp(c, 6);
+        levelRow.addView(clear, cp);
+        addView(levelRow, spaced(c, 12));
         setLevelOn(initial != null && initial.level != null);
 
-        int day = Rules.dayOf(slot);
-        rescue = correction ? rescueOn(rules, day) : activeRescue(rules, observed, day);
-        if (rescue != null) {
-            addView(label(c, rescue.zh + "救出来了吗？"), spaced(c, 18));
-            rescueAnswer = new SegmentedControl(c, Arrays.asList("救出了", correction ? "没救出" : "还没"));
-            // Preset: the record (corrections), else the plan's prediction for this visit.
-            boolean saved = initial != null ? rescue.id.equals(initial.rescuedId)
-                : correction ? rescuedBit(rules, observed, rescue) : rescuePredicted;
-            rescueAnswer.setSelected(saved ? 0 : 1);
-            addView(rescueAnswer, spaced(c, 6));
-        }
-
+        // ---- actions
         LinearLayout buttons = Ui.row(c);
+        buttons.setBaselineAligned(false);
         if (!correction) {
             TextView cannot = Ui.secondary(c, "没去成");
             cannot.setOnClickListener(v -> listener.onCannot());
-            buttons.addView(cannot, Ui.weight(1));
+            buttons.addView(cannot, new LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, 1));
         }
         save = Ui.primary(c, correction ? "保存修改" : "保存");
         save.setOnClickListener(v -> submit());
-        LinearLayout.LayoutParams sp = Ui.weight(correction ? 1 : 1.4f);
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, correction ? 1 : 1.6f);
         if (!correction) {
-            sp.leftMargin = Ui.dp(c, 12);
+            sp.leftMargin = Ui.dp(c, 14);
         }
         buttons.addView(save, sp);
-        addView(buttons, spaced(c, 22));
+        addView(buttons, spaced(c, 18));
         render();
     }
 
@@ -236,8 +281,9 @@ final class TowerPanel extends LinearLayout {
         return false;
     }
 
-    private static TextView label(Context c, String text) {
-        return Ui.text(c, text, 15, Ui.col(c, R.color.p3r_white), true);
+    /** A small muted label above a value. */
+    private static TextView caption(Context c, String text) {
+        return Ui.text(c, text, 13, Ui.col(c, R.color.p3r_ink_muted), true);
     }
 
     private static LinearLayout.LayoutParams spaced(Context c, int dp) {
@@ -248,43 +294,62 @@ final class TowerPanel extends LinearLayout {
 
     private void setLevelOn(boolean on) {
         levelOn = on;
-        levelBox.setVisibility(on ? VISIBLE : GONE);
-        levelToggle.setText(on ? "－ 不记录主角等级" : "＋ 记录主角等级（可选）");
+        levelRow.setVisibility(on ? VISIBLE : GONE);
+        levelToggle.setVisibility(on ? GONE : VISIBLE);
     }
 
     private boolean balanceMode() {
         return cashMode.getSelected() == 0;
     }
 
+    /** Opens the keypad under the cash tabs; it stands in for the amount field while open. */
     private void openPad() {
+        if (forgot) {
+            forgot = false;
+            cashMode.setSelected(0);
+        }
+        showPad();
+        render();
+    }
+
+    private void showPad() {
+        padOpen = true;
         CashPad.Options options = new CashPad.Options();
         options.title = balanceMode() ? "出塔后手上有多少钱？" : "这次多了多少钱？";
-        options.hint = correction ? (balanceMode() ? null : "少了就填负数")
-            : observed.cashExact ? "进塔前 " + Zh.yen(observed.cash) + (balanceMode() ? "" : "，少了就填负数")
-            : "探索前的现金没有记录，请直接填出塔后的余额";
+        options.hint = balanceMode() ? null : "少了就按 ±";
         options.initial = amount;
         options.allowUnknown = false;
         options.allowNegative = !balanceMode();
-        CashPad.show(getContext(), options, value -> {
+        padHolder.removeAllViews();
+        padHolder.addView(CashPad.inline(getContext(), options, value -> {
             if (value != null) {
                 amount = value;
                 forgot = false;
                 render();
             }
-        });
+        }), new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        Motion.enter(padHolder, 0);
     }
 
     private void render() {
         Context c = getContext();
+        if (!padOpen) {
+            padHolder.removeAllViews();
+        }
+        padHolder.setVisibility(padOpen && !forgot ? VISIBLE : GONE);
+        // 「不记得了」 on a new record: neither field applies, so neither tab is offered.
+        cashMode.setVisibility(exactBefore && !(forgot && !correction) ? VISIBLE : GONE);
+        // A new record shows 「不记得了」 on its chip; a correction has no chip, so the field says it.
+        amountView.setVisibility(padOpen || (forgot && !correction) ? GONE : VISIBLE);
         if (forgot) {
             amountView.setText(FORGOT);
             amountView.setTextSize(16);
             amountView.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
             amountView.setTextColor(Ui.col(c, R.color.p3r_ice_100));
         } else if (amount == null) {
-            // A hint, not a value: regular weight in the muted ink.
+            // Nothing typed yet: a muted dash, not a value.
             amountView.setText(PLACEHOLDER);
-            amountView.setTextSize(16);
+            amountView.setTextSize(22);
             amountView.setTypeface(android.graphics.Typeface.DEFAULT);
             amountView.setTextColor(Ui.col(c, R.color.p3r_ink_muted));
         } else {
@@ -295,39 +360,42 @@ final class TowerPanel extends LinearLayout {
             String sign = balanceMode() ? "" : (amount < 0 ? "−" : "+");
             amountView.setText(Ui.money(c, sign + number));
         }
-        amountView.setContentDescription(forgot ? FORGOT + "，点按输入" : (balanceMode() ? "出塔后余额 " : "这次多了 ")
-            + (amount == null ? "未填写，点按输入" : Zh.yen(amount)));
-        preview.setText(Ui.latin(c, previewText()));
+        amountView.setContentDescription(forgot ? "不记得钱了" : (balanceMode() ? "出塔后余额 " : "这次多了 ")
+            + (amount == null ? "未填" : Zh.yen(amount)));
+        String line = previewText();
+        preview.setText(Ui.latin(c, line));
+        preview.setVisibility(line.isEmpty() ? GONE : VISIBLE);
+        SheetChrome.selectChoice(forgotChip, forgot);
+        forgotChip.setTextSize(13);
         boolean ready = ready();
         save.setEnabled(ready);
         save.setAlpha(ready ? 1f : 0.5f);
-        forgotButton.setVisibility(correction || forgot ? GONE : VISIBLE);
     }
 
-    /** 保存 is possible: an amount was typed, or the player said 「不记得钱了」. */
+    /** 保存 is possible: an amount was typed, or the player said 「不记得了」. */
     boolean ready() {
         return amount != null || forgot;
     }
 
-    /** "进塔前 8,200 → 出塔后 14,750 日元（+6,550）". */
+    /** True after 「不记得了」 (tests). */
+    boolean forgotCash() {
+        return forgot;
+    }
+
+    /**
+     * The one line under the cash, only once there is something to add: "进塔前 8,200 → 出塔后
+     * 14,750 日元（+6,550）"; a correction says what the record becomes ("改为：这次 +1,200 日元").
+     */
     String previewText() {
-        if (forgot) {
-            return "不记得钱了：这次的现金按没变记（+0），之后可以在「记录历史」里改。";
+        if (forgot || amount == null) {
+            return "";
         }
         if (correction) {
-            if (amount == null) {
-                return "填写这次探索后的现金。";
-            }
             return balanceMode() ? "改为：出塔后 " + Zh.yen(amount) : "改为：这次 " + signed(amount) + " 日元";
         }
         if (!observed.cashExact) {
-            if (amount == null) {
-                return "探索前的现金没有记录，请直接填出塔后的余额。";
-            }
-            return "出塔后 " + Zh.yen(amount);
-        }
-        if (amount == null) {
-            return "进塔前 " + Zh.yen(observed.cash);
+            // The field already says it all.
+            return "";
         }
         long after = balanceMode() ? amount : observed.cash + amount;
         long delta = after - observed.cash;
@@ -338,7 +406,7 @@ final class TowerPanel extends LinearLayout {
         return (v < 0 ? "−" : "+") + Zh.number(Math.abs(v));
     }
 
-    /** The return as entered (null when not ready); 「不记得钱了」 is a net change of 0. */
+    /** The return as entered (null when not ready); 「不记得了」 is a net change of 0. */
     PlannerApi.TowerReturn value() {
         if (!ready()) {
             return null;
@@ -368,7 +436,7 @@ final class TowerPanel extends LinearLayout {
             summary += " · 救出" + rescue.zh;
         }
         if (forgot) {
-            summary += " · 现金按没变记";
+            summary += " · 不记得钱了";
         }
         listener.onSave(t, summary);
     }
@@ -403,6 +471,7 @@ final class TowerPanel extends LinearLayout {
         if (rescueAnswer != null) {
             rescueAnswer.setSelected(b.getInt("rescue", 1));
         }
+        padOpen = false;
         render();
     }
 
