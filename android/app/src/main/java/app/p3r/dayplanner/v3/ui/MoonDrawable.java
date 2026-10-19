@@ -16,6 +16,7 @@ import android.graphics.drawable.Drawable;
 public final class MoonDrawable extends Drawable {
     private final Paint lit = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint rim = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint dark = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path path = new Path();
     private final RectF oval = new RectF();
     private int phase;
@@ -23,6 +24,8 @@ public final class MoonDrawable extends Drawable {
     public MoonDrawable(int litColor, int rimColor, float rimWidthPx) {
         lit.setColor(litColor);
         lit.setStyle(Paint.Style.FILL);
+        dark.setStyle(Paint.Style.FILL);
+        dark.setColor(android.graphics.Color.argb(180, 3, 10, 36));
         rim.setColor(rimColor);
         rim.setStyle(Paint.Style.STROKE);
         rim.setStrokeWidth(rimWidthPx);
@@ -48,6 +51,8 @@ public final class MoonDrawable extends Drawable {
         float r = size / 2f;
         float cx = b.exactCenterX();
         float cy = b.exactCenterY();
+        // The dark side is filled, so every phase reads as a moon (a new moon is not an empty ring).
+        canvas.drawCircle(cx, cy, r, dark);
         if (phase != 0) {
             drawLit(canvas, cx, cy, r);
         }
@@ -98,6 +103,7 @@ public final class MoonDrawable extends Drawable {
 
     @Override
     public void setAlpha(int alpha) {
+        dark.setAlpha(alpha * 180 / 255);
         lit.setAlpha(alpha);
         rim.setAlpha(alpha);
         invalidateSelf();
@@ -107,6 +113,7 @@ public final class MoonDrawable extends Drawable {
     public void setColorFilter(ColorFilter colorFilter) {
         lit.setColorFilter(colorFilter);
         rim.setColorFilter(colorFilter);
+        dark.setColorFilter(colorFilter);
         invalidateSelf();
     }
 

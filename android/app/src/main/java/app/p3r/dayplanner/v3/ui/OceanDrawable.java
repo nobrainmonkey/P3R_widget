@@ -70,6 +70,19 @@ public final class OceanDrawable extends Drawable {
             Ui.col(c, app.p3r.dayplanner.R.color.p3r_royal_500), Ui.col(c, app.p3r.dayplanner.R.color.p3r_cyan_300));
     }
 
+    /**
+     * Calmer water for the busy pages (lists, settings, the compendium, sub-pages): the same light
+     * from the surface with the shafts and hairlines at half strength.
+     */
+    public static OceanDrawable calm(android.content.Context c) {
+        OceanDrawable water = page(c);
+        water.calm = true;
+        return water;
+    }
+
+    /** Shafts, hairlines and caustics at half strength. */
+    private boolean calm;
+
     @Override
     protected void onBoundsChange(Rect bounds) {
         super.onBoundsChange(bounds);
@@ -120,6 +133,7 @@ public final class OceanDrawable extends Drawable {
         float w = b.width();
         float h = b.height();
         float drift = h * 0.55f;
+        shaft.setAlpha(calm ? 128 : 255);
         for (int i = 0; i < SHAFTS.length; i++) {
             shaft.setShader(shaftShaders[i]);
             canvas.drawPath(shaftPaths[i], shaft);
@@ -127,13 +141,15 @@ public final class OceanDrawable extends Drawable {
 
         drawCaustics(canvas, b);
 
-        line.setStrokeWidth(Math.max(1f, w / 400f));
-        line.setColor(withAlpha(lightColor, 34));
-        float lx = b.left + w * 0.78f;
-        canvas.drawLine(lx, b.top, lx - drift * 0.9f, b.top + h * 0.9f, line);
-        line.setColor(withAlpha(lightColor, 20));
-        float lx2 = b.left + w * 0.95f;
-        canvas.drawLine(lx2, b.top, lx2 - drift, b.bottom, line);
+        if (!calm) {
+            line.setStrokeWidth(Math.max(1f, w / 400f));
+            line.setColor(withAlpha(lightColor, 34));
+            float lx = b.left + w * 0.78f;
+            canvas.drawLine(lx, b.top, lx - drift * 0.9f, b.top + h * 0.9f, line);
+            line.setColor(withAlpha(lightColor, 20));
+            float lx2 = b.left + w * 0.95f;
+            canvas.drawLine(lx2, b.top, lx2 - drift, b.bottom, line);
+        }
     }
 
     /**
@@ -149,7 +165,7 @@ public final class OceanDrawable extends Drawable {
             float amp = h * c[1];
             float waves = c[2];
             caustic.setStrokeWidth(Math.max(1f, w * c[3]));
-            caustic.setColor(withAlpha(lightColor, (int) c[4]));
+            caustic.setColor(withAlpha(lightColor, (int) (c[4] * (calm ? 0.6f : 1f))));
             causticPath.reset();
             int steps = 48;
             for (int k = 0; k <= steps; k++) {

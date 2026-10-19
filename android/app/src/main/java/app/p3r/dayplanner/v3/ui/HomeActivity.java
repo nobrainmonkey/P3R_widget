@@ -75,6 +75,9 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     private long fullShown;
 
     private FrameLayout root;
+    /** 今天 sits in the lit water near the surface; the busier tabs and sub-pages in calmer water. */
+    private OceanDrawable brightWater;
+    private OceanDrawable calmWater;
     private FrameLayout pageLayer;
     private SheetHost sheets;
     private UndoBar undo;
@@ -385,7 +388,9 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
 
     private void buildChrome() {
         root = new FrameLayout(this);
-        root.setBackground(OceanDrawable.page(this));
+        brightWater = OceanDrawable.page(this);
+        calmWater = OceanDrawable.calm(this);
+        root.setBackground(brightWater);
         LinearLayout column = Ui.column(this);
         FrameLayout contentFrame = new FrameLayout(this);
         today = new TodayPage(this);
@@ -559,6 +564,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             Motion.tabIn(tabViews[tab], tab > previous);
         }
         tabBar.setSelectedTab(tab);
+        root.setBackground(tab == TAB_TODAY || failed ? brightWater : calmWater);
         placeUndo();
     }
 
@@ -741,7 +747,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     private void pushPage(String title, View content, boolean fillsPage) {
         finishPageExit();
         LinearLayout page = Ui.column(this);
-        page.setBackground(OceanDrawable.page(this));
+        page.setBackground(OceanDrawable.calm(this));
         page.setClickable(true);
         page.setPadding(0, topInset, 0, 0);
         LinearLayout bar = Ui.subPageBar(this, title, v -> popPage());

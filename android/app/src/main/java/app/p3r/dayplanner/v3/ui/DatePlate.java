@@ -73,8 +73,9 @@ public final class DatePlate extends LinearLayout {
         addView(side, Ui.wrap());
         if (large) {
             // WEEKDAY / WEEKEND behind the date, like the game's calendar.
+            // Kept to the left, under the date, clear of the protagonist art at the top right.
             watermark = new WatermarkDrawable("WEEKDAY", Ui.numerals(context),
-                Ui.alpha(Ui.col(context, R.color.p3r_cyan_300), 46), Ui.dp(context, 96), Ui.dp(context, 1.5f), -6f, 0.30f);
+                Ui.alpha(Ui.col(context, R.color.p3r_cyan_300), 34), Ui.dp(context, 84), Ui.dp(context, 1.5f), -6f, 0.0f);
             setBackground(watermark);
         } else {
             watermark = null;
