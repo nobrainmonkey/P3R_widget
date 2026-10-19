@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- UI module icon (original geometry). Tinted in code. -->
+<!-- UI module icon (original geometry): a slanted card with a spark cut out (社群). Solid, angular P3R glyph; tinted in code. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
-    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" android:pathData="M7.5,3 L19.5,3 L16.5,21 L4.5,21 Z" />
-    <path android:fillColor="#FFFFFFFF" android:pathData="M12,7.6 L13.2,10.8 L16.4,12 L13.2,13.2 L12,16.4 L10.8,13.2 L7.6,12 L10.8,10.8 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M7.4,2.2 L20.8,2.2 L16.6,21.8 L3.2,21.8 Z M10.94,10.94 L6.4,12 L10.94,13.06 L12,17.6 L13.06,13.06 L17.6,12 L13.06,10.94 L12,6.4 Z" />
 </vector>

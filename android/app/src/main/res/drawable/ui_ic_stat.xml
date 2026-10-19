@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- UI module icon (original geometry). Tinted in code. -->
+<!-- UI module icon (original geometry): a rising arrow over level bars (个人能力值). Solid, angular P3R glyph; tinted in code. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#FFFFFFFF" android:pathData="M12,2.5 L20.5,11 L15.5,11 L15.5,21.5 L8.5,21.5 L8.5,11 L3.5,11 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M12,2 L21,11 L3,11 Z M8.4,12.4 L15.6,12.4 L15.6,15.8 L8.4,15.8 Z M8.4,17.2 L15.6,17.2 L15.6,21.8 L8.4,21.8 Z" />
 </vector>

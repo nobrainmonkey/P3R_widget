@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- UI module icon (original geometry): a slanted clapperboard for 羁绊剧情. Tinted in code. -->
+<!-- UI module icon (original geometry): a clapperboard for 羁绊剧情. Solid, angular P3R glyph; tinted in code. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
-    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" android:pathData="M3.5,10 L20.5,10 L20.5,20 L3.5,20 Z" />
-    <path android:fillColor="#FFFFFFFF" android:pathData="M3,8.8 L2.4,5.6 L19.6,2.4 L20.2,5.6 Z" />
-    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.6" android:strokeLineCap="round" android:fillColor="#00000000" android:pathData="M8,14 L16,14 M8,17 L13.5,17" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M2.6,9 L2,5.4 L8.19,4.22 L7.06,8.15 Z M9.84,3.9 L13.9,3.13 L12.78,7.06 L8.71,7.83 Z M15.55,2.81 L19.8,2 L20.4,5.6 L14.43,6.74 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M3.2,10.4 L20.8,10.4 L20.8,21 L3.2,21 Z M6.6,15.6 L17.4,15.6 L17.4,13.6 L6.6,13.6 Z M6.6,19 L13.4,19 L13.4,17.2 L6.6,17.2 Z" />
 </vector>

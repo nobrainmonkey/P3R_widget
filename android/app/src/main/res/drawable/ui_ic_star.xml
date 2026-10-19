@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- UI module icon (original geometry). Tinted in code. -->
+<!-- UI module icon (original geometry): a filled five-point star. Solid, angular P3R glyph; tinted in code. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#FFFFFFFF" android:pathData="M12,2.8 L14.6,9.2 L21.4,9.6 L16.2,14 L17.8,20.8 L12,17.1 L6.2,20.8 L7.8,14 L2.6,9.6 L9.4,9.2 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M12,2.8 L14.41,9.68 L21.7,9.85 L15.9,14.27 L18,21.25 L12,17.1 L6,21.25 L8.1,14.27 L2.3,9.85 L9.59,9.68 Z" />
 </vector>

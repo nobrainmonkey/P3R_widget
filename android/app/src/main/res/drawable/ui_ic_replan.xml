@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- UI module icon (original geometry): one circular arrow round a start mark, "from the start again"
-     (从头重新安排); ui_ic_sync's two arrows are 同步现状's. Tinted in code. -->
+<!-- UI module icon (original geometry): one circular arrow round a start mark, "from the start again" (从头重新安排); ui_ic_sync's two arrows are 同步现状's. Solid, angular P3R glyph; tinted in code. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
-    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" android:pathData="M12,5.5 A7.5,7.5 0 1,1 4.5,13" />
-    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" android:pathData="M14.4,2.9 L11.4,5.5 L14.4,8.1" />
-    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.7" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" android:pathData="M10.6,10.3 L14.8,13 L10.6,15.7 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M5.4,12.8 L6.28,16.1 L8.7,18.52 L12,19.4 L15.3,18.52 L17.72,16.1 L18.6,12.8 L17.72,9.5 L15.3,7.08 L12,6.2 L12,3.6 L16.6,4.83 L19.97,8.2 L21.2,12.8 L19.97,17.4 L16.6,20.77 L12,22 L7.4,20.77 L4.03,17.4 L2.8,12.8 Z M12,8.2 L7.8,4.9 L12,1.6 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M10,9.4 L15.6,12.8 L10,16.2 Z" />
 </vector>
