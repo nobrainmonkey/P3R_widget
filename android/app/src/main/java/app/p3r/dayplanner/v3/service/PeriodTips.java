@@ -10,13 +10,15 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 /**
  * Read-only catalogue for 提示: a Tartarus block's opening day through the day before the next opens.
  * Unlike a plan's daily reminders, this keeps the entire period when the player opens it midway through.
- * It records neither completion nor stat gains, and never changes the plan or observed state.
+ * It records neither completion nor stat gains, and never changes the plan or observed state. The copy
+ * is 提示's own (docs/DESIGN_3.6_UI.md §2): what to do, the real game condition, nothing about the planner.
  */
 public final class PeriodTips {
     private PeriodTips() {}
@@ -27,6 +29,8 @@ public final class PeriodTips {
         public int observedSlot;
         public String blockZh = "当前阶段";
         public String floorsZh = "";
+        /** The whole game ({@link #collectAll}), not one block's period. */
+        public boolean whole;
         /** Original event/opening dates are retained, including an explicit window's earlier date. */
         public List<Plan.Reminder> items = new ArrayList<>();
         /** Unbounded conditional opportunities: the opening date passing does not expire them. */
@@ -34,6 +38,9 @@ public final class PeriodTips {
         /** Exact last occupied slot of calendar ranges, including daytime-only exam periods. */
         public Map<String, Integer> calendarEndSlots = new LinkedHashMap<>();
     }
+
+    /** How many upcoming dates the whole-game lookup names before 「等」. */
+    private static final int UPCOMING_DATES = 5;
 
     private static final Comparator<Plan.Reminder> ORDER = Comparator
             .comparingInt((Plan.Reminder r) -> r.slot)
@@ -56,6 +63,7 @@ public final class PeriodTips {
         period.fromDay = rules.firstDay;
         period.toDay = rules.lastDay;
         period.blockZh = "全部提示";
+        period.whole = true;
         return collect(rules, observed, null, period);
     }
 
@@ -75,12 +83,13 @@ public final class PeriodTips {
             String condition = requirements(rules, source);
             if (source.firstEligible) {
                 // The catalogue cannot know whether an unrecorded, slot-free pickup was already done.
-                item.textZh = "满足条件后可处理：" + nonempty(source.shortZh, source.labelZh);
+                item.textZh = nonempty(source.shortZh, source.labelZh)
+                        + (condition.isEmpty() ? "" : "（" + condition + " 以后）");
                 if (source.untilDay < 0) period.ongoingIds.add(item.id);
             } else if (!condition.isEmpty()) {
-                item.textZh = "达到" + condition + "时：" + source.zh;
+                item.textZh = condition + " 以后，" + source.zh;
             }
-            if (!condition.isEmpty()) item.detailZh = append(item.detailZh, "条件：" + condition + "。");
+            if (!condition.isEmpty()) item.detailZh = append(item.detailZh, "要" + condition + "。");
             if (source.firstEligible || !condition.isEmpty()) conditionalItems.add(item.id);
             items.put(item.id, item);
         }
@@ -94,8 +103,7 @@ public final class PeriodTips {
             item.labelZh = "上课犯困";
             item.slot = Rules.slot(day, false);
             item.priority = Plan.Reminder.DEADLINE;
-            item.textZh = "不闭眼：学力 +" + data.dozeAcademics + "；闭眼：勇气 +" + data.dozeCourage;
-            item.detailZh = "学力未满选不闭眼；学力已满、勇气未满选闭眼。";
+            item.textZh = "别闭眼：学力 +" + data.dozeAcademics + "；学力 MAX 了就闭上眼：勇气 +" + data.dozeCourage;
             items.put(item.id, item);
         }
 
@@ -105,9 +113,9 @@ public final class PeriodTips {
             item.kind = Plan.Reminder.NURSE;
             item.labelZh = "保健室";
             item.slot = Rules.slot(period.fromDay, false);
-            item.textZh = "探索塔尔塔罗斯或满月作战后的上学日，顺路去保健室";
-            item.detailZh = "前一晚探索了塔尔塔罗斯或打了满月作战，第二天若是上学日，放学后到 1 楼保健室喝药，勇气 +"
-                    + data.nurseCourage + "，不消耗时间。仅限次日上学时，勇气满了可跳过。";
+            item.textZh = "探索后第二天上学：放学后先去保健室";
+            item.detailZh = "前一晚探索了塔尔塔罗斯或打了满月作战，第二天上学时放学后去 1 楼保健室：勇气 +"
+                    + data.nurseCourage + "，不会消耗时间。勇气 MAX 了就不用去。";
             items.put(item.id, item);
             period.ongoingIds.add(item.id);
         }
@@ -122,7 +130,7 @@ public final class PeriodTips {
                     Plan.Reminder catalogue = items.get(item.id);
                     if (catalogue.slot != item.slot) {
                         catalogue.detailZh = append(catalogue.detailZh,
-                                "安排：" + date(rules, Rules.dayOf(item.slot)) + "处理。");
+                                "安排在 " + date(rules, Rules.dayOf(item.slot)) + "。");
                     }
                     continue;
                 }
@@ -225,9 +233,8 @@ public final class PeriodTips {
         item.untilDay = group.toDay;
         item.priority = Plan.Reminder.MISSABLE;
         List<String> names = new ArrayList<>();
-        StringBuilder detail = new StringBuilder("在塔尔塔罗斯探索时找到失踪者并救出。救援窗口：")
-                .append(date(rules, group.fromDay)).append("～").append(date(rules, group.toDay))
-                .append("。最晚在期限当天晚上救出，逾期无法救援。");
+        StringBuilder detail = new StringBuilder("在塔尔塔罗斯找到就能救出，最晚 ")
+                .append(date(rules, group.toDay)).append(" 晚上。");
         String locations = RescueLocations.details(java.util.Collections.singletonList(group));
         if (!locations.isEmpty()) detail.append('\n').append(locations).append('\n');
         for (String id : group.rescueIds) {
@@ -240,9 +247,9 @@ public final class PeriodTips {
                             .append("社群就没法继续了。");
                 }
                 if (observed != null && (observed.rescued & (1L << i)) != 0) {
-                    detail.append("记录里已确认救出").append(person.zh).append("。");
+                    detail.append(person.zh).append("已经救出来了。");
                 } else if (observed != null && (observed.rescueFailed & (1L << i)) != 0) {
-                    detail.append("记录里").append(person.zh).append("的救援已错过。");
+                    detail.append("没赶上救").append(person.zh).append("。");
                 }
                 break;
             }
@@ -250,14 +257,17 @@ public final class PeriodTips {
         if (group.locksZh != null) detail.append(group.locksZh);
         int tower = firstTower(plan, Math.max(Rules.slot(group.fromDay, true),
                 observed == null ? rules.firstSlot() : observed.slot), Rules.slot(group.toDay, true));
-        if (tower >= 0) detail.append("安排：").append(date(rules, Rules.dayOf(tower))).append("进塔，顺便救援。");
-        item.textZh = "失踪者 " + group.count + " 人" + (names.isEmpty() ? "" : "（"
-                + (names.size() < group.count ? "包括" : "") + String.join("、", names) + "）")
-                + "，" + date(rules, group.toDay) + "截止";
+        if (tower >= 0) {
+            detail.append("安排里 ").append(date(rules, Rules.dayOf(tower))).append(" 会探索塔尔塔罗斯，顺便救人。");
+        }
+        boolean one = group.count == 1 && names.size() == 1;
+        item.textZh = (one ? "救出" + names.get(0)
+                : "救出 " + group.count + " 位失踪者" + (names.isEmpty() ? "" : "（有" + String.join("、", names) + "）"))
+                + " · 期限 " + date(rules, group.toDay);
         String floors = RescueLocations.floors(java.util.Collections.singletonList(group));
         if (!floors.isEmpty()) item.textZh += " · " + floors;
         item.shortZh = "失踪者 " + group.count + " 人";
-        item.detailZh = detail.toString();
+        item.detailZh = detail.toString().trim();
         return item;
     }
 
@@ -279,44 +289,51 @@ public final class PeriodTips {
         return String.join("、", requirements);
     }
 
+    /** The rule every dorm activity repeats in its own note; the overview says it once. */
+    private static final String DORM_RULE = "同一种活动累计3次可解锁或强化队友特性。";
+
     private static void activities(Rules rules, SimState observed, Period period, Map<String, Plan.Reminder> items) {
         List<String> dormLines = new ArrayList<>();
         Set<String> partners = new LinkedHashSet<>();
+        int today = Rules.dayOf(period.observedSlot);
         for (Rules.Activity activity : rules.activities) {
             if (activity.fixedDays == null) continue;
-            List<String> dates = new ArrayList<>();
-            for (int day : activity.fixedDays) if (inside(period, day)) dates.add(date(rules, day));
-            if (dates.isEmpty()) continue;
+            List<Integer> days = new ArrayList<>();
+            for (int day : activity.fixedDays) if (inside(period, day)) days.add(day);
+            if (days.isEmpty()) continue;
             String gains = gains(rules, activity);
             if (activity.id.startsWith("group_study_")) {
-                for (int day : activity.fixedDays) {
-                    if (!inside(period, day)) continue;
+                for (int day : days) {
                     Plan.Reminder item = new Plan.Reminder();
                     item.id = "activity." + activity.id + "." + day;
                     item.kind = Plan.Reminder.FEATURE;
-                    item.labelZh = "集体学习";
+                    item.labelZh = "宿舍集体学习";
                     item.slot = Rules.slot(day, true);
-                    item.textZh = activity.zh + (gains.isEmpty() ? "" : "：" + gains) + "，占用晚上";
+                    item.textZh = gains.isEmpty() ? nonempty(activity.zh, "宿舍集体学习") : gains;
                     item.gainZh = gains.isEmpty() ? null : gains;
-                    item.detailZh = append(activity.noteZh, "到" + nonempty(activity.locationZh, "宿舍大厅")
-                            + "找队友一起学习。免费，占用整个晚上；学力已满可跳过。");
+                    item.detailZh = "到" + nonempty(activity.locationZh, "宿舍大厅").replace(" · ", "")
+                            + "和大家一起学习。不花钱，但会用掉晚上；学力 MAX 了就不用参加。";
                     item.estimate = "estimate".equals(activity.conf) || "conflict".equals(activity.conf);
                     items.put(item.id, item);
                 }
             } else if (activity.dormActivity()) {
+                String dates = dates(rules, days, period.whole ? today : Integer.MIN_VALUE);
+                if (dates.isEmpty()) continue;
                 partners.add(activity.dormPartnerZh);
                 String progress;
                 if (observed == null) {
-                    progress = "尚未同步进度";
+                    progress = "还没记进度";
                 } else {
                     int count = activity.idx >= 0 && activity.idx < observed.used.length
                             ? Math.max(0, observed.used[activity.idx]) : 0;
-                    progress = "已记录 " + count + " 次（特性进度 " + Math.min(3, count) + "/3）";
+                    progress = count >= 3 ? "做满 3 次了" : "做过 " + count + " 次，再 " + (3 - count) + " 次解锁特性";
                 }
+                String note = activity.noteZh == null ? "" : activity.noteZh.replace(DORM_RULE, "").trim();
+                note = note.replace("，同一种活动累计3次可解锁或强化队友特性", "").trim();
                 dormLines.add(activity.dormPartnerZh + " · " + activity.zh + "\n"
-                        + "本期晚上：" + String.join("、", dates) + "\n" + progress
-                        + (gains.isEmpty() ? "；不加个人能力值" : "；" + gains)
-                        + (activity.noteZh == null || activity.noteZh.isEmpty() ? "" : "。" + activity.noteZh));
+                        + "能做的晚上：" + dates + "\n" + progress
+                        + (gains.isEmpty() ? "" : " · " + gains)
+                        + (note.isEmpty() ? "" : "\n" + note));
             }
         }
         if (!dormLines.isEmpty()) {
@@ -325,14 +342,33 @@ public final class PeriodTips {
             item.kind = Plan.Reminder.FEATURE;
             item.labelZh = "宿舍活动";
             item.slot = Rules.slot(period.fromDay, false);
-            item.textZh = "本期可选宿舍活动：" + partners.size() + " 位队友，查看日期和进度";
-            item.detailZh = "免费，占用整个晚上。同一项目完成 3 次解锁队友特性，两个项目各完成 3 次后强化。"
-                    + "属性已满仍可推进特性。\n"
-                    + "园艺需提前种好作物，成熟后收获、再种苗。安排园艺前，在「同步现状」→「宿舍活动」开启「允许安排园艺」。\n\n"
+            List<String> names = new ArrayList<>(partners);
+            item.textZh = "和" + (names.size() <= 3 ? String.join("、", names)
+                    : String.join("、", names.subList(0, 2)) + " 等 " + names.size() + " 位队友") + "一起做宿舍活动";
+            item.detailZh = "不花钱，但会用掉晚上。同一种活动做 3 次解锁队友特性，两种各 3 次强化。\n"
+                    + "园艺要先种好菜。\n\n"
                     + String.join("\n\n", dormLines);
             items.put(item.id, item);
             period.ongoingIds.add(item.id);
         }
+    }
+
+    /**
+     * 「5月13日、6月8日」; from {@code fromDay} on only (the whole-game lookup), the first
+     * {@value #UPCOMING_DATES} and then 「等」.
+     */
+    private static String dates(Rules rules, List<Integer> days, int fromDay) {
+        List<String> out = new ArrayList<>();
+        boolean more = false;
+        for (int day : days) {
+            if (day < fromDay) continue;
+            if (fromDay != Integer.MIN_VALUE && out.size() == UPCOMING_DATES) {
+                more = true;
+                break;
+            }
+            out.add(date(rules, day));
+        }
+        return String.join("、", out) + (more ? " 等" : "");
     }
 
     private static String gains(Rules rules, Rules.Activity activity) {
@@ -349,9 +385,12 @@ public final class PeriodTips {
         for (Rules.Link link : rules.links) {
             Rules.Unlock unlock = link.unlock;
             if (unlock == null || !inside(period, unlock.earliestDay)) continue;
+            boolean unlocked = observed != null && link.idx >= 0 && link.idx < observed.rank.length
+                    && observed.rank[link.idx] > 0;
+            // A link the player already has is no news in its opening period.
+            if (unlocked && !period.whole) continue;
             Plan.Reminder item = unlockTip(rules, observed, link);
-            if (link.kind != Rules.LinkKind.STORY && (observed == null || link.idx < 0
-                    || link.idx >= observed.rank.length || observed.rank[link.idx] == 0)) period.ongoingIds.add(item.id);
+            if (link.kind != Rules.LinkKind.STORY && !unlocked) period.ongoingIds.add(item.id);
             items.put(item.id, item);
         }
     }
@@ -366,9 +405,9 @@ public final class PeriodTips {
         item.slot = Rules.slot(unlock.earliestDay, link.evening);
         String name = nonempty(link.labelZh, nonempty(link.arcanaZh, "社群"));
         boolean story = link.kind == Rules.LinkKind.STORY;
-        item.textZh = name + (story ? "：随剧情自动开启" : "：本期起可尝试解锁");
+        item.textZh = name + (story ? " · 随剧情解锁" : "");
         List<String> lines = new ArrayList<>();
-        lines.add("最早" + date(rules, unlock.earliestDay) + (story ? "随剧情开启。" : "开放。"));
+        lines.add(date(rules, unlock.earliestDay) + (story ? "起随剧情解锁。" : "起可以解锁。"));
         List<String> conditions = new ArrayList<>();
         for (Rules.Stat stat : rules.stats) {
             Integer level = unlock.statLv.get(stat.idx);
@@ -378,17 +417,19 @@ public final class PeriodTips {
             Integer rank = unlock.linkRank.get(prerequisite.idx);
             if (rank != null) conditions.add(nonempty(prerequisite.arcanaZh, prerequisite.labelZh) + "社群 RANK " + rank);
         }
-        if (!conditions.isEmpty()) lines.add("前置条件：" + String.join("、", conditions) + "。");
+        if (!conditions.isEmpty()) lines.add("解锁条件：" + String.join("、", conditions) + "。");
         for (int i = 0; i < unlock.steps.size(); i++) {
             Rules.Step step = unlock.steps.get(i);
-            String time = step.consumesSlot ? "占用" + (step.evening ? "晚上" : "白天") : "不消耗时间";
-            lines.add((i + 1) + ". " + nonempty(step.howZh, step.zh) + "（" + time
-                    + (step.cost > 0 ? "；花费 " + step.cost + " 日元" : "")
-                    + (i > 0 && step.minGapDays > 0 ? "；与上一步至少间隔 " + step.minGapDays + " 天" : "") + "）");
+            List<String> notes = new ArrayList<>();
+            notes.add(step.consumesSlot ? "会用掉" + (step.evening ? "晚上" : "白天") : "不会消耗时间");
+            if (step.cost > 0) notes.add(String.format(Locale.ROOT, "%,d 日元", step.cost));
+            if (i > 0 && step.minGapDays > 0) notes.add("和上一步隔 " + step.minGapDays + " 天以上");
+            lines.add((i + 1) + ". " + nonempty(step.howZh, step.zh) + "（" + String.join("；", notes) + "）");
         }
         if (unlock.noteZh != null && !unlock.noteZh.isEmpty()) lines.add(unlock.noteZh);
         if (observed != null && link.idx >= 0 && link.idx < observed.rank.length && observed.rank[link.idx] > 0) {
-            lines.add("当前记录已建立此社群：RANK " + observed.rank[link.idx] + "。");
+            int rank = observed.rank[link.idx];
+            lines.add("已经解锁了，现在 " + (rank >= 10 ? "MAX" : "RANK " + rank) + "。");
         }
         item.detailZh = String.join("\n", lines);
         item.estimate = "estimate".equals(unlock.conf) || "conflict".equals(unlock.conf);
@@ -396,37 +437,39 @@ public final class PeriodTips {
     }
 
     private static void episodes(Rules rules, SimState observed, Period period, Map<String, Plan.Reminder> items) {
+        int today = Rules.dayOf(period.observedSlot);
         for (Rules.Episode track : rules.episodes) {
             for (int part = 1; part <= track.count; part++) {
-                List<String> dates = new ArrayList<>();
-                int first = -1;
+                List<Integer> days = new ArrayList<>();
                 for (int day = period.fromDay; day <= period.toDay; day++) {
-                    if (!track.allows(day, part)) continue;
-                    if (first < 0) first = day;
-                    dates.add(date(rules, day));
+                    if (track.allows(day, part)) days.add(day);
                 }
-                if (first < 0) continue;
+                if (days.isEmpty()) continue;
+                String dates = dates(rules, days, period.whole ? today : Integer.MIN_VALUE);
                 Plan.Reminder item = new Plan.Reminder();
                 item.id = "episode." + track.id + "." + part;
                 item.kind = Plan.Reminder.FEATURE;
                 item.labelZh = "羁绊剧情";
-                item.slot = Rules.slot(first, track.evening);
+                item.slot = Rules.slot(days.get(0), track.evening);
                 item.untilDay = track.lastDay(part);
                 item.priority = Plan.Reminder.MISSABLE;
-                item.textZh = nonempty(track.titleZh, "羁绊剧情 · " + track.personZh) + "（第 " + part + " 话）：查看本期日期";
-                String detail = "本期可看日期：" + String.join("、", dates) + "（" + (track.evening ? "晚上" : "白天") + "）。\n"
-                        + "这一话最后可看日期：" + date(rules, item.untilDay) + "；需要按顺序看，错过前面的剧情可能无法继续后续。"
-                        + "每话占用一个" + (track.evening ? "晚上" : "白天时段") + "。\n"
-                        + nonempty(track.howZh, "") + "\n";
+                item.textZh = nonempty(track.titleZh, "羁绊剧情 · " + track.personZh) + "（第 " + part + " 话）";
+                List<String> lines = new ArrayList<>();
+                if (!dates.isEmpty()) lines.add((track.evening ? "能看的晚上：" : "能看的日子：") + dates);
+                lines.add("最晚 " + date(rules, item.untilDay) + "。要按顺序看"
+                        + (part > 1 ? "，先看完第 " + (part - 1) + " 话。" : "。"));
+                if (track.howZh != null && !track.howZh.isEmpty()) lines.add(track.howZh);
                 String reward = track.rewardOf(part);
-                if (reward != null && !reward.isEmpty()) detail += "这一话奖励：" + reward + "。\n";
-                if (track.rewardZh != null && !track.rewardZh.isEmpty()) detail += track.rewardZh + "\n";
-                if (track.noteZh != null && !track.noteZh.isEmpty()) detail += track.noteZh + "\n";
-                if (observed != null && track.idx >= 0 && track.idx < observed.episodes.length) {
-                    detail += "当前记录已看 " + observed.episodes[track.idx] + " 话。\n";
+                if (reward != null && !reward.isEmpty()) lines.add("奖励：" + reward);
+                if (track.rewardZh != null && !track.rewardZh.isEmpty()) lines.add(track.rewardZh);
+                if (track.noteZh != null && !track.noteZh.isEmpty()) {
+                    // The planner's own reason for keeping a day free is not news for the player.
+                    lines.add(track.noteZh.replace("，这里已经先把那天空出来了", ""));
                 }
-                detail += "在「社群」页勾选对应的「羁绊剧情」可纳入安排。";
-                item.detailZh = detail;
+                if (observed != null && track.idx >= 0 && track.idx < observed.episodes.length) {
+                    lines.add("已经看了 " + observed.episodes[track.idx] + " 话。");
+                }
+                item.detailZh = String.join("\n", lines);
                 item.estimate = "estimate".equals(track.conf) || "conflict".equals(track.conf);
                 items.put(item.id, item);
             }
@@ -441,14 +484,15 @@ public final class PeriodTips {
         item.kind = Plan.Reminder.FEATURE;
         item.labelZh = "新开放";
         item.slot = Rules.slot(note.fromDay, true);
-        item.textZh = nonempty(note.zh, "交友网站笔记") + "开始出售：花费 " + note.cost + " 日元，占用晚上";
-        item.detailZh = nonempty(note.howZh, "") + "\n" + nonempty(note.noteZh, "");
+        item.textZh = nonempty(note.zh, "结缘网站的字条") + "开始卖了 · "
+                + String.format(Locale.ROOT, "%,d 日元", note.cost) + "，会用掉晚上";
+        item.detailZh = (nonempty(note.howZh, "") + "\n" + nonempty(note.noteZh, "")).trim();
         List<String> conditions = new ArrayList<>();
         for (Rules.Stat stat : rules.stats) {
             Integer level = note.requiresLv.get(stat.idx);
             if (level != null) conditions.add(stat.zh + (level >= 6 ? " MAX" : " Lv." + level));
         }
-        if (!conditions.isEmpty()) item.detailZh = append(item.detailZh, "进入购买地点需要：" + String.join("、", conditions) + "。");
+        if (!conditions.isEmpty()) item.detailZh = append(item.detailZh, "要" + String.join("、", conditions) + " 才能进店买。");
         item.estimate = "estimate".equals(note.conf) || "conflict".equals(note.conf);
         items.put(item.id, item);
     }
@@ -460,21 +504,32 @@ public final class PeriodTips {
         int until;
     }
 
+    /** The pack's reserved-slot lock reads as a guess; the day's own note says what may happen. */
+    private static final String RESERVED = "reserved";
+
     private static void calendar(Rules rules, Period period, Map<String, Plan.Reminder> items) {
         List<CalendarRange> ranges = new ArrayList<>();
         Map<String, CalendarRange> latest = new LinkedHashMap<>();
+        Plan.Reminder lastNote = null;
         for (int day = period.fromDay; day <= period.toDay; day++) {
             Rules.Day date = rules.day(day);
             if (date == null) continue;
-            if (date.noteZh != null && !date.noteZh.isEmpty() && !rescueNote(rules, day, date.noteZh)) {
-                Plan.Reminder item = new Plan.Reminder();
-                item.id = "calendar.note." + day;
-                item.kind = "calendar";
-                item.labelZh = "日历事项";
-                item.slot = Rules.slot(day, false);
-                item.textZh = date.noteZh;
-                item.detailZh = date.noteZh;
-                items.put(item.id, item);
+            String note = noteOf(date);
+            if (!note.isEmpty() && !rescueNote(rules, day, date.noteZh)) {
+                if (lastNote != null && lastNote.textZh.equals(note)
+                        && Math.max(Rules.dayOf(lastNote.slot), lastNote.untilDay) == day - 1) {
+                    // 暑期补习 six days running: one row over the range.
+                    lastNote.untilDay = day;
+                } else {
+                    Plan.Reminder item = new Plan.Reminder();
+                    item.id = "calendar.note." + day;
+                    item.kind = "calendar";
+                    item.labelZh = "日历事项";
+                    item.slot = Rules.slot(day, false);
+                    item.textZh = note;
+                    items.put(item.id, item);
+                    lastNote = item;
+                }
             }
             if (date.dayLock != null) addRange(ranges, latest, date.dayLock,
                     date.dayLock.equals(date.eveLock) ? 3 : 1, day);
@@ -488,12 +543,16 @@ public final class PeriodTips {
                 item.kind = "calendar";
                 item.labelZh = "重要日程";
                 item.slot = Rules.slot(day, false);
-                item.textZh = "满月作战日";
-                item.detailZh = "满月剧情与作战。";
+                item.textZh = "满月作战";
                 items.put(item.id, item);
             }
         }
         for (CalendarRange range : ranges) {
+            String label = nonempty(rules.lockReasonZh(range.reason), "剧情事件");
+            Rules.Day first = rules.day(range.from);
+            String firstNote = first == null ? "" : noteOf(first);
+            // A day whose note already says it (「暑期补习：学力 +3」, the reserved 1月21日) needs no second row.
+            if (firstNote.startsWith(label) || (RESERVED.equals(range.reason) && !firstNote.isEmpty())) continue;
             Plan.Reminder item = new Plan.Reminder();
             item.id = "calendar.lock." + range.reason + "." + range.mask + "." + range.from;
             item.kind = "calendar";
@@ -501,13 +560,21 @@ public final class PeriodTips {
             item.slot = Rules.slot(range.from, range.mask == 2);
             item.untilDay = range.until;
             period.calendarEndSlots.put(item.id, Rules.slot(range.until, (range.mask & 2) != 0));
-            String label = nonempty(rules.lockReasonZh(range.reason), "剧情安排");
             String times = range.mask == 3 ? "白天和晚上" : range.mask == 2 ? "晚上" : "白天";
-            item.textZh = label + "：" + date(rules, range.from)
-                    + (range.until == range.from ? "" : "～" + date(rules, range.until)) + "（" + times + "）";
-            item.detailZh = times + "用于" + label + "。";
+            item.textZh = label + " · " + times;
             items.put(item.id, item);
         }
+    }
+
+    /**
+     * A day's note as 提示 shows it: holidays that change nothing are left out, and the planner's own
+     * reasons (「所以先空出来」「默认按婉拒所有邀约来安排」) are cut.
+     */
+    private static String noteOf(Rules.Day date) {
+        String note = date.noteZh == null ? "" : date.noteZh.trim();
+        if (note.isEmpty()) return "";
+        if (date.type == Rules.DayType.HOLIDAY && note.length() <= 6 && !note.matches(".*[：；，。].*")) return "";
+        return note.replace("，所以先空出来", "").replace("默认按婉拒所有邀约来安排；", "");
     }
 
     private static void addRange(List<CalendarRange> ranges, Map<String, CalendarRange> latest,

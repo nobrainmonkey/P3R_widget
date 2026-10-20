@@ -44,7 +44,9 @@ public class TipsCatalogueTest {
             for (int scene = 2; scene <= 10; scene++) {
                 Plan.Reminder item = find(dialogues, "dialogue." + link.id + "." + scene);
                 assertNotNull(item);
-                assertTrue(item.textZh.contains("RANK " + (scene - 1) + " → " + scene));
+                assertTrue(item.textZh.contains(TipsCatalogue.rankStep(scene)));
+                assertTrue("RANK 10 is MAX", scene < 10 || item.textZh.contains("RANK 9 → MAX"));
+                assertFalse("the app says 回答：, the widget 答：", item.textZh.contains("\n答："));
                 assertSame(link, TipsCatalogue.dialogueLink(rules, item));
                 assertEquals(scene, TipsCatalogue.dialogueRank(item));
                 assertEquals("a lookup is not a calendar appointment", -1, item.slot);
@@ -63,8 +65,9 @@ public class TipsCatalogueTest {
         List<Plan.Reminder> exact = TipsCatalogue.filter(all.items, rules, "风花 RANK 1", TipsCatalogue.Content.ALL);
         assertEquals(1, exact.size());
         assertEquals("dialogue.priestess.2", exact.get(0).id);
-        assertTrue(exact.get(0).textZh.contains("没问题（首问） / 没问题（末问）"));
-        assertTrue(exact.get(0).detailZh.contains("完整问答顺序：\n没问题\n任意\n没问题"));
+        assertTrue(exact.get(0).textZh.contains("\n回答：没问题（首问） / 没问题（末问）"));
+        assertTrue(exact.get(0).detailZh.contains("第 1 问：没问题\n第 2 问：随便选\n第 3 问：没问题"));
+        assertFalse(exact.get(0).detailZh.contains("注意："));
         assertEquals("dialogue.priestess.2", TipsCatalogue.filter(all.items, rules, "女教皇1", TipsCatalogue.Content.ALL).get(0).id);
         assertEquals(1, TipsCatalogue.filter(all.items, rules, "风花 ｒ１", TipsCatalogue.Content.DIALOGUE).size());
         assertEquals(1, TipsCatalogue.filter(all.items, rules, "女教皇 1级", TipsCatalogue.Content.DIALOGUE).size());
@@ -245,7 +248,9 @@ public class TipsCatalogueTest {
         assertNull(find(current.items, "request.05-29.outings"));
         assertNull(find(current.items, "request.catalogue.77"));
         assertNotNull(find(current.items, "request.catalogue.75"));
-        assertNotNull(find(current.items, "request.10-06.faculty"));
+        assertNotNull("the faculty-office days are dated nudges, not batch notices",
+                find(current.items, "request.10-06.faculty"));
+        assertNull("the named requests replace the batch notice", find(current.items, "request.10-06"));
         PeriodTips.Period all = TipsCatalogue.all(rules, new Profile(), observed);
         assertNotNull(find(all.items, "fragment.05-25.club"));
         assertNotNull(find(all.items, "request.catalogue.77"));
@@ -517,6 +522,45 @@ public class TipsCatalogueTest {
         assertEquals(TipsCatalogue.Content.ALL, TipsCatalogue.contentForCategory(items, rules, "不存在"));
         assertEquals(TipsCatalogue.Content.ALL, TipsCatalogue.contentForCategory(items, rules, null));
         assertTrue(TipsCatalogue.categories(new ArrayList<>(), rules).isEmpty());
+    }
+
+    @Test public void routePreviewReadsTheOtherRouteWithoutTouchingTheProfile() throws Exception {
+        Rules rules = realRules();
+        Profile profile = new Profile();
+        int index = rules.linkIndex("priestess");
+        Plan.Reminder friend = TipsCatalogue.scene(rules, profile, index, 7, null);
+        Plan.Reminder romance = TipsCatalogue.scene(rules, profile, index, 7, Boolean.TRUE);
+        assertTrue(friend.textZh.contains("一定是这样"));
+        assertTrue(romance.textZh.contains("真的是这样吗"));
+        assertEquals(Profile.Route.UNDECIDED, profile.route[index]);
+        assertNull(TipsCatalogue.scene(rules, profile, rules.linkIndex("fool"), 2, null));
+    }
+
+    @Test public void displayedCatalogueTextHasNoJapaneseOrRawPointValues() throws Exception {
+        Rules rules = realRules();
+        Profile romance = new Profile();
+        java.util.Arrays.fill(romance.route, Profile.Route.ROMANCE);
+        java.util.regex.Pattern shorthand = java.util.regex.Pattern.compile("[\\u3040-\\u30ff]|♪|为\\s*[0-9]|均\\s*0|同分");
+        for (Profile profile : new Profile[]{new Profile(), romance}) {
+            for (Plan.Reminder item : TipsCatalogue.all(rules, profile, null).items) {
+                if (!TipsCatalogue.DIALOGUE.equals(item.kind)) continue;
+                for (String text : new String[]{item.textZh, item.detailZh}) {
+                    if (text != null) assertFalse(item.id + ": " + text, shorthand.matcher(text).find());
+                }
+            }
+        }
+        Plan.Reminder justice = TipsCatalogue.scene(rules, romance, rules.linkIndex("justice"), 9, null);
+        assertTrue(justice.detailZh, justice.detailZh.contains("这一场第2问只有「千寻是清白的」加好感"));
+        assertFalse(justice.detailZh, justice.detailZh.contains("门槛"));
+    }
+
+    @Test public void officialElementNamesReplaceTheOlderSpellingsButNotNames() {
+        assertEquals("无情冰鸦弱火焰", TipsCatalogue.officialTerms("无情冰鸦弱火炎"));
+        assertEquals("弱点：无；无效：神圣、暗黑", TipsCatalogue.officialTerms("弱点：无；无效：光、暗"));
+        assertEquals("杀戮双子弱电击、神圣", TipsCatalogue.officialTerms("杀戮双子弱电击、光"));
+        assertEquals("两只都反弹神圣和暗黑", TipsCatalogue.officialTerms("两只都反弹光和暗"));
+        assertEquals("优先击杀光之天秤", TipsCatalogue.officialTerms("优先击杀光之天秤"));
+        assertEquals("神圣炮台无弱点", TipsCatalogue.officialTerms("神圣炮台无弱点"));
     }
 
     private static Rules combatRules() {

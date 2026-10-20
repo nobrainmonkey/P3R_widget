@@ -1484,10 +1484,60 @@ GUIDANCE_EDITORIAL_COPY = {
 }
 
 
+# Research shorthand rewritten as player Chinese: Japanese option labels and the guides' raw ♪ /
+# point values ("为0", "为1♪", "均0", "同分") never reach the app. Display only; the evidence keeps
+# the original research wording.
+GUIDANCE_PLAYER_COPY = {
+    "此场第2问另一项自分で言うべき为0；推荐千寻是清白的为1♪。第4问也应选正向见证，而非任意。":
+        "这一场第2问只有「千寻是清白的」加好感；第4问选「我都看到了」。",
+    "第5问接受告白，最后一问两项均0。若R5早已走友情，则实际为另一场四问，当前目标不能恢复已经缺失的告白。":
+        "第5问接受告白，最后一问随便选。RANK 5 时选了友情回答的话，这一场只有四问，不会有告白。",
+    "已到终级，没有后续升级门槛；友情共4问，第2问「加油」或「千寻一定可以的」同分，其他三问均0。":
+        "朋友结局共4问：第2问选「加油」或「千寻一定可以的」都加好感，其他三问随便选。",
+    "已到终级，没有后续升级门槛；末问「什么意思？」有好感，不能把三个问题都当成同分任选。":
+        "最后一问选「什么意思？」才加好感，别随便选。",
+    "只做朋友时，第2问选不改训练菜单那项；与恋爱资格选项同分，不主动设置本次资格。":
+        "只做朋友就在第2问选不改训练菜单的那项，好感一样，也不会走向恋爱。",
+    "首问的两个回答同分，具体推荐「你们一定做得到」；第2问选「相信他们吧」。":
+        "首问两个回答加的好感一样，选「你们一定做得到」就好；第2问选「相信他们吧」。",
+    "末问男孩与女孩同分；不要选哪种都可以。":
+        "最后一问选男孩或女孩都加好感，别选哪种都可以。",
+    "另一项ガッツリ系也同为1♪，都可以那项为0；第2问两项均0。":
+        "第1问另一种风格也加好感，只有都可以那项不加；第2问随便选。",
+    "拒绝后的末问选知道了为1♪，别用为什么那项0；这和早期已友情的四问场景不同。":
+        "拒绝告白后，最后一问选「知道了」才加好感，别选问为什么的那项。",
+    "有资格时第4问接受告白；末问两项同为1♪，具体推荐「我喜欢结子」，也可按含义选「不是梦」。"
+    "若存档早已进入友情，不能直接恢复告白，见四问友情答法。":
+        "第4问接受告白；最后一问选「我喜欢结子」或「不是梦」都加好感。之前已经走了友情的话，这一场不会有告白，"
+        "按下面的四问答法。",
+    "末问谢谢为1♪，其他两项0；第1与第3问均不加好感。":
+        "最后一问选「谢谢」才加好感；第1问和第3问随便选。",
+    "两种答法同分": "两种回答加的好感一样",
+}
+
+# What must never be left in displayed dialogue copy: kana, ♪ marks and raw point values.
+RESEARCH_SHORTHAND = re.compile(r"[぀-ヿ]|♪|为\s*[0-9]|均\s*[0-9]|同分")
+
+
+def check_player_copy(value, where: str) -> None:
+    """Fail the build when displayed dialogue copy still carries research shorthand."""
+    if isinstance(value, str):
+        if RESEARCH_SHORTHAND.search(value):
+            raise BuildError(f"{where}: research shorthand in player copy: {value}")
+    elif isinstance(value, list):
+        for item in value:
+            check_player_copy(item, where)
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            check_player_copy(item, f"{where}.{key}")
+
+
 def completion_display_text(value):
     """Compile concise player copy without changing the original source quotations."""
     if isinstance(value, str):
         for before, after in GUIDANCE_EDITORIAL_COPY.items():
+            value = value.replace(before, after)
+        for before, after in GUIDANCE_PLAYER_COPY.items():
             value = value.replace(before, after)
         value = re.sub(r"(?<![A-Za-z])R\s*(\d+)", r"RANK \1", value)
         return fix_names(value.replace("Reload", "本作"))
@@ -1525,6 +1575,9 @@ def completed_dialogue_hints(completion: dict) -> dict[str, dict[str, dict]]:
     for scene in completion["scenes"]:
         entry = {"conf": "single", "src": sorted({"ev_dialogue_completion", *scene["sourceIds"]})}
         entry.update({route: compile_completion_variant(variant, route) for route, variant in scene["variants"].items()})
+        for route in ("common", "friend", "romance"):
+            if route in entry:
+                check_player_copy(entry[route], f"dialogue completion {scene['link']}.{scene['rank']}.{route}")
         out.setdefault(scene["link"], {})[str(scene["rank"])] = entry
     return out
 

@@ -53,8 +53,10 @@ public class CombatViewsTest extends UiTestBase {
         View row = row(a, "combat.catalogue.guardian.36");
         String card = Shots.allText(row);
         assertTrue(card, card.contains("魔法手 ×2"));
-        assertTrue(card, card.contains("弱点：火"));
-        assertTrue(card, card.contains("弱点：斩、冰、光"));
+        assertTrue("per-enemy weakness tags in official names: " + card, card.contains("欺骗的巨轮\n火焰"));
+        assertTrue(card, card.contains("魔法手 ×2\n斩击\n冰冻\n神圣"));
+        assertFalse(card, card.contains("阵容／阶段"));
+        assertFalse("a chevron, not an instruction", card.contains("查看属性与打法"));
         Shots.shot(a, "combat_multi_enemy_card");
         assertTrue(row.performClick());
         Shots.idle();
@@ -92,7 +94,7 @@ public class CombatViewsTest extends UiTestBase {
         assertTrue(row(a, "combat.catalogue.may").performClick());
         Shots.idle();
         assertTrue(Shots.allText(a.sheets().content()).contains("5月9日"));
-        assertTrue(Shots.allText(a.sheets().content()).contains("不触发弱点"));
+        assertTrue(Shots.allText(a.sheets().content()).contains("×2 伤害翻倍但不会倒地"));
         Shots.shot(a, "combat_fullmoon_matrix");
         Shots.click(a, "知道了");
         assertTrue(row(a, "combat.catalogue.awakening").performClick());
@@ -118,7 +120,7 @@ public class CombatViewsTest extends UiTestBase {
         View card = row(a, "combat.catalogue.monad.passage.91");
         String text = Shots.allText(card);
         assertTrue(text, text.contains("无弱点"));
-        assertTrue(text, text.contains("火伤害 ×2"));
+        assertTrue(text, text.contains("火焰 ×2"));
         assertFalse(text, text.contains("弱点：火"));
         assertTrue(card.performClick());
         Shots.idle();
@@ -140,7 +142,8 @@ public class CombatViewsTest extends UiTestBase {
         String body = Shots.allText(detail);
         assertFalse(body, body.contains("旧抗性正文"));
         assertTrue(body, body.contains("用万能攻击，留意蓄力。"));
-        assertTrue(body, body.contains("不触发弱点"));
+        assertTrue(body, body.contains("×2 伤害翻倍但不会倒地 · * 不会被冻结／触电／即死"));
+        assertFalse("one legend line, no stacked notes: " + body, body.contains("不触发弱点"));
         Shots.shot(a, "combat_monad_affinity_semantics");
         assertTrue(api.calls.isEmpty());
     }
@@ -156,7 +159,9 @@ public class CombatViewsTest extends UiTestBase {
         HomeActivity a = battle();
         View card = row(a, "combat.catalogue.combat.adamah_final.264");
         String text = Shots.allText(card);
-        assertTrue(text, text.contains("阵容／阶段"));
+        assertTrue(text, text.contains("倪克斯化身"));
+        assertTrue("one tag line when the phases agree, else one line: " + text,
+            text.contains("无弱点") || text.contains(CombatViews.EVERY_PHASE));
         assertFalse(text, text.contains("×14"));
         assertFalse(text, text.contains("14只"));
         assertTrue(card.performClick());
@@ -183,12 +188,9 @@ public class CombatViewsTest extends UiTestBase {
         Intent intent = new Intent(RuntimeEnvironment.getApplication(), HomeActivity.class);
         intent.putExtra(Intents.EXTRA_TAB, "tips");
         HomeActivity a = home(intent);
-        Shots.click(a, "全部");
-        a.getWindow().getDecorView().findViewWithTag("tips_filter_button").performClick();
+        assertTrue(a.getWindow().getDecorView().findViewWithTag("tips_scope_all").performClick());
         Shots.idle();
-        assertTrue(Shots.clickTarget(Shots.find(a.sheets().content(), "战斗")).performClick());
-        Shots.idle();
-        assertTrue(Shots.clickTarget(Shots.find(a.sheets().content(), "应用")).performClick());
+        assertTrue("one tap on 战斗", a.getWindow().getDecorView().findViewWithTag("tips_content_combat").performClick());
         Shots.idle();
         assertFalse(a.sheets().isShowing());
         return a;
@@ -231,7 +233,11 @@ public class CombatViewsTest extends UiTestBase {
         assertNotNull(list);
         for (int i = 0; i < list.getAdapter().getCount(); i++) {
             TipsPage.Item item = (TipsPage.Item) list.getAdapter().getItem(i);
-            if (item.reminder != null && id.equals(item.reminder.id)) return list.getAdapter().getView(i, null, list);
+            if (item.reminder != null && id.equals(item.reminder.id)) {
+                View view = list.getAdapter().getView(i, null, list);
+                View row = view.findViewWithTag("tips_row_" + id);
+                return row != null ? row : view;
+            }
             if (item.group != null) for (app.p3r.dayplanner.v3.engine.Plan.Reminder entry : item.group.entries) {
                 if (id.equals(entry.id)) return list.getAdapter().getView(i, null, list).findViewWithTag("tips_entry_" + id);
             }

@@ -60,36 +60,156 @@ public final class TipsCatalogue {
                 dialogues.add(opening);
             }
             for (int scene = 2; scene <= 10; scene++) {
-                DialogueHint.Answers answers = DialogueHint.lookupScene(rules, profile, index, scene);
-                if (answers.isEmpty()) continue;
-                Plan.Reminder item = new Plan.Reminder();
-                item.id = "dialogue." + link.id + "." + scene;
-                item.kind = DIALOGUE;
-                item.labelZh = "社群对话";
-                String name = name(link);
-                String route = link.romanceable
-                        ? DialogueHint.romanceRoute(profile, index) ? "恋人路线" : "朋友路线" : "";
-                String compact = DialogueHint.widgetLine(answers);
-                item.textZh = name + " · RANK " + (scene - 1) + " → " + scene
-                        + (route.isEmpty() ? "" : "（" + route + "）")
-                        + "\n" + (compact == null ? DialogueHint.appLine(answers) : compact);
-                List<String> detail = new ArrayList<>();
-                if (!answers.sequence.isEmpty()) {
-                    detail.add("完整问答顺序：\n" + String.join("\n", answers.sequence));
-                } else detail.add(DialogueHint.appLine(answers));
-                if (!answers.avoid.isEmpty()) detail.add("别选：" + String.join(" / ", answers.avoid));
-                if (answers.noteZh != null && !answers.noteZh.trim().isEmpty()) detail.add(answers.noteZh.trim());
-                if (link.noteZh != null && !link.noteZh.trim().isEmpty()) detail.add("注意：" + link.noteZh.trim());
-                item.detailZh = String.join("\n\n", detail);
-                // An undated scene must not look like a forecasted calendar appointment.
-                item.slot = -1;
-                dialogues.add(item);
+                Plan.Reminder item = scene(rules, profile, index, scene, null);
+                if (item != null) dialogues.add(item);
             }
         }
         dialogues.addAll(catalogue.items);
         catalogue.items = dialogues;
         return catalogue;
     }
+
+    /** 「RANK 3 → 4」, 「RANK 9 → MAX」 for the scene that ranks a link up into {@code scene}. */
+    public static String rankStep(int scene) {
+        return "RANK " + (scene - 1) + " → " + (scene >= 10 ? "MAX" : String.valueOf(scene));
+    }
+
+    /**
+     * One rank-up scene as 提示 shows it: 「女教皇 · 山岸风花 · RANK 1 → 2」 with the app's
+     * 「回答：…」 line, and the full answers as numbered questions (「第 1 问：没问题」) in the
+     * details. {@code romance} previews a route without touching the profile (null: the profile's
+     * route). Null when the guide has nothing on the scene.
+     */
+    public static Plan.Reminder scene(Rules rules, Profile profile, int index, int scene, Boolean romance) {
+        if (rules == null || index < 0 || index >= rules.links.length || rules.links[index] == null) return null;
+        Rules.Link link = rules.links[index];
+        Profile shown = profile;
+        if (romance != null) {
+            shown = new Profile();
+            if (index < shown.route.length) {
+                shown.route[index] = romance ? Profile.Route.ROMANCE : Profile.Route.FRIEND;
+            }
+        }
+        DialogueHint.Answers answers = DialogueHint.lookupScene(rules, shown, index, scene);
+        if (answers.isEmpty()) return null;
+        Plan.Reminder item = new Plan.Reminder();
+        item.id = "dialogue." + link.id + "." + scene;
+        item.kind = DIALOGUE;
+        item.labelZh = "社群对话";
+        String line = answerLine(answers);
+        item.textZh = name(link) + " · " + rankStep(scene) + (line == null ? "" : "\n" + line);
+        List<String> detail = new ArrayList<>();
+        String questions = questions(answers.sequence);
+        if (!questions.isEmpty()) detail.add(questions);
+        else if (line != null) detail.add(line);
+        if (!answers.avoid.isEmpty()) {
+            List<String> avoid = new ArrayList<>();
+            for (String answer : answers.avoid) {
+                String bare = DialogueHint.withoutCounts(answer);
+                if (!bare.isEmpty()) avoid.add("「" + bare + "」");
+            }
+            if (!avoid.isEmpty()) detail.add("别选" + String.join("", avoid));
+        }
+        String note = playerNote(answers.noteZh);
+        if (!note.isEmpty()) detail.add(note);
+        if (link.noteZh != null && !link.noteZh.trim().isEmpty()) detail.add(link.noteZh.trim());
+        item.detailZh = String.join("\n\n", detail);
+        // An undated scene must not look like a forecasted calendar appointment.
+        item.slot = -1;
+        return item;
+    }
+
+    /**
+     * The scene's answers in one line: 「回答：没问题（首问） / 没问题（末问）」, 「回答：怎么回答都可以」,
+     * or the guide's short note (「观看剧情即可」); null when there is nothing to say.
+     */
+    public static String answerLine(DialogueHint.Answers a) {
+        if (a == null || a.isEmpty()) return null;
+        List<String> choices = DialogueHint.widgetChoices(a);
+        if (!choices.isEmpty()) return DialogueHint.PREFIX + String.join(" / ", choices);
+        if (a.any) return DialogueHint.ANY;
+        if (a.shortNoteZh != null && !a.shortNoteZh.trim().isEmpty()) return a.shortNoteZh.trim();
+        if (a.friendCaution) return "只想做朋友？别选表白的回答";
+        return null;
+    }
+
+    /** Lines of a dialogue detail that are the numbered questions: 「第 2 问：随便选」. */
+    public static final Pattern QUESTION = Pattern.compile("^第 (\\d+) 问：(.*)$");
+
+    /**
+     * The guide's ordered answers as numbered questions; a 【…】 heading of another route or an
+     * earlier choice becomes its own line ending in 「：」 and restarts the count, and an authored
+     * sentence (ending in 「。」) stays a plain line.
+     */
+    static String questions(List<String> sequence) {
+        List<String> lines = new ArrayList<>();
+        int number = 0;
+        for (String raw : sequence) {
+            String entry = raw == null ? "" : raw.trim();
+            if (entry.isEmpty()) continue;
+            if (entry.startsWith("【") && entry.endsWith("】")) {
+                lines.add(heading(entry.substring(1, entry.length() - 1)) + "：");
+                number = 0;
+            } else if (entry.endsWith("。")) {
+                lines.add(playerNote(entry));
+            } else {
+                String answer = entry.startsWith("任意") ? "随便选" + entry.substring(2) : entry;
+                lines.add("第 " + (++number) + " 问：" + answer);
+            }
+        }
+        return String.join("\n", lines);
+    }
+
+    private static String heading(String text) {
+        switch (text) {
+            case "按友情目标的推荐流程": return "只做朋友";
+            case "按恋爱目标的推荐流程": return "走恋爱线";
+            default: return text;
+        }
+    }
+
+    /** Guide-author shorthand in the notes, as 提示 says it (the widget keeps its own short notes). */
+    private static final String[][] NOTE_WORDS = {
+        {"两句都是最高收益之一", "两句都加好感"},
+        {"此答也是最高收益之一", "这句也加好感"},
+        {"好感收益相同", "加的好感一样"},
+        {"收益相同", "加的好感一样"},
+        {"同收益", "加的好感一样"},
+        {"收益较低", "加的好感少"},
+        {"主序列适用于", "上面的回答适用于"},
+    };
+    private static final Pattern NO_NEXT_RANK = Pattern.compile(
+            "[；，]?(?:已到(?:终级|MAX)，)?(?:MAX后)?(?:没有|无)(?:后续|下一级)(?:升级|好感)?(?:升级)?门槛[。；]?");
+
+    /** An authored note without the guide's modelling words; "" when nothing is left. */
+    static String playerNote(String note) {
+        if (note == null) return "";
+        String out = note.trim();
+        for (String[] words : NOTE_WORDS) out = out.replace(words[0], words[1]);
+        out = NO_NEXT_RANK.matcher(out).replaceAll("");
+        out = out.trim();
+        if (out.startsWith("；") || out.startsWith("，")) out = out.substring(1).trim();
+        if (!out.isEmpty() && !out.endsWith("。") && !out.endsWith("！") && !out.endsWith("？")) out += "。";
+        return out.equals("。") ? "" : out;
+    }
+
+    /**
+     * Element names as the official Simplified Chinese game writes them (火焰、神圣、暗黑), for combat
+     * text the rule pack still words with the older 火炎 / 光 / 暗.
+     */
+    public static String officialTerms(String text) {
+        if (text == null || text.isEmpty()) return text;
+        String out = text.replace("火炎", "火焰").replace("光属性", "神圣属性").replace("暗属性", "暗黑属性")
+                .replace("光和暗", "神圣和暗黑");
+        out = ELEMENT_LIGHT.matcher(out).replaceAll("神圣");
+        return ELEMENT_DARK.matcher(out).replaceAll("暗黑");
+    }
+
+    private static final Pattern ELEMENT_LIGHT = Pattern.compile("(?<=[：、弱])光(?=[、；。，\\n]|$)");
+    private static final Pattern ELEMENT_DARK = Pattern.compile("(?<=[：、弱])暗(?=[、；。，\\n]|$)");
+
+    /** Dated batch notices (「伊莉莎白有新的委托」, 「第 12、13 号委托 6月6日截止」): the named entries say it all. */
+    private static final Pattern BATCH_NOTICE = Pattern.compile("request\\.\\d\\d-\\d\\d(?:\\.deadline|\\.outings)?");
 
     private static void addRequests(PeriodTips.Period period, Rules rules, boolean all) {
         if (rules == null || rules.reminders == null || rules.reminders.requestTips.isEmpty()) return;
@@ -98,6 +218,7 @@ public final class TipsCatalogue {
             // lookup instead has one independently named entry per request, not 26 partial notices.
             period.items.removeIf(item -> Plan.Reminder.REQUEST.equals(item.kind));
         }
+        int before = period.items.size();
         for (Rules.RequestTip request : rules.reminders.requestTips) {
             int until = request.untilDay < 0 ? request.fromDay : request.untilDay;
             if (!all && (request.fromDay > period.toDay || until < period.fromDay)) continue;
@@ -112,6 +233,11 @@ public final class TipsCatalogue {
             if (request.untilDay >= 0) item.priority = Plan.Reminder.MISSABLE;
             else period.ongoingIds.add(item.id);
             period.items.add(item);
+        }
+        if (!all && period.items.size() > before) {
+            // 本期 lists every named request of the period; the batch notices would repeat them.
+            period.items.removeIf(item -> Plan.Reminder.REQUEST.equals(item.kind) && item.id != null
+                    && BATCH_NOTICE.matcher(item.id).matches());
         }
     }
 
@@ -348,6 +474,9 @@ public final class TipsCatalogue {
         Rules.CombatTip combat = combatTip(rules, item);
         if (combat != null) {
             add(text, combat.tacticsZh);
+            // The cards say 火焰 / 神圣 / 暗黑 (officialTerms); either spelling finds the fight.
+            add(text, officialTerms(combat.tacticsZh));
+            add(text, officialTerms(item.textZh));
             for (Rules.CombatEnemy enemy : combat.enemies) add(text, enemy.nameZh);
             if ("monad".equals(combat.kind)) add(text, "passage".equals(combat.encounterType) ? "蒙纳多通道" : "蒙纳多之门");
             if (combatGroup(combat) == CombatGroup.STORY) add(text, "剧情作战");
