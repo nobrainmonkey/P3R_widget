@@ -101,10 +101,10 @@ public class RescueDeadlineRealPackTest {
             assertTrue(r.id, evening.assumptions.contains(CLAIM));
             assertTrue(evening.subtitleZh, evening.subtitleZh.endsWith("救出" + r.zh));
             String date = rules.day(r.toDay).month() + "月" + rules.day(r.toDay).dayOfMonth() + "日";
-            // The only evening left: the plan uses it, and says the evidence has it in time but nobody checked it.
-            assertEquals("今天是救出" + r.zh + "的最后期限：" + Labels.LIMIT_EVENING_CAVEAT, evening.whyZh);
+            // The only evening left: the plan uses it, and says it is the last chance (the glossary's words).
+            assertEquals("今天是救出" + r.zh + "的最后期限，" + Labels.LIMIT_EVENING_CAVEAT, evening.whyZh);
             assertTrue(plan.summary.notesZh.toString(), plan.summary.notesZh.contains(rules.links[r.link].arcanaZh
-                    + "：只剩期限当天（" + date + "）的晚上能救出" + r.zh + "，" + Labels.LIMIT_EVENING_CAVEAT));
+                    + "：" + date + "晚上是救出" + r.zh + "的最后机会"));
             String broken = RescueMargin.broken(rules, profile, onLimit, plan);
             assertTrue(broken, broken == null);
             assertTrue(r.id + " goes on after the rescue", plan.summary.endRanks[r.link] > 3);
@@ -183,7 +183,7 @@ public class RescueDeadlineRealPackTest {
                             assertTrue(where + ": " + l, l.earlier && l.matters && l.slot >= 0 && Rules.dayOf(l.slot) <= r.toDay - 1);
                             days.append(' ').append(rules.day(Rules.dayOf(l.slot)).md);
                         }
-                        for (String note : plan.summary.notesZh) assertFalse(where + ": " + note, note.contains(Labels.LIMIT_EVENING_CAVEAT));
+                        for (String note : plan.summary.notesZh) assertFalse(where + ": " + note, note.contains("的最后机会"));
                         checked++;
                     }
                 }

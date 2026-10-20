@@ -54,10 +54,10 @@ public class ReauditWordingTest extends UiTestBase {
     public void theBudgetLinePromisesARerunOnlyWhileOneIsPending() {
         assertNull("a complete plan says nothing about time", InfoPages.budgetLine(new Plan()));
 
-        Plan first = exhausted(NOTE_PENDING, "女教皇：这次的安排里没排到 MAX（先保证了皇帝）。");
+        Plan first = exhausted(NOTE_PENDING, "女教皇：没排到 MAX，先保证了皇帝 · 预计停在 RANK 7");
         assertEquals(InfoPages.BUDGET_PENDING, InfoPages.budgetLine(first));
         assertEquals("the card says it; the bullets do not repeat it",
-                Collections.singletonList("女教皇：这次的安排里没排到 MAX（先保证了皇帝）。"), InfoPages.notesBelow(first));
+                Collections.singletonList("女教皇：没排到 MAX，先保证了皇帝 · 预计停在 RANK 7"), InfoPages.notesBelow(first));
 
         // The follow-up itself ran out again (re-audit case a), with today's and core's newer note.
         for (String note : new String[]{NOTE_FOLLOW_UP, NOTE_ROUGH}) {
@@ -94,7 +94,7 @@ public class ReauditWordingTest extends UiTestBase {
         String text = Shots.allText(a.getWindow().getDecorView());
         assertEquals("the engine's note is said once, as the hero's chip", 0, count(text, "这次没来得及算完"));
         assertEquals(text, 1, count(text, InfoPages.BUDGET_PENDING));
-        assertTrue("the other notes are still listed", text.contains("这次的安排里没排到 MAX（先保证了皇帝）。"));
+        assertTrue("the other notes are still listed", Shots.has(a, "女教皇：没排到 MAX，先保证了皇帝 · 预计停在 RANK 7"));
         Shots.shot(a, "explain_budget_pending");
     }
 

@@ -83,9 +83,9 @@ public class RescueMarginTest {
                     String where = "start " + day + (evening ? " evening" : "") + ", " + profile.style + ", goals " + profile.hasAnyGoal();
                     assertTrue(where + ": rescued on day " + (rescue.slot >> 1), rescue.slot >> 1 <= LIMIT - 1);
                     assertNull(where, RescueMargin.broken(rules, profile, start, p));
-                    // The step says the plan does not wait for the limit day, and nothing about an unchecked evening.
-                    assertEquals("北村文吉失踪了，期限 5月16日，救不出来的话教皇社群就无法继续；安排不等到期限当天", rescue.whyZh);
-                    for (String note : p.summary.notesZh) assertFalse(note, note.contains(Labels.LIMIT_EVENING_CAVEAT));
+                    // The step says the deadline and what is at stake, nothing about the plan or the limit evening.
+                    assertEquals("北村文吉失踪了，期限 5月16日，救不出来教皇社群就没法继续了", rescue.whyZh);
+                    for (String note : p.summary.notesZh) assertFalse(note, note.contains("的最后机会"));
                     checked++;
                 }
             }
@@ -101,9 +101,9 @@ public class RescueMarginTest {
         Plan p = plan(rules, profile, start);
         Plan.Step rescue = rescueStep(p);
         assertEquals(Rules.slot(LIMIT, true), rescue.slot);
-        assertEquals("今天是救出北村文吉的最后期限：" + Labels.LIMIT_EVENING_CAVEAT, rescue.whyZh);
-        assertTrue(p.summary.notesZh.toString(),
-                p.summary.notesZh.contains("教皇：只剩期限当天（5月16日）的晚上能救出北村文吉，" + Labels.LIMIT_EVENING_CAVEAT));
+        assertEquals("今天是救出北村文吉的最后期限，最晚今晚救出", rescue.whyZh);
+        // The note can be read weeks ahead: a date, never 「今晚」.
+        assertTrue(p.summary.notesZh.toString(), p.summary.notesZh.contains("教皇：5月16日晚上是救出北村文吉的最后机会"));
         assertTrue("教皇 goes on after the rescue", p.summary.endRanks[RulesFixtures.S_HIEROPHANT] > 2);
         assertNull(RescueMargin.broken(rules, profile, start, p));
     }
@@ -119,8 +119,8 @@ public class RescueMarginTest {
         Plan.Step rescue = rescueStep(p);
         assertEquals(Rules.slot(LIMIT, true), rescue.slot);
         assertTrue(rescue.whyZh, rescue.whyZh.contains(Labels.LIMIT_EVENING_CAVEAT));
-        assertTrue(p.summary.notesZh.toString(),
-                p.summary.notesZh.contains("教皇：只剩期限当天（5月16日）的晚上能救出北村文吉，" + Labels.LIMIT_EVENING_CAVEAT));
+        assertTrue(p.summary.notesZh.toString(), p.summary.notesZh.contains("教皇：5月16日晚上是救出北村文吉的最后机会"));
+        for (String note : p.summary.notesZh) assertFalse(note, note.contains("今晚"));
         assertNull(RescueMargin.broken(rules, profile, start, p));
     }
 

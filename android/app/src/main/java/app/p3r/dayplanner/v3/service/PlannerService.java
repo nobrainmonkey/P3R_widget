@@ -76,25 +76,26 @@ public final class PlannerService implements PlannerApi {
     private static final long DEEP_CHANGES_BUDGET_MILLIS = 12_000;
     private static final long MANUAL_DEEP_BUDGET_MILLIS = 30_000;
 
-    static final String ZH_STALE = "记录已经更新过了，请看最新的安排";
-    static final String ZH_CONFLICT = "刚才已经保存过另一份结果，这次没有保存";
-    static final String ZH_IO = "保存失败了，请再试一次";
+    static final String ZH_STALE = "安排刚更新过，看看最新的吧";
+    static final String ZH_CONFLICT = "这一项刚才已经记过了";
+    static final String ZH_IO = "没保存上，再试一次？";
+    // The load errors and ZH_PLAN_FAILED_* are also the widget's error cue (Snapshot#planErrorZh).
     static final String ZH_RULES_MISSING = "游戏资料读取失败，请重新打开应用";
     static final String ZH_DB_MISSING = "读取记录失败了，请重新打开应用";
-    static final String ZH_COMMAND_ID = "保存失败了，请再试一次";
-    static final String ZH_OUTCOME_MISSING = "请先选择结果";
-    static final String ZH_TOWER_MISSING = "请先填写这次探索塔尔塔罗斯的结果";
+    static final String ZH_COMMAND_ID = "没保存上，再试一次？";
+    static final String ZH_OUTCOME_MISSING = "先选一个结果";
+    static final String ZH_TOWER_MISSING = "先填好这次探索的结果";
     /** A failed replan with a plan installed (out of date): it stays, as 从头重新安排's 「现在的安排不变」 says. */
     static final String ZH_PLAN_FAILED_KEPT = "生成安排时出了问题，现在的安排先不变";
     static final String ZH_PLAN_FAILED_NONE = "生成安排时出了问题，请稍后再试";
     /** Import duplicate with nothing recorded since: the data already is the backup. */
-    static final String ZH_IMPORT_ALREADY = "这份备份刚才已经恢复过了，现在的进度就是备份里的";
+    static final String ZH_IMPORT_ALREADY = "这份备份刚恢复过，现在就是备份里的进度";
     /** Import duplicate after newer records: nothing was replaced. */
-    static final String ZH_IMPORT_ALREADY_LATER = "这份备份之前已经恢复过，之后又有新的记录，这次没有改动";
+    static final String ZH_IMPORT_ALREADY_LATER = "这份备份之前恢复过，之后又记了新的，这次什么都没改";
 
     /** {@link Snapshot#noticeZh} for {@code n} records that no longer fit the game data. */
     static String mismatchNotice(int n) {
-        return "有 " + n + " 条记录和现在的游戏资料对不上，建议「同步现状」核对一下";
+        return "更新后有 " + n + " 条记录对不上，去「同步现状」核对一下？";
     }
 
     private static volatile PlannerService instance;
@@ -776,7 +777,7 @@ public final class PlannerService implements PlannerApi {
             if (!correctedRows.contains(target.seq) || !correctedRows.containsAll(baselineRows)
                     || !baseline.problemRows.containsAll(corrected.problemRows)
                     || corrected.problems > baseline.problems || corrected.state.slot != baseline.state.slot)
-                return Rejection.invalid("修改后有记录无法接续，请核对这次结果和后面的记录").toReceipt();
+                return Rejection.invalid("这样改，后面的记录就接不上了，先看看后面的记录？").toReceipt();
             return append(view, commandId, view.checkpointId, EventKind.OUTCOME_FIX, json);
         });
     }

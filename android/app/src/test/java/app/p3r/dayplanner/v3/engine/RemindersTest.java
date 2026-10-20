@@ -152,7 +152,7 @@ public class RemindersTest {
         assertEquals("保健室：勇气 +2", afterTower.shortZh);
         assertEquals("勇气 +2", afterTower.gainZh);
         assertEquals(Plan.Reminder.DEADLINE, afterTower.priority);
-        assertTrue(afterTower.detailZh.contains("1 楼保健室喝药，勇气 +2，不消耗时间"));
+        assertEquals("the line already says 勇气 +2", "放学后去 1 楼保健室喝药，不会消耗时间。", afterTower.detailZh);
         assertNull("4/26 is a Sunday", find(plan, "nurse.04-26"));
         assertNotNull("the 5/12 full-moon operation", find(plan, "nurse.05-13"));
         assertNull("no Tartarus on 4/22 evening", find(plan, "nurse.04-23"));
@@ -213,7 +213,7 @@ public class RemindersTest {
         assertEquals("北村文吉失踪了，期限 5月16日", first.textZh);
         assertTrue(first.detailZh.contains("北村文吉没救出来的话，教皇社群就没法继续了。"));
         // One person or many: the details never say 「他们」.
-        assertEquals("在塔尔塔罗斯找到失踪者并救出，可领取奖励。最晚在期限当天晚上救出，逾期无法救援。", Reminders.RESCUE_DETAIL);
+        assertEquals("在塔尔塔罗斯找到就能救出，还有奖励。期限当天晚上是最后机会。", Reminders.RESCUE_DETAIL);
         assertTrue(first.detailZh.startsWith(Reminders.RESCUE_DETAIL) && !first.detailZh.contains("他们"));
         assertEquals(ReminderFixtures.MISSING_TO, first.untilDay);
         Plan.Reminder more = find(plan, "rescue.05-13.start");
@@ -242,10 +242,10 @@ public class RemindersTest {
         assertEquals("失踪者：5月16日截止，这几天没安排去塔尔塔罗斯", late.textZh);
         assertEquals("失踪者 5月16日截止", late.shortZh);
         assertTrue("what the 5/13 group locks", late.detailZh.endsWith(ReminderFixtures.LOCKS));
-        assertEquals("最晚在期限当天晚上进入塔尔塔罗斯救出失踪者，逾期无法救援。", Reminders.DEADLINE_DETAIL);
+        assertEquals("期限当天晚上是最后机会，过了就救不出来了。", Reminders.DEADLINE_DETAIL);
         assertTrue(late.detailZh.startsWith(Reminders.DEADLINE_DETAIL));
         assertEquals(Plan.Reminder.MISSABLE, late.priority);
-        assertFalse("an evening before the limit", find(plan, "rescue.05-11.tower").detailZh.contains(Labels.LIMIT_EVENING_CAVEAT));
+        assertFalse("an evening before the limit", find(plan, "rescue.05-11.tower").detailZh.contains(Reminders.TOWER_LIMIT_NOTE));
     }
 
     /**
@@ -260,13 +260,12 @@ public class RemindersTest {
         Plan.Reminder tower = find(onLimit, "rescue.05-11.tower");
         assertEquals(eve(ReminderFixtures.MISSING_TO), tower.slot);
         assertEquals("今晚去塔尔塔罗斯时，顺便救出失踪者（3 人）", tower.textZh);
-        assertTrue(tower.detailZh, tower.detailZh.startsWith(Reminders.TOWER_DETAIL + "这是期限当天的晚上：" + Labels.LIMIT_EVENING_CAVEAT + "。"));
+        assertTrue(tower.detailZh, tower.detailZh.startsWith(Reminders.TOWER_DETAIL + "今晚是最后机会。"));
 
         SimState lastDay = ReminderFixtures.start(r, ReminderFixtures.MISSING_TO, 1, 1, 1);
         Plan.Reminder today = find(freePlan(r, lastDay), "rescue.05-11.deadline");
         assertEquals(day(ReminderFixtures.MISSING_TO), today.slot);
-        assertEquals("过了今天就救不出来了。今晚是期限当天的晚上：最晚今晚完成救援。",
-                Reminders.DEADLINE_TODAY_DETAIL);
+        assertEquals("过了今晚就救不出来了。", Reminders.DEADLINE_TODAY_DETAIL);
         assertTrue(today.detailZh, today.detailZh.startsWith(Reminders.DEADLINE_TODAY_DETAIL));
     }
 

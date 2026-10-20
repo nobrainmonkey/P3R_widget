@@ -129,7 +129,8 @@ public class IdleResourcePolicyTest {
         Plan fill = plan(rules, p, shortOfBuffer, 1_000);
         assertEquals("job", fill.steps.get(0).kind);
         assertEquals(5_000, fill.summary.endCash);
-        assertTrue(fill.steps.get(0).whyZh, fill.steps.get(0).whyZh.contains("现金保留额"));
+        // In the words of the setting (「手上至少留」), not a developer term.
+        assertEquals("手上至少要留 5,000 日元，先打工攒着", fill.steps.get(0).whyZh);
         SimState enough = finished(rules, rules.lastSlot(), 5_000);
         assertEquals("tower", plan(rules, p, enough, 1_000).steps.get(0).kind);
         enough.towerVisits[1] = 1;
@@ -160,6 +161,7 @@ public class IdleResourcePolicyTest {
         SimState state = finished(rules, rules.lastSlot(), 100_000);
         Plan.Step full = jobAlternative(rules, p, state);
         assertFalse(full.whyZh, full.whyZh.contains("提升"));
+        assertEquals("多赚点零花钱", full.whyZh);
         assertFalse(full.subtitleZh, full.subtitleZh.contains("魅力"));
         assertFalse(full.subtitleZh, full.subtitleZh.contains("勇气"));
         state.statPts[RulesFixtures.COURAGE]--;

@@ -123,9 +123,9 @@ public class AutomaticStoryStatTest {
         SimState start = RulesFixtures.newGame(rules, Rules.slot(21, false));
         Plan plan = assemble(rules, profile, start, new int[rules.lastSlot() - start.slot + 1]);
         Plan.Step daytime = plan.at(Rules.slot(21, false));
-        assertTrue(daytime.detailZh, daytime.detailZh.contains("今天有学校剧情"));
-        assertTrue(daytime.detailZh, daytime.detailZh.contains("剧情自动获得：学力 +3"));
-        assertTrue(daytime.subtitleZh, daytime.subtitleZh.contains("学力 +3"));
+        // The automatic gain is said once, as the subtitle's second line; the first stays the widget's lock cue.
+        assertEquals("今天有学校剧情", daytime.detailZh);
+        assertEquals("这段时间不能自由行动\n剧情自动获得：学力 +3", daytime.subtitleZh);
         Plan.Step evening = plan.at(Rules.slot(21, true));
         assertEquals("今天有学校剧情", evening.detailZh);
         assertEquals(0, evening.predicted.statDelta[RulesFixtures.ACADEMICS]);

@@ -46,12 +46,12 @@ public final class StoryDisplay {
             Rules.Day day = rules.day(Rules.dayOf(slot));
             String note = day == null || day.noteZh == null ? "" : day.noteZh.trim();
             if (Rules.LOCK_CHRISTMAS.equals(reason)) {
-                Rules.Link partner = profile == null ? null : rules.link(profile.christmasLink);
-                note = partner == null ? "已经答应了平安夜的邀约"
-                        : "已经答应了" + partner.personZh + "的平安夜邀约";
+                String partner = christmasPartner(rules, profile);
+                note = partner == null ? "已经答应了平安夜的邀约" : "已经答应了" + partner + "的平安夜邀约";
             }
+            // The note is said once, as the subtitle (also the widget's lock cue); no detail repeats it.
             step.subtitleZh = note.isEmpty() ? "这段时间不能自由行动" : note;
-            step.detailZh = note.isEmpty() ? null : note;
+            step.detailZh = null;
             steps.add(step);
         }
         List<Plan.Reminder> answers = new ArrayList<>();
@@ -76,6 +76,12 @@ public final class StoryDisplay {
             }
         }
         return steps.isEmpty() ? null : new StoryDisplay(key, from, to, first, steps, answers);
+    }
+
+    /** Whom the accepted 12/24 invitation is with, worded like the plan's own steps; null when unknown. */
+    private static String christmasPartner(Rules rules, Profile profile) {
+        Rules.Link link = profile == null || profile.christmasLink == null ? null : rules.link(profile.christmasLink.trim());
+        return link == null ? null : ZhText.who(link);
     }
 
     public boolean contains(int slot) {

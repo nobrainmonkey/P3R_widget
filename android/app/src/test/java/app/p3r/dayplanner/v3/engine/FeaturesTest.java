@@ -101,7 +101,8 @@ public class FeaturesTest {
             assertTrue(s.hintZh, s.hintZh.startsWith("记得带上「") && s.hintZh.endsWith("」阿尔卡那的人格面具"));
         }
         assertTrue("goal meetings carry the Persona hint", hinted > 5);
-        assertTrue(plan.summary.notesZh.toString(), plan.summary.notesZh.contains("和目标社群见面时带同阿尔卡那的人格面具，点数 ×1.51"));
+        // The notes say outcomes only: the bonus is on the meetings' hints, not repeated as a note.
+        for (String note : plan.summary.notesZh) assertFalse(note, note.contains("×1.51") || note.contains("人格面具"));
     }
 
     // ------------------------------------------------------------------ dating-site note
@@ -225,13 +226,13 @@ public class FeaturesTest {
         assertNotNull(alts.toString(), note);
         assertEquals("note", note.kind);
         assertEquals("magician", note.entity);
-        assertEquals("在放纵俱乐部买结缘网站的字条，给友近健二加好感", note.titleZh);
-        assertEquals("魔术师 · 好感 +10 · 3,000 日元", note.subtitleZh);
+        assertEquals("结缘网站的字条 · 友近健二", note.titleZh);
+        assertEquals("好感 +10 · 花费 3,000 日元", note.subtitleZh);
         assertEquals("桐叶购物中心 · 放纵俱乐部", note.locationZh);
         assertTrue(note.detailZh, note.detailZh.startsWith(rules.datingNote.howZh));
-        assertTrue(note.detailZh, note.detailZh.contains("不会让社群直接升级"));
+        assertTrue(note.detailZh, note.detailZh.endsWith("\n只加好感，不会直接升级。"));
         assertEquals(-3_000, note.predicted.cashDelta);
-        assertEquals("在放纵俱乐部买结缘网站的字条，给教皇社群加好感", alternative(alts, "note:hierophant").titleZh);
+        assertEquals("结缘网站的字条 · 教皇社群", alternative(alts, "note:hierophant").titleZh);
     }
 
     @Test
@@ -446,7 +447,7 @@ public class FeaturesTest {
         SimState s = smallState(rules, Rules.slot(SATURDAY, true));
         s.statPts[RulesFixtures.ACADEMICS] = rules.stats[RulesFixtures.ACADEMICS].thresholds[6] - 1;
         Plan.Step study = alternative(Engine.alternatives(rules, p, s), "act:study_room");
-        assertEquals("学力 +2（升到 MAX）· 免费", study.subtitleZh);
+        assertEquals("学力 +2（升到 MAX）", study.subtitleZh);
     }
 
     /**
@@ -455,7 +456,11 @@ public class FeaturesTest {
      */
     private static final String[] BANNED = {"练满", "开启", "会面", "加深关系", "自由时间", "自由安排", "爬塔", "Persona", "Lv.6",
             "规划", "计划", "约会", "社交链接", "牵绊", "未升级", "估算", "剧情时段", "假日邀约", "节日邀约", "主人公",
-            "时间不够", "不可能", "做不到", "null"};
+            "时间不够", "不可能", "做不到", "null",
+            // The planner's voice (DESIGN_3.6_UI §2): no hedges inside facts, no policy, no repeated 「这次的安排里」.
+            "预计不升级", "暂时无法", "安排不等", "这次的安排", "按这次的", "没能", "你记录了",
+            // Modelling assumptions are not notes: meeting gains, the goal buffer, note gains, the fee reserve.
+            "♪♪", "多留一次", "每张预计", "另留"};
     /** Glossary terms that contain a banned word on their own. */
     private static final String[] ALLOWED_TERMS = {"平安夜约会"};
 

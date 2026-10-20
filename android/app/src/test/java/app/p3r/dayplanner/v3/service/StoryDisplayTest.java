@@ -8,6 +8,7 @@ import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.store.TestRules;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -26,7 +27,23 @@ public class StoryDisplayTest {
         StoryDisplay story = StoryDisplay.create(rules, profile, "accepted", first, first + 1, first);
         assertTrue(story.at(first).subtitleZh, story.at(first).subtitleZh.contains("已经答应了"));
         assertTrue(story.at(first).subtitleZh.contains(rules.links[0].personZh));
-        assertTrue(!story.at(first).detailZh.contains("婉拒"));
+        assertFalse(story.at(first).subtitleZh.contains("婉拒"));
+        assertNull("the note is said once, as the subtitle", story.at(first).detailZh);
+    }
+
+    @Test
+    public void christmasPartnerWithoutAPersonNameNeverPrintsNull() {
+        Rules rules = TestRules.create();
+        int day = TestRules.MAY_12;
+        rules.days[day].md = "12-24";
+        rules.links[0].personZh = null;
+        Profile profile = new Profile();
+        profile.christmasLink = rules.links[0].id;
+        int first = Rules.slot(day, false);
+        StoryDisplay story = StoryDisplay.create(rules, profile, "accepted", first, first + 1, first);
+        String subtitle = story.at(first).subtitleZh;
+        assertFalse(subtitle, subtitle.contains("null"));
+        assertEquals("已经答应了" + rules.links[0].arcanaZh + "社群的平安夜邀约", subtitle);
     }
 
     @Test

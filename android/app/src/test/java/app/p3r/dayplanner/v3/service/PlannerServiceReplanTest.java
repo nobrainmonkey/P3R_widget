@@ -195,7 +195,7 @@ public class PlannerServiceReplanTest extends ServiceTestBase {
         PlannerApi.HistoryItem item = null;
         for (PlannerApi.HistoryItem h : service.history(5)) if (h.seq == first.eventSeq) item = h;
         assertNotNull(item);
-        assertTrue(item.summaryZh, item.summaryZh.contains("不记得钱了"));
+        assertTrue(item.summaryZh, item.summaryZh.endsWith("到达 25F · 现金没记"));
         assertTrue(item.tower.cashUnknown);
 
         int day = TestRules.MAY_12 + 1;

@@ -116,6 +116,20 @@ final class ZhText {
         }
     }
 
+    /**
+     * Who a link is, as a sentence names them (engine Labels#who): the one person ("山岸风花"), or
+     * "教皇社群" for a link of several people or without a name.
+     */
+    static String who(Rules.Link link) {
+        String person = link.personZh == null ? "" : link.personZh.trim();
+        boolean single = !person.isEmpty() && !person.contains("、") && !person.contains("和")
+                && !person.contains("/") && !person.endsWith("们");
+        if (single) {
+            return person;
+        }
+        return (link.arcanaZh == null ? "" : link.arcanaZh.trim()) + "社群";
+    }
+
     /** Joins non-null parts with " · ". */
     static String join(String... parts) {
         StringBuilder out = new StringBuilder();

@@ -418,7 +418,7 @@ public class PlannerTest {
         Plan plan = Engine.plan(rules, profile, start, null, generous());
         assertValid(rules, profile, start, plan);
         assertEquals(4, plan.summary.endRanks[RulesFixtures.S_MAGICIAN]);
-        assertEquals("魔术师：RANK 5 暂时无法升级（需要先听到学校里的传闻），先安排到 RANK 4", plan.summary.notesZh.get(0));
+        assertEquals("魔术师：RANK 5 升不了级（需要先听到学校里的传闻），先安排到 RANK 4", plan.summary.notesZh.get(0));
     }
 
     @Test
@@ -432,11 +432,16 @@ public class PlannerTest {
         Plan plan = Engine.plan(rules, profile, start, null, generous());
         assertValid(rules, profile, start, plan);
         assertEquals(4, plan.summary.endRanks[RulesFixtures.S_MAGICIAN]);
-        assertEquals("魔术师：RANK 5 暂时无法升级（你记录了剧情原因暂时升不了），先安排到 RANK 4", plan.summary.notesZh.get(0));
+        assertEquals("魔术师：RANK 5 要等剧情推进，先安排到 RANK 4", plan.summary.notesZh.get(0));
         int held = 0;
         int socialSteps = 0;
         for (Plan.Step s : plan.steps) {
-            if (s.action.equals("meet:magician")) held++;
+            if (s.action.equals("meet:magician")) {
+                held++;
+                // The fact line is just the meeting; the hold is said once, as the reason.
+                assertTrue(s.subtitleZh, s.subtitleZh.endsWith("RANK 4 · 见面"));
+                if (!s.subtitleZh.startsWith(Labels.INVITE)) assertEquals("要等剧情推进才能升级，先攒好感", s.whyZh);
+            }
             if ("social".equals(s.kind) || "unlock".equals(s.kind)) socialSteps++;
         }
         assertTrue("held meetings only fill otherwise empty daytimes: " + held + " of " + socialSteps, held * 2 <= socialSteps);
@@ -463,7 +468,7 @@ public class PlannerTest {
         for (Plan.Step s : alts) if (s.action.equals("act:job_chagall")) job = s;
         assertNotNull(job);
         assertEquals("咖啡店「夏卡尔」打工", job.titleZh);
-        assertEquals("预计 +2,500 日元 · 魅力 +1、勇气 +1", job.subtitleZh);
+        assertEquals("+2,500 日元 · 魅力 +1、勇气 +1", job.subtitleZh);
         assertEquals(2_500, job.predicted.cashDelta);
         assertTrue(Engine.alternatives(rules, profile, RulesFixtures.newGame(rules, Rules.slot(21, false))).isEmpty());
     }
@@ -483,7 +488,8 @@ public class PlannerTest {
         for (Plan.Step s : plan.steps) {
             String text = s.titleZh + "|" + s.subtitleZh + "|" + s.whyZh + "|" + s.locationZh;
             assertFalse(text, s.titleZh.isEmpty());
-            assertFalse(text, s.subtitleZh.isEmpty());
+            // A free slot's title says it all; every other step has a fact line.
+            assertEquals(text, "free".equals(s.kind), s.subtitleZh.isEmpty());
             assertFalse(text, text.contains("act:") || text.contains("meet:") || text.contains("unlock:"));
             for (String id : ids) assertFalse(text + " contains " + id, text.contains(id));
             if (s.productive()) assertNotNull(text, s.whyZh);

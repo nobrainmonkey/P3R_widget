@@ -40,14 +40,10 @@ final class Labels {
      */
     static final String INVITE = "休息日邀约";
     /**
-     * Summary note of a plan that pays an unlock fee: exactly the reserve rules of the kernel
-     * (Kernel.feeAffordable, Kernel.optionalHold). A fee leaves {@link Kernel#FEE_RESERVE} unless
-     * paying later would cost the link its target; once a fee is due within 14 days and affordable,
-     * paid training and 结缘网站的字条 leave the fee plus the reserve; on a fee day they leave the reserve.
+     * Why a meeting cannot rank up while the player has reported a story hold (outcome NOT_DONE,
+     * reason "hold"), and how the summary note says it.
      */
-    static final String FEE_NOTE = "优先留足社群解锁费用，通常另留 " + yen(Kernel.FEE_RESERVE) + "。";
-    /** The result-sheet answer for a story hold the player reports (outcome NOT_DONE, reason "hold"). */
-    static final String HOLD_ANSWER = "剧情原因暂时升不了";
+    static final String STORY_HOLD = "要等剧情推进";
 
     private final Model m;
     private final Rules rules;
@@ -140,7 +136,7 @@ final class Labels {
         // Rules.lockReasonZh also labels the reasons the engine adds itself (平安夜约会).
         String zh = rules.lockReasonZh(reason);
         if (!blank(zh)) return zh;
-        if ("out_of_range".equals(reason)) return "不在安排的日期内";
+        if ("out_of_range".equals(reason)) return "日程之外";
         return "剧情事件";
     }
 
@@ -211,9 +207,10 @@ final class Labels {
                 describeEpisode(step, st, target);
                 break;
             default:
+                // The title says it all; the why line is the widget's own cue for a free slot.
                 step.kind = "free";
                 step.titleZh = FREE_TITLE;
-                step.subtitleZh = "没有能推进目标的安排";
+                step.subtitleZh = "";
                 step.whyZh = "这个时段想做什么都行";
                 break;
         }
@@ -281,9 +278,8 @@ final class Labels {
                 if (d.automaticStatGain[s] > 0) gains.add(rules.stats[s].zh + " +" + d.automaticStatGain[s]);
             }
             if (!gains.isEmpty()) {
-                String automatic = "剧情自动获得：" + String.join("、", gains);
-                step.subtitleZh = joinLines(step.subtitleZh, automatic);
-                step.detailZh = joinLines(step.detailZh, automatic + "。");
+                // Once, as the subtitle's second line (the first stays 「这段时间不能自由行动」 for the widget).
+                step.subtitleZh = joinLines(step.subtitleZh, "剧情自动获得：" + String.join("、", gains));
             }
         }
     }
@@ -294,9 +290,9 @@ final class Labels {
         step.entity = link.id;
         step.titleZh = linkLabel(l);
         step.locationZh = "应邀外出";
-        step.subtitleZh = INVITE + " · 收到短信才选 · 只加好感";
+        step.subtitleZh = INVITE + " · 收到短信时";
         step.whyZh = "收到" + link.personZh + "的短信后赴约";
-        step.detailZh = "只加好感，不直接升级。游戏提示下次就能升级时，记录时勾选对应选项。";
+        step.detailZh = "只加好感，不会直接升级。";
     }
 
     private void describeMeet(Plan.Step step, SimState st, int l, Kernel.Effect fx) {
@@ -306,12 +302,12 @@ final class Labels {
         step.titleZh = linkLabel(l);
         step.locationZh = fx.invite ? "应邀外出" : link.locationZh;
         String invite = fx.invite ? INVITE + " · " : "";
+        // A meeting without an arrow does not rank up; a story hold says why in the why line. A link
+        // already at MAX reads 「MAX · 见面」 (the glossary never writes 「RANK MAX」).
         if (fx.rankUp) {
             step.subtitleZh = invite + "RANK " + rankName(fx.rankFrom) + " → " + rankName(fx.rankTo);
-        } else if (fx.held) {
-            step.subtitleZh = invite + "RANK " + rankName(fx.rankFrom) + " · 见面（暂时无法升级）";
         } else {
-            step.subtitleZh = invite + "RANK " + rankName(fx.rankFrom) + " · 见面（预计不升级）";
+            step.subtitleZh = invite + (fx.rankFrom >= 10 ? "MAX" : "RANK " + fx.rankFrom) + " · 见面";
         }
         step.whyZh = meetWhy(st, l, fx);
         step.detailZh = meetHow(st.slot, l, fx);
@@ -345,7 +341,7 @@ final class Labels {
         if (answers.reviewed && !answers.sequence.isEmpty() && !answers.sequence.equals(answers.choices)) {
             // The compact card can omit arbitrary prompts; details retain their positions and repeats.
             // This is the selected reviewed variant's sequence, never the other route's raw guide.
-            lines.add(NOTE_PREFIX + "完整问答顺序：" + String.join(" / ", answers.sequence));
+            lines.add(NOTE_PREFIX + "完整问答顺序是 " + String.join(" / ", answers.sequence));
         }
         if (!blank(link.noteZh)) lines.add(NOTE_PREFIX + link.noteZh.trim());
         return String.join("\n", lines);
@@ -402,16 +398,20 @@ final class Labels {
         return loc != null && loc.contains("电脑") ? "上线" : "出现";
     }
 
+    /**
+     * "要等剧情推进才能升级，先攒好感" (a hold the player reported), "6月20日前升不了级（需要先听到学校里的
+     * 传闻），先攒好感" (a hold of the pack).
+     */
     private String holdWhy(SimState st, int l) {
         int into = st.rank[l] + 1;
-        if (st.heldRank[l] == into) return "你记录了" + HOLD_ANSWER + "，先攒好感";
+        if (st.heldRank[l] == into) return STORY_HOLD + "才能升级，先攒好感";
         for (Rules.Hold hold : rules.links[l].holds) {
             if (hold.rank != into) continue;
-            String until = hold.untilDay >= 0 ? date(hold.untilDay) + "前" : "";
-            String reason = !blank(hold.zh) ? "（" + hold.zh + "）" : "";
-            return until + "暂时无法升级" + reason + "，先攒好感";
+            String reason = !blank(hold.zh) ? "（" + hold.zh.trim() + "）" : "";
+            if (hold.untilDay >= 0) return date(hold.untilDay) + "前升不了级" + reason + "，先攒好感";
+            return reason.isEmpty() ? STORY_HOLD + "才能升级，先攒好感" : "还升不了级" + reason + "，先攒好感";
         }
-        return "暂时无法升级，先攒好感";
+        return STORY_HOLD + "才能升级，先攒好感";
     }
 
     private String goalLead(int l) {
@@ -526,29 +526,29 @@ final class Labels {
                     upgraded &= st.used[track] >= 3;
                 }
                 if (after == 3) {
-                    step.whyZh = "这个项目预计做满 3 次" + (upgraded ? "，强化" : unlocked ? "" : "，解锁")
-                            + (upgraded || !unlocked ? a.dormPartnerZh + "的特性" : "");
+                    step.whyZh = "第 3 次，" + (upgraded ? "强化" + a.dormPartnerZh + "的特性"
+                            : unlocked ? "这个项目做满了" : "解锁" + a.dormPartnerZh + "的特性");
                 } else {
-                    step.whyZh = "这个项目再做 " + (3 - count) + " 次，预计" + (unlocked ? "强化" : "解锁")
+                    step.whyZh = "再做 " + (3 - count) + " 次就能" + (unlocked ? "强化" : "解锁")
                             + a.dormPartnerZh + "的特性";
                 }
             } else {
                 step.whyZh = affinity > 0 ? "补足" + rules.links[a.affinityLink].personZh + "的社群好感"
-                        : "特性所需次数已经够了，这次继续提升个人能力值";
+                        : "特性已经到手，这次练能力值";
             }
         } else if (a.kind == Rules.ActivityKind.JOB) {
+            // The pay is the base wage, a fact: no 「预计」. The widget chip keeps the 「+N 日元」 part.
             step.kind = "job";
-            step.subtitleZh = gains.isEmpty() ? "预计 +" + yen(fx.pay) : dot("预计 +" + yen(fx.pay), gains);
+            step.subtitleZh = gains.isEmpty() ? "+" + yen(fx.pay) : dot("+" + yen(fx.pay), gains);
             step.whyZh = jobWhy(st, a, gains);
         } else {
             step.kind = "stat";
-            step.subtitleZh = dot(gains.isEmpty() ? "提升个人能力值" : gains, a.cost > 0 ? "花费 " + yen(a.cost) : "免费");
+            String what = gains.isEmpty() ? "提升个人能力值" : gains;
+            step.subtitleZh = a.cost > 0 ? dot(what, "花费 " + yen(a.cost)) : what;
             step.whyZh = statWhy(st, a);
         }
         step.detailZh = blank(a.noteZh) ? null : a.noteZh.trim();
-        if (a.dormActivity()) step.detailZh = joinLines(step.detailZh,
-                "每次占用一个晚上；同一项目完成 3 次解锁特性，两个项目各完成 3 次强化特性。"
-                        + (a.requiresPlantedCrop ? "园艺要先购买种苗、种好作物。" : "这次活动不另收费。"));
+        if (a.dormActivity() && a.requiresPlantedCrop) step.detailZh = joinLines(step.detailZh, "园艺要先买种苗、种好作物。");
     }
 
     /** "魅力 +2（升到 Lv.3）、勇气 +1"; reaching the top level reads "（升到 MAX）". */
@@ -582,7 +582,19 @@ final class Labels {
         if (ci >= 0 && ci < a.gain.length && a.gain[ci] > 0 && m.charmMult > 1 && st.statPts[ci] < h.t.statCap[ci]) {
             return "魅力升到 MAX 后，见面时点数 ×1.51";
         }
-        return "这个时段没有更划算的事，提升一下个人能力值";
+        String trained = trainedStats(a);
+        return "有空就练练" + (trained.isEmpty() ? "能力值" : trained);
+    }
+
+    /** "学力" / "魅力、勇气": the stats the activity raises, or "". */
+    private String trainedStats(Rules.Activity a) {
+        StringBuilder sb = new StringBuilder();
+        for (int s = 0; s < Math.min(3, a.gain.length); s++) {
+            if (a.gain[s] <= 0) continue;
+            if (sb.length() > 0) sb.append('、');
+            sb.append(statName(s));
+        }
+        return sb.toString();
     }
 
     private int requiredLv(int l, int stat) {
@@ -596,12 +608,13 @@ final class Labels {
         if (h.shortfall() > 0) {
             int l = moneyGatedLink(st);
             if (l >= 0) return "攒钱：解锁" + arcana(l) + "社群要花钱";
-            if (st.cash < m.cashBuffer) return "补足你设置的现金保留额";
+            // Profile.cashBuffer, the setting 「手上至少留 X」.
+            if (st.cash < m.cashBuffer) return "手上至少要留 " + yen(m.cashBuffer) + "，先打工攒着";
             return "攒钱，给接下来的安排留够费用";
         }
         String usefulStats = statsOnly(st, a);
         if (!usefulStats.isEmpty()) return "有收入，还能顺便提升" + usefulStats;
-        return "手动选择打工；当前没有需要补足的费用";
+        return "多赚点零花钱";
     }
 
     private String statsOnly(SimState st, Rules.Activity a) {
@@ -639,9 +652,10 @@ final class Labels {
     }
 
     /**
-     * The last-chance instruction for a rescue on its limit evening (Rules.Rescue#toDay).
+     * The last-chance instruction for a rescue on its limit evening (Rules.Rescue#toDay), in the
+     * glossary's words: 「今天是救出北村文吉的最后期限，最晚今晚救出」. Only a limit-evening step says it.
      */
-    static final String LIMIT_EVENING_CAVEAT = "最晚今晚完成救援";
+    static final String LIMIT_EVENING_CAVEAT = "最晚今晚救出";
     /** Who a summary note about a rescue without a link speaks of. */
     private static final String RESCUE_WHO = "失踪者";
 
@@ -661,7 +675,7 @@ final class Labels {
                 people += group.count;
                 groupLimit = Math.min(groupLimit, group.toDay);
             }
-            if (people > 0) step.detailZh = "这次进塔一起救出目前失踪的 " + people + " 人。先去警察局查看失踪者名单，进塔时留意风花的提示；出塔后确认救援结果。";
+            if (people > 0) step.detailZh = "一起救出失踪的 " + people + " 人，进塔后留意风花的提示。";
         }
         if (fx.rescue >= 0) {
             Rules.Rescue r = rules.rescues[fx.rescue];
@@ -669,20 +683,20 @@ final class Labels {
             if (st.slot >> 1 >= r.toDay) {
                 // The limit evening still counts by the evidence (Rules.Rescue#toDay), but nobody checked it in
                 // the game: the planner uses it only when no earlier evening was open (Heuristics#rescueBy).
-                step.whyZh = "今天是救出" + r.zh + "的最后期限：" + LIMIT_EVENING_CAVEAT;
+                step.whyZh = "今天是救出" + r.zh + "的最后期限，" + LIMIT_EVENING_CAVEAT;
                 if (h.rescueMatters[fx.rescue] && !limitEveningRescues.contains(fx.rescue)) limitEveningRescues.add(fx.rescue);
             } else if (r.link >= 0 && r.link < h.t.nLinks) {
-                step.whyZh = r.zh + "失踪了，期限 " + date(r.toDay) + "，救不出来的话" + arcana(r.link) + "社群就无法继续；安排不等到期限当天";
+                step.whyZh = r.zh + "失踪了，期限 " + date(r.toDay) + "，救不出来" + arcana(r.link) + "社群就没法继续了";
             } else {
-                step.whyZh = r.zh + "失踪了，期限 " + date(r.toDay) + "，安排不等到期限当天";
+                step.whyZh = r.zh + "失踪了，期限 " + date(r.toDay);
             }
             return;
         }
         if (people > 0) {
             step.subtitleZh = dot(blockName(b), "救出失踪者（" + people + " 人）");
             step.whyZh = (st.slot >> 1) >= groupLimit
-                    ? "今天是这一批失踪者的最后期限：" + LIMIT_EVENING_CAVEAT
-                    : "把目前能救的 " + people + " 名失踪者合在这次处理；期限 " + date(groupLimit) + "，安排不等到期限当天";
+                    ? "今天是救出这批失踪者的最后期限，" + LIMIT_EVENING_CAVEAT
+                    : "今晚顺便救出失踪的 " + people + " 人，期限 " + date(groupLimit);
             return;
         }
         step.subtitleZh = dot(blockName(b), "本区块第 " + fx.towerVisit + " 次");
@@ -690,10 +704,11 @@ final class Labels {
         if (fx.towerVisit <= want) {
             int open = h.t.towerRemain[block][st.slot];
             int left = want - st.towerVisits[block];
-            if (left * 2 >= open) step.whyZh = "这个区块能去的晚上不多了，要去够 " + want + " 次";
-            else step.whyZh = "这个区块要去 " + want + " 次，这个晚上去正合适";
+            // The total, which reads with the chip 「本区块第 1 次」 as "1 of 2".
+            if (left * 2 >= open) step.whyZh = "能去的晚上不多了，这个区块要去够 " + want + " 次";
+            else step.whyZh = "这个区块要去 " + want + " 次";
         } else {
-            step.whyZh = "这个晚上没有更好的安排，去塔里练练级";
+            step.whyZh = "有空去塔里练练级";
         }
     }
 
@@ -704,18 +719,19 @@ final class Labels {
         int cost = note == null ? 0 : Math.max(0, note.cost);
         step.kind = "note";
         step.entity = link.id;
-        step.titleZh = "在放纵俱乐部买" + NOTE_NAME + "，给" + who(l) + "加好感";
-        step.subtitleZh = arcana(l) + " · 好感 +" + gain + (cost > 0 ? " · " + yen(cost) : "");
+        // A name like every other title (the widget's own title has the same form); the how-to is in the detail.
+        step.titleZh = NOTE_NAME + " · " + who(l);
+        step.subtitleZh = "好感 +" + gain + (cost > 0 ? " · 花费 " + yen(cost) : "");
         step.locationZh = note != null && !blank(note.locationZh) ? note.locationZh : "桐叶购物中心 · 放纵俱乐部";
         double pressure = h.pressure(st, l);
         if (pressure >= 0.6 && pressure < Heuristics.INF) {
-            step.whyZh = who(l) + "剩下的见面机会不多，晚上用" + NOTE_NAME + "先攒点好感";
+            step.whyZh = who(l) + "剩下的见面机会不多，先攒点好感";
         } else {
-            step.whyZh = "晚上没有更要紧的事，用" + NOTE_NAME + "给" + who(l) + "攒点好感";
+            step.whyZh = "晚上有空，给" + who(l) + "攒点好感";
         }
         String how = note != null && !blank(note.howZh) ? note.howZh.trim()
                 : "在桐叶购物中心的放纵俱乐部买" + NOTE_NAME + "，当晚回宿舍用公用电脑给" + who(l) + "加好感";
-        String remark = note != null && !blank(note.noteZh) ? note.noteZh.trim() : NOTE_NAME + "只加好感，不会让社群直接升级";
+        String remark = note != null && !blank(note.noteZh) ? note.noteZh.trim() : "只加好感，不会直接升级。";
         step.detailZh = how + "\n" + remark;
     }
 
@@ -737,7 +753,7 @@ final class Labels {
         } else if (slack <= 3) {
             step.whyZh = "能看第 " + n + " 话的日子不多了";
         } else {
-            step.whyZh = "你选了要看" + episodePerson(ep) + "的羁绊剧情，这天能看第 " + n + " 话";
+            step.whyZh = "这天能看第 " + n + " 话";
         }
         List<String> lines = new ArrayList<>();
         if (!blank(ep.howZh)) lines.add(ep.howZh.trim());
@@ -786,23 +802,22 @@ final class Labels {
             int endDay = Math.min(rules.lastDay, end.slot >> 1);
             // The goal the planner kept instead: a plan that reached this one missed it (never a guess).
             int kept = tradedFor == null || l >= tradedFor.length ? -1 : tradedFor[l];
-            String traded = kept >= 0 ? "这次的安排里没排到 " + what + "（先保证了" + arcana(kept) + "），" : null;
+            String traded = kept >= 0 ? "没排到 " + what + "，先保证了" + arcana(kept) : null;
+            String outcome;
             if (Kernel.lost(m, end, l, endDay)) {
-                out.add(arcana(l) + "：没能及时救出" + rescuedPerson(l) + "，社群无法继续");
+                outcome = "没救出" + rescuedPerson(l) + "，社群没法继续了";
+                traded = null;
             } else if (end.rank[l] == 0) {
                 // A heuristic plan never proves a goal impossible: say what this plan does, not why it must be so.
                 String gate = unmetGate(end, l);
-                if (traded != null) {
-                    out.add(arcana(l) + "：" + traded + (gate != null ? "还没满足解锁条件（需要" + gate + "）" : "还没排上解锁"));
-                } else {
-                    out.add(arcana(l) + "：" + (gate != null ? "这次的安排里还没满足解锁条件（需要" + gate + "）" : "这次的安排里还没排上解锁"));
-                }
+                outcome = gate != null ? "还差" + gate + " 才能解锁" : "还没排上解锁";
             } else if (openEndedHold(end, l) != null) {
-                out.add(arcana(l) + "：" + openEndedHold(end, l) + "，先安排到 RANK " + rankName(end.rank[l]));
+                outcome = openEndedHold(end, l) + "，先安排到 RANK " + rankName(end.rank[l]);
+                traded = null;
             } else {
-                String stop = "RANK " + rankName(end.rank[l]);
-                out.add(arcana(l) + "：" + (traded != null ? traded + "预计停在 " + stop : "按这次的安排预计停在 " + stop));
+                outcome = "预计停在 RANK " + rankName(end.rank[l]);
             }
+            out.add(arcana(l) + "：" + (traded != null ? traded + " · " + outcome : outcome));
         }
         if (p.otherLinks) {
             int maxed = 0;
@@ -811,7 +826,8 @@ final class Labels {
         }
         episodeNotes(plan, start, end, out);
         if (m.batches != null && m.batches.missed(end) > 0) {
-            out.add("失踪者：有 " + m.batches.missed(end) + " 批救援没排上，检查对应区块的进塔次数上限；如已救出，可以记录进塔结果后重新安排");
+            // TowerSettingsPage calls the cap 「最多几次」.
+            out.add("失踪者：有 " + m.batches.missed(end) + " 批救不到，把塔尔塔罗斯的「最多几次」调高试试？");
         }
         for (int b = 0; b < h.t.nBlocks; b++) {
             int want = m.towerWant[b];
@@ -821,52 +837,13 @@ final class Labels {
             }
         }
         for (int i : limitEveningRescues) {
-            // Only when no earlier evening was open (Heuristics#rescueBy); the other wording is a safeguard.
+            // Only when no earlier evening was open (Heuristics#rescueBy). Read weeks ahead, so a date, never 「今晚」.
             Rules.Rescue r = rules.rescues[i];
             String who = r.link >= 0 && r.link < h.t.nLinks ? arcana(r.link) : RESCUE_WHO;
-            String when = "期限当天（" + date(r.toDay) + "）的晚上";
-            out.add(who + "：" + (h.rescueBy[i] >= r.toDay ? "只剩" + when + "能救出" + r.zh : "这次的安排在" + when + "才救出" + r.zh)
-                    + "，" + LIMIT_EVENING_CAVEAT);
+            out.add(who + "：" + date(r.toDay) + "晚上是救出" + r.zh + "的最后机会");
         }
-        if (paysUnlockFees(plan)) out.add(FEE_NOTE);
-        int notesPlanned = 0;
-        for (Plan.Step s : plan.steps) if (s.action != null && s.action.startsWith("note:")) notesPlanned++;
-        if (notesPlanned > 0 && m.note != null) {
-            out.add("安排了 " + notesPlanned + " 次" + NOTE_NAME + "，每张预计好感 +" + m.note.gain);
-        }
-        switch (p.effectivePersonaMode()) {
-            case ALL:
-                out.add("见面时带同阿尔卡那的人格面具，点数 ×1.51");
-                break;
-            case GOALS:
-                if (p.hasAnyGoal()) out.add("和目标社群见面时带同阿尔卡那的人格面具，点数 ×1.51");
-                break;
-            default:
-                break;
-        }
-        if (p.hasAnyGoal() && p.goalBuffer) {
-            out.add("「必须」「想要」目标每次升级已多留一次见面");
-        } else {
-            out.add("普通见面预计好感 +" + m.ordinaryGain + "（约 ♪♪）");
-        }
-    }
-
-    /** The plan pays an unlock fee (a paid unlock step as the action or on the side). */
-    private boolean paysUnlockFees(Plan plan) {
-        for (Plan.Step s : plan.steps) {
-            if (feeOf(s.action) > 0) return true;
-            for (String side : s.side) if (feeOf(side) > 0) return true;
-        }
-        return false;
-    }
-
-    /** Fee of an unlock step key ("unlock:devil:0"), else 0. */
-    private long feeOf(String key) {
-        if (key == null || !key.startsWith("unlock:")) return 0;
-        Action a = Action.parse(rules, key);
-        if (a == null || a.type != Action.Type.UNLOCK_STEP) return 0;
-        List<Rules.Step> steps = rules.links[a.target].unlock.steps;
-        return a.step >= 0 && a.step < steps.size() ? Math.max(0, steps.get(a.step).cost) : 0;
+        // Only outcomes and what the player can act on: the modelling assumptions (meeting gains, the
+        // persona bonus, fee reserves, the goal buffer) are not repeated here.
     }
 
     /** One line per opted-in Link Episode track: when it is finished, or how far it gets. */
@@ -894,11 +871,11 @@ final class Labels {
                 for (Plan.Step s : plan.steps) if (key.equals(s.action)) last = s.slot;
                 out.add(head + (last >= 0 ? "预计 " + date(last >> 1) + " 看完全部 " + count + " 话" : "预计能看完全部 " + count + " 话"));
             } else if (seenEnd > seenStart) {
-                out.add(head + "预计能看到第 " + seenEnd + " 话（共 " + count + " 话），这次的安排里没排上后面几话");
+                out.add(head + "预计能看到第 " + seenEnd + " 话（共 " + count + " 话）");
             } else if (!episodeStillPossible(ep, seenStart + 1, start.slot >> 1)) {
-                out.add(head + "第 " + (seenStart + 1) + " 话能看的日子已经过了；如果已经看过，请在「修改进度」里填上已看几话");
+                out.add(head + "第 " + (seenStart + 1) + " 话已经错过了？看过的话去「修改进度」改一下");
             } else {
-                out.add(head + "这次的安排里没排上");
+                out.add(head + "没排上");
             }
         }
     }
@@ -911,19 +888,20 @@ final class Labels {
     }
 
     /**
-     * "RANK 5 暂时无法升级（需要先听到学校里的传闻）" when a hold without an end date (rule or
-     * player-reported) blocks the next rank, else null.
+     * "RANK 5 要等剧情推进" (a hold the player reported, or one of the pack without a reason) or
+     * "RANK 5 升不了级（需要先听到学校里的传闻）" when a hold without an end date blocks the next
+     * rank, else null.
      */
     private String openEndedHold(SimState end, int l) {
         int into = end.rank[l] + 1;
         if (into > 10) return null;
-        String head = "RANK " + rankName(into) + " 暂时无法升级";
-        if (end.heldRank[l] == into) return head + "（你记录了" + HOLD_ANSWER + "）";
+        String rank = "RANK " + rankName(into) + " ";
+        if (end.heldRank[l] == into) return rank + STORY_HOLD;
         if (h.t.holdUntil[l][into] != Tables.HOLD_FOREVER) return null;
         for (Rules.Hold hold : rules.links[l].holds) {
-            if (hold.rank == into && !blank(hold.zh)) return head + "（" + hold.zh + "）";
+            if (hold.rank == into && !blank(hold.zh)) return rank + "升不了级（" + hold.zh.trim() + "）";
         }
-        return head + "（要等剧情推进）";
+        return rank + STORY_HOLD;
     }
 
     private Integer[] goalOrder() {

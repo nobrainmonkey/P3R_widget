@@ -52,7 +52,7 @@ final class SlotRows {
      * 「RANK 4 · 见面」 (no rank-up is what a meeting without an arrow means).
      */
     static String subtitle(Plan.Step step) {
-        String sub = step.subtitleZh == null ? "" : step.subtitleZh.replace("见面（预计不升级）", "见面");
+        String sub = step.subtitleZh == null ? "" : step.subtitleZh;
         boolean estimatedRankUp = step.predicted != null && step.predicted.rankUp && !step.predicted.certain;
         if (estimatedRankUp && !sub.isEmpty() && !sub.startsWith("≈")) {
             return "≈ " + sub;

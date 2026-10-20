@@ -26,41 +26,41 @@ final class CommandCheck {
     /** Side steps one slot can carry (one per link at most). */
     static final int MAX_SIDE_KEYS = 32;
 
-    static final String ZH_NO_STATE = "还没有填写当前进度，请先完成初始设置";
+    static final String ZH_NO_STATE = "还没填游戏进度，先完成设置吧";
     static final String ZH_ALREADY_RECORDED = "这个时段已经记录过了";
-    static final String ZH_CALENDAR_OVER = "日程已经全部结束了，不能再记录";
+    static final String ZH_CALENDAR_OVER = "日程已经结束了";
     static final String ZH_OUT_OF_CALENDAR = "这个时段不在游戏日程内";
-    static final String ZH_UNKNOWN_ACTION = "没认出这一项，请重新选一下";
-    static final String ZH_SIDE_UNKNOWN = "没认出顺便要做的事，请重新选一下";
-    static final String ZH_RANK_RANGE = "社群 RANK 不对，请重新选一下";
+    static final String ZH_UNKNOWN_ACTION = "没认出这一项，重新选一下？";
+    static final String ZH_SIDE_UNKNOWN = "没认出顺便的事，重新选一下？";
+    static final String ZH_RANK_RANGE = "RANK 不对，重新选一下？";
     static final String ZH_RANK_NOT_HIGHER = "升级后的 RANK 应该比现在高";
     static final String ZH_RANK_UP_NOT_MEETING = "只有和社群对象见面才能记录升级";
     static final String ZH_STAT_RANGE = "学力、魅力、勇气只能是 Lv.1 到 MAX";
     static final String ZH_CASH_NEGATIVE = "现金不能是负数";
-    static final String ZH_CASH_TOO_LARGE = "金额太大了，请检查一下";
-    static final String ZH_NET_NEGATIVE = "按这次的增减算，现金会变成负数，请检查一下";
-    static final String ZH_REASON = "没认出原因，请重新选一下";
+    static final String ZH_CASH_TOO_LARGE = "金额太大了，再看看？";
+    static final String ZH_NET_NEGATIVE = "这样算现金会变成负数，再看看？";
+    static final String ZH_REASON = "没认出原因，重新选一下？";
     static final String ZH_TOWER_EVENING = "塔尔塔罗斯只能在晚上去";
     static final String ZH_TOWER_CLOSED = "这一天还进不了塔尔塔罗斯";
-    static final String ZH_TOWER_BLOCK = "区块和日期对不上，请重新选择";
+    static final String ZH_TOWER_BLOCK = "区块和日期对不上，重新选一下？";
     static final String ZH_FLOOR_NEGATIVE = "楼层不能是负数";
     static final String ZH_CASH_UNKNOWN_AMOUNT = "选了「不记得钱了」就不用再填金额";
     static final String ZH_LEVEL = "主角等级要在 1 到 99 之间";
     static final String ZH_RESCUE = "没有找到这位失踪者";
     static final String ZH_FIX_MISSING = "找不到要修改的探索记录";
-    static final String ZH_FIX_OLD = "这条记录早于最近一次同步现状，已经不能修改了";
-    static final String ZH_FIX_VOIDED = "这条记录已经撤销了，不能再修改";
+    static final String ZH_FIX_OLD = "同步现状之前的记录改不了了";
+    static final String ZH_FIX_VOIDED = "这条记录已经撤销了，改不了";
     static final String ZH_VOID_MISSING = "找不到要撤销的记录";
     static final String ZH_VOID_KIND = "这条记录不能撤销";
-    static final String ZH_VOID_OLD = "这条记录早于最近一次同步现状，已经不能撤销了";
+    static final String ZH_VOID_OLD = "同步现状之前的记录撤不回了";
     static final String ZH_VOID_TWICE = "这条记录已经撤销过了";
-    static final String ZH_STATE_MISSING = "请先填写当前进度";
-    static final String ZH_STATE_INCOMPLETE = "当前进度不完整，请重新填写";
+    static final String ZH_STATE_MISSING = "先填好游戏进度";
+    static final String ZH_STATE_INCOMPLETE = "游戏进度没填全，再填一下？";
     static final String ZH_STATE_DATE = "这个日期不在游戏日程里（4月～次年1月31日）";
     static final String ZH_STAT_NEGATIVE = "学力、魅力、勇气不能是负数";
     static final String ZH_LINK_PROGRESS_NEGATIVE = "社群进度不能是负数";
     static final String ZH_VISITS_NEGATIVE = "探索次数不能是负数";
-    static final String ZH_PROFILE_MISSING = "规划设置不完整，请重新填写";
+    static final String ZH_PROFILE_MISSING = "规划设置没填全，再填一下？";
 
     private static final Pattern REASON_ID = Pattern.compile("[a-z_]{1,32}");
 
@@ -140,7 +140,7 @@ final class CommandCheck {
         if (target.checkpointId != view.checkpointId) return Rejection.invalid(ZH_FIX_OLD);
         if (target.voided) return Rejection.invalid(ZH_FIX_VOIDED);
         if (before == null || target.slot() >= view.observed.slot)
-            return Rejection.invalid("这条记录暂时不能修改，请先核对当前进度");
+            return Rejection.invalid("这条记录现在改不了，先核对一下游戏进度？");
         return null;
     }
 
