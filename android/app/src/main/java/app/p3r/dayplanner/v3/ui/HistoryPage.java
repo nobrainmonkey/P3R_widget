@@ -17,10 +17,11 @@ import app.p3r.dayplanner.v3.service.PlannerApi;
 
 /**
  * 记录历史, newest first and grouped by game day: each record is its period tag, its result, how long
- * ago, and compact 「修改」「撤销」 where the store accepts them. The latest 同步现状 is a divider plate;
- * the records under it are dimmed and offer nothing. Undo journal rows are not listed (the undone
- * record itself is struck through). The past-day sheet shows the same rows for one day, the tapped
- * slot's first.
+ * ago, and compact 「修改」「撤销」 where the store accepts them. A correction says 「已修改」 and sits
+ * above the record it replaced, which is dimmed as 「原来记的」. The latest 同步现状 is a divider
+ * plate; the records under it are dimmed and offer nothing. Undo journal rows are not listed (the
+ * undone record itself is struck through). The past-day sheet shows the same rows for one day, the
+ * tapped slot's first. Both follow the records: a 修改 saved on the result sheet shows at once.
  */
 final class HistoryPage {
     static final int LIMIT = 80;
@@ -34,6 +35,10 @@ final class HistoryPage {
     static final String EMPTY_DAY = "这天没有记录";
     static final String LOAD_FAILED = "记录没读出来";
     static final String MORE = "再看更早的";
+    /** Tag of a correction that is in effect. */
+    static final String FIXED = "已修改";
+    /** Tag of a record a later 修改 replaced. */
+    static final String REPLACED = "原来记的";
 
     private final HomeHost host;
     private final Context c;
@@ -42,6 +47,16 @@ final class HistoryPage {
     private final int focusSlot;
     private int limit = LIMIT;
     private boolean cascaded;
+    /** The ledger revision the rows follow; a newer one (a 修改 or 撤销 anywhere) reads them again. */
+    private long shownRevision;
+    /** Counts the reads; the answer to an older one is dropped. */
+    private int reads;
+    /** Seqs of the rows on screen, in order: 「再看更早的」 adds the older rows under them. */
+    private final List<Long> rendered = new ArrayList<>();
+    /** Where the rows on screen end: the last day header, and whether a 同步现状 came before. */
+    private int shownDay = Integer.MIN_VALUE;
+    private boolean older;
+    private View more;
 
     private HistoryPage(HomeHost host, Integer day, int focusSlot) {
         this.host = host;
@@ -49,6 +64,18 @@ final class HistoryPage {
         this.day = day;
         this.focusSlot = focusSlot;
         column = Ui.column(c);
+        UiData d = host.data();
+        shownRevision = d == null || d.snap == null ? Long.MIN_VALUE : d.snap.stateRevision;
+        SystemList.follow(column, this::follow);
+    }
+
+    /** New data on the home screen: read the records again when they changed. */
+    private void follow(UiData d) {
+        if (d.snap == null || d.snap.stateRevision == shownRevision) {
+            return;
+        }
+        shownRevision = d.snap.stateRevision;
+        load(true);
     }
 
     static View build(HomeHost host) {
@@ -126,18 +153,93 @@ final class HistoryPage {
         return !RECORD_KINDS.contains(item.kind) || item.slot < 0;
     }
 
-    /** Reads the records; {@code more} keeps what is shown until the longer list is in. */
-    private void load(boolean more) {
-        if (!more) {
-            column.removeAllViews();
+    private static boolean fix(PlannerApi.HistoryItem item) {
+        return "outcome_fix".equals(item.kind) || "tower_fix".equals(item.kind);
+    }
+
+    /**
+     * Records a later 修改 replaced: the original of a correction in effect, and any older
+     * correction of it (undoing the newest correction brings them back).
+     */
+    static java.util.Set<Long> replaced(List<PlannerApi.HistoryItem> items) {
+        java.util.Map<Long, Long> newestFix = new java.util.HashMap<>();
+        for (PlannerApi.HistoryItem item : items) {
+            if (fix(item) && !item.voided && item.originalSeq >= 0) {
+                newestFix.merge(item.originalSeq, item.seq, Math::max);
+            }
+        }
+        java.util.Set<Long> out = new java.util.HashSet<>();
+        for (PlannerApi.HistoryItem item : items) {
+            Long newest = item.voided || item.originalSeq < 0 ? null : newestFix.get(item.originalSeq);
+            if (newest != null && newest > item.seq) {
+                out.add(item.seq);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * The whole history in the order it is shown: between two 同步现状, by slot, newest first, so a
+     * day is one group even when one of its records was corrected later (the correction above the
+     * record it replaced).
+     */
+    static List<PlannerApi.HistoryItem> byDay(List<PlannerApi.HistoryItem> items) {
+        List<PlannerApi.HistoryItem> out = new ArrayList<>();
+        List<PlannerApi.HistoryItem> run = new ArrayList<>();
+        for (PlannerApi.HistoryItem item : items) {
+            if (journal(item)) {
+                out.addAll(sortedRun(run));
+                run.clear();
+                out.add(item);
+            } else {
+                run.add(item);
+            }
+        }
+        out.addAll(sortedRun(run));
+        return out;
+    }
+
+    private static List<PlannerApi.HistoryItem> sortedRun(List<PlannerApi.HistoryItem> run) {
+        run.sort((a, b) -> a.slot != b.slot ? Integer.compare(b.slot, a.slot) : Long.compare(b.seq, a.seq));
+        return run;
+    }
+
+    /**
+     * Reads the records; {@code keep} keeps what is shown until the new list is in (the records
+     * changed while on screen).
+     */
+    private void load(boolean keep) {
+        read(keep, false);
+    }
+
+    /** {@code append}: the rows on screen stay and the older ones are added under them. */
+    private void read(boolean keep, boolean append) {
+        if (!keep) {
+            clear();
         }
         int asked = limit;
-        Async.run(host.activity(), () -> Api.get(c).history(asked), items -> show(items, items.size() >= asked),
-            error -> failed());
+        int read = ++reads;
+        Async.run(host.activity(), () -> Api.get(c).history(asked), items -> {
+            if (read == reads) {
+                show(items, items.size() >= asked, append);
+            }
+        }, error -> {
+            if (read == reads) {
+                failed();
+            }
+        });
+    }
+
+    private void clear() {
+        column.removeAllViews();
+        rendered.clear();
+        shownDay = Integer.MIN_VALUE;
+        older = false;
+        more = null;
     }
 
     private void failed() {
-        column.removeAllViews();
+        clear();
         LinearLayout row = Ui.row(c);
         row.addView(Ui.text(c, LOAD_FAILED, 16, Ui.col(c, R.color.p3r_white), true), Ui.weight(1));
         TextView retry = Ui.quiet(c, "重试");
@@ -146,7 +248,7 @@ final class HistoryPage {
         column.addView(row, Ui.matchWrap());
     }
 
-    private void show(List<PlannerApi.HistoryItem> all, boolean limited) {
+    private void show(List<PlannerApi.HistoryItem> all, boolean limited, boolean append) {
         List<PlannerApi.HistoryItem> items = shown(all);
         if (day != null) {
             items = forDay(items, day);
@@ -158,17 +260,28 @@ final class HistoryPage {
             }
             first.addAll(rest);
             items = first;
+        } else {
+            items = byDay(items);
         }
-        column.removeAllViews();
+        if (append && startsWithRendered(items)) {
+            // The older records go under the rows already on screen; nothing above them is rebuilt.
+            if (more != null) {
+                column.removeView(more);
+                more = null;
+            }
+        } else {
+            clear();
+        }
         if (items.isEmpty()) {
             column.addView(Ui.muted(c, day == null ? EMPTY : EMPTY_DAY), Ui.matchWrap());
             return;
         }
         UiData d = host.data();
         Rules rules = d == null ? null : d.rules;
-        int shownDay = Integer.MIN_VALUE;
-        boolean older = false;
-        for (PlannerApi.HistoryItem item : items) {
+        java.util.Set<Long> replaced = replaced(all);
+        for (int i = rendered.size(); i < items.size(); i++) {
+            PlannerApi.HistoryItem item = items.get(i);
+            rendered.add(item.seq);
             if (journal(item)) {
                 if (day == null) {
                     column.addView(divider(item), gap(older ? 14 : 18));
@@ -185,21 +298,35 @@ final class HistoryPage {
                 header.setAlpha(older ? 0.55f : 1f);
                 column.addView(header, gap(column.getChildCount() == 0 ? 0 : 18));
             }
-            column.addView(row(rules, item, older), gap(day == null ? 2 : 4));
+            column.addView(row(rules, item, older, replaced.contains(item.seq)), gap(day == null ? 2 : 4));
         }
         if (limited && day == null) {
-            TextView more = Ui.quiet(c, MORE);
-            more.setOnClickListener(v -> {
-                more.setEnabled(false);
-                limit *= 2;
-                load(true);
+            TextView button = Ui.quiet(c, MORE);
+            button.setOnClickListener(v -> {
+                button.setEnabled(false);
+                limit += LIMIT;
+                read(true, true);
             });
-            column.addView(more, gap(12));
+            more = button;
+            column.addView(button, gap(12));
         }
         if (!cascaded) {
             cascaded = true;
             Motion.cascade(column);
         }
+    }
+
+    /** Whether the rows on screen are the start of {@code items} (nothing new above them). */
+    private boolean startsWithRendered(List<PlannerApi.HistoryItem> items) {
+        if (rendered.isEmpty() || items.size() < rendered.size()) {
+            return false;
+        }
+        for (int i = 0; i < rendered.size(); i++) {
+            if (items.get(i).seq != rendered.get(i)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** 「21」 with its weekday plate and 「10月」, like the date plates, and a rule running out. */
@@ -216,7 +343,7 @@ final class HistoryPage {
         Rules.Day info = rules == null ? null : rules.day(itemDay);
         TextView weekday = Ui.text(c, info != null ? Zh.weekday(info.wd) : Zh.weekdayOf(itemDay), 12,
             Ui.col(c, R.color.p3r_navy_950), true);
-        boolean rest = info != null && (info.type == Rules.DayType.SUNDAY || info.type == Rules.DayType.HOLIDAY);
+        boolean rest = DatePlate.restDay(info);
         weekday.setTextColor(Ui.col(c, rest ? R.color.p3r_white : R.color.p3r_navy_950));
         weekday.setBackground(new SlantedPanelDrawable()
             .fill(Ui.col(c, rest ? R.color.ui_holiday : R.color.p3r_white)).skew(Ui.dp(c, 4)));
@@ -251,10 +378,11 @@ final class HistoryPage {
     }
 
     /**
-     * One record: period tag, the result (struck through once undone), how long ago, and 「修改」
-     * 「撤销」 when the store accepts them. Reads out as the whole summary.
+     * One record: period tag, the result (struck through once undone, faint once a 修改 replaced
+     * it), 「已修改」 on a correction, how long ago, and 「修改」「撤销」 when the store accepts them.
+     * Reads out as the whole summary.
      */
-    private View row(Rules rules, PlannerApi.HistoryItem item, boolean older) {
+    private View row(Rules rules, PlannerApi.HistoryItem item, boolean older, boolean replaced) {
         LinearLayout row = Ui.row(c);
         row.setGravity(Gravity.TOP);
         TextView period = Ui.text(c, rules == null ? "" : Zh.period(rules, item.slot), 13,
@@ -275,28 +403,34 @@ final class HistoryPage {
         row.addView(period, pp);
 
         LinearLayout texts = Ui.column(c);
+        boolean gone = item.voided || replaced;
         TextView result = Ui.mixed(c, body(item.summaryZh), 15,
-            Ui.col(c, item.voided ? R.color.p3r_ink_faint : R.color.p3r_white), false);
+            Ui.col(c, gone ? R.color.p3r_ink_faint : R.color.p3r_white), false);
         if (item.voided) {
             result.setPaintFlags(result.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
         }
         texts.addView(result, Ui.matchWrap());
         LinearLayout meta = Ui.row(c);
-        meta.setMinimumHeight(Ui.dp(c, item.undoable && !item.voided ? Ui.TOUCH : 24));
-        if (item.voided) {
-            TextView undone = Ui.tag(c, "已撤销", Ui.alpha(Ui.col(c, R.color.p3r_ink_faint), 60),
-                Ui.col(c, R.color.p3r_ink_muted));
-            undone.setTextSize(12);
-            LinearLayout.LayoutParams up = Ui.wrap();
-            up.rightMargin = Ui.dp(c, 8);
-            meta.addView(undone, up);
+        meta.setMinimumHeight(Ui.dp(c, item.undoable && !gone ? Ui.TOUCH : 24));
+        String state = item.voided ? "已撤销" : replaced ? REPLACED : fix(item) ? FIXED : null;
+        if (state != null) {
+            TextView mark = Ui.tag(c, state,
+                gone ? Ui.alpha(Ui.col(c, R.color.p3r_ink_faint), 60) : Ui.alpha(Ui.col(c, R.color.p3r_cyan_200), 40),
+                Ui.col(c, gone ? R.color.p3r_ink_muted : R.color.p3r_cyan_200));
+            mark.setTextSize(12);
+            LinearLayout.LayoutParams mp = Ui.wrap();
+            mp.rightMargin = Ui.dp(c, 8);
+            meta.addView(mark, mp);
         }
         meta.addView(Ui.text(c, Zh.age(System.currentTimeMillis(), item.createdMillis), 12,
             Ui.col(c, R.color.p3r_ink_faint), false), Ui.weight(1));
         // PlannerApi.HistoryItem: 撤销 for every record that still shapes the progress (undoable),
-        // 修改 only where the store accepts a correction and can supply the original values.
-        if (!item.voided && item.undoable) {
-            if (item.correctable && TOWER.equals(item.kind) && item.tower != null) {
+        // 修改 only where the store accepts a correction and can supply the original values. A
+        // replaced record offers neither: undoing its correction brings it back, and the correction
+        // in effect carries 修改 (a tower one edits the visit it corrects, prefilled with its values).
+        if (!gone && item.undoable) {
+            boolean towerFix = "tower_fix".equals(item.kind) && item.originalSeq >= 0;
+            if ((item.correctable && TOWER.equals(item.kind) || towerFix) && item.tower != null) {
                 TextView fix = action("修改");
                 fix.setContentDescription("修改这条记录：" + item.summaryZh);
                 fix.setOnClickListener(v -> openCorrection(item));
@@ -324,7 +458,7 @@ final class HistoryPage {
         row.addView(texts, Ui.weight(1));
         // Under the latest 同步现状: history only, dimmed as a whole.
         row.setAlpha(older ? 0.55f : 1f);
-        row.setContentDescription(item.summaryZh + (item.voided ? "，已撤销" : ""));
+        row.setContentDescription(item.summaryZh + (item.voided ? "，已撤销" : replaced ? "，" + REPLACED : ""));
         return row;
     }
 
@@ -356,8 +490,8 @@ final class HistoryPage {
                 } else {
                     host.showError(Messages.receiptError(receipt));
                 }
+                // The new data reaches this list through follow().
                 host.reload();
-                load(false);
             }, error -> host.showError(Messages.GENERIC_ERROR));
         });
     }
@@ -374,6 +508,11 @@ final class HistoryPage {
         return block == null ? -1 : block.idx;
     }
 
+    /** The tower visit a 修改 edits: the row itself, or the visit a correction row corrects. */
+    private static long visitOf(PlannerApi.HistoryItem item) {
+        return TOWER.equals(item.kind) ? item.seq : item.originalSeq;
+    }
+
     /**
      * 修改这次探索 in a sheet, prefilled with the record's own values; opened from a day sheet, closing
      * it (saved or not) brings that day back.
@@ -381,11 +520,12 @@ final class HistoryPage {
     private void openCorrection(PlannerApi.HistoryItem item) {
         UiData d = host.data();
         int blockIdx = blockOf(d.rules, item);
+        String said = TOWER.equals(item.kind) ? item.summaryZh : Zh.slot(d.rules, item.slot) + " · " + body(item.summaryZh);
         Async.run(host.activity(), () -> UiPrefs.towerLevel(c), level -> {
             LinearLayout sheet = Ui.column(c);
             Ui.pad(sheet, 20, 12, 20, 20);
             sheet.addView(SheetChrome.title(c, "修改这次探索"));
-            sheet.addView(Ui.mixed(c, item.summaryZh, 13, Ui.col(c, R.color.p3r_ink_muted), false));
+            sheet.addView(Ui.mixed(c, said, 13, Ui.col(c, R.color.p3r_ink_muted), false));
             // Prefilled from the record's own values (item.tower: the latest correction, else the
             // original), never from today's floor or cash.
             TowerPanel panel = new TowerPanel(c, d.rules, d.observed(), item.slot, blockIdx, item.tower, true, level,
@@ -411,14 +551,14 @@ final class HistoryPage {
     /** Saves the correction; a rejected one keeps the sheet and what was typed into it. */
     private void saveCorrection(PlannerApi.HistoryItem item, PlannerApi.TowerReturn tower) {
         long rev = host.data().snap.stateRevision;
-        String id = CommandIds.of("tower_fix", rev, item.seq, tower.floor, tower.balanceMode, tower.amount, tower.level,
+        long visit = visitOf(item);
+        String id = CommandIds.of("tower_fix", rev, visit, tower.floor, tower.balanceMode, tower.amount, tower.level,
             tower.rescuedId);
-        Async.run(host.activity(), () -> Api.get(c).correctTower(id, rev, item.seq, tower), receipt -> {
+        Async.run(host.activity(), () -> Api.get(c).correctTower(id, rev, visit, tower), receipt -> {
             if (receipt.ok) {
                 host.dismissSheet();
                 host.showMessage("已修改：探索塔尔塔罗斯 · " + tower.floor + "F");
                 host.reload();
-                load(false);
             } else {
                 host.showError(Messages.receiptError(receipt));
                 host.reload();

@@ -89,11 +89,15 @@ public class DaySheetHistoryUiTest extends UiTestBase {
     @Test
     public void aStorySlotSaysTheStoryOnceWithNoHowToAndNothingToPress() {
         int fullMoon = Rules.slot(Fixtures.day(11, 3), true);
+        // The rule pack's note of 11/3; the engine also puts it in the locked step's detail.
+        api.rules.day(Fixtures.day(11, 3)).noteZh = "文化节";
+        api.snap.plan.at(fullMoon).detailZh = "文化节";
         HomeActivity a = home();
         a.openDetail(fullMoon);
         Shots.idle();
         View sheet = a.sheets();
         Shots.find(sheet, "满月作战");
+        Shots.find(sheet, "文化节");
         String all = Shots.allText(sheet);
         assertFalse(all, all.contains("怎么做"));
         assertFalse(all, all.contains("不能自由行动"));
@@ -117,6 +121,22 @@ public class DaySheetHistoryUiTest extends UiTestBase {
         summer.titleZh = "暑期补习";
         summer.subtitleZh = "暑期补习：学力 +3";
         assertNull("said by the step already", DayDetailSheet.dayNote(rules, api.snap.profile, Fixtures.day(7, 21), summer));
+        // A story slot shows its title and its own line only (no 怎么做), so its detail does not count.
+        rules.day(Fixtures.day(11, 3)).noteZh = "文化节";
+        Plan.Step moon = new Plan.Step();
+        moon.kind = "locked";
+        moon.action = "locked:full_moon";
+        moon.titleZh = "满月作战";
+        moon.subtitleZh = "这段时间不能自由行动";
+        moon.detailZh = "文化节";
+        assertEquals("文化节", DayDetailSheet.dayNote(rules, api.snap.profile, Fixtures.day(11, 3), moon));
+        Plan.Step classes = new Plan.Step();
+        classes.kind = "locked";
+        classes.action = "locked:summer_classes";
+        classes.titleZh = "暑期补习";
+        classes.subtitleZh = "这段时间不能自由行动\n剧情自动获得：学力 +3";
+        classes.detailZh = "暑期补习：学力 +3";
+        assertNull("the title says it", DayDetailSheet.dayNote(rules, api.snap.profile, Fixtures.day(7, 21), classes));
         Plan.Step trip = new Plan.Step();
         trip.subtitleZh = "修学旅行，不能自由行动";
         assertNull(DayDetailSheet.lockedLine(trip, "修学旅行"));
@@ -299,6 +319,37 @@ public class DaySheetHistoryUiTest extends UiTestBase {
         picker.setListener(d -> picked[0] = d);
         Shots.clickTarget(Shots.find(picker, "11月3日，满月")).performClick();
         assertEquals(Fixtures.day(11, 3), picked[0]);
+    }
+
+    /** After 1/31 the progress points at 2/1: the picker opens on 1月, one tap from 12月. */
+    @Test
+    public void aFinishedCalendarOpensThePickerOnItsLastMonth() {
+        HomeActivity a = home();
+        CalendarPicker picker = new CalendarPicker(a, api.rules, api.rules.lastDay + 1, api.rules.lastDay);
+        Shots.render(picker);
+        Shots.find(picker, "1月");
+        assertTrue(startingWith(picker, "1月31日，").getContentDescription().toString().endsWith("，上次记录"));
+        View back = Shots.find(picker, "上个月");
+        assertTrue(back.isEnabled());
+        assertFalse("nothing after 1月", Shots.find(picker, "下个月").isEnabled());
+        Shots.clickTarget(back).performClick();
+        Shots.render(picker);
+        Shots.find(picker, "12月");
+    }
+
+    /** Every Sunday gets the red plate, a vacation or story one too (8/2 is a vacation Sunday). */
+    @Test
+    public void everySundayIsARestDay() {
+        Rules.Day sunday = api.rules.day(Fixtures.day(8, 2));
+        sunday.type = Rules.DayType.VACATION;
+        assertEquals(7, sunday.wd);
+        assertTrue(DatePlate.restDay(sunday));
+        Rules.Day saturday = api.rules.day(Fixtures.day(8, 1));
+        assertEquals(6, saturday.wd);
+        assertFalse(DatePlate.restDay(saturday));
+        Rules.Day holiday = api.rules.day(Fixtures.day(10, 12));
+        holiday.type = Rules.DayType.HOLIDAY;
+        assertTrue(DatePlate.restDay(holiday));
     }
 
     @Test

@@ -580,12 +580,14 @@ final class SchedulePage {
             int current = d.displaySlot();
             int todayDay = Rules.dayOf(current);
             boolean today = todayDay == day;
-            boolean previous = day == todayDay - 1;
+            // Once the calendar is over, 1月31日 is the last day, not 「昨天」.
+            boolean over = Slots.finished(d.rules, d.observed()) && d.snap.storyDisplay == null;
+            boolean previous = !over && day == todayDay - 1;
             dayNumber.setText(String.valueOf(Zh.dateOf(day).getDayOfMonth()));
             Rules.Day info = d.rules.day(day);
             String wd = info != null ? Zh.weekday(info.wd) : Zh.weekdayOf(day);
             weekday.setText(wd);
-            boolean rest = info != null && (info.type == Rules.DayType.SUNDAY || info.type == Rules.DayType.HOLIDAY);
+            boolean rest = DatePlate.restDay(info);
             weekdayPlate.fill(Ui.col(context, rest ? R.color.ui_holiday : R.color.p3r_white));
             weekday.setTextColor(Ui.col(context, rest ? R.color.p3r_white : R.color.p3r_navy_950));
             boolean full = info != null && (info.fullMoon || info.moon == 4);

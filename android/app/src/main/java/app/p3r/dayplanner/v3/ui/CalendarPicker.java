@@ -51,7 +51,9 @@ final class CalendarPicker extends LinearLayout {
         this.rules = rules;
         this.selectedDay = selectedDay;
         this.markedDay = markedDay;
-        this.shownMonth = Zh.dateOf(selectedDay).getMonthValue();
+        // Past the end (the calendar is over: 2月1日) opens on 1月, never on a month outside the game.
+        int shown = Math.max(rules.firstDay, Math.min(rules.lastDay, selectedDay));
+        this.shownMonth = Zh.dateOf(shown).getMonthValue();
         touchSlop = ViewConfiguration.get(c).getScaledTouchSlop();
 
         LinearLayout head = Ui.row(c);
@@ -280,7 +282,7 @@ final class CalendarPicker extends LinearLayout {
             number.setTextColor(Ui.alpha(Ui.col(c, R.color.ui_locked), 110));
         } else {
             bg.fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 110)).pressedFill(Ui.col(c, R.color.p3r_navy_700));
-            boolean rest = info != null && (info.type == Rules.DayType.SUNDAY || info.type == Rules.DayType.HOLIDAY);
+            boolean rest = DatePlate.restDay(info);
             boolean saturday = info != null && info.wd == 6;
             number.setTextColor(Ui.col(c, rest ? R.color.p3r_danger : saturday ? R.color.p3r_cyan_200 : R.color.p3r_white));
         }

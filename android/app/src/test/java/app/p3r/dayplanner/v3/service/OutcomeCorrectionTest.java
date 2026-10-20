@@ -58,6 +58,20 @@ public class OutcomeCorrectionTest extends ServiceTestBase {
         assertEquals(1, observed().towerVisits[1]);
     }
 
+    /** A tower night recorded as 没去成 has no result form to edit it with: it is undone instead. */
+    @Test public void aSkippedTowerNightCanBeUndoneButNotEdited() {
+        onboard(DAY);
+        assertTrue(record(DAY, "meet:emperor", Outcome.Code.AS_PREDICTED).ok);
+        PlannerApi.Receipt night = record(NIGHT, "tower:1", Outcome.Code.SKIPPED);
+        assertTrue(night.errorZh, night.ok);
+        PlannerApi.HistoryItem row = service.history(0).stream().filter(x -> x.seq == night.eventSeq).findFirst().get();
+        assertEquals("skip", row.kind);
+        assertTrue(row.undoable);
+        assertFalse(row.correctable);
+        assertTrue("other skips stay editable", service.history(0).stream()
+                .filter(x -> x.seq != night.eventSeq && "outcome".equals(x.kind)).allMatch(x -> x.correctable));
+    }
+
     @Test public void aSkippedRowCanBecomeCompletedAndVoidingItsFixRestoresTheSkip() {
         onboard(DAY);
         PlannerApi.Receipt day = record(DAY, "meet:emperor", Outcome.Code.SKIPPED);

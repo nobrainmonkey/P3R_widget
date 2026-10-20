@@ -144,8 +144,10 @@ copy and layout change as below.
   ([做不了…] [完成]); future slots get one secondary 「已经玩到这里」 without a caption. Removed:
   为什么这样安排, 安排依据, all instructional captions, 怎么做 on story slots.
 - 记录历史: grouped by game day, rows = period tag + result + 「3 分钟前」 + compact 修改/撤销; void
-  journal rows hidden; one divider 「10月18日 · 同步现状」 instead of per-row captions; no
-  explanation caption; 「再看更早的」 when the limit is hit; errors get [重试].
+  journal rows hidden; a correction carries 「已修改」 and sits above the record it replaced, which
+  is faint 「原来记的」 with no actions; one divider 「10月18日 · 同步现状」 instead of per-row
+  captions; no explanation caption; 「再看更早的」 adds the older rows when the limit is hit; errors
+  get [重试]. The list (and the past-day sheet) reloads when the records change.
 - 从头重新安排: one question 「从头重新安排？」, one line 「最多半分钟，期间可以照常记录。」,
   [先不了] [重新安排] (runs the deep search). Running → [停下]. Results:
   「重新安排好了：这周 3 处有变」, 「…，之后也有调整」, 「重新安排好了：这周不变，之后有调整」,

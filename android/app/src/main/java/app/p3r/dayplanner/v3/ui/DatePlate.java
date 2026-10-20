@@ -96,7 +96,7 @@ public final class DatePlate extends LinearLayout {
         Rules.Day info = rules == null ? null : rules.day(day);
         weekday.setText(info != null ? Zh.weekday(info.wd) : Zh.weekdayOf(day));
         // Sundays and holidays get the game's red weekday mark.
-        boolean rest = info != null && (info.type == Rules.DayType.SUNDAY || info.type == Rules.DayType.HOLIDAY);
+        boolean rest = restDay(info);
         weekdayPlate.fill(Ui.col(getContext(), rest ? R.color.ui_holiday : R.color.p3r_white));
         weekday.setTextColor(Ui.col(getContext(), rest ? R.color.p3r_white : R.color.p3r_navy_950));
         if (watermark != null) {
@@ -109,6 +109,14 @@ public final class DatePlate extends LinearLayout {
         moonLabel.setVisibility(full ? VISIBLE : GONE);
         period.setText(Zh.period(rules, slot));
         setContentDescription(Zh.date(day) + " " + Zh.plain(weekday.getText()) + " " + Zh.plain(period.getText()));
+    }
+
+    /**
+     * A red-plate day: every Sunday (a story or vacation one too) and every holiday, as the game's
+     * calendar marks them.
+     */
+    static boolean restDay(Rules.Day info) {
+        return info != null && (info.type == Rules.DayType.SUNDAY || info.type == Rules.DayType.HOLIDAY || info.wd == 7);
     }
 
     private static void appendScaled(SpannableStringBuilder builder, String part, float scale, int color) {

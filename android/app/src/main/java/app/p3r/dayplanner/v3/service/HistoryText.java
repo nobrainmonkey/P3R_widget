@@ -143,7 +143,7 @@ final class HistoryText {
         EventRow target = EventKind.OUTCOME_FIX.equals(row.kind) ? ctx.bySeq.get(row.target()) : row;
         item.correctable = item.undoable && (EventKind.TOWER.equals(row.kind)
                 || (outcome || EventKind.OUTCOME_FIX.equals(row.kind)) && target != null && !target.voided
-                && ctx.traces.containsKey(target.seq));
+                && ctx.traces.containsKey(target.seq) && !towerNight(ctx, target));
         item.slot = slotOf(ctx, row);
         try {
             item.tower = towerValues(ctx, row);
@@ -159,6 +159,19 @@ final class HistoryText {
         }
         item.summaryZh = item.slot >= 0 ? ZhText.join(ZhText.slot(ctx.rules, item.slot), body) : body;
         return item;
+    }
+
+    /**
+     * A tower night recorded on the result sheet (「没去成」): no result form can correct it (the
+     * tower form records a new visit), so it is undone and recorded again rather than edited.
+     */
+    private static boolean towerNight(Lookup ctx, EventRow row) {
+        try {
+            Action action = Action.parse(ctx.rules, OutcomeRecord.fromJson(row.payload()).actionKey);
+            return action != null && action.type == Action.Type.TARTARUS;
+        } catch (JSONException | RuntimeException e) {
+            return false;
+        }
     }
 
     /**
