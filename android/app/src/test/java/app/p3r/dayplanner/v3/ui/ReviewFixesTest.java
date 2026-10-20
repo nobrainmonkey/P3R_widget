@@ -682,8 +682,6 @@ public class ReviewFixesTest extends UiTestBase {
             assertFalse(line, line.contains("进塔") || line.contains("规划") || line.contains("×1.51"));
         }
         assertEquals("这次探索要救出失踪者。", Assumptions.describe("rescue"));
-        // The state wizard still words the three choices in full.
-        assertTrue(SettingsPage.PERSONA_TEXT[1][1].contains("每次和目标社群的人见面前"));
     }
 
     @Test

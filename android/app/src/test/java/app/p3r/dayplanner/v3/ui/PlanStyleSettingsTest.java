@@ -17,6 +17,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
 
 import app.p3r.dayplanner.v3.Intents;
+import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.service.PlannerApi;
 
@@ -99,6 +100,51 @@ public class PlanStyleSettingsTest extends UiTestBase {
         HomeActivity b = homeOn("me");
         View page = InfoPages.explain(b);
         assertTrue(Shots.allText(page).contains("尽量多 MAX\n"));
+    }
+
+    @Test
+    public void theExplainPageShowsWhatWasChangedInTheSettingsOnTop() {
+        HomeActivity a = homeOn("me");
+        Shots.click(a, "规划说明");
+        assertTrue(Shots.has(a, "人格面具：只给目标"));
+        Shots.click(a, "去规划设置 ›");
+        Shots.click(a, "不带");
+        Shots.click(a, "尽量多 MAX");
+        assertTrue(a.popPage());
+        Shots.idle();
+        assertEquals(1, a.pageDepth());
+        assertTrue(Shots.has(a, "人格面具：不带"));
+        assertFalse(Shots.has(a, "人格面具：只给目标"));
+        assertTrue(Shots.has(a, "尽量多 MAX"));
+    }
+
+    @Test
+    public void theExplainPageShowsTheFirstPlanWhenItArrives() {
+        // Right after onboarding or a restore there is no plan yet.
+        Plan plan = api.snap.plan;
+        api.snap.plan = null;
+        HomeActivity a = homeOn("me");
+        Shots.click(a, "规划说明");
+        assertTrue(Shots.has(a, "正在安排到1月31日…"));
+        api.snap.plan = plan;
+        a.reload();
+        Shots.idle();
+        assertFalse(Shots.has(a, "正在安排到1月31日…"));
+        assertTrue(Shots.has(a, "个社群升到 MAX"));
+        assertTrue(Shots.has(a, "目标"));
+    }
+
+    @Test
+    public void aSwitchKeepsSlidingWhenThePageShowsTheSavedValue() {
+        HomeActivity a = settings();
+        Ui.setAnimationsEnabled(true);
+        ToggleRow row = (ToggleRow) Shots.clickTarget(Shots.find(a, SettingsPage.OTHER_LINKS));
+        boolean before = row.isChecked();
+        // The save rebinds the page at once with the value just set: the knob is not snapped over.
+        assertTrue(row.performClick());
+        assertEquals("saveProfile", api.last().method);
+        assertEquals(!before, row.isChecked());
+        assertTrue(row.sliding());
     }
 
     @Test

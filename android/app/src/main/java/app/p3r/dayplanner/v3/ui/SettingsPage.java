@@ -35,15 +35,6 @@ final class SettingsPage {
     static final String PERSONA_QUESTION = "见面时带同阿尔卡那的人格面具吗？";
     /** Under the segments while 只给目标 is chosen. */
     static final String PERSONA_GOALS_NOTE = "见面前会提醒你带哪个阿尔卡那";
-    /**
-     * Title and one-line explanation of each 人格面具 choice (in {@link #PERSONA_MODES} order) as the
-     * state wizard words them.
-     */
-    static final String[][] PERSONA_TEXT = {
-        {"基本都带", "所有社群的点数都按 ×1.51 算。"},
-        {"只给目标社群带", "只有目标社群按 ×1.51 算；每次和目标社群的人见面前，会提醒你带哪个阿尔卡那的人格面具。"},
-        {"不带/不一定", "按不带计算。"},
-    };
 
     /** Choice order of the 安排风格 tiles. */
     static final Profile.Style[] STYLES = {Profile.Style.BREADTH, Profile.Style.MAX};

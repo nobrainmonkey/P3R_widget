@@ -258,7 +258,7 @@ final class TowerSettingsPage {
             controls.addView(visits, Ui.wrap());
             capToggle = Ui.text(c, "", 13, Ui.col(c, R.color.p3r_cyan_300), true);
             capToggle.setGravity(Gravity.CENTER);
-            capToggle.setMinHeight(Ui.dp(c, 36));
+            capToggle.setMinHeight(Ui.dp(c, Ui.TOUCH));
             Ui.pad(capToggle, 10, 0, 10, 0);
             capToggle.setBackground(new SlantedPanelDrawable().fill(0)
                 .pressedFill(Ui.col(c, R.color.ui_cyan_faint)).skew(Ui.dp(c, 6)));

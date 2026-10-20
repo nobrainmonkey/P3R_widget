@@ -248,9 +248,13 @@ public class HomeBehaviorTest extends UiTestBase {
         assertEquals(Profile.PersonaMode.NONE, api.last().profile.effectivePersonaMode());
         assertFalse(api.last().profile.personaBonus);
         assertFalse(Shots.has(a, SettingsPage.PERSONA_GOALS_NOTE));
-        Shots.click(a, "安排结缘网站的字条，已开启");
+        // The switch says what the note costs; its state comes from the switch role, not the label.
+        ToggleRow dating = (ToggleRow) Shots.clickTarget(Shots.find(a, "安排结缘网站的字条"));
+        assertEquals("安排结缘网站的字条，11月11日起 · 每张 3,000 日元", dating.getContentDescription().toString());
+        assertTrue(dating.isChecked());
+        Shots.click(a, "安排结缘网站的字条");
         assertFalse(api.last().profile.datingNotes);
-        assertTrue(Shots.has(a, "安排结缘网站的字条，已关闭"));
+        assertFalse(dating.isChecked());
     }
 
     @Test

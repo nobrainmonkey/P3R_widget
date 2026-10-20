@@ -94,8 +94,11 @@ public class ReauditWordingTest extends UiTestBase {
         String text = Shots.allText(a.getWindow().getDecorView());
         assertEquals("the engine's note is said once, as the hero's chip", 0, count(text, "这次没来得及算完"));
         assertEquals(text, 1, count(text, InfoPages.BUDGET_PENDING));
-        // 女教皇 is a goal: its note is the reason line under its row in 目标.
-        assertTrue("the other notes are still listed", Shots.has(a, "没排到 MAX，先保证了皇帝 · 预计停在 RANK 7"));
+        // 女教皇 is a goal: its note is the reason line under its row in 目标, without the forecast
+        // the row already shows (「停在 RANK 9」).
+        assertTrue("the other notes are still listed", Shots.has(a, "没排到 MAX，先保证了皇帝"));
+        assertTrue(Shots.has(a, "停在 RANK 9"));
+        assertFalse(text, text.contains("预计停在"));
         Shots.shot(a, "explain_budget_pending");
     }
 
@@ -111,6 +114,31 @@ public class ReauditWordingTest extends UiTestBase {
         assertEquals(text, 0, count(text, "这次没来得及算完"));
         assertTrue(Shots.has(a, InfoPages.BUDGET_ROUGH));
         Shots.shot(a, "explain_budget_follow_up");
+    }
+
+    // ------------------------------------------------------------------ 规划说明: goals and problems
+
+    @Test
+    public void aGoalsLineDoesNotRepeatTheForecastOfItsRow() {
+        assertNull(InfoPages.goalReason("停在 RANK 9", "预计停在 RANK 9"));
+        assertEquals("没排到 MAX，先保证了皇帝",
+            InfoPages.goalReason("停在 RANK 9", "没排到 MAX，先保证了皇帝 · 预计停在 RANK 9"));
+        // Only the forecast the row shows goes; anything else the plan says stays.
+        assertEquals("预计停在 RANK 7", InfoPages.goalReason("停在 RANK 9", "预计停在 RANK 7"));
+        assertEquals("预计停在 RANK 5", InfoPages.goalReason("没排到 MAX", "预计停在 RANK 5"));
+        assertEquals("还差魅力 3 才能解锁", InfoPages.goalReason("没排到 MAX", "还差魅力 3 才能解锁"));
+        assertNull(InfoPages.goalReason("11月20日 MAX", null));
+    }
+
+    @Test
+    public void problemsAreListedAsThePlanWordsThem() {
+        // The engine writes these for 需要注意; the page shows them unchanged.
+        String rescue = "失踪者：还有 2 次救援没排上，去「规划设置 → 塔尔塔罗斯」把「最多」调高？";
+        String lost = "女教皇：没救出山岸风花，社群没法继续了";
+        Plan plan = new Plan();
+        plan.summary.notesZh.addAll(Arrays.asList(rescue, "其余社群：预计另有 3 个升到 MAX", lost,
+            "皇帝：预计 11月2日 升到 MAX"));
+        assertEquals(Arrays.asList(rescue, lost), InfoPages.problems(plan));
     }
 
     // ------------------------------------------------------------------ dates in list text

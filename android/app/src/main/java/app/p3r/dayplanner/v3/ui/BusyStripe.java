@@ -12,7 +12,9 @@ import app.p3r.dayplanner.R;
 
 /**
  * Thin animated band of diagonal cyan stripes, used as the "正在重新安排…" indicator.
- * The animation runs only while attached and visible; it is static in render tests.
+ * The animation runs only while the stripe is shown (attached, it and its parents visible, in a
+ * visible window), so the hidden stripes of rows that are not busy cost nothing; it is static in
+ * render tests.
  */
 public final class BusyStripe extends View {
     private final Paint track = new Paint();
@@ -34,29 +36,48 @@ public final class BusyStripe extends View {
         setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), resolveSize(height, heightMeasureSpec));
     }
 
+    /** Called on attach when shown, and whenever this view, a parent or the window is shown or hidden. */
     @Override
-    protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
-        if (Ui.animationsEnabled()) {
-            animator = ValueAnimator.ofFloat(0f, 1f);
-            animator.setDuration(900);
-            animator.setRepeatCount(ValueAnimator.INFINITE);
-            animator.setInterpolator(new LinearInterpolator());
-            animator.addUpdateListener(a -> {
-                phase = (float) a.getAnimatedValue();
-                invalidate();
-            });
-            animator.start();
+    public void onVisibilityAggregated(boolean isVisible) {
+        super.onVisibilityAggregated(isVisible);
+        if (isVisible && isAttachedToWindow() && Ui.animationsEnabled()) {
+            start();
+        } else {
+            stop();
         }
     }
 
     @Override
     protected void onDetachedFromWindow() {
+        stop();
+        super.onDetachedFromWindow();
+    }
+
+    /** Whether the stripes are moving (tests). */
+    boolean running() {
+        return animator != null;
+    }
+
+    private void start() {
+        if (animator != null) {
+            return;
+        }
+        animator = ValueAnimator.ofFloat(0f, 1f);
+        animator.setDuration(900);
+        animator.setRepeatCount(ValueAnimator.INFINITE);
+        animator.setInterpolator(new LinearInterpolator());
+        animator.addUpdateListener(a -> {
+            phase = (float) a.getAnimatedValue();
+            invalidate();
+        });
+        animator.start();
+    }
+
+    private void stop() {
         if (animator != null) {
             animator.cancel();
             animator = null;
         }
-        super.onDetachedFromWindow();
     }
 
     @Override
