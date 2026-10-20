@@ -46,7 +46,7 @@
 
 ## 下载
 
-下载正式版 [P3R-Planner-3.5.1.apk](https://github.com/nobrainmonkey/P3R_widget/releases/download/v3.5.1/P3R-Planner-3.5.1.apk)，在手机上打开安装即可（需要允许“安装未知应用”）。完整说明和校验文件见 [3.5.1 Release](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.5.1)。
+下载正式版 [P3R-Planner-3.6.0.apk](https://github.com/nobrainmonkey/P3R_widget/releases/download/v3.6.0/P3R-Planner-3.6.0.apk)，在手机上打开安装即可（需要允许“安装未知应用”）。完整说明和校验文件见 [3.6.0 Release](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.6.0)。
 
 **正式版安装**：[3.6.0](docs/RELEASE_NOTES_3.6.0.md)（界面整体重做）和 [3.5.1](docs/RELEASE_NOTES_3.5.1.md) 都沿用 3.3.0 签名，可以直接覆盖 3.3.0 及以后的版本并保留进度。3.2.0 及更早版本的更新步骤见[签名与迁移说明](docs/RELEASE_SIGNING.md)。
 

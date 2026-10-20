@@ -22,6 +22,12 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 - Public `v3.5.1` points to `4acf72109d4e8efb4b45910b49c397e8b2ef9b2b`. Full CI
   `39319649477` passed (1,294 tests, one skipped); publisher `39321609609` succeeded.
   The public APK and checksum were downloaded and compared with the signed local files.
+- Public latest `v3.6.0` points to `73cab56c4d20f6c8d2a92e2f9b2c8c8db3a8f531`.
+  Main CI `39501279106` and prebuilt publisher `39508093429` succeeded. Release ID
+  `418942942` has the verified APK and checksum; public downloads byte-match local files.
+  APK SHA-256 is `3cd3c4c6cb7b5c93b23c869f6687318526b80a53bbe2f65b77f64e9bc3824eb0`.
+  GitHub's four signing secrets remain unset; retain the existing local/private backup key
+  and use the documented verified-prebuilt path. Pushing main or a tag alone is not publication.
 - Player-facing language is natural Simplified Chinese using Reload terminology. Preserve
   the established navy/cyan P3R presentation, slanted panels, condensed numerals, day/night
   widget palettes and fade, readable answers, and action-specific result sheets.
