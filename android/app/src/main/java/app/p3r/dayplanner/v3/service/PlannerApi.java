@@ -270,7 +270,7 @@ public interface PlannerApi {
     default Receipt correctOutcome(String commandId, long expectedStateRevision, long targetSeq, Outcome replacement) {
         Receipt receipt = new Receipt();
         receipt.errorCode = "invalid";
-        receipt.errorZh = "这条记录暂时不能修改";
+        receipt.errorZh = "这条记录改不了";
         return receipt;
     }
 

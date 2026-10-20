@@ -86,6 +86,20 @@ public class RescueBatchRealPackTest {
     }
 
     @Test
+    public void rescuesTheTowerCapsLeaveNoTripForSayWhereToRaiseTheCap() throws Exception {
+        Profile p = new Profile();
+        p.otherLinks = false;
+        p.towerVisitsPerBlock = 0;
+        p.towerCapPerBlock = 0;
+        Plan plan = plan(p, start(day(9, 12)), baseOnly());
+        List<String> notes = new ArrayList<>();
+        for (String note : plan.summary.notesZh) if (note.startsWith("失踪者：")) notes.add(note);
+        // The path and the stepper's label as 规划设置 → 塔尔塔罗斯 shows them (规划说明 shows it as is).
+        assertEquals(plan.summary.notesZh.toString(), 1, notes.size());
+        assertTrue(notes.get(0), notes.get(0).matches("失踪者：还有 [1-9]\\d* 次救援没排上，去「规划设置 → 塔尔塔罗斯」把「最多」调高？"));
+    }
+
+    @Test
     public void septemberAndOctoberDoNotEnterAsSoonAsTheSocialLinkPersonDisappears() throws Exception {
         for (int[] dates : new int[][]{{9, 12, 22, 10, 3}, {10, 21, 30, 11, 2}}) {
             Profile p = new Profile();

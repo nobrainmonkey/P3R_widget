@@ -861,8 +861,8 @@ final class Labels {
         }
         episodeNotes(plan, start, end, out);
         if (m.batches != null && m.batches.missed(end) > 0) {
-            // TowerSettingsPage calls the cap 「最多几次」.
-            out.add("失踪者：有 " + m.batches.missed(end) + " 批救不到，把塔尔塔罗斯的「最多几次」调高试试？");
+            // The final 规划说明 line: the path and the stepper's label as on screen (规划设置 → 塔尔塔罗斯, 「最多」).
+            out.add("失踪者：还有 " + m.batches.missed(end) + " 次救援没排上，去「规划设置 → 塔尔塔罗斯」把「最多」调高？");
         }
         for (int b = 0; b < h.t.nBlocks; b++) {
             int want = m.towerWant[b];
