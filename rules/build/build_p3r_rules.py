@@ -45,7 +45,7 @@ PACK_PATH = ROOT / "android" / "app" / "src" / "main" / "assets" / "p3r" / "p3r_
 REPORT_PATH = ROOT / "rules" / "build" / "REPORT.md"
 
 SCHEMA = "p3r.rules.v3"
-PACK_VERSION = "3.5.0"
+PACK_VERSION = "3.6.0"
 GAME = "Persona 3 Reload (Xrd777, base game; excludes Episode Aigis/Astrea)"
 
 EPOCH = datetime.date(2009, 4, 1)

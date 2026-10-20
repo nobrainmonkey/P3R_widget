@@ -386,7 +386,8 @@ public class PlanBreadthRealPackTest {
     /**
      * {@link Rules#version} of the pack the golden plan ids ({@link #GOLDEN_IDS}) were recorded on. They
      * were refreshed for 3.5.0 after reviewing recursive link prerequisites, protected unlock
-     * candidates and rescue-floor metadata. All three action fingerprints remain unchanged;
+     * candidates and rescue-floor metadata, and again for 3.6.0 (rewritten player copy in the
+     * pack, no rule change). All three action fingerprints remain unchanged;
      * only the rule-pack identity and policy version change the plan ids. All three
      * plans replay validator-clean, fund every action and rescue every relevant missing person;
      * the new game keeps 21 MAX and the mid-game MUST Emperor still reaches MAX.
@@ -394,9 +395,9 @@ public class PlanBreadthRealPackTest {
      * capacity allocation and conditional invitations. Separate opt-in tests cover characteristic milestones.
      * MAX-style ids still omit style.
      */
-    private static final String GOLDEN_RULES_VERSION = "3.5.0|d9e354c428a4";
+    private static final String GOLDEN_RULES_VERSION = "3.6.0|2b6042fd191f";
     /** Plan ids of the three golden 「尽量多 MAX」 plans on {@link #GOLDEN_RULES_VERSION}. */
-    private static final String[] GOLDEN_IDS = {"4b6fdfc7c0538119", "90a71fae7f42f85f", "9375c6e0f3b21ec4"};
+    private static final String[] GOLDEN_IDS = {"1a3d4006f5ebd1a4", "372a02dc46ca956a", "a78d99e45d401205"};
 
     /** FNV-1a 64 over "slot|action|side…" per step: the plan's actions, independent of the pack version. */
     static String fingerprint(Plan plan) {
