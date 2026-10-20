@@ -10,7 +10,6 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -93,7 +92,7 @@ public final class CashPad {
         }
 
         // The amount: a big numeral, right-aligned over a cyan hairline. The tag sits at the left in
-        // a column of its own, so a long amount (large text) wraps beside it instead of under it.
+        // a column of its own; a long amount (small phone, large text) is drawn smaller beside it.
         LinearLayout field = Ui.row(context);
         if (options.badge != null) {
             badge = Ui.tag(context, options.badge, Ui.alpha(Ui.col(context, R.color.p3r_cyan_200), 40),
@@ -107,10 +106,7 @@ public final class CashPad {
         display = Ui.text(context, "", 40, Ui.col(context, R.color.p3r_white), true);
         display.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         Ui.pad(display, 12, 2, 12, 2);
-        FrameLayout amountSlot = new FrameLayout(context);
-        amountSlot.addView(display, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END | Gravity.CENTER_VERTICAL));
-        field.addView(amountSlot, Ui.weight(1));
+        field.addView(new AmountSlot(context, display), Ui.weight(1));
         field.setMinimumHeight(Ui.dp(context, 68));
         LinearLayout.LayoutParams fieldParams = Ui.matchWrap();
         fieldParams.topMargin = Ui.dp(context, inline ? 4 : 12);
@@ -327,6 +323,46 @@ public final class CashPad {
         dialog.dismiss();
         if (listener != null) {
             listener.onDone(result);
+        }
+    }
+
+    /**
+     * Holds the amount at the right of the field. An amount wider than the room (a small phone at
+     * large text) is drawn smaller to stay on one line: the number and its unit never break apart,
+     * and the field keeps its height, so the keys below do not move while digits are typed.
+     */
+    private static final class AmountSlot extends ViewGroup {
+        private final TextView amount;
+
+        AmountSlot(Context context, TextView amount) {
+            super(context);
+            this.amount = amount;
+            addView(amount);
+        }
+
+        @Override
+        protected void onMeasure(int widthSpec, int heightSpec) {
+            int any = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
+            amount.measure(any, any);
+            int w = amount.getMeasuredWidth();
+            int h = amount.getMeasuredHeight();
+            int room = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? w : MeasureSpec.getSize(widthSpec);
+            float scale = Math.min(1f, (float) room / Math.max(1, w));
+            amount.setPivotX(w);
+            amount.setPivotY(h / 2f);
+            amount.setScaleX(scale);
+            amount.setScaleY(scale);
+            setMeasuredDimension(resolveSize(Math.min(w, room), widthSpec), resolveSize(h, heightSpec));
+        }
+
+        @Override
+        protected void onLayout(boolean changed, int l, int t, int r, int b) {
+            // Right-aligned and centred; a scaled amount shrinks towards its right edge.
+            int w = amount.getMeasuredWidth();
+            int h = amount.getMeasuredHeight();
+            int left = r - l - w;
+            int top = (b - t - h) / 2;
+            amount.layout(left, top, left + w, top + h);
         }
     }
 }

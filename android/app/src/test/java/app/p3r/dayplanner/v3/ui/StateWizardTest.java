@@ -243,8 +243,9 @@ public class StateWizardTest extends UiTestBase {
     }
 
     @Test
-    @Config(fontScale = 1.5f)
+    @Config(qualifiers = "zh-rCN-w320dp-h640dp-xxhdpi", fontScale = 1.8f)
     public void aLongForecastAmountNeverSitsUnderItsTag() {
+        // A small phone at large text: 「1,233,000 日元」 is wider than the room beside 「预计」.
         api.snap.observed.cash = 1_230_000;
         StateActivity a = stateController("sync").get();
         Shots.click(a, StateSteps.SYNC_YES);
@@ -255,13 +256,19 @@ public class StateWizardTest extends UiTestBase {
         assertEquals(StateSteps.Page.CASH, a.currentPage());
         Shots.shot(a, "state_sync_cash_forecast_large_text");
         View tag = Shots.find(a, "预计");
-        View amount = Shots.find(a, "1,233,000 日元");
+        android.widget.TextView amount = (android.widget.TextView) Shots.find(a, "1,233,000 日元");
         int[] t = new int[2];
         int[] m = new int[2];
         tag.getLocationInWindow(t);
         amount.getLocationInWindow(m);
         assertTrue("the tag sits before the amount", t[0] + tag.getWidth() <= m[0]);
-        assertTrue("nothing cut off", amount.getHeight() >= ((android.widget.TextView) amount).getLayout().getHeight());
+        assertTrue("the whole amount on screen", m[0] + amount.getWidth() * amount.getScaleX() <= Shots.width());
+        assertEquals("the number and 日元 on one line", 1, amount.getLineCount());
+        assertTrue("drawn smaller to fit", amount.getScaleX() < 1f);
+        // A short amount is drawn at full size again.
+        Shots.click(a, "9");
+        Shots.capture(a, false);
+        assertEquals(1f, amount.getScaleX(), 0f);
     }
 
     @Test
