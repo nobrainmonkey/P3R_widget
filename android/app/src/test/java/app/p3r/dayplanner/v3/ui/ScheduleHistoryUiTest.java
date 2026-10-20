@@ -6,6 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Intent;
+import android.view.View;
+import android.view.ViewGroup;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -126,6 +128,180 @@ public class ScheduleHistoryUiTest extends UiTestBase {
         assertEquals("皇帝 · 小田桐秀利 · RANK 6 → 7", SchedulePage.recordedStep(api.rules, rows, slot, false).titleZh);
     }
 
+    /**
+     * 记录历史 says which record is in effect: the correction carries 「已修改」 and the actions, the
+     * record it replaced is faint 「原来记的」 with nothing to press (undoing it would drop the slot's
+     * record with its correction).
+     */
+    @Test
+    public void aCorrectionIsMarkedAndTheRecordItReplacedOffersNothing() {
+        int slot = Fixtures.SLOT_NOW - 2;
+        PlannerApi.HistoryItem original = FakePlannerApi.item(110, slot, "outcome",
+                "10月21日 放学后 · 皇帝 · 小田桐秀利 · RANK 6 → 7", false, true);
+        PlannerApi.HistoryItem fix = FakePlannerApi.item(111, slot, "outcome_fix",
+                "10月21日 放学后 · 修改了这次结果 · 皇帝 · 小田桐秀利 · 没升级", false, true);
+        fix.originalSeq = original.seq;
+        api.history.add(0, original);
+        api.history.add(0, fix);
+        HomeActivity home = home();
+        home.selectTab(HomeActivity.TAB_ME);
+        Shots.click(home, "记录历史");
+        assertEquals(1, Shots.findAll(home.getWindow().getDecorView(), HistoryPage.FIXED).size());
+        assertEquals(1, Shots.findAll(home.getWindow().getDecorView(), HistoryPage.REPLACED).size());
+        assertTrue(Shots.has(home, "撤销这条记录：" + fix.summaryZh));
+        assertTrue(Shots.has(home, "修改这条记录：" + fix.summaryZh));
+        assertFalse(Shots.has(home, "撤销这条记录：" + original.summaryZh));
+        assertFalse(Shots.has(home, "修改这条记录：" + original.summaryZh));
+        assertTrue(Shots.has(home, original.summaryZh + "，" + HistoryPage.REPLACED));
+        String all = Shots.allText(home.getWindow().getDecorView());
+        assertTrue("the correction above what it replaced: " + all,
+                all.indexOf("皇帝 · 小田桐秀利 · 没升级") < all.indexOf("皇帝 · 小田桐秀利 · RANK 6 → 7"));
+        Shots.shot(home, "home_history_corrected");
+    }
+
+    /** A corrected tower visit is edited from its correction, prefilled with the values in effect. */
+    @Test
+    public void aCorrectedTowerVisitIsEditedFromItsCorrection() {
+        PlannerApi.HistoryItem fix = FakePlannerApi.item(111, Fixtures.SLOT_NOW - 3, "tower_fix",
+                "10月20日 晚上 · 修改了这次探索 · 到达 100F · 余额 18,500 日元", false, true);
+        fix.originalSeq = 97;
+        fix.tower = FakePlannerApi.towerValues(Fixtures.SLOT_NOW - 3, 3, 100, true, 18_500, null);
+        api.history.add(0, fix);
+        HomeActivity home = home();
+        home.selectTab(HomeActivity.TAB_ME);
+        Shots.click(home, "记录历史");
+        assertFalse(Shots.has(home, "修改这条记录：10月20日 晚上 · 探索塔尔塔罗斯 · 到达 96F · 余额 18,500 日元"));
+        Shots.click(home, "修改这条记录：" + fix.summaryZh);
+        Shots.click(home, "保存修改");
+        assertEquals("correctTower", api.last().method);
+        assertEquals("the visit itself is corrected", 97, api.last().targetSeq);
+        assertEquals(100, api.last().tower.floor);
+    }
+
+    /** A 修改 saved on the result sheet shows in the open 记录历史 and day sheet at once. */
+    @Test
+    public void theOpenHistoryAndDaySheetFollowACorrectionSavedElsewhere() {
+        HomeActivity home = home();
+        home.selectTab(HomeActivity.TAB_ME);
+        Shots.click(home, "记录历史");
+        View before = Shots.find(home, "皇帝 RANK 6");
+        PlannerApi.HistoryItem fix = FakePlannerApi.item(111, Fixtures.SLOT_NOW - 1, "outcome_fix",
+                "10月21日 晚上 · 修改了这次结果 · 在宿舍房间学习 · 学力 +1", false, true);
+        fix.originalSeq = 98;
+        saveElsewhere(fix);
+        assertTrue(Shots.has(home, "在宿舍房间学习 · 学力 +1"));
+        assertTrue(Shots.has(home, HistoryPage.FIXED));
+        assertFalse(Shots.has(home, "撤销这条记录：10月21日 晚上 · 在宿舍房间学习 · 学力 +2"));
+        assertTrue("the rows were read again", before != Shots.find(home, "皇帝 RANK 6"));
+
+        home.popPage();
+        home.openDetail(Fixtures.SLOT_NOW - 4);
+        Shots.idle();
+        PlannerApi.HistoryItem dayFix = FakePlannerApi.item(112, Fixtures.SLOT_NOW - 4, "outcome_fix",
+                "10月20日 放学后 · 修改了这次结果 · 皇帝 RANK 7", false, true);
+        dayFix.originalSeq = 96;
+        saveElsewhere(dayFix);
+        String sheet = Shots.allText(home.sheets());
+        assertTrue(sheet, sheet.contains("皇帝 RANK 7") && sheet.contains(HistoryPage.REPLACED));
+    }
+
+    /** What ResultActivity's save does to the ledger, then the service's change notice. */
+    private void saveElsewhere(PlannerApi.HistoryItem fix) {
+        api.history.add(0, fix);
+        api.snap.stateRevision++;
+        api.fireChanged();
+        Shots.idle();
+    }
+
+    /** A record of an older day corrected later stays under that day's one header. */
+    @Test
+    public void aLaterCorrectionOfAnOlderDayStaysUnderThatDay() {
+        PlannerApi.HistoryItem fix = FakePlannerApi.item(111, Fixtures.SLOT_NOW - 4, "outcome_fix",
+                "10月20日 放学后 · 修改了这次结果 · 皇帝 RANK 7", false, true);
+        fix.originalSeq = 96;
+        api.history.add(0, fix);
+        HomeActivity home = home();
+        home.selectTab(HomeActivity.TAB_ME);
+        Shots.click(home, "记录历史");
+        View page = home.getWindow().getDecorView();
+        assertEquals(1, Shots.findAll(page, "10月20日 周二").size());
+        String all = Shots.allText(page);
+        assertTrue(all, all.indexOf("在宿舍房间学习 · 学力 +2") < all.indexOf("皇帝 RANK 7"));
+        assertTrue(all, all.indexOf("皇帝 RANK 7") < all.indexOf("皇帝 RANK 6"));
+    }
+
+    /** 「再看更早的」 adds the older records under the rows on screen instead of building them again. */
+    @Test
+    public void olderRecordsAreAddedUnderTheRowsOnScreen() {
+        for (int i = 0; i < 90; i++) {
+            api.history.add(FakePlannerApi.item(10 + i, Fixtures.SLOT_NOW - 20 - i, "outcome",
+                    Zh.slot(api.rules, Fixtures.SLOT_NOW - 20 - i) + " · 旧记录 " + i, false, false));
+        }
+        HomeActivity home = home();
+        home.selectTab(HomeActivity.TAB_ME);
+        Shots.click(home, "记录历史");
+        View first = Shots.find(home, "在宿舍房间学习 · 学力 +2");
+        Shots.click(home, HistoryPage.MORE);
+        assertTrue(Shots.has(home, "旧记录 89"));
+        assertTrue("kept, not rebuilt", first == Shots.find(home, "在宿舍房间学习 · 学力 +2"));
+        assertFalse(Shots.has(home, HistoryPage.MORE));
+    }
+
+    /**
+     * An undo saved while the page is open, then 「再看更早的」 before the page has read the records
+     * again: the older rows come with the undone record struck through, not with the rows as they were.
+     */
+    @Test
+    public void olderRecordsTappedRightAfterAnUndoDoNotKeepTheUndoneRow() {
+        for (int i = 0; i < 90; i++) {
+            api.history.add(FakePlannerApi.item(1000 + i, Fixtures.SLOT_NOW - 20 - i, "outcome",
+                    Zh.slot(api.rules, Fixtures.SLOT_NOW - 20 - i) + " · 旧记录 " + i, false, false));
+        }
+        HomeActivity home = home();
+        home.selectTab(HomeActivity.TAB_ME);
+        Shots.click(home, "记录历史");
+        String summary = "10月21日 晚上 · 在宿舍房间学习 · 学力 +2";
+        String undo = "撤销这条记录：" + summary;
+        assertTrue(Shots.has(home, undo));
+        // The undo as the store keeps it: the record voided, a hidden 撤销 row on top (no seq on screen changes).
+        api.history.replaceAll(x -> x.seq == 98 ? FakePlannerApi.item(98, x.slot, x.kind, summary, true, true) : x);
+        api.history.add(0, FakePlannerApi.item(200, Fixtures.SLOT_NOW - 1, "void", "撤销了「在宿舍房间学习」", false, true));
+        api.snap.stateRevision++;
+        api.fireChanged();
+        // Tapped before the page's own read is answered.
+        assertTrue(Shots.clickTarget(Shots.find(home, HistoryPage.MORE)).performClick());
+        Shots.idle();
+        assertTrue(Shots.has(home, "旧记录 89"));
+        assertFalse("the undone record offers nothing", Shots.has(home, undo));
+        assertTrue(Shots.has(home, "在宿舍房间学习 · 学力 +2"));
+    }
+
+    /** After 1/31 the last day is just the last day: no 「昨天」, not dimmed. */
+    @Test
+    public void aFinishedCalendarDoesNotCallItsLastDayYesterday() {
+        api.snap.observed.slot = api.rules.lastSlot() + 1;
+        HomeActivity home = home();
+        home.selectTab(HomeActivity.TAB_SCHEDULE);
+        Shots.capture(home, false);
+        ViewGroup row = (ViewGroup) described(home.getWindow().getDecorView(), Zh.dayAndWeekday(api.rules.lastDay));
+        assertNotNull("1月31日 is listed", row);
+        assertFalse(Shots.has(home, "昨天"));
+        assertEquals("not dimmed", 1f, row.getChildAt(0).getAlpha(), 0.001f);
+    }
+
+    /** The first view whose content description starts with {@code prefix}. */
+    private static View described(View v, String prefix) {
+        if (v.getVisibility() != View.VISIBLE) return null;
+        if (v.getContentDescription() != null && v.getContentDescription().toString().startsWith(prefix)) return v;
+        if (v instanceof ViewGroup) {
+            for (int i = 0; i < ((ViewGroup) v).getChildCount(); i++) {
+                View found = described(((ViewGroup) v).getChildAt(i), prefix);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
     @Test
     public void undoingTheNewestFixRevealsTheOlderFixRatherThanTheOriginalPrediction() {
         int slot = Fixtures.SLOT_NOW - 2;
@@ -239,6 +415,47 @@ public class ScheduleHistoryUiTest extends UiTestBase {
         assertEquals(correction.targetSeq, api.last().targetSeq);
         assertEquals(2, api.callsOf("correctOutcome").size());
         assertTrue(api.callsOf("recordOutcome").isEmpty());
+    }
+
+    /**
+     * A tower night recorded as 没去成 is corrected on the 做不了 panel under the tower's tag: another
+     * reason, or 「其实去了」 (never a bare 「继续」, never the tower form's new visit).
+     */
+    @Test
+    public void aTowerNightIsCorrectedWithAReasonOrCountedAsAVisit() {
+        PlannerApi.OutcomeCorrection correction = new PlannerApi.OutcomeCorrection();
+        correction.targetSeq = 97;
+        correction.stateRevision = api.snap.stateRevision;
+        correction.slot = Fixtures.SLOT_NOW - 3;
+        correction.actionKey = "tower:3";
+        correction.outcome = Outcomes.skipped("unwilling", -1);
+        SimState before = api.snap.observed.copy();
+        before.slot = correction.slot;
+        correction.beforeState = before;
+        api.corrections.put(correction.targetSeq, correction);
+
+        ResultActivity activity = correction(correction.targetSeq);
+        assertTrue(Shots.has(activity, StepKind.TOWER.tagZh));
+        assertTrue(Shots.has(activity, "怎么没做成？"));
+        assertTrue(Shots.has(activity, "原来记的是：探索塔尔塔罗斯 · 不想做"));
+        assertFalse(Shots.has(activity, "继续"));
+        assertFalse(Shots.has(activity, ResultActivity.OTHER_INSTEAD));
+        Shots.shot(activity, "result_correct_tower_night");
+        Shots.click(activity, ResultActivity.WENT_AFTER_ALL);
+        FakePlannerApi.Call call = api.last();
+        assertEquals("correctOutcome", call.method);
+        assertEquals(correction.targetSeq, call.targetSeq);
+        assertEquals(Outcome.Code.AS_PREDICTED, call.outcome.code);
+        assertTrue(api.callsOf("recordTower").isEmpty());
+        assertTrue(activity.isFinishing());
+
+        // Now recorded as a visit: the panel only asks why it fell through.
+        activity = correction(correction.targetSeq);
+        assertTrue(Shots.has(activity, "原来记的是：探索塔尔塔罗斯 · 去了"));
+        assertFalse(Shots.has(activity, ResultActivity.WENT_AFTER_ALL));
+        Shots.click(activity, Outcomes.SKIP_REASONS.get("story"));
+        assertEquals(Outcome.Code.SKIPPED, api.last().outcome.code);
+        assertEquals("story", api.last().outcome.reason);
     }
 
     @Test

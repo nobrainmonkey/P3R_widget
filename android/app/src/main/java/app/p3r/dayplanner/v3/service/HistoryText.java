@@ -296,6 +296,7 @@ final class HistoryText {
             case ACTIVITY:
                 return ZhText.join(title, activity(ctx.rules, outcome, traced));
             case TARTARUS:
+                return ZhText.join(title, "去了");
             case NOTE:
                 return ZhText.join(title, "已完成");
             case EPISODE:

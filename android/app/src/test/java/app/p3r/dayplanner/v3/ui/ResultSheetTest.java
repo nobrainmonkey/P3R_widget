@@ -1043,9 +1043,9 @@ public class ResultSheetTest extends UiTestBase {
         before.slot = correction.slot;
         correction.beforeState = before;
         api.corrections.put(correction.targetSeq, correction);
+        // It opens on the 做不了 reasons (ScheduleHistoryUiTest covers 「其实去了」).
         ResultActivity a = correction(correction.targetSeq);
-        assertTrue(Shots.has(a, "继续"));
-        Shots.click(a, TodayPage.CANNOT_LABEL);
+        assertFalse(Shots.has(a, "继续"));
         assertTrue(Shots.has(a, "怎么没做成？"));
         assertFalse(Shots.has(a, ResultActivity.OTHER_INSTEAD));
         Shots.click(a, "不想做");

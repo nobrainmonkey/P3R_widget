@@ -38,7 +38,8 @@ import app.p3r.dayplanner.v3.model.Rules;
  * Tartarus sheet, the stats strip's floor label, the hero's 「做不了…」, number spacing and the
  * load-failed copy; then the second review: no line ending with 「/」, even gaps around the arrow
  * of 「RANK 6 → 7」, the en dash of ranges, RANK/MAX/Lv.N in the numeral face, even episode chips,
- * the 「顶层 117F」 chip, styled bullets in the detail sheet and the route labels. Every render also
+ * the 「顶层 117F」 chip, no estimate notes on the day sheet, the 规划说明 blades on their first line
+ * and the route labels. Every render also
  * runs {@link Shots#checkLines}.
  */
 @RunWith(RobolectricTestRunner.class)
@@ -621,10 +622,10 @@ public class DesignReviewTest extends UiTestBase {
         topChipMatchesTheStepButtons("tower_font130");
     }
 
-    // ------------------------------------------------------------------ 18 estimates: styled bullets
+    // ------------------------------------------------------------------ 18 no estimates; list marks on the first line
 
     @Test
-    public void detailSheetListsNoEstimatesAndBulletsStayCentred() {
+    public void detailSheetListsNoEstimates() {
         Intent intent = new Intent(RuntimeEnvironment.getApplication(), HomeActivity.class);
         intent.putExtra(Intents.EXTRA_OPEN_SLOT, Fixtures.SLOT_NOW + 2);
         HomeActivity a = home(intent);
@@ -633,32 +634,35 @@ public class DesignReviewTest extends UiTestBase {
         String sheet = Shots.allText(a.sheets());
         // Design §6.2: the day sheet never explains the plan (no 安排依据, no estimate notes).
         assertFalse(sheet, sheet.contains("安排依据") || sheet.contains("普通见面预计好感"));
-        // The styled bullet (规划说明) still sits on the first line of its text.
-        android.widget.LinearLayout page = Ui.column(a);
-        page.addView(Ui.bullet(a, Ui.mixed(a, "普通见面预计好感 +10（约 ♪♪）。按见面时带着同阿尔卡那的人格面具计算，点数 ×1.51。",
-            13, Ui.col(a, app.p3r.dayplanner.R.color.p3r_ink_muted), false)));
-        Shots.render(page);
-        int notes = 0;
-        for (TextView t : AuditFixesTest.textViews(page)) {
+        for (TextView t : AuditFixesTest.textViews(a.sheets())) {
             String plain = Zh.plain(t.getText());
-            assertFalse(plain, plain.startsWith("·"));
-            if (!plain.startsWith("普通见面预计好感")) {
-                continue;
-            }
-            notes++;
+            assertFalse("a typed bullet: " + plain, plain.startsWith("·"));
+        }
+    }
+
+    /** 规划说明 「需要注意」: each problem's gold blade sits on the first line of its text. */
+    @Test
+    public void explainProblemBladesSitOnTheFirstLine() {
+        // A problem no goal row carries (those are said under their goal), long enough to wrap.
+        String note = "羁绊剧情 · 伊织顺平：没排到第 4 话，晚上都留给了目标社群和塔尔塔罗斯的探索";
+        api.snap.plan.summary.notesZh.add(note);
+        assertTrue(InfoPages.isProblem(note));
+        HomeActivity a = homeOn("me");
+        Shots.click(a, "规划说明");
+        Shots.capture(a, false);
+        for (String problem : new String[]{note}) {
+            TextView t = (TextView) Shots.find(a, problem);
+            assertTrue("wraps: " + problem, t.getLayout().getLineCount() > 1);
             ViewGroup row = (ViewGroup) t.getParent();
-            View dot = row.getChildAt(0);
-            assertTrue(dot.getBackground() instanceof SlantedPanelDrawable);
-            assertEquals(Ui.dp(a, 6), dot.getWidth());
-            // Centred on the first line.
+            View blade = row.getChildAt(0);
+            assertTrue(blade.getBackground() instanceof SlantedPanelDrawable);
             Layout layout = t.getLayout();
             int lineTop = t.getTop() + t.getPaddingTop() + layout.getLineTop(0);
             int lineHeight = layout.getLineBottom(0) - layout.getLineTop(0);
-            int middle = dot.getTop() + dot.getHeight() / 2;
+            int middle = blade.getTop() + blade.getHeight() / 2;
             assertTrue(middle + " in " + lineTop + "+" + lineHeight,
                 middle > lineTop + lineHeight * 0.3 && middle < lineTop + lineHeight * 0.7);
         }
-        assertTrue("the bullet row was laid out", notes > 0);
     }
 
     // ------------------------------------------------------------------ 19 朋友 / 恋人

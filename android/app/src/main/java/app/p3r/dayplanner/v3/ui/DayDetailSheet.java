@@ -152,8 +152,10 @@ final class DayDetailSheet {
     }
 
     /**
-     * The day's note as one line (「昭和之日」「期中考试放榜」), or null when there is none or the step
-     * says it already (a story day's 「暑期补习：学力 +3」). 12/24 says what the player chose.
+     * The day's note as one line (「昭和之日」「期中考试放榜」), or null when there is none or the sheet
+     * says it already (a story day's 「暑期补习：学力 +3」 under the title 「暑期补习」). A story slot
+     * shows only its title and its own line, so 11/3 still says 「文化节」 above 「满月作战」. 12/24
+     * says what the player chose.
      */
     static String dayNote(Rules rules, Profile profile, int day, Plan.Step step) {
         Rules.Day info = rules == null ? null : rules.day(day);
@@ -167,7 +169,15 @@ final class DayDetailSheet {
             return "平安夜 · " + (link == null ? "邀约都婉拒了" : ChristmasChoice.answerText(rules, link));
         }
         if (step != null) {
-            for (String said : new String[]{step.subtitleZh, step.detailZh, step.titleZh}) {
+            String[] shown = new String[]{step.subtitleZh, step.detailZh, step.titleZh};
+            if (StepKind.of(step) == StepKind.LOCKED) {
+                String title = SlotRows.title(rules, step);
+                if (note.startsWith(title + "：")) {
+                    return null;
+                }
+                shown = new String[]{title, lockedLine(step, title)};
+            }
+            for (String said : shown) {
                 if (said != null && Zh.clause(said).contains(Zh.clause(note))) {
                     return null;
                 }

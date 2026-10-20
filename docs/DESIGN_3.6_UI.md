@@ -144,8 +144,10 @@ copy and layout change as below.
   ([做不了…] [完成]); future slots get one secondary 「已经玩到这里」 without a caption. Removed:
   为什么这样安排, 安排依据, all instructional captions, 怎么做 on story slots.
 - 记录历史: grouped by game day, rows = period tag + result + 「3 分钟前」 + compact 修改/撤销; void
-  journal rows hidden; one divider 「10月18日 · 同步现状」 instead of per-row captions; no
-  explanation caption; 「再看更早的」 when the limit is hit; errors get [重试].
+  journal rows hidden; a correction carries 「已修改」 and sits above the record it replaced, which
+  is faint 「原来记的」 with no actions; one divider 「10月18日 · 同步现状」 instead of per-row
+  captions; no explanation caption; 「再看更早的」 adds the older rows when the limit is hit; errors
+  get [重试]. The list (and the past-day sheet) reloads when the records change.
 - 从头重新安排: one question 「从头重新安排？」, one line 「最多半分钟，期间可以照常记录。」,
   [先不了] [重新安排] (runs the deep search). Running → [停下]. Results:
   「重新安排好了：这周 3 处有变」, 「…，之后也有调整」, 「重新安排好了：这周不变，之后有调整」,
@@ -330,7 +332,8 @@ Basket logic, the calculator, persistence and the workspace behaviour are unchan
   「看完第 2 话了吗？」; 「做完了吗？」 [做完了] + 「结果不一样…」 (level chips, 「打工后的现金」 with
   an inline keypad); free slots [继续] [做了别的…].
 - 做不了: 「怎么没做成？」 + the reasons that fit
-  (「剧情占用了」「对方不在」「没开门」「钱不够」「不想做」), 「其实做了别的…」; 「以后还排「X」吗？」
+  (「剧情占用了」「对方不在」「没开门」「钱不够」「不想做」), 「其实做了别的…」 (correcting a 没去成
+  tower night from 记录历史: [其实去了] instead); 「以后还排「X」吗？」
   [只是这次] [以后别排了] (the bar then says 「以后不排「X」了」, without 撤销); 改做别的 「做了什么？」 +
   「都不是，没什么收获」: a row with nothing left to ask records at once, one with 顺便 asks only
   「顺便的事也做了吗？」 [也做了] [没做]. Back pops one panel; only the entry panel closes the sheet;

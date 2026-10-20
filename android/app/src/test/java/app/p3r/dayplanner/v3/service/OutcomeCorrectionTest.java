@@ -58,6 +58,40 @@ public class OutcomeCorrectionTest extends ServiceTestBase {
         assertEquals(1, observed().towerVisits[1]);
     }
 
+    /**
+     * A tower night recorded as 没去成, with later records after it (so it cannot be undone and
+     * recorded again): its reason can be changed, and 「其实去了」 counts the visit.
+     */
+    @Test public void anOlderSkippedTowerNightCanBeEditedIntoAVisit() {
+        onboard(DAY);
+        assertTrue(record(DAY, "meet:emperor", Outcome.Code.AS_PREDICTED).ok);
+        PlannerApi.Receipt night = record(NIGHT, "tower:1", Outcome.Code.SKIPPED);
+        assertTrue(night.errorZh, night.ok);
+        assertTrue(record(NIGHT + 1, "free", Outcome.Code.AS_PREDICTED).ok);
+        PlannerApi.HistoryItem row = service.history(0).stream().filter(x -> x.seq == night.eventSeq).findFirst().get();
+        assertEquals("skip", row.kind);
+        assertTrue(row.undoable);
+        assertTrue(row.correctable);
+
+        Outcome story = Outcome.of(Outcome.Code.SKIPPED);
+        story.reason = "story";
+        assertTrue(service.correctOutcome(id(), rev(), night.eventSeq, story).ok);
+        assertEquals("story", service.outcomeCorrection(night.eventSeq).outcome.reason);
+        PlannerApi.Receipt went = service.correctOutcome(id(), rev(), night.eventSeq, Outcome.of(Outcome.Code.AS_PREDICTED));
+        assertTrue(went.errorZh, went.ok);
+        assertEquals(NIGHT + 2, observed().slot);
+        // Replayed as a visit to the night's block (the engine counts it; this fake only records it).
+        int last = -1;
+        for (int i = 0; i < applier.actions.size(); i++) {
+            if (applier.actions.get(i).type == Action.Type.TARTARUS) last = i;
+        }
+        assertEquals(1, applier.actions.get(last).target);
+        assertEquals(Outcome.Code.AS_PREDICTED, applier.outcomes.get(last).code);
+        PlannerApi.HistoryItem fix = service.history(0).stream().filter(x -> x.seq == went.eventSeq).findFirst().get();
+        assertTrue(fix.summaryZh, fix.summaryZh.endsWith("修改了这次结果 · 探索塔尔塔罗斯 · 去了"));
+        assertTrue(fix.correctable);
+    }
+
     @Test public void aSkippedRowCanBecomeCompletedAndVoidingItsFixRestoresTheSkip() {
         onboard(DAY);
         PlannerApi.Receipt day = record(DAY, "meet:emperor", Outcome.Code.SKIPPED);
