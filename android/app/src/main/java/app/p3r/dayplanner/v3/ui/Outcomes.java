@@ -240,12 +240,18 @@ public final class Outcomes {
 
     /** Message-bar text after recording, e.g. 「皇帝 RANK 7」「恋爱 · 见面」「皇帝 · 对方不在」. */
     public static String summary(Rules rules, Plan.Step step, Outcome outcome) {
-        return summary(rules, step, outcome, false);
+        // A rank picked below the recorded one (其他结果…) sets the record back: 「皇帝 改为 RANK 5」.
+        return summary(rules, step, outcome, outcome.code == Outcome.Code.OTHER);
     }
 
     /** Message-bar text after changing an earlier record: a rank reads 「皇帝 改为 RANK 7」. */
     public static String changeSummary(Rules rules, Plan.Step step, Outcome outcome) {
         return summary(rules, step, outcome, true);
+    }
+
+    /** What a record says, for 「原来记的是：皇帝 RANK 5」: never 「改为」. */
+    public static String recordedSummary(Rules rules, Plan.Step step, Outcome outcome) {
+        return summary(rules, step, outcome, false);
     }
 
     private static String summary(Rules rules, Plan.Step step, Outcome outcome, boolean change) {
@@ -281,8 +287,7 @@ public final class Outcomes {
                 return name + " · 没完成";
             case OTHER:
                 if (outcome.rank >= 0) {
-                    // 「其他结果…」 below the recorded rank: the record is set back, not ranked up.
-                    return rankChanged(name, outcome.rank);
+                    return change ? rankChanged(name, outcome.rank) : rankResult(name, outcome.rank);
                 }
                 return name + otherResult(rules, outcome);
             case AS_PREDICTED:

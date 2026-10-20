@@ -437,6 +437,49 @@ public class ResultSheetTest extends UiTestBase {
     }
 
     @Test
+    public void backFromAFailedExclusionDoesNotAskAgain() {
+        int slot = NOW + 1;
+        advanceTo(slot);
+        api.nextProfileReceipt = FakePlannerApi.invalid("写入失败");
+        ResultActivity a = result(slot, "act:study_room", Intents.MODE_CANNOT);
+        Shots.click(a, "不想做");
+        Shots.click(a, "以后别排了");
+        // 不想做 is recorded: back acts as on the panel the sheet opened with.
+        a.onBackPressed();
+        Shots.idle();
+        assertFalse(Shots.has(a, "怎么没做成？"));
+        assertTrue(finishing(a));
+        assertEquals(1, api.callsOf("recordOutcome").size());
+    }
+
+    @Test
+    public void closingAFailedExclusionGoesOnWithTheQueue() {
+        ResultActivity a = result(NOW + 2, "meet:lovers", Intents.MODE_RESULT);
+        Shots.click(a, "一项项对");
+        Shots.click(a, "升到 RANK 7 了");
+        assertTrue(Shots.has(a, "做完了"));
+        api.nextProfileReceipt = FakePlannerApi.invalid("写入失败");
+        Shots.click(a, TodayPage.CANNOT_LABEL);
+        Shots.click(a, "不想做");
+        Shots.click(a, "以后别排了");
+        assertTrue(Shots.has(a, ResultActivity.EXCLUDE_FAILED));
+        // The button (the scrim and the X are 「关闭」 to TalkBack as well).
+        View close = null;
+        for (View v : Shots.findAll(a.getWindow().getDecorView(), "关闭")) {
+            if (v instanceof TextView && "关闭".equals(Zh.plain(((TextView) v).getText()))) {
+                close = v;
+            }
+        }
+        assertNotNull(close);
+        assertTrue(close.performClick());
+        Shots.idle();
+        assertFalse(finishing(a));
+        assertTrue(Shots.has(a, "见面了"));
+        assertEquals(2, api.callsOf("recordOutcome").size());
+        assertEquals("unwilling", api.callsOf("recordOutcome").get(1).outcome.reason);
+    }
+
+    @Test
     public void otherListRecordsTheChosenAlternative() {
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_OTHER);
         assertTrue(Shots.has(a, "原安排"));
@@ -1019,6 +1062,26 @@ public class ResultSheetTest extends UiTestBase {
         String down = UndoCenter.take().summaryZh;
         assertEquals("皇帝 改为 RANK 5", down);
         assertFalse(HomeActivity.isRankUp(down));
+    }
+
+    @Test
+    public void aCorrectionSaysWhatTheRecordSaysWithoutChangeWording() {
+        PlannerApi.OutcomeCorrection correction = new PlannerApi.OutcomeCorrection();
+        correction.targetSeq = 97;
+        correction.stateRevision = api.snap.stateRevision;
+        correction.slot = Fixtures.SLOT_NOW - 2;
+        correction.actionKey = "meet:emperor";
+        // Saved through 「其他结果…」 below the rank before it.
+        correction.outcome = Outcomes.observedRank(6, 5, false);
+        SimState before = api.snap.observed.copy();
+        before.slot = correction.slot;
+        before.rank[4] = 6;
+        correction.beforeState = before;
+        api.corrections.put(correction.targetSeq, correction);
+        ResultActivity a = correction(correction.targetSeq);
+        assertTrue(Shots.has(a, "原来记的是：皇帝 RANK 5"));
+        assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("改为"));
+        Shots.shot(a, "result_correction_other_rank");
     }
 
     @Test

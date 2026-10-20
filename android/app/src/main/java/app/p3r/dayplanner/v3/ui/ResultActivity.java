@@ -768,8 +768,9 @@ public final class ResultActivity extends Activity {
             column.addView(title, top(6));
             lead = title;
             if (correction != null) {
-                column.addView(Ui.mixed(this, "原来记的是：" + Outcomes.summary(rules, correctionStep, correction.outcome),
-                    14, Ui.col(this, R.color.p3r_ink_muted), false), top(2));
+                String was = Outcomes.recordedSummary(rules, correctionStep, correction.outcome);
+                column.addView(Ui.mixed(this, "原来记的是：" + was, 14, Ui.col(this, R.color.p3r_ink_muted), false),
+                    top(2));
             }
             head.setBackground(new WatermarkDrawable(watermarkWord(kind), Ui.numerals(this),
                 Ui.alpha(Ui.col(this, R.color.p3r_cyan_300), 22), Ui.dp(this, 96), Ui.dp(this, 1.5f), -6f, 0.36f));
@@ -1756,13 +1757,23 @@ public final class ResultActivity extends Activity {
         });
     }
 
-    /** 不想做 is recorded but 「以后别排了」 did not save: only that is tried again. */
+    /**
+     * 不想做 is recorded but 「以后别排了」 did not save: only that is tried again. The record stands, so
+     * back no longer returns to its questions, and 关闭 moves on as a save does (the next item of a
+     * 一项项对 queue, else the sheet closes).
+     */
     private void showExcludeFailed(Plan.Step step, String activityId) {
+        stack.clear();
+        sub = null;
         body.removeAllViews();
         header(step);
         body.addView(bannerView(EXCLUDE_FAILED, true), top(12));
         TextView close = Ui.secondary(this, "关闭");
-        close.setOnClickListener(v -> close());
+        close.setOnClickListener(v -> {
+            if (!busy) {
+                continueOrFinish();
+            }
+        });
         TextView retry = Ui.primary(this, "重试");
         retry.setOnClickListener(v -> {
             if (!busy) {
