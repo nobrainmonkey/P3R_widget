@@ -112,11 +112,13 @@ public class DormProgressUiTest extends UiTestBase {
     }
 
     @Test
-    public void draftCountsFollowStableIdsAndGardeningChoiceSurvivesRebase() {
+    public void draftCountsFollowStableIdsAndSurviveRebase() {
         Rules rules = dormRules();
         StateDraft draft = new StateDraft(StateDraft.Mode.EDIT, rules, Fixtures.observedMid(rules), new Profile(), null, 1);
         draft.setDormCount(FIRST, 3);
         draft.setDormCount(SECOND, 1);
+        draft.dormAsked = true;
+        // Gardening is chosen in 队友特性, never carried by a wizard draft.
         draft.setDormGardening(true);
         DraftStore store = new DraftStore(RuntimeEnvironment.getApplication());
         store.save(draft);
@@ -129,12 +131,13 @@ public class DormProgressUiTest extends UiTestBase {
         assertEquals(DraftStore.Restored.REBASED, store.restore(restored));
         assertEquals(1, restored.dormCount(FIRST));
         assertEquals(3, restored.dormCount(SECOND));
-        assertTrue(restored.profile.planDormGardening);
-        assertTrue(restored.profileChanged());
+        assertTrue(restored.dormAsked);
+        assertFalse(restored.profile.planDormGardening);
+        assertFalse(restored.profileChanged());
         StateDraft copied = new StateDraft(StateDraft.Mode.EDIT, rules, Fixtures.observedMid(rules), new Profile(), null, 3);
         copied.copyEditsFrom(restored);
         assertEquals(3, copied.dormCount(SECOND));
-        assertTrue(copied.profile.planDormGardening);
+        assertTrue(copied.dormAsked);
     }
 
     @Test
@@ -228,6 +231,23 @@ public class DormProgressUiTest extends UiTestBase {
             }
         }
         return null;
+    }
+
+    @Test
+    public void doneAnswerSurvivesARotation() {
+        Rules rules = dormRules();
+        api.rules = rules;
+        api.snap.observed = Fixtures.observedMid(rules);
+        org.robolectric.android.controller.ActivityController<StateActivity> controller = stateController("edit");
+        StateActivity activity = controller.get();
+        StateWizardTest.openFromHub(activity, "宿舍活动", StateSteps.Page.DORM);
+        Shots.click(activity, "做过");
+        assertTrue(Shots.has(activity, "宿舍活动各做过几次？"));
+        controller.recreate();
+        Shots.idle();
+        activity = controller.get();
+        assertEquals(StateSteps.Page.DORM, activity.currentPage());
+        assertTrue("做过 is not asked again", Shots.has(activity, "宿舍活动各做过几次？"));
     }
 
     @Test

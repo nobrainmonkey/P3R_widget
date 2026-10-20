@@ -46,6 +46,8 @@ public final class CashPad {
         public boolean tripleZero = true;
         /** Small slanted tag beside a prefilled value (「预计」), dropped once the player types. */
         public CharSequence badge;
+        /** Money known as a lower bound, shown dim while the amount is 不记得 (「290+ 日元」, inline only). */
+        public Long lowerBound;
     }
 
     /** The answer for an amount the player does not remember. */
@@ -61,10 +63,13 @@ public final class CashPad {
     private final boolean inline;
     private final String unit;
     private final Long max;
+    private final long lowerBound;
     private final StringBuilder digits = new StringBuilder();
     private boolean negative;
     private boolean replaceOnType;
     private boolean unknown;
+    /** Still showing what the page prefilled (the badge goes with it). */
+    private boolean prefilled;
     private TextView unknownButton;
 
     private CashPad(Context context, Options options, Listener listener, boolean inline) {
@@ -72,6 +77,7 @@ public final class CashPad {
         this.inline = inline;
         this.unit = options.unit == null ? "" : options.unit;
         this.max = options.max;
+        this.lowerBound = options.lowerBound == null ? 0 : Math.max(0, options.lowerBound);
         content = Ui.column(context);
         if (!inline) {
             Ui.pad(content, 20, 20, 20, 16);
@@ -86,23 +92,25 @@ public final class CashPad {
             content.addView(hint, p);
         }
 
-        // The amount: a big numeral, right-aligned over a cyan hairline; the tag sits at the left.
-        FrameLayout field = new FrameLayout(context);
-        display = Ui.text(context, "", 40, Ui.col(context, R.color.p3r_white), true);
-        display.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        display.setMaxLines(1);
-        Ui.pad(display, 12, 2, 12, 2);
-        FrameLayout.LayoutParams dp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END | Gravity.CENTER_VERTICAL);
-        field.addView(display, dp);
+        // The amount: a big numeral, right-aligned over a cyan hairline. The tag sits at the left in
+        // a column of its own, so a long amount (large text) wraps beside it instead of under it.
+        LinearLayout field = Ui.row(context);
         if (options.badge != null) {
             badge = Ui.tag(context, options.badge, Ui.alpha(Ui.col(context, R.color.p3r_cyan_200), 40),
                 Ui.col(context, R.color.p3r_cyan_200));
-            field.addView(badge, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.START | Gravity.CENTER_VERTICAL));
+            LinearLayout.LayoutParams bp = Ui.wrap();
+            bp.rightMargin = Ui.dp(context, 8);
+            field.addView(badge, bp);
         } else {
             badge = null;
         }
+        display = Ui.text(context, "", 40, Ui.col(context, R.color.p3r_white), true);
+        display.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        Ui.pad(display, 12, 2, 12, 2);
+        FrameLayout amountSlot = new FrameLayout(context);
+        amountSlot.addView(display, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END | Gravity.CENTER_VERTICAL));
+        field.addView(amountSlot, Ui.weight(1));
         field.setMinimumHeight(Ui.dp(context, 68));
         LinearLayout.LayoutParams fieldParams = Ui.matchWrap();
         fieldParams.topMargin = Ui.dp(context, inline ? 4 : 12);
@@ -173,6 +181,7 @@ public final class CashPad {
         } else {
             unknown = inline && options.allowUnknown;
         }
+        prefilled = options.initial != null || (unknown && lowerBound > 0);
         render();
         dialog = inline ? null : Pads.bottomDialog(context, content);
     }
@@ -259,6 +268,7 @@ public final class CashPad {
     }
 
     private void changed() {
+        prefilled = false;
         render();
         if (inline && listener != null) {
             listener.onDone(unknown ? null : value());
@@ -267,15 +277,16 @@ public final class CashPad {
 
     private void render() {
         Context context = display.getContext();
-        if (badge != null && !replaceOnType) {
+        if (badge != null && !prefilled) {
             badge.setVisibility(View.GONE);
         }
         if (unknown) {
-            // A dim 「— 日元」: no amount yet, never the word 不确定 in the field.
-            display.setText(amount(context, "—"));
+            // A dim 「— 日元」, or the known lower bound 「290+ 日元」; never the word 不确定 in the field.
+            boolean bounded = lowerBound > 0;
+            display.setText(amount(context, bounded ? Zh.number(lowerBound) + "+" : "—"));
             display.setTextColor(Ui.col(context, R.color.p3r_ink_faint));
             display.setBackground(null);
-            display.setContentDescription("现金" + UNKNOWN_LABEL);
+            display.setContentDescription(bounded ? "现金至少 " + Zh.yen(lowerBound) : "现金" + UNKNOWN_LABEL);
         } else {
             long v = value();
             String text = Zh.number(Math.abs(v));

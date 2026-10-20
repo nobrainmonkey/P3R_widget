@@ -106,8 +106,10 @@ public final class StateDraft {
     final Integer[] episodes;
     /** Actual dorm activity counts per stable activity (null = keep the record / confirmed sync prefill). */
     final Integer[] dormCounts;
-    /** Explicit gardening planning choice; independent of the counts already completed. */
+    /** Explicit gardening planning choice (队友特性's sheet); independent of the counts already completed. */
     Boolean dormGardening;
+    /** 「做过」 was answered on the 宿舍活动 page (the counts are asked even while all are 0). */
+    boolean dormAsked;
     /** 平安夜 answer: null = untouched, "" = 都婉拒了, else the id of the link whose invitation was accepted. */
     String christmas;
     String step;
@@ -443,11 +445,13 @@ public final class StateDraft {
     // ------------------------------------------------------------------ 平安夜
 
     /**
-     * The wizard asks about 12/24 from 12/20 on (before that it is a 规划设置 matter), and only
-     * when someone could have invited the player.
+     * The wizard asks about 12/24 from 12/20 to 12/24 (before and after, it is a 规划设置 matter),
+     * and only when someone could have invited the player.
      */
     public boolean asksChristmas() {
-        return Rules.dayOf(slot()) >= ChristmasChoice.askFromDay() && !christmasCandidates().isEmpty();
+        int day = Rules.dayOf(slot());
+        return day >= ChristmasChoice.askFromDay() && day <= ChristmasChoice.askUntilDay()
+            && !christmasCandidates().isEmpty();
     }
 
     /** Links whose 12/24 invitation can be chosen, with the displayed ranks. */
@@ -485,6 +489,30 @@ public final class StateDraft {
 
     public boolean isForecastCash() {
         return cash == null && cashUnknown == null && prefill().cash != base.cash;
+    }
+
+    /** The cash as 修改哪一项？ lists it: 「18,500 日元」, a known lower bound 「290+ 日元」 (as on 今天), or 「不记得」. */
+    public String cashText() {
+        return cashText(cashUnknown(), cash());
+    }
+
+    /**
+     * True when the player has answered or changed anything here (not only walked the pages): a
+     * draft restored onto a newer record only then keeps 「你填的」.
+     */
+    public boolean hasEdits() {
+        if (sync != null || slot != null || cash != null || cashUnknown != null || floor != null
+            || towerVisits != null || christmas != null || profileChanged()) {
+            return true;
+        }
+        for (Integer[] edits : new Integer[][]{statLv, rank, unlock, rescue, episodes, dormCounts}) {
+            for (Integer edit : edits) {
+                if (edit != null) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // ------------------------------------------------------------------ setters (player edits)
@@ -679,8 +707,11 @@ public final class StateDraft {
             // 「10月25日 白天」, as in the rest of the app's text (M/D is for date plates only).
             out.add(new Change("日期", Zh.slot(rules, before.slot), Zh.slot(rules, after.slot), "DATE", false));
         }
-        if (before.cash != after.cash || before.cashExact != after.cashExact) {
-            out.add(new Change("现金", cashText(before), cashText(after), "CASH", isForecastCash()));
+        // As 今天 shows it: a lower bound reads 「6,000+ 日元」, never 「不记得 → 不记得」.
+        String cashBefore = cashText(before);
+        String cashAfter = cashText(after);
+        if (!cashBefore.equals(cashAfter)) {
+            out.add(new Change("现金", cashBefore, cashAfter, "CASH", isForecastCash()));
         }
         for (int i = 0; i < Math.min(3, rules.stats.length); i++) {
             int a = rules.stats[i].levelFor(before.statPts[i]);
@@ -729,10 +760,6 @@ public final class StateDraft {
             if (a != c) {
                 out.add(new Change(activity.zh, a + " 次", c + " 次", "DORM", isForecastDormCount(activity.idx)));
             }
-        }
-        if (originalProfile.planDormGardening != profile.planDormGardening) {
-            out.add(new Change("安排园艺", originalProfile.planDormGardening ? "开" : "关",
-                profile.planDormGardening ? "开" : "关", "DORM", false));
         }
         Rules.Block b = block();
         if (b != null && b.idx < before.towerVisits.length && before.towerVisits[b.idx] != after.towerVisits[b.idx]) {
@@ -811,7 +838,6 @@ public final class StateDraft {
             int count = dormCount(after, activity.idx);
             if (count > 0) out.add(new Change(activity.zh, null, count + " 次", "DORM", false));
         }
-        if (profile.planDormGardening) out.add(new Change("安排园艺", null, "开", "DORM", false));
         if (asksChristmas()) {
             out.add(new Change("平安夜", null, ChristmasChoice.answerText(rules, christmasLink()), "CHRISTMAS", false));
         }
@@ -851,9 +877,16 @@ public final class StateDraft {
         return text.toString();
     }
 
-    /** "18,500 日元", or 「不记得」 when the amount is not known exactly. */
+    /** "18,500 日元"; not known exactly: the lower bound "290+ 日元" (as on 今天), or 「不记得」 at 0. */
     static String cashText(SimState s) {
-        return s.cashExact ? Zh.yen(s.cash) : CashPad.UNKNOWN_LABEL;
+        return cashText(!s.cashExact, s.cash);
+    }
+
+    private static String cashText(boolean unknown, long cash) {
+        if (!unknown) {
+            return Zh.yen(cash);
+        }
+        return cash > 0 ? Zh.number(cash) + "+ 日元" : CashPad.UNKNOWN_LABEL;
     }
 
     /** "还没做" / "做完「再借给社长 10,000 日元」" (the last step done). */
@@ -879,7 +912,7 @@ public final class StateDraft {
         System.arraycopy(other.rescue, 0, rescue, 0, Math.min(rescue.length, other.rescue.length));
         System.arraycopy(other.episodes, 0, episodes, 0, Math.min(episodes.length, other.episodes.length));
         System.arraycopy(other.dormCounts, 0, dormCounts, 0, Math.min(dormCounts.length, other.dormCounts.length));
-        if (other.dormGardening != null) setDormGardening(other.dormGardening);
+        dormAsked = other.dormAsked;
         if (other.christmas != null) {
             setChristmasLink(other.christmas.isEmpty() ? null : other.christmas);
         }

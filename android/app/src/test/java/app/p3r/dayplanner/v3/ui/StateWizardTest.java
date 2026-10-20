@@ -5,7 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
 
+import android.os.Looper;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -17,6 +19,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowDialog;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -172,6 +175,9 @@ public class StateWizardTest extends UiTestBase {
         CalendarPicker picker = findPicker(a.getWindow().getDecorView());
         picker.pick(Fixtures.day(10, 25));
         Shots.idle();
+        picker = findPicker(a.getWindow().getDecorView());
+        assertNotNull("the marked day is the one the question named", Shots.find(picker, "10月21日，上次记录"));
+        assertTrue(Shots.findAll(picker, "10月22日，上次记录").isEmpty());
         Shots.shot(a, "state_sync_date");
         // 10/22–10/24 as planned: emperor 7, sun 8 (forecast), cash +3,000 − 0.
         StateDraft d = a.draft();
@@ -229,10 +235,49 @@ public class StateWizardTest extends UiTestBase {
         assertFalse("typed: no longer a forecast", Shots.has(a, "预计"));
         Shots.click(a, CashPad.UNKNOWN_LABEL);
         assertTrue(a.draft().cashUnknown());
-        assertTrue(Shots.has(a, "现金" + CashPad.UNKNOWN_LABEL));
+        // 不记得 keeps the forecast as a lower bound, shown as 今天 will show it after saving.
+        assertTrue(Shots.has(a, "现金至少 21,500 日元"));
         Shots.click(a, "完成");
         assertEquals(StateSteps.Page.CONFIRM, a.currentPage());
-        assertTrue(Shots.has(a, CashPad.UNKNOWN_LABEL));
+        assertTrue(Shots.has(a, "现金：18,500 日元 → 21,500+ 日元，点按修改"));
+    }
+
+    @Test
+    @Config(fontScale = 1.5f)
+    public void aLongForecastAmountNeverSitsUnderItsTag() {
+        api.snap.observed.cash = 1_230_000;
+        StateActivity a = stateController("sync").get();
+        Shots.click(a, StateSteps.SYNC_YES);
+        findPicker(a.getWindow().getDecorView()).pick(Fixtures.day(10, 25));
+        Shots.idle();
+        Shots.click(a, "下一步");
+        Shots.click(a, "现金");
+        assertEquals(StateSteps.Page.CASH, a.currentPage());
+        Shots.shot(a, "state_sync_cash_forecast_large_text");
+        View tag = Shots.find(a, "预计");
+        View amount = Shots.find(a, "1,233,000 日元");
+        int[] t = new int[2];
+        int[] m = new int[2];
+        tag.getLocationInWindow(t);
+        amount.getLocationInWindow(m);
+        assertTrue("the tag sits before the amount", t[0] + tag.getWidth() <= m[0]);
+        assertTrue("nothing cut off", amount.getHeight() >= ((android.widget.TextView) amount).getLayout().getHeight());
+    }
+
+    @Test
+    public void aLowerBoundCashReadsAsOnToday() {
+        // 今天 shows 「290+ 日元」 after a recorded 打工: the hub and the keypad say the same.
+        api.snap.observed.cash = 290;
+        api.snap.observed.cashExact = false;
+        StateActivity a = stateController("edit").get();
+        assertTrue(Shots.has(a, "现金，290+ 日元，点按修改"));
+        openFromHub(a, "现金", StateSteps.Page.CASH);
+        assertTrue(Shots.has(a, "290+ 日元"));
+        assertTrue(Shots.has(a, "现金至少 290 日元"));
+        Shots.shot(a, "state_edit_cash_lower_bound");
+        Shots.click(a, "完成");
+        assertTrue("nothing typed: nothing to save", a.draft().changes().isEmpty());
+        assertFalse(Shots.has(a, "更新安排"));
     }
 
     @Test
@@ -336,12 +381,13 @@ public class StateWizardTest extends UiTestBase {
         assertEquals(StateSteps.Page.CASH, again.currentPage());
         assertEquals("still a single page of 修改哪一项？", StateSteps.Page.HUB, again.returnPage());
         Shots.shot(again, "state_edit_restored");
-        assertEquals(StateActivity.RESUMED, again.noticeText());
+        assertNull("a rotation is not news", again.noticeText());
 
-        // A brand-new activity (process death) restores from the semantic keys as well.
+        // Opened anew, the wizard restores from the semantic keys as well and says so once.
         StateActivity fresh = stateController("edit").get();
         assertEquals(31_337, fresh.draft().cash());
         assertEquals(StateSteps.Page.CASH, fresh.currentPage());
+        assertEquals(StateActivity.RESUMED, fresh.noticeText());
         Shots.click(fresh, "完成");
         assertEquals(StateSteps.Page.HUB, fresh.currentPage());
         assertNull("a message goes with the page it was about", fresh.noticeText());
@@ -357,6 +403,16 @@ public class StateWizardTest extends UiTestBase {
         assertEquals(999, later.draft().cash());
         assertEquals(api.snap.stateRevision, later.draft().baseRevision);
         assertEquals(StateActivity.REBASED, later.noticeText());
+    }
+
+    @Test
+    public void aDraftWithNothingFilledIsNotCalledYours() {
+        // Opened from 今天 and closed again; a record arrives; opened again.
+        stateController("edit").get().finish();
+        api.snap.stateRevision++;
+        StateActivity later = stateController("edit").get();
+        assertEquals(StateSteps.Page.HUB, later.currentPage());
+        assertNull("nothing was filled in", later.noticeText());
     }
 
     @Test
@@ -393,6 +449,10 @@ public class StateWizardTest extends UiTestBase {
         assertEquals(0, built.rescued & 1L);
         assertEquals(1L, built.rescueFailed & 1L);
         assertEquals(2L, built.rescued & 2L);
+        Shots.click(a, "舞子：还没");
+        built = a.draft().build();
+        assertEquals("还没 clears the rescue", 0L, (built.rescued | built.rescueFailed) & 2L);
+        Shots.click(a, "舞子：救出了");
         boolean listed = false;
         for (StateDraft.Change change : a.draft().changes()) {
             listed |= change.labelZh.equals("救出舞子") && "TOWER".equals(change.page);
@@ -400,6 +460,20 @@ public class StateWizardTest extends UiTestBase {
         assertTrue(listed);
         Shots.click(a, "完成");
         assertTrue(Shots.has(a, "已改"));
+    }
+
+    @Test
+    public void notYetUndoesARecordedRescue() {
+        // The record (or the 同步现状 forecast) says 舞子 was rescued; the player says 还没.
+        api.snap.observed.rescued |= 2L;
+        StateActivity a = stateController("edit").get();
+        openFromHub(a, "塔尔塔罗斯", StateSteps.Page.TOWER);
+        assertTrue(Shots.find(a, "舞子：救出了").isSelected());
+        Shots.click(a, "舞子：还没");
+        Shots.click(a, "完成");
+        Shots.click(a, "更新安排");
+        SimState saved = api.last().state;
+        assertEquals(0L, (saved.rescued | saved.rescueFailed) & 2L);
     }
 
     @Test
@@ -451,6 +525,26 @@ public class StateWizardTest extends UiTestBase {
         assertEquals(Messages.GENERIC_ERROR, a.noticeText());
         assertEquals("never stuck on 正在保存…", "更新安排", a.primaryText());
         Shots.shot(a, "state_save_failed");
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(UndoBar.DURATION_MILLIS + 1_000));
+        assertEquals("an error stays until the page changes", Messages.GENERIC_ERROR, a.noticeText());
+        Shots.click(a, "现金");
+        assertNull(a.noticeText());
+    }
+
+    @Test
+    public void aConflictWhoseReloadFailsLetsBackClose() {
+        StateActivity a = stateController("edit").get();
+        Shots.click(a, "逐项检查");
+        a.draft().setCash(50_000);
+        a.changed();
+        jumpTo(a, StateSteps.Page.CONFIRM);
+        api.nextReceipt = FakePlannerApi.stale();
+        api.rules = null;
+        Shots.click(a, "更新安排");
+        assertTrue(Shots.has(a, "记录没读出来"));
+        a.onBackPressed();
+        Shots.idle();
+        assertTrue("back closes, never a page without its buttons", a.isFinishing());
     }
 
     @Test
@@ -501,6 +595,19 @@ public class StateWizardTest extends UiTestBase {
         assertTrue(Shots.has(a, "晚上 · 满月作战"));
         assertFalse(Shots.find(a, "晚上 · 满月作战").isEnabled());
         Shots.shot(a, "state_edit_date_fullmoon");
+    }
+
+    @Test
+    public void christmasIsAskedOnlyUntilTheDay() {
+        StateActivity a = stateController("edit").get();
+        a.draft().setSlot(Rules.slot(Fixtures.day(12, 24), false));
+        assertTrue(a.draft().asksChristmas());
+        // From 12/25 the answer no longer changes the plan (it stays in 规划设置).
+        a.draft().setSlot(Rules.slot(Fixtures.day(12, 25), false));
+        a.refresh();
+        assertFalse(a.draft().asksChristmas());
+        assertFalse(Shots.has(a, "平安夜"));
+        assertFalse(StateSteps.pagesFor(a.draft()).contains(StateSteps.Page.CHRISTMAS));
     }
 
     @Test

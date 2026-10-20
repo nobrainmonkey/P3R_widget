@@ -103,6 +103,11 @@ public final class UndoBar extends LinearLayout {
         postDelayed(hide, DURATION_MILLIS);
     }
 
+    /** Keeps the bar showing until {@link #hide} (an error the screen clears itself). */
+    void stay() {
+        removeCallbacks(hide);
+    }
+
     public void hide() {
         removeCallbacks(hide);
         onAction = null;

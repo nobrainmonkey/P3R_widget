@@ -60,8 +60,6 @@ final class StateSteps {
     private final Callbacks callbacks;
     /** Option lists of the page just built, cascaded in when the page is entered. */
     private final List<ViewGroup> cascades = new ArrayList<>();
-    /** 「做过」 was answered on the 宿舍活动 page (while every count is still 0). */
-    private boolean dormOpen;
 
     StateSteps(Activity activity, StateDraft draft, Callbacks callbacks) {
         this.c = activity;
@@ -463,7 +461,7 @@ final class StateSteps {
             case DATE:
                 return Zh.slot(rules, draft.slot());
             case CASH:
-                return draft.cashUnknown() ? CashPad.UNKNOWN_LABEL : Zh.yen(draft.cash());
+                return draft.cashText();
             case STATS: {
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < Math.min(3, rules.stats.length); i++) {
@@ -702,7 +700,8 @@ final class StateSteps {
         });
         column.addView(period, top(10));
 
-        int marked = draft.observed == null ? -1 : Rules.dayOf(draft.observed.slot);
+        // observed.slot is the next period to play; the mark is the last one recorded (「上次记到」).
+        int marked = draft.observed == null ? -1 : Rules.dayOf(Math.max(0, draft.observed.slot - 1));
         CalendarPicker picker = new CalendarPicker(c, rules, day, marked);
         picker.setListener(d -> {
             boolean evening = Rules.isEvening(draft.slot());
@@ -730,6 +729,8 @@ final class StateSteps {
         LinearLayout column = page("现在有多少钱？", "MONEY");
         CashPad.Options options = new CashPad.Options();
         options.initial = draft.cashUnknown() ? null : draft.cash();
+        // 不记得 keeps what is known as a lower bound: shown 「290+ 日元」, as on 今天.
+        options.lowerBound = draft.prefill().cash;
         options.badge = draft.isForecastCash() ? "预计" : null;
         View pad = CashPad.inline(c, options, amount -> {
             if (amount == null) {
@@ -1093,13 +1094,14 @@ final class StateSteps {
     // ------------------------------------------------------------------ 宿舍活动
 
     private View dorm() {
-        if (draft.noDormYet() && !dormOpen) {
+        if (draft.noDormYet() && !draft.dormAsked) {
             // Nothing counted yet: one question first, and 都没做过 skips the page.
             LinearLayout column = page("做过宿舍活动吗？", "DORM");
             column.addView(plates(
                 answerPlate("都没做过", null, false, callbacks::next),
                 answerPlate("做过", null, false, () -> {
-                    dormOpen = true;
+                    draft.dormAsked = true;
+                    callbacks.changed();
                     callbacks.refresh();
                 })), top(22));
             return column;
