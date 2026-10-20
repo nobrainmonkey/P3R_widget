@@ -135,6 +135,23 @@ public class PlanStyleSettingsTest extends UiTestBase {
     }
 
     @Test
+    public void theExplainPageKeepsItsRowsUntilSomethingChanged() {
+        HomeActivity a = homeOn("me");
+        Shots.click(a, "规划说明");
+        View hero = Shots.find(a, "个社群升到 MAX");
+        // Coming back to the app loads a fresh copy of the same progress: the rows stay, so
+        // TalkBack keeps its place.
+        a.reload();
+        Shots.idle();
+        assertSame(hero, Shots.find(a, "个社群升到 MAX"));
+        // A new record moves the revision and the page is made again.
+        api.snap.stateRevision++;
+        a.reload();
+        Shots.idle();
+        assertTrue(hero != Shots.find(a, "个社群升到 MAX"));
+    }
+
+    @Test
     public void aSwitchKeepsSlidingWhenThePageShowsTheSavedValue() {
         HomeActivity a = settings();
         Ui.setAnimationsEnabled(true);

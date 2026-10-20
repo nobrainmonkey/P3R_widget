@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.engine.Plan;
@@ -36,16 +37,19 @@ final class InfoPages {
      */
     static View explain(HomeHost host) {
         LinearLayout column = Ui.column(host.activity());
-        // The plan, the progress and the profile (as JSON) the page shows now.
+        // The plan, the progress (by its revision: every snapshot is a fresh copy of it) and the
+        // profile (as JSON) the page shows now. The page is rebuilt only when one of them changed,
+        // so coming back to the app does not move TalkBack off the row it was reading.
         Object[] shown = new Object[3];
         java.util.function.Consumer<UiData> fill = d -> {
+            Long revision = d.snap == null ? null : d.snap.stateRevision;
             String profile = profileKey(d.profile());
-            if (column.getChildCount() > 0 && shown[0] == d.plan() && shown[1] == d.observed()
+            if (column.getChildCount() > 0 && shown[0] == d.plan() && Objects.equals(shown[1], revision)
                 && profile != null && profile.equals(shown[2])) {
                 return;
             }
             shown[0] = d.plan();
-            shown[1] = d.observed();
+            shown[1] = revision;
             shown[2] = profile;
             column.removeAllViews();
             fillExplain(host, column, d);
