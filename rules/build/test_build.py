@@ -81,6 +81,13 @@ class BuildTest(unittest.TestCase):
         note = self.pack["datingNote"]
         self.assertEqual((note["fromDay"], note["cost"], note["gain"], note["maxUses"]),
                          (builder.day_of_md("11-11"), 3000, 10, None))
+        # What happens in the game, never why the planner keeps the day (the reserved lock says so).
+        self.assertTrue(tracks["junpei"]["noteZh"].endswith("送了的话 1月21日放学后会有剧情。"))
+        days = {d["md"]: d for d in self.pack["days"]}
+        self.assertEqual("如果之前把「白色切花」送给了顺平，这天放学后会有剧情", days["01-21"]["noteZh"])
+        self.assertEqual("平安夜：选了赴约的对象，白天和晚上就都留给平安夜约会", days["12-24"]["noteZh"])
+        for text in [tracks["junpei"]["noteZh"], days["01-21"]["noteZh"], days["12-24"]["noteZh"]]:
+            self.assertNotRegex(text, "空出来|安排")
 
     def test_late_links_keep_every_unlocked_original_o_cell(self) -> None:
         """Concrete Reload routes override the old weekday exclusions, not the O calendar."""

@@ -155,6 +155,17 @@ class DormActivitiesTest(unittest.TestCase):
                     self.assertIn("种苗", runtime["noteZh"])
                     self.assertEqual({}, runtime["gain"])
 
+    def test_notes_keep_their_own_facts_without_repeating_the_trait_rule(self):
+        # 提示 and 队友特性 state the rule once; a plan step already counts the plays left.
+        for entry in self.evidence["activities"]:
+            note = self.activities[entry["id"]]["noteZh"]
+            with self.subTest(activity=entry["id"]):
+                self.assertTrue(note is None or "特性" not in note or "散步不计入特性进度" in note, note)
+        self.assertIsNone(self.activities["dorm_yukari_dvd"]["noteZh"])
+        self.assertEqual("能获得食物或饮品。", self.activities["dorm_yukari_cooking"]["noteZh"])
+        self.assertEqual("先确认菜园里种了作物；已成熟就先收获、再种苗。种苗另需准备。",
+                         self.activities["dorm_fuuka_gardening"]["noteZh"])
+
     def test_koromaru_brushing_does_not_import_any_walks(self):
         brushing = set(self.activities["dorm_koromaru_brushing"]["fixedDays"])
         walking_column = self.page.column(True, "Walking")

@@ -153,6 +153,36 @@ public class GlossarySourceTest {
         assertTrue(String.join("\n", issues), issues.isEmpty());
     }
 
+    /**
+     * The hedges of DESIGN_3.6 §2 rule 2 in the engine's and the service's messages too (plan steps,
+     * 记录历史, receipts). The widget keeps its own wording (CardText, PlanView).
+     */
+    private static final String[] HEDGES = {"暂时", "可能", "不一定", "没能"};
+
+    @Test
+    public void engineAndServiceMessagesDoNotHedge() throws IOException {
+        List<File> files = new ArrayList<>();
+        for (File f : sources("v3/ui", "v3/widget", "v3/service", "v3/engine")) {
+            String dir = f.getParentFile().getName();
+            if (dir.equals("service") || dir.equals("engine")) {
+                files.add(f);
+            }
+        }
+        assertTrue("the scan sees the history text",
+            files.contains(new File(sourceRoot(), "v3/service/HistoryText.java")));
+        List<String> issues = new ArrayList<>();
+        for (File f : files) {
+            for (String literal : literals(read(f))) {
+                for (String word : HEDGES) {
+                    if (literal.contains(word)) {
+                        issues.add(f.getName() + ": \"" + literal + "\" says 「" + word + "」");
+                    }
+                }
+            }
+        }
+        assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
     @Test
     public void sentencesSayAnpaiNotThePlannerName() throws IOException {
         List<String> issues = new ArrayList<>();

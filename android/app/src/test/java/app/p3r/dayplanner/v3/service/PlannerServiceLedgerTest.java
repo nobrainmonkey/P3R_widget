@@ -115,7 +115,7 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
         PlannerApi.Receipt gap = record(TestRules.slot(TestRules.MAY_12 + 1, true), "act:study_room", Outcome.Code.AS_PREDICTED);
         assertEquals("gap", gap.errorCode);
         assertEquals(2, gap.missingSlots);
-        assertEquals("前面还有 2 个时段没记录，请先补上", gap.errorZh);
+        assertEquals("前面还有 2 个时段没记，先补上？", gap.errorZh);
     }
 
     @Test

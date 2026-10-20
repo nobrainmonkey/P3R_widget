@@ -933,10 +933,11 @@ def build_calendar(ledger: Ledger, day_cells: dict, night_cells: dict, tartarus_
             notes.append(holidays[d])
         if md in EXAM_RESULTS:
             notes.append(EXAM_RESULTS[md])
+        # What happens in the game, never why the planner keeps a slot (the lock's title says that).
         if md == "12-24":
-            notes.append("平安夜：默认按婉拒所有邀约来安排；选了赴约的对象，白天和晚上就都留给平安夜约会")
+            notes.append("平安夜：选了赴约的对象，白天和晚上就都留给平安夜约会")
         if md == "01-21":
-            notes.append("如果之前把「白色切花」送给了顺平，这天放学后会有剧情，所以先空出来")
+            notes.append("如果之前把「白色切花」送给了顺平，这天放学后会有剧情")
         story_gain = automatic.get(d)
         if story_gain is not None:
             if dl is None or dl.reason != story_gain["dayLock"]:
@@ -1384,8 +1385,9 @@ def approved_dialogue_hints(approved: dict) -> dict[str, dict[str, dict]]:
         if scene["source"].get("correction"):
             src.append(scene["source"]["correction"]["id"])
         entry = {"conf": "single", "src": sorted(set(src))}
-        # Round-trip the evidence values so later pack edits cannot mutate the approved source object.
-        entry.update(json.loads(fix_names(json.dumps(scene["variants"], ensure_ascii=False))))
+        # Round-trip the evidence values so later pack edits cannot mutate the approved source object;
+        # the notes get the same player wording as the completion's.
+        entry.update(completion_display_text(json.loads(fix_names(json.dumps(scene["variants"], ensure_ascii=False)))))
         out.setdefault(scene["link"], {})[str(scene["rank"])] = entry
     return out
 
@@ -1474,8 +1476,8 @@ GUIDANCE_EDITORIAL_COPY = {
     "（译意）": "",
     "，这里给出一套具体回答": "",
     "，不是提示被截断": "",
-    "按档案中的朋友／恋人目标展示。途中导入或更改目标时，以实际出现的问题为准；另一场景的完整顺序见下文。":
-        "不同前置选择对应的两组剧情见下文。",
+    # Each group of answers carries its own condition as a heading; 提示 shows them above the note.
+    "按档案中的朋友／恋人目标展示。途中导入或更改目标时，以实际出现的问题为准；另一场景的完整顺序见下文。": "",
     "首问好感标注有来源差异，不宣称此项分数已确定。": "",
     "第二问「这就泄气了？」为依据日文攻略的译义，未核官方简中原句；其他回答沿用中文攻略。": "",
     "括号内的问题与条件为译意说明。": "",
@@ -1484,39 +1486,165 @@ GUIDANCE_EDITORIAL_COPY = {
 }
 
 
-# Research shorthand rewritten as player Chinese: Japanese option labels and the guides' raw ♪ /
-# point values ("为0", "为1♪", "均0", "同分") never reach the app. Display only; the evidence keeps
-# the original research wording.
+# Research shorthand rewritten as player Chinese: Japanese option labels, the guides' raw ♪ / point
+# values ("为0", "为1♪", "均0", "同分") and the research voice ("主序列", "收益", "没有后续升级门槛",
+# "本条补齐中文提示") never reach the app. A group of answers is headed by the history it needs
+# (「RANK 7 保留了恋爱资格的话（屋顶剧情，两问）」), so a note never points 「上面」 or 「下文」: 提示
+# shows the groups above the note, a plan step below it. Notes that only repeat the answers are
+# dropped. Display only; the evidence keeps the original research wording. Whole notes come first,
+# the short generic phrases last.
 GUIDANCE_PLAYER_COPY = {
+    # 女教皇
+    "第一问与第三问分别回答「没问题」；是两次独立回答，不能合并。": "第1问和第3问都答「没问题」。",
+    "最后一问确认只是因为你是队长而依赖你，会进入友情分支；之后没有风花的告白选项。":
+        "最后一问选「一定是这样」就走友情，之后风花不会告白。",
+    "末问保留恋爱资格；这时尚未确定恋爱关系。": "最后一问保留恋爱资格，这时还不算交往。",
+    "主序列适用于R7已进入友情分支、到叶隐吃拉面的三问剧情。第一问要选愿意帮忙吃拉面的回答；第三问两个回答同收益。":
+        "RANK 7 走了友情的话是去叶隐吃拉面（三问）：第1问选愿意帮忙吃拉面的回答，第3问两个回答加的好感一样。",
+    "若R7保留了恋爱资格：屋顶剧情（两问）": "RANK 7 保留了恋爱资格的话（屋顶剧情，两问）",
+    "适用于R7已保留恋爱资格的屋顶剧情；两问各选项都获得相同好感。":
+        "RANK 7 保留了恋爱资格才是这场屋顶剧情，两问怎么答加的好感都一样。",
+    "主序列适用于R7已经进入友情分支的三问剧情；没有告白问题。第二问答应继续做朋友，第三问答应一起做饭。":
+        "RANK 7 走了友情的话是三问剧情，没有告白：第2问答应继续做朋友，第3问答应一起做饭。",
+    "若R7保留了恋爱资格，现在拒绝告白（四问）": "RANK 7 保留了恋爱资格、这次要拒绝告白的话（四问）",
+    "只适用于R7已保留恋爱资格的四问剧情；第三问告白后，最后一问两种回答都不影响好感。若R8经历的是拉面友情剧情，本次不会出现告白选项。":
+        "RANK 7 保留了恋爱资格才有这场告白（四问）：第3问告白，最后一问随便选。RANK 8 是吃拉面那场的话，这次不会有告白。",
+    "这是友情结尾的三问剧情：前两问任意，收到耳机后选喜欢。MAX后没有下一级好感门槛。":
+        "前两问随便选，收到耳机后选「我很喜欢」。",
+    # Shown on the widget too (no short note): the answers already say it.
+    "这是已交往后的三问剧情；第二问答会一直在她身边，第三问表示喜欢耳机。MAX后没有下一级好感门槛。": "",
+    # 女帝
+    "这组保留各加分问题的推荐回答。想发展恋爱，还要在 R8 选择「这是美鹤的自由」，到 R9 再决定是否告白。":
+        "想和美鹤恋爱的话，RANK 8 还要选「这是美鹤的自由」，到 RANK 9 再决定。",
+    "第三个问题选择友情分支。之后两道争执问题仍按推荐回答；友情分支还会追加一个不影响好感的末问，随意即可。":
+        "第3问选「那是不被允许的」就走友情；最后还会多一问，随便选。",
+    "任意（仅友情分支追加的末问）": "任意（走友情才有的最后一问）",
+    "若想先保留恋爱资格，到 R9 再决定": "想先保留恋爱资格、到 RANK 9 再决定的话",
+    "第三个问题「这是美鹤的自由」是保留恋爱资格的零好感回答；此时还没有确定恋爱关系，到 R9 告白时才决定。":
+        "第3问选「这是美鹤的自由」保留恋爱资格，这一问不加好感；到 RANK 9 才确定关系。",
+    "主列表对应此前 R8 已经选择友情的两问场景，首问随意，第二问选「放心了」。若这次出现告白问题，说明此前保留了恋爱资格，请按下方另一组婉拒。":
+        "RANK 8 选了友情的话是两问：第1问随便选，第2问选「放心了」。",
+    "此前保留恋爱资格，本场出现告白，但现在只想做朋友": "之前保留了恋爱资格、这次出现告白但只想做朋友的话",
+    "仅在此前 R8 保留恋爱资格、这次出现告白时使用。选择「我也喜欢美鹤」后确定恋爱关系；接受告白后追加的问题随意。若此前已经走友情，本场不会临时恢复恋爱资格。":
+        "RANK 8 保留了恋爱资格才会有告白：选「我也喜欢美鹤」就确定关系，之后多出的一问随便选。",
+    "任意（仅接受告白后出现）": "任意（接受告白后才有）",
+    "此前 R8 已经选择友情，没有出现告白问题": "RANK 8 选了友情、这次没有告白的话",
+    "友情路线的两问摩托车场景。首问两个回答收益相同，随意；第二问选「好主意」。": "第1问随便选，第2问选「好主意」。",
+    "恋人路线是一问场景，友情路线另有两问，不能混用。": "",
+    # 教皇、塔、星：「怎么回答都可以」 already says it.
+    "本场2问中，每道题的各个选项好感收益相同。": "",
+    "本场3问中，每道题的各个选项好感收益相同。": "",
+    # 恋爱
+    "第四问按男朋友身份回应可保留恋爱路线的前置；最后一问选「抱歉」。恋爱关系要到R9才决定。":
+        "第4问答「我是她男朋友」保留恋爱资格；最后一问选「抱歉」。到 RANK 9 才确定关系。",
+    "第四问按朋友身份回应；最后一问务必选「抱歉」。别选以「你是女孩子」为由训她的回答，会导致社群逆位。":
+        "第4问答「我是她朋友」；最后一问选「抱歉」，别选拿「你是女孩子」训她的那项，免得社群逆位。",
+    "想保留恋爱分支时，第四问选男朋友身份；走友情可选朋友。最后一问必须选「抱歉」，避免「你是女孩子」对应的逆位回答。":
+        "第4问想保留恋爱资格就答「我是她男朋友」，只做朋友就答「我是她朋友」；最后一问选「抱歉」，"
+        "别选拿「你是女孩子」训她的那项，免得社群逆位。",
+    "想保留恋爱分支，可改选「我们两个人去吧」；两句都是最高收益之一。":
+        "想保留恋爱资格就改选「我们两个人去吧」，两句都加好感。",
+    "此答也是最高收益之一；若此前已保留恋爱资格，不代表选择这句就清除资格，R9仍按实际出现的剧情选择友情回答。":
+        "这句也加好感。选它不会取消之前保留的恋爱资格，RANK 9 出现告白时再选友情回答。",
+    "选择两个人去的回答，保留后续恋爱分支；尚未正式交往。": "选「我们两个人去吧」保留恋爱资格，这时还不算交往。",
+    "主序列适用于此前未保留恋爱资格的三问友情剧情。第一问是保持沉默；后两问均不加好感。":
+        "之前没保留恋爱资格的话是三问：第1问选「……」不说话，后两问随便选。",
+    "若出现「你觉得我怎么样」的告白问题：现在选择友情（两问）": "被问「你觉得我怎么样」、只想做朋友的话（两问）",
+    "只适用于保留恋爱资格、出现告白问题的两问剧情。第一问保持沉默，第二问告白。若实际出现三问友情剧情，本次不会有告白选项。":
+        "保留了恋爱资格才会被告白（两问）：第1问不说话，第2问告白。变成三问的话就没有告白。",
+    "友情结尾是三问：第一问表示放心，第二问答应陪她去；最后一问任意。第二问的「加油」和要求她说请的回答收益较低。MAX后没有下一级好感门槛。":
+        "最后一问随便选。第2问的「加油」和让她说“请”的那项加的好感少。",
+    # Shown on the widget too (no short note).
+    "这是恋人结尾的回答；别套用友情结尾的三问。MAX后没有下一级好感门槛。": "",
+    # 正义
+    "第2问是在谈小说人物的感情；这句和握手都不等于确定交往。先保留最高好感推荐，R9遇到告白时再选「千寻是我重要的学妹」成为朋友；不要选亲上去。":
+        "第2问是在聊小说人物的感情，这句和握手都不等于确定交往。RANK 9 告白时再选「千寻是我重要的学妹」做朋友；别选亲上去。",
+    "按朋友目标先保留资格、R9才拒绝告白的四问推荐流程": "只做朋友（RANK 9 再拒绝告白）",
+    "若本场第2问已经选了太草率／下结论太快那项，进入三问友情剧情": "第2问选了「太草率了」的话（三问）",
+    "此场没有后续握手问；第2问较少好感且少了握手奖励，不能按正常四问同等收益理解。后续R9按没有告白的四问友情剧情。":
+        "这样就没有握手那一问，加的好感也少；RANK 9 会是没有告白的四问。",
+    "第2问保留恋爱资格，会出现后续握手选择；不要选亲上去，以免关系逆位。":
+        "第2问保留恋爱资格，之后会问要不要握手；别选亲上去，免得社群逆位。",
+    "按此前保留资格的正常流程，前面照常取得好感，第5问选「千寻是我重要的学妹」拒绝告白，最后一问随意；此前已走友情的四问版本见下文。":
+        "第5问选「千寻是我重要的学妹」拒绝告白，最后一问随便选。",
+    "此前保留资格、本场拒绝告白": "之前保留了恋爱资格、这次拒绝告白",
+    "此前保留资格、本场接受告白": "之前保留了恋爱资格、这次接受告白",
+    "若R5早已选友情回答、实际没有告白的四问剧情": "RANK 5 选了友情回答、这次没有告白的话（四问）",
+    "此前在R5走友情、没有告白的四问剧情": "RANK 5 选了友情回答、这次没有告白的话（四问）",
+    "此场第2问只有「千寻是清白的」为正向加分，第4问换成「我都看到了」；不要套用六问告白场景。":
+        "这一场第2问只有「千寻是清白的」加好感；第4问选「我都看到了」。",
     "此场第2问另一项自分で言うべき为0；推荐千寻是清白的为1♪。第4问也应选正向见证，而非任意。":
         "这一场第2问只有「千寻是清白的」加好感；第4问选「我都看到了」。",
     "第5问接受告白，最后一问两项均0。若R5早已走友情，则实际为另一场四问，当前目标不能恢复已经缺失的告白。":
         "第5问接受告白，最后一问随便选。RANK 5 时选了友情回答的话，这一场只有四问，不会有告白。",
     "已到终级，没有后续升级门槛；友情共4问，第2问「加油」或「千寻一定可以的」同分，其他三问均0。":
         "朋友结局共4问：第2问选「加油」或「千寻一定可以的」都加好感，其他三问随便选。",
-    "已到终级，没有后续升级门槛；末问「什么意思？」有好感，不能把三个问题都当成同分任选。":
-        "最后一问选「什么意思？」才加好感，别随便选。",
+    "恋人剧情共2问，首问选谢谢；已到终级，没有后续升级门槛。": "",
+    # 力量
+    "末问选「我不介意」，不主动设置本次恋爱资格；此前没有资格时，后续将进入另一套友情剧情。":
+        "最后一问选「我不介意」，这一问不会保留恋爱资格；之前也没保留的话，之后会走友情的剧情。",
+    "末问选「我很荣幸」用于保留恋爱资格，不是现在确定关系。": "最后一问选「我很荣幸」保留恋爱资格，这时还不算交往。",
     "只做朋友时，第2问选不改训练菜单那项；与恋爱资格选项同分，不主动设置本次资格。":
-        "只做朋友就在第2问选不改训练菜单的那项，好感一样，也不会走向恋爱。",
+        "只做朋友就在第2问选「不改比较好」，和「我相信结子」加的好感一样，这一问不会保留恋爱资格。",
+    "第2问选「我相信结子」用于保留恋爱资格，不是确定关系。": "第2问选「我相信结子」保留恋爱资格，这时还不算交往。",
     "首问的两个回答同分，具体推荐「你们一定做得到」；第2问选「相信他们吧」。":
         "首问两个回答加的好感一样，选「你们一定做得到」就好；第2问选「相信他们吧」。",
-    "末问男孩与女孩同分；不要选哪种都可以。":
-        "最后一问选男孩或女孩都加好感，别选哪种都可以。",
+    "首问这项不新增恋爱资格；此前R3/R5若已选过资格项，剧情仍可能保留告白。若之后出现告白，按友情回答拒绝。":
+        "第1问选「真让人难为情」不会保留恋爱资格。RANK 3 或 RANK 5 保留过的话，之后出现告白就选友情回答拒绝。",
+    "首问选真的交往／让那件事成真那项，用于保留恋爱资格。三问好感推荐与资格作用分开；这不是本场确定关系。":
+        "第1问选「要不要真的交往？」保留恋爱资格，这时还不算交往。",
+    "此前未保留恋爱资格的两问友情剧情": "之前没保留恋爱资格（两问）",
+    "此前已保留恋爱资格、实际进入结子房间的三问剧情时": "之前保留了恋爱资格、这次去了结子房间的话（三问）",
+    "末问男孩与女孩同分；不要选哪种都可以。": "最后一问选男孩或女孩都加好感，别选哪种都可以。",
+    "此组对应此前保留资格的房间剧情；若存档早已进入友情，无法只靠当前目标恢复告白，按两问友情答法。": "",
+    "此前保留恋爱资格的三问房间剧情": "之前保留了恋爱资格（结子房间，三问）",
+    "此前未保留恋爱资格、实际是校门口的两问友情剧情时": "之前没保留恋爱资格、这次在校门口的话（两问）",
     "另一项ガッツリ系也同为1♪，都可以那项为0；第2问两项均0。":
         "第1问另一种风格也加好感，只有都可以那项不加；第2问随便选。",
+    "此前未保留恋爱资格的四问友情剧情": "之前没保留恋爱资格（四问）",
+    "若实际出现告白问题，但目标只做朋友": "出现告白、但只想做朋友的话",
     "拒绝后的末问选知道了为1♪，别用为什么那项0；这和早期已友情的四问场景不同。":
         "拒绝告白后，最后一问选「知道了」才加好感，别选问为什么的那项。",
     "有资格时第4问接受告白；末问两项同为1♪，具体推荐「我喜欢结子」，也可按含义选「不是梦」。"
     "若存档早已进入友情，不能直接恢复告白，见四问友情答法。":
-        "第4问接受告白；最后一问选「我喜欢结子」或「不是梦」都加好感。之前已经走了友情的话，这一场不会有告白，"
-        "按下面的四问答法。",
-    "末问谢谢为1♪，其他两项0；第1与第3问均不加好感。":
-        "最后一问选「谢谢」才加好感；第1问和第3问随便选。",
+        "第4问接受告白；最后一问选「我喜欢结子」或「不是梦」都加好感。",
+    "此前保留恋爱资格、本场接受告白": "之前保留了恋爱资格、这次接受告白",
+    "此前未保留恋爱资格、没有告白的四问友情剧情时": "之前没保留恋爱资格、这次没有告白的话（四问）",
+    "末问谢谢为1♪，其他两项0；第1与第3问均不加好感。": "最后一问选「谢谢」才加好感；第1问和第3问随便选。",
+    "已到终级，没有后续升级门槛；仍给出完整友情推荐。此前有无资格会改变后两问措辞，按相同含义对应。":
+        "之前有没有保留恋爱资格，后两问的说法会稍有不同，按意思选就行。",
+    "此前未保留恋爱资格的四问友情终级剧情": "之前没保留恋爱资格",
+    "此前保留过资格、R9当场拒绝告白后的友情终级剧情": "RANK 9 拒绝过告白的话",
+    "已到终级，没有后续升级门槛；末问「什么意思？」有好感，不能把三个问题都当成同分任选。":
+        "最后一问选「什么意思？」才加好感，别随便选。",
+    # 战车、恶魔、太阳
+    "这里的省略号是保持沉默的选项，不是文字被截断。": "也就是保持沉默。",
+    "本级没有回答选项，观看剧情即可；已到终级，无后续升级门槛。": "这一场没有选项，看剧情就行。",
+    "按先后两问选择。太阳社群按见面推进，本条补齐中文提示，不改变升级规则。": "",
+    # 永劫
+    "首问问是否见过白色花猫，两种答法同分。回答「好像见过」才会追问猫在哪里，这一问也任选；回答「没见过」则跳过追问。之后答应帮忙时选「好」，最后一问任选。":
+        "第1问是有没有见过白色花猫，怎么答都行；答「好像见过」会再问猫在哪，也随便答。答应帮忙时选「好」，最后一问随便选。",
+    "任意（是否见过白色花猫）": "任意（有没有见过白色花猫）",
+    "任意（若答「好像见过」，再问猫在哪里）": "任意（答了「好像见过」才问猫在哪）",
+    "首问取最高好感回答；末问说明这是友情。选择「是友情」后，R9进入亲友剧情，不出现告白。":
+        "最后一问选「是友情」，RANK 9 就不会有告白。",
+    "末问选择「是恋情」用于保留R9告白资格，本级尚未确立恋爱关系；R9仍需接受告白。":
+        "最后一问选「是恋情」保留恋爱资格，RANK 9 接受告白才确定关系。",
+    "本组对应R8已选友情的亲友剧情。若R8选过「是恋情」而本级出现告白，改用下方拒绝告白答法。首问两条历史共用，选择「是啊」；后问两条历史不同。": "",
+    "R8选过「是恋情」，本级出现告白，但仍只做朋友": "RANK 8 选了「是恋情」、这次出现告白但只想做朋友的话",
+    "须在R8先选「是恋情」保留告白资格，本级再选「我也喜欢你」确立恋爱。若R8已选友情，本级出现的是亲友剧情，不能靠本级回答改成恋人。":
+        "RANK 8 选了「是恋情」才会有告白，选「我也喜欢你」就确定关系。",
+    "友情终级，全程按喜好选；已到MAX，无后续升级门槛。完整顺序为：拍照时的欢呼回应、是否喜欢拍照、她能做到什么、回宿舍后解释刚才在做什么。最后一问属于同伴询问，亦已计入。":
+        "一共四问：拍照时的欢呼、喜不喜欢拍照、她能做到什么、回宿舍后的解释。",
+    "恋人终级，全程按喜好选；已到MAX，无后续升级门槛。完整顺序为：询问她想说的话、回应她的注视。":
+        "一共两问：问她想说什么、回应她的注视。",
     "两种答法同分": "两种回答加的好感一样",
 }
 
-# What must never be left in displayed dialogue copy: kana, ♪ marks and raw point values.
-RESEARCH_SHORTHAND = re.compile(r"[぀-ヿ]|♪|为\s*[0-9]|均\s*[0-9]|同分")
+# What must never be left in displayed dialogue copy: kana, ♪ marks, raw point values, and the
+# research or planner voice of the notes.
+RESEARCH_SHORTHAND = re.compile(r"[぀-ヿ]|♪|为\s*[0-9]|均\s*[0-9]|同分|门槛|收益|主序列|推荐流程|亦已计入|本条"
+                                r"|当前目标|按相同含义|同等|仍给出|见下文|下方|零好感|译意")
 
 
 def check_player_copy(value, where: str) -> None:
@@ -1540,6 +1668,8 @@ def completion_display_text(value):
         for before, after in GUIDANCE_PLAYER_COPY.items():
             value = value.replace(before, after)
         value = re.sub(r"(?<![A-Za-z])R\s*(\d+)", r"RANK \1", value)
+        # Spaced like 提示's question plates (「第 1 问」), so the numeral face does not crowd the text.
+        value = re.sub(r"第\s*(\d+)\s*问", r"第 \1 问", value)
         return fix_names(value.replace("Reload", "本作"))
     if isinstance(value, list):
         return [completion_display_text(item) for item in value]
@@ -1555,9 +1685,12 @@ def compile_completion_variant(variant: dict, route: str) -> dict:
     """Keep provenance in evidence; flatten alternate scenes only into the detail sequence."""
     out = {key: json.loads(json.dumps(value, ensure_ascii=False))
            for key, value in variant.items() if key in COMPLETION_VARIANT_FIELDS}
-    alternatives = variant.get("alternatives", [])
+    # A history with the same answers and no note of its own would only repeat them under another
+    # heading; the main note says what that history changes (力量 RANK 10: only the wording).
+    alternatives = [alternative for alternative in variant.get("alternatives", [])
+                    if alternative["sequence"] != variant["sequence"] or alternative.get("noteZh")]
     if alternatives:
-        heading = variant.get("whenZh", "按友情目标的推荐流程" if route == "friend" else "按恋爱目标的推荐流程")
+        heading = variant.get("whenZh", "只做朋友" if route == "friend" else "走恋爱线")
         sequence = [f"【{heading}】"] + list(out["sequence"])
         for alternative in alternatives:
             sequence += [f"【{alternative['whenZh']}】"] + alternative["sequence"]
@@ -2111,6 +2244,17 @@ def audit_activity_prerequisites(activities: list[dict]) -> None:
             current = by_id[prerequisite]
 
 
+# The trait rule every dorm note of the evidence repeats. 提示 and 队友特性 say it once; a plan step
+# already says how many more times unlock or upgrade the trait.
+DORM_TRAIT_RULE = "同一种活动累计3次可解锁或强化队友特性"
+
+
+def dorm_note(note: str | None) -> str | None:
+    """A dorm activity's own note without the shared trait rule; None when nothing else is left."""
+    out = re.sub(r"[；，]?" + DORM_TRAIT_RULE, "", note or "").strip()
+    return None if out in ("", "。") else out
+
+
 def build_dated_dorm_activities(ledger: Ledger, days: list[dict]) -> list[dict]:
     """Dated evening opportunities; never expand a dorm calendar into weekly availability."""
     out = []
@@ -2136,7 +2280,7 @@ def build_dated_dorm_activities(ledger: Ledger, days: list[dict]) -> list[dict]:
             raise BuildError(f"{entry['id']}: invalid fixed dorm dates")
         rec = activity(entry["id"], entry["zh"], "stat", ["eve"], ALL_WEEK, entry["locationZh"],
                        gain=entry["gain"], src=["aqiu_social_events", "ev_dorm_activities"],
-                       conf="single", note=entry["noteZh"])["record"]
+                       conf="single", note=dorm_note(entry["noteZh"]))["record"]
         rec.update(fixedDays=dates, fromDay=dates[0], toDay=dates[-1], dormPartnerZh=entry["partnerZh"],
                    requiresPlantedCrop=entry["requiresPlantedCrop"])
         if entry["id"] in affinity:
@@ -2257,7 +2401,7 @@ EPISODE_TRACKS = (
         "location": "月光馆学园 · 2 楼教室",
         "how": "放学后到 2 楼教室找伊织顺平说话；有的几话是他发消息约你，打开手机答应就行。",
         "note": "第 3 话之后可以到港湾人工岛的花店买「白色切花」（250 日元）送给顺平，不会消耗时间；送了的话 1月21日放学后"
-                "会有剧情，这里已经先把那天空出来了。",
+                "会有剧情。",
         "reward": "每一话都有小奖励（能力值或顺平的能力），看完第 5 话可以合体人格面具「苏尔特尔」。",
         "fusion": ("Surt", "苏尔特尔"),
         # CN guide (cn_guides/data.json): ep1 5/12 classroom, ep2 8/9 invitation, ep3 11/7 invitation,
@@ -4104,6 +4248,10 @@ def validate_pack(pack: dict) -> None:
                     raise BuildError(f"{where}.{route}: ordered choices and sequence arrays required")
                 if "shortChoices" in variant and len(variant["shortChoices"]) != len(variant["choices"]):
                     raise BuildError(f"{where}.{route}: shortChoices must preserve question count")
+                # Approved and completed guidance alike: whatever route a scene came in by.
+                check_player_copy(variant, f"{where}.{route}")
+        for rank, fragments in (link.get("dialogue") or {}).items():
+            check_player_copy(fragments, f"link {link['id']}.dialogue[{rank}]")
         if len(link["threshold"]) != 11 or len(link["eventGain"]) != 11:
             raise BuildError(f"link {link['id']}: arrays must have 11 entries")
         slot_key = "eveLock" if link["slot"] == "eve" else "dayLock"

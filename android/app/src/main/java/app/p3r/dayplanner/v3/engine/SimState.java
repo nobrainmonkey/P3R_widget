@@ -56,7 +56,7 @@ public final class SimState {
     public int notesUsed;
     /**
      * Player-reported rank holds: {@code heldRank[L] = r} means the player recorded that link L
-     * cannot rank up into rank r for now ("剧情原因暂时升不了"). Meetings still add points (up to the threshold)
+     * cannot rank up into rank r for now ("剧情卡住了，升不了"). Meetings still add points (up to the threshold)
      * but the forecast never ranks the link up past {@code r-1} until the player reports progress
      * (a rank-up or a ready cue; a checkpoint that changes the rank should clear it). 0 = no hold.
      */

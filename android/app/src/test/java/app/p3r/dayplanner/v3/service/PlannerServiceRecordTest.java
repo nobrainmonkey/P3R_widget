@@ -5,8 +5,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import app.p3r.dayplanner.v3.engine.Outcome;
+import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.store.FakeApplier;
 import app.p3r.dayplanner.v3.store.TestRules;
+import app.p3r.dayplanner.v3.ui.Outcomes;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -146,10 +148,19 @@ public class PlannerServiceRecordTest extends ServiceTestBase {
     @Test
     public void theStoryHoldAnswerReadsTheSameInHistory() {
         onboard(MAY12_DAY);
-        Outcome hold = Outcome.of(Outcome.Code.NOT_DONE);
-        hold.reason = "hold";
+        Outcome hold = Outcomes.hold();
         assertTrue(service.recordOutcome(id(), rev(), MAY12_DAY, "meet:emperor", hold).ok);
-        assertEquals("5月12日 放学后 · 皇帝 · 小田桐秀利 · 剧情原因暂时升不了", service.history(1).get(0).summaryZh);
+        String history = service.history(1).get(0).summaryZh;
+        assertEquals("5月12日 放学后 · 皇帝 · 小田桐秀利 · 剧情卡住了", history);
+        // The message bar said the same when the answer was tapped: 「皇帝 · 剧情卡住了」.
+        Plan.Step step = new Plan.Step();
+        step.slot = MAY12_DAY;
+        step.action = "meet:emperor";
+        step.kind = "social";
+        step.entity = "emperor";
+        step.titleZh = "皇帝 · 小田桐秀利";
+        String bar = Outcomes.summary(rules, step, hold);
+        assertTrue(bar, history.endsWith(bar.substring(bar.indexOf(" · "))));
     }
 
     @Test

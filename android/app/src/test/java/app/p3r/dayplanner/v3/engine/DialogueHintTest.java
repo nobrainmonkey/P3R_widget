@@ -258,9 +258,11 @@ public class DialogueHintTest {
                     if (answers.reviewed) {
                         if (answers.shortChoices != null) assertEquals(answers.choices.size(), answers.shortChoices.size());
                         for (String choice : answers.choices) assertTrue(line, line.contains(choice));
-                        if (!answers.sequence.isEmpty() && !answers.sequence.equals(answers.choices)) {
-                            assertTrue(s.detailZh, s.detailZh.contains(String.join(" / ", answers.sequence)));
+                        // Another history of the scene is a line of its own; free prompts are not listed.
+                        for (String other : Labels.otherHistories(answers.sequence)) {
+                            assertTrue(s.detailZh, s.detailZh.contains(other));
                         }
+                        assertFalse(s.detailZh, s.detailZh.contains("完整问答顺序") || s.detailZh.contains("【"));
                     } else if (!answers.choices.isEmpty()) {
                         assertEquals(choicesOf(line), DialogueHint.widgetChoices(answers));
                     }

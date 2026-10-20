@@ -194,8 +194,9 @@ public class ReviewedDialogueHintTest {
         }
     }
 
+    /** The plan step lists the answers; the free prompts' positions stay in the sequence (提示 numbers them). */
     @Test
-    public void appDetailsPreserveArbitraryPositionsWithoutPuttingThemOnTheCompactCard() throws Exception {
+    public void appDetailsListTheAnswersAndTheSequenceKeepsTheArbitraryPositions() throws Exception {
         Rules r = pack();
         Profile p = new Profile();
         Model m = new Model(r, p, null);
@@ -208,8 +209,10 @@ public class ReviewedDialogueHintTest {
         effect.rankTo = 5;
         Rules.Link lovers = r.link("lovers");
         String detail = labels.meetHow(start.slot, lovers.idx, effect);
-        assertTrue(detail, detail.contains("任意 / 任意 / 任意 / 我是她朋友 / 抱歉"));
+        assertTrue(detail, detail.contains("\n回答：我是她朋友 / 抱歉；"));
+        assertFalse(detail, detail.contains("任意") || detail.contains("完整问答顺序"));
         DialogueHint.Answers a = DialogueHint.forScene(r, p, lovers.idx, 5, false);
+        assertEquals(Arrays.asList("任意", "任意", "任意", "我是她朋友", "抱歉"), a.sequence);
         assertTrue(DialogueHint.widgetLine(a), DialogueHint.widgetLine(a).contains("我是她朋友 / 抱歉"));
         assertFalse(DialogueHint.widgetLine(a), DialogueHint.widgetLine(a).contains("任意"));
     }

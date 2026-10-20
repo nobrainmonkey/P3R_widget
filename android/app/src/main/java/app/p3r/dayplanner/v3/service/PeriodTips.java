@@ -290,7 +290,10 @@ public final class PeriodTips {
         return String.join("、", requirements);
     }
 
-    /** The rule every dorm activity repeats in its own note; the overview says it once. */
+    /**
+     * The rule every dorm activity once repeated in its own note; the overview says it once. The
+     * 3.6 pack no longer writes it there, so this only guards an older pack.
+     */
     private static final String DORM_RULE = "同一种活动累计3次可解锁或强化队友特性。";
 
     private static void activities(Rules rules, SimState observed, Period period, Map<String, Plan.Reminder> items) {
@@ -482,7 +485,8 @@ public final class PeriodTips {
                 if (reward != null && !reward.isEmpty()) lines.add("奖励：" + reward);
                 if (track.rewardZh != null && !track.rewardZh.isEmpty()) lines.add(track.rewardZh);
                 if (track.noteZh != null && !track.noteZh.isEmpty()) {
-                    // The planner's own reason for keeping a day free is not news for the player.
+                    // The planner's own reason for keeping a day free is not news for the player (an
+                    // older pack's wording; the 3.6 notes no longer say it).
                     lines.add(track.noteZh.replace("，这里已经先把那天空出来了", ""));
                 }
                 if (observed != null && track.idx >= 0 && track.idx < observed.episodes.length) {
@@ -587,7 +591,8 @@ public final class PeriodTips {
 
     /**
      * A day's note as 提示 shows it: holidays that change nothing are left out, and the planner's own
-     * reasons (「所以先空出来」「默认按婉拒所有邀约来安排」) are cut.
+     * reasons (「所以先空出来」「默认按婉拒所有邀约来安排」) are cut. The 3.6 pack no longer words a
+     * note so; the cut only guards an older pack.
      */
     private static String noteOf(Rules.Day date) {
         String note = date.noteZh == null ? "" : date.noteZh.trim();

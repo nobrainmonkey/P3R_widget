@@ -550,7 +550,7 @@ public class TipsCatalogueTest {
             }
         }
         Plan.Reminder justice = TipsCatalogue.scene(rules, romance, rules.linkIndex("justice"), 9, null);
-        assertTrue(justice.detailZh, justice.detailZh.contains("这一场第2问只有「千寻是清白的」加好感"));
+        assertTrue(justice.detailZh, justice.detailZh.contains("这一场第 2 问只有「千寻是清白的」加好感"));
         assertFalse(justice.detailZh, justice.detailZh.contains("门槛"));
     }
 

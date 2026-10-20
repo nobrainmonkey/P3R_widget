@@ -38,8 +38,11 @@ final class HistoryText {
 
     /** Fallback when a row cannot be described. */
     static final String ZH_UNKNOWN_ROW = "一条记录";
-    /** The story-hold answer (outcome NOT_DONE, reason "hold"), worded as on the result sheet. */
-    static final String ZH_HOLD = "剧情原因暂时升不了";
+    /**
+     * The story-hold answer (outcome NOT_DONE, reason "hold") as the message bar said it when it was
+     * recorded (ui Outcomes.summary 「皇帝 · 剧情卡住了」; the result sheet's 「剧情卡住了，升不了」).
+     */
+    static final String ZH_HOLD = "剧情卡住了";
     /** The in-game hint after a meeting without a rank-up, in the words of the result sheet's toggle. */
     static final String ZH_READY_CUE = "游戏提示下次就能升级";
 
@@ -383,7 +386,7 @@ final class HistoryText {
 
     private static String notDone(Action action, String reason) {
         if ("hold".equals(reason)) {
-            // The same words as the answer the player tapped on the result sheet.
+            // The same words as the message bar after the answer was tapped.
             return ZH_HOLD;
         }
         return missed(action, "没完成");
