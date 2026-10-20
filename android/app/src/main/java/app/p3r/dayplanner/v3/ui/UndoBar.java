@@ -27,6 +27,8 @@ public final class UndoBar extends LinearLayout {
     private final Runnable hide = this::timedOut;
     private Runnable onAction;
     private Runnable onTimeout;
+    /** The message is news a newer one may replace ({@link #showNotice}). */
+    private boolean notice;
 
     public UndoBar(Context context) {
         super(context);
@@ -75,6 +77,7 @@ public final class UndoBar extends LinearLayout {
     /** Shows the bar in {@code style}: rank-ups get a 「RANK UP」 badge, errors a red slab and 「!」. */
     public void show(CharSequence text, String actionLabel, Runnable onAction, Style style) {
         removeCallbacks(hide);
+        notice = false;
         Context context = getContext();
         panel.slab(Ui.col(context, style == Style.ERROR ? R.color.p3r_danger : R.color.p3r_cyan_400),
             Ui.dp(context, 4), Ui.dp(context, 4));
@@ -109,9 +112,19 @@ public final class UndoBar extends LinearLayout {
         postDelayed(hide, DURATION_MILLIS);
     }
 
+    /**
+     * Shows news a newer one may replace (what a replan changed, with 「看看」): {@link #showsNotice}
+     * until anything else is shown here or the bar hides.
+     */
+    void showNotice(CharSequence text, String actionLabel, Runnable onAction) {
+        show(text, actionLabel, onAction);
+        notice = true;
+    }
+
     public void hide() {
         removeCallbacks(hide);
         onAction = null;
+        notice = false;
         setVisibility(GONE);
     }
 
@@ -146,6 +159,11 @@ public final class UndoBar extends LinearLayout {
     /** Showing with its action (「撤销」) still on offer. */
     public boolean hasAction() {
         return isShowing() && action.getVisibility() == View.VISIBLE;
+    }
+
+    /** Showing news from {@link #showNotice}, nothing shown over it since. */
+    boolean showsNotice() {
+        return isShowing() && notice;
     }
 
     /** Current message text (tests). */

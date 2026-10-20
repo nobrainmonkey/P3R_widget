@@ -18,6 +18,7 @@ import org.robolectric.annotation.GraphicsMode;
 import app.p3r.dayplanner.v3.Intents;
 import app.p3r.dayplanner.v3.engine.Outcome;
 import app.p3r.dayplanner.v3.model.Profile;
+import app.p3r.dayplanner.v3.service.PlannerApi;
 
 /** Behaviour of the main screen: back order, one-tap records with undo, goals, routing. */
 @RunWith(RobolectricTestRunner.class)
@@ -487,6 +488,51 @@ public class HomeBehaviorTest extends UiTestBase {
         Shots.idle();
         assertEquals("已撤销：在宿舍房间学习", a.undoBar().messageText().toString());
         assertEquals(2, api.callsOf("voidEvent").size());
+    }
+
+    /** A 撤销 whose write failed (the store's 「没保存上」) offers 「重试」 too. */
+    @Test
+    public void anUndoThatWasNotSavedOffersRetry() {
+        HomeActivity a = home();
+        a.showUndo(7, "在宿舍房间学习", false);
+        PlannerApi.Receipt io = new PlannerApi.Receipt();
+        io.errorCode = PlannerApi.Receipt.CODE_IO;
+        io.errorZh = "没保存上，再试一次？";
+        api.nextReceipt = io;
+        a.undoBar().performAction();
+        Shots.idle();
+        assertEquals(Messages.ACTION_FAILED, a.undoBar().messageText().toString());
+        assertTrue(a.undoBar().hasAction());
+        a.undoBar().performAction();
+        Shots.idle();
+        assertEquals("已撤销：在宿舍房间学习", a.undoBar().messageText().toString());
+        assertEquals(2, api.callsOf("voidEvent").size());
+    }
+
+    /**
+     * Only a replan's news gives way to newer news: once it has had its time, a later 撤销 (the
+     * 合体篮's) stays until it has had its own.
+     */
+    @Test
+    public void aBasketUndoOutlastsAPlanChangeAfterAnEarlierOne() {
+        HomeActivity a = home();
+        api.snap.plan = Fixtures.planMid(api.rules, api.snap.observed, api.snap.observed.slot, "plan-2");
+        api.snap.plan.steps.set(1, Fixtures.social(api.rules, Fixtures.SLOT_NOW + 1, "hermit", 3, 4, true, false));
+        api.fireChanged();
+        Shots.idle();
+        assertEquals("已重新安排：这周 1 处有变", a.undoBar().messageText().toString());
+        barTimesOut();
+        assertFalse(a.undoBar().isShowing());
+
+        PersonaViews.announce(a, "合体篮清空了", "撤销", () -> { });
+        api.snap.plan = Fixtures.planMid(api.rules, api.snap.observed, api.snap.observed.slot, "plan-3");
+        api.snap.plan.steps.set(2, Fixtures.social(api.rules, Fixtures.SLOT_NOW + 2, "hermit", 3, 4, true, false));
+        api.fireChanged();
+        Shots.idle();
+        assertEquals("合体篮清空了", a.undoBar().messageText().toString());
+        assertTrue(a.undoBar().hasAction());
+        barTimesOut();
+        assertTrue(a.undoBar().messageText().toString().startsWith("已重新安排："));
     }
 
     /** A goal in trouble on 今天 opens that link's 社群详情, where its fix is. */

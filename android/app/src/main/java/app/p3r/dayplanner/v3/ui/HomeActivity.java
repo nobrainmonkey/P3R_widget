@@ -82,8 +82,6 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     /** A 从头重新安排 result waiting the same way, or null, and the slot its 「看看」 opens (-1: none). */
     private String pendingFull;
     private int pendingFullSlot = -1;
-    /** The message bar shows what a replan changed: a newer change may take its place. */
-    private boolean noticeShowing;
 
     private FrameLayout root;
     /** 今天 sits in the lit water near the surface; the busier tabs and sub-pages in calmer water. */
@@ -370,7 +368,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         bindPages();
         // Said once in the message bar, never over a record's 撤销 (or a 重试): then once that bar
         // has had its time (sayPendingChange). A message without either simply gives way.
-        boolean say = !undo.hasAction() || noticeShowing;
+        boolean say = !undo.hasAction() || undo.showsNotice();
         if (fullResult != null) {
             changeBase = null;
             pendingFull = say ? null : fullResult;
@@ -728,7 +726,6 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         boolean fix = summary != null && summary.startsWith(FIXED);
         undo.show(fix ? summary : "已记录：" + summary, eventSeq >= 0 ? "撤销" : null, () -> undoEvent(eventSeq, summary),
             rankUp && !fix ? UndoBar.Style.RANK_UP : UndoBar.Style.RECORD);
-        noticeShowing = false;
         undoRetries = 0;
         placeUndo();
     }
@@ -751,7 +748,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             if (receipt.ok) {
                 boolean fix = summary != null && summary.startsWith(FIXED);
                 showMessage(fix ? "已撤销修改：" + summary.substring(FIXED.length()) : "已撤销：" + summary);
-            } else if (Messages.isStale(receipt)) {
+            } else if (Messages.retryable(receipt)) {
                 showError(Messages.ACTION_FAILED, "重试", retry);
             } else {
                 showError(Messages.receiptError(receipt));
@@ -1015,7 +1012,6 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     @Override
     public void showMessage(String text) {
         undo.show(text, null, null);
-        noticeShowing = false;
         undoRetries = 0;
         placeUndo();
     }
@@ -1028,7 +1024,6 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     /** {@link #showError(String)} with the fix as a button ({@code actionLabel}, 「重试」), or none. */
     void showError(String text, String actionLabel, Runnable onAction) {
         undo.show(text, actionLabel, onAction, UndoBar.Style.ERROR);
-        noticeShowing = false;
         undoRetries = 0;
         placeUndo();
     }
@@ -1043,8 +1038,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             selectTab(TAB_SCHEDULE);
             schedule.showSlot(changedSlot);
         };
-        undo.show(text, look == null ? null : "看看", look);
-        noticeShowing = true;
+        undo.showNotice(text, look == null ? null : "看看", look);
         undoRetries = 0;
         placeUndo();
         // The pages were just rebuilt for the new plan: check the hero's buttons again once laid out.

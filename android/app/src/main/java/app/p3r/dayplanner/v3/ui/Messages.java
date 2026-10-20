@@ -43,6 +43,12 @@ final class Messages {
         return receipt != null && !receipt.ok && "stale".equals(receipt.errorCode);
     }
 
+    /** A rejection the same request may get past: a stale revision or a failed write. */
+    static boolean retryable(PlannerApi.Receipt receipt) {
+        return isStale(receipt)
+            || receipt != null && !receipt.ok && PlannerApi.Receipt.CODE_IO.equals(receipt.errorCode);
+    }
+
     /** True when the text contains Chinese, i.e. is fit to show (guards against raw English errors). */
     static boolean containsCjk(String text) {
         for (int i = 0; i < text.length(); i++) {
