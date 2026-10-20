@@ -233,13 +233,14 @@ Basket logic, the calculator, persistence and the workspace behaviour are unchan
   [用它继续合体]; 「这两个合不出人格面具」; 「想合出谁？」 → picker → recipes. Pickers:
   「和 俄耳甫斯 合体」, no toggles, no counter.
 - Recipes 「X · 合体配方」: breadcrumb, borderless blocks tagged
-  「特殊合体」「素材都已登录」「现在用的」, bilingual ingredient lines that open their own recipes, a
-  「＋」 that adds and stays (「已加入合体篮」 · 去看看); 「还有 N 组，接着看」;
-  「合不出来，去塔尔塔罗斯的洗牌时间找它」.
+  「特殊合体」「素材都已登录」「现在用的」 (selector) / 「在合体篮里」 (browsing), bilingual ingredient
+  lines that open their own recipes, a 「＋」 that adds and stays: 「已加入合体篮」 · 去看看,
+  「已经在合体篮里了」 · 去看看, and 「已换成这个配方」 · 撤销 when the basket made that Persona
+  another way; 「还有 N 组，接着看」; 「合不出来，去塔尔塔罗斯的洗牌时间找它」.
 - 合体篮: empty 「合体篮是空的」 [挑一个人格面具]; goal hero 「还差 2 步」 / 「已登录」 /
-  「配方要重选」 + step bar + ··· (换配方 / 移出合体篮); one banner
-  「有配方用到了没买的 DLC，重选一下？」; 「需要的素材」 「已登录 1/3」 with an inline sort and
-  「怎么合？」; 「合体顺序」 「完成 0/2」, big step numerals, a menu
+  「未登录」 (no fusion left) / 「配方要重选」 + step bar + ··· (换配方 / 移出合体篮); one banner
+  「有配方用到了没买的 DLC，重选一下？」; 「需要的素材」 「已登录 1/3」 (left out when nothing is
+  needed) with an inline sort and 「怎么合？」; 「合体顺序」 「完成 0/2」, big step numerals, a menu
   「看 X 的资料」「换个配方」「不合了，直接召唤」; 「X 合出来了！」; 「清空合体篮」 with 撤销.
 - Removed: 图鉴 / 合成, 火炎 / 光 / 暗 / 回复, raw unlock text, [全部][收藏], the ○ toggle on every
   row, boxed rows, cells, skills and recipe cards, 「接着合成」, the jump to the basket after an add,

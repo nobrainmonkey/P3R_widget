@@ -220,7 +220,8 @@ public class CompendiumUxReviewTest extends UiTestBase {
     }
 
     private static void capture(HomeActivity activity, String name) {
-        // Official bilingual names are intentional; retain the standard renderer.
+        // Official bilingual names are intentional; every other typography check applies.
+        Shots.checkTypography(activity.getWindow().getDecorView(), name, true);
         Shots.save(Shots.capture(activity, false), name);
     }
 }

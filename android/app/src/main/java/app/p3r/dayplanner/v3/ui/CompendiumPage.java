@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.InsetDrawable;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.SpannableString;
@@ -54,6 +55,10 @@ public final class CompendiumPage {
     static final String CYCLE = "这个配方会绕回篮里的目标，换一个吧";
     /** Confirmation after 加入合体篮; the player stays where they are. */
     static final String ADDED = "已加入合体篮";
+    /** The same recipe added again: nothing changes. */
+    static final String ALREADY_ADDED = "已经在合体篮里了";
+    /** The basket made this Persona another way; 撤销 brings that recipe and its sub-recipes back. */
+    static final String SWAPPED = "已换成这个配方";
 
     private final HomeHost host;
     private final Context c;
@@ -309,7 +314,8 @@ public final class CompendiumPage {
         searchRow.addView(filterButton, gapWrap(6));
         controls.addView(searchRow);
         LinearLayout status = Ui.row(c);
-        status.setMinimumHeight(Ui.dp(c, 36));
+        // As tall as a filter chip's target, so the list does not move when the first chip appears.
+        status.setMinimumHeight(Ui.dp(c, Ui.TOUCH));
         HorizontalScrollView chips = new HorizontalScrollView(c);
         chips.setHorizontalScrollBarEnabled(false);
         selection = Ui.row(c);
@@ -319,7 +325,7 @@ public final class CompendiumPage {
         count = Ui.text(c, "", 13, Ui.col(c, R.color.p3r_ink_muted), false);
         count.setTag("compendium_count");
         status.addView(count, gapWrap(8));
-        controls.addView(status, top(2));
+        controls.addView(status);
         listPane.addView(controls);
         FrameLayout results = new FrameLayout(c);
         list = personaList();
@@ -383,11 +389,13 @@ public final class CompendiumPage {
     private View filterChip(String label, Runnable remove) {
         TextView chip = Ui.mixed(c, label + "  ×", 13, Ui.col(c, R.color.p3r_cyan_200), true);
         chip.setGravity(Gravity.CENTER);
-        chip.setMinHeight(Ui.dp(c, 32));
+        chip.setMinHeight(Ui.dp(c, Ui.TOUCH));
         chip.setMaxLines(1);
-        chip.setBackground(new SlantedPanelDrawable().fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 140))
+        // A 32 dp plate in the middle of the 48 dp target; the label's padding is set after it.
+        chip.setBackground(new InsetDrawable(new SlantedPanelDrawable().fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 140))
             .pressedFill(Ui.col(c, R.color.ui_cyan_soft))
-            .stroke(Ui.alpha(Ui.col(c, R.color.p3r_cyan_300), 150), Ui.dp(c, 1)).skew(Ui.dp(c, 5)));
+            .stroke(Ui.alpha(Ui.col(c, R.color.p3r_cyan_300), 150), Ui.dp(c, 1)).skew(Ui.dp(c, 5)),
+            0, Ui.dp(c, 8), 0, Ui.dp(c, 8)));
         Ui.pad(chip, 12, 4, 12, 4);
         chip.setClickable(true);
         chip.setFocusable(true);
@@ -815,7 +823,9 @@ public final class CompendiumPage {
     private View statRow(String label, int value) {
         LinearLayout row = Ui.row(c);
         TextView name = Ui.text(c, label, 14, Ui.col(c, R.color.p3r_ink_muted), true);
-        row.addView(name, new LinearLayout.LayoutParams(Ui.dp(c, 22), ViewGroup.LayoutParams.WRAP_CONTENT));
+        // A minimum, not a fixed width: a large system font widens the column instead of clipping it.
+        name.setMinWidth(Ui.dp(c, 22));
+        row.addView(name, Ui.wrap());
         LinearLayout track = Ui.row(c);
         track.setBackground(new SlantedPanelDrawable().fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 160))
             .skew(Ui.dp(c, 6)));
@@ -882,8 +892,11 @@ public final class CompendiumPage {
         TextView when = learned.startsWith("Lv")
             ? Ui.numeral(c, learned, 17, Ui.col(c, R.color.p3r_cyan_400))
             : Ui.text(c, learned, 13, Ui.col(c, R.color.p3r_cyan_300), true);
-        Ui.pad(when, 0, 3, 0, 0);
-        row.addView(when, new LinearLayout.LayoutParams(Ui.dp(c, 46), ViewGroup.LayoutParams.WRAP_CONTENT));
+        Ui.pad(when, 0, 3, 6, 0);
+        // At least 46 dp so the names line up; a large system font widens it rather than splitting 「Lv.44」.
+        when.setMinWidth(Ui.dp(c, 46));
+        when.setMaxLines(1);
+        row.addView(when, Ui.wrap());
         LinearLayout main = Ui.column(c);
         SpannableStringBuilder title = new SpannableStringBuilder();
         title.append(skill.nameZh, new StyleSpan(Typeface.BOLD), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -995,9 +1008,9 @@ public final class CompendiumPage {
         slot.setClickable(true);
         slot.setFocusable(true);
         slot.setMinimumHeight(Ui.dp(c, 116));
-        Ui.pad(slot, 16, 8, 8, 12);
+        Ui.pad(slot, 16, 4, 4, 12);
         LinearLayout heading = Ui.row(c);
-        heading.setMinimumHeight(Ui.dp(c, 32));
+        heading.setMinimumHeight(Ui.dp(c, Ui.TOUCH));
         heading.addView(Ui.text(c, "素材 " + index, 13, Ui.col(c, R.color.p3r_cyan_300), true), Ui.weight(1));
         if (persona != null) {
             ImageView info = Ui.icon(c, R.drawable.ui_ic_info, Ui.col(c, R.color.p3r_cyan_300), 18);
@@ -1007,7 +1020,7 @@ public final class CompendiumPage {
             info.setTag("fusion_material_detail_" + index);
             info.setOnClickListener(v -> openDetail(persona));
             info.setBackground(new SlantedPanelDrawable().fill(0).pressedFill(Ui.col(c, R.color.ui_cyan_soft)));
-            heading.addView(info, new LinearLayout.LayoutParams(Ui.dp(c, 44), Ui.dp(c, 40)));
+            heading.addView(info, new LinearLayout.LayoutParams(Ui.dp(c, Ui.TOUCH), Ui.dp(c, Ui.TOUCH)));
         }
         slot.addView(heading);
         if (persona == null) {
@@ -1117,10 +1130,11 @@ public final class CompendiumPage {
             TextView goal = Ui.text(c, "‹ " + originalGoal.nameZh + "的配方", 14, Ui.col(c, R.color.p3r_cyan_200), true);
             goal.setTag("fusion_original_goal");
             goal.setGravity(Gravity.CENTER_VERTICAL);
-            goal.setMinHeight(Ui.dp(c, 40));
-            goal.setBackground(new SlantedPanelDrawable().fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 140))
+            goal.setMinHeight(Ui.dp(c, Ui.TOUCH));
+            goal.setBackground(new InsetDrawable(new SlantedPanelDrawable().fill(Ui.alpha(Ui.col(c, R.color.p3r_navy_950), 140))
                 .pressedFill(Ui.col(c, R.color.ui_cyan_soft))
-                .stroke(Ui.alpha(Ui.col(c, R.color.p3r_cyan_300), 150), Ui.dp(c, 1)).skew(Ui.dp(c, 6)));
+                .stroke(Ui.alpha(Ui.col(c, R.color.p3r_cyan_300), 150), Ui.dp(c, 1)).skew(Ui.dp(c, 6)),
+                0, Ui.dp(c, 4), 0, Ui.dp(c, 4)));
             Ui.pad(goal, 12, 4, 14, 4);
             goal.setClickable(true);
             goal.setFocusable(true);
@@ -1128,7 +1142,7 @@ public final class CompendiumPage {
             goal.setOnClickListener(v -> openRecipes(originalGoal, true));
             content.addView(goal, Ui.wrap());
         }
-        content.addView(targetStrip(persona, v -> openDetail(persona, true)), top(content.getChildCount() == 0 ? 0 : 10));
+        content.addView(targetStrip(persona, v -> openDetail(persona, true)), top(content.getChildCount() == 0 ? 0 : 6));
         LinearLayout recipes = Ui.column(c);
         content.addView(recipes, top(14));
         loadRecipes(persona, recipes, null, null);
@@ -1243,12 +1257,13 @@ public final class CompendiumPage {
             });
             container.addView(more, top(10));
         }
+        if (chosen == null) paintBasketMarks(container, prefs.basket());
     }
 
     /**
-     * One recipe, borderless: its tags (特殊合体, 素材都已登录, 现在用的), one line per ingredient
-     * and, while browsing, a 「＋」 plate that adds it to the basket without leaving. In the
-     * selector the whole block chooses the recipe.
+     * One recipe, borderless: its tags (特殊合体, 素材都已登录, 现在用的 in the selector, 在合体篮里
+     * while browsing), one line per ingredient and, while browsing, a 「＋」 plate that adds it to
+     * the basket without leaving. In the selector the whole block chooses the recipe.
      */
     private View recipeBlock(FusionCalculator.Recipe recipe, int index, Consumer<FusionCalculator.Recipe> chosen,
                              FusionBasket.Choice current) {
@@ -1261,19 +1276,19 @@ public final class CompendiumPage {
             tags.addView(Ui.tag(c, "特殊合体", Ui.col(c, R.color.p3r_cyan_400), Ui.col(c, R.color.p3r_navy_950)), tagGap());
         }
         boolean allRegistered = true;
-        List<String> ids = new ArrayList<>();
-        for (Compendium.Persona ingredient : recipe.ingredients) {
-            allRegistered &= ownedPersonas.contains(ingredient.id);
-            ids.add(ingredient.id);
-        }
+        for (Compendium.Persona ingredient : recipe.ingredients) allRegistered &= ownedPersonas.contains(ingredient.id);
         if (allRegistered) {
             tags.addView(Ui.tag(c, "素材都已登录", Ui.col(c, R.color.ui_cyan_soft), Ui.col(c, R.color.p3r_cyan_200)), tagGap());
         }
-        boolean inUse = current != null && new HashSet<>(current.ingredientIds).equals(new HashSet<>(ids));
-        if (inUse) {
+        if (sameRecipe(current, recipe)) {
             tags.addView(Ui.tag(c, "现在用的", Ui.col(c, R.color.p3r_white), Ui.col(c, R.color.p3r_navy_950)), tagGap());
+        } else if (!selector) {
+            BasketMark mark = new BasketMark(c, recipe);
+            mark.setTag("recipe_in_basket_" + recipe.result.id + "_" + index);
+            tags.addView(mark, tagGap());
         }
-        if (tags.getChildCount() > 0) lines.addView(tags, bottom(4));
+        lines.addView(tags, bottom(4));
+        BasketMark.showRowIfAny(tags);
         StringBuilder names = new StringBuilder();
         for (int i = 0; i < recipe.ingredients.size(); i++) {
             Compendium.Persona ingredient = recipe.ingredients.get(i);
@@ -1442,19 +1457,46 @@ public final class CompendiumPage {
         refreshList(false);
     }
 
-    /** Adds the recipe as a basket goal and stays on the page: 「已加入合体篮」 · 去看看. */
+    /**
+     * Adds the recipe as a basket goal and stays on the page: 「已加入合体篮」 · 去看看. When the
+     * basket already makes this Persona another way, that recipe and the sub-recipes under it
+     * give way, so 「已换成这个配方」 offers 撤销.
+     */
     private void addToBasket(FusionCalculator.Recipe recipe) {
+        FusionBasket before = prefs.basket();
         FusionBasket basket = prefs.basket();
+        FusionBasket.Choice old = basket.chosenRecipe(recipe.result.id);
+        if (sameRecipe(old, recipe) && basket.containsGoal(recipe.result.id)) {
+            PersonaViews.announce(host, ALREADY_ADDED, "去看看", this::showBasket);
+            return;
+        }
         if (!basket.addGoal(recipe)) {
             host.showError(CYCLE);
             return;
         }
         prefs.setBasket(basket);
         refreshChoices();
-        PersonaViews.announce(host, ADDED, "去看看", () -> {
-            host.returnToPage(root);
-            selectSegment(2);
-        });
+        if (old != null && !sameRecipe(old, recipe)) {
+            PersonaViews.announce(host, SWAPPED, "撤销", () -> {
+                prefs.setBasket(before);
+                refreshChoices();
+            });
+        } else {
+            PersonaViews.announce(host, ADDED, "去看看", this::showBasket);
+        }
+    }
+
+    private void showBasket() {
+        host.returnToPage(root);
+        selectSegment(2);
+    }
+
+    /** Whether the basket's choice for a Persona is this recipe (the same ingredients). */
+    private static boolean sameRecipe(FusionBasket.Choice choice, FusionCalculator.Recipe recipe) {
+        if (choice == null || !choice.resultId.equals(recipe.result.id)) return false;
+        Set<String> ids = new HashSet<>();
+        for (Compendium.Persona ingredient : recipe.ingredients) ids.add(ingredient.id);
+        return new HashSet<>(choice.ingredientIds).equals(ids);
     }
 
     private void refreshChoices() {
@@ -1463,7 +1505,9 @@ public final class CompendiumPage {
         refreshBasketBadge();
         if (basketPage != null) basketPage.refresh();
         renderFusion();
-        paintOwned(host.activity().getWindow().getDecorView());
+        View window = host.activity().getWindow().getDecorView();
+        paintOwned(window);
+        paintBasketMarks(window, prefs.basket());
     }
 
     private void refreshStoredChoices() {
@@ -1494,6 +1538,7 @@ public final class CompendiumPage {
         }
         refreshBasketBadge();
         if (basketPage != null) basketPage.refresh();
+        paintBasketMarks(host.activity().getWindow().getDecorView(), prefs.basket());
     }
 
     /** 「合体篮 2」; the segment pops when a goal was added. */
@@ -1519,6 +1564,39 @@ public final class CompendiumPage {
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++) paintOwned(group.getChildAt(i));
+        }
+    }
+
+    private static void paintBasketMarks(View view, FusionBasket basket) {
+        if (view instanceof BasketMark) {
+            ((BasketMark) view).show(basket);
+        } else if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) paintBasketMarks(group.getChildAt(i), basket);
+        }
+    }
+
+    /** 「在合体篮里」 on a browsed recipe while the basket makes its result this way. */
+    private static final class BasketMark extends FrameLayout {
+        private final FusionCalculator.Recipe recipe;
+
+        BasketMark(Context c, FusionCalculator.Recipe recipe) {
+            super(c);
+            this.recipe = recipe;
+            addView(Ui.tag(c, "在合体篮里", Ui.col(c, R.color.p3r_white), Ui.col(c, R.color.p3r_navy_950)));
+            setVisibility(GONE);
+        }
+
+        void show(FusionBasket basket) {
+            setVisibility(sameRecipe(basket.chosenRecipe(recipe.result.id), recipe) ? VISIBLE : GONE);
+            if (getParent() instanceof ViewGroup) showRowIfAny((ViewGroup) getParent());
+        }
+
+        /** A tag row takes no room once its last tag is hidden. */
+        static void showRowIfAny(ViewGroup row) {
+            boolean any = false;
+            for (int i = 0; i < row.getChildCount(); i++) any |= row.getChildAt(i).getVisibility() == VISIBLE;
+            row.setVisibility(any ? VISIBLE : GONE);
         }
     }
 

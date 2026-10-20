@@ -2,6 +2,7 @@ package app.p3r.dayplanner.v3.ui;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.InsetDrawable;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
@@ -147,7 +148,7 @@ public final class FusionBasketPage {
         content.addView(hero, top(8));
     }
 
-    /** One goal: name, English, its state (还差 N 步 / 已登录 / 配方要重选), level, and its menu. */
+    /** One goal: name, English, its state (还差 N 步 / 已登录 / 未登录 / 配方要重选), level, and its menu. */
     private View goalBlock(FusionBasket.Node node) {
         Compendium.Persona persona = node.persona;
         boolean registered = owned.contains(persona.id);
@@ -177,6 +178,9 @@ public final class FusionBasketPage {
             tick.setBounds(0, 0, Ui.dp(c, 16), Ui.dp(c, 16));
             status.setCompoundDrawables(tick, null, null, null);
             status.setCompoundDrawablePadding(Ui.dp(c, 4));
+        } else if (node.craftQuantity == 0) {
+            // 「不合了，直接召唤」 on the goal's own step: no fusion left, it is found or summoned.
+            status = Ui.text(c, "未登录", 15, color(R.color.p3r_ink_muted), true);
         } else {
             status = Ui.mixed(c, "还差 " + remainingSteps(node) + " 步", 15, color(R.color.p3r_cyan_300), true);
         }
@@ -194,9 +198,7 @@ public final class FusionBasketPage {
         menu.setFocusable(true);
         menu.setBackground(new SlantedPanelDrawable().fill(0).pressedFill(color(R.color.ui_cyan_soft)).skew(Ui.dp(c, 6)));
         menu.setOnClickListener(v -> openGoalMenu(persona));
-        LinearLayout.LayoutParams menuParams = new LinearLayout.LayoutParams(Ui.dp(c, 44), Ui.dp(c, 48));
-        menuParams.leftMargin = Ui.dp(c, 4);
-        row.addView(menu, menuParams);
+        row.addView(menu, new LinearLayout.LayoutParams(Ui.dp(c, Ui.TOUCH), Ui.dp(c, Ui.TOUCH)));
         box.addView(row);
         if (registered && !node.invalidRecipe) {
             TextView remove = Ui.quiet(c, "移出合体篮");
@@ -285,11 +287,11 @@ public final class FusionBasketPage {
     // ------------------------------------------------------------------ materials
 
     private void renderMaterials() {
+        // Nothing to gather (every goal is registered, or every recipe needs a new choice): no header.
+        if (summary.shopping.isEmpty()) return;
         int registered = 0;
         for (FusionBasket.ShoppingItem item : summary.shopping) if (owned.contains(item.persona.id)) registered++;
-        content.addView(Ui.sectionHeader(c, "需要的素材", summary.shopping.isEmpty() ? null
-            : "已登录 " + registered + "/" + summary.shopping.size()), top(20));
-        if (summary.shopping.isEmpty()) return;
+        content.addView(Ui.sectionHeader(c, "需要的素材", "已登录 " + registered + "/" + summary.shopping.size()), top(20));
         LinearLayout sort = Ui.row(c);
         sort.setGravity(Gravity.END);
         for (int i = 0; i < SORT_LABELS.length; i++) {
@@ -455,14 +457,12 @@ public final class FusionBasketPage {
             fix.setContentDescription("重选" + result.nameZh + "的配方");
             fix.setClickable(true);
             fix.setFocusable(true);
-            fix.setBackground(new SlantedPanelDrawable().fill(Ui.alpha(color(R.color.p3r_navy_950), 120))
+            // A 40 dp plate inside the same 48 dp target as the tick it stands in for.
+            fix.setBackground(new InsetDrawable(new SlantedPanelDrawable().fill(Ui.alpha(color(R.color.p3r_navy_950), 120))
                 .pressedFill(color(R.color.ui_cyan_soft)).stroke(color(R.color.ui_gold), Ui.dp(c, 1.5f))
-                .skew(Ui.dp(c, 5)));
+                .skew(Ui.dp(c, 5)), Ui.dp(c, 4)));
             fix.setOnClickListener(v -> chooseRecipe(result));
-            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(Ui.dp(c, 40), Ui.dp(c, 40));
-            p.leftMargin = Ui.dp(c, 4);
-            p.rightMargin = Ui.dp(c, 4);
-            row.addView(fix, p);
+            row.addView(fix, new LinearLayout.LayoutParams(Ui.dp(c, Ui.TOUCH), Ui.dp(c, Ui.TOUCH)));
         }
         return row;
     }

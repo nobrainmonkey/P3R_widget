@@ -108,6 +108,37 @@ public class CompendiumPageTest extends UiTestBase {
         assertTrue(api.calls.isEmpty());
     }
 
+    /** Android 14 goes up to 200 %: learn levels and stat labels grow their column instead of breaking. */
+    @Test @Config(fontScale = 2.0f) public void theDetailKeepsLevelsAndStatsWholeAtTheLargestFont() {
+        Compendium.Persona widest = null;
+        for (Compendium.Persona persona : data.personas()) {
+            if (persona.isDlc()) continue;
+            for (Compendium.LearnedSkill skill : persona.skills) if (skill.level == 44) widest = persona;
+            if (widest != null) break;
+        }
+        assertNotNull("a Persona learning a skill at Lv.44, the widest level", widest);
+        HomeActivity activity = open();
+        ((EditText) tagged(activity, "compendium_search")).setText(widest.nameEn);
+        choose(activity, "compendium_list", widest.id);
+        View skills = Shots.find(activity, "可学技能");
+        android.widget.ScrollView page = scrollParent(skills);
+        page.scrollTo(0, ((View) skills.getParent()).getTop() - Ui.dp(activity, 12));
+        Shots.idle();
+        List<TextView> levels = new java.util.ArrayList<>();
+        List<TextView> stats = new java.util.ArrayList<>();
+        collectTexts(page, "Lv\\.\\d+|初始", levels);
+        collectStatLabels(page, stats);
+        assertTrue(levels.size() > 2);
+        assertEquals(5, stats.size());
+        for (TextView level : levels) {
+            assertEquals(text(level) + " stays on one line", 1, level.getLineCount());
+            assertFits(level);
+        }
+        for (TextView stat : stats) assertFits(stat);
+        // Only the columns above are checked here: at 200 % paired buttons still wrap app-wide.
+        Shots.save(Shots.capture(activity, false), "compendium_detail_skills_large_font");
+    }
+
     @Test public void filtersApplyArcanaLevelAndOrderingAndResetTogether() {
         HomeActivity activity = open();
         TextView filter = tagged(activity, "compendium_filter");
@@ -172,6 +203,8 @@ public class CompendiumPageTest extends UiTestBase {
         tagged(activity, "compendium_show_unowned").performClick();
         Shots.click(activity, "看结果");
         int lovers = adapterCount(activity);
+        ViewGroup chips = tagged(activity, "compendium_filter_selection");
+        for (int i = 0; i < chips.getChildCount(); i++) assertTouchTarget(chips.getChildAt(i));
         Shots.click(activity, "去掉筛选：恋爱");
         assertEquals("194 个", text(activity, "compendium_count"));
         assertTrue(tagged(activity, "compendium_filter").isSelected());
@@ -192,6 +225,14 @@ public class CompendiumPageTest extends UiTestBase {
         assertTrue("the first Fool row starts the Fool group", Shots.allText(firstRow).contains("FOOL"));
         assertFalse("later rows of the same arcana have no header", Shots.allText(secondRow).contains("FOOL"));
         capture(activity, "compendium_by_arcana");
+
+        ViewGroup shown = (ViewGroup) list.getChildAt(0);
+        View header = shown.getChildAt(0);
+        assertTrue(header.isShown());
+        tap(shown, header.getWidth() / 2f, header.getHeight() / 2f);
+        assertEquals("the arcana header is a label, not the first Persona", 0, activity.pageDepth());
+        tap(shown, header.getWidth() / 2f, header.getHeight() + shown.getChildAt(1).getHeight() / 2f);
+        assertEquals("the row under it still opens", 1, activity.pageDepth());
     }
 
     @Test public void listRowsAreRecycledAndRebound() {
@@ -275,6 +316,8 @@ public class CompendiumPageTest extends UiTestBase {
         pick(activity, "fusion_material_2", "Power", "Power");
         Compendium.Persona narcissus = data.personaByKey("Narcissus");
         assertNotNull(tagged(activity, "persona_" + narcissus.id));
+        assertTouchTarget(tagged(activity, "fusion_material_detail_1"));
+        assertTouchTarget(tagged(activity, "fusion_material_detail_2"));
         capture(activity, "fusion_base_result");
         assertFalse(tagged(activity, "compendium_dlc").isSelected());
         tagged(activity, "compendium_dlc").performClick();
@@ -325,7 +368,7 @@ public class CompendiumPageTest extends UiTestBase {
         tagged(activity, "material_recipe_" + material.id).performClick();
         Shots.idle();
         assertNotNull("the ingredient's own recipes", tagged(activity, "persona_" + material.id));
-        assertNotNull(tagged(activity, "fusion_original_goal"));
+        assertTouchTarget(tagged(activity, "fusion_original_goal"));
         tagged(activity, "persona_" + material.id).performClick();
         Shots.idle();
         assertNotNull(tagged(activity, "persona_recipes_" + material.id));
@@ -354,6 +397,64 @@ public class CompendiumPageTest extends UiTestBase {
         assertTrue(tagged(activity, "basket_tab").isSelected());
         assertNotNull(tagged(activity, "basket_goal_" + alice.id));
         assertTrue(api.calls.isEmpty());
+    }
+
+    @Test public void anotherRecipeForAGoalSaysItReplacedTheOldOneAndCanBeUndone() {
+        FusionCalculator calculator = new FusionCalculator(data, Collections.emptySet());
+        Compendium.Persona narcissus = data.personaByKey("Narcissus");
+        List<FusionCalculator.Recipe> recipes = calculator.recipesFor(narcissus.id);
+        assertTrue(recipes.size() > 1);
+        HomeActivity activity = open();
+        ((EditText) tagged(activity, "compendium_search")).setText("Narcissus");
+        choose(activity, "compendium_list", narcissus.id);
+        tagged(activity, "persona_recipes_" + narcissus.id).performClick();
+        Shots.idle();
+        int depth = activity.pageDepth();
+        View firstMark = tagged(activity, "recipe_in_basket_" + narcissus.id + "_0");
+        View secondMark = tagged(activity, "recipe_in_basket_" + narcissus.id + "_1");
+        assertFalse("nothing is in the basket yet", firstMark.isShown() || secondMark.isShown());
+
+        tagged(activity, "recipe_add_" + narcissus.id + "_0").performClick();
+        Shots.idle();
+        assertEquals(CompendiumPage.ADDED, activity.undoBar().messageText().toString());
+        assertTrue("the recipe in the basket is marked", firstMark.isShown());
+        assertTrue(Shots.has(activity, "在合体篮里"));
+        tagged(activity, "recipe_add_" + narcissus.id + "_0").performClick();
+        Shots.idle();
+        assertEquals("the same recipe again changes nothing",
+            CompendiumPage.ALREADY_ADDED, activity.undoBar().messageText().toString());
+        assertEquals(Collections.singletonList(narcissus.id), prefs.basket().goals());
+
+        // A sub-recipe the player picked for one of the first recipe's materials.
+        FusionBasket basket = prefs.basket();
+        Compendium.Persona material = null;
+        for (Compendium.Persona ingredient : recipes.get(0).ingredients) {
+            if (recipes.get(1).ingredients.contains(ingredient)) continue;
+            for (FusionCalculator.Recipe sub : calculator.recipesFor(ingredient.id)) {
+                if (basket.chooseRecipe(sub)) {
+                    material = ingredient;
+                    break;
+                }
+            }
+            if (material != null) break;
+        }
+        assertNotNull(material);
+        prefs.setBasket(basket);
+        String planned = prefs.basket().toJson().toString();
+
+        tagged(activity, "recipe_add_" + narcissus.id + "_1").performClick();
+        Shots.idle();
+        assertEquals(CompendiumPage.SWAPPED, activity.undoBar().messageText().toString());
+        assertTrue(activity.undoBar().hasAction());
+        assertEquals(Collections.singletonList(narcissus.id), prefs.basket().goals());
+        assertEquals(null, prefs.basket().chosenRecipe(material.id));
+        assertTrue("the mark follows the basket", secondMark.isShown() && !firstMark.isShown());
+        capture(activity, "fusion_recipe_swapped");
+        activity.undoBar().performAction();
+        Shots.idle();
+        assertEquals("撤销 brings back the recipe and its sub-recipe", planned, prefs.basket().toJson().toString());
+        assertTrue(firstMark.isShown() && !secondMark.isShown());
+        assertEquals("the player keeps their place", depth, activity.pageDepth());
     }
 
     @Test public void skillAndBilingualSearchCoverTheCompleteCatalogue() {
@@ -495,6 +596,51 @@ public class CompendiumPageTest extends UiTestBase {
             if (nested != null) return nested;
         }
         return null;
+    }
+
+    private static void collectTexts(View view, String pattern, List<TextView> found) {
+        if (view instanceof TextView && text((TextView) view).matches(pattern)) found.add((TextView) view);
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) collectTexts(group.getChildAt(i), pattern, found);
+        }
+    }
+
+    /** The label of each 能力值 row (「力 23」). */
+    private static void collectStatLabels(View view, List<TextView> found) {
+        CharSequence spoken = view.getContentDescription();
+        if (spoken != null && spoken.toString().matches("[力魔耐速运] \\d+")) {
+            found.add((TextView) ((ViewGroup) view).getChildAt(0));
+        } else if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) collectStatLabels(group.getChildAt(i), found);
+        }
+    }
+
+    /** The whole text is drawn inside the view, not clipped at its edge. */
+    private static void assertFits(TextView view) {
+        int room = view.getWidth() - view.getTotalPaddingLeft() - view.getTotalPaddingRight();
+        float needed = view.getLayout() == null ? view.getPaint().measureText(view.getText().toString())
+            : view.getLayout().getLineWidth(0);
+        assertTrue(text(view) + " needs " + needed + " px, has " + room, needed <= room + 1);
+    }
+
+    private static void assertTouchTarget(View view) {
+        int touch = Ui.dp(view.getContext(), Ui.TOUCH);
+        assertTrue(view.getTag() + ": " + view.getWidth() + "×" + view.getHeight() + " px is under 48 dp",
+            view.getWidth() >= touch && view.getHeight() >= touch);
+    }
+
+    /** A finger tap at (x, y) inside {@code view}, through the normal touch dispatch. */
+    private static void tap(View view, float x, float y) {
+        long now = android.os.SystemClock.uptimeMillis();
+        android.view.MotionEvent down = android.view.MotionEvent.obtain(now, now, android.view.MotionEvent.ACTION_DOWN, x, y, 0);
+        android.view.MotionEvent up = android.view.MotionEvent.obtain(now, now + 60, android.view.MotionEvent.ACTION_UP, x, y, 0);
+        view.dispatchTouchEvent(down);
+        view.dispatchTouchEvent(up);
+        down.recycle();
+        up.recycle();
+        Shots.idle();
     }
 
     private static int adapterCount(HomeActivity activity) {
