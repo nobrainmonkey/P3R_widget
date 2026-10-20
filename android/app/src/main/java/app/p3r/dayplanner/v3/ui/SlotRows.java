@@ -137,7 +137,7 @@ final class SlotRows {
             int sub = locked ? Ui.col(c, R.color.ui_locked) : Ui.col(c, R.color.p3r_cyan_300);
             int iconColor = locked ? Ui.col(c, R.color.ui_locked) : Ui.col(c, R.color.p3r_cyan_400);
             if (state == State.DONE) {
-                ink = Ui.col(c, R.color.p3r_ink_faint);
+                ink = Ui.col(c, R.color.ui_ink_hint);
                 sub = ink;
                 iconColor = ink;
             }
@@ -145,7 +145,7 @@ final class SlotRows {
             period.setText(Zh.period(rules, step.slot));
             // A slanted period tag: 晚上 on a navy plate, the daytime periods cyan-outlined.
             boolean evening = Rules.isEvening(step.slot);
-            int tagInk = state == State.DONE ? Ui.col(c, R.color.p3r_ink_faint)
+            int tagInk = state == State.DONE ? Ui.col(c, R.color.ui_ink_hint)
                 : state == State.CURRENT ? Ui.col(c, R.color.p3r_cyan_400) : Ui.col(c, R.color.p3r_cyan_200);
             SlantedPanelDrawable tag = new SlantedPanelDrawable().skew(Ui.dp(c, 4));
             if (evening) {

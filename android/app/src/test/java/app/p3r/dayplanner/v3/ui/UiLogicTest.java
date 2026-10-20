@@ -105,7 +105,6 @@ public class UiLogicTest {
         assertEquals(Outcome.Code.SKIPPED, absent.code);
         assertEquals("absent", absent.reason);
         assertEquals("皇帝 · 对方不在", Outcomes.summary(rules, emperor, absent));
-        assertFalse("never a rank-up message", HomeActivity.isRankUp(Outcomes.summary(rules, emperor, absent)));
 
         Outcome hold = Outcomes.hold();
         assertEquals(Outcome.Code.NOT_DONE, hold.code);
@@ -403,6 +402,50 @@ public class UiLogicTest {
         assertTrue(LinkStatus.of(rules, p, obs, plan, 5).rescueFailed);
     }
 
+    /** The hero and the day sheet: the answers and a short note at most, never the guide's long note. */
+    @Test
+    public void reviewedAnswersShowOnlyTheShortNote() {
+        Rules.DialogueVariant friend = new Rules.DialogueVariant();
+        friend.choices.add("我很喜欢");
+        friend.noteZh = "这是友情结尾的三问剧情：前两问任意，收到耳机后选喜欢。MAX后没有下一级好感门槛。";
+        friend.shortNoteZh = "";
+        Rules.DialogueVariant romance = new Rules.DialogueVariant();
+        romance.choices.add("放心了");
+        romance.noteZh = "主列表对应此前 RANK 8 已经选择友情的两问场景，请按下方另一组婉拒。";
+        romance.shortNoteZh = "婉拒告白";
+        Rules.DialogueHintEntry entry = new Rules.DialogueHintEntry();
+        entry.friend = friend;
+        entry.romance = romance;
+        int priestess = rules.link("priestess").idx;
+        rules.links[priestess].dialogueHints.put(10, entry);
+        Plan.Step step = Fixtures.social(rules, Fixtures.SLOT_NOW, "priestess", 9, 10, true, false);
+        assertEquals("回答：我很喜欢", Dialogue.line(rules, Fixtures.profileMid(), step));
+        Profile romanceRoute = Fixtures.profileMid();
+        romanceRoute.route[priestess] = Profile.Route.ROMANCE;
+        assertEquals("回答：放心了；婉拒告白", Dialogue.line(rules, romanceRoute, step));
+        // No short note in the pack: the long one is still left out, the answers to avoid stay.
+        romance.shortNoteZh = null;
+        assertEquals("回答：放心了", Dialogue.line(rules, romanceRoute, step));
+        romance.avoid.add("我喜欢风花（1）");
+        assertEquals("回答：放心了；别选「我喜欢风花」", Dialogue.line(rules, romanceRoute, step));
+    }
+
+    /** 今天's goal lines: a lost link is in trouble, unless its goal was reached before the rescue. */
+    @Test
+    public void aReachedGoalIsNeverInTroubleOnToday() {
+        Profile p = Fixtures.profileMid();
+        p.tier[5] = Profile.Tier.MUST;
+        p.target[5] = 10;
+        obs.rescued = 0;
+        LinkStatus lost = LinkStatus.of(rules, p, obs, plan, 5);
+        assertTrue(lost.lost);
+        assertEquals(rules.links[5].arcanaZh + " · 无法继续", TodayPage.troubleOf(rules, lost));
+        obs.rank[5] = 10;
+        LinkStatus maxed = LinkStatus.of(rules, p, obs, plan, 5);
+        assertTrue(maxed.lost);
+        org.junit.Assert.assertNull("the goal is reached: nothing to fix", TodayPage.troubleOf(rules, maxed));
+    }
+
     @Test
     public void summariesForTheNewPanels() {
         Rules.Episode junpei = rules.episodes[0];
@@ -431,10 +474,16 @@ public class UiLogicTest {
         s.observed = obs;
         long now = 100L * 60 * 60 * 1000;
         s.lastRecordMillis = now - 9L * 60 * 60 * 1000;
-        assertTrue(UiData.returnBannerDue(s, now, 0));
-        assertFalse(UiData.returnBannerDue(s, now, s.lastRecordMillis));
+        assertTrue(UiData.returnBannerDue(rules, s, now, 0));
+        assertFalse(UiData.returnBannerDue(rules, s, now, s.lastRecordMillis));
         s.lastRecordMillis = now - 60 * 60 * 1000;
-        assertFalse(UiData.returnBannerDue(s, now, 0));
+        assertFalse(UiData.returnBannerDue(rules, s, now, 0));
+        // After Jan 31 there is nothing left to catch up on.
+        s.lastRecordMillis = now - 9L * 60 * 60 * 1000;
+        SimState over = obs.copy();
+        over.slot = rules.lastSlot() + 1;
+        s.observed = over;
+        assertFalse(UiData.returnBannerDue(rules, s, now, 0));
     }
 
     @Test

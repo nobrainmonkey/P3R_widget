@@ -35,6 +35,26 @@ public final class PlanDiff {
         return changed;
     }
 
+    /**
+     * First slot from {@code fromSlot} on that both plans cover and whose step differs (the action
+     * or its 顺便 lines): where 「看看」 takes the player; -1 when nothing differs.
+     */
+    static int firstChangedSlot(Plan before, Plan after, int fromSlot) {
+        if (before == null || after == null) {
+            return -1;
+        }
+        int start = Math.max(fromSlot, Math.max(before.fromSlot, after.fromSlot));
+        int end = Math.min(before.toSlot, after.toSlot);
+        for (int slot = start; slot <= end; slot++) {
+            Plan.Step a = before.at(slot);
+            Plan.Step b = after.at(slot);
+            if (a != null && b != null && (!a.action.equals(b.action) || !Objects.equals(a.side, b.side))) {
+                return slot;
+            }
+        }
+        return -1;
+    }
+
     /** True when the plan has nothing left to schedule (the calendar is over). */
     public static boolean finished(Plan plan) {
         return plan != null && (plan.fromSlot > plan.toSlot || plan.steps.isEmpty());

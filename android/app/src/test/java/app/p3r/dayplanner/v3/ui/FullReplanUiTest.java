@@ -200,14 +200,14 @@ public class FullReplanUiTest extends UiTestBase {
 
     /**
      * A record made during the run (今天 invites it) shows 「已记录：… 撤销」 for 8 s; a result that ends
-     * the run meanwhile does not take the bar and its 撤销 away.
+     * the run meanwhile does not take the bar and its 撤销 away, and is said once that bar has gone.
      */
     @Test
     public void aResultDoesNotTakeTheUndoOfARecordMadeDuringTheRun() {
         HomeActivity a = home();
         a.requestDeepReplan();
         Shots.idle();
-        a.showUndo(7, "皇帝 RANK 7");
+        a.showUndo(7, "皇帝 RANK 7", true);
         assertEquals("已记录：皇帝 RANK 7", a.undoBar().messageText().toString());
         assertTrue(a.undoBar().hasAction());
         api.endFullReplan(FullReplanResult.KEPT);
@@ -216,6 +216,17 @@ public class FullReplanUiTest extends UiTestBase {
         assertEquals("the record's bar stays", "已记录：皇帝 RANK 7", a.undoBar().messageText().toString());
         assertTrue("with its 撤销", a.undoBar().hasAction());
         assertEquals("the result is still known", PlanDiff.FULL_KEPT, a.data().changeSummary);
+        // The record's bar has its 8 s: then the result is said, once.
+        java.time.Duration barTime = java.time.Duration.ofMillis(UndoBar.DURATION_MILLIS);
+        org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(barTime);
+        assertTrue(a.undoBar().isShowing());
+        assertEquals(PlanDiff.FULL_KEPT, a.undoBar().messageText().toString());
+        assertFalse("nothing to look at", a.undoBar().hasAction());
+        org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(barTime);
+        assertFalse("said once", a.undoBar().isShowing());
+        api.fireChanged();
+        Shots.idle();
+        assertFalse(a.undoBar().isShowing());
     }
 
     /**

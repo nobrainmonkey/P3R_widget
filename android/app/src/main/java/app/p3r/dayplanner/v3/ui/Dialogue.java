@@ -10,9 +10,9 @@ import app.p3r.dayplanner.v3.model.Rules;
 /**
  * Dialogue hints for social steps, as the app writes them: the engine's {@link DialogueHint} (one
  * structured source for the app, the 「怎么做」 text and the widget) in the app's words,
- * 「回答：A / B」. Text comes only from the rule pack's verbatim CN guide fragments
- * ({@code links[].dialogue}); otherwise the neutral fallback is shown. Foreign option ordinals are
- * never displayed (docs/DESIGN_v3.md §10.7).
+ * 「回答：A / B」 with the short note only ({@link #compact}). Text comes only from the rule pack's
+ * verbatim CN guide fragments ({@code links[].dialogue}); otherwise the neutral fallback is shown.
+ * Foreign option ordinals are never displayed (docs/DESIGN_v3.md §10.7).
  *
  * <p>Which scene: a rank-up shows the scene it ranks up into; a meeting during a story hold, or one
  * that certainly will not rank up, shows nothing; any other meeting shows the next scene's answers
@@ -21,9 +21,9 @@ import app.p3r.dayplanner.v3.model.Rules;
  * <p>Romance: the plan never asks for a romance route. For a link that can be romanced and whose
  * route ({@link Profile#route}) is not 恋人 (the default counts as 朋友), answers the guide marks as
  * romance answers ("…，恋人线", an answer quoted in a "…会进入恋爱线" note) are hidden and the line
- * ends with {@link #FRIEND_CAUTION}. Where the guide has no such marking, the answers of RANK
- * {@value #ROMANCE_FROM_RANK} and up are replaced by the generic hint {@link #FRIEND_FALLBACK},
- * since the romance choice comes in those scenes.
+ * ends with 「别选表白」 (or the answers the guide names). Where the guide has no such marking, the
+ * answers of RANK {@value #ROMANCE_FROM_RANK} and up are replaced by the generic hint
+ * {@link #FRIEND_FALLBACK}, since the romance choice comes in those scenes.
  */
 public final class Dialogue {
     static final String FALLBACK = DialogueHint.FALLBACK;
@@ -61,23 +61,50 @@ public final class Dialogue {
             return noScene ? null : FALLBACK;
         }
         DialogueHint.Answers answers = DialogueHint.forMeeting(rules, profile, step);
-        return answers == DialogueHint.Answers.NONE ? null : DialogueHint.appLine(answers);
+        return answers == DialogueHint.Answers.NONE ? null : compact(answers);
     }
 
     /**
-     * {@link #line} for a separate row next to the how-to, or null when the step's 「怎么做」 already
-     * carries the guide's 「回答：…」 or 「要是升级了，答：…」 (the engine adds it; plans stored
-     * before it did not).
+     * The answers as the hero and the day sheet show them: the guide's choices and, after 「；」, only
+     * a short note: for a reviewed scene the answers to leave out and the pack's {@code shortNoteZh}
+     * (as on the widget), else 「别选表白」 on the 朋友 route. The guide's long note stays in 提示.
      */
-    static String besideHowTo(Rules rules, Profile profile, Plan.Step step) {
-        if (step != null && step.detailZh != null) {
-            for (String l : step.detailZh.split("\\r?\\n")) {
-                if (isAnswerLine(l.trim())) {
-                    return null;
-                }
+    static String compact(DialogueHint.Answers a) {
+        if (a == null || a.isEmpty()) {
+            return FALLBACK;
+        }
+        String prefix = a.conditional ? DialogueHint.CONDITIONAL_PREFIX : PREFIX;
+        String note = a.reviewed ? reviewedNote(a) : null;
+        String body = !a.choices.isEmpty() ? String.join(" / ", a.choices) : a.any ? DialogueHint.ANY_ZH : "";
+        if (!body.isEmpty()) {
+            if (note == null && a.friendCaution) {
+                note = DialogueHint.FRIEND_AVOID;
+            }
+            return prefix + body + (note == null ? "" : "；" + note);
+        }
+        if (note == null) {
+            return a.friendCaution ? FRIEND_FALLBACK : FALLBACK;
+        }
+        // A scene without choices (「观看剧情即可」); the next scene's stays marked, so it is drawn muted.
+        return a.conditional ? prefix + note : note;
+    }
+
+    /**
+     * A reviewed scene's short note: {@link DialogueHint#widgetNote}, but never the long guide note
+     * where the pack has no short one (then only the answers to leave out).
+     */
+    private static String reviewedNote(DialogueHint.Answers a) {
+        if (a.shortNoteZh != null) {
+            return DialogueHint.widgetNote(a);
+        }
+        java.util.Set<String> names = new java.util.LinkedHashSet<>();
+        for (String answer : a.avoid) {
+            String shown = DialogueHint.withoutCounts(answer);
+            if (!shown.isEmpty()) {
+                names.add(shown);
             }
         }
-        return line(rules, profile, step);
+        return names.isEmpty() ? null : "别选「" + String.join("」「", names) + "」";
     }
 
     /** What the app shows for the generic friend-route hint: the one thing worth knowing. */

@@ -36,8 +36,9 @@ import app.p3r.dayplanner.v3.widget.PlanWidget;
  * bottom-sheet layer, full-screen sub-pages for 我的, and the undo bar.
  *
  * <p>Intents: {@link Intents#EXTRA_TAB} selects a tab; {@link Intents#EXTRA_OPEN_SLOT} opens the
- * detail sheet of that slot once data is loaded. Back closes the sheet first, then sub-pages,
- * then returns to 今天, then leaves. All planner calls run through {@link Async}.
+ * detail sheet of that slot once data is loaded; {@link Intents#EXTRA_OPEN_PAGE} pushes 记录历史.
+ * Each closes the sheet and sub-pages left open first. Back closes the sheet first, then
+ * sub-pages, then returns to 今天, then leaves. All planner calls run through {@link Async}.
  *
  * <p>The undo / message bar is drawn above every layer (tabs, sub-pages, sheets): above the tab
  * bar normally, just above an open sheet, and at the top when it would cover the 今天 hero buttons.
@@ -73,6 +74,16 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     private Plan fullBefore;
     /** Latest 从头重新安排 ticket whose result this screen has shown (it is shown once). */
     private long fullShown;
+    /**
+     * The plan shown before this week's changes that could not be said yet (a record's 撤销 was on
+     * offer in the message bar), or null: they are said once that bar has had its time.
+     */
+    private Plan changeBase;
+    /** A 从头重新安排 result waiting the same way, or null, and the slot its 「看看」 opens (-1: none). */
+    private String pendingFull;
+    private int pendingFullSlot = -1;
+    /** The message bar shows what a replan changed: a newer change may take its place. */
+    private boolean noticeShowing;
 
     private FrameLayout root;
     /** 今天 sits in the lit water near the surface; the busier tabs and sub-pages in calmer water. */
@@ -131,6 +142,11 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        if (intent.hasExtra(Intents.EXTRA_TAB) || intent.hasExtra(Intents.EXTRA_OPEN_SLOT)
+            || intent.hasExtra(Intents.EXTRA_OPEN_PAGE)) {
+            // A widget tap or 「看记录历史」 opens what it names, not under what was left open.
+            closeOverlays();
+        }
         handleIntent(intent);
         selectTab(tab);
         if (data != null && pendingOpenSlot >= 0) {
@@ -157,7 +173,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         super.onResume();
         UndoCenter.Recorded recorded = UndoCenter.take();
         if (recorded != null) {
-            showUndo(recorded.eventSeq, recorded.summaryZh);
+            showUndo(recorded.eventSeq, recorded.summaryZh, recorded.rankUp);
         }
     }
 
@@ -298,10 +314,18 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         Plan shownBefore = lastPlan;
         Plan plan = snap.plan;
         String planChange = null;
+        int changedSlot = -1;
         if (plan != null && snap.planCurrent) {
             if (lastPlan != null && !lastPlan.planId.equals(plan.planId) && snap.observed != null) {
-                changeSummary = PlanDiff.summary(rules, lastPlan, plan, snap.observed.slot);
+                // Counted from the plan before the changes not said yet, if any.
+                Plan base = changeBase != null ? changeBase : lastPlan;
+                changeSummary = PlanDiff.summary(rules, base, plan, snap.observed.slot);
                 planChange = changeSummary;
+                if (planChange == null) {
+                    changeBase = null;
+                } else {
+                    changedSlot = PlanDiff.firstChangedSlot(base, plan, snap.observed.slot);
+                }
             }
             lastPlan = plan;
         }
@@ -315,6 +339,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             }
         }
         String fullResult = null;
+        int fullSlot = -1;
         if (fullTicket > 0 && snap.fullReplanDoneTicket >= fullTicket) {
             // The 从头重新安排 asked for here has ended: say how, once.
             Plan before = fullBefore != null ? fullBefore : shownBefore;
@@ -323,8 +348,10 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
                 // Read in the instant the new plan was in and the request not yet ended: not the plan before.
                 before = null;
             }
-            fullResult = PlanDiff.fullSummary(rules, before, plan, snap.observed == null ? 0 : snap.observed.slot,
-                snap.fullReplanResult, snap.fullReplanDeep);
+            int from = snap.observed == null ? 0 : snap.observed.slot;
+            fullResult = PlanDiff.fullSummary(rules, before, plan, from, snap.fullReplanResult, snap.fullReplanDeep);
+            fullSlot = snap.fullReplanResult == PlannerApi.FullReplanResult.CHANGED
+                ? PlanDiff.firstChangedSlot(before, plan, from) : -1;
             fullShown = Math.max(fullShown, snap.fullReplanDoneTicket);
             fullTicket = 0;
             fullBefore = null;
@@ -337,17 +364,28 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             snap.fullReplanning = true;
             snap.fullReplanDeep = fullDeep;
         }
-        boolean banner = UiData.returnBannerDue(snap, System.currentTimeMillis(), bannerDismissedFor);
+        boolean banner = UiData.returnBannerDue(rules, snap, System.currentTimeMillis(), bannerDismissedFor);
         data = new UiData(rules, snap, changeSummary, banner, System.currentTimeMillis());
         loading.setVisibility(View.GONE);
         bindPages();
-        if (fullResult != null && !undo.hasAction()) {
-            // Said once in the message bar, unless a record made during the run still offers its 撤销
-            // there.
-            showMessage(fullResult);
-        } else if (fullResult == null && planChange != null && !undo.isShowing()) {
-            // An ordinary replan that moved something this week: said once, never over a record's 撤销.
-            showMessage(planChange);
+        // Said once in the message bar, never over a record's 撤销 (or a 重试): then once that bar
+        // has had its time (sayPendingChange). A message without either simply gives way.
+        boolean say = !undo.hasAction() || noticeShowing;
+        if (fullResult != null) {
+            changeBase = null;
+            pendingFull = say ? null : fullResult;
+            pendingFullSlot = fullSlot;
+            if (say) {
+                showNotice(fullResult, fullSlot);
+            }
+        } else if (planChange != null) {
+            // An ordinary replan that moved something this week.
+            if (say) {
+                changeBase = null;
+                showNotice(planChange, changedSlot);
+            } else if (changeBase == null) {
+                changeBase = shownBefore;
+            }
         }
         if (pendingOpenSlot >= 0) {
             int slot = pendingOpenSlot;
@@ -376,8 +414,8 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     }
 
     /**
-     * Replaces every tab with "暂时读不到记录", the service's Chinese message and [重试] (the
-     * database or the rule pack failed to open, or loading threw).
+     * Replaces every tab with 「记录没读出来」, the service's Chinese reason when it adds something,
+     * and [重试] (the database or the rule pack failed to open, or loading threw).
      */
     private void showLoadFailed(String errorZh) {
         failed = true;
@@ -386,7 +424,9 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         for (View v : tabViews) {
             v.setVisibility(View.GONE);
         }
-        errorText.setText(Messages.loadFailed(errorZh));
+        String reason = Messages.loadFailed(errorZh);
+        errorText.setText(reason);
+        errorText.setVisibility(reason.isEmpty() ? View.GONE : View.VISIBLE);
         errorView.setVisibility(View.VISIBLE);
     }
 
@@ -463,6 +503,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         root.addView(sheets, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
         undo = new UndoBar(this);
+        undo.setOnTimeout(this::sayPendingChange);
         FrameLayout.LayoutParams undoParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM);
         int m = Ui.dp(this, 12);
@@ -630,6 +671,12 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     }
 
     @Override
+    public void openLink(int link) {
+        selectTab(TAB_LINKS);
+        links.openDetail(link);
+    }
+
+    @Override
     public void openState(String mode) {
         Intent intent = new Intent(this, StateActivity.class);
         intent.putExtra(Intents.EXTRA_STATE_MODE, mode);
@@ -665,7 +712,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         }, receipt -> {
             if (receipt.ok) {
                 stateRevision.set(receipt.stateRevision);
-                showUndo(receipt.eventSeq, summary);
+                showUndo(receipt.eventSeq, summary, StepKind.of(step) == StepKind.SOCIAL_RANK_UP);
             } else {
                 showError(Messages.receiptError(receipt));
             }
@@ -673,34 +720,44 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         }, error -> showError(Messages.GENERIC_ERROR));
     }
 
-    /** "已记录：… · 撤销". */
-    void showUndo(long eventSeq, String summary) {
-        undo.show("已记录：" + summary, eventSeq >= 0 ? "撤销" : null, () -> undoEvent(eventSeq, summary),
-            isRankUp(summary) ? UndoBar.Style.RANK_UP : UndoBar.Style.RECORD);
+    /**
+     * "已记录：… · 撤销" (a correction keeps its own 「已修改：…」); {@code rankUp}, decided where the
+     * outcome is known, adds the 「RANK UP」 badge.
+     */
+    void showUndo(long eventSeq, String summary, boolean rankUp) {
+        boolean fix = summary != null && summary.startsWith(FIXED);
+        undo.show(fix ? summary : "已记录：" + summary, eventSeq >= 0 ? "撤销" : null, () -> undoEvent(eventSeq, summary),
+            rankUp && !fix ? UndoBar.Style.RANK_UP : UndoBar.Style.RECORD);
+        noticeShowing = false;
         undoRetries = 0;
         placeUndo();
     }
 
-    /** "皇帝 RANK 7" / "皇帝 升到 MAX" (with or without the 顺便 tail): a rank-up record. */
-    static boolean isRankUp(String summary) {
-        return summary != null && RANK_UP_SUMMARY.matcher(summary).find();
-    }
-
-    private static final java.util.regex.Pattern RANK_UP_SUMMARY =
-        java.util.regex.Pattern.compile("^\\S+ (RANK \\d+|升到 MAX)(\\s|$)");
+    /** How the result sheet starts the summary of a corrected record. */
+    private static final String FIXED = "已修改：";
 
     private void undoEvent(long eventSeq, String summary) {
         if (api == null) {
             return;
         }
         PlannerApi target = api;
+        // A stale revision (a record from the widget meanwhile) or a failed write: 重试 tries again
+        // with what reload() reads.
+        Runnable retry = () -> undoEvent(eventSeq, summary);
         Async.run(this, () -> {
             long rev = stateRevision.get();
             return target.voidEvent(CommandIds.of("void", rev, eventSeq), rev, eventSeq);
         }, receipt -> {
-            if (receipt.ok) showMessage("已撤销：" + summary); else showError(Messages.receiptError(receipt));
+            if (receipt.ok) {
+                boolean fix = summary != null && summary.startsWith(FIXED);
+                showMessage(fix ? "已撤销修改：" + summary.substring(FIXED.length()) : "已撤销：" + summary);
+            } else if (Messages.isStale(receipt)) {
+                showError(Messages.ACTION_FAILED, "重试", retry);
+            } else {
+                showError(Messages.receiptError(receipt));
+            }
             reload();
-        }, error -> showError(Messages.GENERIC_ERROR));
+        }, error -> showError(Messages.ACTION_FAILED, "重试", retry));
     }
 
     @Override
@@ -958,14 +1015,74 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     @Override
     public void showMessage(String text) {
         undo.show(text, null, null);
+        noticeShowing = false;
         undoRetries = 0;
         placeUndo();
     }
 
     @Override
     public void showError(String text) {
-        undo.show(text, null, null, UndoBar.Style.ERROR);
+        showError(text, null, null);
+    }
+
+    /** {@link #showError(String)} with the fix as a button ({@code actionLabel}, 「重试」), or none. */
+    void showError(String text, String actionLabel, Runnable onAction) {
+        undo.show(text, actionLabel, onAction, UndoBar.Style.ERROR);
+        noticeShowing = false;
         undoRetries = 0;
+        placeUndo();
+    }
+
+    /**
+     * What a replan changed (「已重新安排：这周 3 处有变」), with 「看看」 → 日程 at the day of
+     * {@code changedSlot} when there is one (-1: no button).
+     */
+    private void showNotice(String text, int changedSlot) {
+        Runnable look = changedSlot < 0 ? null : () -> {
+            closeOverlays();
+            selectTab(TAB_SCHEDULE);
+            schedule.showSlot(changedSlot);
+        };
+        undo.show(text, look == null ? null : "看看", look);
+        noticeShowing = true;
+        undoRetries = 0;
+        placeUndo();
+        // The pages were just rebuilt for the new plan: check the hero's buttons again once laid out.
+        root.post(this::placeUndo);
+    }
+
+    /**
+     * The message bar has had its time: a replan result that waited for a record's 撤销 to go is
+     * said now (this week's changes counted from the plan before them).
+     */
+    private void sayPendingChange() {
+        if (pendingFull != null) {
+            String text = pendingFull;
+            pendingFull = null;
+            changeBase = null;
+            showNotice(text, pendingFullSlot);
+            return;
+        }
+        if (changeBase == null || data == null || lastPlan == null || data.observed() == null) {
+            return;
+        }
+        int from = data.observed().slot;
+        String text = PlanDiff.summary(data.rules, changeBase, lastPlan, from);
+        int slot = PlanDiff.firstChangedSlot(changeBase, lastPlan, from);
+        changeBase = null;
+        if (text != null) {
+            showNotice(text, slot);
+        }
+    }
+
+    /** Closes the sheet and every sub-page at once. */
+    private void closeOverlays() {
+        sheets.dismiss();
+        finishPageExit();
+        for (View page; (page = pages.poll()) != null; ) {
+            page.animate().cancel();
+            pageLayer.removeView(page);
+        }
         placeUndo();
     }
 
@@ -1082,6 +1199,9 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         };
     }
 
+    /** The 添加桌面小组件 sheet on a launcher that cannot pin a widget for the app. */
+    static final String WIDGET_BY_HAND = "回到桌面，长按空白处 → 小组件 → 「P3R 每日安排」，拖出来就好。";
+
     private void requestWidget() {
         AppWidgetManager manager = getSystemService(AppWidgetManager.class);
         ComponentName provider = new ComponentName(this, PlanWidget.class);
@@ -1093,11 +1213,16 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             LinearLayout sheet = Ui.column(this);
             Ui.pad(sheet, 20, 12, 20, 20);
             sheet.addView(Ui.title(this, "添加桌面小组件"));
-            TextView how = Ui.body(this, "这台手机的桌面不支持直接添加。请回到桌面，长按空白处 → 小组件 → 找到「P3R 每日安排」，拖到桌面上。");
+            TextView how = Ui.body(this, WIDGET_BY_HAND);
             how.setLineSpacing(0f, 1.3f);
             LinearLayout.LayoutParams p = Ui.matchWrap();
             p.topMargin = Ui.dp(this, 8);
             sheet.addView(how, p);
+            TextView ok = Ui.primary(this, "好了");
+            ok.setOnClickListener(v -> dismissSheet());
+            LinearLayout.LayoutParams okParams = Ui.matchWrap();
+            okParams.topMargin = Ui.dp(this, 20);
+            sheet.addView(ok, okParams);
             showSheet(sheet);
         }
     }

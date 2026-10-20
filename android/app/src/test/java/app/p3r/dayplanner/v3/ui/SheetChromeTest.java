@@ -79,6 +79,29 @@ public class SheetChromeTest extends UiTestBase {
         assertEquals(1, closed[0]);
     }
 
+    /** A grip caught while the sheet still fades in (a fast second tap) never leaves it see-through. */
+    @Test
+    public void aGripCaughtDuringTheEntranceLeavesTheSheetOpaque() {
+        HomeActivity a = home();
+        SheetHost sheets = a.sheets();
+        sheets.show(Ui.body(a, "筛选提示"), null);
+        Shots.capture(a, false);
+        View grip = grip(sheets);
+        View panel = (View) grip.getParent();
+        panel.setAlpha(0.4f);
+        drag(grip, Ui.dp(a, 20));
+        assertTrue(sheets.isShowing());
+        assertEquals(1f, panel.getAlpha(), 0.01f);
+
+        Ui.setAnimationsEnabled(true);
+        panel.setAlpha(0.4f);
+        drag(grip, Ui.dp(a, 20));
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(400));
+        assertTrue(sheets.isShowing());
+        assertEquals(1f, panel.getAlpha(), 0.01f);
+        assertEquals(0f, panel.getTranslationY(), 0.5f);
+    }
+
     @Test
     public void draggingTheGripClosesTheResultSheet() {
         ResultActivity r = result(Fixtures.SLOT_NOW, "meet:emperor", Intents.MODE_RESULT);
@@ -101,7 +124,9 @@ public class SheetChromeTest extends UiTestBase {
         // The flourish hands over to the usual exit: the sheet closes after it.
         assertNull(findBurst(r.getWindow().getDecorView()));
         assertTrue(r.isFinishing());
-        assertEquals("皇帝 RANK 7", UndoCenter.take().summaryZh);
+        UndoCenter.Recorded recorded = UndoCenter.take();
+        assertEquals("皇帝 RANK 7", recorded.summaryZh);
+        assertTrue("the app's message bar shows 「RANK UP」", recorded.rankUp);
     }
 
     @Test
@@ -123,6 +148,9 @@ public class SheetChromeTest extends UiTestBase {
         Shots.click(r, "没升级");
         Shots.click(r, "没有");
         assertNull(r.playedBurst());
+        UndoCenter.Recorded recorded = UndoCenter.take();
+        assertNotNull(recorded);
+        assertFalse("no 「RANK UP」 in the app's message bar either", recorded.rankUp);
     }
 
     @Test

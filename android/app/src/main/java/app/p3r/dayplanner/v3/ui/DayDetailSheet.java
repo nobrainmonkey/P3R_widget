@@ -114,7 +114,8 @@ final class DayDetailSheet {
             loc.addView(where, wp);
             box.addView(loc, top(c, 12));
         }
-        String dialogue = Dialogue.shown(Dialogue.besideHowTo(d.rules, d.profile(), step));
+        // The answers once, short, as on the hero (the 怎么做 below leaves them out).
+        String dialogue = Dialogue.shown(Dialogue.line(d.rules, d.profile(), step));
         if (dialogue != null) {
             box.addView(answer(c, dialogue), top(c, 10));
         }

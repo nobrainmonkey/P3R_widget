@@ -254,14 +254,18 @@ public class RemindersUiTest extends UiTestBase {
                 Fixtures.social(api.rules, NOW, "emperor", 6, 7, true, true)));
     }
 
-    /** The conditional line in a how-to is a note under the steps, like 「回答：…」, and is said once. */
+    /**
+     * The conditional line in a how-to is never a step, like 「回答：…」, and is said once: by the step
+     * block beside it, not again under the steps.
+     */
     @Test
     public void theConditionalLineIsAHowToNote() {
         String how = "放学后到月光馆学园 · 学生会活动室找小田桐秀利\n" + DialogueHint.CONDITIONAL_PREFIX + "我会帮你的 / 这样的规矩没有意义";
         assertEquals(Arrays.asList("放学后到月光馆学园 · 学生会活动室找小田桐秀利"), StepViews.howToSteps(how));
-        assertEquals(1, StepViews.howToNotes(how).size());
+        assertTrue(StepViews.howToNotes(how).isEmpty());
         Plan.Step maybe = Fixtures.social(api.rules, NOW, "emperor", 6, 6, false, false);
         maybe.detailZh = how;
-        assertNull(Dialogue.besideHowTo(api.rules, api.snap.profile, maybe));
+        assertEquals(DialogueHint.CONDITIONAL_PREFIX + "我会帮你的 / 这样的规矩没有意义",
+            Dialogue.line(api.rules, api.snap.profile, maybe));
     }
 }

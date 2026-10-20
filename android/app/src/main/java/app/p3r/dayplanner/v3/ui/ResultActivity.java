@@ -718,7 +718,8 @@ public final class ResultActivity extends Activity {
                 .accent(Ui.col(this, R.color.p3r_danger), Ui.dp(this, 4))
                 .skew(Ui.dp(this, 8)));
             Ui.pad(box, 14, 8, 12, 8);
-            TextView mark = Ui.numeral(this, "!", 18, Ui.col(this, R.color.p3r_white));
+            // Navy on the light red, as the app's message bar and ConfirmDialog's destructive button.
+            TextView mark = Ui.numeral(this, "!", 18, Ui.col(this, R.color.p3r_navy_950));
             mark.setGravity(Gravity.CENTER);
             mark.setBackground(new SlantedPanelDrawable().fill(Ui.col(this, R.color.p3r_danger)).skew(Ui.dp(this, 4)));
             Ui.pad(mark, 9, 2, 10, 2);
@@ -910,7 +911,10 @@ public final class ResultActivity extends Activity {
     private void showLoadFailed(String errorZh) {
         body.removeAllViews();
         body.addView(Ui.title(this, "记录没读出来"), top(14));
-        body.addView(Ui.body(this, Messages.loadFailed(errorZh)), top(6));
+        String reason = Messages.loadFailed(errorZh);
+        if (!reason.isEmpty()) {
+            body.addView(Ui.body(this, reason), top(6));
+        }
         TextView close = Ui.secondary(this, "关闭");
         close.setOnClickListener(v -> close());
         TextView retry = Ui.primary(this, "重试");
@@ -1870,6 +1874,8 @@ public final class ResultActivity extends Activity {
         }
         withSide(step, outcome);
         String burst = correction == null && after == null ? rankUpCaption(step, outcome) : null;
+        // The app's message bar shows 「RANK UP」 for a new rank-up only (also inside a queue).
+        boolean rankUp = correction == null && rankUpCaption(step, outcome) != null;
         setBusy(true);
         String summary = Outcomes.summary(rules, step, outcome);
         PlannerApi a = api;
@@ -1880,11 +1886,11 @@ public final class ResultActivity extends Activity {
             long target = correction.targetSeq;
             String fixId = CommandIds.of("outcome_fix", rev, target, outcomeKey(outcome));
             Async.run(this, () -> a.correctOutcome(fixId, rev, target, outcome),
-                    receipt -> onReceipt(receipt, "已修改：" + summary, after, null), error -> onFailure());
+                    receipt -> onReceipt(receipt, "已修改：" + summary, after, null, false), error -> onFailure());
             return;
         }
         Async.run(this, () -> a.recordOutcome(id, rev, step.slot, step.action, outcome),
-            receipt -> onReceipt(receipt, summary, after, burst), error -> onFailure());
+            receipt -> onReceipt(receipt, summary, after, burst, rankUp), error -> onFailure());
     }
 
     /**
@@ -1920,7 +1926,7 @@ public final class ResultActivity extends Activity {
         long rev = snap.stateRevision;
         String id = CommandIds.of("tower", rev, tower.slot, tower.block, tower.floor, tower.balanceMode, tower.amount,
             tower.level, tower.rescuedId, sideRow == null || sideRow.isChecked());
-        Async.run(this, () -> a.recordTower(id, rev, tower), receipt -> onReceipt(receipt, summary, null, null),
+        Async.run(this, () -> a.recordTower(id, rev, tower), receipt -> onReceipt(receipt, summary, null, null, false),
             error -> onFailure());
     }
 
@@ -1930,11 +1936,12 @@ public final class ResultActivity extends Activity {
             + o.reason + (o.sideDone ? "" : ":noside");
     }
 
-    private void onReceipt(PlannerApi.Receipt receipt, String summary, Runnable after, String burst) {
+    private void onReceipt(PlannerApi.Receipt receipt, String summary, Runnable after, String burst,
+                           boolean rankUp) {
         setBusy(false);
         if (receipt.ok) {
             if (fromApp) {
-                UndoCenter.post(receipt.eventSeq, summary);
+                UndoCenter.post(receipt.eventSeq, summary, rankUp);
             }
             if (after != null) {
                 after.run();

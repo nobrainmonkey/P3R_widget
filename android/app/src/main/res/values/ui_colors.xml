@@ -18,6 +18,9 @@
     <color name="ui_cyan_faint">#1A3CE4FF</color>
     <!-- Page water near the surface (top of every page), after the game's menu blue. -->
     <color name="ui_sea_surface">#FF123C9C</color>
+    <!-- Quiet text that still informs, straight on the water (record ages, past rows): 4.8:1 on the
+         surface water, where p3r_ink_faint (2.9:1) is too weak for words. -->
+    <color name="ui_ink_hint">#9DB6E6</color>
     <!-- Borderless glass panels: lighter top-left to deeper bottom-right, no outline. -->
     <color name="ui_glass_top">#E0102B73</color>
     <color name="ui_glass_bottom">#D9071648</color>

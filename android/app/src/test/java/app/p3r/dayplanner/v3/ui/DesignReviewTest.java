@@ -373,13 +373,13 @@ public class DesignReviewTest extends UiTestBase {
 
     @Test
     public void loadFailedCopyMatchesTheRetryButton() {
-        String retry = "重试一下？不行就重开应用。";
-        // The title already says the records were not read: the body only offers what to do.
-        assertEquals(retry, Messages.loadFailed("读取记录失败了，请重新打开应用"));
-        assertEquals("游戏资料读取失败。" + retry, Messages.loadFailed("游戏资料读取失败，请重新打开应用"));
-        assertEquals("生成安排时出了问题。" + retry, Messages.loadFailed("生成安排时出了问题，请稍后再试"));
-        assertEquals(retry, Messages.loadFailed(null));
-        assertEquals(retry, Messages.loadFailed("java.io.IOException"));
+        // The title already says the records were not read and [重试] says what to do: a body only
+        // when the service's reason adds something, never an echo of the button.
+        assertEquals("", Messages.loadFailed("读取记录失败了，请重新打开应用"));
+        assertEquals("游戏资料读取失败。", Messages.loadFailed("游戏资料读取失败，请重新打开应用"));
+        assertEquals("生成安排时出了问题。", Messages.loadFailed("生成安排时出了问题，请稍后再试"));
+        assertEquals("", Messages.loadFailed(null));
+        assertEquals("", Messages.loadFailed("java.io.IOException"));
     }
 
     // ================================================================== second review (3.0.2)

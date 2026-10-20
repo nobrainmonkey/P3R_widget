@@ -24,8 +24,9 @@ import app.p3r.dayplanner.v3.engine.Plan;
 
 /**
  * The UI side of the engine's final-gaps changes: a meeting's 「怎么做」 carries the guide answers and
- * the link's 「注意：」 line (shown under the numbered steps, never as a step, and the answers not twice),
- * and a missed goal names the goal the planner actually kept instead (Summary.tradedFor).
+ * the link's 「注意：」 line (the note shown under the numbered steps, never as a step; the answers
+ * shown once, short, beside the step instead), and a missed goal names the goal the planner actually
+ * kept instead (Summary.tradedFor).
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34, qualifiers = "zh-rCN-w360dp-h780dp-xxhdpi")
@@ -42,24 +43,26 @@ public class FinalIntegrationTest extends UiTestBase {
     public void notesFollowTheNumberedStepsAndAreNotCounted() {
         assertEquals(Arrays.asList("放学后到月光馆学园 · 学生会活动室找小田桐秀利", "顺便：把 20,000 日元交给穿西装的男人"),
             StepViews.howToSteps(MEET_HOW));
-        assertEquals(Arrays.asList(ANSWERS, "注意：考试期间不能见面"), StepViews.howToNotes(MEET_HOW));
+        // The answers are the step block's (Dialogue.line, once), not a 怎么做 note.
+        assertEquals(Arrays.asList("注意：考试期间不能见面"), StepViews.howToNotes(MEET_HOW));
         assertEquals("怎么做 · 2 步", StepViews.howToLabel(MEET_HOW));
         assertEquals("one step and a note is one step", "怎么做", StepViews.howToLabel("白天去图书馆\n注意：周日不开"));
 
         LinearLayout box = (LinearLayout) StepViews.howTo(RuntimeEnvironment.getApplication(), MEET_HOW, 14);
-        assertEquals(4, box.getChildCount());
+        assertEquals(3, box.getChildCount());
         assertEquals("第 1 步：放学后到月光馆学园 · 学生会活动室找小田桐秀利", box.getChildAt(0).getContentDescription());
         assertEquals("第 2 步：顺便：把 20,000 日元交给穿西装的男人", box.getChildAt(1).getContentDescription());
-        assertEquals(ANSWERS, box.getChildAt(2).getContentDescription());
-        assertEquals("注意：考试期间不能见面", box.getChildAt(3).getContentDescription());
+        assertEquals("注意：考试期间不能见面", box.getChildAt(2).getContentDescription());
+        // The whole question order is 提示's, not the plan step's.
+        assertEquals(Arrays.asList("注意：考试期间不能见面"),
+            StepViews.howToNotes(MEET_HOW + "\n注意：完整问答顺序是 任意 / 我会帮你的"));
     }
 
     @Test
     public void theGuideAnswersAreShownOnceWhenTheHowToHasThem() {
         Plan.Step step = Fixtures.social(api.rules, NOW, "emperor", 6, 7, true, true);
-        assertEquals(ANSWERS, Dialogue.besideHowTo(api.rules, api.snap.profile, step));
+        assertEquals(ANSWERS, Dialogue.line(api.rules, api.snap.profile, step));
         step.detailZh = MEET_HOW;
-        assertNull(Dialogue.besideHowTo(api.rules, api.snap.profile, step));
 
         api.snap.plan.steps.set(0, step);
         // Before playing (the day sheet) the answers are shown once; after it (the result sheet) not at all.

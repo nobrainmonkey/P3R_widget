@@ -384,9 +384,10 @@ public class ReviewFixesTest extends UiTestBase {
         breakTheStore();
         HomeActivity a = home();
         assertTrue(a.showingLoadError());
-        // The copy matches the button under it (the service's own 「请重新打开应用」 is for the widget).
+        // The title and the button say it all (the service's own 「请重新打开应用」 is for the widget).
         assertTrue(Shots.has(a, "记录没读出来"));
-        assertTrue(Shots.has(a, Messages.LOAD_RETRY));
+        assertFalse(Shots.has(a, "重开应用"));
+        assertFalse(Shots.has(a, "请重新打开应用"));
         assertFalse(Shots.has(a, "开始设置"));
         Shots.shot(a, "home_load_failed");
         for (int tab = 0; tab < HomeActivity.TAB_KEYS.length; tab++) {
@@ -424,7 +425,7 @@ public class ReviewFixesTest extends UiTestBase {
         breakTheStore();
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
         assertTrue(Shots.has(a, "记录没读出来"));
-        assertTrue(Shots.has(a, Messages.LOAD_RETRY));
+        assertFalse(Shots.has(a, "请重新打开应用"));
         assertTrue(Shots.has(a, "重试"));
         assertFalse(Shots.has(a, "还没开始设置"));
         assertFalse(Shots.has(a, "开始设置"));
@@ -439,7 +440,7 @@ public class ReviewFixesTest extends UiTestBase {
         breakTheStore();
         StateActivity a = stateController("sync").get();
         assertTrue(Shots.has(a, "记录没读出来"));
-        assertTrue(Shots.has(a, Messages.LOAD_RETRY));
+        assertFalse(Shots.has(a, "请重新打开应用"));
         assertFalse("the X is the only way out", Shots.has(a, "关闭"));
         assertNull(a.currentPage());
         Shots.shot(a, "state_load_failed");
