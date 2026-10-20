@@ -578,6 +578,9 @@ final class PersonaViews {
             nameParams.bottomMargin = Ui.dp(c, 1);
             header.addView(headerName, nameParams);
             header.setVisibility(GONE);
+            // The arcana header is a label: a tap on it must not open the first Persona below it.
+            header.setClickable(true);
+            header.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
             addView(header, Ui.matchWrap());
 
             LinearLayout body = Ui.row(c);

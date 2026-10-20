@@ -185,13 +185,48 @@ public class CompendiumBasketIntegrationTest extends UiTestBase {
         assertEquals("撤销 restores the basket as it was", saved, prefs.basket().toJson().toString());
         assertNotNull(tag(activity, "basket_step_" + narcissus));
 
-        tag(activity, "basket_goal_menu_" + narcissus).performClick();
+        View menu = tag(activity, "basket_goal_menu_" + narcissus);
+        assertTrue(menu.getWidth() >= Ui.dp(activity, Ui.TOUCH) && menu.getHeight() >= Ui.dp(activity, Ui.TOUCH));
+        menu.performClick();
         tag(activity, "basket_remove_" + narcissus).performClick();
         Shots.idle();
         assertTrue(prefs.basket().goals().isEmpty());
         activity.undoBar().performAction();
         Shots.idle();
         assertEquals(Collections.singletonList(narcissus), prefs.basket().goals());
+
+        tag(activity, "basket_step_" + narcissus).performClick();
+        tag(activity, "basket_summon_" + narcissus).performClick();
+        Shots.idle();
+        assertEquals(Collections.singletonList(narcissus), prefs.basket().goals());
+        assertEquals("a goal with no fusion left is not 「还差 0 步」", "未登录",
+            Shots.allText(tag(activity, "basket_goal_status_" + narcissus)).trim());
+        assertEquals(Collections.singleton(narcissus), summonMaterials());
+        tag(activity, "basket_owned_" + narcissus).performClick();
+        Shots.idle();
+        assertEquals("已登录",Shots.allText(tag(activity, "basket_goal_status_" + narcissus)).trim());
+    }
+
+    @Test public void aRecipeThatNeedsAnUnownedPackIsFixedFromItsStep() {
+        // Carmen is in P5R 人格面具组合 1; without the pack her recipe step needs a new choice.
+        FusionCalculator withPack = new FusionCalculator(data, Collections.singleton("p5r_1"));
+        FusionCalculator.Recipe recipe = withPack.fuse(id("Carmen"), id("Orpheus"));
+        assertNotNull(recipe);
+        FusionBasket basket = new FusionBasket();
+        assertTrue(basket.addGoal(recipe));
+        prefs.setBasket(basket);
+        HomeActivity activity = open();
+        tag(activity, "basket_tab").performClick();
+        Shots.idle();
+        assertNotNull(tag(activity, "basket_invalid"));
+        assertEquals("配方要重选", Shots.allText(tag(activity, "basket_goal_status_" + recipe.result.id)).trim());
+        View fix = tag(activity, "basket_complete_" + recipe.result.id);
+        assertTrue("the 「!」 has the tick's 48 dp target",
+            fix.getWidth() >= Ui.dp(activity, Ui.TOUCH) && fix.getHeight() >= Ui.dp(activity, Ui.TOUCH));
+        capture(activity, "fusion_basket_invalid");
+        fix.performClick();
+        Shots.idle();
+        assertEquals("the recipe choice opens", 1, activity.pageDepth());
     }
 
     @Test public void anEmptyBasketGoesStraightToTheTargetPicker() {
@@ -299,6 +334,8 @@ public class CompendiumBasketIntegrationTest extends UiTestBase {
     }
 
     private static void capture(HomeActivity activity, String name) {
+        // Official bilingual names are intentional; every other typography check applies.
+        Shots.checkTypography(activity.getWindow().getDecorView(), name, true);
         Shots.save(Shots.capture(activity, false), name);
     }
 
