@@ -53,16 +53,89 @@ public class LinksPageTest extends UiTestBase {
         Shots.click(a, PRIESTESS);
         assertTrue(a.sheets().isShowing());
         assertTrue(Shots.has(a, "RANK 5 → 9"));
-        assertTrue(Shots.has(a, "时间先给了皇帝。想先冲它，就排到皇帝前面"));
+        // 目标顺序 moves a goal only within its tier: a 想要 goal passes the 必须 皇帝 once it is 必须.
+        assertTrue(Shots.has(a, "时间先给了皇帝。想先冲它，就设成必须，排到皇帝前面"));
         assertTrue(Shots.find(a, "女教皇 目标：想要").isSelected());
         assertFalse("no save or cancel: every control saves at once", Shots.has(a, "保存") || Shots.has(a, "取消"));
         Shots.shot(a, "links_detail_traded");
+        // The advice can be followed from here: 必须, then 调整顺序 › offers the move up past 皇帝.
+        Shots.click(a, "女教皇 目标：必须");
         Shots.click(a, "调整顺序 ›");
         assertTrue(a.sheets().isShowing());
         assertTrue(Shots.has(a, "目标顺序"));
         assertTrue(Shots.has(a, "必须"));
         assertTrue(Shots.has(a, "想要"));
         Shots.shot(a, "links_order");
+        Shots.click(a, "上移 女教皇");
+        Shots.click(a, "上移 女教皇");
+        assertEquals(Arrays.asList(2, 4, 6), LinkStatus.goalOrder(api.last().profile).subList(0, 3));
+    }
+
+    @Test
+    public void aGoalBehindAnotherOfItsTierIsSentToTheOrderAndTheFirstIsNot() {
+        HomeActivity a = links();
+        // 恶魔 is third among 想要 and no goal took its time: moving it up is the fix.
+        assertTrue(described(a.getWindow().getDecorView(), "恶魔 · ").performClick());
+        Shots.idle();
+        assertTrue(Shots.has(a, "这次排到 RANK 7。想冲 MAX，就把它往前排"));
+        assertTrue(Shots.has(a, "调整顺序 ›"));
+        a.sheets().dismiss();
+        Shots.idle();
+        // First among 想要 there is nothing to move it past: the line says how far it gets, no link.
+        Profile p = Fixtures.profileMid();
+        Goals.move(p, 15, -1);
+        Goals.move(p, 15, -1);
+        api.snap.profile = p;
+        a.reload();
+        Shots.idle();
+        assertTrue(described(a.getWindow().getDecorView(), "恶魔 · ").performClick());
+        Shots.idle();
+        assertTrue(Shots.has(a, "这次排到 RANK 7"));
+        assertFalse(Shots.has(a, "调整顺序 ›"));
+    }
+
+    @Test
+    public void theGoalAMovedGoalSwappedWithIsTheOneThatSlides() {
+        // 女教皇 moved up: 皇帝、恋爱、女教皇、太阳、恶魔. 太阳 took its place, not 恋爱 (the other tier).
+        List<Integer> up = Arrays.asList(4, 6, 2, 19, 15);
+        assertEquals(3, LinksPage.swappedWith(up, 2, -1));
+        // 太阳 moved down past 女教皇 gives the same order; 女教皇 is the one that rose.
+        assertEquals(2, LinksPage.swappedWith(up, 19, +1));
+        // To either end of the list the partner is still found.
+        assertEquals(1, LinksPage.swappedWith(up, 4, -1));
+        assertEquals(3, LinksPage.swappedWith(up, 15, +1));
+        assertEquals(-1, LinksPage.swappedWith(up, 0, -1));
+    }
+
+    @Test
+    public void tierTapsAreSavedWhenTheAppGoesToTheBackground() {
+        HomeActivity a = links();
+        Shots.click(a, "魔术师 目标：未选，点按切换");
+        assertTrue(api.calls.isEmpty());
+        // Home pressed before the save timer: the window hides and the tap is saved at once.
+        a.getWindow().getDecorView().dispatchWindowVisibilityChanged(View.INVISIBLE);
+        Shots.idle();
+        assertEquals(1, api.callsOf("saveProfile").size());
+        assertEquals(Profile.Tier.WANT, api.last().profile.tier[1]);
+        shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(LinksPage.TIER_SAVE_DELAY_MS));
+        assertEquals("nothing left for the timer", 1, api.callsOf("saveProfile").size());
+    }
+
+    @Test
+    public void tierTapsSurviveTheScreenBeingRebuilt() {
+        Intent intent = new Intent(RuntimeEnvironment.getApplication(), HomeActivity.class);
+        intent.putExtra(Intents.EXTRA_TAB, "links");
+        org.robolectric.android.controller.ActivityController<HomeActivity> controller =
+            org.robolectric.Robolectric.buildActivity(HomeActivity.class, intent).setup();
+        Shots.idle();
+        Shots.click(controller.get(), "魔术师 目标：未选，点按切换");
+        assertTrue(api.calls.isEmpty());
+        // Rotation within the save delay: the old page is detached and saves the tap on its way out.
+        controller.recreate();
+        Shots.idle();
+        assertEquals(1, api.callsOf("saveProfile").size());
+        assertEquals(Profile.Tier.WANT, api.last().profile.tier[1]);
+        assertTrue(Shots.has(controller.get(), "魔术师 目标：想要，点按切换"));
     }
 
     @Test

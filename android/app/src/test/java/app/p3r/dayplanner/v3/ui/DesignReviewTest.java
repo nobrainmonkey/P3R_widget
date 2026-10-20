@@ -182,9 +182,10 @@ public class DesignReviewTest extends UiTestBase {
         // The tile says where the time went; the detail sheet adds what to do about it.
         String foot = LinkStatus.tradedLine("女皇");
         assertEquals("时间先给了女皇", foot);
-        String sheet = LinkStatus.shortfall("MAX", 5, 9, "女皇");
+        String sheet = LinkStatus.shortfall("MAX", 5, 9, "女皇", LinkStatus.Fix.REORDER);
         assertEquals("时间先给了女皇。想先冲它，就排到女皇前面", sheet);
-        assertEquals("这次排到 RANK 9。想冲 MAX，就把它往前排", LinkStatus.shortfall("MAX", 5, 9, null));
+        assertEquals("这次排到 RANK 9。想冲 MAX，就把它往前排",
+            LinkStatus.shortfall("MAX", 5, 9, null, LinkStatus.Fix.REORDER));
         // Any tile width: no line ends with an opening bracket or a comma at a line start.
         for (int w = 90; w <= 200; w += 4) {
             TextView t = drawn(foot, 13, false, w);

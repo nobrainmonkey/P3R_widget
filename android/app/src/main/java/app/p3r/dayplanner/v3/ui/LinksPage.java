@@ -1092,9 +1092,14 @@ final class LinksPage {
         if (!s.goal) {
             return null;
         }
+        TextView line = Ui.mixed(c, LinkStatus.shortfall(goalText, s.observed, s.projected, s.blocker, s.fix), 15,
+            Ui.col(c, R.color.p3r_ice_100), false);
+        if (s.fix == LinkStatus.Fix.NONE) {
+            // Already first in its tier, or nothing to pass: no 调整顺序 that leads nowhere.
+            return line;
+        }
         LinearLayout box = Ui.column(c);
-        box.addView(Ui.mixed(c, LinkStatus.shortfall(goalText, s.observed, s.projected, s.blocker), 15,
-            Ui.col(c, R.color.p3r_ice_100), false));
+        box.addView(line);
         TextView order = Ui.quiet(c, "调整顺序 ›");
         order.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         Ui.pad(order, 0, 4, 12, 4);
@@ -1132,6 +1137,7 @@ final class LinksPage {
         Profile.Tier group = null;
         View movedRow = null;
         View otherRow = null;
+        int partner = moved >= 0 ? swappedWith(goals, moved, delta) : -1;
         for (int i = 0; i < goals.size(); i++) {
             int link = goals.get(i);
             Profile.Tier tier = p.tier[link];
@@ -1153,7 +1159,7 @@ final class LinksPage {
             list.addView(row, Ui.matchWrap());
             if (link == moved) {
                 movedRow = row;
-            } else if (moved >= 0 && i - delta >= 0 && i - delta < goals.size() && goals.get(i - delta) == moved) {
+            } else if (i == partner) {
                 otherRow = row;
             }
         }
@@ -1168,6 +1174,16 @@ final class LinksPage {
                 }
             });
         }
+    }
+
+    /**
+     * Where the goal that {@code moved} swapped with by a move of {@code delta} now sits in the new
+     * order {@code goals}: the place {@code moved} came from. -1 when there is none.
+     */
+    static int swappedWith(List<Integer> goals, int moved, int delta) {
+        int at = goals.indexOf(moved);
+        int other = at - delta;
+        return at < 0 || delta == 0 || other < 0 || other >= goals.size() ? -1 : other;
     }
 
     private static void slide(View row, float from) {

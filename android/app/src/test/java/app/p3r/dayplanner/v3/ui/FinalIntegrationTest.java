@@ -93,7 +93,8 @@ public class FinalIntegrationTest extends UiTestBase {
         plan.summary.tradedFor[2] = 2;
         assertNull("never itself", LinkStatus.higherPriorityBlocker(api.rules, plan, 2));
         // Without a goal it was traded for, the line names none: it says how far the plan gets.
-        assertEquals("这次排到 RANK 9。想冲 MAX，就把它往前排", LinkStatus.shortfall("MAX", 5, 9, null));
+        assertEquals("这次排到 RANK 9。想冲 MAX，就把它往前排",
+            LinkStatus.shortfall("MAX", 5, 9, null, LinkStatus.Fix.REORDER));
     }
 
     @Test

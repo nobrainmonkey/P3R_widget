@@ -314,10 +314,23 @@ public class UiLogicTest {
         assertEquals("时间先给了皇帝", priestess.footZh);
         assertEquals("皇帝", priestess.blocker);
         assertEquals("女教皇 5 → 9", priestess.chipZh);
-        assertEquals("时间先给了皇帝。想先冲它，就排到皇帝前面",
-            LinkStatus.shortfall("MAX", priestess.observed, priestess.projected, priestess.blocker));
-        assertEquals("这次排到 RANK 9。想冲 MAX，就把它往前排", LinkStatus.shortfall("MAX", 5, 9, null));
-        assertEquals("这次没排上。想冲 MAX，就把它往前排", LinkStatus.shortfall("MAX", 5, 5, null));
+        // The advice is one 目标 / 目标顺序 can carry out: they move a goal only within its tier.
+        assertEquals(LinkStatus.Fix.MUST_THEN_REORDER, priestess.fix);
+        assertEquals("时间先给了皇帝。想先冲它，就设成必须，排到皇帝前面",
+            LinkStatus.shortfall("MAX", priestess.observed, priestess.projected, priestess.blocker, priestess.fix));
+        assertEquals(LinkStatus.Fix.REORDER, LinkStatus.fix(p, 15, 2));
+        assertEquals("时间先给了女教皇。想先冲它，就排到女教皇前面",
+            LinkStatus.shortfall("MAX", 0, 7, "女教皇", LinkStatus.Fix.REORDER));
+        assertEquals(LinkStatus.Fix.REORDER, LinkStatus.fix(p, 15, -1));
+        assertEquals(LinkStatus.Fix.REORDER, LinkStatus.fix(p, 6, -1));
+        assertEquals("这次排到 RANK 9。想冲 MAX，就把它往前排",
+            LinkStatus.shortfall("MAX", 5, 9, null, LinkStatus.Fix.REORDER));
+        assertEquals("这次没排上。想冲 MAX，就把它往前排", LinkStatus.shortfall("MAX", 5, 5, null, LinkStatus.Fix.REORDER));
+        // First in its tier (皇帝 among 必须, 太阳 among 想要) with no goal ahead of it: nothing to move.
+        assertEquals(LinkStatus.Fix.NONE, LinkStatus.fix(p, 4, -1));
+        assertEquals(LinkStatus.Fix.NONE, LinkStatus.fix(p, 19, -1));
+        assertEquals("这次排到 RANK 9", LinkStatus.shortfall("MAX", 5, 9, null, LinkStatus.Fix.NONE));
+        assertEquals("这次没排上", LinkStatus.shortfall("MAX", 5, 5, null, LinkStatus.Fix.NONE));
         // A link that is not a goal is never reported as missing a target the player never set.
         p.tier[2] = Profile.Tier.NONE;
         assertEquals("", LinkStatus.of(rules, p, obs, plan, 2).footZh);
