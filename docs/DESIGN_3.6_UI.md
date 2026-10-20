@@ -151,7 +151,195 @@ copy and layout change as below.
   「重新安排好了：顺便的事有调整」, 「重新安排好了，和现在的一样」, 「这次没排好，安排先不变」,
   「已停下，安排没变」; ordinary: 「已重新安排：这周 3 处有变」 or nothing.
 
-(§6.3–6.8 are filled in from the remaining audits: 社群, 提示, 全书, 我的/设置, 设置向导, 结果面板.)
+### 6.3 社群, 社群详情, 目标顺序, 羁绊剧情, 队友特性, RankPad
+- Header: `pageHeader("社群", "SOCIAL LINK", 「MAX 15」)`; the count carries the page's only 「预计」
+  tag. Before 开始设置 one banner 「先完成开始设置，就能看到每个社群能升到哪」 [开始设置]. While a
+  replan runs: BusyStripe under the header, forecast pips / 「→ 9」 / dates at 40%.
+- Sub-tabs 「社群」「羁绊剧情」「队友特性」 (sliding slab, last choice kept). Goal strip: 「目标」 +
+  plates 「1 皇帝」「2 恋爱」…「+3」 (必须 white, 想要 cyan outline) + 「调整顺序」; no goals:
+  「想冲 MAX 的社群，点卡片右上角设成目标」.
+- Tarot tiles: the pack's card numeral as a faint watermark (永劫 「XX」), arcana, person name only,
+  「恋人」 tag on the romance route, big RANK numeral or 「未解锁」, cyan 「→ 9」 forecast, white
+  「MAX」 stamp, 10 pips. 必须 = inverted white plate; 想要 = cyan blade; 未选 = plain glass, 70% when
+  not unlocked and not planned. Corner chip 「＋」 / 「想要」 / 「必须」 cycles at once and is saved
+  once, 800ms after the last tap; story links show 「剧情自动推进」. One footer at most:
+  「11月20日 升到 MAX」, 「时间先给了恋爱」 (goals only), 「救出北村文吉了吗？」 /
+  「没救出失踪者，无法继续」.
+- 社群详情 (tap a tile): 「RANK 5 → 9」 + pips; one status line with its fix
+  (「时间先给了女皇。想先冲它，就排到女皇前面」 + 「调整顺序 ›」; 「救出北村文吉了吗？」 +
+  [去修改进度]); 目标 未选 | 想要 | 必须; romanceable only 「回答按哪条路线？」 朋友 | 恋人;
+  everything saves at once. 目标顺序 sheet: 必须 / 想要 groups, big order numerals, ↑ / ↓ only where
+  the move stays in the tier.
+- 羁绊剧情: caption 「羁绊剧情不加社群点数」; rows: person, 「1/5」 + pips,
+  「看完可以合体「苏尔特尔」Surt」, switch. Opting in mid-game asks 「已经看了几话？」; closing
+  without an answer leaves it off.
+- 队友特性: 3×3 tiles (pips white recorded / cyan 预计 / hollow; 「解锁」「强化」 tag or
+  「已解锁」「已强化」 stamp; 「6月16日起」). Sheet: live stamp,
+  「同一种活动做 3 次解锁特性，两种各 3 次强化特性」, 目标 未选 | 解锁 | 强化, 「做过几次？」 0–3 (+
+  「预计 2」), 「种菜也排进来」 for gardening teammates, [保存]. A count changed by a new record
+  reopens it: 「刚刚有新记录，次数更新了，再看一眼？」.
+- RankPad: card numeral, name only, 「2/22」 + a progress bar, key flash and slide on advance, 「?」
+  over 「不记得」 (hidden on a first run), [‹ 上一个] [好了].
+- Removed: 「这次的安排里没排到 MAX，先保证了…」, 「暂时不安排提升」, 「安排排好后显示」, 「预计」 on
+  every card, the tier instruction paragraph, 「全部社群 · 22 个」, the inline goal list, route
+  segments and 「安排不会要求你走恋爱路线」 on the cards, 「其余社群也尽量提升」, the 羁绊剧情 date
+  windows and sheet caption, the 队友特性 planner paragraphs, 「不追求」, 「保存并重新安排」 /
+  「取消」, the RankPad hint.
+
+### 6.4 提示
+- Header: `pageHeader("提示", "GUIDE", [本期｜全部])`. No game date: opens in 全部; 本期 asks
+  「现在玩到游戏里的哪一天了？」 [设置日期].
+- Search with magnifier and ×: searches the whole game, the old scope returns when cleared; results
+  grouped by kind, 「找到 12 条」 only while searching;
+  「没找到。换个说法试试？比如「风花」「36F」「委托 75」」.
+- One-tap strip 「全部 · 社群 · 课堂·考试 · 委托 · 战斗 · 更多」; 更多 = a single-tap tag list, shown
+  as a removable pill.
+- 本期: banner (block, floors, dates); 「现在」 / 「接下来」, 「已经过去 · 12」 folded; borderless
+  rows with a date plate, kind tag, line, gain, 「10月25日截止」. 「伊莉莎白的委托 · 29 件」 and
+  repeated days (上课犯困) are one row each. 全部 without a search: directory tiles
+  「社群对话」「课堂 · 考试」「伊莉莎白的委托」「战斗」「日程与其他」 with counts.
+- Social links: numeral, person, 「RANK 3」 + pips, 「下一次 RANK 3 → 4」 + the answer (or
+  「还没解锁 · 6月19日起」), rank track 「解锁」「1→2」…「9→MAX」 with played ranks dimmed and the
+  next one lit.
+- Sheets are titled by the item: scene 「RANK 1 → 2」 + [朋友｜恋人] preview (profile untouched) + one
+  choice plate per question 「第 1 问  没问题」; 「解锁女教皇社群」 with a date tag, conditions and
+  numbered steps; requests as 开放 / 前置 / 怎么做 / 奖励 rows; [知道了].
+- 战斗: 「守关首领」「蒙纳多之门与通道」「剧情作战」「特殊挑战」; rows with a floor or date plate, the
+  name without the pack prefix, the English name, official element tags (「火焰」「神圣」…) or
+  「无弱点」; Monad mini headers 「蒙纳多之门 · 随机出现」 / 「蒙纳多通道 · 91F」. Sheet:
+  「弱点与耐性」, one legend line, 「打法」.
+- Removed: the filter sheet with 重置 / 应用, the 「N 条」 counter and selection caption,
+  「查看详情 ›」, 「查看属性与打法 ›」, 「阵容／阶段：」, 「10 段剧情」, 「+」 / 「−」,
+  「RANK 9 → 10」, the 「提示详情」 / 「战斗详情」 titles, 「社群升级剧情 · 随时查阅」,
+  「完整问答顺序：」, 「注意：」, the widget's 「答：」, the three legend lines, 「本期」 in the
+  whole-game lookup, Japanese left in the dialogue data.
+
+### 6.5 全书, 合体, 合体篮
+Basket logic, the calculator, persistence and the workspace behaviour are unchanged.
+- Header: `pageHeader("人格面具全书", "COMPENDIUM", DLC plate)` (a dot while a pack is owned);
+  segments 「一览」「合体」「合体篮」, the goal count on a numeral plate.
+- 一览: one search row (「名字、英文名或技能」, ★, filter), removable filter chips beside 「173 个」;
+  borderless recycled rows: Lv. numeral, name, 「Orpheus · 愚者」, a passive 「已登录」, ★; arcana
+  order adds group headers. Error 「全书没读出来」 [重试]. 筛选: Lv. 1–99, 等级 / 阿尔卡那,
+  「VI 恋爱」 chips, 「也显示没买的 DLC」, [重置] [看结果].
+- 「买了哪些 DLC？」: each pack applies at once, [好了]. A DLC Persona asks in place
+  「这是 P5R 人格面具组合 1 里的人格面具，买了吗？」 [买了] and continues.
+- Detail, titled with the arcana: hero (Latin arcana watermark, name, English, big 「Lv.1」, labelled
+  「收藏」 / 「已登录」 toggles, gold 「合体条件」 + 「太阳社群升到 MAX」, DLC tag), [查配方]
+  [拿它当素材]; 「洗牌时间」 in F, 「能力值」 bars, one 「弱点与耐性」 band, borderless 「可学技能」
+  rows (「初始」 / 「Lv.3」, element tag, English, 「3 SP」), 「神通法」.
+- 合体: two material plates (「＋」 「选人格面具」), a RESULT hero that swaps in, [加入合体篮]
+  [用它继续合体]; 「这两个合不出人格面具」; 「想合出谁？」 → picker → recipes. Pickers:
+  「和 俄耳甫斯 合体」, no toggles, no counter.
+- Recipes 「X · 合体配方」: breadcrumb, borderless blocks tagged
+  「特殊合体」「素材都已登录」「现在用的」, bilingual ingredient lines that open their own recipes, a
+  「＋」 that adds and stays (「已加入合体篮」 · 去看看); 「还有 N 组，接着看」;
+  「合不出来，去塔尔塔罗斯的洗牌时间找它」.
+- 合体篮: empty 「合体篮是空的」 [挑一个人格面具]; goal hero 「还差 2 步」 / 「已登录」 /
+  「配方要重选」 + step bar + ··· (换配方 / 移出合体篮); one banner
+  「有配方用到了没买的 DLC，重选一下？」; 「需要的素材」 「已登录 1/3」 with an inline sort and
+  「怎么合？」; 「合体顺序」 「完成 0/2」, big step numerals, a menu
+  「看 X 的资料」「换个配方」「不合了，直接召唤」; 「X 合出来了！」; 「清空合体篮」 with 撤销.
+- Removed: 图鉴 / 合成, 火炎 / 光 / 暗 / 回复, raw unlock text, [全部][收藏], the ○ toggle on every
+  row, boxed rows, cells, skills and recipe cards, 「接着合成」, the jump to the basket after an add,
+  「仅游戏本体」, the 目标 / 召唤 / 未登录 strip, the sort sheet, 「可召唤」.
+
+### 6.6 我的, 规划设置, 塔尔塔罗斯, 备份与恢复, 规划说明, 关于
+- 我的: `pageHeader("我的", "SYSTEM")`; progress hero 「游戏进度」 + DatePlate + 「玩了一阵子？」
+  [修改进度] [同步现状] (「还没设置进度」 [开始设置]; 「日程全部结束」). Flat list with a cyan cursor:
+  「记录历史」「规划设置」「规划说明」「从头重新安排」「备份与恢复」「添加桌面小组件」「关于」 +
+  version. Unusable rows are left out; 从头重新安排 stays while it runs. Removed: subtitles, headers,
+  「已记录 78 条」, dimmed rows.
+- 规划设置 (saves at once; 「重新安排中…」 while replanning): 「STYLE 安排风格」 tiles
+  「尽量都体验 / 每个社群都解锁、都往上提」 and 「尽量多 MAX / 集中冲 MAX」; 「PERSONA 人格面具」
+  「见面时带同阿尔卡那的人格面具吗？」 「×1.51」 都带 | 只给目标 | 不带 (+
+  「见面前会提醒你带哪个阿尔卡那」); 「OPTIONS 其他设置」 rows 「塔尔塔罗斯」 「每个区块 2 次」 ›,
+  「平安夜」 「都婉拒了」 › (sheet 「12月24日接受了谁的邀约？」), 「手上至少留」 「0 日元」 ›, switch
+  「安排结缘网站的字条」 「11月11日起 · 每张 3,000 日元」; 「不再安排」 only when non-empty (「恢复」
+  removes the row at once); folded 「更多选项」:
+  「魅力 MAX 后点数 ×1.51」「目标多留一次见面」「我会照提示选回答」「仔细重新安排」. Removed:
+  「深度修改 / 每次修改后最多计算 12 秒」, the 社群点数 / 塔尔塔罗斯 / 平安夜 / 现金 headers, every
+  caption, 「不计回答加成」, 「不带/不一定」, 「按当前进度普通重排或深度计算：」.
+- 塔尔塔罗斯: defaults strip 「默认每个区块」 想去 / 最多 + 「救失踪者也算一次」; the open block first
+  with 「现在」; compact rows (floors, dates, inline 想去, 「最多 4 次 ›」);
+  「失踪者：舞子 · 10月21日–11月2日」; gold 「设成 0，舞子就救不出来了」; past blocks folded into
+  「已经过了 3 个区块」. Removed: the intro and the per-block rescue sentence.
+- 备份与恢复: 「备份」 「进度、设置、全书收藏和合体篮都在里面」 [保存备份文件] [分享备份];
+  「从备份恢复」 [选择备份文件] [粘贴文字] (a backup on the clipboard goes straight to the confirm).
+  Destructive confirm 「用这份备份替换现在的记录？」 [先不了] [替换]; 「恢复好了！」,
+  「这不像是 P3R 规划的备份，换一份试试？」. Removed: the warning said twice, 「…失败，请稍后再试。」.
+- 规划说明: hero with the MAX count + 「预计」 and 「从10月22日晚上排到1月31日」, a budget chip
+  「后半段还在细算，稍后自动更新」; 「目标」 rows; 「需要注意」 real problems only; 「当前设置」 tags +
+  「去规划设置 ›」. Removed: 「是怎么排的」, action / story / free counts, notes that restate settings
+  (sources → 关于).
+- 关于: 「P3R 规划」 + version band, 「全部在手机上计算，不联网，不收集数据。」, 「资料来源」,
+  「全书与合体资料」.
+- Controls: ToggleRow flat variant with a sliding knob, SegmentedControl sliding slab, CheckRow drawn
+  tick; `ConfirmDialog.showDestructive` (red, 「先不了」) for the restore only.
+
+### 6.7 设置向导 (开始设置 / 同步现状 / 修改进度)
+- Frame: X keeps the draft; counter 「03/10」 over the pages this walk shows; Latin kicker + watermark +
+  one big question per page, no hints, borderless rows; `Motion.tabIn` between pages, cascades on
+  entry only; [上一步] + [下一步] / [开始安排] / [更新安排] / [好的]. Notices slide in the message bar
+  (「接着上次填」, 「刚有新记录，已经合进来了，再看一眼？」, errors red); a failed save gives the
+  button its label back; 「记录没读出来」 [重试]. Back on 今天: 「已记录：游戏进度」.
+- 开始设置: 日期 → 现金 → 个人能力值 → 社群 → only what the date opens (解锁前的准备, 平安夜 from
+  12/20, 羁绊剧情, 宿舍活动, 塔尔塔罗斯) → 目标 → 人格面具 → 「准备好了？」; a 4/18 start is 7 pages.
+- 同步现状: 「上次记到 10月21日 晚上，之后照着安排玩了吗？」
+  「基本照着玩了」「玩了一部分」「没怎么照着玩」; 基本照着玩了 → 日期 → review (rows open their page;
+  「还有别的变化？」).
+- 修改进度: 「修改哪一项？」 with current values; a row opens one page, [完成] returns, changed rows
+  get 「已改」; 「逐项检查」 / 「更新安排」. The 今天 resource band opens it.
+- Pages: 「游戏里现在是哪一天？」 (「‹ 10月 ›」, Sundays red, lock reason in the period plate
+  「晚上 · 满月作战」); 「现在有多少钱？」 (prefill drawn selected, one 「预计」, 「— 日元」 +
+  「不记得」); 「学力、魅力、勇气现在几级？」; 「社群都升到几级了？」 (RANK tiles, 「≈7」, RankPad);
+  「解锁准备做到哪一步了？」 (tap step N = 1..N, 「都还没做」); 「12月24日接受了谁的邀约？」 (one
+  tap); 「羁绊剧情看到第几话了？」; 「做过宿舍活动吗？」 then 0–3 per activity with 「特性已解锁」 /
+  「特性已强化」; 「塔尔塔罗斯爬到几层了？」 (typeable floor 「/117F」, 「期限 10月3日 · 教皇」,
+  [救出了] [没救出] or [还没]); 「想把哪些社群升到 MAX？」 (「点一下想要，再点一下必须」, the 19
+  manual links, 「清空」); 人格面具 都带 / 只给目标社群带 / 不带.
+- Review: 「准备好了？」 hero (DatePlate, 现金 / 学力 / 魅力 / 勇气, 社群, goals, 人格面具, all
+  tappable) [开始安排]; 「更新这 7 项？」 (「现金  18,500 → 21,500 日元」, one 「预计」 on forecast
+  rows) [更新安排]; 「和上次一样，不用改」 [好的].
+- Removed: every hint and footer, 「尽量全部升到 MAX」, 「其余社群也尽量提升」, story links among the
+  goals, 「不确定的都设为未解锁」, the first-run 「?」 and 「不确定（先按未解锁安排）」, the gardening
+  switch (now in 队友特性), the date summary card and legend, 「将更新 7 项」 +
+  「带「预计」的数值请对照游戏核对，保存就算确认。」, 「保存并…」 labels, the pinned gold notice card.
+
+### 6.8 结果面板, TowerPanel, RankUpBurst, SheetChrome
+- Sheets: bright top edge only; a grip drags any sheet down to close (96dp or a fling); ResultActivity
+  keeps its X.
+- Panel: DatePlate (+ 「补记 2/4」), kind tag, 26sp title over a faint Latin word per kind, the
+  question on a speech plate with a numeral kicker (「RANK 5 → 6」 + one 「预计」), 顺便 + 「也做了」,
+  at most two staggered answer plates, 「其他结果…」 / 「做不了…」. 怎么做 stays folded on unlock /
+  note / episode / dorm.
+- Questions: 「升到 RANK 6 了吗？」 [升到 RANK 6 了] [没升级] → 「提示下次就能升级了吗？」 [提示了]
+  [没有]; 「其他结果…」 → 「游戏里现在是 RANK 几？」 + 「剧情卡住了，升不了」;
+  「和山岸风花见面了吗？」 + 「提示了「下次就能升级」」 [见面了] [升到 RANK 5 了]; 「赴约了吗？」;
+  「这一步做完了吗？」 (「第 1/3 步」); 「给山岸风花用上了吗？」 [用了] [没用成];
+  「看完第 2 话了吗？」; 「做完了吗？」 [做完了] + 「结果不一样…」 (level chips, 「打工后的现金」 with
+  an inline keypad); free slots [继续] [做了别的…].
+- 做不了: 「怎么没做成？」 + the reasons that fit
+  (「剧情占用了」「对方不在」「没开门」「钱不够」「不想做」), 「其实做了别的…」; 「以后还排「X」吗？」
+  [只是这次] [以后别排了]; 改做别的 「做了什么？」 + 「都不是，没什么收获」. Back pops one panel; only
+  the entry panel closes the sheet.
+- 补记: 「前面 3 项也照安排做了吗？」 [都做了] [一项项对] + 「前面都没做」; no question when only
+  story time lies in between.
+- States: 「还没开始设置」 [开始设置]; 「日程全部结束，辛苦了！」; 「这项已经记过了」 [看记录历史]
+  [好的] (opens the app on 记录历史 via `Intents.EXTRA_OPEN_PAGE`); 「记录没读出来」 [关闭] [重试];
+  「这条记录刚改过」; 「安排还在排，马上就好」; corrections show 「原来记的是：皇帝 RANK 7」. Errors
+  red; 「正在保存…」 after 400ms.
+- TowerPanel: 「奇颜之庭 阿尔卡（23–43F）」 + 「第 2 次 · 最多 4 次」; HUD floor numeral (typeable) +
+  「顶层 117F」; the rescue next, 「舞子救出来了吗？」; cash: 「不记得了」,
+  [出塔后余额 | 这次多了多少] (balance only when the cash before is unknown), inline keypad,
+  「进塔前 18,500 → 出塔后 25,050 日元（+6,550）」 once typed; 「记一下主角等级」; [没去成] [保存].
+- RankUpBurst: 「RANK UP!!」 + 「皇帝 · RANK 7」 after a recorded rank-up, tap to skip, then the sheet
+  closes.
+- Removed: the persona chip, location and answers, 「现在是 RANK 5，这次见面预计会升级。」,
+  「只加好感，不直接升级。」, 「羁绊剧情不加社群点数。」, the 「游戏提示下次就能升级」 switch card,
+  「没见到」, 「这个时段没能照安排做？」 and its caption, 「完成了，和预计一样」,
+  「剧情原因暂时升不了」, 「逐项核对」, 「点这里输入」, the tower cash explanations and 「（可选）」,
+  the full-screen saving overlay, the full sheet outline.
 
 ## 7. Out of scope
 
