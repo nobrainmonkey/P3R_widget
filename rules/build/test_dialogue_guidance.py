@@ -278,10 +278,9 @@ class CompletedDialogueTest(unittest.TestCase):
         variant = self.variant('aeon', 4, 'common')
         self.assertEqual(variant['choices'], ['好'])
         self.assertEqual(variant['shortChoices'], ['好'])
-        self.assertEqual(variant['sequence'], ['任意（是否见过白色花猫）',
-                                               '任意（若答「好像见过」，再问猫在哪里）', '好', '任意'])
-        self.assertIn('没见过', variant['noteZh'])
-        self.assertIn('跳过追问', variant['noteZh'])
+        self.assertEqual(variant['sequence'], ['任意（有没有见过白色花猫）',
+                                               '任意（答了「好像见过」才问猫在哪）', '好', '任意'])
+        self.assertIn('答「好像见过」会再问猫在哪', variant['noteZh'])
         self.assertNotIn('译意', variant['noteZh'])
         displayed = ' / '.join(variant['sequence']) + variant['noteZh']
         self.assertNotIn('第1项', displayed)
@@ -344,9 +343,34 @@ class CompletedDialogueTest(unittest.TestCase):
                     with self.subTest(link=link['id'], field=field):
                         self.assertIsNone(builder.RESEARCH_SHORTHAND.search(text), text)
         justice = self.variant('justice', 9, 'romance')['sequence']
-        self.assertIn('这一场第2问只有「千寻是清白的」加好感；第4问选「我都看到了」。', justice)
+        self.assertIn('这一场第 2 问只有「千寻是清白的」加好感；第 4 问选「我都看到了」。', justice)
         with self.assertRaisesRegex(builder.BuildError, 'research shorthand'):
             builder.check_player_copy({'noteZh': '另一项为1♪'}, 'sample')
+        # The research and planner voice of the notes, too.
+        for note in ('已到终级，没有后续升级门槛。', '主序列适用于R7已进入友情分支。', '第三问两个回答同收益。',
+                     '本条补齐中文提示，不改变升级规则。', '最后一问属于同伴询问，亦已计入。', '另一组见下文。'):
+            with self.assertRaisesRegex(builder.BuildError, 'research shorthand'):
+                builder.check_player_copy({'noteZh': note}, 'sample')
+
+    def test_notes_never_point_at_the_other_group_and_each_group_names_its_history(self) -> None:
+        # 提示 lists the groups above the note, a plan step below it: a pointer is wrong in one of them.
+        for link in self.pack['links']:
+            for rank, hint in link.get('dialogueHints', {}).items():
+                for route in ('common', 'friend', 'romance'):
+                    variant = hint.get(route)
+                    if not variant:
+                        continue
+                    with self.subTest(link=link['id'], rank=rank, route=route):
+                        self.assertNotRegex(variant.get('noteZh', ''), '上面|下面|下文|下方')
+                        headings = [entry for entry in variant['sequence'] if entry.startswith('【')]
+                        for heading in headings[1:]:
+                            self.assertRegex(heading, '的话', 'another history reads as a condition')
+        # 力量 RANK 5: the friend answer only does not keep eligibility itself (RANK 3 may have).
+        five = self.variant('strength', 5, 'friend')['noteZh']
+        self.assertIn('「不改比较好」', five)
+        self.assertIn('「我相信结子」', five)
+        self.assertIn('这一问不会保留恋爱资格', five)
+        self.assertNotIn('不会走向恋爱', five)
 
     def test_flattening_preserves_alternative_without_putting_it_in_primary_choices(self) -> None:
         raw = {'choices': ['主回答'], 'sequence': ['任意', '主回答'],
@@ -356,7 +380,7 @@ class CompletedDialogueTest(unittest.TestCase):
         result = builder.compile_completion_variant(raw, 'friend')
         self.assertEqual(result['choices'], ['主回答'])
         self.assertNotIn('另一回答', result['choices'])
-        self.assertEqual(result['sequence'], ['【按友情目标的推荐流程】', '任意', '主回答',
+        self.assertEqual(result['sequence'], ['【只做朋友】', '任意', '主回答',
                                               '【此前另一路线】', '另一回答', '任意'])
         self.assertNotIn('译意', result.get('noteZh', ''))
         self.assertNotIn('alternatives', result)

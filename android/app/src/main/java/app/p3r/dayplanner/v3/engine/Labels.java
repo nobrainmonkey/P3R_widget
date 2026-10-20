@@ -320,10 +320,10 @@ final class Labels {
     /**
      * 「怎么做」 of a meeting, one line each: when, where and whom
      * ("放学后到月光馆学园 · 学生会活动室找小田桐秀利", {@link #meetWhere}), the dialogue hint when the
-     * guide has one ({@link DialogueHint#appLine}; the generic fallback is left out), and the link's
-     * own note as 「注意：…」. The hint follows {@link DialogueHint#forMeeting}: a rank-up gets the
-     * scene it ranks up into, a meeting during a hold none, any other the next scene's answers as
-     * 「要是升级了，答：…」.
+     * guide has one ({@link DialogueHint#appLine}; the generic fallback is left out), the answers for
+     * another history of the scene ({@link #otherHistories}), and the link's own note as 「注意：…」.
+     * The hint follows {@link DialogueHint#forMeeting}: a rank-up gets the scene it ranks up into, a
+     * meeting during a hold none, any other the next scene's answers as 「要是升级了，答：…」.
      */
     String meetHow(int slot, int l, Kernel.Effect fx) {
         Rules.Link link = rules.links[l];
@@ -338,13 +338,45 @@ final class Labels {
             answers = DialogueHint.forScene(rules, m.profile, l, fx.rankFrom + 1, true);
         }
         if (!answers.isEmpty()) lines.add(DialogueHint.appLine(answers));
-        if (answers.reviewed && !answers.sequence.isEmpty() && !answers.sequence.equals(answers.choices)) {
-            // The compact card can omit arbitrary prompts; details retain their positions and repeats.
-            // This is the selected reviewed variant's sequence, never the other route's raw guide.
-            lines.add(NOTE_PREFIX + "完整问答顺序是 " + String.join(" / ", answers.sequence));
-        }
+        // The selected reviewed variant's own groups, never the other route's raw guide.
+        if (answers.reviewed) lines.addAll(otherHistories(answers.sequence));
         if (!blank(link.noteZh)) lines.add(NOTE_PREFIX + link.noteZh.trim());
         return String.join("\n", lines);
+    }
+
+    /**
+     * The scene's answers for an earlier history other than the expected one, one 「注意：…」 line
+     * per 【…】 group after the first (that one is the 回答 line):
+     * 「注意：RANK 7 保留了恋爱资格的话（屋顶剧情，两问），回答：因为我相信自己 / 没那回事」. Free prompts
+     * are left out as in the 回答 line; the group's own sentences follow after 「；」. 提示 shows the same
+     * groups as numbered questions.
+     */
+    static List<String> otherHistories(List<String> sequence) {
+        List<String> headings = new ArrayList<>();
+        List<List<String>> groups = new ArrayList<>();
+        for (String raw : sequence) {
+            String entry = raw == null ? "" : raw.trim();
+            if (entry.isEmpty()) continue;
+            boolean heading = entry.startsWith("【") && entry.endsWith("】");
+            if (heading || groups.isEmpty()) {
+                headings.add(heading ? entry.substring(1, entry.length() - 1).trim() : null);
+                groups.add(new ArrayList<>());
+            }
+            if (!heading) groups.get(groups.size() - 1).add(entry);
+        }
+        List<String> out = new ArrayList<>();
+        for (int g = 1; g < groups.size(); g++) {
+            List<String> picks = new ArrayList<>();
+            List<String> notes = new ArrayList<>();
+            for (String entry : groups.get(g)) {
+                if (entry.endsWith("。")) notes.add(entry);
+                else if (!entry.startsWith("任意") && !entry.startsWith("之后任意")) picks.add(entry);
+            }
+            String body = picks.isEmpty() ? DialogueHint.ANY_ZH : String.join(" / ", picks);
+            out.add(NOTE_PREFIX + headings.get(g) + "，" + DialogueHint.PREFIX + body
+                    + (notes.isEmpty() ? "" : "；" + String.join("", notes)));
+        }
+        return out;
     }
 
     /**
@@ -548,7 +580,10 @@ final class Labels {
             step.whyZh = statWhy(st, a);
         }
         step.detailZh = blank(a.noteZh) ? null : a.noteZh.trim();
-        if (a.dormActivity() && a.requiresPlantedCrop) step.detailZh = joinLines(step.detailZh, "园艺要先买种苗、种好作物。");
+        // The pack's gardening notes say it already; this covers a pack without one.
+        if (a.dormActivity() && a.requiresPlantedCrop && (step.detailZh == null || !step.detailZh.contains("种苗"))) {
+            step.detailZh = joinLines(step.detailZh, "园艺要先买种苗、种好作物。");
+        }
     }
 
     /** "魅力 +2（升到 Lv.3）、勇气 +1"; reaching the top level reads "（升到 MAX）". */

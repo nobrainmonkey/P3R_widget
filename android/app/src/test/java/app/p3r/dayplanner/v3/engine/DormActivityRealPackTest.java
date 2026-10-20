@@ -99,6 +99,24 @@ public class DormActivityRealPackTest {
         assertEquals(0, start.used[rules.activityIndex("dorm_yukari_dvd")]);
     }
 
+    @Test
+    public void aDormStepsHowToIsItsOwnNoteOnceWithoutTheTraitRule() {
+        // The why line already counts the plays left (「再做 2 次就能解锁…」); 提示 states the rule once.
+        Profile profile = isolated();
+        Model model = new Model(rules, profile, null);
+        SimState st = start(6, 16, true);
+        Labels labels = new Labels(model, new Heuristics(model, st, null));
+        String[] expected = {null, "能获得食物或饮品。", "先确认菜园里种了作物；已成熟就先收获、再种苗。种苗另需准备。"};
+        String[] ids = {"dorm_yukari_dvd", "dorm_yukari_cooking", "dorm_fuuka_gardening"};
+        for (int i = 0; i < ids.length; i++) {
+            Plan.Step step = new Plan.Step();
+            step.slot = st.slot;
+            labels.describe(step, st, Kernel.code(Kernel.T_ACT, rules.activityIndex(ids[i]), 0), new Kernel.Effect());
+            assertEquals(ids[i], "dorm", step.kind);
+            assertEquals(ids[i], expected[i], step.detailZh);
+        }
+    }
+
     private static Profile isolated() {
         Profile profile = new Profile();
         profile.otherLinks = false;

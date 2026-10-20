@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -91,6 +92,47 @@ public class CompletedDialogueHintTest {
         assertEquals("both profile routes of every manual scene", 342, routes);
     }
 
+    /** Planner and research words the guide's notes carried (and the old 「完整问答顺序」 dump). */
+    private static final Pattern RESEARCH = Pattern.compile(
+            "门槛|收益|主序列|推荐流程|亦已计入|本条|当前目标|按相同含义|完整问答顺序|【|见下文|下方|上面|下面");
+
+    @Test
+    public void everyMeetingsHowToReadsAsPlayerCopy() {
+        for (Profile.Route route : new Profile.Route[]{Profile.Route.FRIEND, Profile.Route.ROMANCE}) {
+            Profile p = new Profile();
+            Arrays.fill(p.route, route);
+            Model model = new Model(rules, p, null);
+            SimState start = new SimState(rules.blocks.length, rules.activities.length);
+            start.slot = rules.firstSlot();
+            Labels labels = new Labels(model, new Heuristics(model, start, null));
+            for (Rules.Link link : rules.links) {
+                if (link.kind != Rules.LinkKind.MANUAL) continue;
+                for (int rank = 2; rank <= 10; rank++) {
+                    Kernel.Effect effect = new Kernel.Effect();
+                    effect.rankUp = true;
+                    effect.rankFrom = rank - 1;
+                    effect.rankTo = rank;
+                    String full = labels.meetHow(start.slot, link.idx, effect);
+                    assertFalse(link.id + " R" + rank + " " + route + ": " + full, RESEARCH.matcher(full).find());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void anotherHistoryIsOneLineWithItsConditionAndAnswers() {
+        // 风花 RANK 7 → 8 on the default 朋友 route: the ramen scene, or the rooftop after a kept eligibility.
+        String full = detail("priestess", 8, Profile.Route.FRIEND);
+        List<String> lines = Arrays.asList(full.split("\n"));
+        assertTrue(full, lines.contains("回答：拉面我可以帮你吃 / 你想太多了；RANK 7 走了友情的话是去叶隐吃拉面（三问）："
+                + "第 1 问选愿意帮忙吃拉面的回答，第 3 问两个回答加的好感一样。"));
+        assertTrue(full, lines.contains("注意：RANK 7 保留了恋爱资格的话（屋顶剧情，两问），回答：因为我相信自己 / 没那回事"));
+        assertEquals("only the other group gets a line", List.of(),
+                Labels.otherHistories(List.of("任意", "加油")));
+        assertEquals(List.of("注意：B 的话，回答：怎么回答都可以；随便。"),
+                Labels.otherHistories(List.of("【A】", "甲", "【B 的话】", "任意", "随便。")));
+    }
+
     @Test
     public void devilMaxIsANoteOnlySceneWithoutInventedAnswerOptions() {
         DialogueHint.Answers a = answers("devil", 10, Profile.Route.FRIEND);
@@ -101,7 +143,7 @@ public class CompletedDialogueHintTest {
         assertTrue(DialogueHint.widgetChoices(a).isEmpty());
         assertEquals("答：观看剧情即可", DialogueHint.widgetLine(a));
         String full = detail("devil", 10, Profile.Route.FRIEND);
-        assertTrue(full, full.contains("没有回答选项") || full.contains("无须回答"));
+        assertTrue(full, full.contains("回答：这一场没有选项，看剧情就行。"));
         assertFalse(full, full.contains(DialogueHint.FALLBACK));
     }
 
@@ -114,7 +156,8 @@ public class CompletedDialogueHintTest {
         assertEquals("shortening cannot merge repeated responses", 2, compact.size());
         assertTrue(compact.toString(), compact.get(0).contains("没问题"));
         assertTrue(compact.toString(), compact.get(1).contains("没问题"));
-        assertTrue(detail("priestess", 2, Profile.Route.FRIEND).contains("没问题 / 任意 / 没问题"));
+        // The note says where the repeated answer goes; no list of every prompt.
+        assertTrue(detail("priestess", 2, Profile.Route.FRIEND).contains("回答：没问题 / 没问题；第 1 问和第 3 问都答「没问题」。"));
     }
 
     @Test
@@ -157,8 +200,10 @@ public class CompletedDialogueHintTest {
         assertFalse(DialogueHint.widgetLine(a).contains("我都看到了"));
         String full = detail("justice", 9, Profile.Route.FRIEND);
         assertTrue(full, full.contains("我都看到了"));
-        assertTrue("the alternative must be conditional on the earlier history", full.contains("若R5") || full.contains("此前"));
-        assertTrue("all positions including arbitrary prompts remain visible", full.contains("完整问答顺序"));
+        // The other history is its own line: its condition, then its answers, free prompts left out.
+        assertTrue(full, full.contains("\n注意：RANK 5 选了友情回答、这次没有告白的话（四问），回答：她会帮你的 / 千寻是清白的 / 我都看到了；"
+                + "这一场第 2 问只有「千寻是清白的」加好感；第 4 问选「我都看到了」。"));
+        assertFalse("no dump of every prompt", full.contains("完整问答顺序") || full.contains("【") || full.contains("任意"));
     }
 
     @Test
@@ -188,6 +233,8 @@ public class CompletedDialogueHintTest {
         assertEquals(Arrays.asList("任意", "任意"), romance.sequence);
         assertEquals("答：怎么回答都可以", DialogueHint.widgetLine(friend));
         assertEquals("答：怎么回答都可以", DialogueHint.widgetLine(romance));
-        assertTrue(detail("aeon", 10, Profile.Route.FRIEND).contains("任意 / 任意 / 任意 / 任意"));
+        String full = detail("aeon", 10, Profile.Route.FRIEND);
+        assertTrue(full, full.contains("回答：怎么回答都可以；一共四问："));
+        assertFalse(full, full.contains("任意") || full.contains("门槛") || full.contains("亦已计入"));
     }
 }
