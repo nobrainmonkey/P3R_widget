@@ -307,6 +307,27 @@ public class ResultSheetTest extends UiTestBase {
     }
 
     @Test
+    public void towerNumbersOpenAPadThatSaysWhatIsTyped() {
+        int slot = Rules.slot(Fixtures.day(10, 24), true);
+        advanceTo(slot);
+        ResultActivity a = result(slot, "tower:3", Intents.MODE_RESULT);
+        TowerPanel panel = a.towerPanel();
+        panel.floorStepper().valueView().performClick();
+        Shots.idle();
+        android.view.View pad = org.robolectric.shadows.ShadowDialog.getLatestDialog().getWindow().getDecorView();
+        assertNotNull(Shots.find(pad, "最高到达几层？"));
+        assertNotNull(Shots.find(pad, panel.floorStepper().getValue() + "F"));
+        Shots.shot(a, "result_tower_floor_pad");
+        org.robolectric.shadows.ShadowDialog.getLatestDialog().dismiss();
+        Shots.idle();
+        java.util.List<Stepper> steppers = StateWizardTest.steppers(panel);
+        steppers.get(steppers.size() - 1).valueView().performClick();
+        Shots.idle();
+        pad = org.robolectric.shadows.ShadowDialog.getLatestDialog().getWindow().getDecorView();
+        assertNotNull(Shots.find(pad, "主角等级"));
+    }
+
+    @Test
     public void towerNetModeIsExclusive() {
         int slot = Rules.slot(Fixtures.day(10, 24), true);
         advanceTo(slot);

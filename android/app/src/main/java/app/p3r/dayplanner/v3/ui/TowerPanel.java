@@ -93,7 +93,7 @@ final class TowerPanel extends LinearLayout {
         addView(caption(c, "最高到达层"));
         LinearLayout floorRow = Ui.row(c);
         int startFloor = initial != null ? initial.floor : Math.max(1, Math.min(top, observed.floor));
-        floor = new Stepper(c, 1, top, startFloor);
+        floor = new Stepper(c, 1, top, startFloor).typeable("最高到达几层？", "F");
         floor.setFormatter(v -> v + "F");
         // The floor is Tartarus's key number: a big HUD numeral between the step buttons.
         View value = floor.getChildCount() == 3 ? floor.getChildAt(1) : null;
@@ -204,7 +204,7 @@ final class TowerPanel extends LinearLayout {
         levelRow = Ui.row(c);
         levelRow.addView(caption(c, "主角等级"), Ui.wrap());
         int lastLevel = initial != null && initial.level != null ? initial.level : rememberedLevel;
-        level = new Stepper(c, 1, 99, lastLevel).compact();
+        level = new Stepper(c, 1, 99, lastLevel).compact().typeable("主角等级", null);
         level.setFormatter(v -> "Lv." + v);
         LinearLayout.LayoutParams lp = Ui.weight(1);
         lp.leftMargin = Ui.dp(c, 12);
