@@ -554,6 +554,41 @@ public class TipsCatalogueTest {
         assertFalse(justice.detailZh, justice.detailZh.contains("门槛"));
     }
 
+    @Test public void sceneNotesKeepTheirSentenceBreaksAndDropTheResearchWords() throws Exception {
+        // The 「no next rank」 clause goes; between two sentences its full stop stays.
+        assertEquals("甲。乙。", TipsCatalogue.playerNote("甲；已到MAX，无后续升级门槛。乙。"));
+        assertEquals("甲。乙。", TipsCatalogue.playerNote("甲。MAX后没有下一级好感门槛。乙"));
+        assertEquals("甲。", TipsCatalogue.playerNote("已到终级，没有后续升级门槛；甲。"));
+        assertEquals("甲。", TipsCatalogue.playerNote("甲；已到终级，无后续升级门槛。"));
+        assertEquals("", TipsCatalogue.playerNote("已到终级，没有后续升级门槛。"));
+        Rules rules = realRules();
+        int aeon = rules.linkIndex("aeon");
+        Plan.Reminder friend = TipsCatalogue.scene(rules, new Profile(), aeon, 10, Boolean.FALSE);
+        assertTrue(friend.detailZh, friend.detailZh.contains(
+                "友情终级，全程按喜好选。问题依次是：拍照时的欢呼回应、是否喜欢拍照、她能做到什么、回宿舍后解释刚才在做什么。"));
+        assertFalse(friend.detailZh, friend.detailZh.contains("同伴询问"));
+        Plan.Reminder romance = TipsCatalogue.scene(rules, new Profile(), aeon, 10, Boolean.TRUE);
+        assertTrue(romance.detailZh, romance.detailZh.contains("恋人终级，全程按喜好选。问题依次是：询问她想说的话、回应她的注视。"));
+        Plan.Reminder strength = TipsCatalogue.scene(rules, new Profile(), rules.linkIndex("strength"), 10, Boolean.FALSE);
+        assertTrue(strength.detailZh, strength.detailZh.contains("\nRANK 9 拒绝过告白的话，后两问说法不一样，按意思选就行。"));
+        // Every scene of every link, both routes: no guide-author wording, no two sentences run together.
+        java.util.regex.Pattern research = java.util.regex.Pattern.compile(
+                "门槛|亦已计入|仍给出|按相同含义对应|完整顺序|完整友情推荐|选完整|选问题");
+        int scenes = 0;
+        for (Boolean route : new Boolean[]{Boolean.FALSE, Boolean.TRUE}) {
+            for (int link = 0; link < rules.links.length; link++) {
+                for (int scene = 2; scene <= 10; scene++) {
+                    Plan.Reminder item = TipsCatalogue.scene(rules, new Profile(), link, scene, route);
+                    if (item == null) continue;
+                    scenes++;
+                    assertFalse(item.id + ": " + item.detailZh, research.matcher(item.detailZh).find());
+                    assertFalse(item.id + ": " + item.detailZh, item.detailZh.contains("。。"));
+                }
+            }
+        }
+        assertTrue(scenes > 100);
+    }
+
     @Test public void officialElementNamesReplaceTheOlderSpellingsButNotNames() {
         assertEquals("无情冰鸦弱火焰", TipsCatalogue.officialTerms("无情冰鸦弱火炎"));
         assertEquals("弱点：无；无效：神圣、暗黑", TipsCatalogue.officialTerms("弱点：无；无效：光、暗"));

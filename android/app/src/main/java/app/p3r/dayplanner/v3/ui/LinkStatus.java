@@ -14,6 +14,16 @@ import app.p3r.dayplanner.v3.model.Rules;
  * does when it is not (the goal the time went to, or a rescue to record).
  */
 public final class LinkStatus {
+    /** What the player can do in 目标 / 目标顺序 about a goal the plan does not reach. */
+    enum Fix {
+        /** Nothing there helps: it is first in its tier with no goal to pass (or the plan predates the tiers). */
+        NONE,
+        /** Move it up in 目标顺序 (past {@link #blocker} when there is one). */
+        REORDER,
+        /** A 想要 goal that gave way to a 必须 one: set it to 必须, then move it up past that one. */
+        MUST_THEN_REORDER
+    }
+
     public final int link;
     /** Rank the player confirmed (0 = 未解锁). */
     public final int observed;
@@ -31,6 +41,8 @@ public final class LinkStatus {
     public final boolean planned;
     /** The arcana of the goal this plan kept instead of this one (goals only), else null. */
     public final String blocker;
+    /** For a goal the plan does not reach, what 目标 / 目标顺序 can do about it; else NONE. */
+    final Fix fix;
     /** The rescue this link waits on when it is {@link #lost}, else null. */
     public final Rules.Rescue rescue;
     /** The rescue was recorded as failed (not just missing from the record). */
@@ -45,7 +57,7 @@ public final class LinkStatus {
     public final String chipZh;
 
     private LinkStatus(int link, int observed, int projected, int target, int targetSlot, boolean story,
-                       boolean lost, boolean goal, boolean planned, String blocker, Rules.Rescue rescue,
+                       boolean lost, boolean goal, boolean planned, String blocker, Fix fix, Rules.Rescue rescue,
                        boolean rescueFailed, String footZh, String chipZh) {
         this.link = link;
         this.observed = observed;
@@ -57,6 +69,7 @@ public final class LinkStatus {
         this.goal = goal;
         this.planned = planned;
         this.blocker = blocker;
+        this.fix = fix;
         this.rescue = rescue;
         this.rescueFailed = rescueFailed;
         this.footZh = footZh;
@@ -82,6 +95,7 @@ public final class LinkStatus {
         String name = link.arcanaZh;
         String goalText = target >= 10 ? "MAX" : Zh.rank(target);
         String blocker = null;
+        Fix fix = Fix.NONE;
         String foot;
         String chip;
         if (obs >= target) {
@@ -111,11 +125,12 @@ public final class LinkStatus {
                 : name + " " + Zh.rankValue(obs);
         } else {
             blocker = higherPriorityBlocker(rules, plan, linkIdx);
+            fix = fix(profile, linkIdx, blocker != null ? plan.summary.tradedFor[linkIdx] : -1);
             foot = blocker != null ? tradedLine(blocker) : "";
             chip = name + " " + Zh.rankValue(obs) + " → " + Zh.rankValue(projected);
         }
         return new LinkStatus(linkIdx, obs, projected, target, targetSlot, story, lost, goal, plan != null,
-            blocker, missed, failed, foot, chip);
+            blocker, fix, missed, failed, foot, chip);
     }
 
     /** "11月20日 升到 MAX". */
@@ -129,16 +144,45 @@ public final class LinkStatus {
     }
 
     /**
-     * The 社群详情 sheet's line for a goal the plan does not reach, with what to do about it:
-     * "时间先给了女皇。想先冲它，就排到女皇前面" when the plan kept another goal, else
-     * "这次排到 RANK 9。想冲 MAX，就把它往前排".
+     * The 社群详情 sheet's line for a goal the plan does not reach, with what to do about it where
+     * 目标 / 目标顺序 can do something: "时间先给了女皇。想先冲它，就排到女皇前面" (same tier),
+     * "时间先给了皇帝。想先冲它，就设成必须，排到皇帝前面" (a 想要 goal behind a 必须 one),
+     * "这次排到 RANK 9。想冲 MAX，就把它往前排", or just "这次排到 RANK 9" when it is already first.
      */
-    static String shortfall(String goalText, int observed, int projected, String blocker) {
+    static String shortfall(String goalText, int observed, int projected, String blocker, Fix fix) {
         if (blocker != null) {
-            return tradedLine(blocker) + "。想先冲它，就排到" + blocker + "前面";
+            String traded = tradedLine(blocker);
+            switch (fix) {
+                case REORDER:
+                    return traded + "。想先冲它，就排到" + blocker + "前面";
+                case MUST_THEN_REORDER:
+                    return traded + "。想先冲它，就设成必须，排到" + blocker + "前面";
+                default:
+                    return traded;
+            }
         }
         String now = projected > observed ? "这次排到 " + Zh.rank(projected) : "这次没排上";
-        return now + "。想冲 " + goalText + "，就把它往前排";
+        return fix == Fix.REORDER ? now + "。想冲 " + goalText + "，就把它往前排" : now;
+    }
+
+    /**
+     * What 目标 / 目标顺序 can do for goal {@code linkIdx}, which gave way to goal {@code blockerIdx}
+     * (-1: to none). 目标顺序 moves a goal only within its tier and every 必须 goal comes before every
+     * 想要 one, so a 想要 goal gets past a 必须 one only once it is 必须 itself.
+     */
+    static Fix fix(Profile profile, int linkIdx, int blockerIdx) {
+        if (profile == null) {
+            return Fix.NONE;
+        }
+        Profile.Tier tier = profile.tier[linkIdx];
+        if (blockerIdx >= 0) {
+            Profile.Tier other = profile.tier[blockerIdx];
+            return other == tier ? Fix.REORDER
+                : other == Profile.Tier.MUST && tier == Profile.Tier.WANT ? Fix.MUST_THEN_REORDER : Fix.NONE;
+        }
+        List<Integer> goals = goalOrder(profile);
+        int at = goals.indexOf(linkIdx);
+        return at > 0 && profile.tier[goals.get(at - 1)] == tier ? Fix.REORDER : Fix.NONE;
     }
 
     /** True when the link cannot continue: its rescue failed, or its window passed without one. */

@@ -177,6 +177,11 @@ public final class TipsCatalogue {
         {"同收益", "加的好感一样"},
         {"收益较低", "加的好感少"},
         {"主序列适用于", "上面的回答适用于"},
+        // The last scenes' research notes (力量, 永劫), as a player would say them.
+        {"仍给出完整友情推荐。", ""},
+        {"此前有无资格会改变后两问措辞，按相同含义对应。", "RANK 9 拒绝过告白的话，后两问说法不一样，按意思选就行。"},
+        {"完整顺序为：", "问题依次是："},
+        {"最后一问属于同伴询问，亦已计入。", ""},
     };
     private static final Pattern NO_NEXT_RANK = Pattern.compile(
             "[；，]?(?:已到(?:终级|MAX)，)?(?:MAX后)?(?:没有|无)(?:后续|下一级)(?:升级|好感)?(?:升级)?门槛[。；]?");
@@ -186,8 +191,15 @@ public final class TipsCatalogue {
         if (note == null) return "";
         String out = note.trim();
         for (String[] words : NOTE_WORDS) out = out.replace(words[0], words[1]);
-        out = NO_NEXT_RANK.matcher(out).replaceAll("");
-        out = out.trim();
+        // The 「no next rank」 clause goes; between two sentences its place keeps a full stop.
+        Matcher clause = NO_NEXT_RANK.matcher(out);
+        StringBuffer kept = new StringBuffer();
+        while (clause.find()) {
+            boolean between = clause.start() > 0 && clause.end() < out.length();
+            clause.appendReplacement(kept, between ? "。" : "");
+        }
+        clause.appendTail(kept);
+        out = kept.toString().replace("。。", "。").trim();
         if (out.startsWith("；") || out.startsWith("，")) out = out.substring(1).trim();
         if (!out.isEmpty() && !out.endsWith("。") && !out.endsWith("！") && !out.endsWith("？")) out += "。";
         return out.equals("。") ? "" : out;

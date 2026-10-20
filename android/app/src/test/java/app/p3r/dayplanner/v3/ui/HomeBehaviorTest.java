@@ -150,7 +150,7 @@ public class HomeBehaviorTest extends UiTestBase {
         HomeActivity a = home(intent);
         Shots.click(a, "女教皇 · 山岸风花，RANK 5 → 9，时间先给了皇帝");
         assertTrue(a.sheets().isShowing());
-        assertTrue(Shots.has(a, "时间先给了皇帝。想先冲它，就排到皇帝前面"));
+        assertTrue(Shots.has(a, "时间先给了皇帝。想先冲它，就设成必须，排到皇帝前面"));
         Shots.click(a, "女教皇 目标：必须");
         assertEquals(Profile.Tier.MUST, api.last().profile.tier[2]);
         Shots.click(a, "女教皇 路线：恋人");

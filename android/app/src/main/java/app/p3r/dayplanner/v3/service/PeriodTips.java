@@ -7,6 +7,7 @@ import app.p3r.dayplanner.v3.engine.RescueLocations;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -296,6 +297,13 @@ public final class PeriodTips {
         List<String> dormLines = new ArrayList<>();
         Set<String> partners = new LinkedHashSet<>();
         int today = Rules.dayOf(period.observedSlot);
+        // Teammates with one activity done 3 times: their trait is unlocked, the other activity 强化s it.
+        Set<String> unlocked = new HashSet<>();
+        for (Rules.Activity activity : rules.activities) {
+            if (activity.dormActivity() && observed != null && used(observed, activity) >= 3) {
+                unlocked.add(partnerKey(activity));
+            }
+        }
         for (Rules.Activity activity : rules.activities) {
             if (activity.fixedDays == null) continue;
             List<Integer> days = new ArrayList<>();
@@ -324,9 +332,9 @@ public final class PeriodTips {
                 if (observed == null) {
                     progress = "还没记进度";
                 } else {
-                    int count = activity.idx >= 0 && activity.idx < observed.used.length
-                            ? Math.max(0, observed.used[activity.idx]) : 0;
-                    progress = count >= 3 ? "做满 3 次了" : "做过 " + count + " 次，再 " + (3 - count) + " 次解锁特性";
+                    int count = used(observed, activity);
+                    progress = count >= 3 ? "做满 3 次了" : "做过 " + count + " 次，再 " + (3 - count) + " 次"
+                            + (unlocked.contains(partnerKey(activity)) ? "强化" : "解锁") + "特性";
                 }
                 String note = activity.noteZh == null ? "" : activity.noteZh.replace(DORM_RULE, "").trim();
                 note = note.replace("，同一种活动累计3次可解锁或强化队友特性", "").trim();
@@ -351,6 +359,17 @@ public final class PeriodTips {
             items.put(item.id, item);
             period.ongoingIds.add(item.id);
         }
+    }
+
+    /** Times a dorm activity was recorded (0 when the record has no count for it). */
+    private static int used(SimState observed, Rules.Activity activity) {
+        return activity.idx >= 0 && activity.idx < observed.used.length ? Math.max(0, observed.used[activity.idx]) : 0;
+    }
+
+    /** One key per teammate across their activities (the name when the id has no teammate part). */
+    private static String partnerKey(Rules.Activity activity) {
+        String id = activity.dormPartnerId();
+        return id != null ? id : "zh:" + activity.dormPartnerZh;
     }
 
     /**

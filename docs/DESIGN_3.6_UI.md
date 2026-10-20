@@ -167,7 +167,9 @@ copy and layout change as below.
   「11月20日 升到 MAX」, 「时间先给了恋爱」 (goals only), 「救出北村文吉了吗？」 /
   「没救出失踪者，无法继续」.
 - 社群详情 (tap a tile): 「RANK 5 → 9」 + pips; one status line with its fix
-  (「时间先给了女皇。想先冲它，就排到女皇前面」 + 「调整顺序 ›」; 「救出北村文吉了吗？」 +
+  (「时间先给了女皇。想先冲它，就排到女皇前面」 + 「调整顺序 ›」 within a tier; a 想要 goal behind a
+  必须 one 「时间先给了皇帝。想先冲它，就设成必须，排到皇帝前面」 + 「调整顺序 ›」; no goal ahead of it
+  in its tier: only 「这次排到 RANK 9」; 「救出北村文吉了吗？」 +
   [去修改进度]); 目标 未选 | 想要 | 必须; romanceable only 「回答按哪条路线？」 朋友 | 恋人;
   everything saves at once. 目标顺序 sheet: 必须 / 想要 groups, big order numerals, ↑ / ↓ only where
   the move stays in the tier.
@@ -191,20 +193,23 @@ copy and layout change as below.
 - Header: `pageHeader("提示", "GUIDE", [本期｜全部])`. No game date: opens in 全部; 本期 asks
   「现在玩到游戏里的哪一天了？」 [设置日期].
 - Search with magnifier and ×: searches the whole game, the old scope returns when cleared; results
-  grouped by kind, 「找到 12 条」 only while searching;
+  grouped by kind under the strip's names, each header's count at the end of its rule (「3 条」),
+  「找到 12 条」 only while searching;
   「没找到。换个说法试试？比如「风花」「36F」「委托 75」」.
-- One-tap strip 「全部 · 社群 · 课堂·考试 · 委托 · 战斗 · 更多」; 更多 = a single-tap tag list, shown
-  as a removable pill.
+- One-tap strip 「全部」「社群」「课堂 · 考试」「委托」「战斗」「其他」, 其他 peeking in at the right edge
+  on a phone; 其他 = a single-tap tag list, shown as a removable pill (40dp, 「去掉筛选：失踪者」 for
+  TalkBack); picking a tag scrolls the lit 其他 chip into view.
 - 本期: banner (block, floors, dates); 「现在」 / 「接下来」, 「已经过去 · 12」 folded; borderless
-  rows with a date plate, kind tag, line, gain, 「10月25日截止」. 「伊莉莎白的委托 · 29 件」 and
-  repeated days (上课犯困) are one row each. 全部 without a search: directory tiles
-  「社群对话」「课堂 · 考试」「伊莉莎白的委托」「战斗」「日程与其他」 with counts.
+  rows with a date plate, kind tag, line, gain, 「10月25日截止」. 「伊莉莎白的委托 · 29 件」 (open
+  requests; expired ones stay rows under 已经过去; 「今天截止 2 件」 on a deadline day) and
+  repeated days (上课犯困) are one row each. 全部 without a search: directory tiles with counts,
+  named like the strip and the search headers: 「社群」「课堂 · 考试」「委托」「战斗」「其他」.
 - Social links: numeral, person, 「RANK 3」 + pips, 「下一次 RANK 3 → 4」 + the answer (or
   「还没解锁 · 6月19日起」), rank track 「解锁」「1→2」…「9→MAX」 with played ranks dimmed and the
   next one lit.
 - Sheets are titled by the item: scene 「RANK 1 → 2」 + [朋友｜恋人] preview (profile untouched) + one
-  choice plate per question 「第 1 问  没问题」; 「解锁女教皇社群」 with a date tag, conditions and
-  numbered steps; requests as 开放 / 前置 / 怎么做 / 奖励 rows; [知道了].
+  choice plate per question 「第 1 问  没问题」; 「解锁女教皇社群」 with a date tag (no 「社群解锁」
+  kind tag), conditions and numbered steps; requests as 开放 / 前置 / 怎么做 / 奖励 rows; [知道了].
 - 战斗: 「守关首领」「蒙纳多之门与通道」「剧情作战」「特殊挑战」; rows with a floor or date plate, the
   name without the pack prefix, the English name, official element tags (「火焰」「神圣」…) or
   「无弱点」; Monad mini headers 「蒙纳多之门 · 随机出现」 / 「蒙纳多通道 · 91F」. Sheet:
