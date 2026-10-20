@@ -10,7 +10,9 @@ import app.p3r.dayplanner.R;
 
 /**
  * Snackbar-style confirmation shown after a record is saved in the app:
- * "已记录：皇帝 RANK 7 · 撤销". Hides itself after {@link #DURATION_MILLIS}.
+ * "已记录：皇帝 RANK 7 · 撤销". Hides itself after {@link #DURATION_MILLIS}; the message is never cut
+ * silently (an ellipsis at worst), and the 「RANK UP」 badge steps aside when it would push the
+ * message past two lines.
  */
 public final class UndoBar extends LinearLayout {
     static final long DURATION_MILLIS = 8000;
@@ -22,8 +24,11 @@ public final class UndoBar extends LinearLayout {
     private final TextView message;
     private final TextView action;
     private final SlantedPanelDrawable panel;
-    private final Runnable hide = this::hide;
+    private final Runnable hide = this::timedOut;
     private Runnable onAction;
+    private Runnable onTimeout;
+    /** The message is news a newer one may replace ({@link #showNotice}). */
+    private boolean notice;
 
     public UndoBar(Context context) {
         super(context);
@@ -44,7 +49,8 @@ public final class UndoBar extends LinearLayout {
         badgeParams.rightMargin = Ui.dp(context, 10);
         addView(badge, badgeParams);
         message = Ui.mixed(context, "", 15, Ui.col(context, R.color.p3r_navy_900), true);
-        message.setMaxLines(2);
+        message.setMaxLines(3);
+        message.setEllipsize(android.text.TextUtils.TruncateAt.END);
         addView(message, Ui.weight(1));
         action = Ui.text(context, "撤销", 15, Ui.col(context, R.color.p3r_royal_600), true);
         action.setGravity(android.view.Gravity.CENTER);
@@ -71,6 +77,7 @@ public final class UndoBar extends LinearLayout {
     /** Shows the bar in {@code style}: rank-ups get a 「RANK UP」 badge, errors a red slab and 「!」. */
     public void show(CharSequence text, String actionLabel, Runnable onAction, Style style) {
         removeCallbacks(hide);
+        notice = false;
         Context context = getContext();
         panel.slab(Ui.col(context, style == Style.ERROR ? R.color.p3r_danger : R.color.p3r_cyan_400),
             Ui.dp(context, 4), Ui.dp(context, 4));
@@ -78,6 +85,8 @@ public final class UndoBar extends LinearLayout {
             badge.setVisibility(GONE);
         } else {
             badge.setText(style == Style.ERROR ? "!" : "RANK UP");
+            // Navy on the light red (as ConfirmDialog's destructive button), white on royal.
+            badge.setTextColor(Ui.col(context, style == Style.ERROR ? R.color.p3r_navy_950 : R.color.p3r_white));
             ((SlantedPanelDrawable) badge.getBackground()).fill(Ui.col(context,
                 style == Style.ERROR ? R.color.p3r_danger : R.color.p3r_royal_600));
             badge.setVisibility(VISIBLE);
@@ -108,10 +117,44 @@ public final class UndoBar extends LinearLayout {
         removeCallbacks(hide);
     }
 
+    /**
+     * Shows news a newer one may replace (what a replan changed, with 「看看」): {@link #showsNotice}
+     * until anything else is shown here or the bar hides.
+     */
+    void showNotice(CharSequence text, String actionLabel, Runnable onAction) {
+        show(text, actionLabel, onAction);
+        notice = true;
+    }
+
     public void hide() {
         removeCallbacks(hide);
         onAction = null;
+        notice = false;
         setVisibility(GONE);
+    }
+
+    /** Hidden after {@link #DURATION_MILLIS}: then {@link #setOnTimeout} runs. */
+    private void timedOut() {
+        hide();
+        if (onTimeout != null) {
+            onTimeout.run();
+        }
+    }
+
+    /** Runs whenever a message has had its time and hides (not when it is replaced or acted on). */
+    void setOnTimeout(Runnable onTimeout) {
+        this.onTimeout = onTimeout;
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        if (badge.getVisibility() == VISIBLE && message.getLineCount() > 2) {
+            // Large text or a narrow phone: the decoration goes, the words stay whole.
+            badge.animate().cancel();
+            badge.setVisibility(GONE);
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        }
     }
 
     public boolean isShowing() {
@@ -123,9 +166,25 @@ public final class UndoBar extends LinearLayout {
         return isShowing() && action.getVisibility() == View.VISIBLE;
     }
 
+    /** Showing news from {@link #showNotice}, nothing shown over it since. */
+    boolean showsNotice() {
+        return isShowing() && notice;
+    }
+
     /** Current message text (tests). */
     public CharSequence messageText() {
         return Zh.plain(message.getText());
+    }
+
+    /** The 「RANK UP」 / 「!」 badge is drawn (tests). */
+    boolean showsBadge() {
+        return isShowing() && badge.getVisibility() == VISIBLE;
+    }
+
+    /** The message ends in an ellipsis (tests). */
+    boolean messageCut() {
+        android.text.Layout layout = message.getLayout();
+        return layout != null && layout.getLineCount() > 0 && layout.getEllipsisCount(layout.getLineCount() - 1) > 0;
     }
 
     /** Triggers the action as if tapped (tests). */

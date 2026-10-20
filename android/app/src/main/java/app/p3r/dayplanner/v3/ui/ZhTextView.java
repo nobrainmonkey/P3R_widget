@@ -44,6 +44,8 @@ final class ZhTextView extends TextView {
         public void updateDrawState(TextPaint paint) {
             if (hidden) {
                 paint.setColor(Color.TRANSPARENT);
+                // A heading's drop shadow would still draw the dot.
+                paint.clearShadowLayer();
             }
         }
     }

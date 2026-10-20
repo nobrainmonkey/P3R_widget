@@ -130,16 +130,23 @@ final class StepViews {
         return out;
     }
 
-    /** The how-to lines shown under the steps ({@link #isAnnotation}), in their order. */
+    /**
+     * The how-to lines shown under the steps ({@link #isAnnotation}), in their order. The guide's
+     * answers are left out (the step block shows them once, short, {@link Dialogue#line}), and so
+     * is the full question order, which belongs to 提示.
+     */
     static List<String> howToNotes(String detail) {
         List<String> out = new ArrayList<>();
         for (String line : howToLines(detail)) {
-            if (isAnnotation(line)) {
+            if (isAnnotation(line) && !Dialogue.isAnswerLine(line) && !line.startsWith(SEQUENCE_NOTE)) {
                 out.add(line);
             }
         }
         return out;
     }
+
+    /** The engine's note with a scene's whole question order (engine Labels.meetHow). */
+    private static final String SEQUENCE_NOTE = NOTE_PREFIX + "完整问答顺序";
 
     /** "怎么做 · 3 步" — the label of the how-to section; only real steps are counted. */
     static String howToLabel(String detail) {
@@ -189,8 +196,8 @@ final class StepViews {
     }
 
     /**
-     * Numbered how-to ("怎么做"); a single step is shown as a plain paragraph. 「回答：…」 and
-     * 「注意：…」 lines follow the steps as marked notes, not numbered.
+     * Numbered how-to ("怎么做"); a single step is shown as a plain paragraph. 「注意：…」 lines
+     * follow the steps as marked notes, not numbered ({@link #howToNotes}).
      */
     static View howTo(Context c, String detail, float sp) {
         List<String> lines = howToSteps(detail);

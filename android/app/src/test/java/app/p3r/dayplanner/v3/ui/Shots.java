@@ -132,8 +132,11 @@ final class Shots {
             String latin = text.replaceAll("RANK|MAX|Lv|P3R|ATLUS|SEGA|Reload|Barlow|Condensed|SIL|DVD|DLC|aqiu384|Megaten|Database|Fusion|Tools|Unlicense", "")
                 .replaceAll("[a-z0-9.-]+\\.[a-z]{2,}", "").replaceAll("\\b[IVX]+\\b", "")
                 .replaceAll("「[A-Z][A-Z .'-]*」", "");
-            // Decorative Latin (a page kicker or watermark, design §3) is hidden from TalkBack and never alone.
-            boolean decorative = !cjk && t.getImportantForAccessibility() == View.IMPORTANT_FOR_ACCESSIBILITY_NO;
+            // Decorative Latin (a page kicker or watermark, design §3; a guide-lookup English name) is
+            // set in the numeral face and hidden from TalkBack. An English label in the system face
+            // is caught even when hidden (a row's own description may speak for it).
+            boolean decorative = !cjk && Ui.inNumeralFace(t)
+                && t.getImportantForAccessibility() == View.IMPORTANT_FOR_ACCESSIBILITY_NO;
             assertTrue(where + ": English shown to the player: " + text,
                 bilingual || decorative || !latin.matches("(?s).*[A-Za-z]{2,}.*"));
             checkNumeralWords(t, where);

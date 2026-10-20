@@ -245,7 +245,7 @@ final class HistoryPage {
         tp.leftMargin = Ui.dp(c, 8);
         plate.addView(text, tp);
         TextView age = Ui.text(c, Zh.age(System.currentTimeMillis(), item.createdMillis), 12,
-            Ui.col(c, R.color.p3r_ink_faint), false);
+            Ui.col(c, R.color.ui_ink_hint), false);
         plate.addView(age, Ui.wrap());
         return plate;
     }
@@ -292,7 +292,7 @@ final class HistoryPage {
             meta.addView(undone, up);
         }
         meta.addView(Ui.text(c, Zh.age(System.currentTimeMillis(), item.createdMillis), 12,
-            Ui.col(c, R.color.p3r_ink_faint), false), Ui.weight(1));
+            Ui.col(c, R.color.ui_ink_hint), false), Ui.weight(1));
         // PlannerApi.HistoryItem: 撤销 for every record that still shapes the progress (undoable),
         // 修改 only where the store accepts a correction and can supply the original values.
         if (!item.voided && item.undoable) {

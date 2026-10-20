@@ -1071,18 +1071,19 @@ public class ResultSheetTest extends UiTestBase {
         api.corrections.put(correction.targetSeq, correction);
         ResultActivity a = correction(correction.targetSeq);
         Shots.click(a, "升到 RANK 7 了");
-        String summary = UndoCenter.take().summaryZh;
+        UndoCenter.Recorded fixed = UndoCenter.take();
+        String summary = fixed.summaryZh;
         assertEquals("皇帝 改为 RANK 7", summary);
         assertFalse("no 「已修改：」 under the bar's 「已记录：」", summary.contains("已修改"));
-        assertFalse(HomeActivity.isRankUp(summary));
+        assertFalse(fixed.rankUp);
         // 「其他结果…」 below the recorded rank on a new record is a change, not a rank-up either.
         ResultActivity b = result(NOW, "meet:emperor", Intents.MODE_RESULT);
         Shots.click(b, ResultActivity.OTHER_RESULTS);
         Shots.click(b, "RANK 5");
         assertEquals(Outcome.Code.OTHER, api.last().outcome.code);
-        String down = UndoCenter.take().summaryZh;
-        assertEquals("皇帝 改为 RANK 5", down);
-        assertFalse(HomeActivity.isRankUp(down));
+        UndoCenter.Recorded lower = UndoCenter.take();
+        assertEquals("皇帝 改为 RANK 5", lower.summaryZh);
+        assertFalse(lower.rankUp);
     }
 
     @Test

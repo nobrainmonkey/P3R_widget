@@ -276,6 +276,7 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         TextView body = Ui.body(this, Messages.loadFailed(errorZh));
         LinearLayout.LayoutParams bp = Ui.matchWrap();
         bp.topMargin = Ui.dp(this, 8);
+        body.setVisibility(body.getText().length() == 0 ? View.GONE : View.VISIBLE);
         box.addView(body, bp);
         TextView retry = Ui.primary(this, "重试");
         retry.setOnClickListener(v -> {

@@ -92,6 +92,12 @@ public final class Ui {
         return numeralUpright;
     }
 
+    /** True when {@code view} is set in the numeral face as a whole (slanted or upright). */
+    static boolean inNumeralFace(TextView view) {
+        Typeface face = view.getTypeface();
+        return face != null && (face == numeralItalic || face == numeralUpright);
+    }
+
     private static Typeface loadFamily(Context context) {
         try {
             Typeface family = context.getResources().getFont(R.font.p3r_numerals);
@@ -161,8 +167,7 @@ public final class Ui {
         if (kept == null || kept.length() == 0) {
             return kept;
         }
-        Typeface face = view.getTypeface();
-        if (face != null && (face == numeralItalic || face == numeralUpright)) {
+        if (inNumeralFace(view)) {
             return kept;
         }
         java.util.regex.Matcher m = NUMERAL_WORDS.matcher(kept);
@@ -308,9 +313,13 @@ public final class Ui {
             .cuts(cut, 0, cut, 0);
     }
 
-    /** Panel that reacts to presses (list rows, menu entries): pressed it lights up in cyan. */
+    /**
+     * Panel that reacts to presses (list rows, menu entries): pressed it gets a cyan outline. The
+     * outline is there at rest too, fully transparent (alpha 0, not colour 0, which draws nothing).
+     */
     public static SlantedPanelDrawable pressableCard(Context context) {
-        return card(context).pressedFill(col(context, R.color.p3r_navy_700))
+        return card(context).stroke(alpha(col(context, R.color.p3r_cyan_400), 0), dp(context, 1.5f))
+            .pressedFill(col(context, R.color.p3r_navy_700))
             .pressedStroke(col(context, R.color.p3r_cyan_400));
     }
 
@@ -496,17 +505,17 @@ public final class Ui {
      */
     public static android.widget.FrameLayout pageHeader(Context context, CharSequence title, String kicker,
                                                         View trailing) {
-        android.widget.FrameLayout frame = new android.widget.FrameLayout(context);
+        LinearLayout column = column(context);
+        HeaderFrame frame = new HeaderFrame(context, column);
         frame.setClipChildren(true);
         if (kicker != null) {
             TextView mark = new OutlinedText(context, kicker);
             android.widget.FrameLayout.LayoutParams markParams = new android.widget.FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END | Gravity.TOP);
-            markParams.topMargin = -dp(context, 14);
+            markParams.topMargin = -dp(context, 30);
             markParams.rightMargin = -dp(context, 64);
             frame.addView(mark, markParams);
         }
-        LinearLayout column = column(context);
         if (kicker != null) {
             TextView en = numeral(context, kicker, 15, col(context, R.color.p3r_cyan_400));
             en.setLetterSpacing(0.14f);
@@ -542,28 +551,50 @@ public final class Ui {
     }
 
     /**
-     * Title bar of a sub-page: the back chevron on a slanted outline plate, a bold title and a short
-     * cyan underline fading to the right.
+     * The frame of {@link #pageHeader}: exactly as tall as its title column. The watermark behind it
+     * is decoration: it is cropped at the frame's edge and never makes the header taller.
+     */
+    private static final class HeaderFrame extends android.widget.FrameLayout {
+        private final View column;
+
+        HeaderFrame(Context context, View column) {
+            super(context);
+            this.column = column;
+        }
+
+        @Override
+        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+            int height = column.getMeasuredHeight() + getPaddingTop() + getPaddingBottom();
+            setMeasuredDimension(getMeasuredWidth(), resolveSize(height, heightMeasureSpec));
+        }
+    }
+
+    /**
+     * Title bar of a sub-page: the back chevron on a slanted outline plate (drawn 40 dp tall in a
+     * 48 dp touch target), a bold title (two lines at most) and a short cyan underline fading to
+     * the right.
      */
     public static LinearLayout subPageBar(Context context, CharSequence title, View.OnClickListener onBack) {
         LinearLayout bar = column(context);
-        pad(bar, 8, 6, GUTTER, 2);
+        pad(bar, 8, 2, GUTTER, 2);
         LinearLayout line = row(context);
         ImageView back = new ImageView(context);
         back.setImageDrawable(tinted(context, R.drawable.ui_ic_back, col(context, R.color.p3r_white)));
         back.setScaleType(ImageView.ScaleType.CENTER);
         back.setContentDescription("返回");
-        back.setBackground(new SlantedPanelDrawable()
+        SlantedPanelDrawable plate = new SlantedPanelDrawable()
             .fill(alpha(col(context, R.color.p3r_navy_950), 90))
             .pressedFill(col(context, R.color.ui_cyan_soft))
             .stroke(alpha(col(context, R.color.p3r_cyan_300), 160), dp(context, 1.2f))
-            .skew(dp(context, 6)));
+            .skew(dp(context, 6));
+        back.setBackground(new android.graphics.drawable.InsetDrawable(plate, 0, dp(context, 4), 0, dp(context, 4)));
         back.setOnClickListener(onBack);
         int size = dp(context, TOUCH);
-        line.addView(back, new LinearLayout.LayoutParams(size, dp(context, 40)));
+        line.addView(back, new LinearLayout.LayoutParams(size, size));
         TextView heading = heavy(mixed(context, title, 24, col(context, R.color.p3r_white), true));
         heading.setShadowLayer(0.01f, dp(context, 2), dp(context, 2), alpha(col(context, R.color.p3r_royal_500), 200));
-        heading.setMaxLines(1);
+        heading.setMaxLines(2);
         heading.setEllipsize(TextUtils.TruncateAt.END);
         if (Build.VERSION.SDK_INT >= 28) {
             heading.setAccessibilityHeading(true);

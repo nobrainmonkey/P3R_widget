@@ -2,9 +2,11 @@ package app.p3r.dayplanner.v3.ui;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -107,9 +109,15 @@ final class TodayPage {
         LinearLayout.LayoutParams plateParams = Ui.matchWrap();
         plateParams.topMargin = Ui.dp(c, 8);
         column.addView(plate, plateParams);
-        if (d.snap.planning && !d.snap.fullReplanning) {
-            // An ordinary replan: just the stripe under the date, no words.
-            column.addView(new BusyStripe(c), spaced(6));
+        // An ordinary replan: just the stripe under the date, no words. It sits in the gap above the
+        // next block and takes no room (its negative bottom margin), so nothing below moves when it
+        // comes and goes; the first plan has the hero's own wait.
+        if (d.snap.planning && !d.snap.fullReplanning && (finished || d.current() != null)) {
+            LinearLayout.LayoutParams stripeParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                Ui.dp(c, BusyStripe.HEIGHT_DP));
+            stripeParams.topMargin = Ui.dp(c, 6);
+            stripeParams.bottomMargin = -(stripeParams.topMargin + stripeParams.height);
+            column.addView(new BusyStripe(c), stripeParams);
         }
 
         if (d.returnBanner) {
@@ -272,8 +280,20 @@ final class TodayPage {
         band.setClickable(true);
         band.setFocusable(true);
         band.setOnClickListener(v -> host.openState("edit"));
+        // TalkBack reads the cells, then what a double tap does.
+        band.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+            @Override
+            public void onInitializeAccessibilityNodeInfo(View v, AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(v, info);
+                info.addAction(new AccessibilityNodeInfo.AccessibilityAction(AccessibilityNodeInfo.ACTION_CLICK,
+                    EDIT_LABEL));
+            }
+        });
         return band;
     }
+
+    /** What tapping the resource band does. */
+    static final String EDIT_LABEL = "修改进度";
 
     /** A resource cell: caption over a big numeral (and a small unit). */
     private View cell(String label, String value, String unit) {
@@ -292,7 +312,9 @@ final class TodayPage {
             valueRow.addView(u, up);
         }
         cell.addView(valueRow);
-        cell.setContentDescription(label + " " + ("—".equals(value) ? "不确定" : value + (unit == null ? "" : unit)));
+        // 「—」 is the wizard's 不记得 (as StateSteps.resourceCell says it).
+        cell.setContentDescription(label + " " + ("—".equals(value) ? CashPad.UNKNOWN_LABEL
+            : value + (unit == null ? "" : unit)));
         return cell;
     }
 
@@ -541,8 +563,10 @@ final class TodayPage {
         }
         // One short label; the sheet it opens offers the reasons and 「改做别的…」.
         TextView cannot = Ui.secondary(c, CANNOT_LABEL);
-        cannot.setTextSize(15);
-        cannot.setMaxLines(2);
+        // One line at any size: on a narrow phone with large text the label shrinks a little
+        // instead of breaking 「做不了…」 in two.
+        cannot.setMaxLines(1);
+        cannot.setAutoSizeTextTypeUniformWithConfiguration(12, 15, 1, TypedValue.COMPLEX_UNIT_SP);
         cannot.setContentDescription("做不了，选原因或改做别的");
         Ui.pad(cannot, 10, 8, 10, 8);
         cannot.setOnClickListener(v -> host.openResult(step.slot, step.action, Intents.MODE_CANNOT));
@@ -657,8 +681,8 @@ final class TodayPage {
     // ------------------------------------------------------------------ goals
 
     /**
-     * The goals the plan does not reach, as gold lines that open 社群; one quiet line when every
-     * goal is on track; null without goals.
+     * The goals the plan does not reach, as gold lines that open the link's 社群详情; one quiet line
+     * (to 社群) when every goal is on track; null without goals.
      */
     private View goals(UiData d) {
         Profile profile = d.profile();
@@ -679,7 +703,9 @@ final class TodayPage {
             line.setGravity(Gravity.CENTER_VERTICAL);
             line.setClickable(true);
             line.setFocusable(true);
-            line.setOnClickListener(v -> host.selectTab(HomeActivity.TAB_LINKS));
+            // Straight to that link's 社群详情, where the fix is.
+            final int target = link;
+            line.setOnClickListener(v -> host.openLink(target));
             box.addView(line, Ui.matchWrap());
         }
         if (box.getChildCount() == 1) {
@@ -695,13 +721,19 @@ final class TodayPage {
     /** Every goal is reached by the plan. */
     static final String GOALS_OK = "目标都排到了 ›";
 
-    /** 「皇帝 · 没排到 MAX」 / 「女教皇 · 无法继续」 for a goal in trouble, else null. */
+    /**
+     * 「皇帝 · 没排到 MAX」 / 「女教皇 · 无法继续」 for a goal in trouble, else null; a goal already
+     * reached is never in trouble (a rescue missed afterwards changes nothing).
+     */
     static String troubleOf(Rules rules, LinkStatus s) {
         String name = rules.links[s.link].arcanaZh;
+        if (s.observed >= s.target) {
+            return null;
+        }
         if (s.lost) {
             return name + " · 无法继续";
         }
-        if (s.observed >= s.target || s.story || s.targetSlot >= 0 || s.projected >= s.target) {
+        if (s.story || s.targetSlot >= 0 || s.projected >= s.target) {
             return null;
         }
         return name + " · 没排到 " + (s.target >= 10 ? "MAX" : Zh.rank(s.target));

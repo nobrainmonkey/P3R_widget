@@ -226,6 +226,14 @@ final class SchedulePage {
         }
     }
 
+    /** Scrolls to the day of {@code slot} (the message bar's 「看看」 after a replan). */
+    void showSlot(int slot) {
+        int position = data == null || !data.hasState() ? -1 : todayPosition(adapter.items, slot);
+        if (position >= 0) {
+            list.setSelectionFromTop(position, Ui.dp(c, 8));
+        }
+    }
+
     /** Rows cascade in the first time the tab is seen with its calendar. */
     private void cascadeOnce() {
         if (cascaded || !Ui.animationsEnabled() || adapter.items.isEmpty() || !root.isShown()) {

@@ -15,6 +15,9 @@ import app.p3r.dayplanner.R;
  * The animation runs only while attached and visible; it is static in render tests.
  */
 public final class BusyStripe extends View {
+    /** Height of the band (dp). */
+    static final int HEIGHT_DP = 4;
+
     private final Paint track = new Paint();
     private final Paint stripe = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path path = new Path();
@@ -30,7 +33,7 @@ public final class BusyStripe extends View {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int height = Ui.dp(getContext(), 4);
+        int height = Ui.dp(getContext(), HEIGHT_DP);
         setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), resolveSize(height, heightMeasureSpec));
     }
 

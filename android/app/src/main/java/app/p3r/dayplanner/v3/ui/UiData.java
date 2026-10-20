@@ -75,9 +75,12 @@ public final class UiData {
         return plan == null || slot < 0 ? null : plan.at(slot);
     }
 
-    /** Whether the return banner should show for this snapshot (pure, for tests). */
-    static boolean returnBannerDue(PlannerApi.Snapshot snap, long nowMillis, long dismissedForRecord) {
-        if (snap == null || snap.observed == null || snap.lastRecordMillis <= 0) {
+    /**
+     * Whether the return banner should show for this snapshot (pure, for tests): never once the
+     * calendar is over, when there is nothing left to catch up on.
+     */
+    static boolean returnBannerDue(Rules rules, PlannerApi.Snapshot snap, long nowMillis, long dismissedForRecord) {
+        if (snap == null || snap.observed == null || snap.lastRecordMillis <= 0 || Slots.finished(rules, snap.observed)) {
             return false;
         }
         if (dismissedForRecord == snap.lastRecordMillis) {

@@ -150,7 +150,8 @@ copy and layout change as below.
   [先不了] [重新安排] (runs the deep search). Running → [停下]. Results:
   「重新安排好了：这周 3 处有变」, 「…，之后也有调整」, 「重新安排好了：这周不变，之后有调整」,
   「重新安排好了：顺便的事有调整」, 「重新安排好了，和现在的一样」, 「这次没排好，安排先不变」,
-  「已停下，安排没变」; ordinary: 「已重新安排：这周 3 处有变」 or nothing.
+  「已停下，安排没变」; ordinary: 「已重新安排：这周 3 处有变」 or nothing. Said once in the message
+  bar, after a record's 撤销 has had its time; a change offers [看看] → 日程 at the first changed day.
 
 ### 6.3 社群, 社群详情, 目标顺序, 羁绊剧情, 队友特性, RankPad
 - Header: `pageHeader("社群", "SOCIAL LINK", 「MAX 15」)`; the count carries the page's only 「预计」

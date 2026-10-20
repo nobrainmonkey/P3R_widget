@@ -119,7 +119,11 @@ final class SheetChrome {
                         startY = event.getRawY();
                         tracker = VelocityTracker.obtain();
                         track(event);
+                        // Caught during its entrance: the fade-in finishes, the slide is the finger's.
                         panel.animate().cancel();
+                        if (panel.getAlpha() < 1f) {
+                            panel.animate().alpha(1f).setDuration(120).start();
+                        }
                         return true;
                     case MotionEvent.ACTION_MOVE:
                         if (!dragging) {
@@ -148,9 +152,11 @@ final class SheetChrome {
                             && (dy > Ui.dp(panel.getContext(), DISMISS_DRAG) || fling)) {
                             dismiss.run();
                         } else if (Ui.animationsEnabled()) {
-                            panel.animate().translationY(0f).setDuration(200).setInterpolator(Motion.SETTLE).start();
+                            panel.animate().translationY(0f).alpha(1f).setDuration(200).setInterpolator(Motion.SETTLE)
+                                .start();
                         } else {
                             panel.setTranslationY(0f);
+                            panel.setAlpha(1f);
                         }
                         return true;
                     default:

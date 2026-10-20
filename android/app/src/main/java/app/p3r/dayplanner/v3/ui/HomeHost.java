@@ -20,6 +20,11 @@ interface HomeHost {
     /** Opens the quick result sheet ({@link app.p3r.dayplanner.v3.Intents#MODE_RESULT} etc.). */
     void openResult(int slot, String actionKey, String mode);
 
+    /** Opens 社群 with the 社群详情 of {@code link} (rules index). */
+    default void openLink(int link) {
+        selectTab(HomeActivity.TAB_LINKS);
+    }
+
     /** Opens the state wizard in onboarding / sync / edit mode. */
     void openState(String mode);
 
@@ -76,7 +81,7 @@ interface HomeHost {
 
     /**
      * 从头重新安排: re-read the records and settings and plan from scratch. Shows the running state
-     * at once; the result is shown once in the message bar and the 今天 status line.
+     * at once; the result is shown once in the message bar.
      */
     void requestFullReplan();
 
