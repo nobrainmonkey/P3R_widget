@@ -43,9 +43,10 @@ import app.p3r.dayplanner.v3.service.TipsCatalogue;
 /**
  * 提示 (docs/DESIGN_3.6_UI.md): what matters in the current Tartarus period and an all-game lookup,
  * both read-only and independent of the remaining plan. The header is the tab's page header with a
- * [本期｜全部] toggle; under the search field a one-tap content strip (全部 · 社群 · 课堂·考试 · 委托 ·
- * 战斗 · 更多). 本期 opens with the period's banner and borderless rows by time (现在 / 接下来 / a
- * folded 已经过去); 全部 without a search is a directory of big menu tiles.
+ * [本期｜全部] toggle; under the search field a one-tap content strip (全部 · 社群 · 课堂 · 考试 · 委托 ·
+ * 战斗 · 其他). 本期 opens with the period's banner and borderless rows by time (现在 / 接下来 / a
+ * folded 已经过去); 全部 without a search is a directory of big menu tiles. The strip, the tiles and
+ * the search headers name each kind the same way ({@link #KIND_LABELS}).
  */
 final class TipsPage {
     private static final int SECTION = 0;
@@ -64,11 +65,13 @@ final class TipsPage {
     /** The content strip: one tap shows one kind. */
     private static final TipsCatalogue.Content[] STRIP = {TipsCatalogue.Content.ALL, TipsCatalogue.Content.DIALOGUE,
         TipsCatalogue.Content.CLASS_EXAM, TipsCatalogue.Content.REQUEST, TipsCatalogue.Content.COMBAT};
-    static final String[] STRIP_LABELS = {"全部", "社群", "课堂·考试", "委托", "战斗"};
+    /** The kinds as the strip, the 全部 tiles and the search headers all name them; the last is {@link #MORE}. */
+    static final String[] KIND_LABELS = {"社群", "课堂 · 考试", "委托", "战斗", "其他"};
+    static final String[] STRIP_LABELS = {"全部", KIND_LABELS[0], KIND_LABELS[1], KIND_LABELS[2], KIND_LABELS[3]};
     private static final String[] STRIP_KEYS = {"all", "dialogue", "class", "request", "combat"};
-    /** Last chip of the strip: the rarer tags in a single-tap list. */
-    static final String MORE = "更多";
-    /** Tags the strip already covers; 更多 lists the others. */
+    /** Last chip of the strip (and the last tile): the rarer tags in a single-tap list. */
+    static final String MORE = KIND_LABELS[4];
+    /** Tags the strip already covers; 其他 lists the others. */
     private static final Set<String> STRIP_COVERED = new HashSet<>(Arrays.asList("社群对话", "委托", "课堂提问", "考试",
         "守关首领", "满月作战", "蒙纳多", "蒙纳多之门", "蒙纳多通道", "剧情作战", "最终战", "特殊挑战"));
 
@@ -256,8 +259,6 @@ final class TipsPage {
         LinearLayout status = Ui.row(c);
         pill = Ui.chip(c, "", true);
         pill.setTag("tips_filter_selection");
-        pill.setMinHeight(Ui.dp(c, 36));
-        pill.setMinimumHeight(Ui.dp(c, 36));
         android.graphics.drawable.Drawable x = Ui.tinted(c, R.drawable.ui_ic_close, Ui.col(c, R.color.p3r_navy_950));
         x.setBounds(0, 0, Ui.dp(c, 14), Ui.dp(c, 14));
         pill.setCompoundDrawables(null, null, x, null);
@@ -318,7 +319,8 @@ final class TipsPage {
                     allScope = scopeBeforeSearch;
                     scopeBeforeSearch = null;
                 }
-                refresh(true);
+                // Results follow the typing in place; the list slides in only when search starts or ends.
+                refresh(true, wasEmpty != nowEmpty);
             }
             @Override public void afterTextChanged(Editable s) {}
         });
@@ -397,7 +399,12 @@ final class TipsPage {
         pill.setVisibility(category == null ? View.GONE : View.VISIBLE);
         if (category != null) {
             pill.setText(Ui.latin(c, category));
-            pill.setContentDescription(category + "，取消");
+            pill.setContentDescription("去掉筛选：" + category);
+            // 其他 sits past the strip's right edge on a phone: bring the lit chip into view.
+            stripScroll.post(() -> {
+                if (Ui.animationsEnabled()) stripScroll.smoothScrollTo(moreChip.getRight(), 0);
+                else stripScroll.scrollTo(moreChip.getRight(), 0);
+            });
         }
     }
 
@@ -453,6 +460,14 @@ final class TipsPage {
     // ------------------------------------------------------------------ content
 
     private void refresh(boolean reset) {
+        refresh(reset, reset);
+    }
+
+    /**
+     * Rebuilds the list; {@code reset} scrolls it back to the top, {@code animate} slides it in again
+     * (a new scope or kind, not every typed character).
+     */
+    private void refresh(boolean reset, boolean animate) {
         updateControls();
         if (data == null) return;
         boolean searching = !query.trim().isEmpty();
@@ -498,7 +513,7 @@ final class TipsPage {
         adapter.setItems(items);
         if (reset) {
             list.setSelection(0);
-            if (shownOnce) Motion.enter(list, 0);
+            if (animate && shownOnce) Motion.enter(list, 0);
         }
         if (!shownOnce) {
             shownOnce = true;
@@ -558,7 +573,7 @@ final class TipsPage {
 
     /** Search results by kind, each under 「社群 · 3」-style headers. */
     private List<Item> searchItems(List<Plan.Reminder> matches) {
-        String[] titles = {"社群", "课堂·考试", "委托", "战斗", "其他"};
+        String[] titles = KIND_LABELS;
         List<List<Plan.Reminder>> buckets = new ArrayList<>();
         for (int i = 0; i < titles.length; i++) buckets.add(new ArrayList<>());
         for (Plan.Reminder r : matches) {
@@ -630,7 +645,8 @@ final class TipsPage {
                     groups.put(scopedKey, group);
                     result.add(new Item(item.section, group));
                 }
-            } else if (collapse && TipsCatalogue.isRequestEntry(item.reminder)) {
+            } else if (collapse && TipsCatalogue.isRequestEntry(item.reminder) && item.section != PAST) {
+                // Expired requests stay plain rows under 已经过去; the row counts what is still open.
                 key = "requests";
                 scopedKey = key;
                 group = groups.get(scopedKey);
@@ -971,18 +987,18 @@ final class TipsPage {
         LinearLayout box = Ui.column(c);
         Ui.pad(box, 0, 8, 0, 8);
         Object[][] tiles = {
-            {"社群对话", links, TipsCatalogue.Content.DIALOGUE, "dialogue"},
-            {"课堂 · 考试", answers, TipsCatalogue.Content.CLASS_EXAM, "class"},
-            {"伊莉莎白的委托", requests, TipsCatalogue.Content.REQUEST, "request"},
-            {"战斗", fights, TipsCatalogue.Content.COMBAT, "combat"},
-            {"日程与其他", others, null, "other"},
+            {KIND_LABELS[0], links, TipsCatalogue.Content.DIALOGUE, "dialogue"},
+            {KIND_LABELS[1], answers, TipsCatalogue.Content.CLASS_EXAM, "class"},
+            {KIND_LABELS[2], requests, TipsCatalogue.Content.REQUEST, "request"},
+            {KIND_LABELS[3], fights, TipsCatalogue.Content.COMBAT, "combat"},
+            {MORE, others, null, "other"},
         };
         int index = 0;
         for (Object[] tile : tiles) {
             int count = (Integer) tile[1];
             if (count == 0) continue;
             TipsCatalogue.Content value = (TipsCatalogue.Content) tile[2];
-            View view = tile(Zh.dots((String) tile[0]), count, "tips_tile_" + tile[3],
+            View view = tile((String) tile[0], count, "tips_tile_" + tile[3],
                 value == null ? this::openMore : () -> chooseContent(value));
             LinearLayout.LayoutParams p = Ui.matchWrap();
             // Stepped like the game's main menu: each tile starts a little further right.
@@ -1393,7 +1409,7 @@ final class TipsPage {
         String sub = null;
         if (!deadlines.isEmpty()) {
             int first = Collections.min(deadlines.keySet());
-            sub = Zh.date(first) + "截止 " + deadlines.get(first) + " 件";
+            sub = (first == today ? "今天" : Zh.date(first)) + "截止 " + deadlines.get(first) + " 件";
             names.addView(Ui.mixed(c, sub, 13, Ui.col(c, R.color.ui_gold), true), top(2));
         }
         LinearLayout.LayoutParams np = Ui.weight(1);
@@ -1490,12 +1506,19 @@ final class TipsPage {
         }
     }
 
-    /** After a group opens near the bottom, bring its first rows into view. */
+    /**
+     * After a group opens near the bottom, bring its rows into view, never scrolling its header off
+     * the top. Measured on the list's own row (the card sits inside {@link #divided}).
+     */
     private void revealAfterExpanding(View card) {
         if (!Ui.animationsEnabled()) return;
         list.postDelayed(() -> {
-            int overflow = card.getBottom() - (list.getHeight() - list.getPaddingBottom());
-            if (overflow > 0) list.smoothScrollBy(Math.min(overflow, Math.max(0, card.getTop())), 240);
+            if (!(card.getParent() instanceof View)) return;
+            View row = (View) card.getParent();
+            if (row.getParent() != list) return;
+            int overflow = row.getBottom() - (list.getHeight() - list.getPaddingBottom());
+            int room = Math.max(0, row.getTop() - list.getPaddingTop());
+            if (overflow > 0) list.smoothScrollBy(Math.min(overflow, room), 240);
         }, 200);
     }
 
@@ -1705,15 +1728,12 @@ final class TipsPage {
         LinearLayout sheet = sheet();
         boolean story = link.kind == Rules.LinkKind.STORY;
         String[] lines = reminder.detailZh == null ? new String[0] : reminder.detailZh.split("\n");
+        // The title says 解锁; the tags carry only the day it opens (and 随剧情解锁 for a story link).
         LinearLayout tags = Ui.row(c);
-        tags.addView(Ui.tag(c, "社群解锁", Ui.alpha(Ui.col(c, R.color.p3r_cyan_300), 60),
-            Ui.col(c, R.color.p3r_cyan_200)), Ui.wrap());
         int from = 0;
         if (lines.length > 0 && lines[0].contains("起")) {
             String when = lines[0].substring(0, lines[0].indexOf('起') + 1);
-            LinearLayout.LayoutParams wp = Ui.wrap();
-            wp.leftMargin = Ui.dp(c, 6);
-            tags.addView(Ui.tag(c, when, Ui.col(c, R.color.ui_gold), Ui.col(c, R.color.p3r_navy_950)), wp);
+            tags.addView(Ui.tag(c, when, Ui.col(c, R.color.ui_gold), Ui.col(c, R.color.p3r_navy_950)), Ui.wrap());
             if (story) {
                 LinearLayout.LayoutParams sp = Ui.wrap();
                 sp.leftMargin = Ui.dp(c, 6);
@@ -1722,8 +1742,9 @@ final class TipsPage {
             }
             from = 1;
         }
-        sheet.addView(tags, Ui.matchWrap());
-        sheet.addView(CombatViews.sheetTitle(c, (story ? "" : "解锁") + link.arcanaZh + "社群"), top(8));
+        if (tags.getChildCount() > 0) sheet.addView(tags, Ui.matchWrap());
+        sheet.addView(CombatViews.sheetTitle(c, (story ? "" : "解锁") + link.arcanaZh + "社群"),
+            top(tags.getChildCount() > 0 ? 8 : 0));
         if (link.personZh != null && !link.personZh.isEmpty()) {
             sheet.addView(Ui.text(c, link.personZh, 15, Ui.col(c, R.color.p3r_cyan_200), true), top(0));
         }

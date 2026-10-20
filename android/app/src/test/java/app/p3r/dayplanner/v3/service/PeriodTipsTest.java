@@ -360,6 +360,35 @@ public class PeriodTipsTest {
         assertEquals(2, observed.used[0]);
     }
 
+    @Test public void aTeammatesSecondActivityStrengthensTheTraitTheFirstUnlocked() {
+        Rules rules = rules();
+        Rules.Activity dvd = new Rules.Activity();
+        dvd.idx = 0;
+        dvd.id = "dorm_yukari_dvd";
+        dvd.zh = "和由加莉看DVD";
+        dvd.dormPartnerZh = "岳羽由加莉";
+        // Done 3 times last period: no nights left in this one, still counts.
+        dvd.fixedDays = new int[]{30};
+        Rules.Activity cooking = new Rules.Activity();
+        cooking.idx = 1;
+        cooking.id = "dorm_yukari_cooking";
+        cooking.zh = "和由加莉做饭";
+        cooking.dormPartnerZh = "岳羽由加莉";
+        cooking.fixedDays = new int[]{70};
+        Rules.Activity other = new Rules.Activity();
+        other.idx = 2;
+        other.id = "dorm_junpei_reading";
+        other.zh = "和顺平读书";
+        other.dormPartnerZh = "伊织顺平";
+        other.fixedDays = new int[]{71};
+        rules.activities = new Rules.Activity[]{dvd, cooking, other};
+        SimState observed = at(65, false);
+        observed.used = new int[]{3, 1, 1};
+        String detail = find(PeriodTips.collect(rules, observed, null), "period.dorm").detailZh;
+        assertTrue(detail, detail.contains("和由加莉做饭\n能做的晚上：6月10日\n做过 1 次，再 2 次强化特性"));
+        assertTrue("another teammate still unlocks: " + detail, detail.contains("做过 1 次，再 2 次解锁特性"));
+    }
+
     @Test public void unlockMethodsAndEpisodeWindowsAreShownWithoutAnyPlannedSelectionOrAssumedPrerequisites() {
         Rules rules = rules();
         Rules.Link prerequisite = new Rules.Link();

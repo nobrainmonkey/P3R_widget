@@ -276,6 +276,97 @@ public class TipsPageTest extends UiTestBase {
     }
 
     @Test
+    public void theRequestsRowCountsWhatIsStillOpenAndSaysTodayOnTheLastDay() throws Exception {
+        Rules rules = realRules();
+        api.rules = rules;
+        api.snap.observed = Fixtures.observedMid(rules);
+        api.snap.plan = null;
+        api.snap.planCurrent = false;
+        // 6月6日: 第 12、13 号 are due today, like each row says.
+        api.snap.observed.slot = Rules.slot(66, false);
+        HomeActivity a = tips();
+        String header = Shots.allText(groupRow(a, "requests").findViewWithTag("tips_group_header_requests"));
+        assertTrue(header, header.contains("今天截止 2 件"));
+        // The next day they have expired: rows under 已经过去, not counted with the open ones under 现在.
+        api.snap.observed.slot = Rules.slot(67, false);
+        a.reload();
+        Shots.idle();
+        ListView list = visibleList(a.getWindow().getDecorView());
+        TipsPage.EntryGroup open = null;
+        for (int i = 0; i < list.getAdapter().getCount(); i++) {
+            TipsPage.Item item = (TipsPage.Item) list.getAdapter().getItem(i);
+            if (item.group != null && "requests".equals(item.group.key)) open = item.group;
+        }
+        assertNotNull(open);
+        for (Plan.Reminder r : open.entries) assertTrue(r.id, r.untilDay < 0 || r.untilDay >= 67);
+        assertTrue(Shots.allText(groupRow(a, "requests")).contains("伊莉莎白的委托 · " + open.entries.size() + " 件"));
+        assertTrue(openPast(a));
+        list = visibleList(a.getWindow().getDecorView());
+        boolean pastRow = false;
+        for (int i = 0; i < list.getAdapter().getCount(); i++) {
+            TipsPage.Item item = (TipsPage.Item) list.getAdapter().getItem(i);
+            if (item.reminder != null && "request.catalogue.12".equals(item.reminder.id)) pastRow = true;
+        }
+        assertTrue("第 12 号 is a row of its own under 已经过去", pastRow);
+    }
+
+    @Test
+    public void typingUpdatesTheResultsInPlaceAndOnlyStartingOrClearingASearchSlidesThemIn() throws Exception {
+        api.rules = realRules();
+        HomeActivity a = tips();
+        EditText search = a.getWindow().getDecorView().findViewWithTag("tips_search");
+        ListView list = visibleList(a.getWindow().getDecorView());
+        Ui.setAnimationsEnabled(true);
+        search.setText("3");
+        assertEquals("starting a search slides the results in", 0f, list.getAlpha(), 0f);
+        list.animate().cancel();
+        list.setAlpha(1f);
+        list.setTranslationX(0f);
+        search.append("6");
+        assertEquals("a typed character never blanks the list", 1f, list.getAlpha(), 0f);
+        search.append("F");
+        assertEquals(1f, list.getAlpha(), 0f);
+        assertEquals(0f, list.getTranslationX(), 0f);
+        assertTrue(resultIds(a).toString(), resultIds(a).contains("combat.catalogue.combat.arqa_1.36"));
+        search.setText("");
+        assertEquals("clearing it brings the old view back with the slide", 0f, list.getAlpha(), 0f);
+    }
+
+    @Test
+    public void openingAGroupNearTheBottomScrollsItsRowsIntoView() throws Exception {
+        api.rules = realRules();
+        api.snap.plan = null;
+        api.snap.planCurrent = false;
+        HomeActivity a = tips();
+        click(a, "tips_scope_all");
+        click(a, "tips_content_dialogue");
+        Shots.render(a.getWindow().getDecorView()).recycle();
+        ListView list = visibleList(a.getWindow().getDecorView());
+        int bottom = list.getHeight() - list.getPaddingBottom();
+        ViewGroup row = null;
+        for (int i = list.getChildCount() - 1; i >= 0 && row == null; i--) {
+            View child = list.getChildAt(i);
+            if (child.getBottom() <= bottom) row = (ViewGroup) child;
+        }
+        assertNotNull(row);
+        View card = row.getChildAt(0);
+        String key = ((String) card.getTag()).substring("tips_group_".length());
+        Ui.setAnimationsEnabled(true);
+        assertTrue(card.findViewWithTag("tips_group_header_" + key).performClick());
+        for (int step = 0; step < 40; step++) {
+            shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(16));
+            Shots.render(a.getWindow().getDecorView()).recycle();
+        }
+        // Robolectric records the smooth scroll rather than running it: the open rows below the
+        // bottom edge are brought up, and no further than the group's own top.
+        int overflow = row.getBottom() - bottom;
+        assertTrue("the opened group runs past the bottom", overflow > 0);
+        int expected = Math.min(overflow, row.getTop() - list.getPaddingTop());
+        assertTrue(expected > 0);
+        assertEquals(expected, shadowOf(list).getLastSmoothScrollByDistance());
+    }
+
+    @Test
     public void unlockingEntriesShowTheActualUnlockAndKeepRequirementsInTheDetails() {
         api.rules.reminders = new Rules.Reminders();
         Rules.Reminder unlock = raw("feature.unlock", Fixtures.OCT_22, -1, "勇气达到 6 级后，可以开启女教皇社群");
@@ -363,6 +454,15 @@ public class TipsPageTest extends UiTestBase {
         HomeActivity a = tips();
         click(a, "tips_scope_all");
         Shots.shot(a, "tips_directory");
+        // A tile and the strip chip that do the same thing have the same name.
+        String[] keys = {"dialogue", "class", "request", "combat"};
+        for (int i = 0; i < keys.length; i++) {
+            String chip = Zh.plain(((TextView) tagged(a, "tips_content_" + keys[i])).getText());
+            assertEquals(TipsPage.KIND_LABELS[i], chip);
+            assertTrue(keys[i], Shots.allText(tagged(a, "tips_tile_" + keys[i])).startsWith(chip + "\n"));
+        }
+        assertTrue(Shots.allText(tagged(a, "tips_tile_other")).startsWith(TipsPage.MORE + "\n"));
+        assertEquals(TipsPage.MORE, Zh.plain(((TextView) tagged(a, "tips_content_more")).getText()));
         View tile = a.getWindow().getDecorView().findViewWithTag("tips_tile_dialogue");
         assertNotNull(tile);
         int manualLinks = 0;
@@ -404,6 +504,8 @@ public class TipsPageTest extends UiTestBase {
         Shots.idle();
         String unlockText = Shots.allText(a.sheets().content());
         assertTrue(unlockText, unlockText.contains("解锁女教皇社群"));
+        assertTrue("the title already says 解锁: no kind tag above it",
+            Shots.findAll(a.sheets().content(), "社群解锁").isEmpty());
         assertTrue(unlockText, unlockText.contains("6月19日起"));
         assertTrue(unlockText, unlockText.contains("解锁条件"));
         assertTrue(unlockText, unlockText.contains("勇气 MAX、命运社群 RANK 1"));
@@ -711,6 +813,13 @@ public class TipsPageTest extends UiTestBase {
         assertTrue(tagged(a, "tips_scope_period").isSelected());
         assertTrue(tagged(a, "tips_content_more").isSelected());
         assertEquals("失踪者", Zh.plain(((TextView) tagged(a, "tips_filter_selection")).getText()));
+        // The ✕ pill is a full chip target, and says what a tap does.
+        Shots.render(a.getWindow().getDecorView()).recycle();
+        assertTrue(tagged(a, "tips_filter_selection").getHeight() >= Ui.dp(a, 40));
+        assertEquals("去掉筛选：失踪者", tagged(a, "tips_filter_selection").getContentDescription().toString());
+        View moreChip = tagged(a, "tips_content_more");
+        View strip = (View) moreChip.getParent().getParent();
+        assertTrue("the lit 其他 chip is scrolled into view", moreChip.getRight() - strip.getScrollX() <= strip.getWidth());
         assertAllLabels(a, "失踪者");
         List<String> rescues = resultIds(a);
         assertTrue(initial.containsAll(rescues));
