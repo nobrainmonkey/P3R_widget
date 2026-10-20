@@ -395,9 +395,9 @@ public class PlanBreadthRealPackTest {
      * capacity allocation and conditional invitations. Separate opt-in tests cover characteristic milestones.
      * MAX-style ids still omit style.
      */
-    private static final String GOLDEN_RULES_VERSION = "3.6.0|a7321ffa7db7";
+    private static final String GOLDEN_RULES_VERSION = "3.6.0|0cc64369290d";
     /** Plan ids of the three golden 「尽量多 MAX」 plans on {@link #GOLDEN_RULES_VERSION}. */
-    private static final String[] GOLDEN_IDS = {"07e96294cb439168", "73576c8f16bef77e", "ab6fde1f7c4e4851"};
+    private static final String[] GOLDEN_IDS = {"370bc8feb2b70126", "c2928d03839991c4", "7923306c28c5d217"};
 
     /** FNV-1a 64 over "slot|action|side…" per step: the plan's actions, independent of the pack version. */
     static String fingerprint(Plan plan) {

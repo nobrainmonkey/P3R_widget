@@ -565,12 +565,12 @@ public class TipsCatalogueTest {
         int aeon = rules.linkIndex("aeon");
         Plan.Reminder friend = TipsCatalogue.scene(rules, new Profile(), aeon, 10, Boolean.FALSE);
         assertTrue(friend.detailZh, friend.detailZh.contains(
-                "友情终级，全程按喜好选。问题依次是：拍照时的欢呼回应、是否喜欢拍照、她能做到什么、回宿舍后解释刚才在做什么。"));
+                "一共四问：拍照时的欢呼、喜不喜欢拍照、她能做到什么、回宿舍后的解释。"));
         assertFalse(friend.detailZh, friend.detailZh.contains("同伴询问"));
         Plan.Reminder romance = TipsCatalogue.scene(rules, new Profile(), aeon, 10, Boolean.TRUE);
-        assertTrue(romance.detailZh, romance.detailZh.contains("恋人终级，全程按喜好选。问题依次是：询问她想说的话、回应她的注视。"));
+        assertTrue(romance.detailZh, romance.detailZh.contains("一共两问：问她想说什么、回应她的注视。"));
         Plan.Reminder strength = TipsCatalogue.scene(rules, new Profile(), rules.linkIndex("strength"), 10, Boolean.FALSE);
-        assertTrue(strength.detailZh, strength.detailZh.contains("\nRANK 9 拒绝过告白的话，后两问说法不一样，按意思选就行。"));
+        assertTrue(strength.detailZh, strength.detailZh.contains("\n之前有没有保留恋爱资格，后两问的说法会稍有不同，按意思选就行。"));
         // Every scene of every link, both routes: no guide-author wording, no two sentences run together.
         java.util.regex.Pattern research = java.util.regex.Pattern.compile(
                 "门槛|亦已计入|仍给出|按相同含义对应|完整顺序|完整友情推荐|选完整|选问题");
