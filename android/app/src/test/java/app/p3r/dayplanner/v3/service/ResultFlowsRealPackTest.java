@@ -325,7 +325,7 @@ public class ResultFlowsRealPackTest {
         SimState before = service.snapshot().observed;
         int maiko = rescue("maiko");
 
-        // 「不记得钱了」 (ui.TowerPanel: net 0), 舞子 rescued.
+        // 「不记得了」 (ui.TowerPanel.FORGOT: net 0), 舞子 rescued.
         PlannerApi.TowerReturn forgot = tower(visit.slot, block, floorIn(block, before.floor + 6), false, 0);
         forgot.cashUnknown = true;
         forgot.rescuedId = "maiko";
@@ -337,7 +337,7 @@ public class ResultFlowsRealPackTest {
         assertFalse("the cash is a lower bound", obs.cashExact);
         assertEquals(before.towerVisits[block] + 1, obs.towerVisits[block]);
         assertTrue((obs.rescued & (1L << maiko)) != 0);
-        assertTrue(historyMentions(service, "不记得钱了"));
+        assertTrue(historyMentions(service, "现金没记"));
 
         // Restart, then the balance after all: exact again, still one visit.
         service = reopen(service, db);

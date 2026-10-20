@@ -94,7 +94,8 @@ public class ReauditWordingTest extends UiTestBase {
         String text = Shots.allText(a.getWindow().getDecorView());
         assertEquals("the engine's note is said once, as the hero's chip", 0, count(text, "这次没来得及算完"));
         assertEquals(text, 1, count(text, InfoPages.BUDGET_PENDING));
-        assertTrue("the other notes are still listed", Shots.has(a, "女教皇：没排到 MAX，先保证了皇帝 · 预计停在 RANK 7"));
+        // 女教皇 is a goal: its note is the reason line under its row in 目标.
+        assertTrue("the other notes are still listed", Shots.has(a, "没排到 MAX，先保证了皇帝 · 预计停在 RANK 7"));
         Shots.shot(a, "explain_budget_pending");
     }
 
