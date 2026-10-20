@@ -204,7 +204,14 @@ public class PlanStyleSettingsTest extends UiTestBase {
         boolean best = api.snap.profile.answers == Profile.AnswerPolicy.BEST;
         Shots.click(a, SettingsPage.ANSWERS);
         assertEquals(best ? Profile.AnswerPolicy.NONE : Profile.AnswerPolicy.BEST, api.last().profile.answers);
-        assertFalse("其余社群 lives on the 社群 tab only", Shots.has(a, "其余社群也尽量提升"));
+    }
+
+    @Test
+    public void otherLinksIsASettingInTheMainList() {
+        HomeActivity a = settings();
+        boolean others = api.snap.profile.otherLinks;
+        Shots.click(a, SettingsPage.OTHER_LINKS);
+        assertEquals(!others, api.last().profile.otherLinks);
     }
 
     @Test

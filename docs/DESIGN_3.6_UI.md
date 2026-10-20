@@ -44,8 +44,9 @@ caustics, bubbles, giant cropped Latin words, slanted plates, and selection that
 ### Tokens (res/values/ui_colors.xml, p3r_colors.xml)
 - Page water: `OceanDrawable.page(context)` — `ui_sea_surface` #123C9C at the top → navy 800 →
   navy 950, royal glow top-right, light shafts, caustic ripples near the surface.
-- Glass panel: `ui_glass_top` → `ui_glass_bottom` gradient, **no outline**, two diagonal cuts and a
-  short cyan corner tick (`SlantedPanelDrawable.cornerTick`).
+- Glass panel: `ui_glass_top` → `ui_glass_bottom` gradient, **no outline**, two diagonal cuts, no
+  corner tick; `SlantedPanelDrawable.cornerTick` marks only the hero, the 必须 tarot tile, edited
+  wizard tiles, answer plates and tip tiles.
 - Hero: royal → navy gradient, cyan blade on the left, light slash (`lightSlash`), white corner tick.
 - Cyan `p3r_cyan_400` #3CE4FF is the selection colour; white is the action colour (primary buttons,
   like the widget's 完成); gold `ui_gold` only for 「顺便」 and 「今天别错过」 attention; red
@@ -117,8 +118,8 @@ copy and layout change as below.
   rank line 「RANK 5 → 6」 + one 「预计」 tag (no 「≈」); gold persona chip; location; real answers
   only (「回答：…」, muted 「要是升级了，答：…」; the generic fallback is hidden; friend route shows
   「只想做朋友？别选表白的回答」); 顺便 lines; an urgent reason only (deadline, last chance, scarce
-  days, unlock requirement) in gold. Buttons [做不了…] (weight 1, secondary) and [完成] (weight 2,
-  primary white with check). Removed: 「下一步 · 放学后」, 「怎么做 · 点卡片查看」, every other whyZh.
+  days, unlock requirement) in gold. Buttons [做不了…] (weight 1, secondary) and [完成 ✓] (weight
+  1.6, primary white). Removed: 「下一步 · 放学后」, 「怎么做 · 点卡片查看」, every other whyZh.
 - 今天别错过: one card with a gold tag on its edge and 「全部提示 ›」; lines drop a trailing
   「，不会消耗时间」.
 - 接下来: rest of today + tomorrow, one borderless list with white slanted day plates; locks of a day
@@ -254,8 +255,8 @@ Basket logic, the calculator, persistence and the workspace behaviour are unchan
   「尽量都体验 / 每个社群都解锁、都往上提」 and 「尽量多 MAX / 集中冲 MAX」; 「PERSONA 人格面具」
   「见面时带同阿尔卡那的人格面具吗？」 「×1.51」 都带 | 只给目标 | 不带 (+
   「见面前会提醒你带哪个阿尔卡那」); 「OPTIONS 其他设置」 rows 「塔尔塔罗斯」 「每个区块 2 次」 ›,
-  「平安夜」 「都婉拒了」 › (sheet 「12月24日接受了谁的邀约？」), 「手上至少留」 「0 日元」 ›, switch
-  「安排结缘网站的字条」 「11月11日起 · 每张 3,000 日元」; 「不再安排」 only when non-empty (「恢复」
+  「平安夜」 「都婉拒了」 › (sheet 「12月24日接受了谁的邀约？」), 「手上至少留」 「0 日元」 ›, switches
+  「其余社群也尽量提升」 and 「安排结缘网站的字条」 「11月11日起 · 每张 3,000 日元」; 「不再安排」 only when non-empty (「恢复」
   removes the row at once); folded 「更多选项」:
   「魅力 MAX 后点数 ×1.51」「目标多留一次见面」「我会照提示选回答」「仔细重新安排」. Removed:
   「深度修改 / 每次修改后最多计算 12 秒」, the 社群点数 / 塔尔塔罗斯 / 平安夜 / 现金 headers, every

@@ -20,8 +20,8 @@ import app.p3r.dayplanner.v3.model.Rules;
 
 /**
  * 规划设置, after the game's SYSTEM → CONFIG: 安排风格 as two slanted tiles, the 人格面具 question as
- * one three-way switch, then a flat list (塔尔塔罗斯 ›, 平安夜 ›, 手上至少留 ›, 结缘网站的字条), the
- * activities never to schedule (only when there are any), a folded 「更多选项」 (魅力 MAX, 目标余量,
+ * one three-way switch, then a flat list (塔尔塔罗斯 ›, 平安夜 ›, 手上至少留 ›, 其余社群也尽量提升,
+ * 结缘网站的字条), the activities never to schedule (only when there are any), a folded 「更多选项」 (魅力 MAX, 目标余量,
  * 回答, 仔细重新安排) and the 从头重新安排 entry. Every change is saved at once and triggers a replan;
  * while one runs the page says so at the top. The page follows the saved profile
  * ({@link SystemList#follow}), so a rejected save puts the controls back.
@@ -57,6 +57,8 @@ final class SettingsPage {
     static final String CHRISTMAS = "平安夜";
     static final String CASH = "手上至少留";
     static final String DATING_NOTES = "安排结缘网站的字条";
+    /** Profile.otherLinks: free time after the goals goes to the other links. */
+    static final String OTHER_LINKS = "其余社群也尽量提升";
     static final String EXCLUDED = "不再安排";
     static final String RESTORE = "恢复";
     static final String MORE = "更多选项";
@@ -87,6 +89,7 @@ final class SettingsPage {
         final SystemList.Row tower;
         final SystemList.Row christmas;
         final SystemList.Row cash;
+        final ToggleRow others;
         final ToggleRow dating;
         final LinearLayout excludedBox;
         final LinearLayout excludedRows;
@@ -153,6 +156,9 @@ final class SettingsPage {
             options.addView(christmas);
             cash = SystemList.configRow(c, CASH, null, this::pickCash);
             options.addView(cash);
+            others = new ToggleRow(c, OTHER_LINKS, null, false).flat();
+            others.setListener(on -> edit(host, q -> q.otherLinks = on));
+            options.addView(others);
             if (rules != null && rules.datingNote != null) {
                 dating = new ToggleRow(c, DATING_NOTES, datingNoteText(rules.datingNote), false).flat();
                 dating.setListener(on -> edit(host, q -> q.datingNotes = on));
@@ -223,6 +229,7 @@ final class SettingsPage {
             tower.setValue(towerSummary(rules, p));
             christmas.setValue(ChristmasChoice.shortAnswer(rules, p.christmasLink));
             cash.setValue(Zh.yen(p.cashBuffer));
+            others.setChecked(p.otherLinks);
             if (dating != null) {
                 dating.setChecked(p.datingNotes);
             }

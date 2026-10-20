@@ -118,7 +118,7 @@ apologies, some hedges, algorithm talk and the retired names 图鉴 / 合成篮.
 - **Settings in the wrong place.** The gardening switch lived only in the 同步现状 wizard; 平安夜
   was an expanded card all game long and asked in October; 深度修改 sat second on 规划设置.
   *Done:* 种菜 in the 队友特性 sheet; 平安夜 is a row + sheet, and a wizard page from 12/20; 仔细重新安排
-  under 更多选项. 「其余社群也尽量提升」 was on three screens: now on none (§5).
+  under 更多选项. 「其余社群也尽量提升」 was on three screens: now one switch in 规划设置 → 其他设置.
 - **Records.** 记录历史 was only under 我的 and the result sheet told the player to go there.
   *Done:* a 记录历史 button in the 日程 header and [看记录历史] on the result sheet.
 
@@ -228,8 +228,8 @@ Most important first; severity from the audit in brackets.
 - [medium] After a tap the old forecast stayed with no sign of a replan. *Done:* stripe, 40% fade.
 - [medium] A changed record threw away the 队友特性 sheet with 「进度或目标已变化，请重新打开后再保存。」.
   *Done:* applied onto the latest data; only a moved count reopens the sheet.
-- [medium] 「其余社群也尽量提升」 belongs with the planning options. *Partly:* it left the tab, but no
-  other screen took it (§5).
+- [medium] 「其余社群也尽量提升」 belongs with the planning options. *Done:* it left the tab and is a
+  switch in 规划设置 → 其他设置 (it had briefly lost every home during the merge; fixed in review).
 - [low] RankPad: a hint teaching auto-advance, a cryptic 「?」, an instant jump. *Done.*
 
 ### 3.4 提示 (64 findings)
@@ -396,9 +396,9 @@ These held through the rehaul (the audits' PRESERVE lists, condensed):
 
 Each item was checked in the code at 3f64d68.
 
-1. **「其余社群也尽量提升」 has no switch.** The 社群 rehaul moved it to 规划设置, the 规划设置 rehaul left
-   it on 社群, and the wizard dropped it, so `Profile.otherLinks` (default on) cannot be changed in
-   the app; a profile saved with it off stays off. It needs one home (for example 更多选项).
+1. **「其余社群也尽量提升」 lost its switch during the merge** (the 社群 rehaul moved it to 规划设置, the
+   规划设置 rehaul left it on 社群, the wizard dropped it). Fixed in review: it is a switch in
+   规划设置 → 其他设置, covered by `PlanStyleSettingsTest.otherLinksIsASettingInTheMainList`.
 2. **Missing people named only in English.** 18 of the 20 people in `reminders.rescueGroups` have
    only `nameEn`, so rescue details read 「50F · Ayako Yoshimoto」 (day sheet 当天提醒, 提示). There is
    no official SC name in the data, and none was invented.
