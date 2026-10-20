@@ -85,9 +85,7 @@ public final class DraftStore {
             Integer count = getInt(p + "dorm." + activity.id);
             if (count != null) draft.setDormCount(activity.idx, count);
         }
-        if (prefs.contains(p + "dorm.gardening")) {
-            draft.setDormGardening(prefs.getBoolean(p + "dorm.gardening", false));
-        }
+        draft.dormAsked = prefs.getBoolean(p + "dorm.asked", false);
         String persona = prefs.getString(p + "persona.mode", null);
         if (persona != null) {
             try {
@@ -155,8 +153,10 @@ public final class DraftStore {
                 putInt(e, p + "dorm." + activity.id, draft.dormCounts[activity.idx]);
             }
         }
-        if (draft.dormGardening == null) e.remove(p + "dorm.gardening");
-        else e.putBoolean(p + "dorm.gardening", draft.dormGardening);
+        if (draft.dormAsked) e.putBoolean(p + "dorm.asked", true);
+        else e.remove(p + "dorm.asked");
+        // Gardening is a 队友特性 choice now; a draft from an older wizard does not carry it over.
+        e.remove(p + "dorm.gardening");
         if (draft.mode == StateDraft.Mode.ONBOARDING) {
             e.putString(p + "persona.mode", draft.profile.effectivePersonaMode().name());
             e.putBoolean(p + "others", draft.profile.otherLinks);

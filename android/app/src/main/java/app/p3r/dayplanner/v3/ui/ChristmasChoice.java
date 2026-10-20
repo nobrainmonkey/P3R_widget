@@ -19,8 +19,7 @@ import app.p3r.dayplanner.v3.model.Rules;
  * 「平安夜」: which 12/24 invitation the player accepted — 「都婉拒了」 (default, Profile.christmasLink
  * null) or one romanceable link at RANK 1 or above. An accepted invitation takes the daytime and
  * the evening of 12/24 (平安夜约会); the plan schedules nothing else then. 规划设置 shows it as one
- * row that opens {@link #sheet}; the state wizard asks inline ({@link #build}, from 12/20, and
- * always in 修改进度).
+ * row that opens {@link #sheet}; the state wizard asks inline ({@link #build}) from 12/20 to 12/24.
  */
 final class ChristmasChoice {
     /** Title of the 「都婉拒了」 choice. */
@@ -37,6 +36,11 @@ final class ChristmasChoice {
     /** Day ordinal of 12/20 (the wizard asks from this date on). */
     static int askFromDay() {
         return Zh.dayOf(LocalDate.of(2009, 12, 20));
+    }
+
+    /** Day ordinal of 12/24 (after it, the answer no longer changes the plan: the wizard stops asking). */
+    static int askUntilDay() {
+        return Zh.dayOf(LocalDate.of(2009, 12, 24));
     }
 
     /** "接受了山岸风花的邀约". */

@@ -66,6 +66,8 @@ public final class StateActivity extends Activity implements StateSteps.Callback
     /** Shown once the next load has rendered (after a conflict). */
     private String pendingNotice;
     private String lastNotice;
+    /** Opened anew, not recreated (a rotation, a theme switch): only then is 「接着上次填」 news. */
+    private boolean coldStart;
 
     private TextView modeLabel;
     private TextView counter;
@@ -87,6 +89,7 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(getWindow());
         mode = StateDraft.Mode.of(getIntent().getStringExtra(Intents.EXTRA_STATE_MODE));
+        coldStart = savedInstanceState == null;
         drafts = new DraftStore(this);
         buildFrame();
         load(null);
@@ -256,8 +259,13 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         }, this::onLoaded, error -> showLoadFailed(null));
     }
 
-    /** 「记录没读出来」, the reason and [重试] instead of a wizard page; the X is the only way out. */
+    /**
+     * 「记录没读出来」, the reason and [重试] instead of a wizard page; the X (or back) closes the
+     * screen. The edits stay in {@link DraftStore} for 重试 or the next visit.
+     */
     private void showLoadFailed(String errorZh) {
+        draft = null;
+        returnTo = null;
         content.removeAllViews();
         stepBar.setVisibility(View.INVISIBLE);
         counter.setVisibility(View.INVISIBLE);
@@ -313,9 +321,9 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         pendingNotice = null;
         if (notice != null) {
             showNotice(notice, false);
-        } else if (l.restored == DraftStore.Restored.REBASED) {
+        } else if (l.restored == DraftStore.Restored.REBASED && draft.hasEdits()) {
             showNotice(REBASED, false);
-        } else if (l.restored == DraftStore.Restored.SAME && resumed) {
+        } else if (l.restored != DraftStore.Restored.NONE && coldStart && resumed) {
             showNotice(RESUMED, false);
         }
     }
@@ -577,7 +585,9 @@ public final class StateActivity extends Activity implements StateSteps.Callback
         lastNotice = text;
         messageBar.removeCallbacks(hideNotice);
         messageBar.show(text, null, null, error ? UndoBar.Style.ERROR : UndoBar.Style.RECORD);
-        if (!error) {
+        if (error) {
+            messageBar.stay();
+        } else {
             messageBar.postDelayed(hideNotice, NOTICE_MILLIS);
         }
     }

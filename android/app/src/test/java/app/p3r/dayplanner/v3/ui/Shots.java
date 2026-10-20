@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.shadows.ShadowDialog;
 
 import java.io.File;
@@ -24,9 +25,18 @@ import java.util.List;
 
 /** Screenshot and view-lookup helpers for the UI render/behaviour tests. */
 final class Shots {
-    /** 360 × 780 dp at xxhdpi. */
-    static final int WIDTH = 1080;
-    static final int HEIGHT = 2340;
+    /** The phone of the test's qualifiers: 360 × 780 dp at xxhdpi (1080 × 2340 px) unless a test asks for another. */
+    static int width() {
+        return px(RuntimeEnvironment.getApplication().getResources().getConfiguration().screenWidthDp);
+    }
+
+    static int height() {
+        return px(RuntimeEnvironment.getApplication().getResources().getConfiguration().screenHeightDp);
+    }
+
+    private static int px(int dp) {
+        return Math.round(dp * RuntimeEnvironment.getApplication().getResources().getDisplayMetrics().density);
+    }
 
     private Shots() {}
 
@@ -43,10 +53,12 @@ final class Shots {
 
     /** Renders a view tree at the phone size. */
     static Bitmap render(View root) {
-        root.measure(View.MeasureSpec.makeMeasureSpec(WIDTH, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(HEIGHT, View.MeasureSpec.EXACTLY));
-        root.layout(0, 0, WIDTH, HEIGHT);
-        Bitmap bitmap = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888);
+        int width = width();
+        int height = height();
+        root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, width, height);
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         canvas.drawColor(Color.BLACK);
         root.draw(canvas);
@@ -60,13 +72,13 @@ final class Shots {
         Dialog dialog = withDialog ? ShadowDialog.getLatestDialog() : null;
         if (dialog != null && dialog.isShowing()) {
             View decor = dialog.getWindow().getDecorView();
-            decor.measure(View.MeasureSpec.makeMeasureSpec(WIDTH, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(HEIGHT, View.MeasureSpec.AT_MOST));
-            decor.layout(0, 0, WIDTH, decor.getMeasuredHeight());
+            decor.measure(View.MeasureSpec.makeMeasureSpec(bitmap.getWidth(), View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(bitmap.getHeight(), View.MeasureSpec.AT_MOST));
+            decor.layout(0, 0, bitmap.getWidth(), decor.getMeasuredHeight());
             Canvas canvas = new Canvas(bitmap);
             canvas.drawColor(Color.argb(158, 0, 0, 0));
             canvas.save();
-            canvas.translate(0, HEIGHT - decor.getMeasuredHeight());
+            canvas.translate(0, bitmap.getHeight() - decor.getMeasuredHeight());
             decor.draw(canvas);
             canvas.restore();
         }

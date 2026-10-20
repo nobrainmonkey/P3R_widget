@@ -283,18 +283,20 @@ Basket logic, the calculator, persistence and the workspace behaviour are unchan
 - Frame: X keeps the draft; counter 「03/10」 over the pages this walk shows; Latin kicker + watermark +
   one big question per page, no hints, borderless rows; `Motion.tabIn` between pages, cascades on
   entry only; [上一步] + [下一步] / [开始安排] / [更新安排] / [好的]. Notices slide in the message bar
-  (「接着上次填」, 「刚有新记录，已经合进来了，再看一眼？」, errors red); a failed save gives the
-  button its label back; 「记录没读出来」 [重试]. Back on 今天: 「已记录：游戏进度」.
-- 开始设置: 日期 → 现金 → 个人能力值 → 社群 → only what the date opens (解锁前的准备, 平安夜 from
-  12/20, 羁绊剧情, 宿舍活动, 塔尔塔罗斯) → 目标 → 人格面具 → 「准备好了？」; a 4/18 start is 7 pages.
+  (「接着上次填」 on a fresh open, 「刚有新记录，已经合进来了，再看一眼？」, errors red until the next
+  page); a failed save gives the button its label back; 「记录没读出来」 [重试]. Back on 今天:
+  「已记录：游戏进度」.
+- 开始设置: 日期 → 现金 → 个人能力值 → 社群 → only what the date opens (解锁前的准备, 平安夜
+  12/20–12/24, 羁绊剧情, 宿舍活动, 塔尔塔罗斯) → 目标 → 人格面具 → 「准备好了？」; a 4/18 start is 7 pages.
 - 同步现状: 「上次记到 10月21日 晚上，之后照着安排玩了吗？」
   「基本照着玩了」「玩了一部分」「没怎么照着玩」; 基本照着玩了 → 日期 → review (rows open their page;
   「还有别的变化？」).
 - 修改进度: 「修改哪一项？」 with current values; a row opens one page, [完成] returns, changed rows
   get 「已改」; 「逐项检查」 / 「更新安排」. The 今天 resource band opens it.
 - Pages: 「游戏里现在是哪一天？」 (「‹ 10月 ›」, Sundays red, lock reason in the period plate
-  「晚上 · 满月作战」); 「现在有多少钱？」 (prefill drawn selected, one 「预计」, 「— 日元」 +
-  「不记得」); 「学力、魅力、勇气现在几级？」; 「社群都升到几级了？」 (RANK tiles, 「≈7」, RankPad);
+  「晚上 · 满月作战」); 「现在有多少钱？」 (prefill drawn selected, one 「预计」, 「— 日元」 or a
+  known lower bound 「290+ 日元」 as on 今天, + 「不记得」); 「学力、魅力、勇气现在几级？」;
+  「社群都升到几级了？」 (RANK tiles, 「≈7」, RankPad);
   「解锁准备做到哪一步了？」 (tap step N = 1..N, 「都还没做」); 「12月24日接受了谁的邀约？」 (one
   tap); 「羁绊剧情看到第几话了？」; 「做过宿舍活动吗？」 then 0–3 per activity with 「特性已解锁」 /
   「特性已强化」; 「塔尔塔罗斯爬到几层了？」 (typeable floor 「/117F」, 「期限 10月3日 · 教皇」,

@@ -3,6 +3,7 @@ package app.p3r.dayplanner.v3.ui;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
@@ -204,6 +205,51 @@ public class UiLogicTest {
         SimState built = d.build();
         assertFalse(built.cashExact);
         assertEquals(obs.cash, built.cash);
+    }
+
+    @Test
+    public void aLowerBoundCashIsShownAsOnTodayAndListedOnlyWhenItMoves() {
+        // Cash skipped at setup (or a recorded 打工): only a lower bound is known.
+        obs.cash = 0;
+        obs.cashExact = false;
+        StateDraft d = new StateDraft(StateDraft.Mode.SYNC, rules, obs, Fixtures.profileMid(), plan, 12);
+        d.setSync(StateDraft.SyncAnswer.YES);
+        assertNull("no 「不记得 → 不记得」 row", cashChange(d));
+        d.setSlot(Rules.slot(Fixtures.day(10, 25), false));
+        StateDraft.Change cash = cashChange(d);
+        assertEquals(CashPad.UNKNOWN_LABEL, cash.beforeZh);
+        assertEquals("3,000+ 日元", cash.afterZh);
+        assertTrue(cash.forecast);
+
+        obs.cash = 290;
+        StateDraft edit = new StateDraft(StateDraft.Mode.EDIT, rules, obs, Fixtures.profileMid(), plan, 12);
+        assertEquals("290+ 日元", edit.cashText());
+        edit.setCashUnknown();
+        assertEquals("290+ 日元", edit.cashText());
+        assertNull(cashChange(edit));
+        edit.setCash(310);
+        assertEquals("310 日元", edit.cashText());
+        assertEquals("290+ 日元", cashChange(edit).beforeZh);
+    }
+
+    private static StateDraft.Change cashChange(StateDraft d) {
+        for (StateDraft.Change change : d.changes()) {
+            if (change.labelZh.equals("现金")) {
+                return change;
+            }
+        }
+        return null;
+    }
+
+    @Test
+    public void gardeningIsNotAWizardAnswer() {
+        // 「种菜也排进来」 is set in 队友特性; the wizard neither asks nor lists it.
+        Profile profile = new Profile();
+        profile.planDormGardening = true;
+        StateDraft first = new StateDraft(StateDraft.Mode.ONBOARDING, rules, null, profile, null, 0);
+        for (StateDraft.Change change : first.changes()) {
+            assertFalse(change.labelZh, change.labelZh.contains("园艺"));
+        }
     }
 
     @Test
