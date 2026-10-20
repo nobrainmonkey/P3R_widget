@@ -1,6 +1,7 @@
 package app.p3r.dayplanner.v3.ui;
 
 import android.content.Context;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -26,9 +27,10 @@ import app.p3r.dayplanner.v3.service.PlannerApi;
  * visit); a correction of a visit inside a rescue window asks the rescue question again, preset
  * from the record, so correcting the cash never drops a confirmed rescue.
  *
- * <p>A new record starts with an empty amount and 保存 disabled. When the cash before the visit is
- * not known, only the balance can be typed (the 这次多了多少 tab is not offered). When the plan
- * predicts the rescue on this visit, 「救出了」 is preselected.
+ * <p>A new record starts with an empty amount: 保存 stays dim until one is typed (or 「不记得了」),
+ * and tapping it before opens the keypad. When the cash before the visit is not known, only the
+ * balance can be typed (the 这次多了多少 tab is not offered). When the plan predicts the rescue on
+ * this visit, 「救出了」 is preselected.
  */
 final class TowerPanel extends LinearLayout {
     /** Label of the "I don't remember the cash" chip. */
@@ -70,6 +72,8 @@ final class TowerPanel extends LinearLayout {
     private boolean levelOn;
     /** The inline keypad is open under the cash tabs. */
     private boolean padOpen;
+    /** The cash tab the panel was last drawn with: tapping it again keeps what was typed. */
+    private int shownMode = -1;
 
     /**
      * @param initial         values to edit (corrections), or null for a new record
@@ -93,8 +97,9 @@ final class TowerPanel extends LinearLayout {
         addView(caption(c, "最高到达层"));
         LinearLayout floorRow = Ui.row(c);
         int startFloor = initial != null ? initial.floor : Math.max(1, Math.min(top, observed.floor));
-        floor = new Stepper(c, 1, top, startFloor);
+        floor = new Stepper(c, 1, top, startFloor).typeable("最高到达几层？", "F");
         floor.setFormatter(v -> v + "F");
+        floor.setDescriber(v -> "最高到达 " + v + "F");
         // The floor is Tartarus's key number: a big HUD numeral between the step buttons.
         View value = floor.getChildCount() == 3 ? floor.getChildAt(1) : null;
         if (value instanceof TextView) {
@@ -187,6 +192,9 @@ final class TowerPanel extends LinearLayout {
             amount = null;
         }
         cashMode.setListener(i -> {
+            if (i == shownMode && !forgot) {
+                return;
+            }
             forgot = false;
             amount = correction && i == 1 ? Long.valueOf(0L) : null;
             if (padOpen) {
@@ -204,8 +212,9 @@ final class TowerPanel extends LinearLayout {
         levelRow = Ui.row(c);
         levelRow.addView(caption(c, "主角等级"), Ui.wrap());
         int lastLevel = initial != null && initial.level != null ? initial.level : rememberedLevel;
-        level = new Stepper(c, 1, 99, lastLevel).compact();
+        level = new Stepper(c, 1, 99, lastLevel).compact().typeable("主角几级？", null);
         level.setFormatter(v -> "Lv." + v);
+        level.setDescriber(v -> "主角等级 " + v);
         LinearLayout.LayoutParams lp = Ui.weight(1);
         lp.leftMargin = Ui.dp(c, 12);
         levelRow.addView(level, lp);
@@ -367,14 +376,19 @@ final class TowerPanel extends LinearLayout {
         preview.setVisibility(line.isEmpty() ? GONE : VISIBLE);
         SheetChrome.selectChoice(forgotChip, forgot);
         forgotChip.setTextSize(13);
-        boolean ready = ready();
-        save.setEnabled(ready);
-        save.setAlpha(ready ? 1f : 0.5f);
+        // Dim until there is an amount, but still tappable: the tap opens the keypad.
+        save.setAlpha(ready() ? 1f : 0.5f);
+        shownMode = cashMode.getSelected();
     }
 
     /** 保存 is possible: an amount was typed, or the player said 「不记得了」. */
     boolean ready() {
         return amount != null || forgot;
+    }
+
+    /** The inline keypad is showing (tests). */
+    boolean keypadShown() {
+        return padOpen && padHolder.getVisibility() == VISIBLE;
     }
 
     /** True after 「不记得了」 (tests). */
@@ -426,6 +440,12 @@ final class TowerPanel extends LinearLayout {
     private void submit() {
         PlannerApi.TowerReturn t = value();
         if (t == null) {
+            // 保存 before any amount: the keypad is what is missing.
+            if (!padOpen) {
+                openPad();
+            }
+            padHolder.post(() -> padHolder.requestRectangleOnScreen(
+                new Rect(0, 0, padHolder.getWidth(), padHolder.getHeight())));
             return;
         }
         if (t.level != null) {

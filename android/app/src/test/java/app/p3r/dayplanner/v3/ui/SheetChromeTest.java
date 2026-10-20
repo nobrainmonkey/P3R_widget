@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -102,6 +103,55 @@ public class SheetChromeTest extends UiTestBase {
         assertNull(findBurst(r.getWindow().getDecorView()));
         assertTrue(r.isFinishing());
         assertEquals("皇帝 RANK 7", UndoCenter.take().summaryZh);
+    }
+
+    @Test
+    public void aNewRequestDuringTheFlourishOpensOnceItEnds() {
+        org.robolectric.android.controller.ActivityController<ResultActivity> c =
+            resultController(Fixtures.SLOT_NOW, "meet:emperor", Intents.MODE_RESULT, true);
+        ResultActivity r = c.get();
+        Ui.setAnimationsEnabled(true);
+        assertTrue(Shots.clickTarget(Shots.find(r, "升到 RANK 7 了")).performClick());
+        // Step the main thread until the flourish is on screen (the save's receipt starts it).
+        View decor = r.getWindow().getDecorView();
+        for (int i = 0; i < 50 && findBurst(decor) == null && !r.isFinishing(); i++) {
+            Shadows.shadowOf(Looper.getMainLooper()).runOneTask();
+        }
+        assertNotNull(findBurst(decor));
+        // A widget 完成 for the next item arrives while 「RANK UP!!」 plays: it waits, then shows.
+        c.newIntent(request(api.snap.observed.slot));
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(2000));
+        assertNull(findBurst(decor));
+        assertFalse("the new request is not closed with the old one", r.isFinishing());
+        assertTrue(Shots.has(r, "做完了"));
+    }
+
+    @Test
+    public void aNewRequestWhileTheSheetDropsAwayBringsItBack() {
+        int slot = Fixtures.SLOT_NOW + 1;
+        api.snap.observed.slot = slot;
+        org.robolectric.android.controller.ActivityController<ResultActivity> c =
+            resultController(slot, "act:study_room", Intents.MODE_RESULT, true);
+        ResultActivity r = c.get();
+        Ui.setAnimationsEnabled(true);
+        assertTrue(Shots.clickTarget(Shots.find(r, "做完了")).performClick());
+        for (int i = 0; i < 50 && !r.closing() && !r.isFinishing(); i++) {
+            Shadows.shadowOf(Looper.getMainLooper()).runOneTask();
+        }
+        assertTrue(r.closing());
+        assertFalse("still dropping away", r.isFinishing());
+        c.newIntent(request(api.snap.observed.slot));
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(600));
+        assertFalse(r.isFinishing());
+        assertTrue(Shots.has(r, "见面了"));
+    }
+
+    /** A widget 完成 for {@code slot}. */
+    private static Intent request(int slot) {
+        Intent intent = new Intent(RuntimeEnvironment.getApplication(), ResultActivity.class);
+        intent.putExtra(Intents.EXTRA_SLOT, slot);
+        intent.putExtra(Intents.EXTRA_MODE, Intents.MODE_RESULT);
+        return intent;
     }
 
     @Test

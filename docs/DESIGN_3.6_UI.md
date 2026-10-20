@@ -322,22 +322,28 @@ Basket logic, the calculator, persistence and the workspace behaviour are unchan
   an inline keypad); free slots [继续] [做了别的…].
 - 做不了: 「怎么没做成？」 + the reasons that fit
   (「剧情占用了」「对方不在」「没开门」「钱不够」「不想做」), 「其实做了别的…」; 「以后还排「X」吗？」
-  [只是这次] [以后别排了]; 改做别的 「做了什么？」 + 「都不是，没什么收获」. Back pops one panel; only
-  the entry panel closes the sheet.
+  [只是这次] [以后别排了] (the bar then says 「以后不排「X」了」, without 撤销); 改做别的 「做了什么？」 +
+  「都不是，没什么收获」: a row with nothing left to ask records at once, one with 顺便 asks only
+  「顺便的事也做了吗？」 [也做了] [没做]. Back pops one panel; only the entry panel closes the sheet;
+  taps are dropped for 400ms after a panel change (no double-tap answers), and TalkBack moves to the
+  new question.
 - 补记: 「前面 3 项也照安排做了吗？」 [都做了] [一项项对] + 「前面都没做」; no question when only
   story time lies in between.
 - States: 「还没开始设置」 [开始设置]; 「日程全部结束，辛苦了！」; 「这项已经记过了」 [看记录历史]
   [好的] (opens the app on 记录历史 via `Intents.EXTRA_OPEN_PAGE`); 「记录没读出来」 [关闭] [重试];
-  「这条记录刚改过」; 「安排还在排，马上就好」; corrections show 「原来记的是：皇帝 RANK 7」. Errors
-  red; 「正在保存…」 after 400ms.
+  「这条记录刚改过」 [好的]; 「安排还在排，马上就好」; 「安排没排出来」 [关闭] [重试]; corrections show
+  「原来记的是：皇帝 RANK 7」 and are reported as 「皇帝 改为 RANK 7」 (never a RANK UP). Errors red;
+  「正在保存…」 after 400ms.
 - TowerPanel: 「奇颜之庭 阿尔卡（23–43F）」 + 「第 2 次 · 最多 4 次」; HUD floor numeral (typeable) +
   「顶层 117F」; the rescue next, 「舞子救出来了吗？」; cash: 「不记得了」,
   [出塔后余额 | 这次多了多少] (balance only when the cash before is unknown), inline keypad,
-  「进塔前 18,500 → 出塔后 25,050 日元（+6,550）」 once typed; 「记一下主角等级」; [没去成] [保存].
+  「进塔前 18,500 → 出塔后 25,050 日元（+6,550）」 once typed; 「记一下主角等级」; [没去成] [保存]
+  (dim until the cash is typed; tapped before, it opens the keypad).
 - RankUpBurst: 「RANK UP!!」 + 「皇帝 · RANK 7」 after a recorded rank-up, tap to skip, then the sheet
   closes.
 - Removed: the persona chip, location and answers, 「现在是 RANK 5，这次见面预计会升级。」,
-  「只加好感，不直接升级。」, 「羁绊剧情不加社群点数。」, the 「游戏提示下次就能升级」 switch card,
+  「只加好感，不直接升级。」, 「羁绊剧情不加社群点数。」 and the per-episode reward sentence, the
+  「游戏提示下次就能升级」 switch card,
   「没见到」, 「这个时段没能照安排做？」 and its caption, 「完成了，和预计一样」,
   「剧情原因暂时升不了」, 「逐项核对」, 「点这里输入」, the tower cash explanations and 「（可选）」,
   the full-screen saving overlay, the full sheet outline.
