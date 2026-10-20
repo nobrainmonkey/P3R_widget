@@ -287,11 +287,11 @@ public final class FusionBasketPage {
     // ------------------------------------------------------------------ materials
 
     private void renderMaterials() {
+        // Nothing to gather (every goal is registered, or every recipe needs a new choice): no header.
+        if (summary.shopping.isEmpty()) return;
         int registered = 0;
         for (FusionBasket.ShoppingItem item : summary.shopping) if (owned.contains(item.persona.id)) registered++;
-        content.addView(Ui.sectionHeader(c, "需要的素材", summary.shopping.isEmpty() ? null
-            : "已登录 " + registered + "/" + summary.shopping.size()), top(20));
-        if (summary.shopping.isEmpty()) return;
+        content.addView(Ui.sectionHeader(c, "需要的素材", "已登录 " + registered + "/" + summary.shopping.size()), top(20));
         LinearLayout sort = Ui.row(c);
         sort.setGravity(Gravity.END);
         for (int i = 0; i < SORT_LABELS.length; i++) {
