@@ -1,7 +1,7 @@
 # P3R planner repository context
 
-Reference for continuing the owner's existing project. Updated for 3.5.1 grouped lookups,
-Persona acquisition floors, icon controls and game-date navigation, on top of 3.5.0.
+Reference for continuing the owner's existing project. Updated for the 3.6.0 P3R interface,
+available-action calendars and earlier teammate characteristics, on top of 3.5.1.
 This is an orientation snapshot; check newer code and owner decisions before implementing changes.
 
 ## Product and current baseline
@@ -13,7 +13,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
   player records a different result, changes goals, or returns later and syncs progress.
 - Useful, consistent plans matter more than global optimality. An unmet goal is not proof
   that the goal is impossible. Forecasts and confirmed progress must remain separate.
-- Current app source: **3.5.1**, version code **42**, application ID **`app.p3r.planner`**;
+- Current app source: **3.6.0**, version code **43**, application ID **`app.p3r.planner`**;
   debug builds add `.debug`. Java package/Android namespace remains `app.p3r.dayplanner`.
   Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, minimum API 26, compile/target API 35.
 - The owner released 3.4.2 at `52e9b9d`; 3.5.0 builds on those changes. See
@@ -52,6 +52,8 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 | [3.4.1 change notes](RELEASE_NOTES_3.4.1.md) | Goal-prefix coverage, joint prerequisites, shared school calendars, useful dating notes and manual deep search. |
 | [3.5.0 change notes](RELEASE_NOTES_3.5.0.md) | Compendium, fusion basket, previous-day corrections, rescue floors and prerequisite candidates. |
 | [3.5.1 change notes](RELEASE_NOTES_3.5.1.md) | Icon controls, acquisition floors, grouped social/Monad lookups, period scoping and jump to today. |
+| [3.6.0 change notes](RELEASE_NOTES_3.6.0.md) | P3R interface overhaul, available actions, list/month-grid calendars and selected teammate trait timing. |
+| [3.6 UI contract](DESIGN_3.6_UI.md) | Current visual system, short player-facing copy, transitions and calendar interactions. |
 | [3.1.0 specification](specs/SPEC_3.1.0.md) | Full replan, reminders, legacy removal, widget answers and breadth planning. |
 | [Chinese glossary](GLOSSARY_zh.md) | Exact UI terms, sentence style and deadline wording. |
 | [Rules report](../rules/build/REPORT.md) | Generated source decisions, confidence, coverage and modeling gaps. |
@@ -86,6 +88,14 @@ The main data flow is: checkpoint plus recorded events → replayed observed sta
 state and profile → complete forecast plan → independent validation → revision-checked
 installation → app and widget. Results return through the service into the event ledger.
 
+3.6.0 adds a separate read-only availability flow: `engine/Availability` shares the compiled
+calendar checks, `service/AvailableActions` supplies short Chinese entries, and `UiData.availability`
+feeds 今天可做 and the 活动日历 source in 日程. These opportunities follow recorded progression
+and dated opening conditions independently of the chosen plan, goals or remaining stat utility.
+`ScheduleMonthGrid` supplies the month presentation; source tabs and list/grid controls stay distinct.
+Today cash uses its own full-width row through seven digits. The current UI baseline is
+`DESIGN_3.6_UI.md`; preserve its motion, slanted panels, royal-blue ocean and white primary actions.
+
 3.5.0 adds the independent bottom 「图鉴」 tab as the sole main entry. `CompendiumPage`
 has internal 图鉴 / 合成 / 合成篮 navigation; search, quiet scope/filter tools and independent
 等级/阿尔卡那 sorting mode plus ascending/descending direction stay distinct from those tabs.
@@ -118,12 +128,15 @@ Permanent pickups and undated requests belong to their opening period, while act
 windows can overlap periods. All entries remain available under 「全部」. The calendar's floating
 arrow uses the game cursor, and keeps the previous-day correction entry point.
 
-Scheduling policy is now **4**: old policy3 forecasts are recomputed without changing records.
+Scheduling policy is now **5**: older forecasts are recomputed without changing records.
 NEW_DIVERSE reserves one unlock/prerequisite candidate within K (K≥2), including when an
 ordinary unlock and a goal-serving prerequisite meeting coexist. Goal priority follows unmet
 rank prerequisites recursively, stops when the required rank is met or parent established,
 and does not make prerequisites implicit MAX goals. Rescue groups now carry all20 people and
 their floors, shared by planned-visit reminders and period tips; IDs21–27 are cats, excluded.
+Selected teammate traits also retain a rollout candidate (K≥3, preserving the gateway slot),
+gain finite earlier-completion value, and add a trait-focused search tuning under the same
+rescue/goal comparison. Track milestone dates in rollout-local arrays, never persisted progress.
 
 ## Calendar and planning mechanics
 
@@ -334,7 +347,7 @@ their floors, shared by planned-visit reminders and period tips; IDs21–27 are 
   key distinguishes checkpoint/effective observed events and the skipped interval so undo/sync
   invalidates old acknowledgements; replan, profile-only changes and historical tower-money
   corrections preserve them.
-- Forecast policy version is 3. Old cached forecasts are recomputed without changing
+- Forecast policy version is 5. Old cached forecasts are recomputed without changing
   confirmed records, even if rule pack and revisions happen to match.
 
 ## Confirmed progress and replanning integrity
@@ -373,10 +386,10 @@ their floors, shared by planned-visit reminders and period tips; IDs21–27 are 
   persistent **深度修改**, progress/settings replans use 12 seconds and do not queue that
   8-second follow-up. The setting does not replace manual 8/30-second full-replan choices.
 - Plan-cache compatibility also checks the scheduling policy. `Plan.CURRENT_POLICY_VERSION`
-  is 3 and new plans default to `policyVersion=3`; legacy JSON without this field loads
+  is 5 and new plans default to `policyVersion=5`; legacy JSON without this field loads
   as version 0. `PlannerService.isCurrent` checks this version plus the existing revisions
   and rules identity. Upgrading recalculates older scheduling policies once without
-  changing actual records or the rule pack. A saved policy-version-3 plan remains reusable
+  changing actual records or the rule pack. A saved policy-version-5 plan remains reusable
   on restart when its normal currentness checks pass.
 - Full replan rereads saved state/profile, uses an 8-second default budget and no stability
   bias, and does not itself change progress or history. Its ticket/result state is distinct

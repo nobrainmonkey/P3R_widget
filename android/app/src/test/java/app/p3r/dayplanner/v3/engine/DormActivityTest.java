@@ -14,6 +14,39 @@ import java.util.List;
 /** Free evening activities compete for real slots and earn finite characteristic progress. */
 public class DormActivityTest {
     @Test
+    public void sameCompletedTraitsAreWorthMoreWhenTheyCanBeUsedEarlier() {
+        Rules rules = dorms();
+        SimState start = capped(rules, 20);
+        Heuristics h = new Heuristics(new Model(rules, upgrading(), null), start, null);
+        SimState end = start.copy();
+        end.used[0] = end.used[1] = 3;
+        int[] early = h.initialReached(start);
+        int[] late = h.initialReached(start);
+        h.track(end, Rules.slot(24, true), early);
+        h.track(end, Rules.slot(26, true), late);
+        assertTrue("identical end counters must prefer earlier battle utility",
+                h.objective(end, early) > h.objective(end, late));
+        double first = h.objective(end, early);
+        end.used[0] = end.used[1] = 99;
+        h.track(end, Rules.slot(25, true), early);
+        assertEquals("extra uses cannot change the first milestone or farm its bonus", first,
+                h.objective(end, early), 0);
+    }
+
+    @Test
+    public void recordedTraitsDoNotEarnASecondUnlockTimeBonus() {
+        Rules rules = dorms();
+        SimState start = capped(rules, 20);
+        start.used[0] = start.used[1] = 3;
+        Heuristics h = new Heuristics(new Model(rules, upgrading(), null), start, null);
+        int[] reached = h.initialReached(start);
+        double value = h.objective(start, reached);
+        h.track(start, Rules.slot(21, true), reached);
+        assertEquals("a replan cannot re-unlock characteristics already recorded", value,
+                h.objective(start, reached), 0);
+    }
+
+    @Test
     public void noGoalSkipsItemOnlyProjectsButStillUsesFreeStatsAndKeepsActualHistory() {
         Rules rules = dorms();
         Profile profile = new Profile();

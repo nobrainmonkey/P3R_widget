@@ -12,6 +12,64 @@ import org.junit.Test;
 /** Unlock/gateway exploration must survive the bounded candidate cut. */
 public class DiverseCandidatePolicyTest {
     @Test
+    public void selectedTraitAndGoalGatewayBothSurviveTwoHigherMeetings() {
+        assertSelectedTraitSurvives(false);
+    }
+
+    @Test
+    public void highScoringUnselectedDormCannotHideSelectedTraitFromRollout() {
+        assertSelectedTraitSurvives(true);
+    }
+
+    private static void assertSelectedTraitSurvives(boolean unselectedDorm) {
+        Rules rules = GoalPrerequisitePolicyTest.plainLinks(3);
+        for (Rules.Link link : rules.links) {
+            link.evening = true;
+            link.unlock.steps.get(0).evening = true;
+        }
+        Rules.Activity dorm = RulesFixtures.activity(0, "dorm_yukari_dvd", "和由加莉看DVD",
+                Rules.ActivityKind.STAT, false, true, 0, RulesFixtures.ACADEMICS, 0);
+        dorm.dormPartnerZh = "岳羽由加莉";
+        dorm.fixedDays = new int[]{20, 22, 24};
+        rules.activities = new Rules.Activity[]{dorm};
+        if (unselectedDorm) {
+            Rules.Activity other = RulesFixtures.activity(1, "dorm_ken_dvd", "和天田看DVD",
+                    Rules.ActivityKind.STAT, false, true, 0, RulesFixtures.ACADEMICS, 0);
+            other.dormPartnerZh = "天田乾";
+            other.fixedDays = dorm.fixedDays;
+            other.affinityLink = 0;
+            other.affinityPts = 30;
+            rules.activities = new Rules.Activity[]{dorm, other};
+            rules.links[0].threshold[10] = 30;
+        }
+        Profile profile = new Profile();
+        profile.dormTargets.put("dorm_yukari", Profile.DormTarget.UNLOCK);
+        for (int l = 0; l < 3; l++) {
+            profile.tier[l] = Profile.Tier.MUST;
+            profile.order[l] = l;
+        }
+        SimState state = new SimState(0, rules.activities.length);
+        state.slot = Rules.slot(rules.firstDay, true);
+        state.cash = 100_000;
+        state.rank[0] = state.rank[1] = 9;
+        state.ready[0] = state.ready[1] = true;
+        if (unselectedDorm) state.ready[0] = false;
+        Engine.Options options = options(3);
+        Model model = new Model(rules, profile, options);
+        Heuristics h = new Heuristics(model, state, null, Heuristics.Tuning.DEFAULT.goalFirst());
+        h.prepare(state);
+        int trait = Kernel.encode(Action.activity(0));
+        int gateway = Kernel.encode(Action.unlock(2, 0));
+        assertTrue(h.score(state, trait) < h.score(state, Kernel.encode(Action.meet(1))));
+        if (unselectedDorm) assertTrue("the ordinary dorm candidate would win by raw H",
+                h.score(state, Kernel.encode(Action.activity(1))) > h.score(state, trait));
+        int[] candidates = new Planner.Search(model, h, options, Long.MAX_VALUE, 0, 0).rolloutCandidates(state);
+        assertTrue("a selected trait remains available to whole-plan evaluation", contains(candidates, trait));
+        assertTrue("keeping a trait must not evict the goal gateway", contains(candidates, gateway));
+        assertEquals("the separately tried greedy meeting still counts within K=3", 2, candidates.length);
+    }
+
+    @Test
     public void aLowerScoringAdmittedUnlockSurvivesTwoHigherMeetingsAndKTwo() {
         Rules rules = GoalPrerequisitePolicyTest.plainLinks(5);
         Profile profile = new Profile();

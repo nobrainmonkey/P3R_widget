@@ -62,8 +62,10 @@ import java.util.List;
  *       episode's calendar window, so the last slot that keeps the track complete beats almost
  *       everything.</li>
  *   <li><b>Dorm projects</b>: only explicitly chosen characteristic goals earn finite progress and
- *       milestone value. An unlock goal stops after one project, an upgrade goal after both.
- *       Actual remaining activity dates determine urgency. Useful stat gains need no trait goal.</li>
+ *       milestone value. Earlier unlocks/upgrades also earn bounded combat-use value: getting a
+ *       characteristic in October is better than first getting it at the end of January.
+ *       An unlock goal stops after one project, an upgrade goal after both. Actual remaining
+ *       activity dates determine urgency. Useful stat gains need no trait goal.</li>
  *   <li>FREE is allowed when legal work adds no needed cash or training worth doing before later free gains.</li>
  * </ul>
  */
@@ -152,10 +154,12 @@ final class Heuristics {
     /** Extra objective value of watching every episode of an opted-in track. */
     static final double EPISODE_FINISH = 4_000;
     /** Chosen dorm goals have finite value: three of one project unlock, both projects strengthen. */
-    // A useful bonus beside their free stats, without moving fee-paying jobs into scarce daytime.
-    static final double DORM_PROGRESS = 10;
-    static final double DORM_TRAIT = 120;
-    static final double DORM_UPGRADE = 180;
+    static final double DORM_PROGRESS = 50;
+    static final double DORM_TRAIT = 1_000;
+    static final double DORM_UPGRADE = 1_500;
+    /** Value of having a selected characteristic available for one more game day. */
+    static final double DORM_TRAIT_DAY = 150;
+    static final double DORM_UPGRADE_DAY = 300;
     /** Share of a meeting's value a dating-site note keeps in H (its points are only an estimate). */
     static final double NOTE_SHARE = 0.9;
     /**
@@ -228,6 +232,8 @@ final class Heuristics {
         final boolean goalFirst;
         /** Extra search strategy: when goals are already open, fund their notes in goal order. */
         final boolean orderedNotes;
+        /** Extra search strategy: commit to selected multi-night characteristic projects. */
+        final double dormWeight;
 
         Tuning(double statWeight, double moneyWeight, double patience, double openSlack, double eveShare, double feeWeight,
                double admitShare) {
@@ -236,11 +242,11 @@ final class Heuristics {
 
         Tuning(double statWeight, double moneyWeight, double patience, double openSlack, double eveShare, double feeWeight,
                double admitShare, boolean goalFirst) {
-            this(statWeight, moneyWeight, patience, openSlack, eveShare, feeWeight, admitShare, goalFirst, false);
+            this(statWeight, moneyWeight, patience, openSlack, eveShare, feeWeight, admitShare, goalFirst, false, 1);
         }
 
         private Tuning(double statWeight, double moneyWeight, double patience, double openSlack, double eveShare, double feeWeight,
-                       double admitShare, boolean goalFirst, boolean orderedNotes) {
+                       double admitShare, boolean goalFirst, boolean orderedNotes, double dormWeight) {
             this.statWeight = statWeight;
             this.moneyWeight = moneyWeight;
             this.patience = patience;
@@ -250,15 +256,20 @@ final class Heuristics {
             this.admitShare = admitShare;
             this.goalFirst = goalFirst;
             this.orderedNotes = orderedNotes;
+            this.dormWeight = dormWeight;
         }
 
         /** The same knobs with goals in strict priority order. */
         Tuning goalFirst() {
-            return new Tuning(statWeight, moneyWeight, patience, openSlack, eveShare, feeWeight, admitShare, true, orderedNotes);
+            return new Tuning(statWeight, moneyWeight, patience, openSlack, eveShare, feeWeight, admitShare, true, orderedNotes, dormWeight);
         }
 
         Tuning orderedNotes() {
-            return new Tuning(statWeight, moneyWeight, patience, openSlack, eveShare, feeWeight, admitShare, goalFirst, true);
+            return new Tuning(statWeight, moneyWeight, patience, openSlack, eveShare, feeWeight, admitShare, goalFirst, true, dormWeight);
+        }
+
+        Tuning dormFocus() {
+            return new Tuning(statWeight, moneyWeight, patience, openSlack, eveShare, feeWeight, admitShare, goalFirst, orderedNotes, 8);
         }
 
         /** The best all-round tuning on the real pack's benchmark states (first in the portfolio). */
@@ -267,7 +278,7 @@ final class Heuristics {
         @Override public String toString() {
             return "Tuning(" + statWeight + ", " + moneyWeight + ", " + patience + ", " + openSlack + ", " + eveShare + ", "
                     + feeWeight + ", " + admitShare + (goalFirst ? ", goalFirst" : "")
-                    + (orderedNotes ? ", orderedNotes" : "") + ")";
+                    + (orderedNotes ? ", orderedNotes" : "") + (dormWeight != 1 ? ", dormFocus" : "") + ")";
         }
     }
 
@@ -2099,19 +2110,38 @@ final class Heuristics {
         boolean upgradeFits = wantsUpgrade && tracks.length >= 2;
         int totalNeed = 0;
         int mostProgress = 0;
+        int upgradeAt = st.slot;
         for (int a : tracks) {
             int left = Math.max(0, 3 - Math.max(0, st.used[a]));
             mostProgress = Math.max(mostProgress, Math.max(0, Math.min(3, st.used[a])));
             unlocked |= left == 0;
             totalNeed += left;
             if (left > 0 && (m.excluded[a] || t.actRemain[a][st.slot] < left)) upgradeFits = false;
+            if (left > 0) upgradeAt = Math.max(upgradeAt, dormCompletionSlot(st, a, left));
         }
         // An unlock goal rewards only its best project: spreading two partial projects cannot
         // earn twice the progress value, and finishing one removes every remaining trait bonus.
         double worth = wantsUpgrade || count >= mostProgress ? DORM_PROGRESS : 0;
-        if (!unlocked && remain >= need) worth += DORM_TRAIT / need;
-        if (upgradeFits && totalNeed > 0) worth += DORM_UPGRADE / totalNeed;
-        return worth * urgency(need / (double) remain);
+        int unlockAt = dormCompletionSlot(st, act, need);
+        if (!unlocked && remain >= need)
+            worth += (DORM_TRAIT + DORM_TRAIT_DAY * Math.max(0, (lastSlot - unlockAt) / 2.0)) / need;
+        if (upgradeFits && totalNeed > 0)
+            worth += (DORM_UPGRADE + DORM_UPGRADE_DAY * Math.max(0, (lastSlot - upgradeAt) / 2.0)) / totalNeed;
+        return tuning.dormWeight * worth * urgency(need / (double) remain);
+    }
+
+    /** Earliest third use from real dates, including today's offered activity. */
+    private int dormCompletionSlot(SimState st, int act, int need) {
+        int remain = t.actRemain[act][st.slot];
+        if (remain < need) return lastSlot + 1;
+        int low = st.slot;
+        int high = lastSlot;
+        while (low < high) {
+            int mid = (low + high) >>> 1;
+            if (t.actRemain[act][mid + 1] <= remain - need) high = mid;
+            else low = mid + 1;
+        }
+        return low;
     }
 
     /** Only confirmed/forecast completions count, capped at three per project; no reward for farming. */
@@ -2342,6 +2372,7 @@ final class Heuristics {
         for (int s = 0; s < t.nStats; s++) j += 0.5 * Kernel.statLv(m, end, s);
         j += episodeValue(end);
         j += dormValue(end);
+        j += earlyDormValue(reached);
         j += BUFFER_YEN_VALUE * Math.min(Math.max(0, end.cash), m.cashBuffer);
         for (int b = 0; b < t.nBlocks; b++) {
             int optional = Math.min(m.towerCap[b], end.towerVisits[b]) - Math.max(towerStart[b], towerTarget[b]);
@@ -2372,6 +2403,22 @@ final class Heuristics {
         return late;
     }
 
+    /** Milestones only: extra uses, partial projects and pre-existing traits cannot farm this value. */
+    private double earlyDormValue(int[] reached) {
+        double value = 0;
+        int base = goalLinks.length + t.nLinks + t.nRescues;
+        for (int group = 0; group < m.dormTracks.length; group++) {
+            Profile.DormTarget target = m.dormTargets[group];
+            if (target == Profile.DormTarget.NONE) continue;
+            int unlocked = reached[base + group * 2];
+            int upgraded = reached[base + group * 2 + 1];
+            if (unlocked >= 0) value += DORM_TRAIT_DAY * Math.max(0, (lastSlot - unlocked) / 2.0);
+            if (target == Profile.DormTarget.UPGRADE && upgraded >= 0)
+                value += DORM_UPGRADE_DAY * Math.max(0, (lastSlot - upgraded) / 2.0);
+        }
+        return value;
+    }
+
     /**
      * 「其余社群」 links the trajectory brings to MAX on their last calendar meeting opportunity
      * (none left after the MAX meeting); see {@link #FRAGILE_MAX_PENALTY}.
@@ -2390,7 +2437,9 @@ final class Heuristics {
      * Record, in {@code reached}, the slot at which each goal first reaches its target (first
      * {@code goalLinks.length} entries), each link first reaches MAX (one entry per link after
      * them; {@link #MAX_BEFORE} when it was MAX before the plan) and each rescue happens (one entry
-     * per rescue after those; {@link #MAX_BEFORE} when it was settled before the plan).
+     * per rescue after those; {@link #MAX_BEFORE} when it was settled before the plan), followed
+     * by each selected teammate's first unlock and upgrade. These timestamps travel with every
+     * rollout and are also rebuilt when comparing a previous plan.
      */
     void track(SimState st, int slot, int[] reached) {
         int g = goalLinks.length;
@@ -2404,6 +2453,23 @@ final class Heuristics {
         for (int i = 0; i < t.nRescues; i++) {
             if (reached[base + i] == -1 && (st.rescued & (1L << i)) != 0) reached[base + i] = slot;
         }
+        trackDorm(st, slot, reached);
+    }
+
+    private void trackDorm(SimState st, int slot, int[] reached) {
+        int base = goalLinks.length + t.nLinks + t.nRescues;
+        for (int group = 0; group < m.dormTracks.length; group++) {
+            if (m.dormTargets[group] == Profile.DormTarget.NONE) continue;
+            boolean unlocked = false;
+            boolean upgraded = m.dormTracks[group].length >= 2;
+            for (int activity : m.dormTracks[group]) {
+                unlocked |= st.used[activity] >= 3;
+                upgraded &= st.used[activity] >= 3;
+            }
+            int i = base + group * 2;
+            if (reached[i] == -1 && unlocked) reached[i] = slot;
+            if (reached[i + 1] == -1 && upgraded) reached[i + 1] = slot;
+        }
     }
 
     /** Marks a link that was already MAX (or a rescue already settled) when the plan starts. */
@@ -2412,7 +2478,7 @@ final class Heuristics {
     /** Initial reached slots for a plan starting at {@code start} (see {@link #track}). */
     int[] initialReached(SimState start) {
         int g = goalLinks.length;
-        int[] reached = new int[g + t.nLinks + t.nRescues];
+        int[] reached = new int[g + t.nLinks + t.nRescues + m.dormTracks.length * 2];
         for (int i = 0; i < g; i++) {
             reached[i] = start.rank[goalLinks[i]] >= target[goalLinks[i]] ? startSlot : -1;
         }
@@ -2420,6 +2486,8 @@ final class Heuristics {
         for (int i = 0; i < t.nRescues; i++) {
             reached[g + t.nLinks + i] = ((start.rescued | start.rescueFailed) & (1L << i)) != 0 ? MAX_BEFORE : -1;
         }
+        Arrays.fill(reached, g + t.nLinks + t.nRescues, reached.length, -1);
+        trackDorm(start, MAX_BEFORE, reached);
         return reached;
     }
 

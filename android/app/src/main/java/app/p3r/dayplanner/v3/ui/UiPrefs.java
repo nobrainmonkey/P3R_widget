@@ -16,6 +16,9 @@ final class UiPrefs {
     private static final String KEY_LINKS_SECTION = "links.section";
     private static final String KEY_SETTINGS_MORE = "settings.moreOpen";
     private static final String KEY_PENDING_SAVE = "backup.pendingSave";
+    private static final String KEY_CALENDAR_SOURCE = "calendar.source";
+    private static final String KEY_CALENDAR_PLAN_GRID = "calendar.planGrid";
+    private static final String KEY_CALENDAR_AVAILABLE_GRID = "calendar.availableGrid";
 
     private UiPrefs() {}
 
@@ -49,6 +52,25 @@ final class UiPrefs {
 
     static void setLinksSection(Context context, int section) {
         prefs(context).edit().putInt(KEY_LINKS_SECTION, section).apply();
+    }
+
+    /** My plan and the activity calendar keep their own list/grid choice. */
+    static boolean calendarAvailable(Context context) {
+        return prefs(context).getBoolean(KEY_CALENDAR_SOURCE, false);
+    }
+
+    static void setCalendarAvailable(Context context, boolean available) {
+        prefs(context).edit().putBoolean(KEY_CALENDAR_SOURCE, available).apply();
+    }
+
+    static boolean calendarGrid(Context context, boolean available) {
+        return prefs(context).getBoolean(available ? KEY_CALENDAR_AVAILABLE_GRID : KEY_CALENDAR_PLAN_GRID,
+            available);
+    }
+
+    static void setCalendarGrid(Context context, boolean available, boolean grid) {
+        prefs(context).edit().putBoolean(available ? KEY_CALENDAR_AVAILABLE_GRID : KEY_CALENDAR_PLAN_GRID,
+            grid).apply();
     }
 
     /** Whether 规划设置's 「更多选项」 was left open (a small read; the file is loaded at start). */

@@ -116,11 +116,14 @@ final class Planner {
             Heuristics.Tuning.DEFAULT.goalFirst(),
             new Heuristics.Tuning(1.6, 2.0, 0.3, 4.0, 1.0, 4.0, 1.15, true)};
 
-    /** The tunings screened for this profile: {@link #PORTFOLIO}, plus {@link #GOAL_FIRST} when there are goals. */
+    /** Goal-first and selected-trait strategies share the same complete-plan objective. */
     static Heuristics.Tuning[] portfolioFor(Profile profile) {
-        if (!profile.hasAnyGoal()) return PORTFOLIO;
-        Heuristics.Tuning[] all = Arrays.copyOf(PORTFOLIO, PORTFOLIO.length + GOAL_FIRST.length);
-        System.arraycopy(GOAL_FIRST, 0, all, PORTFOLIO.length, GOAL_FIRST.length);
+        boolean traits = profile.dormTargets.values().stream().anyMatch(target -> target != Profile.DormTarget.NONE);
+        int goals = profile.hasAnyGoal() ? GOAL_FIRST.length : 0;
+        if (goals == 0 && !traits) return PORTFOLIO;
+        Heuristics.Tuning[] all = Arrays.copyOf(PORTFOLIO, PORTFOLIO.length + goals + (traits ? 1 : 0));
+        if (goals > 0) System.arraycopy(GOAL_FIRST, 0, all, PORTFOLIO.length, goals);
+        if (traits) all[all.length - 1] = (goals > 0 ? Heuristics.Tuning.DEFAULT.goalFirst() : Heuristics.Tuning.DEFAULT).dormFocus();
         return all;
     }
 
@@ -1020,7 +1023,7 @@ final class Planner {
                         if (code == previous) margin = STABILITY_MARGIN;
                         if (improve && n >= 2) {
                             boolean meetable = (slot & 1) == 0 && socialLegal(n);
-                            for (int c : diverse(n, baseIdx)) {
+                            for (int c : diverse(st, n, baseIdx)) {
                                 if (c == code) continue;
                                 if (System.nanoTime() > deadline || cancelled()) {
                                     improve = false;
@@ -1106,7 +1109,7 @@ final class Planner {
          * choice. Goal-serving gateways compare goal priority first, so an ordinary unlock cannot
          * suppress an unmet prerequisite of a selected goal.
          */
-        private int[] diverse(int n, int baseIdx) {
+        private int[] diverse(SimState state, int n, int baseIdx) {
             if (candidateMode == CandidateMode.NORMAL_TOP_K) {
                 return topKNormal(n, baseIdx);
             }
@@ -1119,6 +1122,7 @@ final class Planner {
             int anyUnlock = -1;
             int act = -1;
             int dorm = -1;
+            int selectedDorm = -1;
             int tower = -1;
             int note = -1;
             int episode = -1;
@@ -1141,6 +1145,8 @@ final class Planner {
                 } else if (type == Kernel.T_ACT) {
                     if (m.rules.activities[Kernel.target(code)].dormActivity()) {
                         if (dorm < 0 || scores[i] > scores[dorm]) dorm = i;
+                        if (m.dormTraitUseful(state, Kernel.target(code))
+                                && (selectedDorm < 0 || scores[i] > scores[selectedDorm])) selectedDorm = i;
                     } else if (act < 0 || scores[i] > scores[act]) act = i;
                 } else if (type == Kernel.T_TOWER) {
                     if (tower < 0 || scores[i] > scores[tower]) tower = i;
@@ -1161,8 +1167,8 @@ final class Planner {
             if (unlock < 0 && anyUnlock >= 0 && (social2 < 0 || scores[anyUnlock] > scores[social2])) {
                 unlock = anyUnlock;
             }
-            List<Integer> picked = new ArrayList<>(8);
-            for (int r : new int[]{social1, social2, unlock, act, dorm, tower, note, episode}) {
+            List<Integer> picked = new ArrayList<>(9);
+            for (int r : new int[]{social1, social2, unlock, act, dorm, selectedDorm, tower, note, episode}) {
                 if (r >= 0 && !picked.contains(r)) picked.add(r);
             }
             if (!Heuristics.vetoed(scores[baseIdx]) && !picked.contains(baseIdx)) picked.add(baseIdx);
@@ -1177,6 +1183,15 @@ final class Planner {
             if (candidates >= 2 && unlock >= 0 && picked.indexOf(unlock) >= limit) {
                 picked.set(limit - 1, unlock);
             }
+            // A selected unfinished characteristic must reach the rollout even while an evening
+            // note or two ordinary meetings have a larger local score. Keep the gateway slot too.
+            if (selectedDorm >= 0) {
+                int replace = limit - 1;
+                if (replace >= 0 && picked.get(replace) == unlock) replace--;
+                int position = picked.indexOf(selectedDorm);
+                if (candidates >= 3 && replace >= 0 && (position < 0 || position >= limit))
+                    picked.set(replace, selectedDorm);
+            }
             boolean baseVetoed = Heuristics.vetoed(scores[baseIdx]);
             int[] out = new int[limit];
             int c = 0;
@@ -1190,7 +1205,7 @@ final class Planner {
         /** The same bounded action selection used by run, excluding its separately tried base. */
         int[] rolloutCandidates(SimState state) {
             int n = Kernel.legal(m, state, buf);
-            return n == 0 ? new int[0] : diverse(n, scoreAll(state, n));
+            return n == 0 ? new int[0] : diverse(state, n, scoreAll(state, n));
         }
 
         private boolean betterGateway(int candidate, int current) {

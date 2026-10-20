@@ -5,10 +5,11 @@ import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
+import app.p3r.dayplanner.v3.service.AvailableActions;
 
 /**
  * Immutable bundle the app screens render from: the rule pack, one atomic planner snapshot and a
- * few UI-only facts. Built off the main thread; views only read it.
+ * few UI-only facts. The activity creates it on the main thread; expensive derived lists are lazy.
  */
 public final class UiData {
     /** Return banner threshold: last record older than 8 hours. */
@@ -24,6 +25,8 @@ public final class UiData {
     /** Show "上次记录：… · 游戏进度变了吗？". */
     public final boolean returnBanner;
     public final long nowMillis;
+    /** Recorded-progress opportunities, cached per requested day without a whole-year UI build. */
+    public final AvailableActions.Calendar availability;
     private final Plan displayPlan;
 
     public UiData(Rules rules, PlannerApi.Snapshot snap, String changeSummary, boolean returnBanner, long nowMillis) {
@@ -32,6 +35,7 @@ public final class UiData {
         this.changeSummary = changeSummary;
         this.returnBanner = returnBanner;
         this.nowMillis = nowMillis;
+        this.availability = AvailableActions.build(rules, profile(), observed());
         this.displayPlan = snap == null ? null : snap.storyDisplay == null ? snap.plan
                 : snap.storyDisplay.overlay(snap.plan, snap.observed == null ? -1 : snap.observed.slot);
     }

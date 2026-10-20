@@ -9,6 +9,7 @@ import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,16 +19,20 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.engine.Plan;
+import app.p3r.dayplanner.v3.engine.Action;
 import app.p3r.dayplanner.v3.model.Rules;
+import app.p3r.dayplanner.v3.service.AvailableActions;
 import app.p3r.dayplanner.v3.service.PlannerApi;
 
 /**
@@ -65,6 +70,20 @@ final class SchedulePage {
     private final Context c;
     private final FrameLayout root;
     private final ListView list;
+    private final LinearLayout fixedHeader;
+    private final ScrollView gridScroll;
+    private final LinearLayout gridColumn;
+    private final LinearLayout dayDetails;
+    private ScheduleMonthGrid monthGrid;
+    private Rules gridRules;
+    private SegmentedControl sourceControl;
+    private ImageView listControl;
+    private ImageView gridControl;
+    private boolean availableSource;
+    private boolean gridMode;
+    private int selectedDay = -1;
+    private int bottomInset;
+    private final AvailableActionViews.State availableBrowse = new AvailableActionViews.State();
     private final ImageView jumpToday;
     private final LinearLayout empty;
     private final Adapter adapter = new Adapter();
@@ -81,6 +100,8 @@ final class SchedulePage {
     SchedulePage(HomeHost host) {
         this.host = host;
         this.c = host.activity();
+        availableSource = UiPrefs.calendarAvailable(c);
+        gridMode = UiPrefs.calendarGrid(c, availableSource);
         root = new FrameLayout(c) {
             @Override
             protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
@@ -97,6 +118,14 @@ final class SchedulePage {
                 }
             }
         };
+        LinearLayout body = Ui.column(c);
+        root.addView(body, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT));
+        fixedHeader = Ui.column(c);
+        Ui.pad(fixedHeader, Ui.GUTTER, 0, Ui.GUTTER, 6);
+        body.addView(fixedHeader, Ui.matchWrap());
+        FrameLayout content = new FrameLayout(c);
+        body.addView(content, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
         list = new ListView(c);
         list.setDivider(new android.graphics.drawable.ColorDrawable(0));
         list.setDividerHeight(Ui.dp(c, 8));
@@ -115,12 +144,24 @@ final class SchedulePage {
                 updateJump(first, visible);
             }
         });
-        root.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+        content.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT));
+        gridScroll = new ScrollView(c);
+        gridScroll.setClipToPadding(false);
+        gridScroll.setVerticalScrollBarEnabled(false);
+        gridScroll.setVisibility(View.GONE);
+        gridScroll.setOnScrollChangeListener((v, x, y, oldX, oldY) -> updateJump(0, 0));
+        gridColumn = Ui.column(c);
+        Ui.pad(gridColumn, Ui.GUTTER, 0, Ui.GUTTER, 0);
+        dayDetails = Ui.column(c);
+        gridScroll.addView(gridColumn, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT));
+        content.addView(gridScroll, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
         empty = Ui.column(c);
         Ui.pad(empty, Ui.GUTTER, 8, Ui.GUTTER, 0);
         empty.setVisibility(View.GONE);
-        root.addView(empty, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+        content.addView(empty, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
         jumpToday = new ImageView(c);
         jumpToday.setImageDrawable(Ui.tinted(c, R.drawable.ui_ic_up, Ui.col(c, R.color.p3r_navy_950)));
@@ -156,41 +197,252 @@ final class SchedulePage {
     }
 
     void setBottomInset(int px) {
+        bottomInset = px;
         list.setPadding(list.getPaddingLeft(), list.getPaddingTop(), list.getPaddingRight(), px + Ui.dp(c, 88));
+        gridScroll.setPadding(0, 0, 0, px + Ui.dp(c, 88));
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) jumpToday.getLayoutParams();
         params.bottomMargin = px + Ui.dp(c, 16);
         jumpToday.setLayoutParams(params);
     }
 
     void bind(UiData d) {
+        int previousDay = data != null && data.hasState() ? Math.min(data.rules.lastDay,
+            Rules.dayOf(data.displaySlot())) : -1;
+        boolean followedToday = selectedDay < 0 || selectedDay == previousDay;
         data = d;
+        rebuildHeader();
         Plan plan = d.displayPlan();
-        if (!d.hasState() || plan == null) {
+        if (!d.hasState() || d.rules == null || (!availableSource && plan == null)) {
             showEmpty(d);
             return;
         }
         empty.setVisibility(View.GONE);
         empty.removeAllViews();
+        if (followedToday || (!availableSource && selectedDay < Math.max(d.rules.firstDay,
+                Rules.dayOf(d.displaySlot()) - 1))) selectedDay = Math.max(d.rules.firstDay,
+            Math.min(d.rules.lastDay, Rules.dayOf(d.displaySlot())));
+        if (gridMode) {
+            list.setVisibility(View.GONE);
+            gridScroll.setVisibility(View.VISIBLE);
+            renderGrid();
+            if (!availableSource) loadHistory(d);
+            return;
+        }
+        gridScroll.setVisibility(View.GONE);
         list.setVisibility(View.VISIBLE);
-        List<Item> items = buildItems(plan, d.displaySlot(), d.rules.firstDay);
+        List<Item> items = availableSource ? buildAvailableItems(d.rules)
+            : buildItems(plan, d.displaySlot(), d.rules.firstDay);
         adapter.setItems(items);
-        loadHistory(d);
-        if (!plan.planId.equals(scrolledForPlan)) {
-            scrolledForPlan = plan.planId;
+        if (!availableSource) loadHistory(d);
+        String viewKey = availableSource ? "available:" + d.rules.version : plan.planId;
+        if (!viewKey.equals(scrolledForPlan)) {
+            scrolledForPlan = viewKey;
             jumpToToday(false);
         }
         cascadeOnce();
     }
 
+    /** Source and presentation are separate controls, always reachable above either calendar. */
+    private void rebuildHeader() {
+        fixedHeader.removeAllViews();
+        fixedHeader.addView(headerView(data != null && data.hasState()), Ui.matchWrap());
+        if (data == null || !data.hasState() || data.rules == null) return;
+        LinearLayout controls = Ui.row(c);
+        sourceControl = new SegmentedControl(c, Arrays.asList("我的安排", "活动日历"));
+        sourceControl.setSelected(availableSource ? 1 : 0);
+        sourceControl.setListener(index -> switchSource(index == 1));
+        controls.addView(sourceControl, Ui.weight(1));
+        listControl = viewButton(R.drawable.ui_ic_calendar_list, "列表视图", !gridMode);
+        listControl.setOnClickListener(v -> switchView(false));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(c, Ui.TOUCH), Ui.dp(c, Ui.TOUCH));
+        lp.leftMargin = Ui.dp(c, 8);
+        controls.addView(listControl, lp);
+        gridControl = viewButton(R.drawable.ui_ic_calendar_grid, "网格视图", gridMode);
+        gridControl.setOnClickListener(v -> switchView(true));
+        controls.addView(gridControl, new LinearLayout.LayoutParams(Ui.dp(c, Ui.TOUCH), Ui.dp(c, Ui.TOUCH)));
+        fixedHeader.addView(controls, top(4));
+    }
+
+    private ImageView viewButton(int icon, String description, boolean selected) {
+        ImageView button = new ImageView(c);
+        button.setImageDrawable(Ui.tinted(c, icon,
+            Ui.col(c, selected ? R.color.p3r_navy_950 : R.color.p3r_cyan_200)));
+        button.setScaleType(ImageView.ScaleType.CENTER);
+        button.setBackground(new SlantedPanelDrawable().skew(Ui.dp(c, 5))
+            .fill(selected ? Ui.col(c, R.color.p3r_white) : 0)
+            .pressedFill(Ui.col(c, R.color.p3r_cyan_200)));
+        button.setContentDescription(description);
+        button.setTooltipText(description);
+        button.setClickable(true);
+        button.setFocusable(true);
+        button.setSelected(selected);
+        return button;
+    }
+
+    private void switchSource(boolean available) {
+        if (availableSource == available) return;
+        availableSource = available;
+        gridMode = UiPrefs.calendarGrid(c, available);
+        UiPrefs.setCalendarAvailable(c, available);
+        if (!available && data != null) {
+            int today = Math.max(data.rules.firstDay, Math.min(data.rules.lastDay,
+                Rules.dayOf(data.displaySlot())));
+            if (selectedDay < Math.max(data.rules.firstDay, today - 1)
+                    || selectedDay > data.rules.lastDay) selectedDay = today;
+        }
+        scrolledForPlan = null;
+        bind(data);
+        Motion.tabIn(gridMode ? gridScroll : list, available);
+    }
+
+    private void switchView(boolean grid) {
+        if (gridMode == grid) return;
+        gridMode = grid;
+        UiPrefs.setCalendarGrid(c, availableSource, grid);
+        bind(data);
+        Motion.enter(grid ? gridScroll : list, 0);
+    }
+
+    private void renderGrid() {
+        int scrollY = gridScroll.getScrollY();
+        if (monthGrid == null || gridRules != data.rules) {
+            gridRules = data.rules;
+            monthGrid = new ScheduleMonthGrid(c, data.rules, selectedDay);
+        }
+        if (monthGrid.selectedDay() != selectedDay) monthGrid.select(selectedDay, false);
+        if (monthGrid.getParent() instanceof ViewGroup) ((ViewGroup) monthGrid.getParent()).removeView(monthGrid);
+        if (dayDetails.getParent() instanceof ViewGroup) ((ViewGroup) dayDetails.getParent()).removeView(dayDetails);
+        gridColumn.removeAllViews();
+        gridColumn.addView(monthGrid, Ui.matchWrap());
+        gridColumn.addView(dayDetails, top(22));
+        monthGrid.bind(Rules.dayOf(data.displaySlot()), this::gridLabel, day -> {
+            selectedDay = day;
+            renderSelectedDay();
+            updateJump(0, 0);
+        });
+        renderSelectedDay();
+        gridScroll.post(() -> gridScroll.scrollTo(0, scrollY));
+        updateJump(0, 0);
+    }
+
+    private void renderSelectedDay() {
+        dayDetails.removeAllViews();
+        if (availableSource) {
+            AvailableActions.Day available = data.availability.day(selectedDay);
+            if (available != null) dayDetails.addView(AvailableActionViews.day(host, data, available, availableBrowse),
+                Ui.matchWrap());
+        } else {
+            Plan plan = data.displayPlan();
+            int first = Math.max(data.rules.firstDay, Rules.dayOf(data.displaySlot()) - 1);
+            if (selectedDay < first || plan == null || selectedDay > Rules.dayOf(plan.toSlot)) {
+                dayDetails.addView(Ui.muted(c, "这一天没有安排"), Ui.matchWrap());
+                return;
+            }
+            DayRow row = new DayRow(c);
+            row.bind(data, selectedDay);
+            dayDetails.addView(row, Ui.matchWrap());
+        }
+    }
+
+    private ScheduleMonthGrid.Label gridLabel(int day) {
+        if (day < data.rules.firstDay || day > data.rules.lastDay) return null;
+        if (availableSource) {
+            AvailableActions.Day options = data.availability.day(day);
+            if (options == null) return null;
+            int social = count(options, "社群");
+            int dorm = count(options, "宿舍") + count(options, "集体学习");
+            int work = count(options, "打工");
+            boolean locked = options.daytimeLockZh != null && options.eveningLockZh != null;
+            String first = social > 0 ? "社" + social : !options.unlocks.isEmpty() ? "解锁" : locked ? "剧情" : "";
+            String second = dorm > 0 ? "宿" + dorm : work > 0 ? "工" + work
+                : count(options, "电玩城") > 0 ? "电玩" : "";
+            return new ScheduleMonthGrid.Label(true, first, second,
+                availabilitySummary(options.daytime, options.daytimeLockZh) + "；"
+                    + availabilitySummary(options.evening, options.eveningLockZh));
+        }
+        Plan plan = data.displayPlan();
+        int earliest = Math.max(data.rules.firstDay, Rules.dayOf(data.displaySlot()) - 1);
+        boolean enabled = plan != null && day >= earliest && day <= Rules.dayOf(plan.toSlot);
+        if (!enabled) return new ScheduleMonthGrid.Label(false, "", "", "没有安排");
+        Plan.Step daytime = displayedStep(Rules.slot(day, false));
+        Plan.Step evening = displayedStep(Rules.slot(day, true));
+        return new ScheduleMonthGrid.Label(true, compactStep(daytime), compactStep(evening),
+            title(daytime) + "；" + title(evening));
+    }
+
+    private Plan.Step displayedStep(int slot) {
+        boolean recorded = slot < data.displaySlot()
+            && (data.snap.storyDisplay == null || !data.snap.storyDisplay.contains(slot));
+        return recorded ? recordedStep(data.rules, history, slot, historyLoading) : data.displayPlan().at(slot);
+    }
+
+    private String compactStep(Plan.Step step) {
+        if (step == null) return "";
+        Action action = Action.parse(data.rules, step.action);
+        if (action != null && (action.type == Action.Type.MEET || action.type == Action.Type.UNLOCK_STEP
+                || action.type == Action.Type.NOTE) && action.target >= 0 && action.target < data.rules.links.length)
+            return data.rules.links[action.target].arcanaZh;
+        switch (StepKind.of(step)) {
+            case DORM: return "宿舍";
+            case EPISODE: return "羁绊";
+            case JOB: return "打工";
+            case STAT: return "能力";
+            case TOWER: return "爬塔";
+            case LOCKED: return "剧情";
+            default: return NO_RECORD.equals(step.titleZh) ? "—"
+                : step.slot < data.displaySlot() && !title(step).isEmpty() ? "已记" : "自由";
+        }
+    }
+
+    private static String title(Plan.Step step) {
+        return step == null || step.titleZh == null ? "" : step.titleZh;
+    }
+
+    private static int count(AvailableActions.Day day, String category) {
+        Set<String> keys = new LinkedHashSet<>();
+        for (List<AvailableActions.Entry> entries : Arrays.asList(day.daytime, day.evening))
+            for (AvailableActions.Entry entry : entries)
+                if (category.equals(entry.categoryZh)) keys.add(entry.key);
+        return keys.size();
+    }
+
+    private static String availabilitySummary(List<AvailableActions.Entry> entries, String lock) {
+        if (lock != null) return lock;
+        Set<String> labels = new LinkedHashSet<>();
+        for (AvailableActions.Entry entry : entries) {
+            if ("社群".equals(entry.categoryZh) || "宿舍".equals(entry.categoryZh)
+                    || "集体学习".equals(entry.categoryZh) || "打工".equals(entry.categoryZh)
+                    || "电玩城".equals(entry.categoryZh)) labels.add(entry.title);
+        }
+        return labels.isEmpty() ? "自由活动" : android.text.TextUtils.join(" · ", labels);
+    }
+
+    /** General availability can be browsed throughout the game, independent of the current plan. */
+    private static List<Item> buildAvailableItems(Rules rules) {
+        List<Item> items = new ArrayList<>();
+        items.add(new Item(TYPE_SUMMARY, -1, -1));
+        int month = -1;
+        for (int day = rules.firstDay; day <= rules.lastDay; day++) {
+            int m = Zh.dateOf(day).getMonthValue();
+            if (m != month) {
+                month = m;
+                items.add(new Item(TYPE_MONTH, day, m));
+            }
+            items.add(new Item(TYPE_DAY, day, m));
+        }
+        items.add(new Item(TYPE_END, rules.lastDay, month));
+        return items;
+    }
+
     /** No progress yet: 「还没设置进度」 + 开始设置; planning: 「正在安排…」; a failed plan: 重试. */
     private void showEmpty(UiData d) {
         list.setVisibility(View.GONE);
+        gridScroll.setVisibility(View.GONE);
         setJump(-1);
         adapter.setItems(new ArrayList<>());
         empty.removeAllViews();
         empty.setVisibility(View.VISIBLE);
         // Before the first setup there is no history to open.
-        empty.addView(headerView(d.hasState()), Ui.matchWrap());
         LinearLayout box = Ui.column(c);
         Ui.pad(box, 4, 0, 4, 0);
         if (!d.hasState()) {
@@ -217,6 +469,14 @@ final class SchedulePage {
 
     private void jumpToToday(boolean smooth) {
         if (data == null || !data.hasState()) return;
+        if (gridMode && monthGrid != null && gridScroll.getVisibility() == View.VISIBLE) {
+            selectedDay = Math.max(data.rules.firstDay, Math.min(data.rules.lastDay,
+                Rules.dayOf(data.displaySlot())));
+            monthGrid.select(selectedDay, true);
+            gridScroll.smoothScrollTo(0, 0);
+            setJump(-1);
+            return;
+        }
         int position = todayPosition(adapter.items, data.displaySlot());
         if (position < 0) return;
         if (smooth && Ui.animationsEnabled()) {
@@ -228,6 +488,19 @@ final class SchedulePage {
 
     /** Scrolls to the day of {@code slot} (the message bar's 「看看」 after a replan). */
     void showSlot(int slot) {
+        // A changed arrangement always opens the player's plan, keeping the preferred view.
+        if (availableSource) {
+            availableSource = false;
+            gridMode = UiPrefs.calendarGrid(c, false);
+            UiPrefs.setCalendarAvailable(c, false);
+            if (data != null) bind(data);
+        }
+        if (gridMode && monthGrid != null) {
+            selectedDay = Rules.dayOf(slot);
+            monthGrid.select(selectedDay, true);
+            gridScroll.scrollTo(0, 0);
+            return;
+        }
         int position = data == null || !data.hasState() ? -1 : todayPosition(adapter.items, slot);
         if (position >= 0) {
             list.setSelectionFromTop(position, Ui.dp(c, 8));
@@ -259,6 +532,12 @@ final class SchedulePage {
 
     /** 「回到今天」 shows only while today's row is scrolled out, its arrow pointing to it. */
     private void updateJump(int first, int visible) {
+        if (gridMode && gridScroll.getVisibility() == View.VISIBLE && monthGrid != null) {
+            int today = Math.max(data.rules.firstDay, Math.min(data.rules.lastDay, Rules.dayOf(data.displaySlot())));
+            setJump(monthGrid.showingToday() && monthGrid.todayVisible() ? -1
+                : monthGrid.selectedDay() >= today ? 0 : 1);
+            return;
+        }
         int today = todayRow();
         if (today < 0 || list.getVisibility() != View.VISIBLE || visible == 0) {
             setJump(-1);
@@ -353,10 +632,12 @@ final class SchedulePage {
             historyLoading = false;
             history = items;
             adapter.notifyDataSetChanged();
+            if (gridMode && !availableSource && monthGrid != null) renderGrid();
         }, error -> {
             if (historyRevision != revision || historyCursorDay != cursorDay) return;
             historyLoading = false;
             adapter.notifyDataSetChanged();
+            if (gridMode && !availableSource && monthGrid != null) renderGrid();
         });
     }
 
@@ -417,6 +698,12 @@ final class SchedulePage {
                 case TYPE_END:
                     return end(item.day);
                 default:
+                    if (availableSource) {
+                        AvailabilityRow available = convertView instanceof AvailabilityRow
+                            ? (AvailabilityRow) convertView : new AvailabilityRow();
+                        available.bind(item.day);
+                        return available;
+                    }
                     DayRow row = convertView instanceof DayRow ? (DayRow) convertView : new DayRow(c);
                     row.bind(data, item.day);
                     return row;
@@ -428,9 +715,10 @@ final class SchedulePage {
 
     /** The page header as the list's first row. */
     private View listHeader() {
-        View header = headerView(true);
+        // The shared header and view controls stay fixed above the scrolling content.
+        View header = new View(c);
         header.setLayoutParams(new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT));
+            0));
         return header;
     }
 
@@ -506,6 +794,46 @@ final class SchedulePage {
     }
 
     // ------------------------------------------------------------------ day rows
+
+    /** Compact read-only overview; all of the selected date's actions open together. */
+    private final class AvailabilityRow extends LinearLayout {
+        private final TextView heading;
+        private final TextView dayLine;
+        private final TextView eveningLine;
+
+        AvailabilityRow() {
+            super(c);
+            setOrientation(VERTICAL);
+            Ui.pad(this, 12, 10, 12, 10);
+            heading = Ui.mixed(c, "", 17, Ui.col(c, R.color.p3r_white), true);
+            addView(heading, Ui.matchWrap());
+            dayLine = Ui.body(c, "");
+            eveningLine = Ui.body(c, "");
+            for (TextView line : new TextView[]{dayLine, eveningLine}) {
+                line.setMaxLines(2);
+                line.setEllipsize(TextUtils.TruncateAt.END);
+                addView(line, top(5));
+            }
+            setClickable(true);
+            setFocusable(true);
+        }
+
+        void bind(int day) {
+            AvailableActions.Day options = data.availability.day(day);
+            if (options == null) return;
+            boolean today = day == Rules.dayOf(data.displaySlot());
+            heading.setText(Zh.date(day) + " " + Zh.weekdayOf(day) + (today ? " · 今天" : ""));
+            dayLine.setText(Zh.period(data.rules, Rules.slot(day, false)) + " · "
+                + availabilitySummary(options.daytime, options.daytimeLockZh));
+            eveningLine.setText("晚上 · " + availabilitySummary(options.evening, options.eveningLockZh));
+            setBackground(today ? Ui.heroCard(c) : Ui.pressableCard(c));
+            setContentDescription("查看活动 " + Zh.date(day));
+            setOnClickListener(v -> {
+                selectedDay = day;
+                host.showSheet(AvailableActionViews.day(host, data, options, availableBrowse));
+            });
+        }
+    }
 
     /** One calendar day: date block, the slot lines and the gold chips of its 当日提醒. */
     private final class DayRow extends LinearLayout {

@@ -27,8 +27,8 @@ import app.p3r.dayplanner.v3.service.StoryDisplay;
  * 今天 tab, after the game's calendar HUD: the date plate, at most one slim banner (return,
  * error or 从头重新安排), the borderless resource band (tap → 修改进度), the hero card for the next
  * slot (kind tag, title, the rank line with one 「预计」 tag, 人格面具 reminder, location, real
- * answers, 顺便, an urgent reason only, [做不了…] [完成]), 今天别错过, the rest of today and tomorrow,
- * and the goals that are in trouble. Once Jan 31 is recorded the hero becomes a closing card.
+ * answers, 顺便, an urgent reason only, [做不了…] [完成]), 今天别错过, 今天可做, the rest of today
+ * and tomorrow, and the goals that are in trouble. Once Jan 31 is recorded the hero becomes a closing card.
  */
 final class TodayPage {
     /** 接下来 covers the rest of today and this many more days. */
@@ -45,6 +45,7 @@ final class TodayPage {
     /** Slot the hero showed last time (-1 before the first bind): a new one slides in. */
     private int shownSlot = -1;
     private boolean shownOnce;
+    private final AvailableActionViews.State availableState = new AvailableActionViews.State();
 
     TodayPage(HomeHost host) {
         this.host = host;
@@ -134,6 +135,10 @@ final class TodayPage {
         View reminders = finished ? null : ReminderViews.todayBlock(host, d);
         if (reminders != null) {
             column.addView(reminders, spaced(18));
+        }
+        View available = finished ? null : AvailableActionViews.today(host, d, availableState);
+        if (available != null) {
+            column.addView(available, spaced(22));
         }
         View upcoming = upcoming(d);
         if (upcoming != null) {
@@ -254,19 +259,23 @@ final class TodayPage {
         LinearLayout band = Ui.column(c);
         band.setBackground(Ui.band(c).pressedFill(Ui.col(c, R.color.ui_cyan_faint)));
         Ui.pad(band, 18, 12, 16, 12);
-        LinearLayout row = Ui.row(c);
-        row.setGravity(Gravity.TOP);
+        // Cash has its own full-width line: seven digits with separators must never fight the
+        // three ability cells for space, including at the player's larger system font size.
+        LinearLayout cashRow = Ui.row(c);
         if (obs.cashExact || obs.cash > 0) {
             String cash = Zh.number(obs.cash) + (obs.cashExact ? "" : "+");
-            row.addView(cell("现金", cash, "日元"), Ui.weight(1.6f));
+            cashRow.addView(cashCell(cash, "日元"), Ui.weight(1));
         } else {
-            row.addView(cell("现金", "—", null), Ui.weight(1.6f));
+            cashRow.addView(cashCell("—", null), Ui.weight(1));
         }
+        band.addView(cashRow);
+        LinearLayout row = Ui.row(c);
+        row.setGravity(Gravity.TOP);
         for (int i = 0; i < Math.min(3, rules.stats.length); i++) {
             int lv = rules.stats[i].levelFor(obs.statPts[i]);
             row.addView(cell(rules.stats[i].zh, Zh.lv(lv), null), Ui.weight(1));
         }
-        band.addView(row);
+        band.addView(row, spaced(6));
         View tower = towerLine(d);
         if (tower != null) {
             View line = Ui.fadingRule(c);
@@ -294,6 +303,30 @@ final class TodayPage {
 
     /** What tapping the resource band does. */
     static final String EDIT_LABEL = "修改进度";
+
+    /** Full-width balance line; the autosize only matters at unusually large system font sizes. */
+    private View cashCell(String value, String unit) {
+        LinearLayout cell = Ui.row(c);
+        cell.addView(Ui.text(c, "现金", 13, Ui.col(c, R.color.p3r_ink_muted), false), Ui.wrap());
+        TextView number = Ui.numeral(c, value, 30, Ui.col(c, R.color.p3r_white));
+        number.setMaxLines(1);
+        number.setHorizontallyScrolling(false);
+        number.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        number.setAutoSizeTextTypeUniformWithConfiguration(20, 30, 1, TypedValue.COMPLEX_UNIT_SP);
+        // The italic face's last glyph extends slightly beyond its advance width.
+        number.setPadding(Ui.dp(c, 8), Ui.dp(c, 2), Ui.dp(c, 5), Ui.dp(c, 2));
+        number.setTag("today-cash-number");
+        cell.addView(number, Ui.weight(1));
+        if (unit != null) {
+            TextView suffix = Ui.text(c, unit, 12, Ui.col(c, R.color.p3r_cyan_300), true);
+            LinearLayout.LayoutParams up = Ui.wrap();
+            up.leftMargin = Ui.dp(c, 2);
+            cell.addView(suffix, up);
+        }
+        cell.setContentDescription("现金 " + ("—".equals(value) ? CashPad.UNKNOWN_LABEL
+            : value + (unit == null ? "" : unit)));
+        return cell;
+    }
 
     /** A resource cell: caption over a big numeral (and a small unit). */
     private View cell(String label, String value, String unit) {

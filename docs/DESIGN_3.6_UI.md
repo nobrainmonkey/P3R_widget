@@ -1,8 +1,9 @@
 # P3R 规划 3.6 — UI/UX rehaul (design contract)
 
 This section-style contract supersedes the visual and copy parts of [DESIGN_v3.md](DESIGN_v3.md) §7,
-§26 and the older quoted UI strings. Planning, storage, the home-screen widget and the fusion
-basket logic are unchanged. The audit behind it is
+§26 and the older quoted UI strings. Storage, the home-screen widget and the fusion basket logic
+are unchanged. The October 20 additions also improve the timing of selected teammate characteristics.
+The audit behind it is
 [analysis/UI_UX_AUDIT_2026-10-19.md](analysis/UI_UX_AUDIT_2026-10-19.md).
 
 ## 1. What the owner asked for
@@ -376,3 +377,22 @@ Basket logic, the calculator, persistence and the workspace behaviour are unchan
 | 合成篮 | 合体篮 (the app's own feature) | No in-game equivalent |
 | 火炎 / 光 / 暗 / 光明 / 黑暗 / 回复 | 火焰 / 神圣 / 暗黑 / 恢复 | Game data DatAttrNameDataAsset zh-Hans |
 | 羁绊剧场 | 羁绊剧情 | Glossary |
+
+## 9. October 20 additions
+
+- The balance gets a full-width line above the three social stats. Show the complete value through
+  `9,999,999` (and the lower-bound `+`) with thousands separators, including at 1.3× system font size.
+- 今天 adds a read-only 「今天可做」 directory. Browse the remaining day/evening periods; show
+  concrete dorm partners/projects, group study, jobs, opening venues and arcade stat gains. It does
+  not list Social Link unlock errands or record an action when browsing.
+- 日程 separates content from presentation: 「我的安排 / 活动日历」 chooses the source;
+  icon-only list/month-grid buttons choose its view. Remember the view for each source.
+  The seven-column month grid has month navigation, today's highlight, a selected day and day detail.
+  Keep yesterday's recorded planned actions editable and preserve the floating jump-to-today button.
+- 活动日历 is independent of planning choices. Use recorded progression and actual date/weekday
+  conditions to list meetings, dorm projects, jobs, venues, arcade games and dated unlocks. Include
+  activities even when their stat is MAX or their trait goal is unselected. An open venue can show
+  its fee and 「现金不足」; browsing never bypasses the normal recording checks.
+- Selected teammate characteristics earn finite completion value and earlier-completion value for
+  their remaining combat use. Required Social Links and rescue safety retain their comparison
+  priority. Stop rewarding trait progress when the chosen unlock/upgrade target is already complete.
