@@ -81,7 +81,7 @@ final class MePage {
         list.addView(SystemList.menuRow(c, R.drawable.ui_ic_star, "关于", actions::openAbout)
             .setValue(InfoPages.versionName(c)));
         column.addView(list, spaced(14));
-        // Pushed pages (规划设置, 塔尔塔罗斯) follow what is saved.
+        // Pushed pages (规划设置, 塔尔塔罗斯, 规划说明) follow what is saved.
         SystemList.dispatch(c, d);
     }
 

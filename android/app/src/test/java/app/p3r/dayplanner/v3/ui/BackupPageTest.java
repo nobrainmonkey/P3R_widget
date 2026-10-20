@@ -88,6 +88,30 @@ public class BackupPageTest extends UiTestBase {
     }
 
     @Test
+    public void aBackupThatCannotBeMadeLeavesNoEmptyFile() {
+        OldGuideExportTest.FakeDocuments docs = org.robolectric.Robolectric.setupContentProvider(
+            OldGuideExportTest.FakeDocuments.class, OldGuideExportTest.FakeDocuments.AUTHORITY);
+        Uri doc = Uri.parse("content://" + OldGuideExportTest.FakeDocuments.AUTHORITY + "/document/P3R");
+        docs.size = 0L;
+        api.backupJson = null;
+        HomeActivity a = backupPage();
+        Shots.click(a, BackupPage.SAVE_FILE);
+        ShadowActivity.IntentForResult request = shadowOf(a).getNextStartedActivityForResult();
+        shadowOf(a).receiveResult(request.intent, Activity.RESULT_OK, new Intent().setData(doc));
+        Shots.idle();
+        assertEquals("the empty file the picker made is removed", "android:deleteDocument", docs.called);
+        assertEquals("another place would not help", BackupPage.EXPORT_FAILED, a.undoBar().messageText().toString());
+
+        // 分享备份 says the same instead of sharing nothing.
+        while (shadowOf(a).getNextStartedActivity() != null) {
+            // The picker opened above.
+        }
+        Shots.click(a, BackupPage.SHARE);
+        assertNull(shadowOf(a).getNextStartedActivity());
+        assertEquals(BackupPage.EXPORT_FAILED, a.undoBar().messageText().toString());
+    }
+
+    @Test
     public void aBackupOnTheClipboardGoesStraightToTheConfirmation() {
         HomeActivity a = backupPage();
         ClipboardManager cm = (ClipboardManager) app().getSystemService(Context.CLIPBOARD_SERVICE);

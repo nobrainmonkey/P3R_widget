@@ -208,14 +208,33 @@ final class BackupPage {
             error -> host.showError(OLD_GUIDE_FAILED));
     }
 
-    /** Writes the backup JSON into the picked document. */
+    /**
+     * Writes the backup JSON into the picked document. When the backup itself cannot be made, the
+     * empty document is removed and the message asks to try again (another place would not help).
+     */
     private static void saveBackupTo(HomeHost host, Uri uri) {
         Activity activity = host.activity();
         ContentResolver resolver = activity.getApplicationContext().getContentResolver();
         Async.run(activity, () -> {
-            write(resolver, uri, Api.get(activity).exportBackup().getBytes(StandardCharsets.UTF_8));
+            String json;
+            try {
+                json = Api.get(activity).exportBackup();
+            } catch (RuntimeException e) {
+                json = null;
+            }
+            if (json == null) {
+                discardIfEmpty(resolver, uri);
+                return Boolean.FALSE;
+            }
+            write(resolver, uri, json.getBytes(StandardCharsets.UTF_8));
             return Boolean.TRUE;
-        }, done -> host.showMessage(SAVED), error -> host.showError(OLD_GUIDE_FAILED));
+        }, saved -> {
+            if (saved) {
+                host.showMessage(SAVED);
+            } else {
+                host.showError(EXPORT_FAILED);
+            }
+        }, error -> host.showError(OLD_GUIDE_FAILED));
     }
 
     /** A truncating write of {@code bytes}; an empty document left by a failure is removed. */
@@ -283,6 +302,10 @@ final class BackupPage {
     private static void exportBackup(HomeHost host) {
         Activity activity = host.activity();
         Async.run(activity, () -> Api.get(activity).exportBackup(), json -> {
+            if (json == null) {
+                host.showError(EXPORT_FAILED);
+                return;
+            }
             Intent send = new Intent(Intent.ACTION_SEND);
             send.setType("text/plain");
             send.putExtra(Intent.EXTRA_SUBJECT, "P3R 规划备份");

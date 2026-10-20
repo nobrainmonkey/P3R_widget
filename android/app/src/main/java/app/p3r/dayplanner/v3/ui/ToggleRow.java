@@ -8,6 +8,7 @@ import android.graphics.Path;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.animation.OvershootInterpolator;
 import android.widget.LinearLayout;
@@ -93,23 +94,34 @@ public final class ToggleRow extends LinearLayout {
         this.listener = listener;
     }
 
+    /** Sets the switch; the same value again (a page rebinding what was just saved) leaves a slide running. */
     public void setChecked(boolean value) {
-        boolean changed = value != checked;
+        if (value == checked) {
+            return;
+        }
         checked = value;
-        if (changed && Ui.animationsEnabled() && isAttachedToWindow()) {
+        if (Ui.animationsEnabled() && isAttachedToWindow()) {
             mark.slideTo(value);
         } else {
             mark.jumpTo(value);
         }
-        describe();
     }
 
+    /**
+     * The title and the explanation; the on/off state is announced from the switch role
+     * ({@link #onInitializeAccessibilityNodeInfo}), not repeated here.
+     */
     private void describe() {
-        setContentDescription(title + (checked ? "，已开启" : "，已关闭"));
+        setContentDescription(desc == null ? title : Zh.plain(title) + "，" + Zh.plain(desc.getText()));
     }
 
     public boolean isChecked() {
         return checked;
+    }
+
+    /** Whether the knob is sliding over (tests). */
+    boolean sliding() {
+        return mark.animator != null && mark.animator.isStarted();
     }
 
     @Override
@@ -118,6 +130,14 @@ public final class ToggleRow extends LinearLayout {
         info.setClassName("android.widget.Switch");
         info.setCheckable(true);
         info.setChecked(checked);
+    }
+
+    /** The tap's event carries the new state, as a real switch's does. */
+    @Override
+    public void onInitializeAccessibilityEvent(AccessibilityEvent event) {
+        super.onInitializeAccessibilityEvent(event);
+        event.setClassName("android.widget.Switch");
+        event.setChecked(checked);
     }
 
     /** The drawn switch: a parallelogram track with a parallelogram knob. */

@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import app.p3r.dayplanner.R;
 import app.p3r.dayplanner.v3.engine.Plan;
@@ -29,11 +30,46 @@ final class InfoPages {
 
     // ------------------------------------------------------------------ 规划说明
 
-    /** 规划说明: the hero, 目标, 需要注意 (only real problems) and 当前设置. */
+    /**
+     * 规划说明: the hero, 目标, 需要注意 (only real problems) and 当前设置. Follows the data
+     * ({@link SystemList#follow}): the first plan replaces 「正在安排…」, and a change made in the
+     * 规划设置 pushed over it shows when the player comes back.
+     */
     static View explain(HomeHost host) {
+        LinearLayout column = Ui.column(host.activity());
+        // The plan, the progress (by its revision: every snapshot is a fresh copy of it) and the
+        // profile (as JSON) the page shows now. The page is rebuilt only when one of them changed,
+        // so coming back to the app does not move TalkBack off the row it was reading.
+        Object[] shown = new Object[3];
+        java.util.function.Consumer<UiData> fill = d -> {
+            Long revision = d.snap == null ? null : d.snap.stateRevision;
+            String profile = profileKey(d.profile());
+            if (column.getChildCount() > 0 && shown[0] == d.plan() && Objects.equals(shown[1], revision)
+                && profile != null && profile.equals(shown[2])) {
+                return;
+            }
+            shown[0] = d.plan();
+            shown[1] = revision;
+            shown[2] = profile;
+            column.removeAllViews();
+            fillExplain(host, column, d);
+        };
+        fill.accept(host.data());
+        SystemList.follow(column, fill);
+        return column;
+    }
+
+    /** The profile as JSON text, to tell a changed one; null when it cannot be written. */
+    private static String profileKey(Profile p) {
+        try {
+            return p.toJson().toString();
+        } catch (org.json.JSONException e) {
+            return null;
+        }
+    }
+
+    private static void fillExplain(HomeHost host, LinearLayout column, UiData d) {
         Context c = host.activity();
-        UiData d = host.data();
-        LinearLayout column = Ui.column(c);
         Plan plan = d.plan();
         column.addView(hero(c, d, plan));
         List<String> problems = plan == null ? new ArrayList<>() : problems(plan);
@@ -50,7 +86,6 @@ final class InfoPages {
             column.addView(box, top(c, 24));
         }
         column.addView(settings(host, d), top(c, 24));
-        return column;
     }
 
     /** The big number: how many 社群 the plan takes to MAX, its span, and a note when it was rushed. */
@@ -135,6 +170,8 @@ final class InfoPages {
                 }
             }
             boolean trouble = goalTrouble(s);
+            String value = goalValue(s);
+            reason = goalReason(value, reason);
             LinearLayout row = Ui.column(c);
             row.setBackground(new SystemList.Cursor(c, true).noSweep());
             row.setMinimumHeight(Ui.dp(c, 48));
@@ -142,7 +179,6 @@ final class InfoPages {
             Ui.pad(row, 4, 8, 4, 9);
             LinearLayout line = Ui.row(c);
             line.addView(Ui.text(c, name, 16, Ui.col(c, R.color.p3r_white), true), Ui.weight(1));
-            String value = goalValue(s);
             line.addView(Ui.mixed(c, value, 16, Ui.col(c, trouble ? R.color.ui_gold : R.color.p3r_cyan_300), true),
                 Ui.wrap());
             row.addView(line, Ui.matchWrap());
@@ -153,6 +189,23 @@ final class InfoPages {
             box.addView(row, Ui.matchWrap());
         }
         return box;
+    }
+
+    /**
+     * The line under a goal: the plan's note without the forecast the row already shows (the value
+     * 「停在 RANK 9」 over 「预计停在 RANK 9」, or over 「没排到 MAX，先保证了皇帝 · 预计停在 RANK 9」);
+     * null when nothing is left.
+     */
+    static String goalReason(String value, String note) {
+        if (note == null || !value.startsWith("停在 ")) {
+            return note;
+        }
+        String forecast = "预计" + value;
+        if (note.equals(forecast)) {
+            return null;
+        }
+        String tail = " · " + forecast;
+        return note.endsWith(tail) ? note.substring(0, note.length() - tail.length()) : note;
     }
 
     /** A goal this plan does not reach (or that cannot continue). */
@@ -221,7 +274,10 @@ final class InfoPages {
         box.addView(header(c, "当前设置", false));
         FlowLayout tags = new FlowLayout(c, 8, 8);
         for (String label : Assumptions.settings(d.profile(), d.rules)) {
-            tags.addView(Ui.tag(c, label, Ui.alpha(Ui.col(c, R.color.p3r_cyan_400), 34), Ui.col(c, R.color.p3r_ice_100)));
+            TextView tag = Ui.tag(c, label, Ui.alpha(Ui.col(c, R.color.p3r_cyan_400), 34), Ui.col(c, R.color.p3r_ice_100));
+            // A long tag at a large font size wraps instead of losing its end.
+            tag.setMaxLines(2);
+            tags.addView(tag);
         }
         box.addView(tags, top(c, 10));
         TextView go = Ui.quiet(c, "去规划设置 ›");
@@ -278,14 +334,15 @@ final class InfoPages {
 
     /**
      * 需要注意: the notes that change what the player does — a goal or 羁绊剧情 the plan misses, a
-     * 失踪者 not scheduled, too few nights for Tartarus, a last-evening rescue — in plain words. Forecasts
-     * (the 目标 list says them), settings restated and the time budget are left out.
+     * 失踪者 not scheduled, too few nights for Tartarus, a last-evening rescue — as the plan words them
+     * (its notes are written for this page). Forecasts (the 目标 list says them), settings restated and
+     * the time budget are left out.
      */
     static List<String> problems(Plan plan) {
         List<String> out = new ArrayList<>();
         for (String note : notesBelow(plan)) {
             if (isProblem(note)) {
-                out.add(noteText(note));
+                out.add(note);
             }
         }
         return out;
@@ -296,7 +353,7 @@ final class InfoPages {
         if (note == null || note.trim().isEmpty()) {
             return false;
         }
-        boolean shortfall = note.contains("没排") || note.contains("停在") || note.contains("无法继续")
+        boolean shortfall = note.contains("没排") || note.contains("停在") || note.contains("没法继续")
             || note.contains("过了");
         if (!shortfall && (note.contains("：预计 ") || note.contains("：预计能看完") || note.contains("：已经"))) {
             return false;
@@ -304,18 +361,6 @@ final class InfoPages {
         return !(note.startsWith("其余社群：") || note.startsWith("预计有 ") || note.startsWith("优先留足")
             || note.contains("人格面具，点数") || note.contains("多留一次见面") || note.startsWith("普通见面预计")
             || (note.startsWith("安排了 ") && note.contains("结缘网站的字条")));
-    }
-
-    private static final java.util.regex.Pattern MISSED_RESCUES =
-        java.util.regex.Pattern.compile("^失踪者：有 (\\d+) 批救援没排上.*");
-
-    /** An engine note in the app's voice: a question with the fix instead of an instruction. */
-    static String noteText(String note) {
-        java.util.regex.Matcher m = MISSED_RESCUES.matcher(note);
-        if (m.matches()) {
-            return "失踪者：还有 " + m.group(1) + " 次救援没排上，去「规划设置 → 塔尔塔罗斯」把次数调高？";
-        }
-        return note.replace("，请在「", "，在「").replace("请在「", "在「");
     }
 
     /** Whether this plan is the service's one follow-up computation ({@code Plan.followUp}). */
@@ -403,7 +448,7 @@ final class InfoPages {
     private static TextView sourceLink(Context c, String name, String url) {
         TextView text = line(c, name + " ↗");
         text.setTextColor(Ui.col(c, R.color.p3r_cyan_300));
-        text.setMinHeight(Ui.dp(c, 40));
+        text.setMinHeight(Ui.dp(c, Ui.TOUCH));
         text.setGravity(Gravity.CENTER_VERTICAL);
         text.setOnClickListener(v -> {
             try {

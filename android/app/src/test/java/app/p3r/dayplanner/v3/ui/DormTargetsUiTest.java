@@ -163,8 +163,11 @@ public class DormTargetsUiTest extends UiTestBase {
         installDormRules();
         HomeActivity activity = links();
         Shots.click(activity, "伊织顺平 特性目标：未选");
-        assertTrue(Shots.has(activity, "种菜也排进来，已关闭"));
-        Shots.click(activity, "种菜也排进来，已关闭");
+        ToggleRow crops = (ToggleRow) Shots.clickTarget(Shots.find(activity, "种菜也排进来"));
+        assertEquals("种菜也排进来，记得先买好种苗种下去", crops.getContentDescription().toString());
+        assertFalse(crops.isChecked());
+        Shots.click(activity, "种菜也排进来");
+        assertTrue(crops.isChecked());
         assertTrue(api.calls.isEmpty());
         Shots.click(activity, "保存");
         assertEquals("saveProfile", api.last().method);

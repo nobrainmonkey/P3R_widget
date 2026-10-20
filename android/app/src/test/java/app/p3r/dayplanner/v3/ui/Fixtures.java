@@ -436,7 +436,7 @@ final class Fixtures {
         plan.summary.endStatLv = new int[]{6, 6, 6};
         plan.summary.notesZh.add("皇帝：预计 11月2日 升到 MAX");
         plan.summary.tradedFor[2] = 4;
-        plan.summary.notesZh.add("女教皇：没排到 MAX，先保证了皇帝 · 预计停在 RANK 7");
+        plan.summary.notesZh.add("女教皇：没排到 MAX，先保证了皇帝 · 预计停在 RANK 9");
         return plan;
     }
 

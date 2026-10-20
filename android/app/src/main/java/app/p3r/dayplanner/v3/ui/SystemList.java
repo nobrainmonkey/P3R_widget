@@ -33,8 +33,8 @@ import app.p3r.dayplanner.R;
  * pressed (the label turns navy on it). Config rows carry their value on the right in cyan.
  *
  * <p>Also the live refresh of the pages pushed from 我的 ({@link #follow}): pushed pages are built
- * once, so a page that shows settings follows the data the 我的 tab is bound with and puts its
- * controls back to what is saved (after a rejected save, or a change made elsewhere).
+ * once, so a page that shows settings or the plan follows the data the 我的 tab is bound with and
+ * puts its controls back to what is saved (after a rejected save, or a change made elsewhere).
  */
 final class SystemList {
     private SystemList() {}
