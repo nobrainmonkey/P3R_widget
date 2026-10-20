@@ -134,6 +134,29 @@ public class CompletedDialogueHintTest {
     }
 
     @Test
+    public void anotherHistoryWithTheSameAnswersIsNotRepeated() {
+        // 力量 RANK 9 → 10 on the 朋友 route: a declined confession changes only the wording, which the
+        // note says; the same four answers do not come back under a 「注意：」 heading.
+        String full = detail("strength", 10, Profile.Route.FRIEND);
+        assertEquals(full, "回答：要我帮你拿吗？ / 那段日子很充实 / 结子的呢？ / 有机会的话；"
+                + "之前有没有保留恋爱资格，后两问的说法会稍有不同，按意思选就行。", full.split("\n")[1]);
+        assertFalse(full, full.contains(Labels.NOTE_PREFIX + "RANK 9"));
+        for (Rules.Link link : rules.links) {
+            if (link.kind != Rules.LinkKind.MANUAL) continue;
+            for (int rank = 2; rank <= 10; rank++) {
+                for (Profile.Route route : new Profile.Route[]{Profile.Route.FRIEND, Profile.Route.ROMANCE}) {
+                    DialogueHint.Answers a = answers(link.id, rank, route);
+                    if (!a.reviewed || a.choices.isEmpty()) continue;
+                    String same = "，" + DialogueHint.PREFIX + String.join(" / ", a.choices);
+                    for (String other : Labels.otherHistories(a.sequence)) {
+                        assertFalse(link.id + " R" + rank + " " + route + ": " + other, other.endsWith(same));
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     public void devilMaxIsANoteOnlySceneWithoutInventedAnswerOptions() {
         DialogueHint.Answers a = answers("devil", 10, Profile.Route.FRIEND);
         assertTrue(a.reviewed);

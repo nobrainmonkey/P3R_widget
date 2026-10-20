@@ -240,6 +240,10 @@ class CompletedDialogueTest(unittest.TestCase):
                     self.assertTrue(set(emitted) <= builder.COMPLETION_VARIANT_FIELDS)
                     for alternative in raw.get('alternatives', []):
                         heading = builder.completion_display_text(f"【{alternative['whenZh']}】")
+                        if alternative['sequence'] == raw['sequence'] and not alternative.get('noteZh'):
+                            # The same answers without a note of their own are not repeated.
+                            self.assertNotIn(heading, emitted['sequence'])
+                            continue
                         self.assertIn(heading, emitted['sequence'])
                         start = emitted['sequence'].index(heading) + 1
                         self.assertEqual(emitted['sequence'][start:start + len(alternative['sequence'])],

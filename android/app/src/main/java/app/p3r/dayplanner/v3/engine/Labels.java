@@ -258,7 +258,7 @@ final class Labels {
         step.kind = "locked";
         step.titleZh = lockTitle(reason);
         if (Rules.LOCK_CHRISTMAS.equals(reason)) {
-            // The day's own note says invitations are declined by default; this player accepted one.
+            // The day's own note says what an accepted invitation does; this player accepted one.
             step.subtitleZh = "这段时间不能自由行动";
             String with = christmasPartner();
             step.detailZh = with == null ? "已经答应了平安夜的邀约" : "已经答应了" + with + "的平安夜邀约";

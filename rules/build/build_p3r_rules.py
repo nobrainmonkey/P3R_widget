@@ -1537,6 +1537,11 @@ GUIDANCE_PLAYER_COPY = {
     # 恋爱
     "第四问按男朋友身份回应可保留恋爱路线的前置；最后一问选「抱歉」。恋爱关系要到R9才决定。":
         "第4问答「我是她男朋友」保留恋爱资格；最后一问选「抱歉」。到 RANK 9 才确定关系。",
+    "第四问按朋友身份回应；最后一问务必选「抱歉」。别选以「你是女孩子」为由训她的回答，会导致社群逆位。":
+        "第4问答「我是她朋友」；最后一问选「抱歉」，别选拿「你是女孩子」训她的那项，免得社群逆位。",
+    "想保留恋爱分支时，第四问选男朋友身份；走友情可选朋友。最后一问必须选「抱歉」，避免「你是女孩子」对应的逆位回答。":
+        "第4问想保留恋爱资格就答「我是她男朋友」，只做朋友就答「我是她朋友」；最后一问选「抱歉」，"
+        "别选拿「你是女孩子」训她的那项，免得社群逆位。",
     "想保留恋爱分支，可改选「我们两个人去吧」；两句都是最高收益之一。":
         "想保留恋爱资格就改选「我们两个人去吧」，两句都加好感。",
     "此答也是最高收益之一；若此前已保留恋爱资格，不代表选择这句就清除资格，R9仍按实际出现的剧情选择友情回答。":
@@ -1585,7 +1590,7 @@ GUIDANCE_PLAYER_COPY = {
     "首问的两个回答同分，具体推荐「你们一定做得到」；第2问选「相信他们吧」。":
         "首问两个回答加的好感一样，选「你们一定做得到」就好；第2问选「相信他们吧」。",
     "首问这项不新增恋爱资格；此前R3/R5若已选过资格项，剧情仍可能保留告白。若之后出现告白，按友情回答拒绝。":
-        "第1问选这项不会保留恋爱资格。RANK 3 或 RANK 5 保留过的话，之后出现告白就选友情回答拒绝。",
+        "第1问选「真让人难为情」不会保留恋爱资格。RANK 3 或 RANK 5 保留过的话，之后出现告白就选友情回答拒绝。",
     "首问选真的交往／让那件事成真那项，用于保留恋爱资格。三问好感推荐与资格作用分开；这不是本场确定关系。":
         "第1问选「要不要真的交往？」保留恋爱资格，这时还不算交往。",
     "此前未保留恋爱资格的两问友情剧情": "之前没保留恋爱资格（两问）",
@@ -1618,7 +1623,7 @@ GUIDANCE_PLAYER_COPY = {
     "按先后两问选择。太阳社群按见面推进，本条补齐中文提示，不改变升级规则。": "",
     # 永劫
     "首问问是否见过白色花猫，两种答法同分。回答「好像见过」才会追问猫在哪里，这一问也任选；回答「没见过」则跳过追问。之后答应帮忙时选「好」，最后一问任选。":
-        "第1问问有没有见过白色花猫，怎么答都行；答「好像见过」会再问猫在哪，也随便答。答应帮忙时选「好」，最后一问随便选。",
+        "第1问是有没有见过白色花猫，怎么答都行；答「好像见过」会再问猫在哪，也随便答。答应帮忙时选「好」，最后一问随便选。",
     "任意（是否见过白色花猫）": "任意（有没有见过白色花猫）",
     "任意（若答「好像见过」，再问猫在哪里）": "任意（答了「好像见过」才问猫在哪）",
     "首问取最高好感回答；末问说明这是友情。选择「是友情」后，R9进入亲友剧情，不出现告白。":
@@ -1680,7 +1685,10 @@ def compile_completion_variant(variant: dict, route: str) -> dict:
     """Keep provenance in evidence; flatten alternate scenes only into the detail sequence."""
     out = {key: json.loads(json.dumps(value, ensure_ascii=False))
            for key, value in variant.items() if key in COMPLETION_VARIANT_FIELDS}
-    alternatives = variant.get("alternatives", [])
+    # A history with the same answers and no note of its own would only repeat them under another
+    # heading; the main note says what that history changes (力量 RANK 10: only the wording).
+    alternatives = [alternative for alternative in variant.get("alternatives", [])
+                    if alternative["sequence"] != variant["sequence"] or alternative.get("noteZh")]
     if alternatives:
         heading = variant.get("whenZh", "只做朋友" if route == "friend" else "走恋爱线")
         sequence = [f"【{heading}】"] + list(out["sequence"])
