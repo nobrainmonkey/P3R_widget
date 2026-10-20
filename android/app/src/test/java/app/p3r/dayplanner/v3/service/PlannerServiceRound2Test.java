@@ -216,7 +216,7 @@ public class PlannerServiceRound2Test extends ServiceTestBase {
         restart();
 
         PlannerApi.Snapshot s = service.snapshot();
-        assertEquals("有 1 条记录和现在的游戏资料对不上，建议「同步现状」核对一下", s.noticeZh);
+        assertEquals("更新后有 1 条记录对不上，去「同步现状」核对一下？", s.noticeZh);
         assertEquals("the slot still counts as recorded", MAY13_DAY, s.observed.slot);
     }
 
@@ -276,9 +276,9 @@ public class PlannerServiceRound2Test extends ServiceTestBase {
             lines.add(item.summaryZh);
         }
         assertEquals(List.of(
-                "5月13日 晚上 · 结缘网站的字条 · 皇帝 · 小田桐秀利 · 没用上（钱不够）",
+                "5月13日 晚上 · 结缘网站的字条 · 小田桐秀利 · 没用上（钱不够）",
                 "5月13日 放学后 · 羁绊剧情 · 伊织顺平（第 1 话）· 看完了",
-                "5月12日 晚上 · 结缘网站的字条 · 皇帝 · 小田桐秀利 · 已完成",
+                "5月12日 晚上 · 结缘网站的字条 · 小田桐秀利 · 已完成",
                 "5月12日 晚上 · 设置了初始进度"), lines);
         Pattern internal = Pattern.compile("[a-z]+:|[a-z]{4,}");
         for (String line : lines) {
@@ -294,7 +294,7 @@ public class PlannerServiceRound2Test extends ServiceTestBase {
         notDone.sideDone = false;
         assertTrue(service.recordTower(id(), rev(), notDone).ok);
         assertEquals(13_000, observed().cash);
-        assertTrue(service.history(1).get(0).summaryZh.endsWith("顺便要做的事没做"));
+        assertTrue(service.history(1).get(0).summaryZh.endsWith("顺便的事没做"));
         assertFalse(service.history(1).get(0).tower.sideDone);
 
         assertTrue(record(MAY13_DAY, "meet:emperor", Outcome.Code.AS_PREDICTED).ok);

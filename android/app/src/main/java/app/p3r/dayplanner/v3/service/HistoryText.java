@@ -40,6 +40,8 @@ final class HistoryText {
     static final String ZH_UNKNOWN_ROW = "一条记录";
     /** The story-hold answer (outcome NOT_DONE, reason "hold"), worded as on the result sheet. */
     static final String ZH_HOLD = "剧情原因暂时升不了";
+    /** The in-game hint after a meeting without a rank-up, in the words of the result sheet's toggle. */
+    static final String ZH_READY_CUE = "游戏提示下次就能升级";
 
     private HistoryText() {}
 
@@ -288,7 +290,7 @@ final class HistoryText {
                 if (traced != null && traced.after.rank[action.target] != traced.before.rank[action.target]) {
                     return ZhText.join(title, meeting(action.target, outcome, traced));
                 }
-                return ZhText.join(title, outcome.readyCue ? "赴约了 · 游戏提示下次能升级" : "赴约了");
+                return ZhText.join(title, "赴约了", outcome.readyCue ? ZH_READY_CUE : null);
             case UNLOCK_STEP:
                 return ZhText.join(title, unlocked(action.target, traced));
             case ACTIVITY:
@@ -305,7 +307,7 @@ final class HistoryText {
 
     /**
      * "皇帝 · 小田桐秀利", "恶魔 · 田中社长 · 再交 10,000 日元", "在宿舍房间学习", "探索塔尔塔罗斯",
-     * "结缘网站的字条 · 女教皇 · 山岸风花", "羁绊剧情 · 伊织顺平（第 2 话）", "自由活动"; "其他行动"
+     * "结缘网站的字条 · 山岸风花", "羁绊剧情 · 伊织顺平（第 2 话）", "自由活动"; "其他行动"
      * when the action key is unknown to the current rule pack.
      */
     static String title(Rules rules, Action action, Traced traced) {
@@ -324,7 +326,7 @@ final class HistoryText {
             case TARTARUS:
                 return "探索塔尔塔罗斯";
             case NOTE:
-                return ZhText.join(noteZh(rules), rules.links[action.target].labelZh);
+                return ZhText.join(noteZh(rules), ZhText.who(rules.links[action.target]));
             case EPISODE:
                 return episodeTitle(rules, action.target, traced == null ? -1 : episodeNumber(traced.before, action.target));
             case LOCKED: {
@@ -416,12 +418,12 @@ final class HistoryText {
             return outcome.rank >= 0 ? (outcome.rank >= 10 ? "升到 MAX" : "升到 RANK " + outcome.rank) : "升级了";
         }
         String met = outcome.code == Outcome.Code.NO_RANK_UP ? ZhText.join("见面了", "没升级") : "见面了";
-        return outcome.readyCue ? ZhText.join(met, "游戏提示下次能升级") : met;
+        return outcome.readyCue ? ZhText.join(met, ZH_READY_CUE) : met;
     }
 
     private static String unlocked(int link, Traced traced) {
         boolean established = traced != null && traced.before.rank[link] == 0 && traced.after.rank[link] > 0;
-        return established ? ZhText.join("已完成", "社群解锁了") : "已完成";
+        return established ? "社群解锁了！" : "已完成";
     }
 
     private static String activity(Rules rules, Outcome outcome, Traced traced) {
@@ -452,17 +454,17 @@ final class HistoryText {
         return ZhText.join(parts.toArray(new String[0]));
     }
 
-    /** "到达 27F · 出塔后余额 14,750 日元 · 救出了北村文吉". */
+    /** "到达 27F · 出塔后余额 14,750 日元 · 救出了北村文吉", "到达 12F · 现金 +2,000 日元". */
     static String towerDetails(Rules rules, TowerRecord rec) {
         String cash;
         if (rec.cashUnknown) {
-            cash = "不记得钱了，现金按没变记";
+            cash = "现金没记";
         } else if (rec.balanceMode) {
             cash = "出塔后余额 " + ZhText.yen(rec.amount);
         } else if (rec.amount > 0) {
-            cash = "多了 " + ZhText.yen(rec.amount);
+            cash = "现金 +" + ZhText.yen(rec.amount);
         } else if (rec.amount < 0) {
-            cash = "少了 " + ZhText.yen(-rec.amount);
+            cash = "现金 −" + ZhText.yen(-rec.amount);
         } else {
             cash = "现金没变";
         }
@@ -474,6 +476,6 @@ final class HistoryText {
                 }
             }
         }
-        return ZhText.join("到达 " + rec.floor + "F", cash, rescue, rec.sideDone ? null : "顺便要做的事没做");
+        return ZhText.join("到达 " + rec.floor + "F", cash, rescue, rec.sideDone ? null : "顺便的事没做");
     }
 }

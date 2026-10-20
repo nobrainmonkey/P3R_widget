@@ -41,13 +41,13 @@ public class ResultSheetTest extends UiTestBase {
         invite.kind = "invite";
         invite.entity = "magician";
         invite.titleZh = "魔术师 · 友近健二";
-        invite.subtitleZh = "休息日邀约 · 收到短信才选 · 只加好感";
+        invite.subtitleZh = "休息日邀约 · 收到短信时";
         invite.predicted.rankFrom = 3;
         invite.predicted.rankTo = 3;
         invite.predicted.certain = true;
         api.alternatives = java.util.List.of(invite);
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_OTHER);
-        assertTrue(Shots.has(a, "休息日邀约 · 收到短信才选 · 只加好感"));
+        assertTrue(Shots.has(a, "休息日邀约 · 收到短信时"));
         Shots.click(a, "魔术师 · 友近健二");
         assertTrue(Shots.has(a, "收到短信并赴约了吗？"));
         assertFalse(Shots.has(a, "升到 RANK 4 了"));

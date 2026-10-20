@@ -43,7 +43,7 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
         PlannerApi.Receipt r = record(MAY12_DAY, "meet:emperor", Outcome.Code.AS_PREDICTED);
         assertFalse(r.ok);
         assertEquals("invalid", r.errorCode);
-        assertEquals("还没有填写当前进度，请先完成初始设置", r.errorZh);
+        assertEquals("还没填游戏进度，先完成设置吧", r.errorZh);
     }
 
     @Test
@@ -83,7 +83,7 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
         PlannerApi.Receipt other = service.recordOutcome(command, 2, MAY12_EVE, "act:study_room", Outcome.of(Outcome.Code.AS_PREDICTED));
         assertFalse(other.ok);
         assertEquals("conflict", other.errorCode);
-        assertEquals("刚才已经保存过另一份结果，这次没有保存", other.errorZh);
+        assertEquals("这一项刚才已经记过了", other.errorZh);
         PlannerApi.Receipt otherKind = service.voidEvent(command, 2, first.eventSeq);
         assertEquals("conflict", otherKind.errorCode);
         assertEquals(1, service.snapshot().eventsSinceCheckpoint);
@@ -95,7 +95,7 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
         PlannerApi.Receipt r = service.recordOutcome(id(), 0, MAY12_DAY, "meet:emperor", Outcome.of(Outcome.Code.RANK_UP));
         assertFalse(r.ok);
         assertEquals("stale", r.errorCode);
-        assertEquals("记录已经更新过了，请看最新的安排", r.errorZh);
+        assertEquals("安排刚更新过，看看最新的吧", r.errorZh);
         assertEquals(1, r.stateRevision);
         assertEquals(0, service.snapshot().eventsSinceCheckpoint);
 
@@ -133,7 +133,7 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
         assertMessage(tower(MAY12_EVE, 44, true, 1_000), "楼层不能超过本区块的最高层 43F");
         assertMessage(tower(MAY12_EVE, 20, true, -5), "现金不能是负数");
         assertMessage(tower(MAY12_EVE, -1, true, 5), "楼层不能是负数");
-        assertMessage(tower(MAY12_EVE, 20, false, -20_000), "按这次的增减算，现金会变成负数，请检查一下");
+        assertMessage(tower(MAY12_EVE, 20, false, -20_000), "这样算现金会变成负数，再看看？");
         PlannerApi.TowerReturn rescue = towerReturn(MAY12_EVE, 20, false, 0);
         rescue.rescuedId = "nobody";
         assertMessage(service.recordTower(id(), rev(), rescue), "没有找到这位失踪者");
@@ -143,7 +143,7 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
         Outcome lv = Outcome.of(Outcome.Code.OTHER);
         lv.statLv = new int[]{7, -1, -1};
         assertMessage(service.recordOutcome(id(), rev(), MAY12_EVE, "act:study_room", lv), "学力、魅力、勇气只能是 Lv.1 到 MAX");
-        assertMessage(record(MAY12_EVE, "meet:nobody", Outcome.Code.AS_PREDICTED), "没认出这一项，请重新选一下");
+        assertMessage(record(MAY12_EVE, "meet:nobody", Outcome.Code.AS_PREDICTED), "没认出这一项，重新选一下？");
         Outcome lower = Outcome.of(Outcome.Code.RANK_UP);
         lower.rank = 6;
         assertMessage(service.recordOutcome(id(), rev(), MAY12_EVE, "meet:emperor", lower), "升级后的 RANK 应该比现在高");
@@ -216,7 +216,7 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
         assertEquals(1, s.towerVisits[1]);
         assertEquals(21_000, s.cash);
         assertTrue(service.voidEvent(id(), rev(), visit.eventSeq).ok);
-        assertMessage(service.correctTower(id(), rev(), visit.eventSeq, fixed), "这条记录已经撤销了，不能再修改");
+        assertMessage(service.correctTower(id(), rev(), visit.eventSeq, fixed), "这条记录已经撤销了，改不了");
     }
 
     @Test
@@ -271,7 +271,7 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
         assertEquals(4, history.size());
         assertFalse("older records no longer shape the state", history.get(2).correctable);
         assertEquals("5月12日 放学后 · 设置了初始进度", history.get(3).summaryZh);
-        assertMessage(service.voidEvent(id(), rev(), meet.eventSeq), "这条记录早于最近一次同步现状，已经不能撤销了");
+        assertMessage(service.voidEvent(id(), rev(), meet.eventSeq), "同步现状之前的记录撤不回了");
     }
 
     @Test
@@ -332,9 +332,9 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
             lines.add(item.summaryZh);
         }
         assertEquals(List.of(
-                "5月12日 晚上 · 修改了这次探索 · 到达 27F · 少了 1,200 日元",
+                "5月12日 晚上 · 修改了这次探索 · 到达 27F · 现金 −1,200 日元",
                 "5月14日 晚上 · 在宿舍房间学习 · 跳过了",
-                "5月14日 放学后 · 皇帝 · 小田桐秀利 · 见面了 · 没升级 · 游戏提示下次能升级",
+                "5月14日 放学后 · 皇帝 · 小田桐秀利 · 见面了 · 没升级 · 游戏提示下次就能升级",
                 "5月13日 晚上 · 咖啡店「夏卡尔」打工 · 魅力 +1 · 勇气 +1 · 收入 2,500 日元",
                 "5月13日 放学后 · 皇帝 · 小田桐秀利 · 没见到（对方不在）",
                 "5月12日 晚上 · 探索塔尔塔罗斯 · 到达 27F · 出塔后余额 14,750 日元",
@@ -371,7 +371,7 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
         assertEquals(3, evening.size());
         assertEquals("在宿舍房间学习", evening.get(0).titleZh);
         assertEquals("学力 +2", evening.get(0).subtitleZh);
-        assertEquals("+2,500 日元 · 魅力 +1 · 勇气 +1", evening.get(1).subtitleZh);
+        assertEquals("the engine's format", "+2,500 日元 · 魅力 +1、勇气 +1", evening.get(1).subtitleZh);
         assertEquals("探索塔尔塔罗斯", evening.get(2).titleZh);
         assertEquals("阿尔卡 · 本区块第 1 次", evening.get(2).subtitleZh);
         List<Plan.Step> nextDay = service.alternatives(MAY13_DAY);

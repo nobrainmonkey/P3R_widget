@@ -21,18 +21,18 @@ final class Reminders {
     private Reminders() {}
 
     /** Appended to a TV shopping detail when its price is above the forecast cash of that slot. */
-    static final String CASH_SHORT = "按预计，这天的现金可能不够。";
+    static final String CASH_SHORT = "到这天钱还不够，先攒一点？";
     static final String DOZE_LABEL = "上课犯困";
     static final String NURSE_LABEL = "保健室";
     static final String RESCUE_LABEL = "失踪者";
     /** The limit day's evening is the last rescue opportunity. */
-    static final String RESCUE_DETAIL = "在塔尔塔罗斯找到失踪者并救出，可领取奖励。最晚在期限当天晚上救出，逾期无法救援。";
+    static final String RESCUE_DETAIL = "在塔尔塔罗斯找到就能救出，还有奖励。期限当天晚上是最后机会。";
     static final String TOWER_DETAIL = "失踪的人在塔尔塔罗斯里，探索时找到就能救出，还能拿到奖励。";
     /** Added to {@link #TOWER_DETAIL} when the planned evening is the limit evening of a group it rescues. */
-    static final String TOWER_LIMIT_NOTE = "这是期限当天的晚上：" + Labels.LIMIT_EVENING_CAVEAT + "。";
-    static final String DEADLINE_DETAIL = "最晚在期限当天晚上进入塔尔塔罗斯救出失踪者，逾期无法救援。";
+    static final String TOWER_LIMIT_NOTE = "今晚是最后机会。";
+    static final String DEADLINE_DETAIL = "期限当天晚上是最后机会，过了就救不出来了。";
     /** {@link #DEADLINE_DETAIL} when the line is shown on the limit day itself (a plan that starts that day). */
-    static final String DEADLINE_TODAY_DETAIL = "过了今天就救不出来了。今晚是期限当天的晚上：" + Labels.LIMIT_EVENING_CAVEAT + "。";
+    static final String DEADLINE_TODAY_DETAIL = "过了今晚就救不出来了。";
     /** Visible stat level that is MAX. */
     private static final int MAX_LV = 6;
 
@@ -213,8 +213,7 @@ final class Reminders {
             x.gainZh = "勇气 +" + data.nurseCourage;
             x.textZh = "放学后先去保健室：" + x.gainZh + "，不会消耗时间";
             x.shortZh = "保健室：" + x.gainZh;
-            x.detailZh = "前一晚探索了塔尔塔罗斯或打了满月作战，放学后到 1 楼保健室喝药，勇气 +" + data.nurseCourage
-                    + "，不消耗时间。";
+            x.detailZh = "放学后去 1 楼保健室喝药，不会消耗时间。";
             x.slot = slot;
             x.priority = Plan.Reminder.DEADLINE;
             out.add(x);
@@ -229,7 +228,7 @@ final class Reminders {
      * line per evening, all the people rescued that night), or, without one, the day before the limit. Groups
      * whose limit is before the plan, whose modelled people are already rescued or lost, or who were already
      * missing on the latest recorded Tartarus evening get no line. Whatever speaks of the limit evening says
-     * that the evidence has it in time but nobody checked it in the game ({@link Labels#LIMIT_EVENING_CAVEAT}).
+     * that it is the last chance ({@link #TOWER_LIMIT_NOTE}, {@link #DEADLINE_TODAY_DETAIL}).
      */
     private static void rescue(Model m, Rules.Reminders data, Plan plan, SimState start, int lastTowerSlot,
                                List<Plan.Reminder> out) {

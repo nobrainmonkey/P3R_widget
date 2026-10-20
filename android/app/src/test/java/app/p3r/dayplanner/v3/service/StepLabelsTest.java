@@ -18,7 +18,10 @@ import org.robolectric.annotation.Config;
 
 import java.util.List;
 
-/** 改做别的 labels follow docs/GLOSSARY_zh.md, including the Persona reminder, notes and Link Episodes. */
+/**
+ * 改做别的 labels follow docs/GLOSSARY_zh.md and read like the engine's own (engine Labels), including the
+ * Persona reminder, notes and Link Episodes.
+ */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35)
 public class StepLabelsTest {
@@ -36,7 +39,7 @@ public class StepLabelsTest {
     public void meetingsSayRankAndRemindOfThePersonaWhenItCounts() {
         Profile none = new Profile();
         Plan.Step plain = StepLabels.step(rules, none, state, Action.meet(TestRules.EMPEROR), applied(false));
-        assertEquals("RANK 6 · 见面（预计不升级）", plain.subtitleZh);
+        assertEquals("no hedge inside the fact: no arrow means no rank-up", "RANK 6 · 见面", plain.subtitleZh);
         assertNull("不带 Persona: no reminder", plain.hintZh);
 
         Profile goals = new Profile();
@@ -60,17 +63,17 @@ public class StepLabelsTest {
     public void notesAndEpisodesHaveFriendlyLabels() {
         Plan.Step note = StepLabels.step(rules, new Profile(), state, Action.note(TestRules.EMPEROR), applied(false));
         assertEquals("note", note.kind);
-        assertEquals("结缘网站的字条", note.titleZh);
-        assertEquals("给小田桐秀利加好感 · RANK 6", note.subtitleZh);
+        assertEquals("结缘网站的字条 · 小田桐秀利", note.titleZh);
+        assertEquals("好感 +10 · 花费 3,000 日元", note.subtitleZh);
         assertEquals("桐叶购物中心 · 放纵俱乐部", note.locationZh);
-        assertEquals(rules.datingNote.howZh, note.detailZh);
+        assertEquals(rules.datingNote.howZh + "\n只加好感，不会直接升级。", note.detailZh);
 
         SimState watched = state.copy();
         watched.episodes = new int[]{1};
         Plan.Step episode = StepLabels.step(rules, new Profile(), watched, Action.episode(TestRules.JUNPEI), applied(false));
         assertEquals("episode", episode.kind);
         assertEquals("羁绊剧情 · 伊织顺平（第 2 话）", episode.titleZh);
-        assertEquals("不加社群点数", episode.subtitleZh);
+        assertEquals("共 4 话", episode.subtitleZh);
         assertEquals("junpei", episode.entity);
     }
 
@@ -94,5 +97,24 @@ public class StepLabelsTest {
     public void freeSlotsAreCalledFreeTime() {
         Plan.Step free = StepLabels.step(rules, new Profile(), state, Action.free(), null);
         assertEquals("自由活动", free.titleZh);
+        assertEquals("the title says it all", "", free.subtitleZh);
+    }
+    @Test
+    public void invitesAndActivitiesReadLikeTheEngine() {
+        Plan.Step invite = StepLabels.step(rules, new Profile(), state, Action.invite(TestRules.EMPEROR), applied(false));
+        assertEquals("休息日邀约 · 收到短信时", invite.subtitleZh);
+        assertEquals("只加好感，不会直接升级。", invite.detailZh);
+
+        Engine.Applied job = applied(false);
+        job.predicted.cashDelta = 2_500;
+        job.predicted.statDelta = new int[]{0, 1, 1};
+        Plan.Step paid = StepLabels.step(rules, new Profile(), state, Action.activity(TestRules.STUDY), job);
+        assertEquals("+2,500 日元 · 魅力 +1、勇气 +1", paid.subtitleZh);
+
+        Engine.Applied training = applied(false);
+        training.predicted.cashDelta = -1_500;
+        training.predicted.statDelta = new int[]{0, 2, 0};
+        assertEquals("魅力 +2 · 花费 1,500 日元",
+                StepLabels.step(rules, new Profile(), state, Action.activity(TestRules.STUDY), training).subtitleZh);
     }
 }

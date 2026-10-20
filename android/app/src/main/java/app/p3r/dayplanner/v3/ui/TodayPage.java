@@ -459,8 +459,8 @@ final class TodayPage {
 
     /**
      * The one reason worth a line on the hero: a deadline or a last chance, someone who is only
-     * around on some days, a stat an unlock needs, or a story hold; null for every reason that only
-     * explains the plan. Scheduling-policy tails (「；安排不等到期限当天」) are cut.
+     * around on some days, a stat an unlock needs, or a story hold (「要等剧情推进才能升级…」,
+     * 「6月20日前升不了级…」); null for every reason that only explains the plan.
      */
     static String urgentReason(String why) {
         if (why == null || why.trim().isEmpty()) {
@@ -470,19 +470,8 @@ final class TodayPage {
         boolean urgent = text.contains("最后") || text.contains("期限") || text.contains("只在")
             || text.contains("机会不多") || text.contains("日子不多") || text.contains("晚上不多")
             || (text.contains("需要") && text.contains("达到")) || text.contains("暂时无法升级")
-            || text.contains("短信后赴约");
-        if (!urgent) {
-            return null;
-        }
-        int policy = text.indexOf("；安排不等");
-        if (policy > 0) {
-            text = text.substring(0, policy);
-        }
-        policy = text.indexOf("，安排不等");
-        if (policy > 0) {
-            text = text.substring(0, policy);
-        }
-        return text;
+            || text.contains("要等剧情") || text.contains("升不了级") || text.contains("短信后赴约");
+        return urgent ? text : null;
     }
 
     /**

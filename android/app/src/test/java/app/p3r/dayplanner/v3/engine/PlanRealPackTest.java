@@ -397,7 +397,7 @@ public class PlanRealPackTest {
         }
     }
 
-    /** A note "…（先保证了X）" names a goal placed before the missed one that this plan brings to MAX. */
+    /** A note "…没排到 MAX，先保证了X · …" names a goal placed before the missed one that this plan brings to MAX. */
     private static void assertNotesNameOnlyKeptHigherGoals(Plan plan, int[] goals) {
         for (int i = 0; i < goals.length; i++) {
             String head = rules.links[goals[i]].arcanaZh + "：";
@@ -408,7 +408,7 @@ public class PlanRealPackTest {
                     assertEquals(note, -1, kept);
                     continue;
                 }
-                assertTrue(note, kept >= 0 && note.contains("先保证了" + rules.links[kept].arcanaZh + "）"));
+                assertTrue(note, kept >= 0 && note.contains("先保证了" + rules.links[kept].arcanaZh + " · "));
                 int place = -1;
                 for (int k = 0; k < goals.length; k++) if (goals[k] == kept) place = k;
                 assertTrue(note + " names a later goal", place >= 0 && place < i);
@@ -580,7 +580,7 @@ public class PlanRealPackTest {
             notes++;
             assertEquals("note", s.kind);
             assertTrue((s.slot & 1) == 1 && (s.slot >> 1) >= pack.datingNote.fromDay);
-            assertTrue(s.titleZh, s.titleZh.startsWith("在放纵俱乐部买结缘网站的字条，给") && !s.titleZh.contains(" "));
+            assertTrue(s.titleZh, s.titleZh.startsWith("结缘网站的字条 · ") && !s.titleZh.contains("，"));
             for (String text : new String[]{s.titleZh, s.subtitleZh, s.whyZh, s.detailZh}) assertFullNoteNameFirst(text);
         }
         for (String n : none.plan.summary.notesZh) assertFullNoteNameFirst(n);
@@ -786,7 +786,8 @@ public class PlanRealPackTest {
                     Engine.validationWarnings(rules, profile, start, plan).isEmpty());
             int paid = assertFeeDaysKeepTheReserve(rules, start, plan);
             payments += paid;
-            assertEquals(paid > 0, plan.summary.notesZh.contains(Labels.FEE_NOTE));
+            // The reserve is the planner's business: no note explains it.
+            for (String note : plan.summary.notesZh) assertFalse(note, note.contains("留足") || note.contains("另留"));
         }
         assertTrue("the scenarios pay unlock fees", payments >= 5);
     }

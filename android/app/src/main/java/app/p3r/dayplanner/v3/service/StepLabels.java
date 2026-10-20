@@ -11,15 +11,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Builds labelled {@link Plan.Step}s for the 改做别的 list from a forecast transition, with the
- * wording of docs/GLOSSARY_zh.md: title "皇帝 · 小田桐秀利", subtitle "RANK 6 → 7" /
- * "RANK 6 · 见面（预计不升级）" / "学力 +2" / "+2,500 日元".
+ * Builds labelled {@link Plan.Step}s for the 改做别的 list from a forecast transition when a
+ * {@link Forecaster} does not label them itself. The wording is the engine's own (engine Labels),
+ * so the list reads the same either way: title "皇帝 · 小田桐秀利", subtitle "RANK 6 → 7" /
+ * "RANK 6 · 见面" / "学力 +2" / "+2,500 日元 · 魅力 +1、勇气 +1".
  */
 final class StepLabels {
     /** Location line for Tartarus visits. */
     static final String TOWER_LOCATION = "影时间 · 月光馆学园";
     /** Where the dating-site note is bought, when the pack does not say. */
     static final String NOTE_LOCATION = "桐叶购物中心 · 放纵俱乐部";
+    /** The remark of an invitation or a note: it never ranks the link up by itself. */
+    static final String AFFINITY_ONLY = "只加好感，不会直接升级。";
 
     private StepLabels() {}
 
@@ -52,8 +55,8 @@ final class StepLabels {
                 step.entity = invited.id;
                 step.titleZh = invited.labelZh;
                 step.locationZh = "应邀外出";
-                step.subtitleZh = "休息日邀约 · 收到短信才选 · 只加好感";
-                step.detailZh = "收到短信后赴约；只加好感，不直接升级。";
+                step.subtitleZh = "休息日邀约 · 收到短信时";
+                step.detailZh = AFFINITY_ONLY;
                 break;
             case UNLOCK_STEP:
                 labelUnlock(rules, action, step);
@@ -65,7 +68,7 @@ final class StepLabels {
                 labelTower(rules, before, action, step);
                 break;
             case NOTE:
-                labelNote(rules, before, action, step);
+                labelNote(rules, action, step);
                 break;
             case EPISODE:
                 labelEpisode(rules, before, action, step);
@@ -97,6 +100,7 @@ final class StepLabels {
         return "顺便：" + HistoryText.unlockStepZh(rules, side);
     }
 
+    /** "RANK 6 → 7" for a rank-up, else "RANK 6 · 见面" ("MAX · 见面" at MAX). */
     private static void labelMeeting(Rules rules, Profile profile, SimState before, Action action, Plan.Step step) {
         Rules.Link link = rules.links[action.target];
         int rank = before.rank[action.target];
@@ -104,12 +108,15 @@ final class StepLabels {
         step.entity = link.id;
         step.titleZh = link.labelZh;
         step.locationZh = link.locationZh;
-        step.subtitleZh = step.predicted.rankUp
-                ? ZhText.rankChange(rank, Math.min(10, rank + 1))
-                : ZhText.join("RANK " + ZhText.rank(rank), "见面（预计不升级）");
+        if (step.predicted.rankUp) {
+            step.subtitleZh = ZhText.rankChange(rank, Math.min(10, rank + 1));
+        } else {
+            step.subtitleZh = ZhText.join(rank >= 10 ? "MAX" : "RANK " + ZhText.rank(rank), "见面");
+        }
         step.hintZh = personaHint(rules, profile, action.target);
     }
 
+    /** The step's own words, with its fee: "把钱交给田中社长 · 花费 20,000 日元". */
     private static void labelUnlock(Rules rules, Action action, Plan.Step step) {
         Rules.Link link = rules.links[action.target];
         Rules.Step unlock = link.unlock != null && action.step >= 0 && action.step < link.unlock.steps.size()
@@ -118,12 +125,19 @@ final class StepLabels {
         step.kind = "unlock";
         step.entity = link.id;
         step.titleZh = link.labelZh;
-        step.subtitleZh = HistoryText.unlockStepZh(rules, action);
+        String what = HistoryText.unlockStepZh(rules, action);
+        step.subtitleZh = unlock != null && unlock.cost > 0 && !what.contains("日元")
+                ? ZhText.join(what, "花费 " + ZhText.yen(unlock.cost))
+                : what;
         step.locationZh = unlock != null && unlock.locationZh != null ? unlock.locationZh : link.locationZh;
         step.detailZh = unlock == null ? null : unlock.howZh;
     }
 
-    /** {@code forecast}: use the forecast deltas; otherwise the activity's nominal gain and cost. */
+    /**
+     * Like the engine: stat gains joined by "、", the pay first for a job, the fee last
+     * ("魅力 +2 · 花费 1,500 日元"), the trait progress of a dorm activity last ("学力 +2 · 2/3").
+     * {@code forecast}: use the forecast deltas; otherwise the activity's nominal gain and cost.
+     */
     private static void labelActivity(Rules rules, SimState before, Action action, Plan.Step step, boolean forecast) {
         Rules.Activity activity = rules.activities[action.target];
         boolean job = activity.kind == Rules.ActivityKind.JOB;
@@ -133,26 +147,28 @@ final class StepLabels {
         step.titleZh = activity.zh;
         step.locationZh = activity.locationZh;
         long cashDelta = forecast ? step.predicted.cashDelta : -activity.cost;
-        List<String> parts = new ArrayList<>();
-        if (cashDelta > 0) {
-            parts.add("+" + ZhText.yen(cashDelta));
-        }
+        List<String> gains = new ArrayList<>();
         for (int stat = 0; stat < SimState.STATS; stat++) {
             int delta = forecast ? step.predicted.statDelta[stat] : activity.gain[stat];
             String gain = ZhText.statGain(rules, stat, delta);
             if (gain != null) {
-                parts.add(gain);
+                gains.add(gain);
             }
         }
-        if (cashDelta < 0) {
-            parts.add("花费 " + ZhText.yen(-cashDelta));
-        }
+        String stats = String.join("、", gains);
+        String pay = cashDelta > 0 ? "+" + ZhText.yen(cashDelta) : null;
+        String fee = cashDelta < 0 ? "花费 " + ZhText.yen(-cashDelta) : null;
+        String progress = null;
         if (dorm) {
             int count = before != null && activity.idx < before.used.length ? before.used[activity.idx] : 0;
-            parts.add("特性进度 " + Math.min(3, count + 1) + "/3");
+            int after = Math.min(3, count + 1);
+            progress = stats.isEmpty() ? "特性进度 " + after + "/3" : after + "/3";
             step.detailZh = activity.noteZh;
         }
-        step.subtitleZh = ZhText.join(parts.toArray(new String[0]));
+        step.subtitleZh = ZhText.join(pay, stats, fee, progress);
+        if (step.subtitleZh.isEmpty() && !job && !dorm) {
+            step.subtitleZh = "提升个人能力值";
+        }
     }
 
     /** "世俗之庭 台伯勒（2–22F）· 本区块第 1 次". */
@@ -173,31 +189,55 @@ final class StepLabels {
         }
     }
 
-    /** Title "结缘网站的字条", subtitle "给山岸风花加好感 · RANK 6". */
-    private static void labelNote(Rules rules, SimState before, Action action, Plan.Step step) {
+    /** Title "结缘网站的字条 · 山岸风花", subtitle "好感 +10 · 花费 1,500 日元". */
+    private static void labelNote(Rules rules, Action action, Plan.Step step) {
         Rules.Link link = rules.links[action.target];
         Rules.DatingNote note = rules.datingNote;
+        String who = ZhText.who(link);
         step.kind = "note";
         step.entity = link.id;
-        step.titleZh = HistoryText.noteZh(rules);
-        String who = link.personZh != null ? link.personZh : link.labelZh;
-        step.subtitleZh = ZhText.join("给" + who + "加好感", "RANK " + ZhText.rank(before.rank[action.target]));
+        step.titleZh = ZhText.join(HistoryText.noteZh(rules), who);
+        if (note != null && note.gain > 0) {
+            step.subtitleZh = ZhText.join("好感 +" + note.gain, note.cost > 0 ? "花费 " + ZhText.yen(note.cost) : null);
+        } else {
+            step.subtitleZh = "加好感";
+        }
         step.locationZh = note != null && note.locationZh != null ? note.locationZh : NOTE_LOCATION;
-        step.detailZh = note != null && note.howZh != null
+        String how = note != null && note.howZh != null
                 ? note.howZh
                 : "在放纵俱乐部买结缘网站的字条，回宿舍用公用电脑给" + who + "加好感";
+        String remark = note != null && note.noteZh != null && !note.noteZh.trim().isEmpty() ? note.noteZh.trim() : AFFINITY_ONLY;
+        step.detailZh = how + "\n" + remark;
     }
 
-    /** Title "羁绊剧情 · 伊织顺平（第 2 话）", subtitle: what finishing the track gives. */
+    /** Title "羁绊剧情 · 伊织顺平（第 2 话）", subtitle "共 5 话"; the how-to and the reward in the detail. */
     private static void labelEpisode(Rules rules, SimState before, Action action, Plan.Step step) {
         Rules.Episode episode = action.target >= 0 && action.target < rules.episodes.length
                 ? rules.episodes[action.target]
                 : null;
+        int number = HistoryText.episodeNumber(before, action.target);
         step.kind = "episode";
         step.entity = episode == null ? null : episode.id;
-        step.titleZh = HistoryText.episodeTitle(rules, action.target, HistoryText.episodeNumber(before, action.target));
-        step.subtitleZh = episode != null && episode.rewardZh != null ? episode.rewardZh : "不加社群点数";
+        step.titleZh = HistoryText.episodeTitle(rules, action.target, number);
+        step.subtitleZh = episode != null && episode.count > 0 ? "共 " + episode.count + " 话" : "";
         step.locationZh = episode == null ? null : episode.locationZh;
-        step.detailZh = episode == null ? null : episode.noteZh;
+        if (episode == null) {
+            return;
+        }
+        List<String> lines = new ArrayList<>();
+        addLine(lines, episode.howZh);
+        String part = number >= 1 ? episode.rewardOf(number) : null;
+        if (part != null && !part.trim().isEmpty()) {
+            lines.add("这一话的奖励：" + part.trim());
+        }
+        addLine(lines, episode.noteZh);
+        addLine(lines, episode.rewardZh);
+        step.detailZh = lines.isEmpty() ? null : String.join("\n", lines);
+    }
+
+    private static void addLine(List<String> lines, String text) {
+        if (text != null && !text.trim().isEmpty()) {
+            lines.add(text.trim());
+        }
     }
 }

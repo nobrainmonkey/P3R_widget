@@ -190,7 +190,7 @@ public class PlanValidatorTest {
         assertTrue(limit.assumptions.contains(PlanValidator.RESCUE_ASSUMPTION));
         assertTrue(limit.subtitleZh, limit.subtitleZh.endsWith("救出北村文吉"));
         // The only evening left (the plan starts on the limit day): used, and said to be unchecked in the game.
-        assertEquals("今天是救出北村文吉的最后期限：" + Labels.LIMIT_EVENING_CAVEAT, limit.whyZh);
+        assertEquals("今天是救出北村文吉的最后期限，" + Labels.LIMIT_EVENING_CAVEAT, limit.whyZh);
         assertTrue("教皇 goes on after the rescue", p.summary.endRanks[RulesFixtures.S_HIEROPHANT] > 2);
     }
 

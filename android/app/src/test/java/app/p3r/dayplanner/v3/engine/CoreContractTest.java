@@ -281,7 +281,7 @@ public class CoreContractTest {
         assertValid(rules, profile, start, plan);
         assertTrue("a late start leaves the goal short", plan.summary.endRanks[priestess] < 10);
         String note = plan.summary.notesZh.get(0);
-        assertTrue(note, note.startsWith("女教皇：按这次的安排预计停在 RANK "));
+        assertTrue(note, note.startsWith("女教皇：预计停在 RANK "));
         for (String n : plan.summary.notesZh) {
             for (String w : INFEASIBLE_WORDS) assertFalse(n, n.contains(w));
         }
@@ -397,8 +397,8 @@ public class CoreContractTest {
         assertEquals(0, Heuristics.feeReserve(0));
         assertEquals(Heuristics.FEE_RESERVE, Heuristics.feeReserve(510));
         Plan plan = Engine.plan(rules, profile, s, null, generous());
-        assertTrue(plan.summary.notesZh.toString(), plan.summary.notesZh.contains(Labels.FEE_NOTE));
-        assertEquals("优先留足社群解锁费用，通常另留 2,500 日元。", Labels.FEE_NOTE);
+        // The reserve is how the planner works, not something the player acts on: no note explains it.
+        for (String note : plan.summary.notesZh) assertFalse(note, note.contains("留足") || note.contains("另留"));
     }
 
     @Test

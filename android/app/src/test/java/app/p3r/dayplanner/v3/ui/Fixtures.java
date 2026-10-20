@@ -434,9 +434,9 @@ final class Fixtures {
         plan.summary.lastUsefulSlot = r.lastSlot() - 1;
         plan.summary.endCash = 64_000;
         plan.summary.endStatLv = new int[]{6, 6, 6};
-        plan.summary.notesZh.add("舞子的期限是11月2日，已安排10月24日晚上探索塔尔塔罗斯。");
+        plan.summary.notesZh.add("皇帝：预计 11月2日 升到 MAX");
         plan.summary.tradedFor[2] = 4;
-        plan.summary.notesZh.add("女教皇：这次的安排里没排到 MAX（先保证了皇帝）。");
+        plan.summary.notesZh.add("女教皇：没排到 MAX，先保证了皇帝 · 预计停在 RANK 7");
         return plan;
     }
 
@@ -498,7 +498,7 @@ final class Fixtures {
             s.titleZh = "探索塔尔塔罗斯";
             s.subtitleZh = "提齐亚（69–117F）· 救出舞子";
             s.locationZh = "月光馆学园（影时间）";
-            s.whyZh = "舞子失踪了，期限 11月2日，救不出来的话倒悬者社群就无法继续；安排不等到期限当天";
+            s.whyZh = "舞子失踪了，期限 11月2日，救不出来倒悬者社群就没法继续了";
             s.assumptions.add("rescue_on_visit");
             return s;
         }
@@ -522,12 +522,13 @@ final class Fixtures {
             s.action = "free";
             s.kind = "free";
             s.titleZh = "自由活动";
-            s.subtitleZh = "这个晚上没有更划算的事";
+            s.subtitleZh = "";
+            s.whyZh = "这个时段想做什么都行";
             return s;
         }
         if (d == day(10, 27) && !eve) {
             Plan.Step s = stat(slot, "act:wakatsu", "在严户台商店街的定食屋「若津」挑战超大份的海鲜盖饭",
-                "勇气 +2 · 800 日元", "严户台商店街", new int[]{0, 0, 2}, -800);
+                "勇气 +2 · 花费 800 日元", "严户台商店街", new int[]{0, 0, 2}, -800);
             s.whyZh = "塔社群需要勇气达到 Lv.4。";
             return s;
         }
@@ -550,9 +551,9 @@ final class Fixtures {
             s.kind = "episode";
             s.entity = "junpei";
             s.titleZh = "羁绊剧情 · 伊织顺平";
-            s.subtitleZh = "第 2 话 · 不加社群点数";
+            s.subtitleZh = "共 4 话";
             s.locationZh = "月光馆学园 2楼 教室";
-            s.whyZh = "你勾选了伊织顺平的羁绊剧情，这天能看第 2 话。";
+            s.whyZh = "这天能看第 2 话";
             s.assumptions.add("link_episode");
             return s;
         }
@@ -560,12 +561,12 @@ final class Fixtures {
             Plan.Step s = new Plan.Step();
             s.slot = slot;
             s.action = "note:priestess";
-            s.kind = "social";
+            s.kind = "note";
             s.entity = "priestess";
-            s.titleZh = "女教皇 · 山岸风花";
-            s.subtitleZh = "结缘网站的字条 · 只加好感";
+            s.titleZh = "结缘网站的字条 · 山岸风花";
+            s.subtitleZh = "好感 +10 · 花费 3,000 日元";
             s.locationZh = "桐叶购物中心 放纵俱乐部 → 宿舍";
-            s.whyZh = "女教皇还差点数，晚上用字条补一点。";
+            s.whyZh = "晚上有空，给山岸风花攒点好感";
             s.detailZh = "1. 晚上去桐叶购物中心的放纵俱乐部\n2. 买一张结缘网站的字条（3,000 日元）\n"
                 + "3. 回宿舍，用公用电脑使用字条，选山岸风花";
             s.predicted.rankFrom = 5;
@@ -586,7 +587,7 @@ final class Fixtures {
         s.kind = "social";
         s.entity = id;
         s.titleZh = link.labelZh;
-        s.subtitleZh = up ? Zh.rankStep(from, to) : Zh.rank(from) + " · 见面（预计不升级）";
+        s.subtitleZh = up ? Zh.rankStep(from, to) : Zh.rank(from) + " · 见面";
         s.locationZh = link.locationZh;
         s.predicted.rankFrom = from;
         s.predicted.rankTo = to;

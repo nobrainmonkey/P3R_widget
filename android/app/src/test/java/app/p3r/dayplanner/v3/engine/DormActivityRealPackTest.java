@@ -47,7 +47,7 @@ public class DormActivityRealPackTest {
         profile.dormTargets.put("dorm_shinjiro", Profile.DormTarget.UNLOCK);
         Plan plan = plan(profile, start);
         assertEquals("act:dorm_shinjiro_cooking", plan.steps.get(0).action);
-        assertTrue(plan.steps.get(0).whyZh, plan.steps.get(0).whyZh.contains("预计做满 3 次，解锁荒垣真次郎的特性"));
+        assertEquals("第 3 次，解锁荒垣真次郎的特性", plan.steps.get(0).whyZh);
         assertEquals(2, start.used[cooking]);
         assertEquals(0, plan.steps.get(0).predicted.cashDelta);
         assertEquals(3, Engine.apply(rules, profile, start, Action.activity(cooking)).state.used[cooking]);

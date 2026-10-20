@@ -195,8 +195,13 @@ public class DormActivityTest {
         assertEquals(start.cash, end.cash);
         assertEquals("dorm", plan.steps.get(0).kind);
         assertEquals("特性进度 1/3", plan.steps.get(0).subtitleZh);
-        assertTrue(first(plan, 24).whyZh, first(plan, 24).whyZh.contains("预计做满 3 次，解锁"));
-        assertTrue(first(plan, 25).whyZh, first(plan, 25).whyZh.contains("预计做满 3 次，强化"));
+        assertTrue(first(plan, 24).whyZh, first(plan, 24).whyZh.startsWith("第 3 次，解锁"));
+        assertTrue(first(plan, 25).whyZh, first(plan, 25).whyZh.startsWith("第 3 次，强化"));
+        assertTrue(plan.steps.get(0).whyZh, plan.steps.get(0).whyZh.startsWith("再做 3 次就能"));
+        // The how-to is the activity's own note: no rule lecture repeated on every evening.
+        for (Plan.Step s : plan.steps) {
+            if ("dorm".equals(s.kind)) assertTrue(s.detailZh, s.detailZh == null || !s.detailZh.contains("每次占用一个晚上"));
+        }
         assertTrue(Engine.validate(rules, profile, start, plan).toString(), Engine.validate(rules, profile, start, plan).isEmpty());
         Model model = new Model(rules, profile, null);
         Heuristics h = new Heuristics(model, start, null, Heuristics.Tuning.DEFAULT);

@@ -87,7 +87,7 @@ public class PlannerServiceLoadTest extends ServiceTestBase {
         PlannerApi.Receipt r = service.saveCheckpoint(" ", 0, TestRules.state(rules, TestRules.slot(TestRules.MAY_12, false)), null);
         assertFalse(r.ok);
         assertEquals("invalid", r.errorCode);
-        assertEquals("保存失败了，请再试一次", r.errorZh);
+        assertEquals("没保存上，再试一次？", r.errorZh);
         assertNull(service.snapshot().observed);
     }
 }
