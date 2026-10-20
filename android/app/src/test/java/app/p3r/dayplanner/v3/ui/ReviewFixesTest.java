@@ -493,6 +493,12 @@ public class ReviewFixesTest extends UiTestBase {
         ResultActivity a = resultController(NOW, "meet:emperor", Intents.MODE_RESULT, true).get();
         assertTrue(Shots.has(a, "这项已经记过了"));
         assertFalse(Shots.has(a, ResultActivity.CAUGHT_UP));
+        // 看记录历史 opens the app on 记录历史.
+        Shots.click(a, ResultActivity.HISTORY_LABEL);
+        Intent next = shadowOf(a).getNextStartedActivity();
+        assertEquals(HomeActivity.class.getName(), next.getComponent().getClassName());
+        assertEquals(Intents.PAGE_HISTORY, next.getStringExtra(Intents.EXTRA_OPEN_PAGE));
+        assertTrue(a.isFinishing());
     }
 
     // ------------------------------------------------------------------ UI-7 / audit I3(2): recorded 没救出

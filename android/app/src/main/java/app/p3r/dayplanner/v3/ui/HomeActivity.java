@@ -98,6 +98,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
     private boolean compendiumOpened;
     private int tab = TAB_TODAY;
     private int pendingOpenSlot = -1;
+    private String pendingOpenPage;
     private boolean started;
     private int topInset;
     private int bottomInset;
@@ -135,6 +136,9 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         if (data != null && pendingOpenSlot >= 0) {
             openDetail(pendingOpenSlot);
             pendingOpenSlot = -1;
+        }
+        if (data != null && pendingOpenPage != null) {
+            openPendingPage();
         }
     }
 
@@ -221,6 +225,19 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         if (intent.hasExtra(Intents.EXTRA_OPEN_SLOT)) {
             pendingOpenSlot = intent.getIntExtra(Intents.EXTRA_OPEN_SLOT, -1);
             intent.removeExtra(Intents.EXTRA_OPEN_SLOT);
+        }
+        if (intent.hasExtra(Intents.EXTRA_OPEN_PAGE)) {
+            pendingOpenPage = intent.getStringExtra(Intents.EXTRA_OPEN_PAGE);
+            intent.removeExtra(Intents.EXTRA_OPEN_PAGE);
+        }
+    }
+
+    /** Pushes the page an intent asked for, once the data is there. */
+    private void openPendingPage() {
+        String page = pendingOpenPage;
+        pendingOpenPage = null;
+        if (Intents.PAGE_HISTORY.equals(page)) {
+            meActions().openHistory();
         }
     }
 
@@ -336,6 +353,9 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
             int slot = pendingOpenSlot;
             pendingOpenSlot = -1;
             openDetail(slot);
+        }
+        if (pendingOpenPage != null) {
+            openPendingPage();
         }
     }
 

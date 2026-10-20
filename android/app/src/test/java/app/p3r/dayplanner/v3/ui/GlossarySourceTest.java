@@ -131,6 +131,28 @@ public class GlossarySourceTest {
         assertTrue(String.join("\n", issues), issues.isEmpty());
     }
 
+    /**
+     * The 3.6 voice: no apologies or hedges, no talk about the algorithm, and the official names
+     * (全书, 合体篮) instead of the old ones (图鉴, 合成篮).
+     */
+    private static final String[] RETIRED = {"合成篮", "图鉴", "仅供参考", "以游戏为准", "没找到更好", "抱歉",
+        "对不起", "可能不准", "算法", "规划器"};
+
+    @Test
+    public void uiStringsHaveNoHedgesOrRetiredNames() throws IOException {
+        List<String> issues = new ArrayList<>();
+        for (File f : sources()) {
+            for (String literal : literals(read(f))) {
+                for (String word : RETIRED) {
+                    if (literal.contains(word)) {
+                        issues.add(f.getName() + ": \"" + literal + "\" says 「" + word + "」");
+                    }
+                }
+            }
+        }
+        assertTrue(String.join("\n", issues), issues.isEmpty());
+    }
+
     @Test
     public void sentencesSayAnpaiNotThePlannerName() throws IOException {
         List<String> issues = new ArrayList<>();

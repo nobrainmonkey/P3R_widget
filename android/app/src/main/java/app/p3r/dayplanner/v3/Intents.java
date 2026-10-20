@@ -9,6 +9,9 @@ public final class Intents {
     public static final String EXTRA_TAB = "p3r.tab";
     /** Open the detail sheet for this slot on arrival (int). */
     public static final String EXTRA_OPEN_SLOT = "p3r.openSlot";
+    /** Page to push on arrival: {@link #PAGE_HISTORY}. */
+    public static final String EXTRA_OPEN_PAGE = "p3r.openPage";
+    public static final String PAGE_HISTORY = "history";
 
     // ResultActivity (quick result sheet)
     /** Slot being recorded (int). */

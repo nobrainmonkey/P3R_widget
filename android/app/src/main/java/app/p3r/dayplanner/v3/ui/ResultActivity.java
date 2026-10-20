@@ -46,6 +46,8 @@ import app.p3r.dayplanner.v3.service.PlannerApi;
  * nothing stale is ever saved. A recorded rank-up plays {@link RankUpBurst} before the sheet closes.
  */
 public final class ResultActivity extends Activity {
+    /** The button on 「这项已经记过了」 that opens 记录历史 in the app. */
+    static final String HISTORY_LABEL = "看记录历史";
     private static final String STATE_SLOT = "slot";
     private static final String STATE_ACTION = "action";
     private static final String STATE_MODE = "mode";
@@ -887,8 +889,21 @@ public final class ResultActivity extends Activity {
         enter();
     }
 
+    /** The item was recorded meanwhile (e.g. from the app): close, or look at the record. */
     private void showAlreadyRecorded() {
-        showState("这项已经记过了", null, "好的");
+        body.removeAllViews();
+        header(null);
+        body.addView(Ui.title(this, "这项已经记过了"), top(14));
+        TextView history = Ui.secondary(this, HISTORY_LABEL);
+        history.setOnClickListener(v -> {
+            Intent intent = new Intent(this, HomeActivity.class);
+            intent.putExtra(Intents.EXTRA_OPEN_PAGE, Intents.PAGE_HISTORY);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            startActivity(intent);
+            finish();
+        });
+        body.addView(pair(history, closeButton("好的")), top(22));
+        enter();
     }
 
     /** The records or the game data could not be read: the service's own message and a retry. */
