@@ -51,14 +51,13 @@ final class HistoricalOutcome {
                 break;
             }
             case TARTARUS:
-                // A skipped visit (「没去成」) is still the tower's slot, not a free one. The kind stays
-                // "free": the tower form records a new visit, which a correction must never do. 记录历史
-                // offers no 修改 for such a night (HistoryText: undo it and record the visit instead).
+                // A skipped visit (「没去成」) is still the tower's night. Its correction opens the 做不了
+                // panel (ResultActivity), never the tower form, which records a new visit.
                 step.titleZh = "探索塔尔塔罗斯";
                 if (action.target >= 0 && action.target < rules.blocks.length) {
                     step.subtitleZh = rules.blocks[action.target].zh;
                 }
-                step.kind = "free";
+                step.kind = "tower";
                 break;
             case LOCKED: {
                 String reason = rules.lockReasonZh(action.reason);

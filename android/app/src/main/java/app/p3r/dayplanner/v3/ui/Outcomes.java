@@ -290,6 +290,9 @@ public final class Outcomes {
                 if (kind == StepKind.EPISODE) {
                     return name + " · 看完了";
                 }
+                if (kind == StepKind.TOWER) {
+                    return name + " · 去了";
+                }
                 return name;
         }
     }

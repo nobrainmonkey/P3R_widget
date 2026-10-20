@@ -247,6 +247,35 @@ public class ScheduleHistoryUiTest extends UiTestBase {
         assertFalse(Shots.has(home, HistoryPage.MORE));
     }
 
+    /**
+     * An undo saved while the page is open, then 「再看更早的」 before the page has read the records
+     * again: the older rows come with the undone record struck through, not with the rows as they were.
+     */
+    @Test
+    public void olderRecordsTappedRightAfterAnUndoDoNotKeepTheUndoneRow() {
+        for (int i = 0; i < 90; i++) {
+            api.history.add(FakePlannerApi.item(1000 + i, Fixtures.SLOT_NOW - 20 - i, "outcome",
+                    Zh.slot(api.rules, Fixtures.SLOT_NOW - 20 - i) + " · 旧记录 " + i, false, false));
+        }
+        HomeActivity home = home();
+        home.selectTab(HomeActivity.TAB_ME);
+        Shots.click(home, "记录历史");
+        String summary = "10月21日 晚上 · 在宿舍房间学习 · 学力 +2";
+        String undo = "撤销这条记录：" + summary;
+        assertTrue(Shots.has(home, undo));
+        // The undo as the store keeps it: the record voided, a hidden 撤销 row on top (no seq on screen changes).
+        api.history.replaceAll(x -> x.seq == 98 ? FakePlannerApi.item(98, x.slot, x.kind, summary, true, true) : x);
+        api.history.add(0, FakePlannerApi.item(200, Fixtures.SLOT_NOW - 1, "void", "撤销了「在宿舍房间学习」", false, true));
+        api.snap.stateRevision++;
+        api.fireChanged();
+        // Tapped before the page's own read is answered.
+        assertTrue(Shots.clickTarget(Shots.find(home, HistoryPage.MORE)).performClick());
+        Shots.idle();
+        assertTrue(Shots.has(home, "旧记录 89"));
+        assertFalse("the undone record offers nothing", Shots.has(home, undo));
+        assertTrue(Shots.has(home, "在宿舍房间学习 · 学力 +2"));
+    }
+
     /** After 1/31 the last day is just the last day: no 「昨天」, not dimmed. */
     @Test
     public void aFinishedCalendarDoesNotCallItsLastDayYesterday() {
@@ -386,6 +415,47 @@ public class ScheduleHistoryUiTest extends UiTestBase {
         assertEquals(correction.targetSeq, api.last().targetSeq);
         assertEquals(2, api.callsOf("correctOutcome").size());
         assertTrue(api.callsOf("recordOutcome").isEmpty());
+    }
+
+    /**
+     * A tower night recorded as 没去成 is corrected on the 做不了 panel under the tower's tag: another
+     * reason, or 「其实去了」 (never a bare 「继续」, never the tower form's new visit).
+     */
+    @Test
+    public void aTowerNightIsCorrectedWithAReasonOrCountedAsAVisit() {
+        PlannerApi.OutcomeCorrection correction = new PlannerApi.OutcomeCorrection();
+        correction.targetSeq = 97;
+        correction.stateRevision = api.snap.stateRevision;
+        correction.slot = Fixtures.SLOT_NOW - 3;
+        correction.actionKey = "tower:3";
+        correction.outcome = Outcomes.skipped("unwilling", -1);
+        SimState before = api.snap.observed.copy();
+        before.slot = correction.slot;
+        correction.beforeState = before;
+        api.corrections.put(correction.targetSeq, correction);
+
+        ResultActivity activity = correction(correction.targetSeq);
+        assertTrue(Shots.has(activity, StepKind.TOWER.tagZh));
+        assertTrue(Shots.has(activity, "怎么没做成？"));
+        assertTrue(Shots.has(activity, "原来记的是：探索塔尔塔罗斯 · 不想做"));
+        assertFalse(Shots.has(activity, "继续"));
+        assertFalse(Shots.has(activity, ResultActivity.OTHER_INSTEAD));
+        Shots.shot(activity, "result_correct_tower_night");
+        Shots.click(activity, ResultActivity.WENT_AFTER_ALL);
+        FakePlannerApi.Call call = api.last();
+        assertEquals("correctOutcome", call.method);
+        assertEquals(correction.targetSeq, call.targetSeq);
+        assertEquals(Outcome.Code.AS_PREDICTED, call.outcome.code);
+        assertTrue(api.callsOf("recordTower").isEmpty());
+        assertTrue(activity.isFinishing());
+
+        // Now recorded as a visit: the panel only asks why it fell through.
+        activity = correction(correction.targetSeq);
+        assertTrue(Shots.has(activity, "原来记的是：探索塔尔塔罗斯 · 去了"));
+        assertFalse(Shots.has(activity, ResultActivity.WENT_AFTER_ALL));
+        Shots.click(activity, Outcomes.SKIP_REASONS.get("story"));
+        assertEquals(Outcome.Code.SKIPPED, api.last().outcome.code);
+        assertEquals("story", api.last().outcome.reason);
     }
 
     @Test

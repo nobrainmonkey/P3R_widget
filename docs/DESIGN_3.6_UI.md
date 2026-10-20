@@ -324,7 +324,8 @@ Basket logic, the calculator, persistence and the workspace behaviour are unchan
   「看完第 2 话了吗？」; 「做完了吗？」 [做完了] + 「结果不一样…」 (level chips, 「打工后的现金」 with
   an inline keypad); free slots [继续] [做了别的…].
 - 做不了: 「怎么没做成？」 + the reasons that fit
-  (「剧情占用了」「对方不在」「没开门」「钱不够」「不想做」), 「其实做了别的…」; 「以后还排「X」吗？」
+  (「剧情占用了」「对方不在」「没开门」「钱不够」「不想做」), 「其实做了别的…」 (correcting a 没去成
+  tower night from 记录历史: [其实去了] instead); 「以后还排「X」吗？」
   [只是这次] [以后别排了]; 改做别的 「做了什么？」 + 「都不是，没什么收获」. Back pops one panel; only
   the entry panel closes the sheet.
 - 补记: 「前面 3 项也照安排做了吗？」 [都做了] [一项项对] + 「前面都没做」; no question when only

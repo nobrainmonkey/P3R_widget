@@ -75,6 +75,9 @@ final class HistoryPage {
             return;
         }
         shownRevision = d.snap.stateRevision;
+        // The rows on screen are out of date (an undo changes no seq): a 「再看更早的」 answered
+        // before this read rebuilds them instead of adding under them.
+        rendered.clear();
         load(true);
     }
 

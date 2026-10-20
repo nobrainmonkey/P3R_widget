@@ -44,6 +44,10 @@ import app.p3r.dayplanner.v3.service.PlannerApi;
  *
  * <p>A plan id / revision that no longer matches shows the current item with 「安排更新了」 instead;
  * nothing stale is ever saved. A recorded rank-up plays {@link RankUpBurst} before the sheet closes.
+ *
+ * <p>From 记录历史 the sheet corrects an earlier record ({@link Intents#EXTRA_CORRECT_SEQ}) on the
+ * same panels, from the state before it; a tower night opens on 做不了, with 「其实去了」 when it
+ * was recorded as 没去成.
  */
 public final class ResultActivity extends Activity {
     /** The button on 「这项已经记过了」 that opens 记录历史 in the app. */
@@ -77,6 +81,8 @@ public final class ResultActivity extends Activity {
     static final String OTHER_RESULTS = "其他结果…";
     static final String HOLD = "剧情卡住了，升不了";
     static final String OTHER_INSTEAD = "其实做了别的…";
+    /** On the correction of a tower night recorded as 没去成. */
+    static final String WENT_AFTER_ALL = "其实去了";
     static final String NOTHING_ELSE = "都不是，没什么收获";
 
     /** How long a save may take before 「正在保存…」 is shown (ms). */
@@ -1055,7 +1061,9 @@ public final class ResultActivity extends Activity {
                 statJobPanel(step);
                 break;
             case TOWER:
-                towerPanel(step);
+                // A correction never records a new visit: a tower night is edited on the 做不了 panel.
+                if (correction != null) cannotPanel(step);
+                else towerPanel(step);
                 break;
             case LOCKED:
                 lockedPanel(step);
@@ -1588,7 +1596,14 @@ public final class ResultActivity extends Activity {
             LinearLayout row = Ui.row(this);
             row.addView(link(OTHER_INSTEAD, false, this::switchToOther), Ui.wrap());
             body.addView(row, top(14));
+        } else if (StepKind.of(step) == StepKind.TOWER && missed(correction.outcome)) {
+            // The night counts as a visit after all; the engine works it out from the state before.
+            choices(choice(WENT_AFTER_ALL, false, () -> submit(step, Outcomes.asPredicted(step, false))));
         }
+    }
+
+    private static boolean missed(Outcome outcome) {
+        return outcome.code == Outcome.Code.SKIPPED || outcome.code == Outcome.Code.NOT_DONE;
     }
 
     private void onSkipReason(Plan.Step step, String reason) {
