@@ -193,10 +193,12 @@ copy and layout change as below.
 - Header: `pageHeader("提示", "GUIDE", [本期｜全部])`. No game date: opens in 全部; 本期 asks
   「现在玩到游戏里的哪一天了？」 [设置日期].
 - Search with magnifier and ×: searches the whole game, the old scope returns when cleared; results
-  grouped by kind, 「找到 12 条」 only while searching;
+  grouped by kind under the strip's names, each header's count at the end of its rule (「3 条」),
+  「找到 12 条」 only while searching;
   「没找到。换个说法试试？比如「风花」「36F」「委托 75」」.
-- One-tap strip 「全部 · 社群 · 课堂 · 考试 · 委托 · 战斗 · 其他」; 其他 = a single-tap tag list,
-  shown as a removable pill (40dp, 「去掉筛选：失踪者」 for TalkBack).
+- One-tap strip 「全部」「社群」「课堂 · 考试」「委托」「战斗」「其他」, 其他 peeking in at the right edge
+  on a phone; 其他 = a single-tap tag list, shown as a removable pill (40dp, 「去掉筛选：失踪者」 for
+  TalkBack); picking a tag scrolls the lit 其他 chip into view.
 - 本期: banner (block, floors, dates); 「现在」 / 「接下来」, 「已经过去 · 12」 folded; borderless
   rows with a date plate, kind tag, line, gain, 「10月25日截止」. 「伊莉莎白的委托 · 29 件」 (open
   requests; expired ones stay rows under 已经过去; 「今天截止 2 件」 on a deadline day) and

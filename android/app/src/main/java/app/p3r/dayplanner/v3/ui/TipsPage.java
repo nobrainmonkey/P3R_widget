@@ -43,8 +43,8 @@ import app.p3r.dayplanner.v3.service.TipsCatalogue;
 /**
  * 提示 (docs/DESIGN_3.6_UI.md): what matters in the current Tartarus period and an all-game lookup,
  * both read-only and independent of the remaining plan. The header is the tab's page header with a
- * [本期｜全部] toggle; under the search field a one-tap content strip (全部 · 社群 · 课堂 · 考试 · 委托 ·
- * 战斗 · 其他). 本期 opens with the period's banner and borderless rows by time (现在 / 接下来 / a
+ * [本期｜全部] toggle; under the search field a one-tap content strip 「全部」「社群」「课堂 · 考试」「委托」
+ * 「战斗」「其他」. 本期 opens with the period's banner and borderless rows by time (现在 / 接下来 / a
  * folded 已经过去); 全部 without a search is a directory of big menu tiles. The strip, the tiles and
  * the search headers name each kind the same way ({@link #KIND_LABELS}).
  */
@@ -113,7 +113,12 @@ final class TipsPage {
         }
 
         static Item header(int section, String title) {
-            return new Item(SECTION, section, null, 0, null, title);
+            return header(section, title, 0);
+        }
+
+        /** A titled header with its count at the right (0: none). */
+        static Item header(int section, String title, int count) {
+            return new Item(SECTION, section, null, count, null, title);
         }
     }
 
@@ -356,7 +361,8 @@ final class TipsPage {
     private TextView stripChip(String label, String tag) {
         TextView chip = Ui.chip(c, label, false);
         chip.setTag(tag);
-        Ui.pad(chip, 12, 4, 12, 4);
+        // Narrow enough that 其他 peeks in at the right edge on a phone.
+        Ui.pad(chip, 10, 4, 10, 4);
         return chip;
     }
 
@@ -400,11 +406,6 @@ final class TipsPage {
         if (category != null) {
             pill.setText(Ui.latin(c, category));
             pill.setContentDescription("去掉筛选：" + category);
-            // 其他 sits past the strip's right edge on a phone: bring the lit chip into view.
-            stripScroll.post(() -> {
-                if (Ui.animationsEnabled()) stripScroll.smoothScrollTo(moreChip.getRight(), 0);
-                else stripScroll.scrollTo(moreChip.getRight(), 0);
-            });
         }
     }
 
@@ -449,6 +450,11 @@ final class TipsPage {
                 content = TipsCatalogue.contentForCategory(items, data.rules, label);
                 host.dismissSheet();
                 refresh(true);
+                // 其他 sits past the strip's right edge on a phone: bring the lit chip into view once.
+                stripScroll.post(() -> {
+                    if (Ui.animationsEnabled()) stripScroll.smoothScrollTo(moreChip.getRight(), 0);
+                    else stripScroll.scrollTo(moreChip.getRight(), 0);
+                });
             });
             sheet.addView(row, Ui.matchWrap());
             View rule = Ui.fadingRule(c);
@@ -571,7 +577,7 @@ final class TipsPage {
         return groupEntries(items, false);
     }
 
-    /** Search results by kind, each under 「社群 · 3」-style headers. */
+    /** Search results by kind, each under the strip's name with its count at the right (「社群 ── 3 条」). */
     private List<Item> searchItems(List<Plan.Reminder> matches) {
         String[] titles = KIND_LABELS;
         List<List<Plan.Reminder>> buckets = new ArrayList<>();
@@ -587,7 +593,7 @@ final class TipsPage {
             List<Item> section = new ArrayList<>();
             for (Plan.Reminder r : buckets.get(i)) section.add(new Item(REMINDER, LOOKUP + i, r, 0));
             List<Item> grouped = groupEntries(section, false);
-            items.add(Item.header(LOOKUP + i, titles[i] + " · " + visibleCount(grouped)));
+            items.add(Item.header(LOOKUP + i, titles[i], visibleCount(grouped)));
             items.addAll(grouped);
         }
         return items;
@@ -903,9 +909,11 @@ final class TipsPage {
         if (item.section == PAST && item.title == null) return pastBar(item.count);
         String title = item.title != null ? item.title
             : item.section >= COMBAT_GROUP ? COMBAT_TITLES[item.section - COMBAT_GROUP] : SECTION_TITLES[item.section];
+        // The count sits at the end of the rule, apart from a name like 「课堂 · 考试」.
+        String count = item.title != null && item.count > 0 ? item.count + " 条" : null;
         LinearLayout header = Ui.column(c);
         Ui.pad(header, 0, first ? 4 : 16, 0, 0);
-        header.addView(Ui.sectionHeader(c, title, null));
+        header.addView(Ui.sectionHeader(c, title, count));
         return header;
     }
 

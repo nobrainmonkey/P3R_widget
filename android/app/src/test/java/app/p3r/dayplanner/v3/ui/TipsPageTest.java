@@ -433,6 +433,9 @@ public class TipsPageTest extends UiTestBase {
         Shots.idle();
         assertNotNull(rowForId(a, "class.04-08"));
         assertTrue(Shots.allText(rowForId(a, "class.04-08")).contains("第 3 项"));
+        // The header's count stands apart from the dot inside 「课堂 · 考试」.
+        assertTrue(Shots.has(a, "1 条"));
+        assertFalse(Shots.has(a, TipsPage.KIND_LABELS[1] + " · 1"));
         Shots.shot(a, "tips_search_past_school_answer");
         click(a, "tips_scope_period");
         assertTrue(Shots.has(a, TipsPage.EMPTY_SEARCH));
@@ -454,6 +457,11 @@ public class TipsPageTest extends UiTestBase {
         HomeActivity a = tips();
         click(a, "tips_scope_all");
         Shots.shot(a, "tips_directory");
+        // Unscrolled, the last chip 其他 peeks in at the strip's right edge: there is more to the side.
+        View lastChip = tagged(a, "tips_content_more");
+        View stripView = (View) lastChip.getParent().getParent();
+        assertEquals(0, stripView.getScrollX());
+        assertTrue("其他 peeks in", stripView.getWidth() - (lastChip.getLeft() + lastChip.getPaddingLeft()) >= Ui.dp(a, 8));
         // A tile and the strip chip that do the same thing have the same name.
         String[] keys = {"dialogue", "class", "request", "combat"};
         for (int i = 0; i < keys.length; i++) {
@@ -824,6 +832,14 @@ public class TipsPageTest extends UiTestBase {
         List<String> rescues = resultIds(a);
         assertTrue(initial.containsAll(rescues));
         Shots.shot(a, "tips_more_rescue");
+        // Only picking a tag moves the strip; typing leaves it where the player put it.
+        strip.scrollTo(0, 0);
+        EditText search = a.getWindow().getDecorView().findViewWithTag("tips_search");
+        search.setText("失");
+        Shots.idle();
+        assertEquals(0, strip.getScrollX());
+        search.setText("");
+        Shots.idle();
 
         more(a, "社群解锁");
         assertEquals("社群解锁", Zh.plain(((TextView) tagged(a, "tips_filter_selection")).getText()));
