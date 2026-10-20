@@ -184,14 +184,9 @@ public class ReviewFixesTest extends UiTestBase {
         assertEquals("看完第 2 话了吗？", ResultActivity.episodeQuestion(junpei, obs));
         assertEquals("这一话看完了吗？", ResultActivity.episodeQuestion(null, obs));
         assertEquals("看完第 1 话了吗？", ResultActivity.episodeQuestion(akihiko, obs));
-        // Only the reward: the sheet no longer explains that episodes add no link points.
-        assertEquals("每一话都有小奖励（能力值或顺平的能力），看完第 4 话可以拿到道具「顺平的棒球帽」。",
-            ResultActivity.episodeNote(junpei));
-        assertEquals("", ResultActivity.episodeNote(akihiko));
-        assertEquals("", ResultActivity.episodeNote(null));
+        // The result sheet asks only the question; the reward lives in 社群 → 羁绊剧情 and the folded 怎么做.
         junpei.rewardZh = "每一话都有小奖励（能力值）";
-        assertEquals("每一话都有小奖励（能力值）。", ResultActivity.episodeNote(junpei));
-        for (String s : new String[]{ResultActivity.episodeNote(junpei), LinksPage.rewardLine(junpei)}) {
+        for (String s : new String[]{Zh.sentence(junpei.rewardZh), LinksPage.rewardLine(junpei)}) {
             assertFalse(s, s.contains("。。"));
             assertFalse(s, s.contains("看完能拿到每"));
             assertFalse(s, s.contains("看完全部能拿到"));

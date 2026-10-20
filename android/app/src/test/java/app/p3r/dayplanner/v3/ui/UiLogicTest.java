@@ -101,6 +101,8 @@ public class UiLogicTest {
         Outcome down = Outcomes.observedRank(6, 5, false);
         assertEquals(Outcome.Code.OTHER, down.code);
         assertEquals(5, down.rank);
+        assertEquals("皇帝 改为 RANK 5", Outcomes.summary(rules, emperor, down));
+        assertEquals("皇帝 RANK 5", Outcomes.recordedSummary(rules, emperor, down));
 
         Outcome absent = Outcomes.notMet();
         assertEquals(Outcome.Code.SKIPPED, absent.code);

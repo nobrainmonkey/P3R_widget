@@ -468,15 +468,16 @@ public class AuditFixesTest extends UiTestBase {
         ResultActivity a = result(slot, "tower:3", Intents.MODE_RESULT);
         TowerPanel panel = a.towerPanel();
         assertNotNull(panel);
-        assertFalse("nothing typed yet", panel.saveButton().isEnabled());
+        assertFalse("nothing typed yet", panel.ready());
         assertEquals("救出了 preselected (the plan predicts it)", 0, panel.rescueSelection());
         assertTrue(Shots.has(a, TowerPanel.FORGOT));
         Shots.shot(a, "result_tower_empty");
-        // 保存 does nothing until an amount or 不记得钱了.
+        // 保存 before an amount or 不记得钱了 saves nothing: it opens the keypad, the missing part.
         Shots.click(a, "保存");
         assertTrue(api.callsOf("recordTower").isEmpty());
+        assertTrue(panel.keypadShown());
         Shots.click(a, TowerPanel.FORGOT);
-        assertTrue(panel.saveButton().isEnabled());
+        assertTrue(panel.ready());
         assertTrue(panel.forgotCash());
         // The selected chip says it; no line explaining how it is recorded.
         assertEquals("", panel.previewText());

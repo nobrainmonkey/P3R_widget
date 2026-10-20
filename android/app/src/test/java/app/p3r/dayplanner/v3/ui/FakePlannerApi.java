@@ -61,6 +61,8 @@ final class FakePlannerApi implements PlannerApi {
     List<Plan.Step> alternatives = new ArrayList<>();
     /** When set, returned (once) instead of a success receipt. */
     Receipt nextReceipt;
+    /** When set, returned (once) by the next {@link #saveProfile} instead of saving. */
+    Receipt nextProfileReceipt;
     /** Advance observed.slot to the next open slot on every successful outcome/tower record. */
     boolean advanceOnRecord = true;
     /** Check slots and action keys like the store (off only for screens the store never reaches). */
@@ -333,6 +335,12 @@ final class FakePlannerApi implements PlannerApi {
 
     @Override
     public Receipt saveProfile(String commandId, long expectedProfileRevision, Profile profile) {
+        if (nextProfileReceipt != null) {
+            Receipt failed = nextProfileReceipt;
+            nextProfileReceipt = null;
+            calls.add(new Call("saveProfile", commandId, expectedProfileRevision, -1, null, null, null, -1, null, profile));
+            return failed;
+        }
         Receipt r = write(new Call("saveProfile", commandId, expectedProfileRevision, -1, null, null, null, -1, null, profile),
             false, false);
         if (r.ok) {

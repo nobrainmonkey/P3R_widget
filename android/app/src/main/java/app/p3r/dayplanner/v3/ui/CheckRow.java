@@ -16,7 +16,9 @@ import app.p3r.dayplanner.R;
 
 /**
  * Compact checkbox row: a slanted box with a check mark and a label, the whole row one ≥ 48 dp
- * touch target, announced as a checkbox ("顺便的事也做了"). Ticking draws the mark in (120 ms).
+ * touch target, announced as a checkbox with its label, or with a fuller spoken label where the
+ * short one leans on what is beside it (「也做了」 → 「顺便的事也做了」). Ticking draws the mark in
+ * (120 ms).
  */
 public final class CheckRow extends LinearLayout {
     /** Change callback. */
@@ -26,6 +28,7 @@ public final class CheckRow extends LinearLayout {
 
     private final Box box;
     private final CharSequence label;
+    private CharSequence spoken;
     private boolean checked;
     private Listener listener;
 
@@ -57,11 +60,21 @@ public final class CheckRow extends LinearLayout {
         this.listener = listener;
     }
 
+    /** What TalkBack says in place of the visible label. */
+    public void setSpokenLabel(CharSequence spoken) {
+        this.spoken = spoken;
+        describe();
+    }
+
     public void setChecked(boolean value) {
         boolean ticking = value && !checked && Ui.animationsEnabled() && isAttachedToWindow();
         checked = value;
         box.refresh(ticking);
-        setContentDescription(label + (value ? "，已勾选" : "，未勾选"));
+        describe();
+    }
+
+    private void describe() {
+        setContentDescription((spoken != null ? spoken : label) + (checked ? "，已勾选" : "，未勾选"));
     }
 
     public boolean isChecked() {

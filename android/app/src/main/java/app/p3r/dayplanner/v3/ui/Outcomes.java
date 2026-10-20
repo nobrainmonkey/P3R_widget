@@ -233,18 +233,38 @@ public final class Outcomes {
         return rank >= 10 ? name + " 升到 MAX" : name + " " + Zh.rank(rank);
     }
 
+    /** "皇帝 改为 RANK 5" / "皇帝 改为 MAX": a rank set by hand, never read as a fresh rank-up. */
+    static String rankChanged(String name, int rank) {
+        return name + " 改为 " + Zh.rank(rank);
+    }
+
     /** Message-bar text after recording, e.g. 「皇帝 RANK 7」「恋爱 · 见面」「皇帝 · 对方不在」. */
     public static String summary(Rules rules, Plan.Step step, Outcome outcome) {
-        String text = mainSummary(rules, step, outcome);
+        // A rank picked below the recorded one (其他结果…) sets the record back: 「皇帝 改为 RANK 5」.
+        return summary(rules, step, outcome, outcome.code == Outcome.Code.OTHER);
+    }
+
+    /** Message-bar text after changing an earlier record: a rank reads 「皇帝 改为 RANK 7」. */
+    public static String changeSummary(Rules rules, Plan.Step step, Outcome outcome) {
+        return summary(rules, step, outcome, true);
+    }
+
+    /** What a record says, for 「原来记的是：皇帝 RANK 5」: never 「改为」. */
+    public static String recordedSummary(Rules rules, Plan.Step step, Outcome outcome) {
+        return summary(rules, step, outcome, false);
+    }
+
+    private static String summary(Rules rules, Plan.Step step, Outcome outcome, boolean change) {
+        String text = mainSummary(rules, step, outcome, change);
         return outcome.sideDone || step == null || step.side.isEmpty() ? text : text + " · 顺便的事没做";
     }
 
-    private static String mainSummary(Rules rules, Plan.Step step, Outcome outcome) {
+    private static String mainSummary(Rules rules, Plan.Step step, Outcome outcome, boolean change) {
         String name = shortName(rules, step);
         StepKind kind = StepKind.of(step);
         switch (outcome.code) {
             case RANK_UP:
-                return rankResult(name, outcome.rank);
+                return change ? rankChanged(name, outcome.rank) : rankResult(name, outcome.rank);
             case NO_RANK_UP:
                 return name + " · 没升级";
             case SKIPPED:
@@ -267,19 +287,16 @@ public final class Outcomes {
                 return name + " · 没完成";
             case OTHER:
                 if (outcome.rank >= 0) {
-                    return rankResult(name, outcome.rank);
+                    return change ? rankChanged(name, outcome.rank) : rankResult(name, outcome.rank);
                 }
-                if (outcome.cashBalance >= 0) {
-                    return name + " · 现金 " + Zh.yen(outcome.cashBalance);
-                }
-                return name + " · 改了结果";
+                return name + otherResult(rules, outcome);
             case AS_PREDICTED:
             default:
                 if (step != null && step.action != null && step.action.startsWith("invite:")) {
                     return name + " · 赴约了";
                 }
                 if (kind == StepKind.SOCIAL_RANK_UP && outcome.rank > 0) {
-                    return rankResult(name, outcome.rank);
+                    return change ? rankChanged(name, outcome.rank) : rankResult(name, outcome.rank);
                 }
                 if (kind == StepKind.SOCIAL_MEET) {
                     return name + " · 见面";
@@ -292,5 +309,18 @@ public final class Outcomes {
                 }
                 return name;
         }
+    }
+
+    /** " · 学力 Lv.3", " · 魅力 Lv.3 勇气 Lv.2 · 现金 21,000 日元": what 结果不一样… saved, or "". */
+    private static String otherResult(Rules rules, Outcome outcome) {
+        StringBuilder levels = new StringBuilder();
+        for (int i = 0; rules != null && i < Math.min(3, rules.stats.length); i++) {
+            if (outcome.statLv[i] > 0) {
+                levels.append(levels.length() == 0 ? "" : " ").append(rules.stats[i].zh).append(' ')
+                    .append(Zh.lv(outcome.statLv[i]));
+            }
+        }
+        String text = levels.length() == 0 ? "" : " · " + levels;
+        return outcome.cashBalance >= 0 ? text + " · 现金 " + Zh.yen(outcome.cashBalance) : text;
     }
 }

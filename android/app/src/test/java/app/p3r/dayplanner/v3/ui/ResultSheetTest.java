@@ -6,20 +6,36 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
+import android.os.Looper;
+import android.os.SystemClock;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.accessibility.AccessibilityManager;
+import android.widget.TextView;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
+import org.robolectric.shadows.ShadowAccessibilityManager;
+import org.robolectric.shadows.ShadowDialog;
+
+import java.time.Duration;
 
 import app.p3r.dayplanner.v3.Intents;
 import app.p3r.dayplanner.v3.engine.Outcome;
 import app.p3r.dayplanner.v3.engine.Plan;
+import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Rules;
+import app.p3r.dayplanner.v3.service.PlannerApi;
 
 /**
  * Quick result sheet: one render per panel kind and mode, and the exact API call + Outcome each
@@ -256,6 +272,7 @@ public class ResultSheetTest extends UiTestBase {
         assertEquals(Outcome.Code.OTHER, o.code);
         assertEquals(5, o.statLv[0]);
         assertEquals(-1, o.cashBalance);
+        assertEquals("在宿舍房间学习 · 学力 Lv.5", UndoCenter.take().summaryZh);
     }
 
     @Test
@@ -280,6 +297,7 @@ public class ResultSheetTest extends UiTestBase {
         Outcome o = api.last().outcome;
         assertEquals(Outcome.Code.OTHER, o.code);
         assertEquals(21_000, o.cashBalance);
+        assertTrue(UndoCenter.take().summaryZh.endsWith(" · 现金 21,000 日元"));
     }
 
     @Test
@@ -324,7 +342,7 @@ public class ResultSheetTest extends UiTestBase {
         steppers.get(steppers.size() - 1).valueView().performClick();
         Shots.idle();
         pad = org.robolectric.shadows.ShadowDialog.getLatestDialog().getWindow().getDecorView();
-        assertNotNull(Shots.find(pad, "主角等级"));
+        assertNotNull(Shots.find(pad, "主角几级？"));
     }
 
     @Test
@@ -353,7 +371,7 @@ public class ResultSheetTest extends UiTestBase {
         assertFalse(panel.cashModeControl().isShown());
         assertFalse(Shots.has(a, "这次多了多少"));
         assertTrue(Shots.has(a, "出塔后的现金"));
-        assertFalse(panel.saveButton().isEnabled());
+        assertFalse(panel.ready());
         Shots.shot(a, "result_tower_unknown_cash");
     }
 
@@ -415,6 +433,71 @@ public class ResultSheetTest extends UiTestBase {
         assertEquals("saveProfile", save.method);
         assertTrue(java.util.Arrays.asList(save.profile.excludedActivities).contains("study_room"));
         assertTrue(finishing(a));
+        UndoCenter.Recorded recorded = UndoCenter.take();
+        assertEquals("以后不排「在宿舍房间学习」了", recorded.summaryZh);
+        assertEquals("no 撤销: it would bring the record back but not the activity", -1, recorded.eventSeq);
+    }
+
+    @Test
+    public void aFailedExclusionSaysSoAndRetriesOnlyTheExclusion() {
+        int slot = NOW + 1;
+        advanceTo(slot);
+        api.nextProfileReceipt = FakePlannerApi.invalid("写入失败");
+        ResultActivity a = result(slot, "act:study_room", Intents.MODE_CANNOT);
+        Shots.click(a, "不想做");
+        Shots.click(a, "以后别排了");
+        assertFalse(finishing(a));
+        assertTrue(Shots.has(a, ResultActivity.EXCLUDE_FAILED));
+        assertNull(UndoCenter.take());
+        Shots.shot(a, "result_cannot_exclude_failed");
+        Shots.click(a, "重试");
+        assertEquals(1, api.callsOf("recordOutcome").size());
+        assertEquals(2, api.callsOf("saveProfile").size());
+        assertTrue(finishing(a));
+        assertEquals("以后不排「在宿舍房间学习」了", UndoCenter.take().summaryZh);
+    }
+
+    @Test
+    public void backFromAFailedExclusionDoesNotAskAgain() {
+        int slot = NOW + 1;
+        advanceTo(slot);
+        api.nextProfileReceipt = FakePlannerApi.invalid("写入失败");
+        ResultActivity a = result(slot, "act:study_room", Intents.MODE_CANNOT);
+        Shots.click(a, "不想做");
+        Shots.click(a, "以后别排了");
+        // 不想做 is recorded: back acts as on the panel the sheet opened with.
+        a.onBackPressed();
+        Shots.idle();
+        assertFalse(Shots.has(a, "怎么没做成？"));
+        assertTrue(finishing(a));
+        assertEquals(1, api.callsOf("recordOutcome").size());
+    }
+
+    @Test
+    public void closingAFailedExclusionGoesOnWithTheQueue() {
+        ResultActivity a = result(NOW + 2, "meet:lovers", Intents.MODE_RESULT);
+        Shots.click(a, "一项项对");
+        Shots.click(a, "升到 RANK 7 了");
+        assertTrue(Shots.has(a, "做完了"));
+        api.nextProfileReceipt = FakePlannerApi.invalid("写入失败");
+        Shots.click(a, TodayPage.CANNOT_LABEL);
+        Shots.click(a, "不想做");
+        Shots.click(a, "以后别排了");
+        assertTrue(Shots.has(a, ResultActivity.EXCLUDE_FAILED));
+        // The button (the scrim and the X are 「关闭」 to TalkBack as well).
+        View close = null;
+        for (View v : Shots.findAll(a.getWindow().getDecorView(), "关闭")) {
+            if (v instanceof TextView && "关闭".equals(Zh.plain(((TextView) v).getText()))) {
+                close = v;
+            }
+        }
+        assertNotNull(close);
+        assertTrue(close.performClick());
+        Shots.idle();
+        assertFalse(finishing(a));
+        assertTrue(Shots.has(a, "见面了"));
+        assertEquals(2, api.callsOf("recordOutcome").size());
+        assertEquals("unwilling", api.callsOf("recordOutcome").get(1).outcome.reason);
     }
 
     @Test
@@ -427,6 +510,42 @@ public class ResultSheetTest extends UiTestBase {
         Shots.click(a, "升到 RANK 6 了");
         assertEquals("meet:strength", api.last().actionKey);
         assertEquals(NOW, api.last().slot);
+    }
+
+    @Test
+    public void anAlternativeWithNothingLeftToAskIsRecordedFromTheList() {
+        ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_OTHER);
+        Shots.click(a, "定食屋「若津」吃大份套餐");
+        FakePlannerApi.Call call = api.last();
+        assertEquals("act:wakatsu", call.actionKey);
+        assertEquals(NOW, call.slot);
+        assertEquals(Outcome.Code.AS_PREDICTED, call.outcome.code);
+        assertTrue(finishing(a));
+    }
+
+    @Test
+    public void anAlternativeWithSideStepsAsksOnlyAboutThem() {
+        Plan.Step wakatsu = api.alternatives.get(3);
+        wakatsu.side.add("unlock:devil:0");
+        wakatsu.sideZh.add("顺便：在商城 2楼借给田中社长 5,000 日元");
+        ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_OTHER);
+        Shots.click(a, "定食屋「若津」吃大份套餐");
+        assertTrue(api.calls.isEmpty());
+        assertTrue(Shots.has(a, "顺便的事也做了吗？"));
+        assertFalse("not asked again whether it was done", Shots.has(a, "做完了吗？"));
+        assertFalse(Shots.has(a, TodayPage.CANNOT_LABEL));
+        assertTrue(Shots.has(a, "结果不一样…"));
+        Shots.shot(a, "result_other_chosen_side");
+        Shots.click(a, "结果不一样…");
+        assertTrue(Shots.has(a, "勇气现在几级？"));
+        a.onBackPressed();
+        Shots.idle();
+        assertTrue(Shots.has(a, "顺便的事也做了吗？"));
+        Shots.click(a, "没做");
+        FakePlannerApi.Call call = api.last();
+        assertEquals("act:wakatsu", call.actionKey);
+        assertEquals(Outcome.Code.AS_PREDICTED, call.outcome.code);
+        assertFalse(call.outcome.sideDone);
     }
 
     @Test
@@ -513,7 +632,8 @@ public class ResultSheetTest extends UiTestBase {
         // The title says whose episode it is; the question only names the episode.
         assertTrue(Shots.has(a, "羁绊剧情 · 伊织顺平"));
         assertTrue(Shots.has(a, "看完第 2 话了吗？"));
-        assertTrue(Shots.has(a, "每一话都有小奖励（能力值或顺平的能力），看完第 4 话可以拿到道具「顺平的棒球帽」。"));
+        // A yes/no record: the reward sentence is not repeated on every episode (怎么做 keeps it).
+        assertFalse(Shots.has(a, "每一话都有小奖励（能力值或顺平的能力），看完第 4 话可以拿到道具「顺平的棒球帽」。"));
         assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("不加社群点数"));
         assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("。。"));
         Shots.shot(a, "result_episode");
@@ -784,6 +904,7 @@ public class ResultSheetTest extends UiTestBase {
         ResultActivity a = Robolectric.buildActivity(ResultActivity.class, intent).setup().get();
         Shots.idle();
         assertTrue(Shots.has(a, "这条记录刚改过"));
+        assertFalse(Shots.has(a, "重新打开看看？"));
         Shots.click(a, "好的");
         assertTrue(finishing(a));
         assertTrue(api.calls.isEmpty());
@@ -800,6 +921,241 @@ public class ResultSheetTest extends UiTestBase {
         assertEquals(Messages.GENERIC_ERROR, a.bannerText());
         assertTrue(Shots.has(a, Messages.GENERIC_ERROR));
         Shots.shot(a, "result_save_error");
+    }
+
+    // ------------------------------------------------------------------ panel changes, restore, plan failure
+
+    @Test
+    public void aSecondTapRightAfterNoRankUpDoesNotAnswerTheCueQuestion() {
+        ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
+        Shots.click(a, "没升级");
+        assertTrue(Shots.has(a, ResultActivity.CUE_QUESTION));
+        assertTrue(a.holdingTaps());
+        // The second half of a double tap lands on the new panel while it swaps in: dropped.
+        touch(a, Shots.find(a, "提示了"));
+        touch(a, Shots.find(a, "没有"));
+        assertTrue(api.calls.isEmpty());
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(400));
+        assertFalse(a.holdingTaps());
+        touch(a, Shots.find(a, "没有"));
+        assertEquals(Outcome.Code.NO_RANK_UP, api.last().outcome.code);
+        assertFalse(api.last().outcome.readyCue);
+    }
+
+    @Test
+    public void aPanelChangeTakesTalkBackToTheNewQuestion() {
+        AccessibilityManager manager = (AccessibilityManager) RuntimeEnvironment.getApplication()
+            .getSystemService(Context.ACCESSIBILITY_SERVICE);
+        ShadowAccessibilityManager shadow = Shadows.shadowOf(manager);
+        shadow.setEnabled(true);
+        shadow.setTouchExplorationEnabled(true);
+        ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
+        Shots.capture(a, false);
+        Shots.click(a, "没升级");
+        View lead = a.lead();
+        assertEquals(ResultActivity.CUE_QUESTION, Zh.plain(((TextView) lead).getText()));
+        assertTrue(lead.isAccessibilityFocused());
+        a.onBackPressed();
+        Shots.idle();
+        assertEquals("升到 RANK 7 了吗？", Zh.plain(((TextView) a.lead()).getText()));
+        assertTrue(a.lead().isAccessibilityFocused());
+    }
+
+    @Test
+    public void theSideCheckSaysWhatItIsAbout() {
+        ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
+        assertEquals("顺便的事也做了，已勾选", a.sideRow().getContentDescription().toString());
+        ResultActivity cannot = result(NOW, "meet:emperor", Intents.MODE_CANNOT);
+        assertEquals("顺便的事做了，未勾选", cannot.sideRow().getContentDescription().toString());
+        Shots.click(cannot, ResultActivity.SIDE_DONE_CANNOT);
+        assertEquals("顺便的事做了，已勾选", cannot.sideRow().getContentDescription().toString());
+    }
+
+    @Test
+    public void rotationKeepsTheSheetAndAProcessRestartOpensTheEntryPanel() throws Exception {
+        ActivityInfo info = RuntimeEnvironment.getApplication().getPackageManager().getActivityInfo(
+            new android.content.ComponentName(RuntimeEnvironment.getApplication(), ResultActivity.class),
+            PackageManager.GET_META_DATA);
+        assertTrue("rotation does not rebuild the sheet",
+            (info.configChanges & ActivityInfo.CONFIG_ORIENTATION) != 0 && (info.configChanges & ActivityInfo.CONFIG_SCREEN_SIZE) != 0);
+        org.robolectric.android.controller.ActivityController<ResultActivity> c =
+            resultController(NOW, "meet:emperor", Intents.MODE_RESULT, true);
+        Shots.click(c.get(), TodayPage.CANNOT_LABEL);
+        assertTrue(Shots.has(c.get(), "怎么没做成？"));
+        c.recreate();
+        Shots.idle();
+        // Rebuilt without its stack, the sheet is back on its entry panel rather than on a pushed one.
+        assertTrue(Shots.has(c.get(), "升到 RANK 7 了"));
+        c.get().onBackPressed();
+        Shots.idle();
+        assertTrue(finishing(c.get()));
+    }
+
+    @Test
+    public void aFailedPlanSaysSoInsteadOfWaitingForever() {
+        api.snap.plan = null;
+        api.snap.planCurrent = false;
+        api.snap.planning = false;
+        api.snap.planErrorZh = "规划失败";
+        ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
+        assertTrue(Shots.has(a, "安排没排出来"));
+        assertFalse(Shots.has(a, "安排还在排，马上就好"));
+        Shots.shot(a, "result_plan_failed");
+        Shots.click(a, "重试");
+        assertEquals(1, api.replanRequests);
+        assertFalse(finishing(a));
+        api.snap.planning = true;
+        a = result(NOW, "meet:emperor", Intents.MODE_RESULT);
+        assertTrue("a running replan is still waited for", Shots.has(a, "安排还在排，马上就好"));
+    }
+
+    @Test
+    public void jobCorrectionKeepsTheRecordedBalanceUnlessRetyped() {
+        PlannerApi.OutcomeCorrection correction = new PlannerApi.OutcomeCorrection();
+        correction.targetSeq = 98;
+        correction.stateRevision = api.snap.stateRevision;
+        correction.slot = Fixtures.SLOT_NOW - 1;
+        correction.actionKey = "act:job_chagall";
+        correction.outcome = Outcomes.different(new int[]{-1, 3, 2}, 30_000);
+        SimState before = api.snap.observed.copy();
+        before.slot = correction.slot;
+        correction.beforeState = before;
+        api.corrections.put(correction.targetSeq, correction);
+        ResultActivity a = correction(correction.targetSeq);
+        Shots.click(a, "结果不一样…");
+        assertTrue(Shots.has(a, "打工后的现金，30,000 日元"));
+        Shots.click(a, "保存");
+        FakePlannerApi.Call call = api.last();
+        assertEquals("correctOutcome", call.method);
+        assertEquals(30_000, call.outcome.cashBalance);
+    }
+
+    @Test
+    public void correctingASkippedTowerVisitCanChangeTheReason() {
+        PlannerApi.OutcomeCorrection correction = new PlannerApi.OutcomeCorrection();
+        correction.targetSeq = 97;
+        correction.stateRevision = api.snap.stateRevision;
+        correction.slot = Fixtures.SLOT_NOW - 3;
+        // A 没去成 tower visit comes back as a free slot (a correction never adds a visit).
+        correction.actionKey = "tower:3";
+        correction.outcome = Outcomes.skipped("story", -1);
+        SimState before = api.snap.observed.copy();
+        before.slot = correction.slot;
+        correction.beforeState = before;
+        api.corrections.put(correction.targetSeq, correction);
+        ResultActivity a = correction(correction.targetSeq);
+        assertTrue(Shots.has(a, "继续"));
+        Shots.click(a, TodayPage.CANNOT_LABEL);
+        assertTrue(Shots.has(a, "怎么没做成？"));
+        assertFalse(Shots.has(a, ResultActivity.OTHER_INSTEAD));
+        Shots.click(a, "不想做");
+        FakePlannerApi.Call call = api.last();
+        assertEquals("correctOutcome", call.method);
+        assertEquals(Outcome.Code.SKIPPED, call.outcome.code);
+        assertEquals("unwilling", call.outcome.reason);
+    }
+
+    @Test
+    public void aRankCorrectionIsNeverAnnouncedAsARankUp() {
+        PlannerApi.OutcomeCorrection correction = new PlannerApi.OutcomeCorrection();
+        correction.targetSeq = 96;
+        correction.stateRevision = api.snap.stateRevision;
+        correction.slot = Fixtures.SLOT_NOW - 2;
+        correction.actionKey = "meet:emperor";
+        correction.outcome = Outcomes.noRankUp(6, false);
+        SimState before = api.snap.observed.copy();
+        before.slot = correction.slot;
+        before.rank[4] = 6;
+        before.ready[4] = true;
+        correction.beforeState = before;
+        api.corrections.put(correction.targetSeq, correction);
+        ResultActivity a = correction(correction.targetSeq);
+        Shots.click(a, "升到 RANK 7 了");
+        String summary = UndoCenter.take().summaryZh;
+        assertEquals("皇帝 改为 RANK 7", summary);
+        assertFalse("no 「已修改：」 under the bar's 「已记录：」", summary.contains("已修改"));
+        assertFalse(HomeActivity.isRankUp(summary));
+        // 「其他结果…」 below the recorded rank on a new record is a change, not a rank-up either.
+        ResultActivity b = result(NOW, "meet:emperor", Intents.MODE_RESULT);
+        Shots.click(b, ResultActivity.OTHER_RESULTS);
+        Shots.click(b, "RANK 5");
+        assertEquals(Outcome.Code.OTHER, api.last().outcome.code);
+        String down = UndoCenter.take().summaryZh;
+        assertEquals("皇帝 改为 RANK 5", down);
+        assertFalse(HomeActivity.isRankUp(down));
+    }
+
+    @Test
+    public void aCorrectionSaysWhatTheRecordSaysWithoutChangeWording() {
+        PlannerApi.OutcomeCorrection correction = new PlannerApi.OutcomeCorrection();
+        correction.targetSeq = 97;
+        correction.stateRevision = api.snap.stateRevision;
+        correction.slot = Fixtures.SLOT_NOW - 2;
+        correction.actionKey = "meet:emperor";
+        // Saved through 「其他结果…」 below the rank before it.
+        correction.outcome = Outcomes.observedRank(6, 5, false);
+        SimState before = api.snap.observed.copy();
+        before.slot = correction.slot;
+        before.rank[4] = 6;
+        correction.beforeState = before;
+        api.corrections.put(correction.targetSeq, correction);
+        ResultActivity a = correction(correction.targetSeq);
+        assertTrue(Shots.has(a, "原来记的是：皇帝 RANK 5"));
+        assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("改为"));
+        Shots.shot(a, "result_correction_other_rank");
+    }
+
+    @Test
+    public void theTowerFloorAndLevelPadsSayWhatIsTyped() {
+        int slot = Rules.slot(Fixtures.day(10, 24), true);
+        advanceTo(slot);
+        ResultActivity a = result(slot, "tower:3", Intents.MODE_RESULT);
+        TowerPanel panel = a.towerPanel();
+        assertEquals("最高到达 96F", panel.floorStepper().valueView().getContentDescription().toString());
+        assertTrue(panel.floorStepper().valueView().performClick());
+        Shots.idle();
+        android.app.Dialog pad = ShadowDialog.getLatestDialog();
+        assertNotNull(pad);
+        assertFalse(Shots.findAll(pad.getWindow().getDecorView(), "最高到达几层？").isEmpty());
+    }
+
+    @Test
+    public void tappingTheSelectedCashTabKeepsTheTypedAmount() {
+        int slot = Rules.slot(Fixtures.day(10, 24), true);
+        advanceTo(slot);
+        ResultActivity a = result(slot, "tower:3", Intents.MODE_RESULT);
+        TowerPanel panel = a.towerPanel();
+        panel.setAmountForTest(25_050);
+        Shots.click(a, "出塔后余额");
+        assertTrue(panel.ready());
+        assertEquals("进塔前 18,500 → 出塔后 25,050 日元（+6,550）", panel.previewText());
+        // Switching does start over: the other field means something else.
+        Shots.click(a, "这次多了多少");
+        assertFalse(panel.ready());
+    }
+
+    /** A real tap at the middle of {@code view}, through the window: it hits whatever is on top. */
+    private static void touch(ResultActivity a, View view) {
+        Shots.capture(a, false);
+        int[] at = new int[2];
+        view.getLocationInWindow(at);
+        assertTrue(view.getWidth() > 0);
+        float x = at[0] + view.getWidth() / 2f;
+        float y = at[1] + view.getHeight() / 2f;
+        View root = a.getWindow().getDecorView();
+        long t = SystemClock.uptimeMillis();
+        root.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, x, y, 0));
+        root.dispatchTouchEvent(MotionEvent.obtain(t, t + 40, MotionEvent.ACTION_UP, x, y, 0));
+        Shots.idle();
+    }
+
+    private ResultActivity correction(long seq) {
+        Intent intent = new Intent(RuntimeEnvironment.getApplication(), ResultActivity.class);
+        intent.putExtra(Intents.EXTRA_CORRECT_SEQ, seq);
+        intent.putExtra(HomeActivity.EXTRA_FROM_APP, true);
+        ResultActivity activity = Robolectric.buildActivity(ResultActivity.class, intent).setup().get();
+        Shots.idle();
+        return activity;
     }
 
     private void advanceTo(int slot) {

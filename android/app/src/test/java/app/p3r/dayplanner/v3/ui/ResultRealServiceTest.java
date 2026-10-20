@@ -144,7 +144,7 @@ public class ResultRealServiceTest extends UiTestBase {
         ResultActivity a = open(step);
         TowerPanel panel = a.towerPanel();
         assertNotNull(panel);
-        assertFalse("the amount starts empty", panel.saveButton().isEnabled());
+        assertFalse("the amount starts empty", panel.ready());
         int floor = panel.floorStepper().getValue() + 2;
         panel.floorStepper().step(+2);
         panel.setAmountForTest(31_500);

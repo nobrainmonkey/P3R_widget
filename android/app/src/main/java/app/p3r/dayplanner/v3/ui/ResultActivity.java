@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -83,6 +84,11 @@ public final class ResultActivity extends Activity {
     private static final long SAVING_TEXT_DELAY = 400;
     /** While no plan is there yet, the sheet looks again after this long (ms). */
     private static final long PLAN_RETRY = 1500;
+    /**
+     * After a panel change, taps are dropped this long (ms, about the swap-in): the second tap of
+     * a double tap was meant for the panel that just left.
+     */
+    private static final long SWAP_HOLD = 400;
 
     private FrameLayout root;
     private View scrim;
@@ -119,6 +125,8 @@ public final class ResultActivity extends Activity {
     private boolean celebrating;
     private String playedBurst;
     private boolean closing;
+    /** A new request that came in during the rank-up flourish: the sheet starts over with it after. */
+    private Intent deferredIntent;
     /** Alternative chosen on 改做别的 (its own panel), else null. */
     private Plan.Step substitute;
     /** Sub-panel of the current mode ({@link #SUB_CUE}, {@link #SUB_EXCLUDE}, {@link #SUB_DIFFERENT}) or null. */
@@ -137,6 +145,8 @@ public final class ResultActivity extends Activity {
     private CheckRow sideRow;
     /** The answer plate tapped last (it flashes while saving). */
     private View tapped;
+    /** The panel's question (or its title): where TalkBack lands after a panel change. */
+    private View lead;
     private long correctionSeq = -1;
     private PlannerApi.OutcomeCorrection correction;
     private Plan.Step correctionStep;
@@ -148,6 +158,11 @@ public final class ResultActivity extends Activity {
     private final Runnable retryPlan = () -> {
         if (!isFinishing() && !busy && snap != null && step() == null) {
             reloadAndRoute();
+        }
+    };
+    private final Runnable releaseTaps = () -> {
+        if (!busy && blocker != null) {
+            blocker.setVisibility(View.GONE);
         }
     };
 
@@ -187,7 +202,8 @@ public final class ResultActivity extends Activity {
 
     /**
      * singleTask: a second "完成" from the widget arrives here. Unless a save is in flight, the
-     * sheet starts over for the new request (with a fresh stale check).
+     * sheet starts over for the new request (with a fresh stale check): after the rank-up
+     * flourish when one is playing, and coming back up when it was already dropping away.
      */
     @Override
     protected void onNewIntent(Intent intent) {
@@ -196,6 +212,21 @@ public final class ResultActivity extends Activity {
             return;
         }
         setIntent(intent);
+        if (celebrating) {
+            deferredIntent = intent;
+            return;
+        }
+        if (closing) {
+            if (isFinishing()) {
+                return;
+            }
+            reopen();
+        }
+        startOver(intent);
+    }
+
+    /** Shows the request of {@code intent} from the start. */
+    private void startOver(Intent intent) {
         readRequest(intent);
         staleChecked = false;
         queueTarget = -1;
@@ -235,7 +266,9 @@ public final class ResultActivity extends Activity {
         super.onSaveInstanceState(out);
         out.putInt(STATE_SLOT, slot);
         out.putString(STATE_ACTION, actionKey);
-        out.putString(STATE_MODE, mode);
+        // The panel stack is not kept: a recreated sheet opens on its entry panel, so back still
+        // closes only from there.
+        out.putString(STATE_MODE, stack.isEmpty() ? mode : stack.get(0).mode);
         out.putInt(STATE_QUEUE, queueTarget);
         out.putInt(STATE_QUEUE_TOTAL, queueTotal);
         out.putBoolean(STATE_CHECKED, staleChecked);
@@ -266,6 +299,7 @@ public final class ResultActivity extends Activity {
         }
         if (blocker != null) {
             blocker.removeCallbacks(showSavingText);
+            blocker.removeCallbacks(releaseTaps);
         }
         super.onDestroy();
     }
@@ -362,6 +396,16 @@ public final class ResultActivity extends Activity {
             }).start();
     }
 
+    /** Brings the sheet back up while its exit is still running (a new request came in). */
+    private void reopen() {
+        closing = false;
+        // Cancelled, the exit's end action (finish) never runs.
+        scrim.animate().cancel();
+        panel.animate().cancel();
+        scrim.animate().alpha(1f).setDuration(200).start();
+        panel.animate().translationY(0).alpha(1f).setDuration(260).setInterpolator(Motion.SETTLE).start();
+    }
+
     private void showLoading() {
         body.removeAllViews();
         body.addView(new BusyStripe(this), top(36));
@@ -424,7 +468,7 @@ public final class ResultActivity extends Activity {
         }
         if (correctionSeq >= 0) {
             if (correction == null || correctionStep == null) {
-                showState("这条记录刚改过", "重新打开看看？", "好的");
+                showState("这条记录刚改过", null, "好的");
                 return;
             }
             snap.observed = correction.beforeState.copy();
@@ -555,11 +599,13 @@ public final class ResultActivity extends Activity {
     // ------------------------------------------------------------------ rendering
 
     private void render() {
+        Transition how = transition;
         body.removeCallbacks(retryPlan);
         body.removeAllViews();
         towerPanel = null;
         sideRow = null;
         tapped = null;
+        lead = null;
         SimState obs = snap.observed;
         boolean resultLike = Intents.MODE_RESULT.equals(mode) || Intents.MODE_CATCHUP.equals(mode);
         if (substitute == null && sub == null && resultLike && slot > obs.slot && correction == null
@@ -578,7 +624,11 @@ public final class ResultActivity extends Activity {
         }
         header(step);
         if (step == null) {
-            waitingForPlan();
+            if (snap.planErrorZh != null && !snap.planning && !snap.fullReplanning) {
+                showPlanFailed();
+            } else {
+                waitingForPlan();
+            }
             return;
         }
         if (banner != null) {
@@ -599,6 +649,28 @@ public final class ResultActivity extends Activity {
         }
         restoreSide = null;
         enter();
+        if (how == Transition.FORWARD || how == Transition.BACK) {
+            settle();
+        }
+    }
+
+    /**
+     * After a panel change: taps meant for the panel that just left are dropped while the new one
+     * swaps in, and TalkBack moves to the new question.
+     */
+    private void settle() {
+        holdTaps();
+        View target = lead;
+        if (target != null) {
+            target.post(() -> target.performAccessibilityAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null));
+        }
+    }
+
+    /** Drops taps for {@link #SWAP_HOLD} behind the transparent blocker. */
+    private void holdTaps() {
+        blocker.removeCallbacks(releaseTaps);
+        blocker.setVisibility(View.VISIBLE);
+        blocker.postDelayed(releaseTaps, SWAP_HOLD);
     }
 
     /** Plays the entrance of freshly built panel content. */
@@ -694,9 +766,11 @@ public final class ResultActivity extends Activity {
             column.addView(tagRow, top(10));
             TextView title = Ui.mixed(this, SlotRows.title(rules, step), 26, Ui.col(this, R.color.p3r_white), true);
             column.addView(title, top(6));
+            lead = title;
             if (correction != null) {
-                column.addView(Ui.mixed(this, "原来记的是：" + Outcomes.summary(rules, correctionStep, correction.outcome),
-                    14, Ui.col(this, R.color.p3r_ink_muted), false), top(2));
+                String was = Outcomes.recordedSummary(rules, correctionStep, correction.outcome);
+                column.addView(Ui.mixed(this, "原来记的是：" + was, 14, Ui.col(this, R.color.p3r_ink_muted), false),
+                    top(2));
             }
             head.setBackground(new WatermarkDrawable(watermarkWord(kind), Ui.numerals(this),
                 Ui.alpha(Ui.col(this, R.color.p3r_cyan_300), 22), Ui.dp(this, 96), Ui.dp(this, 1.5f), -6f, 0.36f));
@@ -767,6 +841,7 @@ public final class ResultActivity extends Activity {
         }
         TextView q = Ui.mixed(this, question, 22, Ui.col(this, R.color.p3r_white), true);
         plate.addView(q, top(kicker != null && kicker.length() > 0 ? 2 : 0));
+        lead = q;
         return plate;
     }
 
@@ -817,13 +892,14 @@ public final class ResultActivity extends Activity {
     }
 
     /**
-     * The panel's foot: 「做不了…」 at the left (when the step can fall through) and an optional
-     * quiet link at the right ({@code moreLabel}: 「其他结果…」, 「结果不一样…」).
+     * The panel's foot: 「做不了…」 at the left (when the planned step can fall through, or when a
+     * recorded free slot such as a 没去成 visit is corrected) and an optional quiet link at the
+     * right ({@code moreLabel}: 「其他结果…」, 「结果不一样…」).
      */
     private void footer(Plan.Step step, String moreLabel, Runnable more) {
         LinearLayout row = Ui.row(this);
         StepKind kind = StepKind.of(step);
-        if (kind.deviatable() && kind != StepKind.FREE) {
+        if (substitute == null && kind.deviatable() && (kind != StepKind.FREE || correction != null)) {
             TextView cannot = link(TodayPage.CANNOT_LABEL, false, () -> push(Intents.MODE_CANNOT, null, null, false));
             cannot.setContentDescription("做不了，选原因");
             row.addView(cannot, Ui.wrap());
@@ -921,6 +997,24 @@ public final class ResultActivity extends Activity {
         body.addView(pair(close, retry), top(22));
     }
 
+    /** Planning failed and nothing is running: say so, with a retry (as 今天 does). */
+    private void showPlanFailed() {
+        body.addView(Ui.headline(this, "安排没排出来"), top(16));
+        TextView close = Ui.secondary(this, "关闭");
+        close.setOnClickListener(v -> close());
+        TextView retry = Ui.primary(this, "重试");
+        retry.setOnClickListener(v -> {
+            PlannerApi target = api;
+            showLoading();
+            Async.run(this, () -> {
+                target.requestReplan();
+                return Boolean.TRUE;
+            }, done -> reloadAndRoute(), error -> reloadAndRoute());
+        });
+        body.addView(pair(close, retry), top(22));
+        enter();
+    }
+
     /** The plan for this slot is still being made: say so briefly and look again shortly. */
     private void waitingForPlan() {
         body.addView(Ui.headline(this, "安排还在排，马上就好"), top(16));
@@ -946,7 +1040,7 @@ public final class ResultActivity extends Activity {
 
     /** Banners after a catch-up. */
     static final String CAUGHT_UP = "前面的都记好了";
-    static final String CAUGHT_UP_SKIPPED = "前面的记为没做";
+    static final String CAUGHT_UP_SKIPPED = "前面的都记成没做了";
 
     // ------------------------------------------------------------------ shared panel parts
 
@@ -964,6 +1058,8 @@ public final class ResultActivity extends Activity {
         LinearLayout row = Ui.row(this);
         row.addView(StepViews.sideBlock(this, step, 15), Ui.weight(1));
         sideRow = new CheckRow(this, label, preset);
+        // Spoken on its own (explore by touch), a bare 「做了」 would not say what was done.
+        sideRow.setSpokenLabel("顺便的事" + label);
         Ui.pad(sideRow, 10, 0, 4, 0);
         LinearLayout.LayoutParams cp = Ui.wrap();
         cp.leftMargin = Ui.dp(this, 6);
@@ -1030,6 +1126,10 @@ public final class ResultActivity extends Activity {
 
     private void resultPanel(Plan.Step step) {
         StepKind kind = StepKind.of(step);
+        if (substitute != null && sub == null && kind.directCommit()) {
+            substitutePanel(step);
+            return;
+        }
         switch (kind) {
             case SOCIAL_RANK_UP:
                 socialRankUp(step);
@@ -1082,6 +1182,26 @@ public final class ResultActivity extends Activity {
         LinearLayout more = otherResults(step, from);
         footer(step, OTHER_RESULTS, () -> reveal(more));
         body.addView(more, top(4));
+    }
+
+    /**
+     * An alternative picked on 「做了什么？」 that has 「顺便」 lines (one without opens no panel):
+     * that it was done is said already, so only the side steps are asked, plus 「结果不一样…」
+     * where there are levels.
+     */
+    private void substitutePanel(Plan.Step step) {
+        String expected = expectedText(step);
+        body.addView(speech("顺便的事也做了吗？", expected, step.estimate && expected != null), top(16));
+        body.addView(StepViews.sideBlock(this, step, 15), top(14));
+        TextView done = choice(SIDE_DONE, true,
+            () -> submit(step, Outcomes.withSide(Outcomes.asPredicted(step, true), true)));
+        TextView notDone = choice("没做", false,
+            () -> submit(step, Outcomes.withSide(Outcomes.asPredicted(step, true), false)));
+        choices(done, notDone);
+        StepKind kind = StepKind.of(step);
+        if (kind == StepKind.STAT || kind == StepKind.JOB || hasAnyStatDelta(step)) {
+            footer(step, "结果不一样…", () -> push(mode, substitute, SUB_DIFFERENT, true));
+        }
     }
 
     /** 没升级 → 「有没有提示「下次就能升级」？」. */
@@ -1214,10 +1334,6 @@ public final class ResultActivity extends Activity {
     private void episodePanel(Plan.Step step) {
         Rules.Episode track = Outcomes.episodeOf(rules, step);
         body.addView(speech(episodeQuestion(track, snap.observed), null, false), top(16));
-        String reward = episodeNote(track);
-        if (!reward.isEmpty()) {
-            body.addView(Ui.mixed(this, reward, 14, Ui.col(this, R.color.p3r_ink_muted), false), top(10));
-        }
         addSide(step, true, SIDE_DONE);
         addHowTo(step);
         TextView watched = choice("看完了", true, () -> submit(step, Outcomes.asPredicted(step, false)));
@@ -1243,14 +1359,6 @@ public final class ResultActivity extends Activity {
         return "看完第 " + nextEpisode(track, observed) + " 话了吗？";
     }
 
-    /**
-     * The track's reward as one sentence ("每一话都有小奖励…，看完第 5 话可以合体人格面具「苏尔特尔」。"),
-     * or "" when the pack has none.
-     */
-    static String episodeNote(Rules.Episode track) {
-        return track == null ? "" : Zh.sentence(track.rewardZh);
-    }
-
     private void statJobPanel(Plan.Step step) {
         StepKind kind = StepKind.of(step);
         boolean different = SUB_DIFFERENT.equals(sub);
@@ -1267,7 +1375,8 @@ public final class ResultActivity extends Activity {
         }
         SimState obs = snap.observed;
         int[] chosen = {-1, -1, -1};
-        long[] balance = {-1};
+        // A correction keeps the balance it recorded (the field shows it) unless another is typed.
+        long[] balance = {correction != null && correction.outcome.cashBalance >= 0 ? correction.outcome.cashBalance : -1};
         for (int i = 0; i < Math.min(3, rules.stats.length); i++) {
             if (step.predicted.statDelta[i] == 0 && kind == StepKind.JOB) {
                 continue;
@@ -1521,6 +1630,7 @@ public final class ResultActivity extends Activity {
         TextView go = choice("继续", true, () -> submit(step, Outcomes.asPredicted(step)));
         if (correction != null) {
             choices(go);
+            footer(step, null, null);
             return;
         }
         TextView other = choice("做了别的…", false, this::switchToOther);
@@ -1612,31 +1722,89 @@ public final class ResultActivity extends Activity {
         TextView once = choice("只是这次", true, () -> submit(step, Outcomes.skipped("unwilling", -1)));
         TextView never = choice("以后别排了", false, () -> {
             String id = step.action.substring(4);
-            submitThen(step, Outcomes.skipped("unwilling", -1), () -> excludeActivity(id));
+            submitThen(step, Outcomes.skipped("unwilling", -1), () -> excludeActivity(step, id));
         });
         choices(once, never);
     }
 
-    private void excludeActivity(String activityId) {
+    /**
+     * After 「以后别排了」 recorded 不想做: takes the activity off the plan. The message bar says so
+     * without a 撤销, which would bring the record back but not the activity (规划设置 does that).
+     */
+    private void excludeActivity(Plan.Step step, String activityId) {
         Profile edited = (snap.profile == null ? new Profile() : snap.profile).copy();
         edited.excludedActivities = SettingsPage.with(edited.excludedActivities, activityId);
         PlannerApi target = api;
         long rev = snap.profileRevision;
         String id = CommandIds.of("exclude", rev, activityId);
+        setBusy(true);
         Async.run(this, () -> {
             PlannerApi.Snapshot latest = target.snapshot();
             return target.saveProfile(id, latest.profileRevision, edited);
-        }, receipt -> continueOrFinish(), error -> continueOrFinish());
+        }, receipt -> {
+            setBusy(false);
+            if (!receipt.ok) {
+                showExcludeFailed(step, activityId);
+                return;
+            }
+            if (fromApp) {
+                UndoCenter.post(-1, "以后不排「" + step.titleZh + "」了");
+            }
+            continueOrFinish();
+        }, error -> {
+            setBusy(false);
+            showExcludeFailed(step, activityId);
+        });
     }
 
-    /** After a save: the next item of a running 一项项对 queue, else close the sheet. */
+    /**
+     * 不想做 is recorded but 「以后别排了」 did not save: only that is tried again. The record stands, so
+     * back no longer returns to its questions, and 关闭 moves on as a save does (the next item of a
+     * 一项项对 queue, else the sheet closes).
+     */
+    private void showExcludeFailed(Plan.Step step, String activityId) {
+        stack.clear();
+        sub = null;
+        body.removeAllViews();
+        header(step);
+        body.addView(bannerView(EXCLUDE_FAILED, true), top(12));
+        TextView close = Ui.secondary(this, "关闭");
+        close.setOnClickListener(v -> {
+            if (!busy) {
+                continueOrFinish();
+            }
+        });
+        TextView retry = Ui.primary(this, "重试");
+        retry.setOnClickListener(v -> {
+            if (!busy) {
+                excludeActivity(step, activityId);
+            }
+        });
+        body.addView(pair(close, retry), top(22));
+    }
+
+    /** Banner when 不想做 is recorded but taking the activity off the plan did not save. */
+    static final String EXCLUDE_FAILED = "「以后别排了」没保存上，再试一次？";
+
+    /**
+     * After a save: the request that came in meanwhile, else the next item of a running 一项项对
+     * queue, else close the sheet.
+     */
     private void continueOrFinish() {
+        if (deferredIntent != null) {
+            Intent next = deferredIntent;
+            deferredIntent = null;
+            startOver(next);
+            return;
+        }
         if (queueTarget >= 0) {
             substitute = null;
             sub = null;
             setBanner(null, false);
             mode = Intents.MODE_RESULT;
             transition = Transition.FORWARD;
+            // A second tap on the plate just saved must not land on the next item.
+            holdTaps();
             reloadAndRoute();
             return;
         }
@@ -1730,7 +1898,14 @@ public final class ResultActivity extends Activity {
         row.setContentDescription(SlotRows.title(rules, alt) + (sub.isEmpty() ? "" : "，" + sub)
             + (original ? "，原安排" : ""));
         row.setOnClickListener(v -> {
-            if (!busy) {
+            if (busy) {
+                return;
+            }
+            if (StepKind.oneTap(alt)) {
+                // Nothing is left to ask: picking it here is the answer (as 完成 on 今天).
+                tapped = v;
+                submit(alt, Outcomes.asPredicted(alt, true));
+            } else {
                 push(Intents.MODE_OTHER, alt, null, false);
             }
         });
@@ -1879,8 +2054,10 @@ public final class ResultActivity extends Activity {
         if (correction != null) {
             long target = correction.targetSeq;
             String fixId = CommandIds.of("outcome_fix", rev, target, outcomeKey(outcome));
+            // 「已记录：皇帝 改为 RANK 7」: a changed rank is not a new rank-up.
+            String changed = Outcomes.changeSummary(rules, step, outcome);
             Async.run(this, () -> a.correctOutcome(fixId, rev, target, outcome),
-                    receipt -> onReceipt(receipt, "已修改：" + summary, after, null), error -> onFailure());
+                    receipt -> onReceipt(receipt, changed, after, null), error -> onFailure());
             return;
         }
         Async.run(this, () -> a.recordOutcome(id, rev, step.slot, step.action, outcome),
@@ -1933,12 +2110,13 @@ public final class ResultActivity extends Activity {
     private void onReceipt(PlannerApi.Receipt receipt, String summary, Runnable after, String burst) {
         setBusy(false);
         if (receipt.ok) {
-            if (fromApp) {
-                UndoCenter.post(receipt.eventSeq, summary);
-            }
             if (after != null) {
+                // The follow-up posts its own message once it is done too.
                 after.run();
                 return;
+            }
+            if (fromApp) {
+                UndoCenter.post(receipt.eventSeq, summary);
             }
             // In a 一项项对 queue the next item (and the target) open on their own result panel,
             // even when this one was answered with 做不了 / 没去成 / 改做别的.
@@ -2007,6 +2185,7 @@ public final class ResultActivity extends Activity {
      */
     private void setBusy(boolean value) {
         busy = value;
+        blocker.removeCallbacks(releaseTaps);
         blocker.setVisibility(value ? View.VISIBLE : View.GONE);
         busyStripe.setVisibility(value ? View.VISIBLE : View.GONE);
         blocker.removeCallbacks(showSavingText);
@@ -2043,5 +2222,20 @@ public final class ResultActivity extends Activity {
     /** The 「也做了」 check of the current panel, or null (tests). */
     CheckRow sideRow() {
         return sideRow;
+    }
+
+    /** The sheet is dropping away (tests). */
+    boolean closing() {
+        return closing;
+    }
+
+    /** Taps are dropped right after a panel change (tests). */
+    boolean holdingTaps() {
+        return !busy && blocker.getVisibility() == View.VISIBLE;
+    }
+
+    /** The view TalkBack is sent to after a panel change (tests). */
+    View lead() {
+        return lead;
     }
 }
