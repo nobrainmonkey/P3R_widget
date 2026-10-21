@@ -57,6 +57,76 @@ public class AvailableActionsTest {
         assertNull(find(calendar.day(day("10-25")).daytime, "act:arcade_youth"));
     }
 
+    @Test public void personaArcadeUsesAllSevenWeekdaysInBothPeriodsIncludingThreeSundayGames() {
+        AvailableActions.Calendar calendar = AvailableActions.build(rules, new Profile(), state("10-26"));
+        String[][] expected = {
+            {"strength"}, {"agility"}, {"magic"}, {"strength"}, {"agility"}, {"magic"},
+            {"strength", "magic", "agility"},
+        };
+        for (int offset = 0; offset < expected.length; offset++) {
+            AvailableActions.Day day = calendar.day(day("10-26") + offset);
+            for (List<AvailableActions.Entry> period : Arrays.asList(day.daytime, day.evening)) {
+                int count = 0;
+                for (AvailableActions.Entry entry : period) if (entry.key.startsWith("info:arcade_persona_")) count++;
+                assertEquals("weekday " + (offset + 1), expected[offset].length, count);
+                for (String stat : expected[offset]) {
+                    AvailableActions.Entry entry = find(period, "info:arcade_persona_" + stat);
+                    assertNotNull(entry);
+                    assertEquals("电玩城", entry.categoryZh);
+                    assertTrue(entry.title.contains("+3"));
+                    assertTrue(entry.detail.contains("2,000 日元"));
+                    assertTrue(entry.detail.contains("当前装备的面具"));
+                    assertTrue(entry.isInformational);
+                    assertNull("training is a tip, not a recordable planner action", entry.type);
+                    assertNull(Action.parse(rules, entry.key));
+                }
+            }
+        }
+    }
+
+    @Test public void personaArcadeKeepsCashConditionsAndDoesNotChangeProgressOrOpenLockedSlots() throws Exception {
+        SimState state = state("10-26");
+        state.cash = 1_999;
+        String before = state.toJson().toString();
+        AvailableActions.Calendar calendar = AvailableActions.build(rules, new Profile(), state);
+        assertTrue(find(calendar.day(day("10-26")).evening, "info:arcade_persona_strength")
+            .detail.contains("现金不足"));
+        AvailableActions.Day trip = calendar.day(day("11-18"));
+        assertNotNull(trip.daytimeLockZh);
+        assertNotNull(trip.eveningLockZh);
+        assertTrue(trip.daytime.isEmpty());
+        assertTrue(trip.evening.isEmpty());
+        assertEquals(before, state.toJson().toString());
+
+        state.cashExact = false;
+        AvailableActions.Entry lowerBound = find(AvailableActions.build(rules, new Profile(), state)
+            .day(day("10-26")).daytime, "info:arcade_persona_strength");
+        assertFalse(lowerBound.detail.contains("现金不足"));
+    }
+
+    @Test public void ryojiCalendarUsesTheActualSceneNumbersAndMeetingLocations() {
+        SimState state = state("11-12");
+        Action ryoji = Action.parse(rules, "episode:ryoji");
+        assertNotNull(ryoji);
+        AvailableActions.Entry first = find(AvailableActions.build(rules, new Profile(), state)
+            .day(day("11-12")).daytime, "episode:ryoji");
+        assertNotNull(first);
+        assertEquals("望月绫时 · 第 2 话", first.title);
+        assertTrue(first.detail, first.detail.contains("教室"));
+
+        state.episodes[ryoji.target] = 1;
+        AvailableActions.Entry second = find(AvailableActions.build(rules, new Profile(), state)
+            .day(day("12-01")).daytime, "episode:ryoji");
+        assertNotNull(second);
+        assertEquals("望月绫时 · 第 4 话", second.title);
+        assertTrue(second.detail, second.detail.contains("音乐"));
+        assertFalse(second.isInformational);
+
+        state.episodes[ryoji.target] = 2;
+        assertNull(find(AvailableActions.build(rules, new Profile(), state)
+            .day(day("12-01")).daytime, "episode:ryoji"));
+    }
+
     @Test public void openVenuesIgnorePlanningExclusionsAndShowPriceWhenCashIsShort() {
         SimState state = state("10-26");
         state.cash = 0;

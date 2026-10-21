@@ -810,6 +810,7 @@ public final class RulesLoader {
                 e.noteZh = optString(o, "noteZh", where);
                 e.evening = reqBool(o, "evening", where);
                 e.count = intInRange(o, "count", where, 1, 31);
+                e.totalScenes = o.has("totalScenes") ? intInRange(o, "totalScenes", where, e.count, 31) : e.count;
                 JSONArray parts = reqArray(o, "parts", where);
                 if (parts.length() != e.count) {
                     throw fail(where + ".parts must have count = " + e.count + " entries, found " + parts.length());
@@ -817,11 +818,21 @@ public final class RulesLoader {
                 e.dayMask = new int[rules.lastDay + 1];
                 e.gain = new int[e.count][3];
                 e.partRewardZh = new String[e.count];
+                e.partScenes = new int[e.count];
+                e.partHowZh = new String[e.count];
+                e.partLocationZh = new String[e.count];
                 for (int n = 1; n <= e.count; n++) {
                     String w = where + ".parts[" + (n - 1) + "]";
                     JSONObject part = reqObject(parts, n - 1, w);
                     int no = reqInt(part, "no", w);
                     if (no != n) throw fail(w + ".no is " + no + ", expected " + n + " (episodes must be in order)");
+                    int scene = part.has("sceneNo") ? intInRange(part, "sceneNo", w, 1, e.totalScenes) : n;
+                    if (n > 1 && scene <= e.partScenes[n - 2]) {
+                        throw fail(w + ".sceneNo must increase in story order");
+                    }
+                    e.partScenes[n - 1] = scene;
+                    e.partHowZh[n - 1] = optString(part, "howZh", w);
+                    e.partLocationZh[n - 1] = optString(part, "locationZh", w);
                     int[] days = sortedDays(part, "days", w);
                     if (days.length == 0) throw fail(w + ".days must not be empty");
                     for (int d : days) {

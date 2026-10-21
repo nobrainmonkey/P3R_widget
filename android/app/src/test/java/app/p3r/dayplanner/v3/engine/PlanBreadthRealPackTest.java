@@ -387,7 +387,8 @@ public class PlanBreadthRealPackTest {
      * {@link Rules#version} of the pack the golden plan ids ({@link #GOLDEN_IDS}) were recorded on. They
      * were refreshed for 3.5.0 after reviewing recursive link prerequisites, protected unlock
      * candidates and rescue-floor metadata, and again for 3.6.0 (rewritten player copy in the
-     * pack, no rule change). All three action fingerprints remain unchanged;
+     * pack, no rule change), then for 3.6.2 (Ryoji is a new opt-in track; these profiles do not
+     * select it). All three action fingerprints remain unchanged;
      * only the rule-pack identity and policy version change the plan ids. All three
      * plans replay validator-clean, fund every action and rescue every relevant missing person;
      * the new game keeps 21 MAX and the mid-game MUST Emperor still reaches MAX.
@@ -395,9 +396,9 @@ public class PlanBreadthRealPackTest {
      * capacity allocation and conditional invitations. Separate opt-in tests cover characteristic milestones.
      * MAX-style ids still omit style.
      */
-    private static final String GOLDEN_RULES_VERSION = "3.6.0|0cc64369290d";
+    private static final String GOLDEN_RULES_VERSION = "3.6.2|532e66096a1f";
     /** Plan ids of the three golden 「尽量多 MAX」 plans on {@link #GOLDEN_RULES_VERSION}. */
-    private static final String[] GOLDEN_IDS = {"370bc8feb2b70126", "c2928d03839991c4", "7923306c28c5d217"};
+    private static final String[] GOLDEN_IDS = {"1ff01292fa534390", "674d3e727ac23f0a", "f33322a7e4fba1c9"};
 
     /** FNV-1a 64 over "slot|action|side…" per step: the plan's actions, independent of the pack version. */
     static String fingerprint(Plan plan) {

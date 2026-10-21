@@ -559,6 +559,29 @@ public class PeriodTipsTest {
         assertNotNull(find(all, "request.10-06.faculty"));
     }
 
+    @Test public void ryojiTipsKeepTheRealSceneSequenceAndDoNotTreatTwoMeetingsAsFiveScenes() throws Exception {
+        Rules rules = realPack();
+        Rules.Episode ryoji = null;
+        for (Rules.Episode track : rules.episodes) if ("ryoji".equals(track.id)) ryoji = track;
+        assertNotNull("Ryoji's manual meetings must be in the shipped rules", ryoji);
+        SimState observed = at(ryoji.firstDay(1) + 5, false);
+        observed.episodes = new int[rules.episodes.length];
+        observed.episodes[ryoji.idx] = 1;
+        PeriodTips.Period period = PeriodTips.collect(rules, observed, null);
+        Plan.Reminder first = find(period, "episode.ryoji.1");
+        Plan.Reminder second = find(period, "episode.ryoji.2");
+        assertNotNull(first);
+        assertNotNull(second);
+        assertEquals("羁绊剧情 · 望月绫时（第 2 话）", first.textZh);
+        assertEquals("羁绊剧情 · 望月绫时（第 4 话）", second.textZh);
+        assertTrue(second.detailZh, second.detailZh.contains("先看完第 2 话"));
+        assertTrue(second.detailZh, second.detailZh.contains("11月18日"));
+        assertTrue(second.detailZh, second.detailZh.contains("12月31日"));
+        assertTrue(second.detailZh, second.detailZh.contains("已看第 2 话，已赴约 1/2 次"));
+        assertFalse(second.detailZh, second.detailZh.contains("已经看了 1 话"));
+        assertEquals(1, observed.episodes[ryoji.idx]);
+    }
+
     @Test public void everyRealPackPeriodPreservesEveryStaticDateAndEveryRescueGroup() throws Exception {
         Rules rules = realPack();
         List<Integer> starts = new ArrayList<>();

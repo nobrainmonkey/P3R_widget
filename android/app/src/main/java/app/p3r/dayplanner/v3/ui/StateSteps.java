@@ -1064,6 +1064,9 @@ final class StateSteps {
                 head.addView(forecastTag(), tp);
             }
             list.addView(head, top(list.getChildCount() == 0 ? 0 : 12));
+            if (e.hasUnplannedScenes()) {
+                list.addView(Ui.muted(c, "需赴约 " + e.count + " 次：" + e.howZh), top(6));
+            }
             list.addView(watchedChips(e, draft.episodesWatched(track), n -> {
                 draft.setEpisodesWatched(track, n);
                 callbacks.changed();
@@ -1080,7 +1083,7 @@ final class StateSteps {
         FlowLayout chips = new FlowLayout(c, 8, 8);
         for (int n = 0; n <= track.count; n++) {
             final int value = n;
-            String label = n == 0 ? "还没看" : n == track.count ? "全部 " + n + " 话" : n + " 话";
+            String label = StateDraft.episodeChipText(track, n);
             TextView chip = Ui.chip(c, label, n == selected);
             chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
             Ui.pad(chip, 12, 6, 12, 6);

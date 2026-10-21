@@ -1,6 +1,7 @@
 package app.p3r.dayplanner.v3.store;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -8,6 +9,12 @@ import static org.junit.Assert.assertTrue;
 
 import app.p3r.dayplanner.v3.engine.SimState;
 import app.p3r.dayplanner.v3.model.Rules;
+import app.p3r.dayplanner.v3.model.RulesLoader;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
 
 import org.json.JSONObject;
 import org.junit.Before;
@@ -111,6 +118,40 @@ public class PackLayoutTest {
         assertEquals(0, r.state.episodes[0]);
         assertEquals(3, r.state.episodes[1]);
         assertEquals(0, r.lost);
+    }
+
+    @Test
+    public void addingRyojiKeepsAllFiveSavedTracksAndStartsHisMeetingsAtZero() throws Exception {
+        String pack = new String(Files.readAllBytes(Paths.get("src/main/assets/p3r/p3r_rules.json")),
+                StandardCharsets.UTF_8);
+        Rules current = RulesLoader.parse(pack);
+        assertEquals(6, current.episodes.length);
+        assertEquals("ryoji", current.episodes[5].id);
+        Rules legacy = RulesLoader.parse(pack);
+        legacy.episodes = Arrays.copyOf(legacy.episodes, 5);
+        legacy.version = "3.6.1|saved-five-tracks";
+        SimState saved = new SimState(legacy.blocks.length, legacy.activities.length);
+        saved.slot = Rules.slot(current.episodes[5].firstDay(1) + 8, false);
+        saved.episodes = new int[]{5, 5, 5, 5, 4};
+        saved.cash = 1_234_567;
+        saved.cashExact = true;
+        saved.statPts = new int[]{230, 100, 80};
+        saved.rank[current.link("emperor").idx] = 6;
+        saved.shifts[0] = 7;
+        saved.used[0] = 3;
+        SimState expected = saved.copy();
+        expected.episodes = new int[]{5, 5, 5, 5, 4, 0};
+
+        // Both the current checkpoint format and older checkpoints without a layout survive.
+        for (String json : new String[]{CheckpointRow.jsonFor(saved, legacy), Canonical.of(saved.toJson())}) {
+            CheckpointRow checkpoint = new CheckpointRow(1, 0, json, legacy.version);
+            PackLayout.Remapped loaded = checkpoint.stateFor(current);
+            assertEquals(0, loaded.lost);
+            assertArrayEquals(expected.episodes, loaded.state.episodes);
+            assertEquals("all other recorded progress stays unchanged", Canonical.of(expected.toJson()),
+                    Canonical.of(loaded.state.toJson()));
+        }
+        assertArrayEquals("loading never mutates the old checkpoint state", new int[]{5, 5, 5, 5, 4}, saved.episodes);
     }
 
     @Test

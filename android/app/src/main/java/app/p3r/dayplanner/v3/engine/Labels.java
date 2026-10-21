@@ -773,25 +773,27 @@ final class Labels {
     private void describeEpisode(Plan.Step step, SimState st, int e) {
         Rules.Episode ep = rules.episodes[e];
         int n = st.episodes[e] + 1;
+        int scene = ep.sceneOf(n);
         int count = h.t.epCount[e];
         step.kind = "episode";
         step.entity = ep.id;
         step.titleZh = episodeTitle(ep, n);
-        step.subtitleZh = "共 " + count + " 话";
-        step.locationZh = blank(ep.locationZh) ? null : ep.locationZh;
+        step.subtitleZh = ep.hasUnplannedScenes() ? "共 " + ep.totalSceneCount() + " 话 · 需赴约 " + count + " 次" : "共 " + count + " 话";
+        step.locationZh = blank(ep.locationOf(n)) ? null : ep.locationOf(n);
         int slack = h.t.episodeSlack(e, n - 1, st.slot);
         boolean chain = n - 1 < count && h.t.epChain[e][n - 1];
         if (slack <= 1 && chain && n < count) {
-            step.whyZh = "想看完全部 " + count + " 话，这是看第 " + n + " 话的最后机会";
+            step.whyZh = ep.hasUnplannedScenes() ? "这是能看第 " + scene + " 话的最后机会"
+                : "想看完全部 " + count + " 话，这是看第 " + scene + " 话的最后机会";
         } else if (slack <= 1) {
-            step.whyZh = "这是能看第 " + n + " 话的最后机会";
+            step.whyZh = "这是能看第 " + scene + " 话的最后机会";
         } else if (slack <= 3) {
-            step.whyZh = "能看第 " + n + " 话的日子不多了";
+            step.whyZh = "能看第 " + scene + " 话的日子不多了";
         } else {
-            step.whyZh = "这天能看第 " + n + " 话";
+            step.whyZh = "这天能看第 " + scene + " 话";
         }
         List<String> lines = new ArrayList<>();
-        if (!blank(ep.howZh)) lines.add(ep.howZh.trim());
+        if (!blank(ep.howOf(n))) lines.add(ep.howOf(n).trim());
         String part = ep.rewardOf(n);
         if (!blank(part)) lines.add("这一话的奖励：" + part.trim());
         if (!blank(ep.noteZh)) lines.add(ep.noteZh.trim());
@@ -804,7 +806,7 @@ final class Labels {
      * the widget.
      */
     static String episodeTitle(Rules.Episode ep, int n) {
-        return EPISODE_NAME + " · " + episodePerson(ep) + "（第 " + n + " 话）";
+        return EPISODE_NAME + " · " + episodePerson(ep) + "（第 " + ep.sceneOf(n) + " 话）";
     }
 
     /** "伊织顺平" (the title without its prefix, or the id as a last resort). */
@@ -899,16 +901,21 @@ final class Labels {
             int seenStart = Math.min(count, start.episodes[e]);
             int seenEnd = Math.min(count, end.episodes[e]);
             if (seenStart >= count) {
-                out.add(head + "已经看完了");
+                out.add(head + (ep.hasUnplannedScenes() ? "已完成 " + count + " 次赴约" : "已经看完了"));
             } else if (seenEnd >= count) {
                 String key = Action.episode(e).key(rules);
                 int last = -1;
                 for (Plan.Step s : plan.steps) if (key.equals(s.action)) last = s.slot;
-                out.add(head + (last >= 0 ? "预计 " + date(last >> 1) + " 看完全部 " + count + " 话" : "预计能看完全部 " + count + " 话"));
+                if (ep.hasUnplannedScenes()) {
+                    out.add(head + (last >= 0 ? "预计 " + date(last >> 1) + " 看完第 " : "预计能看到第 ")
+                        + ep.sceneOf(count) + " 话；其余剧情按当日提醒进行");
+                } else {
+                    out.add(head + (last >= 0 ? "预计 " + date(last >> 1) + " 看完全部 " + count + " 话" : "预计能看完全部 " + count + " 话"));
+                }
             } else if (seenEnd > seenStart) {
-                out.add(head + "预计能看到第 " + seenEnd + " 话（共 " + count + " 话）");
+                out.add(head + "预计能看到第 " + ep.sceneOf(seenEnd) + " 话（共 " + ep.totalSceneCount() + " 话）");
             } else if (!episodeStillPossible(ep, seenStart + 1, start.slot >> 1)) {
-                out.add(head + "第 " + (seenStart + 1) + " 话已经错过了？看过的话去「修改进度」改一下");
+                out.add(head + "第 " + ep.sceneOf(seenStart + 1) + " 话已经错过了？看过的话去「修改进度」改一下");
             } else {
                 out.add(head + "没排上");
             }

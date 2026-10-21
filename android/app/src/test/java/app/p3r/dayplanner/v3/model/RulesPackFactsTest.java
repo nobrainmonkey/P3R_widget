@@ -766,10 +766,10 @@ public class RulesPackFactsTest {
 
     @Test
     public void linkEpisodeTracksUseOfficialNames() {
-        String[] ids = {"junpei", "akihiko", "koromaru", "ken", "shinjiro"};
-        String[] people = {"伊织顺平", "真田明彦", "虎狼丸", "天田乾", "荒垣真次郎"};
-        boolean[] evening = {false, true, false, true, false};
-        int[] counts = {5, 5, 5, 5, 4};
+        String[] ids = {"junpei", "akihiko", "koromaru", "ken", "shinjiro", "ryoji"};
+        String[] people = {"伊织顺平", "真田明彦", "虎狼丸", "天田乾", "荒垣真次郎", "望月绫时"};
+        boolean[] evening = {false, true, false, true, false, false};
+        int[] counts = {5, 5, 5, 5, 4, 2};
         assertEquals(ids.length, r.episodes.length);
         for (int i = 0; i < ids.length; i++) {
             Rules.Episode e = r.episodes[i];
@@ -789,9 +789,38 @@ public class RulesPackFactsTest {
             }
         }
         for (Rules.Episode e : r.episodes) {
-            assertFalse("Ryoji's episodes are story-driven, not a track", e.id.equals("ryoji"));
             assertFalse(e.titleZh.contains("羁绊剧场"));
         }
+    }
+
+    @Test
+    public void ryojiKeepsTwoFreeDayMeetingsAndAllFiveStoryScenes() {
+        Rules.Episode e = episode("ryoji");
+        assertEquals(5, e.totalSceneCount());
+        assertEquals(2, e.count);
+        assertEquals(2, e.sceneOf(1));
+        assertEquals(4, e.sceneOf(2));
+        assertTrue(e.hasUnplannedScenes());
+        for (int d = r.firstDay; d <= r.lastDay; d++) {
+            assertEquals(d == day(11, 12) || d == day(11, 14) || d == day(11, 16), e.allows(d, 1));
+            assertEquals(d == day(12, 1), e.allows(d, 2));
+        }
+        assertArrayEquals(new int[]{0, 0, 0}, e.gainOf(1));
+        assertArrayEquals(new int[]{0, 0, 0}, e.gainOf(2));
+        assertTrue(e.rewardOf(1).contains("人格面具全属性 +1"));
+        assertTrue(e.locationOf(1).contains("2 楼教室"));
+        assertTrue(e.locationOf(2).contains("1 楼音乐教室"));
+        assertTrue(e.howOf(2).contains("11月18日"));
+        assertTrue(e.noteZh.contains("11月9日"));
+        assertTrue(e.noteZh.contains("旅馆 2 楼"));
+        assertTrue(e.rewardZh.contains("12月31日"));
+        assertTrue(e.rewardZh.contains("萨图尔努斯"));
+        Set<String> reminders = new HashSet<>();
+        for (Rules.Reminder item : r.reminders.items) {
+            if (item.id.contains(".ryoji_")) reminders.add(item.id);
+        }
+        assertEquals(new HashSet<>(Arrays.asList("feature.11-08.ryoji_prepare", "feature.11-09.ryoji_1",
+            "feature.11-18.ryoji_trip", "feature.11-19.ryoji_3", "feature.12-31.ryoji_5")), reminders);
     }
 
     @Test

@@ -412,6 +412,13 @@ public final class Rules {
         public boolean evening;
         /** Number of episodes in the track (1..31). */
         public int count;
+        /** Total story scenes when only the slot-consuming meetings are planned; zero means count. */
+        public int totalScenes;
+        /** Actual story scene of each planned meeting; absent entries use their 1-based ordinal. */
+        public int[] partScenes = new int[0];
+        /** Optional meeting-specific instructions and locations. */
+        public String[] partHowZh = new String[0];
+        public String[] partLocationZh = new String[0];
         /** dayMask[day] bit (n-1) set → episode n can be watched that day (0 = none). Sized lastDay+1. */
         public int[] dayMask = new int[0];
         public String locationZh;
@@ -442,6 +449,30 @@ public final class Rules {
         /** Reward line of episode n, or null. */
         public String rewardOf(int episodeNumber) {
             return episodeNumber >= 1 && episodeNumber <= partRewardZh.length ? partRewardZh[episodeNumber - 1] : null;
+        }
+
+        /** Actual story scene number, independent of the ordinal used by planning and saved state. */
+        public int sceneOf(int episodeNumber) {
+            return episodeNumber >= 1 && episodeNumber <= partScenes.length && partScenes[episodeNumber - 1] > 0
+                ? partScenes[episodeNumber - 1] : episodeNumber;
+        }
+
+        public int totalSceneCount() {
+            return Math.max(count, totalScenes);
+        }
+
+        public boolean hasUnplannedScenes() {
+            return totalSceneCount() > count;
+        }
+
+        public String howOf(int episodeNumber) {
+            String part = episodeNumber >= 1 && episodeNumber <= partHowZh.length ? partHowZh[episodeNumber - 1] : null;
+            return part == null || part.trim().isEmpty() ? howZh : part;
+        }
+
+        public String locationOf(int episodeNumber) {
+            String part = episodeNumber >= 1 && episodeNumber <= partLocationZh.length ? partLocationZh[episodeNumber - 1] : null;
+            return part == null || part.trim().isEmpty() ? locationZh : part;
         }
 
         /** First day on which episode n can be watched, or -1. */

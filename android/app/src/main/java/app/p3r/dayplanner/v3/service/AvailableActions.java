@@ -26,7 +26,9 @@ public final class AvailableActions {
         public final String categoryZh;
         public final int slot;
         public final int link;
+        /** Null for a venue tip that is not a planner/recording action. */
         public final Action.Type type;
+        public final boolean isInformational;
 
         private Entry(String key, String title, String detail, String categoryZh, int slot, int link,
                       Action.Type type) {
@@ -37,8 +39,32 @@ public final class AvailableActions {
             this.slot = slot;
             this.link = link;
             this.type = type;
+            this.isInformational = type == null;
         }
     }
+
+    /** Equipped-Persona training, not the protagonist's three social stats. */
+    private static final class PersonaArcade {
+        final String id;
+        final String statZh;
+        final int weekdayMask;
+
+        PersonaArcade(String id, String statZh, int... weekdays) {
+            this.id = id;
+            this.statZh = statZh;
+            int mask = 0;
+            for (int weekday : weekdays) mask |= 1 << (weekday - 1);
+            this.weekdayMask = mask;
+        }
+    }
+
+    // aqiu384 / marendarade, P3R Combat: Raising Persona Stats. Price is corroborated by
+    // the Reload section of MegaTen Wiki's Paulownia Mall. See AVAILABILITY_CALENDAR.md.
+    private static final PersonaArcade[] PERSONA_ARCADE = {
+        new PersonaArcade("strength", "力", 1, 4, 7),
+        new PersonaArcade("magic", "魔", 3, 6, 7),
+        new PersonaArcade("agility", "速", 2, 5, 7),
+    };
 
     public static final class Day {
         public final int day;
@@ -162,9 +188,10 @@ public final class AvailableActions {
                 case EPISODE: {
                     Rules.Episode episode = rules.episodes[action.target];
                     int next = value(state.episodes, episode.idx) + 1;
-                    title = episode.personZh + " · 第 " + next + " 话";
+                    title = episode.personZh + " · 第 " + episode.sceneOf(next) + " 话";
                     List<String> parts = new ArrayList<>();
-                    add(parts, episode.locationZh);
+                    add(parts, episode.locationOf(next));
+                    if (episode.hasUnplannedScenes()) add(parts, episode.howOf(next));
                     add(parts, gains(rules, episode.gainOf(next)));
                     add(parts, episode.rewardOf(next));
                     detail = join(parts);
@@ -183,7 +210,32 @@ public final class AvailableActions {
             entries.add(new Entry(action.key(rules), title, empty(detail) ? "" : detail, category,
                     slot.slot, link, action.type));
         }
+        addPersonaArcade(entries, rules, state, slot);
         return entries;
+    }
+
+    private static void addPersonaArcade(List<Entry> entries, Rules rules, SimState state,
+                                        Availability.Slot slot) {
+        if (slot.lock != null) return;
+        Rules.Day day = rules.day(Rules.dayOf(slot.slot));
+        if (day == null || day.wd < 1 || day.wd > 7 || !arcadeVenueOpen(rules, day.d)) return;
+        for (PersonaArcade game : PERSONA_ARCADE) {
+            if ((game.weekdayMask & (1 << (day.wd - 1))) == 0) continue;
+            String detail = "桐叶购物中心 · 电玩大巡游 · " + yen(2000)
+                + (state.cashExact && state.cash < 2000 ? " · 现金不足" : "")
+                + " · 提升当前装备的面具";
+            entries.add(new Entry("info:arcade_persona_" + game.id,
+                "人格面具训练 · " + game.statZh + " +3", detail, "电玩城", slot.slot, -1, null));
+        }
+    }
+
+    /** Share the recorded pack's venue-opening range, including Sundays without social games. */
+    private static boolean arcadeVenueOpen(Rules rules, int day) {
+        for (Rules.Activity activity : rules.activities) {
+            if (activity.id != null && activity.id.startsWith("arcade_")
+                    && day >= activity.fromDay && day <= activity.toDay) return true;
+        }
+        return false;
     }
 
     private static String category(Rules.Activity activity) {

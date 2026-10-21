@@ -2,6 +2,7 @@ package app.p3r.dayplanner.v3.service;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import app.p3r.dayplanner.v3.engine.Action;
 import app.p3r.dayplanner.v3.engine.Engine;
@@ -75,6 +76,37 @@ public class StepLabelsTest {
         assertEquals("羁绊剧情 · 伊织顺平（第 2 话）", episode.titleZh);
         assertEquals("共 4 话", episode.subtitleZh);
         assertEquals("junpei", episode.entity);
+    }
+
+    @Test
+    public void ryojiMeetingsKeepTheirStorySceneNumbersAndTheLaterFusionDate() {
+        Rules.Episode ryoji = new Rules.Episode();
+        ryoji.idx = 0;
+        ryoji.id = "ryoji";
+        ryoji.personZh = "望月绫时";
+        ryoji.count = 2;
+        ryoji.totalScenes = 5;
+        ryoji.partScenes = new int[]{2, 4};
+        ryoji.partLocationZh = new String[]{"月光馆学园 · 2 楼教室", "月光馆学园 · 1 楼音乐室前"};
+        ryoji.partHowZh = new String[]{"放学后到教室接受邀约。", "先完成11月18日晚的邀约剧情，12月1日接受短信邀约。"};
+        ryoji.rewardZh = "此前羁绊剧情全部完成后，12月31日第5话可以合体人格面具「萨图尔努斯」。";
+        rules.episodes = new Rules.Episode[]{ryoji};
+        SimState before = state.copy();
+        before.episodes = new int[]{0};
+
+        Plan.Step first = StepLabels.step(rules, new Profile(), before, Action.episode(0), applied(false));
+        assertEquals("羁绊剧情 · 望月绫时（第 2 话）", first.titleZh);
+        assertEquals("需安排 2 次邀约", first.subtitleZh);
+        assertEquals(ryoji.partLocationZh[0], first.locationZh);
+        assertTrue(first.detailZh.contains("放学后到教室接受邀约"));
+
+        before.episodes[0] = 1;
+        Plan.Step second = StepLabels.step(rules, new Profile(), before, Action.episode(0), applied(false));
+        assertEquals("羁绊剧情 · 望月绫时（第 4 话）", second.titleZh);
+        assertEquals(ryoji.partLocationZh[1], second.locationZh);
+        assertTrue(second.detailZh.contains("先完成11月18日晚的邀约剧情"));
+        assertTrue(second.detailZh.contains("12月31日第5话可以合体"));
+        assertEquals("saved progress counts planned meetings, not automatic scenes", 1, before.episodes[0]);
     }
 
     @Test

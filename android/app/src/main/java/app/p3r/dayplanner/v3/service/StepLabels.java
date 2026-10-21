@@ -219,13 +219,15 @@ final class StepLabels {
         step.kind = "episode";
         step.entity = episode == null ? null : episode.id;
         step.titleZh = HistoryText.episodeTitle(rules, action.target, number);
-        step.subtitleZh = episode != null && episode.count > 0 ? "共 " + episode.count + " 话" : "";
-        step.locationZh = episode == null ? null : episode.locationZh;
+        step.subtitleZh = episode != null && episode.count > 0
+                ? episode.hasUnplannedScenes() ? "需安排 " + episode.count + " 次邀约" : "共 " + episode.count + " 话"
+                : "";
+        step.locationZh = episode == null ? null : episode.locationOf(number);
         if (episode == null) {
             return;
         }
         List<String> lines = new ArrayList<>();
-        addLine(lines, episode.howZh);
+        addLine(lines, episode.howOf(number));
         String part = number >= 1 ? episode.rewardOf(number) : null;
         if (part != null && !part.trim().isEmpty()) {
             lines.add("这一话的奖励：" + part.trim());

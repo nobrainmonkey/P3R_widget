@@ -364,10 +364,19 @@ public final class StateDraft {
 
     /** "还没看" / "已看 2 话" / "全部看完". */
     static String episodesText(Rules.Episode track, int watched) {
+        if (track.hasUnplannedScenes()) {
+            return watched <= 0 ? "尚未赴约"
+                : "已看第 " + track.sceneOf(Math.min(track.count, watched)) + " 话";
+        }
         if (watched <= 0) {
             return "还没看";
         }
         return watched >= track.count ? "全部看完" : "已看 " + watched + " 话";
+    }
+
+    static String episodeChipText(Rules.Episode track, int watched) {
+        if (track.hasUnplannedScenes()) return episodesText(track, watched);
+        return watched == 0 ? "还没看" : watched == track.count ? "全部 " + watched + " 话" : watched + " 话";
     }
 
     // ------------------------------------------------------------------ 宿舍活动

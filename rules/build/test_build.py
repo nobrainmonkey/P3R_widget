@@ -74,7 +74,7 @@ class BuildTest(unittest.TestCase):
 
     def test_episodes_and_dating_note(self) -> None:
         tracks = {t["id"]: t for t in self.pack["episodes"]}
-        self.assertEqual(list(tracks), ["junpei", "akihiko", "koromaru", "ken", "shinjiro"])
+        self.assertEqual(list(tracks), ["junpei", "akihiko", "koromaru", "ken", "shinjiro", "ryoji"])
         self.assertEqual(tracks["junpei"]["titleZh"], "羁绊剧情 · 伊织顺平")
         self.assertEqual(tracks["shinjiro"]["count"], 4)
         self.assertTrue(tracks["ken"]["evening"])
@@ -88,6 +88,34 @@ class BuildTest(unittest.TestCase):
         self.assertEqual("平安夜：选了赴约的对象，白天和晚上就都留给平安夜约会", days["12-24"]["noteZh"])
         for text in [tracks["junpei"]["noteZh"], days["01-21"]["noteZh"], days["12-24"]["noteZh"]]:
             self.assertNotRegex(text, "空出来|安排")
+
+    def test_ryoji_meetings_keep_the_actual_scene_numbers(self) -> None:
+        track = next(t for t in self.pack["episodes"] if t["id"] == "ryoji")
+        self.assertEqual((track["count"], track["totalScenes"]), (2, 5))
+        self.assertEqual([p["sceneNo"] for p in track["parts"]], [2, 4])
+        self.assertEqual([[builder.md_of(d) for d in p["days"]] for p in track["parts"]],
+                         [["11-12", "11-14", "11-16"], ["12-01"]])
+        self.assertTrue(all(p["gain"] == {} for p in track["parts"]))
+        self.assertTrue(all("人格面具全属性 +1" in p["rewardZh"] for p in track["parts"]))
+        self.assertIn("11月18日", track["parts"][1]["howZh"])
+        self.assertIn("12月31日", track["rewardZh"])
+        items = {r["id"]: r for r in self.pack["reminders"]["items"] if ".ryoji_" in r["id"]}
+        self.assertEqual(len(items), 5)
+        self.assertEqual(items["feature.11-18.ryoji_trip"]["slot"], "eve")
+        self.assertIn("答应邀约", items["feature.11-18.ryoji_trip"]["detailZh"])
+        self.assertIn("11月19日", items["feature.11-18.ryoji_trip"]["detailZh"])
+        self.assertIn("两次询问", items["feature.12-31.ryoji_5"]["detailZh"])
+        self.assertIn("萨图尔努斯", items["feature.12-31.ryoji_5"]["detailZh"])
+
+    def test_story_scene_metadata_is_validated(self) -> None:
+        pack = json.loads(self.text)
+        track = next(t for t in pack["episodes"] if t["id"] == "ryoji")
+        track["parts"][1]["sceneNo"] = 2
+        with self.assertRaisesRegex(builder.BuildError, "sceneNo must increase"):
+            builder.validate_pack(pack)
+        track["parts"][1]["sceneNo"] = 6
+        with self.assertRaisesRegex(builder.BuildError, "sceneNo must increase"):
+            builder.validate_pack(pack)
 
     def test_late_links_keep_every_unlocked_original_o_cell(self) -> None:
         """Concrete Reload routes override the old weekday exclusions, not the O calendar."""
@@ -291,7 +319,7 @@ class BuildTest(unittest.TestCase):
         self.assertEqual((rem["doze"]["academics"], rem["doze"]["courage"], rem["nurse"]["courage"]), (2, 2, 2))
         self.assertEqual(len(self.reminders("fragment")), 5)
         self.assertEqual(len(self.reminders("trip")), 3)
-        self.assertEqual(len(self.reminders("feature")), 1)
+        self.assertEqual(len(self.reminders("feature")), 6)
 
     def test_reminder_answers(self) -> None:
         ids = {x["id"] for x in self.pack["reminders"]["items"]}

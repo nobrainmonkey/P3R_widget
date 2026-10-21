@@ -475,12 +475,14 @@ public final class PeriodTips {
                 item.slot = Rules.slot(days.get(0), track.evening);
                 item.untilDay = track.lastDay(part);
                 item.priority = Plan.Reminder.MISSABLE;
-                item.textZh = nonempty(track.titleZh, "羁绊剧情 · " + track.personZh) + "（第 " + part + " 话）";
+                item.textZh = nonempty(track.titleZh, "羁绊剧情 · " + track.personZh)
+                        + "（第 " + track.sceneOf(part) + " 话）";
                 List<String> lines = new ArrayList<>();
                 if (!dates.isEmpty()) lines.add((track.evening ? "能看的晚上：" : "能看的日子：") + dates);
                 lines.add("最晚 " + date(rules, item.untilDay) + "。要按顺序看"
-                        + (part > 1 ? "，先看完第 " + (part - 1) + " 话。" : "。"));
-                if (track.howZh != null && !track.howZh.isEmpty()) lines.add(track.howZh);
+                        + (part > 1 ? "，先看完第 " + track.sceneOf(part - 1) + " 话。" : "。"));
+                String how = track.howOf(part);
+                if (how != null && !how.isEmpty()) lines.add(how);
                 String reward = track.rewardOf(part);
                 if (reward != null && !reward.isEmpty()) lines.add("奖励：" + reward);
                 if (track.rewardZh != null && !track.rewardZh.isEmpty()) lines.add(track.rewardZh);
@@ -490,7 +492,13 @@ public final class PeriodTips {
                     lines.add(track.noteZh.replace("，这里已经先把那天空出来了", ""));
                 }
                 if (observed != null && track.idx >= 0 && track.idx < observed.episodes.length) {
-                    lines.add("已经看了 " + observed.episodes[track.idx] + " 话。");
+                    int seen = Math.max(0, Math.min(track.count, observed.episodes[track.idx]));
+                    if (track.hasUnplannedScenes()) {
+                        lines.add((seen > 0 ? "已看第 " + track.sceneOf(seen) + " 话，" : "")
+                                + "已赴约 " + seen + "/" + track.count + " 次。");
+                    } else {
+                        lines.add("已经看了 " + seen + " 话。");
+                    }
                 }
                 item.detailZh = String.join("\n", lines);
                 item.estimate = "estimate".equals(track.conf) || "conflict".equals(track.conf);

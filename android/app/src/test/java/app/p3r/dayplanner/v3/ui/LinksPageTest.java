@@ -238,7 +238,7 @@ public class LinksPageTest extends UiTestBase {
     @Test
     public void personaNamesMatchTheCompendium() throws Exception {
         String json = read("p3r_compendium.json");
-        for (String zh : new String[]{"苏尔特尔", "荷鲁斯", "白虎", "米迦勒", "地狱天使"}) {
+        for (String zh : new String[]{"苏尔特尔", "荷鲁斯", "白虎", "米迦勒", "地狱天使", "萨图尔努斯"}) {
             Matcher m = Pattern.compile("\"nameZh\"\\s*:\\s*\"" + zh + "\"[^}]*?\"nameEn\"\\s*:\\s*\"([^\"]+)\"").matcher(json);
             Matcher r = Pattern.compile("\"nameEn\"\\s*:\\s*\"([^\"]+)\"[^{}]*?\"nameZh\"\\s*:\\s*\"" + zh + "\"").matcher(json);
             String en = m.find() ? m.group(1) : r.find() ? r.group(1) : null;
@@ -248,7 +248,12 @@ public class LinksPageTest extends UiTestBase {
         for (Rules.Episode track : rules.episodes) {
             String line = LinksPage.rewardLine(track);
             assertNotNull(track.personZh, line);
-            assertTrue(line, line.matches("看完可以合体「[^」]+」[A-Za-z ]+"));
+            if (track.hasUnplannedScenes()) {
+                assertTrue(line, line.contains("12月31日"));
+                assertTrue(line, line.contains("萨图尔努斯"));
+            } else {
+                assertTrue(line, line.matches("看完可以合体「[^」]+」[A-Za-z ]+"));
+            }
         }
     }
 

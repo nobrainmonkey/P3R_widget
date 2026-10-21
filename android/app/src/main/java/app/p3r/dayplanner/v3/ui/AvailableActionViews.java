@@ -153,7 +153,8 @@ final class AvailableActionViews {
     }
 
     static boolean showToday(AvailableActions.Entry entry) {
-        return entry.type == Action.Type.ACTIVITY;
+        return entry.type == Action.Type.ACTIVITY || entry.type == Action.Type.EPISODE
+            || entry.isInformational;
     }
 
     /** Category rows are compact directories; opening one reveals all its concrete options. */

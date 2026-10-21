@@ -45,7 +45,7 @@ PACK_PATH = ROOT / "android" / "app" / "src" / "main" / "assets" / "p3r" / "p3r_
 REPORT_PATH = ROOT / "rules" / "build" / "REPORT.md"
 
 SCHEMA = "p3r.rules.v3"
-PACK_VERSION = "3.6.0"
+PACK_VERSION = "3.6.2"
 GAME = "Persona 3 Reload (Xrd777, base game; excludes Episode Aigis/Astrea)"
 
 EPOCH = datetime.date(2009, 4, 1)
@@ -2393,8 +2393,8 @@ def build_activities(ledger: Ledger, page: AqiuPage, guide_text: str, days: list
 
 # Opt-in Link Episode tracks. Each comes from one aqiu calendar column whose cells name the episode
 # numbers that can be watched that day ("1", "1-4"); the per-episode windows and rewards come from the
-# aqiu "Linked Episodes" tables. Ryoji (preset dates, first and last episodes automatic) and Takaya
-# (not in the calendar, mostly automatic) are story-driven and are not tracks.
+# aqiu "Linked Episodes" tables. Ryoji's two slot-consuming meetings are appended separately:
+# his other three scenes happen during story time. Takaya is not a calendar track.
 EPISODE_TRACKS = (
     {
         "id": "junpei", "column": "Jun", "evening": False, "section": "junpei", "name": "Junpei Iori",
@@ -2579,15 +2579,66 @@ def build_episodes(ledger: Ledger, page: AqiuPage, days: list[dict], guide_text:
                   "table (other rewards are only described). Every CN-guide witness date (5/12, 8/9, 11/7, 12/19, 1/15 Junpei; "
                   "5/29, 7/24, 10/9, 12/12, 1/8 Akihiko; 9/9, 9/16, 11/10, 12/22, 1/19 Ken; 9/11, 9/13, 9/21, 9/24 Shinjiro; "
                   "1/19 Koromaru) is an allowed day.")
-    ledger.decide("episodes", "excluded", "Ryoji's column is not a track: his availability is 'Preset', episode 1 (11/9) "
-                  "and episode 5 (12/31) are automatic story scenes, and the slots in between are fixed dates around the "
-                  "story. Takaya's episodes are automatic or a single club meeting and are not in the calendar. Shinjiro's "
+    out.append(build_ryoji_episode(ledger, page, by_day))
+    ledger.decide("episodes", "excluded", "Takaya's episodes are automatic or a single club meeting and are not in the calendar. Shinjiro's "
                   "episode 5 (his desk drawer from 10/5, the CN guide does it on 10/28) is not a calendar slot, so his track "
                   "has 4 plannable episodes; the note explains the drawer. Nothing here claims that an episode changes "
                   "Shinjiro's story: in Reload it does not.")
     ledger.decide("episodes", "school days", "Shinjiro episodes 1 and 4 start with Mitsuru in the faculty hallway (aqiu "
                   "steps; CN guide 9/11 and 9/24 after school), so they are kept on school days only.")
     return out
+
+
+def build_ryoji_episode(ledger: Ledger, page: AqiuPage, by_day: dict[int, dict]) -> dict:
+    """Only scenes 2 and 4 spend free daytime slots; preserve their actual story numbers."""
+    table = episode_table(page, "ryoji")
+    if set(table) != {1, 2, 3, 4, 5} or table[5]["fusion"] != "Saturnus":
+        raise BuildError("Ryoji: expected five scenes ending with Saturnus")
+    section = page.section("ryoji")
+    if section.count("Equipped persona all stats +1") != 4:
+        raise BuildError("Ryoji: scenes 1-4 must raise the equipped Persona, not social stats")
+    walkthrough = (SOURCES_DIR / "aqiu_pages/ave-walkthrough.md").read_text(encoding="utf-8")
+    for text in ("Ryoji Link 1: Auto (All Stats +1)", "Inn 2F > Talk to Ryoji > Agree to hang out",
+                 "Ryoji Link 3: Auto (All Stats +1)", "Gekkoukan 1F Hallway > Music Room", "Ryoji Link 5: Auto"):
+        if text not in walkthrough:
+            raise BuildError(f"Ryoji: walkthrough witness changed: {text}")
+    guide = cn_guide_days()
+    for md, text in (("11-09", "绫时自动剧情"), ("11-12", "和教室的望月绫时对话"),
+                     ("11-18", "二楼和望月绫时对话接受邀约"), ("12-01", "接受望月绫时邀约"),
+                     ("12-31", "两次询问都选择不杀死绫时")):
+        if text not in json.dumps(guide[day_of_md(md)], ensure_ascii=False):
+            raise BuildError(f"Ryoji: CN guide witness changed on {md}")
+    cells = {d: parse_cell_numbers(c) for d, c in page.column(False, "Ryo").items()}
+    parts = []
+    for no, scene, expected, location, how in (
+        (1, 2, ("11-12", "11-14", "11-16"), "月光馆学园 · 2 楼教室",
+         "提前装备想培养的人格面具，放学后到 2 楼教室找望月绫时。"),
+        (2, 4, ("12-01",), "月光馆学园 · 1 楼音乐教室",
+         "先完成 11月18日晚的邀约剧情。提前装备想培养的人格面具，放学后接受望月绫时的短信邀约；也可到学校 1 楼音乐教室找他。"),
+    ):
+        kept = sorted(d for d, allowed in cells.items() if scene in allowed)
+        if kept != [day_of_md(md) for md in expected]:
+            raise BuildError(f"Ryoji scene {scene}: calendar dates changed")
+        if any(by_day[d]["dayLock"] is not None or not table[scene]["from"] <= d <= table[scene]["to"] for d in kept):
+            raise BuildError(f"Ryoji scene {scene}: dates must be free daytime inside its source window")
+        if table[scene]["gain"]:
+            raise BuildError(f"Ryoji scene {scene}: Persona gains cannot become social stats")
+        parts.append({"no": no, "sceneNo": scene, "days": kept, "gain": {}, "locationZh": location,
+                      "howZh": how, "rewardZh": "当前装备的人格面具全属性 +1"})
+    ledger.decide("episodes", "ryoji", "Ryoji is an opt-in track with two free daytime meetings: scene 2 on 11/12, "
+                  "11/14 or 11/16 and scene 4 on 12/1. Saved progress counts these meetings (0..2); sceneNo keeps "
+                  "their actual labels 2/4 and totalScenes is 5. Scene 1 is automatic on 11/9; talk and agree at "
+                  "the inn on 11/18 evening for automatic scene 3 on 11/19; scene 5 is automatic on 12/31 after "
+                  "all preceding scenes and sparing him. These story steps get dated reminders, not extra free "
+                  "slots or assumed player choices. Scenes 1-4 raise the equipped Persona's stats, never social stats.")
+    person = load_names()["people"]["Ryoji Mochizuki"]
+    return {"id": "ryoji", "personZh": person, "titleZh": f"羁绊剧情 · {person}", "count": 2,
+            "totalScenes": 5, "evening": False, "parts": parts,
+            "locationZh": "月光馆学园", "howZh": "第 2 话：11月12日、14日或16日放学后；第 4 话：12月1日放学后。",
+            "noteZh": "第 1 话在 11月9日自动发生。11月18日晚上到旅馆 2 楼找绫时并答应邀约，第 3 话会在次日自动发生。"
+                      "12月31日晚上两次都选择不杀死绫时，继续 1 月剧情。",
+            "rewardZh": "完成全部剧情后，12月31日可合体人格面具「萨图尔努斯」。",
+            "conf": "verified", "src": ["aqiu_social_events", "aqiu_walkthrough", "cn_guide", "gd_player_name"]}
 
 
 def build_dating_note(ledger: Ledger, days: list[dict], guide_text: str) -> dict:
@@ -3057,6 +3108,29 @@ def reminder(ident: str, kind: str, d: int, slot: str, zh: str, short: str, *, c
         "priority": priority, "requires": requires, "shortZh": short, "slot": slot, "src": src, "untilDay": until,
         "zh": zh,
     }
+
+
+def ryoji_story_reminders(ledger: Ledger) -> list[dict]:
+    """Ryoji's story-time scenes and the missable trip invitation never consume a free slot."""
+    src = ["aqiu_social_events", "aqiu_walkthrough", "cn_guide"]
+    rows = (
+        ("11-08", "eve", "prepare", "明天是绫时的第 1 话：睡前装备想培养的人格面具", "睡前装备主力人格面具",
+         "11月9日放学后自动发生望月绫时的第 1 话，当前装备的人格面具全属性 +1。可在今晚睡前换好。"),
+        ("11-09", "day", "1", "望月绫时 · 第 1 话（自动剧情）", "绫时第 1 话 · 自动剧情",
+         "放学后自动发生，当前装备的人格面具全属性 +1。第 2 话可在 11月12日、14日或16日放学后去 2 楼教室找他。"),
+        ("11-18", "eve", "trip", "望月绫时：到旅馆 2 楼答应邀约", "旅馆 2 楼找绫时，答应邀约",
+         "修学旅行自由活动结束后，到旅馆 2 楼和绫时对话并答应邀约。提前装备想培养的人格面具；第 3 话会在 11月19日白天自动发生。"),
+        ("11-19", "day", "3", "望月绫时 · 第 3 话（修学旅行剧情）", "绫时第 3 话 · 修学旅行",
+         "11月18日晚上在旅馆 2 楼答应邀约后，今天白天自动发生第 3 话，当前装备的人格面具全属性 +1。"),
+        ("12-31", "eve", "5", "望月绫时 · 第 5 话：两次都选择不杀死绫时", "两次都不杀死绫时，继续 1 月",
+         "进入房间前先存档；两次询问都选择不杀死绫时，继续 1 月剧情。此前羁绊剧情全部完成后，解锁人格面具「萨图尔努斯」合体。"),
+    )
+    ledger.decide("reminders", "ryoji-story", "Ryoji's equipped-Persona preparation on 11/8, automatic scene 1 on "
+                  "11/9, required inn invitation on 11/18 evening, conditional automatic scene 3 on 11/19 and "
+                  "ending choice/scene 5 on 12/31 are dated reminders. No reminder credits player choices or social stats.")
+    return [reminder(f"feature.{md}.ryoji_{key}", "feature", day_of_md(md), slot, title, short,
+                     label="羁绊剧情", conf="verified", src=src, detail=detail, priority=2)
+            for md, slot, key, title, short, detail in rows]
 
 
 def answer_reminders(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, guide: dict[int, list[dict]]) -> list[dict]:
@@ -4087,6 +4161,7 @@ def build_reminders(ledger: Ledger, page: AqiuPage, days: list[dict]) -> dict:
     items += tv_reminders(ledger, sched, guide)
     items += request_reminders(ledger, people, sched)
     items += collectible_reminders(ledger, page, sched, guide, by_day)
+    items += ryoji_story_reminders(ledger)
     doze, nurse = doze_and_nurse(ledger, page, sched, guide, by_day)
     items.sort(key=lambda x: (x["day"], x["slot"] == "eve", x["id"]))
     _bullets, requests = overworld_section("Elizabeth Requests")
@@ -4283,6 +4358,13 @@ def validate_pack(pack: dict) -> None:
             raise BuildError(f"{where}: parts must be numbered 1..count (count <= 8)")
         if not track["titleZh"].startswith("羁绊剧情 · ") or not track["locationZh"] or not track["howZh"]:
             raise BuildError(f"{where}: title, location and how-to are required")
+        total_scenes = track.get("totalScenes", track["count"])
+        if not isinstance(total_scenes, int) or not track["count"] <= total_scenes <= 31:
+            raise BuildError(f"{where}: totalScenes must be count..31")
+        scenes = [part.get("sceneNo", part["no"]) for part in track["parts"]]
+        if (any(not isinstance(scene, int) or not 1 <= scene <= total_scenes for scene in scenes)
+                or scenes != sorted(set(scenes))):
+            raise BuildError(f"{where}: sceneNo must increase within totalScenes")
         slot_key = "eveLock" if track["evening"] else "dayLock"
         for part in track["parts"]:
             if not part["days"] or part["days"] != sorted(set(part["days"])):
@@ -4670,12 +4752,14 @@ KNOWN_GAPS = (
     "level. Imported saves without recorded discovery conservatively repeat that regular meal once. "
     "Hagakure's special dish has no verified Simplified Chinese item name, so the UI calls it 限定餐.",
     "Not modelled: weekend Wilduck set, burger challenge, shrine donations, "
-    "shrine fortunes, gifts, film-festival hangouts, Koromaru walks, Ryoji's and Takaya's Link Episodes. All of them "
+    "shrine fortunes, gifts, film-festival hangouts, Koromaru walks and Takaya's Link Episodes. All of them "
     "can only add points/stats, so plans stay conservative.",
     "Dating-site note: +10 points is the reported base; whether the Persona/Charm multipliers apply is unknown "
     "(the pack applies none). The 11/11 sale date rests on aqiu/game8/Steam plus the CN-guide witness (atwiki: 11/16).",
     "Link Episodes: the aqiu calendar has a few cells outside the episode's own window (Junpei #3 on 11/13, Akihiko "
-    "#4 on 12/26); they are dropped. Shinjiro's episode 5 (desk drawer from 10/5) is not a slot and is not a part.",
+    "#4 on 12/26); they are dropped. Shinjiro's episode 5 (desk drawer from 10/5) is not a slot and is not a part. "
+    "Ryoji's two meetings keep scene numbers 2/4; his automatic scenes and required trip invitation are dated reminders, "
+    "not forecast player choices. Their equipped-Persona stat rewards are display-only.",
     "No official zh-Hans names were found for the library, karaoke venue, Be Blue V (shown as 饰品店) and the "
     "Screen Shot cinema (shown as 电影院), or for stat level titles (UI shows Lv.N).",
     "Judgement R2-R10 depend on Adamah floors 227-255, not on dates; the pack dates them 1/30 (conf=estimate).",
@@ -4760,6 +4844,9 @@ FIELD_SEMANTICS = (
     "`episodes` (Link Episodes, 羁绊剧情): opt-in tracks. `parts[n-1].days` = days on which episode n can be watched "
     "(slot kind = `evening`), in order, one slot each; `gain` = Academics/Charm/Courage points of that episode; no "
     "Social Link points. The loader turns the parts into `dayMask[day]` (bit n-1 = episode n allowed).",
+    "`episodes.totalScenes` and `parts[].sceneNo` optionally preserve actual story-scene numbers when only free-slot "
+    "meetings are scheduled. `count` and saved progress count those meetings, not automatic scenes. Per-part "
+    "`howZh`/`locationZh` override the track's instructions/location. Missing metadata retains the original numbering.",
     "`datingNote` (结缘网站的字条): from `fromDay`, an evening (club + dorm PC) that costs `cost` yen and adds `gain` "
     "points (no multipliers) to one established manual link at rank 1-9; it never ranks the link up by itself. "
     "`requires` = stat Lv to enter the club; `maxUses` = null means no limit.",

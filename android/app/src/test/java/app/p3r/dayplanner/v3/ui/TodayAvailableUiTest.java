@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 
 import java.util.Arrays;
@@ -111,6 +112,46 @@ public class TodayAvailableUiTest extends UiTestBase {
         assertTrue(Shots.allText(directory).contains("与顺平阅读"));
         assertEquals(slot, api.snap.observed.slot);
         assertTrue(api.calls.isEmpty());
+    }
+
+    @Test
+    public void personaArcadeAppearsInTodayAndTheSelectedActivityCalendarDay() {
+        addActivities();
+        HomeActivity activity = home();
+        View directory = activity.getWindow().getDecorView().findViewWithTag("today-available-actions");
+        String today = Shots.allText(directory);
+        assertTrue(today, today.contains("人格面具训练 · 力 +3"));
+        assertTrue(today, today.contains("提升当前装备的面具"));
+        assertFalse(today, today.contains("人格面具训练 · 魔 +3"));
+        assertFalse(today, today.contains("人格面具训练 · 速 +3"));
+        assertTrue(today, today.contains("羁绊剧情"));
+        assertTrue(today, today.contains("伊织顺平 · 第 2 话"));
+        assertFalse(today, today.contains("小田桐秀利"));
+
+        activity.selectTab(HomeActivity.TAB_SCHEDULE);
+        Shots.click(activity, "活动日历");
+        ScheduleMonthGrid grid = monthGrid(activity.getWindow().getDecorView());
+        assertNotNull(grid);
+        grid.select(Fixtures.day(10, 25), true);
+        Shots.capture(activity, false);
+        String sunday = Shots.allText(activity.getWindow().getDecorView());
+        assertTrue(sunday, sunday.contains("人格面具训练 · 力 +3"));
+        assertTrue(sunday, sunday.contains("人格面具训练 · 魔 +3"));
+        assertTrue(sunday, sunday.contains("人格面具训练 · 速 +3"));
+        assertTrue("consulting training never records progress", api.calls.isEmpty());
+    }
+
+    private static ScheduleMonthGrid monthGrid(View root) {
+        if (root.getVisibility() != View.VISIBLE) return null;
+        if (root instanceof ScheduleMonthGrid) return (ScheduleMonthGrid) root;
+        if (root instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) root;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                ScheduleMonthGrid found = monthGrid(group.getChildAt(i));
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 
     @Test

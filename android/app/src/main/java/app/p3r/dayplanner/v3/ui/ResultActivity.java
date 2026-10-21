@@ -1354,10 +1354,10 @@ public final class ResultActivity extends Activity {
         footer(step, null, null);
     }
 
-    /** Number of the next episode of {@code track} for the recorded state (1..count). */
+    /** Scene number of the next meeting of {@code track} for the recorded state. */
     static int nextEpisode(Rules.Episode track, SimState observed) {
         int watched = observed != null && track.idx < observed.episodes.length ? observed.episodes[track.idx] : 0;
-        return Math.max(1, Math.min(track.count, watched + 1));
+        return track.sceneOf(Math.max(1, Math.min(track.count, watched + 1)));
     }
 
     /**

@@ -362,15 +362,15 @@ final class HistoryText {
                 : "结缘网站的字条";
     }
 
-    /** "羁绊剧情 · 伊织顺平（第 2 话）"; without the number when {@code number < 1}. */
+    /** Names the story scene for this planned-meeting ordinal; omits it when {@code number < 1}. */
     static String episodeTitle(Rules rules, int track, int number) {
         Rules.Episode episode = track >= 0 && track < rules.episodes.length ? rules.episodes[track] : null;
         String who = episode == null ? null : episode.personZh;
         String title = ZhText.join("羁绊剧情", who);
-        return number >= 1 ? title + "（第 " + number + " 话）" : title;
+        return number >= 1 ? title + "（第 " + (episode == null ? number : episode.sceneOf(number)) + " 话）" : title;
     }
 
-    /** Number of the next episode of {@code track} in {@code s} (1-based), or -1. */
+    /** Ordinal of the next planned meeting of {@code track} in {@code s} (1-based), or -1. */
     static int episodeNumber(SimState s, int track) {
         return s != null && track >= 0 && track < s.episodes.length ? s.episodes[track] + 1 : -1;
     }

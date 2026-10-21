@@ -27,7 +27,7 @@ public class RulesLoaderTest {
     public void parsesTheShippedPack() {
         Rules r = PackFixture.rules();
         assertEquals("p3r.rules.v3", r.schema);
-        assertEquals("3.6.0", r.packVersion);
+        assertEquals("3.6.2", r.packVersion);
         assertTrue(r.game.contains("Persona 3 Reload"));
         assertEquals(6, r.firstDay);
         assertEquals(305, r.lastDay);
@@ -56,7 +56,7 @@ public class RulesLoaderTest {
             assertEquals(i, r.activityIndex(r.activities[i].id));
         }
         assertEquals(-1, r.linkIndex("world"));
-        assertEquals(5, r.episodes.length);
+        assertEquals(6, r.episodes.length);
         for (int i = 0; i < r.episodes.length; i++) assertEquals(i, r.episodes[i].idx);
         assertNotNull(r.datingNote);
         assertTrue("当日提醒", r.reminders.items.size() > 90);
@@ -89,6 +89,45 @@ public class RulesLoaderTest {
             for (int i = 0; i < days.length(); i++) assertTrue(e.allows(days.getInt(i), n));
         }
         assertTrue(!e.allows(-1, 1) && !e.allows(r.lastDay + 1, 1) && !e.allows(e.firstDay(1), 0));
+        assertEquals(e.count, e.totalSceneCount());
+        assertTrue(!e.hasUnplannedScenes());
+        assertEquals(2, e.sceneOf(2));
+        assertEquals(e.howZh, e.howOf(2));
+        assertEquals(e.locationZh, e.locationOf(2));
+    }
+
+    @Test
+    public void optionalSceneNumbersDoNotChangePlannedMeetingOrdinals() throws JSONException {
+        JSONObject root = PackFixture.tree();
+        JSONObject track = root.getJSONArray("episodes").getJSONObject(0);
+        track.put("totalScenes", 10);
+        JSONArray parts = track.getJSONArray("parts");
+        for (int i = 0; i < parts.length(); i++) parts.getJSONObject(i).put("sceneNo", (i + 1) * 2);
+        parts.getJSONObject(0).put("howZh", "放学后答应邀约").put("locationZh", "教室门口");
+        Rules.Episode parsed = RulesLoader.parse(root.toString()).episodes[0];
+        assertEquals(5, parsed.count);
+        assertEquals(10, parsed.totalSceneCount());
+        assertEquals(2, parsed.sceneOf(1));
+        assertEquals(10, parsed.sceneOf(5));
+        assertTrue(parsed.hasUnplannedScenes());
+        assertTrue(parsed.allows(parsed.firstDay(1), 1));
+        assertEquals("放学后答应邀约", parsed.howOf(1));
+        assertEquals("教室门口", parsed.locationOf(1));
+        assertEquals(parsed.howZh, parsed.howOf(2));
+        assertEquals(parsed.locationZh, parsed.locationOf(2));
+    }
+
+    @Test
+    public void storySceneNumbersMustIncreaseWithinTheTotal() throws JSONException {
+        JSONObject backwards = PackFixture.tree();
+        backwards.getJSONArray("episodes").getJSONObject(0).getJSONArray("parts").getJSONObject(1).put("sceneNo", 1);
+        assertRejected(backwards, "sceneNo must increase in story order");
+        JSONObject outside = PackFixture.tree();
+        outside.getJSONArray("episodes").getJSONObject(0).getJSONArray("parts").getJSONObject(0).put("sceneNo", 6);
+        assertRejected(outside, "sceneNo");
+        JSONObject tooSmall = PackFixture.tree();
+        tooSmall.getJSONArray("episodes").getJSONObject(0).put("totalScenes", 4);
+        assertRejected(tooSmall, "totalScenes");
     }
 
     @Test
@@ -111,7 +150,7 @@ public class RulesLoaderTest {
         StringBuilder hex = new StringBuilder();
         for (byte b : digest) hex.append(String.format("%02x", b));
         Rules r = RulesLoader.parse(json);
-        assertEquals("3.6.0|" + hex.substring(0, 12), r.version);
+        assertEquals("3.6.2|" + hex.substring(0, 12), r.version);
         assertEquals(r.version, RulesLoader.parse(json).version);
 
         Rules touched = RulesLoader.parse(json + "\n");

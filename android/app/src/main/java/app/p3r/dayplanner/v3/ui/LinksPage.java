@@ -1269,7 +1269,9 @@ final class LinksPage {
             LinearLayout head = Ui.row(c);
             head.setGravity(Gravity.BOTTOM);
             head.addView(Ui.text(c, track.personZh, 18, Ui.col(c, R.color.p3r_white), true), Ui.wrap());
-            progress = Ui.numeral(c, "", 18, Ui.col(c, R.color.p3r_cyan_300));
+            progress = track.hasUnplannedScenes()
+                ? Ui.mixed(c, "", 18, Ui.col(c, R.color.p3r_cyan_300), false)
+                : Ui.numeral(c, "", 18, Ui.col(c, R.color.p3r_cyan_300));
             LinearLayout.LayoutParams gp = Ui.wrap();
             gp.leftMargin = Ui.dp(c, 12);
             gp.bottomMargin = Ui.dp(c, 3);
@@ -1299,7 +1301,8 @@ final class LinksPage {
 
         void bind(UiData d, Profile profile) {
             int watched = StateDraft.watched(d.rules, d.observed(), track.idx);
-            progress.setText(watched + "/" + track.count);
+            String count = watched + "/" + track.count + (track.hasUnplannedScenes() ? "次" : "");
+            progress.setText(track.hasUnplannedScenes() ? Ui.latin(c, count) : count);
             pips.setWatched(watched);
             setChecked(profile.wantsEpisodes(track.id));
         }
@@ -1307,7 +1310,9 @@ final class LinksPage {
         void setChecked(boolean on) {
             checked = on;
             mark.setOn(on);
-            setContentDescription(track.personZh + " · 共 " + track.count + " 话" + (on ? "，已开启" : "，已关闭"));
+            setContentDescription(track.personZh + (track.hasUnplannedScenes()
+                ? " · 需赴约 " + track.count + " 次" : " · 共 " + track.count + " 话")
+                + (on ? "，已开启" : "，已关闭"));
         }
 
         private void toggle() {
@@ -1442,7 +1447,14 @@ final class LinksPage {
         LinearLayout sheet = Ui.column(c);
         Ui.pad(sheet, 20, 12, 20, 24);
         sheet.addView(SheetChrome.title(c, Outcomes.episodeName(track)));
-        sheet.addView(Ui.text(c, "已经看了几话？", 22, Ui.col(c, R.color.p3r_white), true), spaced(10));
+        sheet.addView(Ui.text(c, track.hasUnplannedScenes() ? "已经看过哪一话？" : "已经看了几话？",
+            22, Ui.col(c, R.color.p3r_white), true), spaced(10));
+        if (track.hasUnplannedScenes()) {
+            sheet.addView(Ui.body(c, Zh.sentence(track.howZh)), spaced(8));
+            if (track.noteZh != null && !track.noteZh.trim().isEmpty()) {
+                sheet.addView(Ui.muted(c, Zh.sentence(track.noteZh)), spaced(6));
+            }
+        }
         sheet.addView(watchedChips(c, track, current, n -> {
             answered[0] = true;
             host.dismissSheet();
@@ -1482,7 +1494,7 @@ final class LinksPage {
         FlowLayout chips = new FlowLayout(c, 8, 8).evenColumns();
         for (int n = 0; n <= track.count; n++) {
             final int value = n;
-            String label = n == 0 ? "还没看" : n == track.count ? "全部 " + n + " 话" : n + " 话";
+            String label = StateDraft.episodeChipText(track, n);
             TextView chip = Ui.chip(c, label, n == selected);
             chip.setFontFeatureSettings("tnum");
             // Centred in a column: a narrower inset and a size smaller let four chips share a
@@ -1505,6 +1517,7 @@ final class LinksPage {
         PERSONA_EN.put("白虎", "Byakko");
         PERSONA_EN.put("米迦勒", "Michael");
         PERSONA_EN.put("地狱天使", "Hell Biker");
+        PERSONA_EN.put("萨图尔努斯", "Saturnus");
     }
 
     /** English name of a Persona a track unlocks (tests). */
@@ -1525,6 +1538,7 @@ final class LinksPage {
         if (reward.isEmpty()) {
             return null;
         }
+        if (track.hasUnplannedScenes()) return reward;
         Matcher persona = PERSONA.matcher(reward);
         if (persona.find()) {
             String en = PERSONA_EN.get(persona.group(1));

@@ -203,9 +203,10 @@ final class StepCopy {
         }
         String engineText = (step.titleZh == null ? "" : step.titleZh) + " " + (step.subtitleZh == null ? "" : step.subtitleZh);
         int number = -1;
+        int ordinal = track == null ? -1 : nextEpisodeOrdinal(track, step, observed, plan);
         Matcher m = EPISODE_NO.matcher(engineText);
         if (m.find()) number = Integer.parseInt(m.group(1));
-        else if (track != null) number = nextEpisode(track, step, observed, plan);
+        else if (track != null && ordinal > 0) number = track.sceneOf(ordinal);
         String person = track == null ? null : blankToNull(track.personZh);
         if (person == null) person = personFromTitle(step.titleZh);
         c.title = episodeTitle(person, number);
@@ -213,7 +214,7 @@ final class StepCopy {
         boolean redundant = sub == null || EPISODE_NO.matcher(sub).find() || c.title.contains(sub)
                 || sub.contains(EPISODE_TITLE) || sub.contains("羁绊剧场");
         c.tag = redundant ? null : sub;
-        if (c.location == null && track != null) c.location = blankToNull(track.locationZh);
+        if (c.location == null && track != null) c.location = blankToNull(track.locationOf(ordinal));
     }
 
     /**
@@ -228,7 +229,7 @@ final class StepCopy {
     }
 
     /** Episodes watched so far plus the same track's earlier steps in the plan, plus one. */
-    private static int nextEpisode(Rules.Episode track, Plan.Step step, SimState observed, Plan plan) {
+    private static int nextEpisodeOrdinal(Rules.Episode track, Plan.Step step, SimState observed, Plan plan) {
         int watched = observed != null && track.idx >= 0 && track.idx < observed.episodes.length ? observed.episodes[track.idx] : 0;
         int from = observed != null ? observed.slot : (plan != null ? plan.fromSlot : step.slot);
         int earlier = 0;

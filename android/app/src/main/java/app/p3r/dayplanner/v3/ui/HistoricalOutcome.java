@@ -45,6 +45,7 @@ final class HistoricalOutcome {
                 // The episode this record was for, as 记录历史 names it: 「羁绊剧情 · 伊织顺平（第 2 话）」.
                 int[] watched = record.beforeState == null ? null : record.beforeState.episodes;
                 int number = watched != null && action.target < watched.length ? watched[action.target] + 1 : -1;
+                if (number >= 1) number = rules.episodes[action.target].sceneOf(number);
                 step.titleZh = "羁绊剧情 · " + rules.episodes[action.target].personZh
                         + (number >= 1 ? "（第 " + number + " 话）" : "");
                 step.kind = "episode";
