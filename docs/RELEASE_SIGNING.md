@@ -14,6 +14,14 @@
 
 私有持久备份已上传并回读校验，恢复材料也已验证。
 
+[3.6.1 正式版](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.6.1) 于 2026-10-21 发布，修复使用网格日历或活动日历后，下次打开 App 立即闪退的问题。沿用上述证书，可覆盖 3.3.0～3.6.0。源码 `b82c9956693d404e98ef04d5ee78756f00ba0ddd` 的完整 Android CI [39692532769](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39692532769) 已通过；本地 504 项 UI 测试、release lint 和正式签名构建通过。四项启动回归测试使用 Android 注册滚动监听器时的即时回调，覆盖默认 Robolectric shadow 未模拟的行为。经[预构建包发布流程 39694028957](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39694028957) 发布为 latest，非草稿、非预发布。
+
+最终 `P3R-Planner-3.6.1.apk` 为 **1,218,760 bytes**，SHA-256 为：
+
+`fcfebfc84f7426607d3b0b442f76d35201ffd4d0342b88e7325bcd72a6b61d8b`
+
+已下载公开 APK 和校验文件，与本地审计文件逐字节一致；标签指向上述源码，包名 `app.p3r.planner`、版本码 44、正式签名、zipalign 及内嵌规则／全书均已核对。Release 恰有 APK 和 88-byte 校验文件两个附件，发布 ID 为 `420154931`。规则包仍为 `3.6.0`，策略版本仍为 5；不强制重排已有日程，保留游戏进度、记录和日历选择。临时下载分支 `apk-preview/v3.6.1` 保留在 `593873958660f11a5350071bf43b6d5d2c0ec2d4`，以保持已发送给所有者的 APK 链接有效。
+
 [3.6.0 正式版](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.6.0) 于 2026-10-20 发布，沿用上述证书，可覆盖 3.3.0～3.5.1。源码 `73cab56c4d20f6c8d2a92e2f9b2c8c8db3a8f531` 的完整 Android CI [39501279106](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39501279106) 已通过；本地 1,506 项 Android 测试零失败、1 项跳过，最终活动与界面补测 24 项通过，release lint 和正式签名构建通过。经[预构建包发布流程 39508093429](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39508093429) 发布为 latest，非草稿、非预发布。
 
 最终 `P3R-Planner-3.6.0.apk` 为 **1,218,804 bytes**，SHA-256 为：

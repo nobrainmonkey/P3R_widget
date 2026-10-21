@@ -1,7 +1,7 @@
 # P3R planner repository context
 
-Reference for continuing the owner's existing project. Updated for the 3.6.0 P3R interface,
-available-action calendars and earlier teammate characteristics, on top of 3.5.1.
+Reference for continuing the owner's existing project. Updated for the 3.6.1 calendar cold-start
+fix and the 3.6.0 P3R interface, available-action calendars and earlier teammate characteristics.
 This is an orientation snapshot; check newer code and owner decisions before implementing changes.
 
 ## Product and current baseline
@@ -13,7 +13,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
   player records a different result, changes goals, or returns later and syncs progress.
 - Useful, consistent plans matter more than global optimality. An unmet goal is not proof
   that the goal is impossible. Forecasts and confirmed progress must remain separate.
-- Current app source: **3.6.0**, version code **43**, application ID **`app.p3r.planner`**;
+- Current app source: **3.6.1**, version code **44**, application ID **`app.p3r.planner`**;
   debug builds add `.debug`. Java package/Android namespace remains `app.p3r.dayplanner`.
   Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, minimum API 26, compile/target API 35.
 - The owner released 3.4.2 at `52e9b9d`; 3.5.0 builds on those changes. See
@@ -22,12 +22,24 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 - Public `v3.5.1` points to `4acf72109d4e8efb4b45910b49c397e8b2ef9b2b`. Full CI
   `39319649477` passed (1,294 tests, one skipped); publisher `39321609609` succeeded.
   The public APK and checksum were downloaded and compared with the signed local files.
-- Public latest `v3.6.0` points to `73cab56c4d20f6c8d2a92e2f9b2c8c8db3a8f531`.
+- Public `v3.6.0` points to `73cab56c4d20f6c8d2a92e2f9b2c8c8db3a8f531`.
   Main CI `39501279106` and prebuilt publisher `39508093429` succeeded. Release ID
   `418942942` has the verified APK and checksum; public downloads byte-match local files.
   APK SHA-256 is `3cd3c4c6cb7b5c93b23c869f6687318526b80a53bbe2f65b77f64e9bc3824eb0`.
   GitHub's four signing secrets remain unset; retain the existing local/private backup key
   and use the documented verified-prebuilt path. Pushing main or a tag alone is not publication.
+- Public latest `v3.6.1` points to `b82c9956693d404e98ef04d5ee78756f00ba0ddd`.
+  Main CI `39692532769` and prebuilt publisher `39694028957` succeeded. Release ID
+  `420154931` contains the 1,218,760-byte APK and 88-byte checksum; both public downloads
+  byte-match the audited local files. APK SHA-256 is
+  `fcfebfc84f7426607d3b0b442f76d35201ffd4d0342b88e7325bcd72a6b61d8b`.
+  Local validation passed 504 UI tests, release lint and the signed build. Four startup
+  regressions use Android's real immediate scroll-listener callback, which Robolectric's
+  default shadow omits. `SchedulePage` now registers listeners after all its views exist,
+  so reopening with saved grid preferences preserves progress and calendar choices.
+  Rules remain `3.6.0` and scheduling policy remains 5; this patch does not force replanning.
+  Retain the `apk-preview/v3.6.1` branch at `593873958660f11a5350071bf43b6d5d2c0ec2d4`:
+  its verified provisional APK link was already sent to the owner.
 - Player-facing language is natural Simplified Chinese using Reload terminology. Preserve
   the established navy/cyan P3R presentation, slanted panels, condensed numerals, day/night
   widget palettes and fade, readable answers, and action-specific result sheets.
@@ -59,6 +71,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 | [3.5.0 change notes](RELEASE_NOTES_3.5.0.md) | Compendium, fusion basket, previous-day corrections, rescue floors and prerequisite candidates. |
 | [3.5.1 change notes](RELEASE_NOTES_3.5.1.md) | Icon controls, acquisition floors, grouped social/Monad lookups, period scoping and jump to today. |
 | [3.6.0 change notes](RELEASE_NOTES_3.6.0.md) | P3R interface overhaul, available actions, list/month-grid calendars and selected teammate trait timing. |
+| [3.6.1 change notes](RELEASE_NOTES_3.6.1.md) | Reopening after choosing the grid or activity calendar, with saved progress and view choices preserved. |
 | [3.6 UI contract](DESIGN_3.6_UI.md) | Current visual system, short player-facing copy, transitions and calendar interactions. |
 | [3.1.0 specification](specs/SPEC_3.1.0.md) | Full replan, reminders, legacy removal, widget answers and breadth planning. |
 | [Chinese glossary](GLOSSARY_zh.md) | Exact UI terms, sentence style and deadline wording. |
@@ -451,8 +464,8 @@ rescue/goal comparison. Track milestone dates in rollout-local arrays, never per
 
 The shipped [rule asset](../android/app/src/main/assets/p3r/p3r_rules.json) is generated
 from `rules/sources/` snapshots, their `SOURCES.json` manifest, and `rules/p3r/` evidence.
-The current source pack uses schema `p3r.rules.v3`, pack version `3.4.0`, and is
-461,947 bytes with SHA-256 `06843d87d8eaadf59c51fef38506e4eed961082f4922c9a3fc391c176e7b9046`.
+The current source pack uses schema `p3r.rules.v3`, pack version `3.6.0`, and is
+458,931 bytes with SHA-256 `0cc64369290dc349d260c3e2b281af2b5c23b170c142e015e529b301f2c07078`.
 App and pack version numbers are separate.
 `RulesLoader` appends the first 12 SHA-256 hex digits of the actual JSON text.
 
