@@ -134,23 +134,12 @@ final class SchedulePage {
         list.setVerticalScrollBarEnabled(false);
         list.setPadding(Ui.dp(c, Ui.GUTTER), Ui.dp(c, 8), Ui.dp(c, Ui.GUTTER), Ui.dp(c, 88));
         list.setAdapter(adapter);
-        list.setOnScrollListener(new AbsListView.OnScrollListener() {
-            @Override
-            public void onScrollStateChanged(AbsListView view, int scrollState) {
-            }
-
-            @Override
-            public void onScroll(AbsListView view, int first, int visible, int total) {
-                updateJump(first, visible);
-            }
-        });
         content.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT));
         gridScroll = new ScrollView(c);
         gridScroll.setClipToPadding(false);
         gridScroll.setVerticalScrollBarEnabled(false);
         gridScroll.setVisibility(View.GONE);
-        gridScroll.setOnScrollChangeListener((v, x, y, oldX, oldY) -> updateJump(0, 0));
         gridColumn = Ui.column(c);
         Ui.pad(gridColumn, Ui.GUTTER, 0, Ui.GUTTER, 0);
         dayDetails = Ui.column(c);
@@ -190,6 +179,18 @@ final class SchedulePage {
         jumpParams.rightMargin = Ui.dp(c, Ui.GUTTER);
         jumpParams.bottomMargin = Ui.dp(c, 16);
         root.addView(jumpToday, jumpParams);
+        // Android invokes the list callback during registration; all views must be ready first.
+        list.setOnScrollListener(new AbsListView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int first, int visible, int total) {
+                updateJump(first, visible);
+            }
+        });
+        gridScroll.setOnScrollChangeListener((v, x, y, oldX, oldY) -> updateJump(0, 0));
     }
 
     View view() {
