@@ -1,0 +1,321 @@
+name: Publish prebuilt 3.6.3
+
+on:
+  push:
+    branches: ['release-upload/v3.6.3']
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: release-v3.6.3
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'nobrainmonkey/P3R_widget'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      EXPECTED_CERT_SHA256: 83d4395bcac9e7b33b20f3bd2b1327c856e56a6f0bd4816c52a42550a2b653ba
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Verify source CI and signed payload, then publish by release ID
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import re
+          import subprocess
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          import zipfile
+          from pathlib import Path
+
+
+          REPO = 'nobrainmonkey/P3R_widget'
+          VERSION = '3.6.3'
+          VERSION_CODE = 46
+          RULES_VERSION = '3.6.2'
+          TAG = 'v' + VERSION
+          BRANCH = 'release-upload/' + TAG
+          APK_NAME = 'P3R-Planner-' + VERSION + '.apk'
+          CERT = '83d4395bcac9e7b33b20f3bd2b1327c856e56a6f0bd4816c52a42550a2b653ba'
+          TITLE = 'P3R 规划 ' + VERSION
+          PAYLOAD = Path('dist-release')
+
+
+          def require(ok, message):
+              if not ok:
+                  raise SystemExit(message)
+
+
+          def run(*args):
+              return subprocess.check_output(args, text=True)
+
+
+          def sha(data):
+              return hashlib.sha256(data).hexdigest()
+
+
+          def request_json(url, method='GET', data=None, content_type='application/json', missing=False):
+              if data is not None and not isinstance(data, bytes):
+                  data = json.dumps(data).encode('utf-8')
+              request = urllib.request.Request(
+                  url, data=data, method=method,
+                  headers={
+                      'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                      'Accept': 'application/vnd.github+json',
+                      'X-GitHub-Api-Version': '2022-11-28',
+                      'Content-Type': content_type,
+                      'User-Agent': 'P3R-prebuilt-release-3.6.3',
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(request, timeout=90) as response:
+                      return json.load(response)
+              except urllib.error.HTTPError as error:
+                  if missing and error.code == 404:
+                      return None
+                  raise SystemExit('GitHub request failed: ' + method + ' HTTP ' + str(error.code))
+
+
+          def api(path, **kwargs):
+              require(path.startswith('/'), 'API path must be repository-relative')
+              return request_json('https://api.github.com/repos/' + REPO + path, **kwargs)
+
+
+          def find_release():
+              # The by-tag endpoint can return 404 for an authenticated draft. Enumerate
+              # authenticated releases, then read and mutate the exact returned ID only.
+              matches = []
+              page = 1
+              while True:
+                  items = api('/releases?per_page=100&page=' + str(page))
+                  require(isinstance(items, list), 'Unexpected releases list response')
+                  matches.extend(item for item in items if item.get('tag_name') == TAG)
+                  if len(items) < 100:
+                      break
+                  page += 1
+              require(len(matches) <= 1, 'Multiple releases use ' + TAG)
+              return api('/releases/' + str(matches[0]['id'])) if matches else None
+
+
+          def tag_commit():
+              result = api('/git/ref/tags/' + TAG, missing=True)
+              if result is None:
+                  return None
+              obj = result.get('object', {})
+              for unused in range(8):
+                  if obj.get('type') != 'tag':
+                      break
+                  obj = api('/git/tags/' + obj['sha']).get('object', {})
+              require(obj.get('type') == 'commit', 'Tag must resolve to a commit')
+              return obj.get('sha')
+
+
+          def verify_release(release, draft, complete=False):
+              require(isinstance(release.get('id'), int) and release['id'] > 0,
+                      'Invalid release ID')
+              require(release.get('tag_name') == TAG and release.get('draft') is draft,
+                      'Unexpected release identity or state; public releases cannot be reused')
+              require(release.get('prerelease') is False and release.get('name') == TITLE,
+                      'Unexpected release title or prerelease flag')
+              require(release.get('target_commitish') == source and release.get('body') == notes,
+                      'Existing release source or notes differ; refusing to overwrite')
+              assets = release.get('assets', [])
+              require(isinstance(assets, list), 'Unexpected release assets response')
+              names = [item.get('name') for item in assets]
+              require(len(names) == len(set(names)) and set(names) <= set(expected_assets),
+                      'Unexpected or duplicate existing release asset names')
+              if complete:
+                  require(len(assets) == 2 and set(names) == set(expected_assets),
+                          'Release must contain exactly the APK and checksum')
+              for asset in assets:
+                  path = expected_assets[asset['name']]
+                  require(asset.get('state') == 'uploaded'
+                          and asset.get('size') == path.stat().st_size
+                          and asset.get('digest') == 'sha256:' + sha(path.read_bytes()),
+                          'Existing asset state, size or digest differs: ' + path.name)
+
+
+          require(os.environ.get('GH_REPO') == REPO, 'Unexpected repository')
+          require(os.environ.get('GITHUB_REF') == 'refs/heads/' + BRANCH, 'Unexpected helper branch')
+          require(os.environ.get('GITHUB_EVENT_NAME') == 'push', 'Expected a helper branch push')
+          require(os.environ.get('EXPECTED_CERT_SHA256') == CERT, 'Unexpected certificate pin')
+
+          payload_names = {APK_NAME, APK_NAME + '.sha256', 'manifest.json', 'release-notes.md'}
+          tracked_names = {'dist-release/' + name for name in payload_names}
+          tracked_names.add('.github/workflows/publish-prebuilt.yml')
+          tracked = run('git', 'ls-files', '-z').split('\0')[:-1]
+          require(len(tracked) == len(tracked_names) and set(tracked) == tracked_names,
+                  'Helper Git tree must contain only the workflow and four whitelisted payload files')
+          for entry in run('git', 'ls-files', '-s').splitlines():
+              require(entry.split()[0] in {'100644', '100755'}, 'Git tree contains a nonregular file')
+          require(PAYLOAD.is_dir() and not PAYLOAD.is_symlink(), 'Payload directory is missing or a symlink')
+          require({path.name for path in PAYLOAD.iterdir()} == payload_names, 'Unexpected payload files')
+          require(all(path.is_file() and not path.is_symlink() and path.stat().st_size > 0
+                      for path in PAYLOAD.iterdir()), 'Payload must contain only nonempty regular files')
+
+          manifest = json.loads((PAYLOAD / 'manifest.json').read_text(encoding='utf-8'))
+          fixed = {
+              'schema': 'p3r.prebuilt-release.v1',
+              'tag': TAG,
+              'version': VERSION,
+              'versionCode': VERSION_CODE,
+              'packageName': 'app.p3r.planner',
+              'apkFile': APK_NAME,
+              'certificateSha256': CERT,
+          }
+          require(set(manifest) == set(fixed) | {'sourceSha', 'apkSha256', 'rulesSha256', 'compendiumSha256'},
+                  'Unexpected manifest fields')
+          require(all(type(manifest.get(key)) is type(value) and manifest.get(key) == value
+                      for key, value in fixed.items()),
+                  'Unexpected release manifest identity')
+          source = manifest['sourceSha']
+          require(isinstance(source, str) and re.fullmatch('[0-9a-f]{40}', source), 'Invalid source SHA')
+          for field in ['apkSha256', 'rulesSha256', 'compendiumSha256']:
+              require(isinstance(manifest[field], str) and re.fullmatch('[0-9a-f]{64}', manifest[field]),
+                      'Invalid ' + field)
+          require(run('git', 'cat-file', '-t', source).strip() == 'commit', 'Source is not a commit')
+          subprocess.run(['git', 'merge-base', '--is-ancestor', source, 'refs/remotes/origin/main'], check=True)
+          comparison = api('/compare/' + source + '...main')
+          require(comparison.get('status') in {'ahead', 'identical'}
+                  and comparison.get('merge_base_commit', {}).get('sha') == source,
+                  'Source commit is not on remote main')
+          gradle = run('git', 'show', source + ':android/app/build.gradle')
+          for field, value in [('applicationId', 'app.p3r.planner'),
+                               ('versionName', VERSION), ('versionCode', str(VERSION_CODE))]:
+              pattern = r'^\s*' + field + r'\s+\x27?([^\x27\s]+)\x27?\s*$'
+              require(re.findall(pattern, gradle, re.M) == [value], 'Source Gradle mismatch: ' + field)
+          ci = api('/actions/workflows/android.yml/runs?head_sha=' + source
+                   + '&event=push&status=success&per_page=100')
+          successes = [item for item in ci.get('workflow_runs', [])
+                       if item.get('head_sha') == source and item.get('head_branch') == 'main'
+                       and item.get('head_repository', {}).get('full_name') == REPO
+                       and item.get('event') == 'push' and item.get('status') == 'completed'
+                       and item.get('conclusion') == 'success'
+                       and item.get('path') == '.github/workflows/android.yml']
+          require(successes, 'Source has no completed successful android.yml push run on main')
+
+          apk = PAYLOAD / APK_NAME
+          checksum = PAYLOAD / (APK_NAME + '.sha256')
+          require(sha(apk.read_bytes()) == manifest['apkSha256'], 'APK SHA-256 mismatch')
+          require(checksum.read_bytes() == (manifest['apkSha256'] + '  ' + APK_NAME + '\n').encode('ascii'),
+                  'Checksum file differs from manifest or expected filename')
+          source_notes = subprocess.check_output(['git', 'show', source + ':docs/RELEASE_NOTES_3.6.3.md'])
+          require((PAYLOAD / 'release-notes.md').read_bytes() == source_notes,
+                  'Release notes differ from the source commit')
+          notes = source_notes.decode('utf-8')
+          require(bool(notes.strip()), 'Release notes are empty')
+          tools = Path(os.environ['ANDROID_HOME']) / 'build-tools' / '35.0.0'
+          badging = run(str(tools / 'aapt'), 'dump', 'badging', str(apk))
+          identity = re.search(r"^package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'", badging, re.M)
+          require(identity and identity.groups() == ('app.p3r.planner', str(VERSION_CODE), VERSION),
+                  'APK identity mismatch')
+          require('application-debuggable' not in badging, 'APK must not be debuggable')
+          certificates = run(str(tools / 'apksigner'), 'verify', '--verbose', '--print-certs', str(apk))
+          digests = re.findall(r'^Signer #\d+ certificate SHA-256 digest: ([0-9a-fA-F]+)$', certificates, re.M)
+          require([value.lower() for value in digests] == [CERT], 'APK signing certificate mismatch')
+          require('CN=Android Debug' not in certificates, 'Debug signing certificate is not publishable')
+          subprocess.run([str(tools / 'zipalign'), '-c', '-P', '16', '4', str(apk)], check=True)
+          source_rules = subprocess.check_output([
+              'git', 'show', source + ':android/app/src/main/assets/p3r/p3r_rules.json'])
+          with zipfile.ZipFile(apk) as archive:
+              require(archive.namelist().count('assets/p3r/p3r_rules.json') == 1,
+                      'APK must contain exactly one embedded rules file')
+              require(archive.testzip() is None, 'APK ZIP CRC mismatch')
+              rules = archive.read('assets/p3r/p3r_rules.json')
+          require(rules == source_rules and sha(rules) == manifest['rulesSha256'],
+                  'Embedded APK rules differ from source')
+          rule_pack = json.loads(rules)
+          require(rule_pack.get('schema') == 'p3r.rules.v3' and rule_pack.get('packVersion') == RULES_VERSION,
+                  'Unexpected embedded rules schema or pack version')
+          source_compendium = subprocess.check_output([
+              'git', 'show', source + ':android/app/src/main/assets/p3r_compendium.json'])
+          with zipfile.ZipFile(apk) as archive:
+              require(archive.namelist().count('assets/p3r_compendium.json') == 1,
+                      'APK must contain exactly one compendium file')
+              compendium = archive.read('assets/p3r_compendium.json')
+          require(compendium == source_compendium
+                  and sha(compendium) == manifest['compendiumSha256'],
+                  'Embedded APK compendium differs from source')
+          expected_assets = {path.name: path for path in [apk, checksum]}
+
+          # All local payload/source/CI checks above finish before any remote mutation.
+          release = find_release()
+          if release is not None:
+              verify_release(release, draft=True)
+          existing_tag = tag_commit()
+          require(existing_tag is None or existing_tag == source,
+                  'Existing tag points elsewhere; refusing to move it')
+          print('Verified successful source CI, source identity, signed APK, checksum, rules and notes')
+
+          if existing_tag is None:
+              api('/git/refs', method='POST', data={'ref': 'refs/tags/' + TAG, 'sha': source})
+          require(tag_commit() == source, 'Remote tag differs from verified source')
+
+          if release is None:
+              release = api('/releases', method='POST', data={
+                  'tag_name': TAG, 'target_commitish': source, 'name': TITLE,
+                  'body': notes, 'draft': True, 'prerelease': False,
+              })
+          verify_release(release, draft=True)
+          release_id = release['id']
+          endpoint = '/releases/' + str(release_id)
+          for name, path in expected_assets.items():
+              release = api(endpoint)
+              verify_release(release, draft=True)
+              if name in {asset['name'] for asset in release['assets']}:
+                  continue
+              upload_url = release.get('upload_url', '').split('{', 1)[0]
+              parsed = urllib.parse.urlparse(upload_url)
+              require(parsed.scheme == 'https' and parsed.netloc == 'uploads.github.com'
+                      and parsed.path == '/repos/' + REPO + '/releases/' + str(release_id) + '/assets'
+                      and not parsed.params and not parsed.query and not parsed.fragment,
+                      'Unexpected GitHub asset upload URL')
+              mime = 'application/vnd.android.package-archive' if name == APK_NAME else 'text/plain'
+              request_json(upload_url + '?name=' + urllib.parse.quote(name, safe=''),
+                           method='POST', data=path.read_bytes(), content_type=mime)
+              verify_release(api(endpoint), draft=True)
+
+          verify_release(api(endpoint), draft=True, complete=True)
+          require(tag_commit() == source, 'Tag changed before publication')
+          published = api(endpoint, method='PATCH', data={
+              'draft': False, 'prerelease': False, 'make_latest': 'true',
+          })
+          verify_release(published, draft=False, complete=True)
+          published = api(endpoint)
+          verify_release(published, draft=False, complete=True)
+          require(tag_commit() == source, 'Published tag differs from source')
+          require(api('/releases/latest').get('id') == release_id, 'Published release is not latest')
+          require(published.get('html_url') == 'https://github.com/' + REPO + '/releases/tag/' + TAG,
+                  'Unexpected published release URL')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as output:
+              output.write('Published [' + TAG + '](' + published['html_url'] + ')\n\n'
+                           + '- Source: `' + source + '`\n'
+                           + '- [Successful source CI](' + successes[0]['html_url'] + ')\n'
+                           + '- APK: ' + str(apk.stat().st_size) + ' bytes\n'
+                           + '- APK SHA-256: `' + manifest['apkSha256'] + '`\n'
+                           + '- Certificate SHA-256: `' + CERT + '`\n'
+                           + '- Verified exactly two uploaded assets by name, size, state and SHA-256 digest.\n')
+          print('Published verified release: ' + published['html_url'])
+          PY
