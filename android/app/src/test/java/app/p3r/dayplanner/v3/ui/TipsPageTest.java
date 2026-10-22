@@ -395,6 +395,11 @@ public class TipsPageTest extends UiTestBase {
         assertNotNull(search);
         search.setText("风花R1");
         Shots.idle();
+        View group = groupRow(a, "dialogue_priestess");
+        View body = group.findViewWithTag("tips_group_body_dialogue_priestess");
+        assertEquals("search results start folded", View.GONE, body.getVisibility());
+        assertTrue(group.findViewWithTag("tips_group_header_dialogue_priestess").performClick());
+        assertEquals(View.VISIBLE, body.getVisibility());
         assertTrue(tagged(a, "tips_scope_all").isSelected());
         assertEquals("找到 1 条", Zh.plain(((TextView) tagged(a, "tips_result_counter")).getText()));
         View row = rowForId(a, "dialogue.priestess.2");
@@ -578,6 +583,8 @@ public class TipsPageTest extends UiTestBase {
         EditText search = a.getWindow().getDecorView().findViewWithTag("tips_search");
         search.setText("风花R6");
         Shots.idle();
+        assertTrue(groupRow(a, "dialogue_priestess")
+            .findViewWithTag("tips_group_header_dialogue_priestess").performClick());
         assertTrue(rowForId(a, "dialogue.priestess.7").performClick());
         Shots.idle();
         View sheet = a.sheets().content();
@@ -638,7 +645,10 @@ public class TipsPageTest extends UiTestBase {
         search.setText("117层");
         Shots.idle();
         View matchingGroup = groupRow(a, "monad_yabbashah_2");
-        assertEquals("floor search opens the matching block directly", View.VISIBLE,
+        assertEquals("floor search keeps the matching block folded", View.GONE,
+            matchingGroup.findViewWithTag("tips_group_body_monad_yabbashah_2").getVisibility());
+        assertTrue(matchingGroup.findViewWithTag("tips_group_header_monad_yabbashah_2").performClick());
+        assertEquals(View.VISIBLE,
             matchingGroup.findViewWithTag("tips_group_body_monad_yabbashah_2").getVisibility());
         assertTrue(resultIds(a).toString(), resultIds(a).contains("combat.catalogue.combat.yabbashah_2.p1"));
         assertFalse(resultIds(a).contains("combat.catalogue.combat.yabbashah_1.p1"));

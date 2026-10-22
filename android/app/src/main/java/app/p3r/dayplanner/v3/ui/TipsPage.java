@@ -175,7 +175,7 @@ final class TipsPage {
     private boolean pastOpen;
     private boolean shownOnce;
     private final Set<String> expandedGroups = new HashSet<>();
-    private final Set<String> collapsedSearchGroups = new HashSet<>();
+    private final Set<String> expandedSearchGroups = new HashSet<>();
 
     TipsPage(HomeHost host) {
         this.host = host;
@@ -315,7 +315,7 @@ final class TipsPage {
                 boolean wasEmpty = query.trim().isEmpty();
                 boolean nowEmpty = s.toString().trim().isEmpty();
                 query = s.toString();
-                collapsedSearchGroups.clear();
+                expandedSearchGroups.clear();
                 if (wasEmpty && !nowEmpty) {
                     // The whole game is searched; clearing the search brings back the scope the player had.
                     scopeBeforeSearch = allScope;
@@ -1138,7 +1138,7 @@ final class TipsPage {
     // ------------------------------------------------------------------ groups
 
     private boolean isExpanded(EntryGroup group) {
-        return query.trim().isEmpty() ? expandedGroups.contains(group.key) : !collapsedSearchGroups.contains(group.key);
+        return query.trim().isEmpty() ? expandedGroups.contains(group.key) : expandedSearchGroups.contains(group.key);
     }
 
     private View entryGroup(EntryGroup group) {
@@ -1188,8 +1188,8 @@ final class TipsPage {
                 if (expanded) expandedGroups.add(group.key);
                 else expandedGroups.remove(group.key);
             } else {
-                if (expanded) collapsedSearchGroups.remove(group.key);
-                else collapsedSearchGroups.add(group.key);
+                if (expanded) expandedSearchGroups.add(group.key);
+                else expandedSearchGroups.remove(group.key);
             }
             header.setContentDescription(spoken + (expanded ? "，收起" : "，展开"));
             if (Ui.animationsEnabled()) {

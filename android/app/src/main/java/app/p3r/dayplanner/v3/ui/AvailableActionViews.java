@@ -187,8 +187,7 @@ final class AvailableActionViews {
         LinearLayout rows = Ui.column(c);
         Ui.pad(rows, 10, 0, 8, 6);
         for (AvailableActions.Entry entry : entries) rows.addView(entry(host, entry), Ui.matchWrap());
-        boolean initiallyExpanded = "宿舍".equals(title) || "集体学习".equals(title)
-            || "电玩城".equals(title) || (!today && "社群".equals(title));
+        boolean initiallyExpanded = false;
         String stateKey = period + ":" + title;
         if (state != null && state.expanded.containsKey(stateKey)) initiallyExpanded = state.expanded.get(stateKey);
         rows.setVisibility(initiallyExpanded ? View.VISIBLE : View.GONE);

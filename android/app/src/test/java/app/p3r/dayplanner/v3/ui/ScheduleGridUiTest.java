@@ -78,6 +78,12 @@ public class ScheduleGridUiTest extends UiTestBase {
         assertTrue(Shots.has(home, Zh.dayAndWeekday(Fixtures.OCT_22 + 1)));
         assertTrue(Shots.has(home, "社群"));
         assertTrue(Shots.has(home, "打工"));
+        View social = category(home.getWindow().getDecorView(), "社群");
+        assertNotNull(social);
+        assertEquals("已折叠", social.getStateDescription());
+        social.performClick();
+        Shots.idle();
+        assertEquals("已展开", social.getStateDescription());
         ScrollView scroll = find(home.getWindow().getDecorView(), ScrollView.class);
         assertNotNull(scroll);
         scroll.scrollTo(0, Ui.dp(home, 450));
