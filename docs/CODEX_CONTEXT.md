@@ -1,7 +1,7 @@
 # P3R planner repository context
 
-Reference for continuing the owner's existing project. Updated for the 3.6.1 calendar cold-start
-fix and the 3.6.0 P3R interface, available-action calendars and earlier teammate characteristics.
+Reference for continuing the owner's existing project. Updated for the 3.6.2 Ryoji Link Episodes
+and Persona arcade availability, retaining the 3.6.1 cold-start fix and 3.6.0 P3R interface.
 This is an orientation snapshot; check newer code and owner decisions before implementing changes.
 
 ## Product and current baseline
@@ -13,7 +13,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
   player records a different result, changes goals, or returns later and syncs progress.
 - Useful, consistent plans matter more than global optimality. An unmet goal is not proof
   that the goal is impossible. Forecasts and confirmed progress must remain separate.
-- Current app source: **3.6.1**, version code **44**, application ID **`app.p3r.planner`**;
+- Current app source: **3.6.2**, version code **45**, application ID **`app.p3r.planner`**;
   debug builds add `.debug`. Java package/Android namespace remains `app.p3r.dayplanner`.
   Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, minimum API 26, compile/target API 35.
 - The owner released 3.4.2 at `52e9b9d`; 3.5.0 builds on those changes. See
@@ -28,7 +28,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
   APK SHA-256 is `3cd3c4c6cb7b5c93b23c869f6687318526b80a53bbe2f65b77f64e9bc3824eb0`.
   GitHub's four signing secrets remain unset; retain the existing local/private backup key
   and use the documented verified-prebuilt path. Pushing main or a tag alone is not publication.
-- Public latest `v3.6.1` points to `b82c9956693d404e98ef04d5ee78756f00ba0ddd`.
+- Public `v3.6.1` points to `b82c9956693d404e98ef04d5ee78756f00ba0ddd`.
   Main CI `39692532769` and prebuilt publisher `39694028957` succeeded. Release ID
   `420154931` contains the 1,218,760-byte APK and 88-byte checksum; both public downloads
   byte-match the audited local files. APK SHA-256 is
@@ -40,6 +40,18 @@ This is an orientation snapshot; check newer code and owner decisions before imp
   Rules remain `3.6.0` and scheduling policy remains 5; this patch does not force replanning.
   Retain the `apk-preview/v3.6.1` branch at `593873958660f11a5350071bf43b6d5d2c0ec2d4`:
   its verified provisional APK link was already sent to the owner.
+- Public latest `v3.6.2` points to `62005f460065e20b341b611bd0082d877d50e7df`.
+  Main CI `39696741458` and prebuilt publisher `39699169905` succeeded. Release ID
+  `420179798` contains the 1,221,672-byte APK and 88-byte checksum; both public downloads
+  byte-match the audited local files. APK SHA-256 is
+  `7df11983f204917de16682aac1cf3d14d047bb117521c1f02220bed063d80c73`.
+  Local validation passed 210 focused Java tests, 33 Python rules tests, release lint and
+  the signed build. The three previous golden action sequences remain unchanged with
+  Ryoji unselected; old five-track progress migration and three November mid-save Ryoji
+  cases passed. Scheduling policy stays 5; the new `3.6.2` rule-pack hash invalidates older
+  forecasts without changing recorded progress or existing episode selections.
+  Retain the `apk-preview/v3.6.2` branch at `fa4fc1ef84f147483c8f58f03928249d1a786722`
+  so the verified provisional APK link already sent to the owner remains valid.
 - Player-facing language is natural Simplified Chinese using Reload terminology. Preserve
   the established navy/cyan P3R presentation, slanted panels, condensed numerals, day/night
   widget palettes and fade, readable answers, and action-specific result sheets.
@@ -72,6 +84,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 | [3.5.1 change notes](RELEASE_NOTES_3.5.1.md) | Icon controls, acquisition floors, grouped social/Monad lookups, period scoping and jump to today. |
 | [3.6.0 change notes](RELEASE_NOTES_3.6.0.md) | P3R interface overhaul, available actions, list/month-grid calendars and selected teammate trait timing. |
 | [3.6.1 change notes](RELEASE_NOTES_3.6.1.md) | Reopening after choosing the grid or activity calendar, with saved progress and view choices preserved. |
+| [3.6.2 change notes](RELEASE_NOTES_3.6.2.md) | Ryoji Link Episodes and reminders, Persona arcade training and today's available Link Episodes. |
 | [3.6 UI contract](DESIGN_3.6_UI.md) | Current visual system, short player-facing copy, transitions and calendar interactions. |
 | [3.1.0 specification](specs/SPEC_3.1.0.md) | Full replan, reminders, legacy removal, widget answers and breadth planning. |
 | [Chinese glossary](GLOSSARY_zh.md) | Exact UI terms, sentence style and deadline wording. |
@@ -114,6 +127,15 @@ and dated opening conditions independently of the chosen plan, goals or remainin
 `ScheduleMonthGrid` supplies the month presentation; source tabs and list/grid controls stay distinct.
 Today cash uses its own full-width row through seven digits. The current UI baseline is
 `DESIGN_3.6_UI.md`; preserve its motion, slanted panels, royal-blue ocean and white primary actions.
+
+3.6.2 adds Ryoji (`ryoji`) as the sixth Link Episode track. Its `count=2` and saved progress
+count only the two free-slot meetings, actual scenes 2 and 4; `totalScenes=5` preserves the
+story numbering. Scenes 1, 3 and 5 and the trip invitation are dated non-slot reminders,
+not automatically observed progress. Existing profiles keep their episode choices; the
+player can enable Ryoji in 「社群 → 羁绊剧情」. New BREADTH onboarding selects all six tracks.
+Persona strength/magic/agility arcade training is informational availability only:
+`AvailableActions.Entry` has no action and a null type, rather than adding planner actions
+or changing protagonist stats. 今天可做 now includes available `EPISODE` entries as well.
 
 3.5.0 adds the independent bottom 「图鉴」 tab as the sole main entry. `CompendiumPage`
 has internal 图鉴 / 合成 / 合成篮 navigation; search, quiet scope/filter tools and independent
@@ -464,16 +486,16 @@ rescue/goal comparison. Track milestone dates in rollout-local arrays, never per
 
 The shipped [rule asset](../android/app/src/main/assets/p3r/p3r_rules.json) is generated
 from `rules/sources/` snapshots, their `SOURCES.json` manifest, and `rules/p3r/` evidence.
-The current source pack uses schema `p3r.rules.v3`, pack version `3.6.0`, and is
-458,931 bytes with SHA-256 `0cc64369290dc349d260c3e2b281af2b5c23b170c142e015e529b301f2c07078`.
+The current source pack uses schema `p3r.rules.v3`, pack version `3.6.2`, and is
+462,975 bytes with SHA-256 `532e66096a1fdee974db39ce7593bfa66e901200faa466a3b0c1f921403780f7`.
 App and pack version numbers are separate.
 `RulesLoader` appends the first 12 SHA-256 hex digits of the actual JSON text.
 
 Coverage: 22 Social Links (three story links), 54 activities (the previous 22, 14 study
 sessions and 18 dorm projects), 10 Tartarus blocks,
-five Link Episode tracks, two link-specific rescues, 120 static reminder items and
+six Link Episode tracks, two link-specific rescues, 125 static reminder items and
 13 missing-person reminder groups, all 101 Elizabeth request guides and 97 combat guides.
-The pack lists 139 source records. Concrete Reload routes restore five Aeon and three
+The pack lists 140 source records. Concrete Reload routes restore five Aeon and three
 Empress O dates that older generic weekday filters deleted; existing story locks and
 source absences remain. See `late_link_availability_evidence.json`.
 
