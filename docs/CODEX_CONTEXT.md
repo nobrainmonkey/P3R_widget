@@ -1,7 +1,7 @@
 # P3R planner repository context
 
-Reference for continuing the owner's existing project. Updated for the 3.6.2 Ryoji Link Episodes
-and Persona arcade availability, retaining the 3.6.1 cold-start fix and 3.6.0 P3R interface.
+Reference for continuing the owner's existing project. Updated for the 3.6.3 collapsed menus,
+retaining 3.6.2 Ryoji and arcade availability, the 3.6.1 cold-start fix and 3.6.0 P3R interface.
 This is an orientation snapshot; check newer code and owner decisions before implementing changes.
 
 ## Product and current baseline
@@ -13,7 +13,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
   player records a different result, changes goals, or returns later and syncs progress.
 - Useful, consistent plans matter more than global optimality. An unmet goal is not proof
   that the goal is impossible. Forecasts and confirmed progress must remain separate.
-- Current app source: **3.6.2**, version code **45**, application ID **`app.p3r.planner`**;
+- Current app source: **3.6.3**, version code **46**, application ID **`app.p3r.planner`**;
   debug builds add `.debug`. Java package/Android namespace remains `app.p3r.dayplanner`.
   Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, minimum API 26, compile/target API 35.
 - The owner released 3.4.2 at `52e9b9d`; 3.5.0 builds on those changes. See
@@ -40,7 +40,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
   Rules remain `3.6.0` and scheduling policy remains 5; this patch does not force replanning.
   Retain the `apk-preview/v3.6.1` branch at `593873958660f11a5350071bf43b6d5d2c0ec2d4`:
   its verified provisional APK link was already sent to the owner.
-- Public latest `v3.6.2` points to `62005f460065e20b341b611bd0082d877d50e7df`.
+- Public `v3.6.2` points to `62005f460065e20b341b611bd0082d877d50e7df`.
   Main CI `39696741458` and prebuilt publisher `39699169905` succeeded. Release ID
   `420179798` contains the 1,221,672-byte APK and 88-byte checksum; both public downloads
   byte-match the audited local files. APK SHA-256 is
@@ -52,6 +52,17 @@ This is an orientation snapshot; check newer code and owner decisions before imp
   forecasts without changing recorded progress or existing episode selections.
   Retain the `apk-preview/v3.6.2` branch at `fa4fc1ef84f147483c8f58f03928249d1a786722`
   so the verified provisional APK link already sent to the owner remains valid.
+- Public latest `v3.6.3` points to `54c23f6fe5236ac94c1f3d8dfeaf63668cc40906`.
+  Main CI `39701613899` and prebuilt publisher `39703748887` succeeded. Release ID
+  `420203533` contains the 1,221,588-byte APK and 88-byte checksum; both public downloads
+  byte-match the audited local files. APK SHA-256 is
+  `87f23fcd7bae75354e1babb618e1bdc85a87e97c7f8acee99fa2f40202c9ca8c`.
+  Local validation passed 41 existing UI tests, release lint and the signed build.
+  Expandable menus start collapsed, including available actions and tips search groups;
+  manual expansion survives refreshes of the current page. Rules remain `3.6.2` and
+  scheduling policy stays 5; no engine changes or forced replanning.
+  Retain `apk-preview/v3.6.3` at `459ceb4ca4451d685ce4a448afdd9697462f3bc0` so the
+  verified provisional APK link already sent to the owner remains valid.
 - Player-facing language is natural Simplified Chinese using Reload terminology. Preserve
   the established navy/cyan P3R presentation, slanted panels, condensed numerals, day/night
   widget palettes and fade, readable answers, and action-specific result sheets.
@@ -85,6 +96,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 | [3.6.0 change notes](RELEASE_NOTES_3.6.0.md) | P3R interface overhaul, available actions, list/month-grid calendars and selected teammate trait timing. |
 | [3.6.1 change notes](RELEASE_NOTES_3.6.1.md) | Reopening after choosing the grid or activity calendar, with saved progress and view choices preserved. |
 | [3.6.2 change notes](RELEASE_NOTES_3.6.2.md) | Ryoji Link Episodes and reminders, Persona arcade training and today's available Link Episodes. |
+| [3.6.3 change notes](RELEASE_NOTES_3.6.3.md) | Expandable menus start collapsed and retain manual expansion during current-page refreshes. |
 | [3.6 UI contract](DESIGN_3.6_UI.md) | Current visual system, short player-facing copy, transitions and calendar interactions. |
 | [3.1.0 specification](specs/SPEC_3.1.0.md) | Full replan, reminders, legacy removal, widget answers and breadth planning. |
 | [Chinese glossary](GLOSSARY_zh.md) | Exact UI terms, sentence style and deadline wording. |

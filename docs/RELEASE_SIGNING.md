@@ -14,6 +14,14 @@
 
 私有持久备份已上传并回读校验，恢复材料也已验证。
 
+[3.6.3 正式版](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.6.3) 于 2026-10-22 发布，可展开菜单统一默认折叠，手动展开后当前页面刷新保留状态。沿用上述证书，可覆盖 3.3.0～3.6.2。源码 `54c23f6fe5236ac94c1f3d8dfeaf63668cc40906` 的完整 Android CI [39701613899](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39701613899) 已通过；本地 41 项现有 UI 测试、release lint 和正式签名构建通过。经[预构建包发布流程 39703748887](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39703748887) 发布为 latest，非草稿、非预发布。
+
+最终 `P3R-Planner-3.6.3.apk` 为 **1,221,588 bytes**，SHA-256 为：
+
+`87f23fcd7bae75354e1babb618e1bdc85a87e97c7f8acee99fa2f40202c9ca8c`
+
+已下载公开 APK 和校验文件，与本地审计文件逐字节一致；标签精确指向上述源码，包名 `app.p3r.planner`、版本码 46、正式签名、zipalign 及内嵌规则／全书均已核对。Release 恰有 APK 和 88-byte 校验文件两个附件，发布 ID 为 `420203533`。规则包仍为 `3.6.2`，策略版本仍为 5；不强制重排已有日程，保留游戏进度和记录。临时下载分支 `apk-preview/v3.6.3` 保留在 `459ceb4ca4451d685ce4a448afdd9697462f3bc0`，以保持已发送给所有者的 APK 链接有效。
+
 [3.6.2 正式版](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.6.2) 于 2026-10-22 发布，补上望月绫时的羁绊剧情、人格面具的电玩城训练信息，以及「今天可做」中的羁绊剧情。沿用上述证书，可覆盖 3.3.0～3.6.1。源码 `62005f460065e20b341b611bd0082d877d50e7df` 的完整 Android CI [39696741458](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39696741458) 已通过；本地 210 项针对性 Java 测试、33 项 Python 规则测试、release lint 和正式签名构建通过。经[预构建包发布流程 39699169905](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39699169905) 发布为 latest，非草稿、非预发布。
 
 最终 `P3R-Planner-3.6.2.apk` 为 **1,221,672 bytes**，SHA-256 为：
