@@ -528,7 +528,7 @@ final class StateSteps {
         LinearLayout column = page("想把哪些社群升到 MAX？", "GOAL");
         LinearLayout hint = Ui.row(c);
         hint.setMinimumHeight(Ui.dp(c, Ui.TOUCH));
-        hint.addView(Ui.muted(c, "点一下想要，再点一下必须"), Ui.weight(1));
+        hint.addView(Ui.muted(c, "点社群卡片切换：想要 → 必须 → 不选"), Ui.weight(1));
         if (clear != null) {
             hint.addView(clear, Ui.wrap());
         }

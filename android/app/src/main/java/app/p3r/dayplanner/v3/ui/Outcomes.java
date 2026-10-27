@@ -273,6 +273,12 @@ public final class Outcomes {
                 }
                 String label = SKIP_REASONS.get(outcome.reason);
                 label = label == null ? "没做" : label;
+                if (kind == StepKind.NOTE) {
+                    return "结缘网站的字条（" + name + "）· " + label;
+                }
+                if (kind == StepKind.UNLOCK) {
+                    return name + " · 解锁准备 · " + label;
+                }
                 return name.isEmpty() ? label : name + " · " + label;
             case NOT_DONE:
                 if (REASON_HOLD.equals(outcome.reason)) {
@@ -301,14 +307,17 @@ public final class Outcomes {
                 if (kind == StepKind.SOCIAL_MEET) {
                     return name + " · 见面";
                 }
+                if (kind == StepKind.UNLOCK) {
+                    return name + " · 解锁准备";
+                }
                 if (kind == StepKind.NOTE) {
-                    return name + " · 用了结缘网站的字条";
+                    return "结缘网站的字条（" + name + "）";
                 }
                 if (kind == StepKind.EPISODE) {
                     return name + " · 看完了";
                 }
                 if (kind == StepKind.TOWER) {
-                    return name + " · 去了";
+                    return name;
                 }
                 return name;
         }

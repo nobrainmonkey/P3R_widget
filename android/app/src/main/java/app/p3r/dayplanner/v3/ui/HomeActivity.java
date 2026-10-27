@@ -747,7 +747,7 @@ public final class HomeActivity extends Activity implements HomeHost, PlannerApi
         }, receipt -> {
             if (receipt.ok) {
                 boolean fix = summary != null && summary.startsWith(FIXED);
-                showMessage(fix ? "已撤销修改：" + summary.substring(FIXED.length()) : "已撤销：" + summary);
+                showMessage(fix ? "已撤回刚才的修改" : "已撤销：" + summary);
             } else if (Messages.retryable(receipt)) {
                 showError(Messages.ACTION_FAILED, "重试", retry);
             } else {

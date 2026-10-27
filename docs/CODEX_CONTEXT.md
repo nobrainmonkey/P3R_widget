@@ -13,12 +13,18 @@ This is an orientation snapshot; check newer code and owner decisions before imp
   player records a different result, changes goals, or returns later and syncs progress.
 - Useful, consistent plans matter more than global optimality. An unmet goal is not proof
   that the goal is impossible. Forecasts and confirmed progress must remain separate.
-- Current app source: **3.6.3**, version code **46**, application ID **`app.p3r.planner`**;
+- Current app source: **3.7.0**, version code **47**, application ID **`app.p3r.planner`**;
   debug builds add `.debug`. Java package/Android namespace remains `app.p3r.dayplanner`.
   Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, minimum API 26, compile/target API 35.
 - The owner released 3.4.2 at `52e9b9d`; 3.5.0 builds on those changes. See
   [release signing](RELEASE_SIGNING.md) for the verified current public APK and CI evidence.
   Retain the 3.3.0 signing certificate for in-place updates.
+- Public `v3.7.0` introduces order-invariant Social Link goals with strict two-tier domination
+  (MUST strictly dominates WANT), school summer-break and pre-exam calendar pressure heuristics,
+  policy bump to v6, and a complete natural-language audit across UI, widget, services and rules.
+  Local validation passed all 1,526 Android unit tests, 115 Python tests, release lint, and local
+  signed build. All 5 autumn scenarios achieve 9/9 MUST links at Rank 10, and all 16 legacy benchmark
+  plans pass with 0 issues.
 - Public `v3.5.1` points to `4acf72109d4e8efb4b45910b49c397e8b2ef9b2b`. Full CI
   `39319649477` passed (1,294 tests, one skipped); publisher `39321609609` succeeded.
   The public APK and checksum were downloaded and compared with the signed local files.
@@ -97,6 +103,7 @@ This is an orientation snapshot; check newer code and owner decisions before imp
 | [3.6.1 change notes](RELEASE_NOTES_3.6.1.md) | Reopening after choosing the grid or activity calendar, with saved progress and view choices preserved. |
 | [3.6.2 change notes](RELEASE_NOTES_3.6.2.md) | Ryoji Link Episodes and reminders, Persona arcade training and today's available Link Episodes. |
 | [3.6.3 change notes](RELEASE_NOTES_3.6.3.md) | Expandable menus start collapsed and retain manual expansion during current-page refreshes. |
+| [3.7.0 change notes](RELEASE_NOTES_3.7.0.md) | Two-tier order-invariant goals, summer/exam calendar pressure, and full UI/UX language audit. |
 | [3.6 UI contract](DESIGN_3.6_UI.md) | Current visual system, short player-facing copy, transitions and calendar interactions. |
 | [3.1.0 specification](specs/SPEC_3.1.0.md) | Full replan, reminders, legacy removal, widget answers and breadth planning. |
 | [Chinese glossary](GLOSSARY_zh.md) | Exact UI terms, sentence style and deadline wording. |

@@ -495,7 +495,7 @@ public final class PeriodTips {
                     int seen = Math.max(0, Math.min(track.count, observed.episodes[track.idx]));
                     if (track.hasUnplannedScenes()) {
                         lines.add((seen > 0 ? "已看第 " + track.sceneOf(seen) + " 话，" : "")
-                                + "已赴约 " + seen + "/" + track.count + " 次。");
+                                + "看了 " + seen + "/" + track.count + " 次。");
                     } else {
                         lines.add("已经看了 " + seen + " 话。");
                     }
@@ -555,7 +555,7 @@ public final class PeriodTips {
                     Plan.Reminder item = new Plan.Reminder();
                     item.id = "calendar.note." + day;
                     item.kind = "calendar";
-                    item.labelZh = "日历事项";
+                    item.labelZh = "日常事件";
                     item.slot = Rules.slot(day, false);
                     item.textZh = note;
                     items.put(item.id, item);

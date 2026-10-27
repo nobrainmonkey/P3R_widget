@@ -253,12 +253,12 @@ final class SchedulePage {
         sourceControl.setSelected(availableSource ? 1 : 0);
         sourceControl.setListener(index -> switchSource(index == 1));
         controls.addView(sourceControl, Ui.weight(1));
-        listControl = viewButton(R.drawable.ui_ic_calendar_list, "列表视图", !gridMode);
+        listControl = viewButton(R.drawable.ui_ic_calendar_list, "日程列表", !gridMode);
         listControl.setOnClickListener(v -> switchView(false));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Ui.dp(c, Ui.TOUCH), Ui.dp(c, Ui.TOUCH));
         lp.leftMargin = Ui.dp(c, 8);
         controls.addView(listControl, lp);
-        gridControl = viewButton(R.drawable.ui_ic_calendar_grid, "网格视图", gridMode);
+        gridControl = viewButton(R.drawable.ui_ic_calendar_grid, "月历", gridMode);
         gridControl.setOnClickListener(v -> switchView(true));
         controls.addView(gridControl, new LinearLayout.LayoutParams(Ui.dp(c, Ui.TOUCH), Ui.dp(c, Ui.TOUCH)));
         fixedHeader.addView(controls, top(4));
@@ -351,11 +351,11 @@ final class SchedulePage {
             AvailableActions.Day options = data.availability.day(day);
             if (options == null) return null;
             int social = count(options, "社群");
-            int dorm = count(options, "宿舍") + count(options, "集体学习");
+            int dorm = count(options, "宿舍活动") + count(options, "集体学习");
             int work = count(options, "打工");
             boolean locked = options.daytimeLockZh != null && options.eveningLockZh != null;
-            String first = social > 0 ? "社" + social : !options.unlocks.isEmpty() ? "解锁" : locked ? "剧情" : "";
-            String second = dorm > 0 ? "宿" + dorm : work > 0 ? "工" + work
+            String first = social > 0 ? "社群 " + social : !options.unlocks.isEmpty() ? "解锁" : locked ? "剧情" : "";
+            String second = dorm > 0 ? "宿舍 " + dorm : work > 0 ? "打工 " + work
                 : count(options, "电玩城") > 0 ? "电玩" : "";
             return new ScheduleMonthGrid.Label(true, first, second,
                 availabilitySummary(options.daytime, options.daytimeLockZh) + "；"
@@ -367,8 +367,11 @@ final class SchedulePage {
         if (!enabled) return new ScheduleMonthGrid.Label(false, "", "", "没有安排");
         Plan.Step daytime = displayedStep(Rules.slot(day, false));
         Plan.Step evening = displayedStep(Rules.slot(day, true));
-        return new ScheduleMonthGrid.Label(true, compactStep(daytime), compactStep(evening),
-            title(daytime) + "；" + title(evening));
+        String dt = title(daytime);
+        String et = title(evening);
+        String desc = (dt.isEmpty() || NO_RECORD.equals(dt) || "—".equals(dt) ? "白天无安排" : "白天" + dt)
+            + "，" + (et.isEmpty() || NO_RECORD.equals(et) || "—".equals(et) ? "晚上无安排" : "晚上" + et);
+        return new ScheduleMonthGrid.Label(true, compactStep(daytime), compactStep(evening), desc);
     }
 
     private Plan.Step displayedStep(int slot) {
@@ -391,7 +394,7 @@ final class SchedulePage {
             case TOWER: return "爬塔";
             case LOCKED: return "剧情";
             default: return NO_RECORD.equals(step.titleZh) ? "—"
-                : step.slot < data.displaySlot() && !title(step).isEmpty() ? "已记" : "自由";
+                : step.slot < data.displaySlot() && !title(step).isEmpty() ? "已记录" : "自由";
         }
     }
 
@@ -828,7 +831,9 @@ final class SchedulePage {
                 + availabilitySummary(options.daytime, options.daytimeLockZh));
             eveningLine.setText("晚上 · " + availabilitySummary(options.evening, options.eveningLockZh));
             setBackground(today ? Ui.heroCard(c) : Ui.pressableCard(c));
-            setContentDescription("查看活动 " + Zh.date(day));
+            String dTitle = availabilitySummary(options.daytime, options.daytimeLockZh);
+            String eTitle = availabilitySummary(options.evening, options.eveningLockZh);
+            setContentDescription(Zh.date(day) + "：白天" + dTitle + "，晚上" + eTitle);
             setOnClickListener(v -> {
                 selectedDay = day;
                 host.showSheet(AvailableActionViews.day(host, data, options, availableBrowse));
@@ -1159,7 +1164,7 @@ final class SchedulePage {
             if (lock != null) {
                 step.kind = "locked";
                 step.action = "locked:" + lock;
-                step.titleZh = rules.lockReasonsZh.getOrDefault(lock, "剧情占用");
+                step.titleZh = rules.lockReasonsZh.getOrDefault(lock, "剧情");
             } else {
                 step.titleZh = loading ? "" : NO_RECORD;
             }

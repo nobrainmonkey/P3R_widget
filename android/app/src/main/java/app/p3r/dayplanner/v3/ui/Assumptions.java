@@ -33,7 +33,7 @@ public final class Assumptions {
         TEXT.put("invite", "这是休息日邀约，赴约会占用白天。");
         TEXT.put("invite_gain_unmodeled", "休息日邀约只加好感，不直接升级。");
         TEXT.put("stat_lower_bound", "使用已同步的个人能力等级。");
-        put("剧情推进前这个社群暂时升不了，这次只加点数。", "rank_hold", "hold");
+        put("剧情推进前这个社群先升不了，这次只加点数。", "rank_hold", "hold");
         put("结缘网站的字条增加好感，不直接升级。", "dating_note", "dating_note_gain", "note_gain");
         put("已为选中的羁绊剧情留出时段。", "episode", "link_episode");
     }

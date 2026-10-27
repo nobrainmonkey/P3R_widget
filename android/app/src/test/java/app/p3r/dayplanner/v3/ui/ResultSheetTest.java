@@ -57,13 +57,13 @@ public class ResultSheetTest extends UiTestBase {
         invite.kind = "invite";
         invite.entity = "magician";
         invite.titleZh = "魔术师 · 友近健二";
-        invite.subtitleZh = "休息日邀约 · 收到短信时";
+        invite.subtitleZh = "休息日邀约 · 收到短信就能去";
         invite.predicted.rankFrom = 3;
         invite.predicted.rankTo = 3;
         invite.predicted.certain = true;
         api.alternatives = java.util.List.of(invite);
         ResultActivity a = result(NOW, "meet:emperor", Intents.MODE_OTHER);
-        assertTrue(Shots.has(a, "休息日邀约 · 收到短信时"));
+        assertTrue(Shots.has(a, "休息日邀约 · 收到短信就能去"));
         Shots.click(a, "魔术师 · 友近健二");
         assertTrue(Shots.has(a, "赴约了吗？"));
         assertTrue(Shots.has(a, "休息日邀约"));
@@ -621,7 +621,7 @@ public class ResultSheetTest extends UiTestBase {
         ResultActivity a = result(slot, "note:priestess", Intents.MODE_RESULT);
         Shots.click(a, "用了");
         assertEquals(Outcome.Code.AS_PREDICTED, api.last().outcome.code);
-        assertEquals("女教皇 · 用了结缘网站的字条", UndoCenter.take().summaryZh);
+        assertEquals("结缘网站的字条（女教皇）", UndoCenter.take().summaryZh);
     }
 
     @Test

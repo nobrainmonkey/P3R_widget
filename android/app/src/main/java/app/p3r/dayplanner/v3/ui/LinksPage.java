@@ -54,7 +54,7 @@ final class LinksPage {
     /** A tier chip's taps are saved once, this long after the last one. */
     static final long TIER_SAVE_DELAY_MS = 800;
     /** Shown when the rule pack could not be read (HomeActivity normally shows its retry state). */
-    static final String RULES_MISSING = "游戏资料没读出来，稍后再打开看看";
+    static final String RULES_MISSING = "游戏资料没读出来，重开应用试试";
     /** Before 开始设置, above the tiles. */
     static final String SETUP_FIRST = "先完成开始设置，\n就能看到每个社群能升到哪";
     /** The goal strip while there are no goals. */
@@ -80,7 +80,6 @@ final class LinksPage {
     private LinearLayout goalRow;
     private GoalStrip goalStrip;
     private TextView noGoals;
-    private TextView reorder;
     private LinkTile[] tiles = new LinkTile[0];
     private EpisodeRow[] episodeRows = new EpisodeRow[0];
     private int section = -1;
@@ -419,7 +418,7 @@ final class LinksPage {
 
     // ------------------------------------------------------------------ goal strip
 
-    /** 「目标」, the goals in priority order as small plates, and 「调整顺序」. */
+    /** 「目标」, the goals in priority tiers as small plates. */
     private LinearLayout goalRow() {
         LinearLayout row = Ui.row(c);
         row.setMinimumHeight(Ui.dp(c, 48));
@@ -429,17 +428,9 @@ final class LinksPage {
         lp.rightMargin = Ui.dp(c, 10);
         row.addView(label, lp);
         goalStrip = new GoalStrip(c);
-        goalStrip.setClickable(true);
-        goalStrip.setFocusable(true);
-        goalStrip.setOnClickListener(v -> openOrder());
         row.addView(goalStrip, Ui.weight(1));
         noGoals = Ui.caption(c, NO_GOALS);
         row.addView(noGoals, Ui.weight(1));
-        reorder = Ui.quiet(c, "调整顺序");
-        reorder.setTextSize(14);
-        Ui.pad(reorder, 10, 4, 6, 4);
-        reorder.setOnClickListener(v -> openOrder());
-        row.addView(reorder, Ui.wrap());
         return row;
     }
 
@@ -447,13 +438,12 @@ final class LinksPage {
         List<Integer> goals = LinkStatus.goalOrder(profile);
         boolean any = !goals.isEmpty();
         goalStrip.setVisibility(any ? View.VISIBLE : View.GONE);
-        reorder.setVisibility(any ? View.VISIBLE : View.GONE);
         noGoals.setVisibility(any ? View.GONE : View.VISIBLE);
         goalStrip.removeAllViews();
-        StringBuilder spoken = new StringBuilder("目标顺序：");
+        StringBuilder spoken = new StringBuilder("目标：");
         for (int i = 0; i < goals.size(); i++) {
             int link = goals.get(i);
-            String text = (i + 1) + " " + rules.links[link].arcanaZh;
+            String text = rules.links[link].arcanaZh;
             goalStrip.addView(goalPlate(text, profile.tier[link]));
             spoken.append(i == 0 ? "" : "、").append(text);
         }
@@ -1042,7 +1032,7 @@ final class LinksPage {
         sheet.addView(tier, spaced(6));
 
         if (link.romanceable) {
-            sheet.addView(fieldLabel("回答按哪条路线？"), spaced(18));
+            sheet.addView(fieldLabel("想走哪条路线？"), spaced(18));
             SegmentedControl route = new SegmentedControl(c, Arrays.asList("朋友", "恋人"));
             route.setSelected(Dialogue.romanceRoute(profile, linkIdx) ? 1 : 0);
             for (int i = 0; i < 2; i++) {
@@ -1092,153 +1082,8 @@ final class LinksPage {
         if (!s.goal) {
             return null;
         }
-        TextView line = Ui.mixed(c, LinkStatus.shortfall(goalText, s.observed, s.projected, s.blocker, s.fix), 15,
+        return Ui.mixed(c, LinkStatus.shortfall(goalText, s.observed, s.projected, s.blocker, s.fix), 15,
             Ui.col(c, R.color.p3r_ice_100), false);
-        if (s.fix == LinkStatus.Fix.NONE) {
-            // Already first in its tier, or nothing to pass: no 调整顺序 that leads nowhere.
-            return line;
-        }
-        LinearLayout box = Ui.column(c);
-        box.addView(line);
-        TextView order = Ui.quiet(c, "调整顺序 ›");
-        order.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        Ui.pad(order, 0, 4, 12, 4);
-        order.setOnClickListener(v -> openOrder());
-        box.addView(order, Ui.wrap());
-        return box;
-    }
-
-    // ------------------------------------------------------------------ 目标顺序
-
-    /** 目标顺序: 必须 then 想要, each goal with ↑ / ↓ where a move within its tier is possible. */
-    void openOrder() {
-        flushTiers();
-        if (host.data() == null || host.data().rules == null) {
-            return;
-        }
-        LinearLayout sheet = Ui.column(c);
-        Ui.pad(sheet, 20, 12, 20, 24);
-        sheet.addView(SheetChrome.title(c, "目标顺序"));
-        LinearLayout list = Ui.column(c);
-        sheet.addView(list, spaced(4));
-        renderOrder(list, -1, 0);
-        host.showSheet(sheet);
-    }
-
-    private void renderOrder(LinearLayout list, int moved, int delta) {
-        list.removeAllViews();
-        UiData d = host.data();
-        Profile p = d.profile();
-        List<Integer> goals = LinkStatus.goalOrder(p);
-        if (goals.isEmpty()) {
-            list.addView(Ui.muted(c, "还没有目标"), spaced(8));
-            return;
-        }
-        Profile.Tier group = null;
-        View movedRow = null;
-        View otherRow = null;
-        int partner = moved >= 0 ? swappedWith(goals, moved, delta) : -1;
-        for (int i = 0; i < goals.size(); i++) {
-            int link = goals.get(i);
-            Profile.Tier tier = p.tier[link];
-            if (tier != group) {
-                group = tier;
-                TextView head = tier == Profile.Tier.MUST
-                    ? Ui.tag(c, "必须", Ui.col(c, R.color.p3r_white), Ui.col(c, R.color.p3r_navy_950))
-                    : Ui.tag(c, "想要", Ui.alpha(Ui.col(c, R.color.p3r_cyan_400), 60), Ui.col(c, R.color.p3r_cyan_200));
-                LinearLayout.LayoutParams hp = Ui.wrap();
-                hp.topMargin = Ui.dp(c, i == 0 ? 8 : 18);
-                hp.bottomMargin = Ui.dp(c, 2);
-                list.addView(head, hp);
-            } else {
-                View rule = Ui.fadingRule(c);
-                list.addView(rule, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                    Math.max(1, Ui.dp(c, 1))));
-            }
-            View row = orderRow(d.rules, p, goals, i, list);
-            list.addView(row, Ui.matchWrap());
-            if (link == moved) {
-                movedRow = row;
-            } else if (i == partner) {
-                otherRow = row;
-            }
-        }
-        if (movedRow != null && Ui.animationsEnabled()) {
-            View a = movedRow;
-            View b = otherRow;
-            a.post(() -> {
-                float h = a.getHeight() + Math.max(1, Ui.dp(c, 1));
-                slide(a, -delta * h);
-                if (b != null) {
-                    slide(b, delta * h);
-                }
-            });
-        }
-    }
-
-    /**
-     * Where the goal that {@code moved} swapped with by a move of {@code delta} now sits in the new
-     * order {@code goals}: the place {@code moved} came from. -1 when there is none.
-     */
-    static int swappedWith(List<Integer> goals, int moved, int delta) {
-        int at = goals.indexOf(moved);
-        int other = at - delta;
-        return at < 0 || delta == 0 || other < 0 || other >= goals.size() ? -1 : other;
-    }
-
-    private static void slide(View row, float from) {
-        row.setTranslationY(from);
-        row.animate().translationY(0f).setDuration(150).setInterpolator(Motion.SETTLE).start();
-    }
-
-    private View orderRow(Rules rules, Profile p, List<Integer> goals, int position, LinearLayout list) {
-        int link = goals.get(position);
-        Rules.Link l = rules.links[link];
-        LinearLayout row = Ui.row(c);
-        row.setMinimumHeight(Ui.dp(c, 56));
-        TextView index = Ui.numeral(c, String.valueOf(position + 1), 28, Ui.col(c, R.color.p3r_cyan_400));
-        index.setMinWidth(Ui.dp(c, 40));
-        row.addView(index, Ui.wrap());
-        LinearLayout names = Ui.column(c);
-        TextView arcana = Ui.text(c, l.arcanaZh, 17, Ui.col(c, R.color.p3r_white), true);
-        arcana.setSingleLine(true);
-        names.addView(arcana);
-        TextView person = Ui.text(c, l.personZh, 13, Ui.col(c, R.color.p3r_ink_muted), false);
-        person.setSingleLine(true);
-        person.setEllipsize(TextUtils.TruncateAt.END);
-        names.addView(person);
-        LinearLayout.LayoutParams np = Ui.weight(1);
-        np.leftMargin = Ui.dp(c, 8);
-        row.addView(names, np);
-        boolean canUp = position > 0 && p.tier[goals.get(position - 1)] == p.tier[link];
-        boolean canDown = position + 1 < goals.size() && p.tier[goals.get(position + 1)] == p.tier[link];
-        row.addView(arrow(R.drawable.ui_ic_up, "上移 " + l.arcanaZh, canUp, () -> move(list, link, -1)));
-        row.addView(arrow(R.drawable.ui_ic_down, "下移 " + l.arcanaZh, canDown, () -> move(list, link, +1)));
-        return row;
-    }
-
-    private void move(LinearLayout list, int link, int delta) {
-        Profile edited = host.data().profile().copy();
-        if (Goals.move(edited, link, delta)) {
-            host.saveProfile(edited);
-            renderOrder(list, link, delta);
-        }
-    }
-
-    /** ↑ / ↓; a move that is not possible keeps its place but is not shown. */
-    private View arrow(int icon, String description, boolean enabled, Runnable action) {
-        ImageView view = new ImageView(c);
-        view.setImageDrawable(Ui.tinted(c, icon, Ui.col(c, R.color.p3r_white)));
-        view.setScaleType(ImageView.ScaleType.CENTER);
-        view.setContentDescription(description);
-        view.setEnabled(enabled);
-        view.setVisibility(enabled ? View.VISIBLE : View.INVISIBLE);
-        view.setBackground(new SlantedPanelDrawable().fill(0).pressedFill(Ui.col(c, R.color.ui_cyan_soft))
-            .skew(Ui.dp(c, 6)));
-        view.setOnClickListener(v -> action.run());
-        int size = Ui.dp(c, 48);
-        view.setLayoutParams(new LinearLayout.LayoutParams(size, size));
-        return view;
     }
 
     // ------------------------------------------------------------------ 羁绊剧情
@@ -1301,7 +1146,7 @@ final class LinksPage {
 
         void bind(UiData d, Profile profile) {
             int watched = StateDraft.watched(d.rules, d.observed(), track.idx);
-            String count = watched + "/" + track.count + (track.hasUnplannedScenes() ? "次" : "");
+            String count = watched + "/" + track.count + (track.hasUnplannedScenes() ? " 次" : "");
             progress.setText(track.hasUnplannedScenes() ? Ui.latin(c, count) : count);
             pips.setWatched(watched);
             setChecked(profile.wantsEpisodes(track.id));

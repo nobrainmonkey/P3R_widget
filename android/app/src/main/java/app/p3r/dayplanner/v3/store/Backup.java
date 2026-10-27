@@ -37,8 +37,8 @@ public final class Backup {
     public static final String SCHEMA = "p3r.backup.v3";
 
     /** User-facing messages (Simplified Chinese). */
-    public static final String ZH_NOT_A_BACKUP = "这不是 P3R 规划的备份文件，没有做任何更改";
-    public static final String ZH_DAMAGED = "备份文件不完整或已损坏，没有做任何更改";
+    public static final String ZH_NOT_A_BACKUP = "这个文件读不出来，现在的记录没动";
+    public static final String ZH_DAMAGED = "这个文件读不出来，现在的记录没动";
 
     private Backup() {}
 

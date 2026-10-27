@@ -199,7 +199,7 @@ public class CompendiumBasketIntegrationTest extends UiTestBase {
         tag(activity, "basket_summon_" + narcissus).performClick();
         Shots.idle();
         assertEquals(Collections.singletonList(narcissus), prefs.basket().goals());
-        assertEquals("a goal with no fusion left is not 「还差 0 步」", "未登录",
+        assertEquals("a goal with no fusion left is not 「还差 0 步」", "直接召唤 · 未登录",
             Shots.allText(tag(activity, "basket_goal_status_" + narcissus)).trim());
         assertEquals(Collections.singleton(narcissus), summonMaterials());
         tag(activity, "basket_owned_" + narcissus).performClick();

@@ -148,9 +148,9 @@ public class GoalPrerequisitePolicyTest {
         profile.charmBonus = false;
         profile.goalBuffer = false;
         profile.towerVisitsPerBlock = profile.towerCapPerBlock = 0;
-        profile.tier[0] = profile.tier[3] = Profile.Tier.MUST;
+        profile.tier[0] = Profile.Tier.MUST;
+        profile.tier[3] = Profile.Tier.WANT;
         profile.target[0] = 1;
-        profile.order[3] = 1;
         return profile;
     }
 

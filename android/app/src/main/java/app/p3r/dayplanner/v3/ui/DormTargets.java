@@ -336,7 +336,7 @@ final class DormTargets {
                 Integer count = draft.dormCounts[activity.idx];
                 if (count != null) corrected.used[activity.idx] = count;
             }
-            host.saveCheckpoint(corrected, profile, "已记录：" + partner.name + " · 宿舍活动次数");
+            host.saveCheckpoint(corrected, profile, "已记录：" + partner.name + "的宿舍活动");
         } else if (differs(profile, latest.profile())) {
             host.saveProfile(profile);
         }

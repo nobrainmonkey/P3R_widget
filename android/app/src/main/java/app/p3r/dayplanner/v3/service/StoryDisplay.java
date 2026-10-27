@@ -47,7 +47,7 @@ public final class StoryDisplay {
             String note = day == null || day.noteZh == null ? "" : day.noteZh.trim();
             if (Rules.LOCK_CHRISTMAS.equals(reason)) {
                 String partner = christmasPartner(rules, profile);
-                note = partner == null ? "已经答应了平安夜的邀约" : "已经答应了" + partner + "的平安夜邀约";
+                note = partner == null ? "已经答应了平安夜约会" : "已经答应了" + partner + "的平安夜约会";
             }
             // The note is said once, as the subtitle (also the widget's lock cue); no detail repeats it.
             step.subtitleZh = note.isEmpty() ? "这段时间不能自由行动" : note;

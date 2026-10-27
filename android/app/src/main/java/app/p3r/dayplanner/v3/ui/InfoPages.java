@@ -94,7 +94,7 @@ final class InfoPages {
         card.setBackground(Ui.heroCard(c));
         Ui.pad(card, 22, 14, 18, 18);
         if (plan == null) {
-            card.addView(Ui.headline(c, "正在安排到1月31日…"));
+            card.addView(Ui.headline(c, "正在排到 1月31日…"));
             card.addView(new BusyStripe(c), top(c, 12));
             return card;
         }
@@ -197,15 +197,23 @@ final class InfoPages {
      * null when nothing is left.
      */
     static String goalReason(String value, String note) {
-        if (note == null || !value.startsWith("停在 ")) {
-            return note;
-        }
-        String forecast = "预计" + value;
-        if (note.equals(forecast)) {
+        if (note == null) {
             return null;
         }
-        String tail = " · " + forecast;
-        return note.endsWith(tail) ? note.substring(0, note.length() - tail.length()) : note;
+        if (value.startsWith("停在 ")) {
+            String forecast = "预计" + value;
+            if (note.equals(forecast)) {
+                return null;
+            }
+            String tail = " · " + forecast;
+            return note.endsWith(tail) ? note.substring(0, note.length() - tail.length()) : note;
+        }
+        if (note.startsWith(value + "，")) {
+            String sub = note.substring(value.length() + 1);
+            int idx = sub.indexOf(" · 预计");
+            return idx >= 0 ? sub.substring(0, idx) : sub;
+        }
+        return note;
     }
 
     /** A goal this plan does not reach (or that cannot continue). */

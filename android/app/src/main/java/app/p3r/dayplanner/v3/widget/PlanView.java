@@ -9,6 +9,7 @@ import app.p3r.dayplanner.v3.engine.Plan;
 import app.p3r.dayplanner.v3.model.Rules;
 import app.p3r.dayplanner.v3.service.PlannerApi;
 import app.p3r.dayplanner.v3.service.StoryDisplay;
+import app.p3r.dayplanner.v3.ui.TodayPage;
 
 /**
  * What one plan-widget instance shows, resolved from a planner snapshot plus the widget's own UI
@@ -234,7 +235,7 @@ final class PlanView {
         } else if (mode == Mode.ERROR) {
             String error = snapshot == null ? null : blankToNull(snapshot.planErrorZh);
             boolean unreadable = snapshot == null || snapshot.observed == null;
-            m.title = unreadable ? "暂时读不到安排" : "暂时没有安排";
+            m.title = unreadable ? "记录没读出来" : "还没有安排";
             m.cue = error == null ? "点开应用看看" : error;
             m.cueEssential = true; // what went wrong and what to do: the only instruction on the card
         } else {
@@ -242,7 +243,7 @@ final class PlanView {
             m.cue = "可以在应用里查看完整日程";
         }
         m.cueMaxLines = 2; // the cue is the card's instruction: let it wrap rather than end in "…"
-        m.taskDescription = m.title + "。点击打开应用";
+        m.taskDescription = m.title;
         // Nothing to browse or record: one button that does what the card says, never a dead 当前/完成 row.
         m.currentVisible = false;
         m.doneIcon = CardModel.DoneIcon.NONE;
@@ -404,7 +405,11 @@ final class PlanView {
         if (!snapshot.planCurrent && snapshot.planErrorZh != null) return "安排还没更新，点开看看";
         if (copy.instruction != null) return copy.instruction;
         if ("free".equals(StepCopy.kindOf(step))) return "这个时段想做什么都行";
-        return StepCopy.glossary(blankToNull(step.whyZh));
+        String why = blankToNull(step.whyZh);
+        if (why != null && (why.contains("目标") || why.contains("有空就练练") || why.contains("有空去塔里"))) {
+            return null;
+        }
+        return StepCopy.glossary(why);
     }
 
     /** "这段时间不能自由行动" (or the engine's specific note), "到11月5日都不能自由行动" for a run. */

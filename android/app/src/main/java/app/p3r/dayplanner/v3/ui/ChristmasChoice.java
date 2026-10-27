@@ -29,7 +29,7 @@ final class ChristmasChoice {
     /** Under the accepted choice only. */
     static final String ACCEPTED_NOTE = "白天和晚上都留给平安夜约会";
     /** When no romanceable link is unlocked yet. */
-    static final String NONE_YET = "恋爱社群解锁后会出现在这里";
+    static final String NONE_YET = "可交往的社群解锁后会显示在这里";
 
     private ChristmasChoice() {}
 

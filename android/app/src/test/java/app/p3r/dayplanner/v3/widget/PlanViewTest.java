@@ -106,20 +106,20 @@ public class PlanViewTest {
         assertEquals(PlanView.Mode.FINISHED, PlanView.resolve(snapshot(fake), -1, null, NOW).mode);
         assertEquals("后面没有要做的安排了", PlanView.resolve(snapshot(fake), -1, null, NOW).toCard(null).title);
         assertEquals(PlanView.Mode.ERROR, PlanView.unavailable().mode);
-        assertEquals("暂时读不到安排", PlanView.unavailable().toCard(null).title);
+        assertEquals("记录没读出来", PlanView.unavailable().toCard(null).title);
     }
 
     @Test
     public void unreadableRecordsShowTheErrorInsteadOfOnboarding() {
         FakePlannerApi fake = new FakePlannerApi();
         fake.observed = null;
-        fake.planErrorZh = "游戏资料读取失败，请重新打开应用";
+        fake.planErrorZh = "游戏资料没读出来，重开应用试试";
         PlanView view = PlanView.resolve(snapshot(fake), -1, null, NOW);
         assertEquals(PlanView.Mode.ERROR, view.mode);
         assertEquals(PlanView.Done.OPEN_APP, view.done);
         CardModel card = view.toCard(null);
-        assertEquals("暂时读不到安排", card.title);
-        assertEquals("游戏资料读取失败，请重新打开应用", card.cue);
+        assertEquals("记录没读出来", card.title);
+        assertEquals("游戏资料没读出来，重开应用试试", card.cue);
         // Review: a row of dead 当前/完成 buttons. The card offers the one thing it asks for instead.
         assertFalse("no dead 当前", card.currentVisible);
         assertTrue(card.doneEnabled);
@@ -141,11 +141,11 @@ public class PlanViewTest {
         assertEquals("only 打开应用", PlanView.Done.OPEN_APP, view.done);
         assertEquals("正在生成安排…", view.toCard(null).title);
         fake.planning = false;
-        fake.planErrorZh = "生成安排时出了问题，请稍后再试";
+        fake.planErrorZh = "新安排没排出来，稍后再试一次";
         PlanView failed = PlanView.resolve(snapshot(fake), -1, null, NOW);
         assertEquals(PlanView.Mode.ERROR, failed.mode);
-        assertEquals("暂时没有安排", failed.toCard(null).title);
-        assertEquals("生成安排时出了问题，请稍后再试", failed.toCard(null).cue);
+        assertEquals("还没有安排", failed.toCard(null).title);
+        assertEquals("新安排没排出来，稍后再试一次", failed.toCard(null).cue);
         // A current plan, or one that still covers the observed slot, is shown as usual.
         fake.planErrorZh = null;
         fake.observed.slot = S + 2;
@@ -539,14 +539,14 @@ public class PlanViewTest {
         // Every line of a card: an older plan's sentences are put in the glossary's words.
         FakePlannerApi fake = new FakePlannerApi();
         Plan.Step emperor = FakePlannerApi.rank(FakePlannerApi.step(S + 2, "meet:emperor", "social", "皇帝 · 小田桐秀利",
-                "RANK 9 → RANK MAX", "月光馆学园 3楼 学生会室", "「必须」目标，这次见面一定能升到 RANK MAX"), 9, 10);
+                "RANK 9 → RANK MAX", "月光馆学园 3楼 学生会室", "最后期限前升到 RANK MAX"), 9, 10);
         emperor.hintZh = "升到 RANK MAX 前记得带上「皇帝」阿尔卡那的人格面具";
         FakePlannerApi.side(emperor, "unlock:devil:0", "顺便：把 20,000 日元交给穿西装的男人");
         fake.plan.steps.set(2, emperor);
         fake.observeAt("meet:emperor");
         CardModel card = card(fake);
         assertEquals("RANK 9→MAX", card.tag);
-        assertEquals("「必须」目标，这次见面一定能升到 MAX", card.cue);
+        assertEquals("最后期限前升到 MAX", card.cue);
         assertEquals("升到 MAX 前记得带上「皇帝」阿尔卡那的人格面具", card.hint);
         for (String text : new String[]{card.title, card.tag, card.cue, card.hint, card.side, card.taskDescription, card.doneDescription}) {
             assertFalse(text, text.contains("RANK MAX"));

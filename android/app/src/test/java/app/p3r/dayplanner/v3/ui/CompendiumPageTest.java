@@ -275,7 +275,7 @@ public class CompendiumPageTest extends UiTestBase {
             {"Hua Po", "完成伊莉莎白的第 77 号委托"},
             {"Saturnus", "看完望月绫时的全部羁绊剧情"},
             {"Surt", "看完伊织顺平的全部羁绊剧情"},
-            {"Decarabia", "塔尔塔罗斯到达 143F"},
+            {"Decarabia", "塔尔塔罗斯爬到 143F"},
         };
         for (String[] row : expected) {
             assertEquals(row[0], row[1], PersonaViews.condition(data, data.personaByKey(row[0])));
@@ -341,7 +341,7 @@ public class CompendiumPageTest extends UiTestBase {
         Compendium.Persona carmen = data.personaByKey("Carmen");
         ((EditText) tagged(activity, "compendium_search")).setText("Carmen");
         choose(activity, "compendium_list", carmen.id);
-        assertTrue(Shots.has(activity, "这是 P5R 人格面具组合 1 里的人格面具，买了吗？"));
+        assertTrue(Shots.has(activity, "它属于 DLC「P5R 人格面具组合 1」，买这个包了吗？"));
         capture(activity, "compendium_dlc_prompt");
         tagged(activity, "persona_material_" + carmen.id).performClick();
         assertTrue("using it as a material waits for the answer", prefs.ownedDlc().isEmpty());

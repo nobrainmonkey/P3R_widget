@@ -55,7 +55,7 @@ final class StepLabels {
                 step.entity = invited.id;
                 step.titleZh = invited.labelZh;
                 step.locationZh = "应邀外出";
-                step.subtitleZh = "休息日邀约 · 收到短信时";
+                step.subtitleZh = "休息日邀约 · 收到短信就能去";
                 step.detailZh = AFFINITY_ONLY;
                 break;
             case UNLOCK_STEP:

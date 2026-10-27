@@ -516,7 +516,7 @@ class BuildTest(unittest.TestCase):
                          "今天是救出北村文吉的最后期限，最晚今晚救出")
         self.assertEqual(days["09-12"]["noteZh"], "北村文吉失踪了，期限 10月3日，到塔尔塔罗斯把人救出来")
         links = {link["id"]: link for link in self.pack["links"]}
-        self.assertEqual(links["hierophant"]["noteZh"], "9月12日北村文吉失踪，期限 10月3日，要到塔尔塔罗斯救出他，否则教皇社群无法继续。")
+        self.assertEqual(links["hierophant"]["noteZh"], "9月12日北村文吉失踪，期限 10月3日，要到塔尔塔罗斯救出他，否则教皇社群没法继续了。")
         for where, text in builder.player_texts(self.pack):
             self.assertNotIn("最晚要在", text, where)
         for where, text in builder.player_texts(self.pack):

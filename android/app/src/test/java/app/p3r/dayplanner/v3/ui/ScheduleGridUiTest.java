@@ -29,21 +29,21 @@ public class ScheduleGridUiTest extends UiTestBase {
         HomeActivity home = home();
         home.selectTab(HomeActivity.TAB_SCHEDULE);
         Shots.capture(home, false);
-        assertTrue(Shots.find(home, "列表视图").isSelected());
-        assertTrue(Shots.find(home, "网格视图") instanceof ImageView);
-        Shots.click(home, "网格视图");
+        assertTrue(Shots.find(home, "日程列表").isSelected());
+        assertTrue(Shots.find(home, "月历") instanceof ImageView);
+        Shots.click(home, "月历");
         assertNotNull(find(home.getWindow().getDecorView(), ScheduleMonthGrid.class));
-        assertTrue(Shots.find(home, "网格视图").isSelected());
+        assertTrue(Shots.find(home, "月历").isSelected());
         Shots.shot(home, "home_schedule_grid");
 
         Shots.click(home, "活动日历");
-        assertTrue("activity calendar starts as a grid", Shots.find(home, "网格视图").isSelected());
-        Shots.click(home, "列表视图");
+        assertTrue("activity calendar starts as a grid", Shots.find(home, "月历").isSelected());
+        Shots.click(home, "日程列表");
         assertNotNull(find(home.getWindow().getDecorView(), ListView.class));
         Shots.click(home, "我的安排");
-        assertTrue("my route retains its grid", Shots.find(home, "网格视图").isSelected());
+        assertTrue("my route retains its grid", Shots.find(home, "月历").isSelected());
         Shots.click(home, "活动日历");
-        assertTrue("activity calendar retains its list", Shots.find(home, "列表视图").isSelected());
+        assertTrue("activity calendar retains its list", Shots.find(home, "日程列表").isSelected());
         assertTrue(UiPrefs.calendarAvailable(home));
         assertTrue(UiPrefs.calendarGrid(home, false));
         assertFalse(UiPrefs.calendarGrid(home, true));
@@ -80,7 +80,7 @@ public class ScheduleGridUiTest extends UiTestBase {
         assertTrue(Shots.has(home, "打工"));
         View social = category(home.getWindow().getDecorView(), "社群");
         assertNotNull(social);
-        assertEquals("已折叠", social.getStateDescription());
+        assertEquals("已收起", social.getStateDescription());
         social.performClick();
         Shots.idle();
         assertEquals("已展开", social.getStateDescription());
@@ -95,7 +95,7 @@ public class ScheduleGridUiTest extends UiTestBase {
     @Test public void yesterdayInTheGridUsesActualRecordedResultsAndOpensCorrections() {
         HomeActivity home = home();
         home.selectTab(HomeActivity.TAB_SCHEDULE);
-        Shots.click(home, "网格视图");
+        Shots.click(home, "月历");
         ScheduleMonthGrid grid = find(home.getWindow().getDecorView(), ScheduleMonthGrid.class);
         grid.select(Fixtures.OCT_22 - 1, true);
         assertTrue(Shots.has(home, "在宿舍房间学习 · 学力 +2"));
@@ -109,7 +109,7 @@ public class ScheduleGridUiTest extends UiTestBase {
     @Test public void browsingEarlierActivityMonthsThenReturningToThePlanFindsToday() {
         HomeActivity home = home();
         home.selectTab(HomeActivity.TAB_SCHEDULE);
-        Shots.click(home, "网格视图");
+        Shots.click(home, "月历");
         Shots.click(home, "活动日历");
         ScheduleMonthGrid grid = find(home.getWindow().getDecorView(), ScheduleMonthGrid.class);
         grid.select(Fixtures.day(5, 12), true);
@@ -130,7 +130,7 @@ public class ScheduleGridUiTest extends UiTestBase {
         Shots.click(home, "活动日历");
         View work = category(home.getWindow().getDecorView(), "打工");
         assertNotNull(work);
-        assertEquals("已折叠", work.getStateDescription());
+        assertEquals("已收起", work.getStateDescription());
         work.performClick();
         assertEquals("已展开", work.getStateDescription());
         api.fireChanged();
@@ -144,7 +144,7 @@ public class ScheduleGridUiTest extends UiTestBase {
     public void largerTextKeepsDayNumbersAndBothSummariesInsideTheirTiles() {
         HomeActivity home = home();
         home.selectTab(HomeActivity.TAB_SCHEDULE);
-        Shots.click(home, "网格视图");
+        Shots.click(home, "月历");
         Shots.shot(home, "home_schedule_grid_font130");
         ScheduleMonthGrid grid = find(home.getWindow().getDecorView(), ScheduleMonthGrid.class);
         View day = findDay(grid, Fixtures.OCT_22);

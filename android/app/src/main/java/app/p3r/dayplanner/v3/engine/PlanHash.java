@@ -36,7 +36,7 @@ final class PlanHash {
 
     private PlanHash profile(Profile p) {
         for (int i = 0; i < p.tier.length; i++) {
-            str(p.tier[i].name()).num(p.order[i]).num(p.target[i]).str(p.route[i].name());
+            str(p.tier[i].name()).num(0).num(p.target[i]).str(p.route[i].name());
         }
         bool(p.otherLinks).bool(p.personaBonus).bool(p.charmBonus).bool(p.goalBuffer);
         str(p.effectivePersonaMode().name()).bool(p.datingNotes);

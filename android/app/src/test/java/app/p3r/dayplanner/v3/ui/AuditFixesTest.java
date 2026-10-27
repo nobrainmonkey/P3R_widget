@@ -298,7 +298,7 @@ public class AuditFixesTest extends UiTestBase {
         a.sheets().dismiss();
         Shots.idle();
         Shots.click(a, "女教皇 · 山岸风花，RANK 5 → 9，时间先给了皇帝");
-        assertTrue(Shots.has(a, "回答按哪条路线？"));
+        assertTrue(Shots.has(a, "想走哪条路线？"));
         assertTrue("default is 朋友", Shots.find(a, "女教皇 路线：朋友").isSelected());
         assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("安排不会要求你走恋爱路线"));
         Shots.click(a, "女教皇 路线：恋人");

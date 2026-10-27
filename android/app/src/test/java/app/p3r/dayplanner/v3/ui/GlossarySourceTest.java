@@ -117,7 +117,7 @@ public class GlossarySourceTest {
         List<File> files = sources("v3/ui", "v3/widget", "v3/service", "v3/engine");
         File service = new File(sourceRoot(), "v3/service/PlannerService.java");
         assertTrue("the scan sees the service's messages", files.contains(service)
-                && literals(read(service)).contains("生成安排时出了问题，现在的安排先不变"));
+                && literals(read(service)).contains("新安排没排出来，现在的安排先不变"));
         List<String> issues = new ArrayList<>();
         for (File f : files) {
             for (String literal : literals(read(f))) {
@@ -161,13 +161,7 @@ public class GlossarySourceTest {
 
     @Test
     public void engineAndServiceMessagesDoNotHedge() throws IOException {
-        List<File> files = new ArrayList<>();
-        for (File f : sources("v3/ui", "v3/widget", "v3/service", "v3/engine")) {
-            String dir = f.getParentFile().getName();
-            if (dir.equals("service") || dir.equals("engine")) {
-                files.add(f);
-            }
-        }
+        List<File> files = sources("v3/ui", "v3/widget", "v3/service", "v3/engine");
         assertTrue("the scan sees the history text",
             files.contains(new File(sourceRoot(), "v3/service/HistoryText.java")));
         List<String> issues = new ArrayList<>();

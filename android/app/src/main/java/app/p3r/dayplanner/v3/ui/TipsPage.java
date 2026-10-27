@@ -76,8 +76,8 @@ final class TipsPage {
         "守关首领", "满月作战", "蒙纳多", "蒙纳多之门", "蒙纳多通道", "剧情作战", "最终战", "特殊挑战"));
 
     static final String EMPTY_SEARCH = "没找到。换个说法试试？比如「风花」「36F」「委托 75」";
-    static final String EMPTY_KIND = "这一期没有这一类。";
-    static final String NO_DATE = "现在玩到游戏里的哪一天了？";
+    static final String EMPTY_KIND = "这一期没有相关的提示。";
+    static final String NO_DATE = "现在玩到哪一天了？";
     static final String SET_DATE = "设置日期";
     static final String SHOW_ALL = "看全部";
     static final String CLOSE = "知道了";
@@ -822,7 +822,7 @@ final class TipsPage {
         PeriodTips.Period selected = allScope ? catalogue : period;
         if (selected != null && selected.ongoingIds.contains(reminder.id)) {
             if ("period.nurse".equals(reminder.id)) return "探索后的第二天";
-            if (reminder.id.startsWith("period.")) return "这一期随时";
+            if (reminder.id.startsWith("period.")) return "这一期随时可以接";
             return Zh.date(Rules.dayOf(reminder.slot)) + "起随时";
         }
         return dateLine(reminder, currentSlot, selected == null ? null : selected.calendarEndSlots.get(reminder.id));

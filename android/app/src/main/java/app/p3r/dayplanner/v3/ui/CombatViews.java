@@ -261,7 +261,7 @@ final class CombatViews {
         row.setClickable(true);
         row.setFocusable(true);
         row.setContentDescription(kindLabel(combat) + "，" + spokenTitle(combat)
-            + (combat.enemies.isEmpty() ? "" : "，" + weaknessSummary(combat)) + "，查看属性与打法");
+            + (combat.enemies.isEmpty() ? "" : "，" + weaknessSummary(combat)));
         row.setOnClickListener(v -> open.run());
         return row;
     }
@@ -295,8 +295,7 @@ final class CombatViews {
         row.setClickable(true);
         row.setFocusable(true);
         row.setContentDescription((combat.battleOrder > 0 ? "第 " + combat.battleOrder + " 战，" : "")
-            + spokenTitle(combat) + (combat.enemies.isEmpty() ? "" : "，" + weaknessSummary(combat))
-            + "，查看属性与打法");
+            + spokenTitle(combat) + (combat.enemies.isEmpty() ? "" : "，" + weaknessSummary(combat)));
         row.setOnClickListener(v -> open.run());
         return row;
     }

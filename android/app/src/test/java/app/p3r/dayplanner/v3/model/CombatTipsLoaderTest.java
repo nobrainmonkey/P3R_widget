@@ -36,9 +36,9 @@ public class CombatTipsLoaderTest {
         assertTrue(floors.contains(255));
         assertEquals(8, operations);
         assertEquals(39, monad);
-        assertTrue(find(rules, "combat.thebel.full_moon").detailZh.contains("火炎伤害×2（不会因此倒地）"));
+        assertTrue(find(rules, "combat.thebel.full_moon").detailZh.contains("火焰伤害×2（不会因此倒地）"));
         String nyx = find(rules, "combat.adamah_final.264").detailZh;
-        assertTrue(nyx.contains("倪克斯化身·魔术师｜弱点：无；无效：火炎"));
+        assertTrue(nyx.contains("倪克斯化身·魔术师｜弱点：无；无效：火焰"));
         assertTrue(nyx.contains("倪克斯化身·死神｜弱点：无\n"));
     }
 

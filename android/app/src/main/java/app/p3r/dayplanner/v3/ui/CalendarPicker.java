@@ -307,7 +307,7 @@ final class CalendarPicker extends LinearLayout {
             cell.addView(moon, mp);
         }
         number.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
-        String desc = Zh.date(day) + (full ? "，满月" : "") + (enabled ? "" : "，剧情占用")
+        String desc = Zh.date(day) + (full ? "，满月" : "") + (enabled ? "" : "，剧情")
             + (selected ? "，已选" : "") + (day == markedDay ? "，上次记录" : "");
         cell.setContentDescription(desc);
         if (enabled) {

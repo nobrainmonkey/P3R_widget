@@ -18,7 +18,7 @@ final class Rejection {
     }
 
     static Rejection gap(int missingSlots) {
-        String zh = "前面还有 " + missingSlots + " 个时段没记，先补上？";
+        String zh = "前面还有 " + missingSlots + " 个时间没记，先补上？";
         return new Rejection(PlannerApi.Receipt.CODE_GAP, zh, missingSlots);
     }
 

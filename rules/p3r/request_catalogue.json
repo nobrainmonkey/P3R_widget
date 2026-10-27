@@ -329,12 +329,12 @@
         "Toy Bow"
       ],
       "titleZh": "把松脂粉带过来",
-      "stepsZh": "先接下委托，晚上回宿舍1楼找岳羽由加莉，取得松脂，再向伊莉莎白交付。接取和取物的顺序不能颠倒。",
+      "stepsZh": "先接下委托，晚上回宿舍1楼找岳羽由加莉，取得松脂粉，再向伊莉莎白交付。接取和取物的顺序不能颠倒。",
       "rewardZh": "玩具弓",
       "aliases": [
         "Bring me pine resin.",
-        "松脂",
-        "带来松脂"
+        "松脂粉",
+        "带来松脂粉"
       ],
       "nameBasis": "cn_wiki_reference"
     },
@@ -349,7 +349,7 @@
         "Pixel Vest"
       ],
       "titleZh": "把便携式游戏机带过来",
-      "stepsZh": "先交付第12号，再接第13号；晚上回宿舍找伊织顺平，取得掌上游戏机并交付。两件都要在6月6日或更早交完。",
+      "stepsZh": "先交付第12号，再接第13号；晚上回宿舍找伊织顺平，取得便携式游戏机并交付。两件都要在6月6日或更早交完。",
       "rewardZh": "像素背心",
       "aliases": [
         "Bring me a handheld game console.",
@@ -549,7 +549,7 @@
         "Twilight Fragment x5"
       ],
       "titleZh": "针对人格面具合体的建议",
-      "stepsZh": "在天鹅绒房间累计进行20次人格面具合体，再向伊莉莎白报告。可随正常合体累计；",
+      "stepsZh": "在天鹅绒房间累计进行20次人格面具合体，再向伊莉莎白报告。可随正常合体累计。",
       "rewardZh": "黄昏的碎片×5",
       "aliases": [
         "Persona Fusion Milestone",
@@ -630,12 +630,12 @@
         "Gallant Sneakers"
       ],
       "titleZh": "把三角之剑带过来",
-      "stepsZh": "先接下委托，晚上回宿舍找桐条美鹤，取得三棱剑后交付。",
+      "stepsZh": "先接下委托，晚上回宿舍找桐条美鹤，取得三角之剑后交付。",
       "rewardZh": "英勇运动鞋",
       "aliases": [
         "Bring me a triangular sword.",
         "triangular sword",
-        "带来三棱剑"
+        "带来三角之剑"
       ],
       "nameBasis": "cn_wiki_reference"
     },
@@ -748,7 +748,7 @@
         "Twilight Fragment x5"
       ],
       "titleZh": "针对人格面具合体的建议·其二",
-      "stepsZh": "在天鹅绒房间累计进行35次人格面具合体，再向伊莉莎白报告。可随正常合体累计；",
+      "stepsZh": "在天鹅绒房间累计进行35次人格面具合体，再向伊莉莎白报告。可随正常合体累计。",
       "rewardZh": "黄昏的碎片×5",
       "aliases": [
         "Persona Fusion Milestone #2",
@@ -1065,7 +1065,7 @@
         "Twilight Fragment x5"
       ],
       "titleZh": "针对人格面具合体的建议·其三",
-      "stepsZh": "在天鹅绒房间累计进行50次人格面具合体，再向伊莉莎白报告。可随正常合体累计；",
+      "stepsZh": "在天鹅绒房间累计进行50次人格面具合体，再向伊莉莎白报告。可随正常合体累计。",
       "rewardZh": "黄昏的碎片×5",
       "aliases": [
         "Persona Fusion Milestone #3",
@@ -2159,12 +2159,12 @@
         "Divine Pillar"
       ],
       "titleZh": "把染血的纽扣带过来",
-      "stepsZh": "在塔尔塔罗斯击败死神，取得血染纽扣后带回交付。",
+      "stepsZh": "在塔尔塔罗斯击败猎杀者，取得染血的纽扣后带回交付。",
       "rewardZh": "神柱",
       "aliases": [
         "Bring me a Bloody Button.",
         "Bloody Button",
-        "带来血染纽扣"
+        "带来染血的纽扣"
       ],
       "nameBasis": "cn_wiki_reference",
       "prerequisiteNumbers": [

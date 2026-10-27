@@ -27,19 +27,19 @@ final class CommandCheck {
     static final int MAX_SIDE_KEYS = 32;
 
     static final String ZH_NO_STATE = "还没填游戏进度，先完成设置吧";
-    static final String ZH_ALREADY_RECORDED = "这个时段已经记录过了";
+    static final String ZH_ALREADY_RECORDED = "这段时间已经记录过了";
     static final String ZH_CALENDAR_OVER = "日程已经结束了";
-    static final String ZH_OUT_OF_CALENDAR = "这个时段不在游戏日程内";
-    static final String ZH_UNKNOWN_ACTION = "没认出这一项，重新选一下？";
-    static final String ZH_SIDE_UNKNOWN = "没认出顺便的事，重新选一下？";
+    static final String ZH_OUT_OF_CALENDAR = "这段时间不在游戏日程内";
+    static final String ZH_UNKNOWN_ACTION = "没找到这一项，重新选一下？";
+    static final String ZH_SIDE_UNKNOWN = "没找到顺便的事，重新选一下？";
     static final String ZH_RANK_RANGE = "RANK 不对，重新选一下？";
     static final String ZH_RANK_NOT_HIGHER = "升级后的 RANK 应该比现在高";
-    static final String ZH_RANK_UP_NOT_MEETING = "只有和社群对象见面才能记录升级";
+    static final String ZH_RANK_UP_NOT_MEETING = "只有和社群见面才能记录升级";
     static final String ZH_STAT_RANGE = "学力、魅力、勇气只能是 Lv.1 到 MAX";
     static final String ZH_CASH_NEGATIVE = "现金不能是负数";
     static final String ZH_CASH_TOO_LARGE = "金额太大了，再看看？";
     static final String ZH_NET_NEGATIVE = "这样算现金会变成负数，再看看？";
-    static final String ZH_REASON = "没认出原因，重新选一下？";
+    static final String ZH_REASON = "没找到原因，重新选一下？";
     static final String ZH_TOWER_EVENING = "塔尔塔罗斯只能在晚上去";
     static final String ZH_TOWER_CLOSED = "这一天还进不了塔尔塔罗斯";
     static final String ZH_TOWER_BLOCK = "区块和日期对不上，重新选一下？";

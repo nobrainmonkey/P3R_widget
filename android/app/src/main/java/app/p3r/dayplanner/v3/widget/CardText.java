@@ -64,7 +64,7 @@ public final class CardText {
      */
     private static final List<String> WORDS = Collections.unmodifiableList(Arrays.asList(
             "费洛蒙咖啡", "塔尔塔罗斯", "人格面具", "阿尔卡那", "羁绊剧情", "结缘网站的字条", "自由活动",
-            "设置", "目标", "当前", "存档", "开始", "生成", "安排", "暂时", "后面", "没有"));
+            "设置", "目标", "当前", "存档", "开始", "生成", "安排", "后面", "没有"));
     /** A space beside a number, except the one before a separator's dot (「RANK2 · 友近」 may break there). */
     private static final Pattern NUMBER_SPACE = Pattern.compile("(?<=\\d) (?=[^\\s·])|(?<=\\S) (?=\\d)");
     /** A title separator however its spaces are shaped (a space beside a number is already no-break). */

@@ -116,7 +116,7 @@ public class InvitationTest {
         Plan.Step invite = Engine.alternatives(rules, profile, s, quick()).stream()
                 .filter(x -> x.action.equals("invite:magician")).findFirst().orElseThrow();
         assertEquals("invite", invite.kind);
-        assertEquals("休息日邀约 · 收到短信时", invite.subtitleZh);
+        assertEquals("休息日邀约 · 收到短信就能去", invite.subtitleZh);
         assertEquals("只加好感，不会直接升级。", invite.detailZh);
         assertTrue(invite.whyZh, invite.whyZh.endsWith("的短信后赴约"));
         assertFalse(invite.predicted.rankUp);

@@ -20,24 +20,24 @@ final class SlotRows {
     static final String CHRISTMAS_LOCK = "christmas_date";
 
     /** The rule pack's title of a slot kept free for a story that may happen, and the app's. */
-    static final String RESERVED_PACK = "可能有剧情（先空出）";
+    static final String RESERVED_PACK = "先空出";
     static final String RESERVED_TITLE = "先空出来";
 
     private SlotRows() {}
 
     /**
      * Title for a step; story locks fall back to the rule pack's reason text. The pack's reserved
-     * slot (「可能有剧情（先空出）」, also on the widget) reads 「先空出来」 in the app: its note says why.
+     * slot reads 「先空出来」 in the app: its note says why.
      */
     static String title(Rules rules, Plan.Step step) {
         if (step.titleZh != null && !step.titleZh.isEmpty()) {
-            return RESERVED_PACK.equals(step.titleZh) ? RESERVED_TITLE : step.titleZh;
+            return step.titleZh.contains(RESERVED_PACK) ? RESERVED_TITLE : step.titleZh;
         }
         if ("locked".equals(step.kind) && rules != null && step.action.startsWith("locked:")) {
             String id = step.action.substring(7);
             String reason = rules.lockReasonsZh.get(id);
             if (reason != null) {
-                return RESERVED_PACK.equals(reason) ? RESERVED_TITLE : reason;
+                return reason.contains(RESERVED_PACK) ? RESERVED_TITLE : reason;
             }
             if (CHRISTMAS_LOCK.equals(id)) {
                 // An accepted 12/24 invitation (Profile.christmasLink) is not a lock of the pack.

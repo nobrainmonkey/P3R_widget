@@ -75,7 +75,7 @@ public class AvailableActionsTest {
                     assertEquals("电玩城", entry.categoryZh);
                     assertTrue(entry.title.contains("+3"));
                     assertTrue(entry.detail.contains("2,000 日元"));
-                    assertTrue(entry.detail.contains("当前装备的面具"));
+                    assertTrue(entry.detail.contains("当前装备的人格面具"));
                     assertTrue(entry.isInformational);
                     assertNull("training is a tip, not a recordable planner action", entry.type);
                     assertNull(Action.parse(rules, entry.key));
@@ -90,7 +90,7 @@ public class AvailableActionsTest {
         String before = state.toJson().toString();
         AvailableActions.Calendar calendar = AvailableActions.build(rules, new Profile(), state);
         assertTrue(find(calendar.day(day("10-26")).evening, "info:arcade_persona_strength")
-            .detail.contains("现金不足"));
+            .detail.contains("钱不够"));
         AvailableActions.Day trip = calendar.day(day("11-18"));
         assertNotNull(trip.daytimeLockZh);
         assertNotNull(trip.eveningLockZh);
@@ -101,7 +101,7 @@ public class AvailableActionsTest {
         state.cashExact = false;
         AvailableActions.Entry lowerBound = find(AvailableActions.build(rules, new Profile(), state)
             .day(day("10-26")).daytime, "info:arcade_persona_strength");
-        assertFalse(lowerBound.detail.contains("现金不足"));
+        assertFalse(lowerBound.detail.contains("钱不够"));
     }
 
     @Test public void ryojiCalendarUsesTheActualSceneNumbersAndMeetingLocations() {
@@ -137,10 +137,10 @@ public class AvailableActionsTest {
         AvailableActions.Day day = AvailableActions.build(rules, profile, state).day(day("10-26"));
         AvailableActions.Entry coffee = find(day.evening, "act:coffee_chagall");
         assertNotNull(coffee);
-        assertEquals("营业", coffee.categoryZh);
+        assertEquals("店铺", coffee.categoryZh);
         assertTrue(coffee.detail.contains("500 日元"));
-        assertTrue(coffee.detail.contains("现金不足"));
-        assertTrue(find(day.daytime, "act:arcade_youth").detail.contains("现金不足"));
+        assertTrue(coffee.detail.contains("钱不够"));
+        assertTrue(find(day.daytime, "act:arcade_youth").detail.contains("钱不够"));
         AvailableActions.Entry job = find(day.evening, "act:job_chagall");
         assertEquals("打工", job.categoryZh);
         assertTrue(job.detail.contains("报酬 2,500 日元"));
@@ -156,7 +156,7 @@ public class AvailableActionsTest {
         AvailableActions.Calendar calendar = AvailableActions.build(rules, profile, state);
         AvailableActions.Entry entry = find(calendar.day(209).evening, "act:dorm_yukari_dvd");
         assertNotNull(entry);
-        assertEquals("宿舍", entry.categoryZh);
+        assertEquals("宿舍活动", entry.categoryZh);
         assertTrue(entry.detail.contains("已做 2/3 次"));
         assertNull(find(calendar.day(210).evening, "act:dorm_yukari_dvd"));
         for (Rules.Activity activity : rules.activities) {
@@ -164,7 +164,7 @@ public class AvailableActionsTest {
             int date = activity.fixedDays[activity.fixedDays.length - 1];
             AvailableActions.Entry gardening = find(calendar.day(date).evening, "act:" + activity.id);
             if (gardening != null) {
-                assertTrue(gardening.detail.contains("需种好作物"));
+                assertTrue(gardening.detail.contains("要先种好菜"));
                 return;
             }
         }
@@ -290,10 +290,10 @@ public class AvailableActionsTest {
         profile.christmasLink = "lovers";
         AvailableActions.Entry arcade = find(calendar.day(day("10-26")).evening, "act:arcade_youth");
         assertNotNull(arcade);
-        assertFalse("a recorded cash lower bound cannot prove insufficient money", arcade.detail.contains("现金不足"));
+        assertFalse("a recorded cash lower bound cannot prove insufficient money", arcade.detail.contains("钱不够"));
         assertNull("profile edits must not change the captured calendar", calendar.day(day("12-24")).eveningLockZh);
         AvailableActions.Calendar fresh = AvailableActions.build(rules, profile, state);
-        assertTrue(find(fresh.day(day("10-26")).evening, "act:arcade_youth").detail.contains("现金不足"));
+        assertTrue(find(fresh.day(day("10-26")).evening, "act:arcade_youth").detail.contains("钱不够"));
         assertEquals("平安夜约会", fresh.day(day("12-24")).eveningLockZh);
         assertSame(calendar.day(day("10-26")), calendar.day(day("10-26")));
     }

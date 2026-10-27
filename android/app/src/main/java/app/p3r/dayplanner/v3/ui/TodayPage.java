@@ -30,7 +30,7 @@ import app.p3r.dayplanner.v3.service.StoryDisplay;
  * answers, 顺便, an urgent reason only, [做不了…] [完成]), 今天别错过, 今天可做, the rest of today
  * and tomorrow, and the goals that are in trouble. Once Jan 31 is recorded the hero becomes a closing card.
  */
-final class TodayPage {
+public final class TodayPage {
     /** 接下来 covers the rest of today and this many more days. */
     private static final int LOOKAHEAD_DAYS = 1;
 
@@ -323,8 +323,10 @@ final class TodayPage {
             up.leftMargin = Ui.dp(c, 2);
             cell.addView(suffix, up);
         }
-        cell.setContentDescription("现金 " + ("—".equals(value) ? CashPad.UNKNOWN_LABEL
-            : value + (unit == null ? "" : unit)));
+        String spoken = "—".equals(value) ? CashPad.UNKNOWN_LABEL
+            : value.endsWith("+") ? "至少 " + value.substring(0, value.length() - 1) + (unit == null ? "" : " " + unit)
+            : value + (unit == null ? "" : unit);
+        cell.setContentDescription("现金 " + spoken);
         return cell;
     }
 
@@ -408,7 +410,7 @@ final class TodayPage {
                 retry.setOnClickListener(v -> host.requestReplan());
                 card.addView(retry, spaced(14));
             } else {
-                card.addView(Ui.headline(c, "正在安排到1月31日…"));
+                card.addView(Ui.headline(c, "正在排到 1月31日…"));
                 card.addView(new BusyStripe(c), spaced(14));
             }
             return card;
@@ -518,15 +520,16 @@ final class TodayPage {
      * around on some days, a stat an unlock needs, or a story hold (「要等剧情推进才能升级…」,
      * 「6月20日前升不了级…」); null for every reason that only explains the plan.
      */
-    static String urgentReason(String why) {
+    public static String urgentReason(String why) {
         if (why == null || why.trim().isEmpty()) {
             return null;
         }
         String text = why.trim();
         boolean urgent = text.contains("最后") || text.contains("期限") || text.contains("只在")
             || text.contains("机会不多") || text.contains("日子不多") || text.contains("晚上不多")
-            || (text.contains("需要") && text.contains("达到")) || text.contains("暂时无法升级")
-            || text.contains("要等剧情") || text.contains("升不了级") || text.contains("短信后赴约");
+            || (text.contains("需要") && text.contains("达到")) || text.contains("无法升级")
+            || text.contains("没法升级") || text.contains("要等剧情") || text.contains("升不了级")
+            || text.contains("短信后赴约");
         return urgent ? text : null;
     }
 
@@ -566,7 +569,7 @@ final class TodayPage {
         row.setGravity(Gravity.BOTTOM);
         row.addView(Ui.numeral(c, String.valueOf(maxed), 72, Ui.col(c, R.color.p3r_cyan_400)), Ui.wrap());
         LinearLayout labels = Ui.column(c);
-        labels.addView(Ui.mixed(c, "MAX 社群", 17, Ui.col(c, R.color.p3r_white), true));
+        labels.addView(Ui.mixed(c, "个社群升到 MAX", 17, Ui.col(c, R.color.p3r_white), true));
         if (goals > 0) {
             labels.addView(Ui.mixed(c, "目标 " + goalsMaxed + "/" + goals, 15, Ui.col(c, R.color.p3r_cyan_200), true));
         }
@@ -589,7 +592,7 @@ final class TodayPage {
             boolean pendingStory = host.data().snap.storyDisplay != null
                     && host.data().snap.storyDisplay.cursorSlot == step.slot;
             TextView go = Ui.primary(c, pendingStory ? StoryDisplay.CONTINUE_LABEL : "继续");
-            go.setContentDescription("剧情结束，继续到下一个时段");
+            go.setContentDescription("剧情过完了，继续");
             go.setOnClickListener(v -> host.commitDirect(step));
             row.addView(go, Ui.weight(1));
             return row;

@@ -164,9 +164,7 @@ public class PlannerServiceFollowUpTest extends ServiceTestBase {
     public void improvesComparesGoalsInPriorityOrderThenMaxedLinksThenRanks() {
         Profile p = new Profile();
         p.tier[3] = Profile.Tier.MUST;
-        p.order[3] = 0;
-        p.tier[5] = Profile.Tier.MUST;
-        p.order[5] = 1;
+        p.tier[5] = Profile.Tier.WANT;
         p.tier[7] = Profile.Tier.WANT;
         Plan current = exhausted(new int[22]);
         current.summary.endRanks[3] = 9;
@@ -174,7 +172,7 @@ public class PlannerServiceFollowUpTest extends ServiceTestBase {
         Plan firstGoalUp = exhausted(current.summary.endRanks.clone());
         firstGoalUp.summary.endRanks[3] = 10;
         firstGoalUp.summary.endRanks[5] = 6;
-        assertTrue("the first goal decides", PlannerService.improves(p, firstGoalUp, current));
+        assertTrue("the MUST goal decides", PlannerService.improves(p, firstGoalUp, current));
         assertFalse(PlannerService.improves(p, current, firstGoalUp));
 
         Plan moreMax = exhausted(current.summary.endRanks.clone());

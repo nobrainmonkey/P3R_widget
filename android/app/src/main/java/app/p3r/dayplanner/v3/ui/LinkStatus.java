@@ -14,14 +14,12 @@ import app.p3r.dayplanner.v3.model.Rules;
  * does when it is not (the goal the time went to, or a rescue to record).
  */
 public final class LinkStatus {
-    /** What the player can do in 目标 / 目标顺序 about a goal the plan does not reach. */
+    /** What the player can do about a goal the plan does not reach. */
     enum Fix {
-        /** Nothing there helps: it is first in its tier with no goal to pass (or the plan predates the tiers). */
+        /** Nothing there helps (or the goal is already 必须). */
         NONE,
-        /** Move it up in 目标顺序 (past {@link #blocker} when there is one). */
-        REORDER,
-        /** A 想要 goal that gave way to a 必须 one: set it to 必须, then move it up past that one. */
-        MUST_THEN_REORDER
+        /** A 想要 goal: set it to 必须. */
+        SET_MUST
     }
 
     public final int link;
@@ -102,7 +100,7 @@ public final class LinkStatus {
             foot = "";
             chip = name + " " + (target >= 10 ? "MAX" : Zh.rank(target)) + " ✓";
         } else if (lost) {
-            foot = failed ? "没救出失踪者，无法继续" : "救出" + missed.zh + "了吗？";
+            foot = failed ? "没救出失踪者，没法继续了" : "救出" + missed.zh + "了吗？";
             chip = name + " 无法继续";
         } else if (targetSlot >= 0) {
             String when = Zh.date(Rules.dayOf(targetSlot));
@@ -116,7 +114,7 @@ public final class LinkStatus {
             chip = name + " " + Zh.rankValue(obs) + " → " + Zh.rankValue(target);
         } else if (projected >= target) {
             // A goal gets the line; elsewhere 「6 → MAX」 already says it.
-            foot = !goal ? "" : target >= 10 ? "1月31日前升到 MAX" : "升到 " + Zh.rank(target);
+            foot = !goal ? "" : target >= 10 ? "结束前升到 MAX" : "升到 " + Zh.rank(target);
             chip = name + " " + Zh.rankValue(obs) + " → " + Zh.rankValue(target);
         } else if (!goal) {
             // Not a goal: the rank line (「未解锁 → RANK 7」) is all there is to say.
@@ -145,44 +143,34 @@ public final class LinkStatus {
 
     /**
      * The 社群详情 sheet's line for a goal the plan does not reach, with what to do about it where
-     * 目标 / 目标顺序 can do something: "时间先给了女皇。想先冲它，就排到女皇前面" (same tier),
-     * "时间先给了皇帝。想先冲它，就设成必须，排到皇帝前面" (a 想要 goal behind a 必须 one),
-     * "这次排到 RANK 9。想冲 MAX，就把它往前排", or just "这次排到 RANK 9" when it is already first.
+     * setting to 必须 can help: "时间先给了皇帝。想先冲它，就设成必须" (a 想要 goal behind a 必须 one),
+     * "时间先给了女皇" (same tier), or "这次排到 RANK 9。想冲 MAX，就设成必须" (a 想要 goal with no competitor).
      */
     static String shortfall(String goalText, int observed, int projected, String blocker, Fix fix) {
         if (blocker != null) {
             String traded = tradedLine(blocker);
-            switch (fix) {
-                case REORDER:
-                    return traded + "。想先冲它，就排到" + blocker + "前面";
-                case MUST_THEN_REORDER:
-                    return traded + "。想先冲它，就设成必须，排到" + blocker + "前面";
-                default:
-                    return traded;
-            }
+            return fix == Fix.SET_MUST ? traded + "。想先冲它，就设成必须" : traded;
         }
         String now = projected > observed ? "这次排到 " + Zh.rank(projected) : "这次没排上";
-        return fix == Fix.REORDER ? now + "。想冲 " + goalText + "，就把它往前排" : now;
+        return fix == Fix.SET_MUST ? now + "。想冲 " + goalText + "，就设成必须" : now;
     }
 
     /**
-     * What 目标 / 目标顺序 can do for goal {@code linkIdx}, which gave way to goal {@code blockerIdx}
-     * (-1: to none). 目标顺序 moves a goal only within its tier and every 必须 goal comes before every
-     * 想要 one, so a 想要 goal gets past a 必须 one only once it is 必须 itself.
+     * What the player can do for goal {@code linkIdx}, which gave way to goal {@code blockerIdx}
+     * (-1: to none). Setting to 必须 helps when a 想要 goal fell short or gave way to a 必须 one.
      */
     static Fix fix(Profile profile, int linkIdx, int blockerIdx) {
         if (profile == null) {
             return Fix.NONE;
         }
         Profile.Tier tier = profile.tier[linkIdx];
-        if (blockerIdx >= 0) {
-            Profile.Tier other = profile.tier[blockerIdx];
-            return other == tier ? Fix.REORDER
-                : other == Profile.Tier.MUST && tier == Profile.Tier.WANT ? Fix.MUST_THEN_REORDER : Fix.NONE;
+        if (tier != Profile.Tier.WANT) {
+            return Fix.NONE;
         }
-        List<Integer> goals = goalOrder(profile);
-        int at = goals.indexOf(linkIdx);
-        return at > 0 && profile.tier[goals.get(at - 1)] == tier ? Fix.REORDER : Fix.NONE;
+        if (blockerIdx >= 0) {
+            return profile.tier[blockerIdx] == Profile.Tier.MUST ? Fix.SET_MUST : Fix.NONE;
+        }
+        return Fix.SET_MUST;
     }
 
     /** True when the link cannot continue: its rescue failed, or its window passed without one. */
@@ -240,7 +228,7 @@ public final class LinkStatus {
         return link.numeral != null && !link.numeral.trim().isEmpty() ? link.numeral.trim() : Zh.roman(link.arcanaNo);
     }
 
-    /** Goal link indices, 必须 before 想要, each tier by its order then arcana order. */
+    /** Goal link indices, 必须 before 想要, each tier by arcana order. */
     public static List<Integer> goalOrder(Profile profile) {
         List<Integer> out = new ArrayList<>();
         if (profile == null) {
@@ -253,8 +241,7 @@ public final class LinkStatus {
                     inTier.add(i);
                 }
             }
-            inTier.sort((a, b) -> profile.order[a] != profile.order[b]
-                ? Integer.compare(profile.order[a], profile.order[b]) : Integer.compare(a, b));
+            inTier.sort(Integer::compare);
             out.addAll(inTier);
         }
         return out;

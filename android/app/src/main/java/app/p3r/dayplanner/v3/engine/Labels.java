@@ -261,7 +261,7 @@ final class Labels {
             // The day's own note says what an accepted invitation does; this player accepted one.
             step.subtitleZh = "这段时间不能自由行动";
             String with = christmasPartner();
-            step.detailZh = with == null ? "已经答应了平安夜的邀约" : "已经答应了" + with + "的平安夜邀约";
+            step.detailZh = with == null ? "已经答应了平安夜约会" : "已经答应了" + with + "的平安夜约会";
             return;
         }
         Rules.Day d = rules.day(step.slot >> 1);
@@ -290,7 +290,7 @@ final class Labels {
         step.entity = link.id;
         step.titleZh = linkLabel(l);
         step.locationZh = "应邀外出";
-        step.subtitleZh = INVITE + " · 收到短信时";
+        step.subtitleZh = INVITE + " · 收到短信就能去";
         step.whyZh = "收到" + link.personZh + "的短信后赴约";
         step.detailZh = "只加好感，不会直接升级。";
     }
@@ -412,7 +412,7 @@ final class Labels {
             String to = fx.rankTo >= 10 ? "MAX" : "RANK " + fx.rankTo;
             core = fx.certain ? "这次见面一定能升到 " + to : "预计这次见面能升到 " + to;
         } else {
-            core = "好感还不够升级，先多见面几次";
+            core = "好感还不够升级，先多见几次";
         }
         return goal == null ? core : goal + "，" + core;
     }
@@ -847,7 +847,7 @@ final class Labels {
             } else if (end.rank[l] == 0) {
                 // A heuristic plan never proves a goal impossible: say what this plan does, not why it must be so.
                 String gate = unmetGate(end, l);
-                outcome = gate != null ? "还差" + gate + " 才能解锁" : "还没排上解锁";
+                outcome = gate != null ? gate + " 后才能解锁" : "还没排上解锁";
             } else if (openEndedHold(end, l) != null) {
                 outcome = openEndedHold(end, l) + "，先安排到 RANK " + rankName(end.rank[l]);
                 traded = null;
@@ -957,7 +957,6 @@ final class Labels {
             int ta = p.tier[a] == Profile.Tier.MUST ? 0 : 1;
             int tb = p.tier[b] == Profile.Tier.MUST ? 0 : 1;
             if (ta != tb) return Integer.compare(ta, tb);
-            if (p.order[a] != p.order[b]) return Integer.compare(p.order[a], p.order[b]);
             return Integer.compare(a, b);
         });
         return out;

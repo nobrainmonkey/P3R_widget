@@ -183,10 +183,10 @@ public class DesignReviewTest extends UiTestBase {
         // The tile says where the time went; the detail sheet adds what to do about it.
         String foot = LinkStatus.tradedLine("女皇");
         assertEquals("时间先给了女皇", foot);
-        String sheet = LinkStatus.shortfall("MAX", 5, 9, "女皇", LinkStatus.Fix.REORDER);
-        assertEquals("时间先给了女皇。想先冲它，就排到女皇前面", sheet);
-        assertEquals("这次排到 RANK 9。想冲 MAX，就把它往前排",
-            LinkStatus.shortfall("MAX", 5, 9, null, LinkStatus.Fix.REORDER));
+        String sheet = LinkStatus.shortfall("MAX", 5, 9, "女皇", LinkStatus.Fix.SET_MUST);
+        assertEquals("时间先给了女皇。想先冲它，就设成必须", sheet);
+        assertEquals("这次排到 RANK 9。想冲 MAX，就设成必须",
+            LinkStatus.shortfall("MAX", 5, 9, null, LinkStatus.Fix.SET_MUST));
         // Any tile width: no line ends with an opening bracket or a comma at a line start.
         for (int w = 90; w <= 200; w += 4) {
             TextView t = drawn(foot, 13, false, w);
@@ -354,7 +354,7 @@ public class DesignReviewTest extends UiTestBase {
         Plan plan = api.snap.plan;
         plan.summary.maxSlot[4] = -1;
         plan.summary.endRanks[4] = 10;
-        assertEquals("1月31日前升到 MAX",
+        assertEquals("结束前升到 MAX",
             LinkStatus.of(api.rules, api.snap.profile, api.snap.observed, plan, 4).footZh);
         HomeActivity s = homeOn("schedule");
         String all = Shots.allText(s.getWindow().getDecorView());
@@ -377,9 +377,9 @@ public class DesignReviewTest extends UiTestBase {
     public void loadFailedCopyMatchesTheRetryButton() {
         // The title already says the records were not read and [重试] says what to do: a body only
         // when the service's reason adds something, never an echo of the button.
-        assertEquals("", Messages.loadFailed("读取记录失败了，请重新打开应用"));
-        assertEquals("游戏资料读取失败。", Messages.loadFailed("游戏资料读取失败，请重新打开应用"));
-        assertEquals("生成安排时出了问题。", Messages.loadFailed("生成安排时出了问题，请稍后再试"));
+        assertEquals("", Messages.loadFailed("记录没读出来，重开应用试试"));
+        assertEquals("游戏资料没读出来。", Messages.loadFailed("游戏资料没读出来，重开应用试试"));
+        assertEquals("新安排没排出来。", Messages.loadFailed("新安排没排出来，稍后再试一次"));
         assertEquals("", Messages.loadFailed(null));
         assertEquals("", Messages.loadFailed("java.io.IOException"));
     }

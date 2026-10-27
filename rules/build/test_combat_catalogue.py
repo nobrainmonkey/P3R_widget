@@ -26,7 +26,7 @@ class CombatCatalogueTest(unittest.TestCase):
         self.assertEqual(expected, {x["floor"] for x in self.items.values() if x["kind"] == "guardian"})
         self.assertEqual(39, sum(x["kind"] == "monad" for x in self.items.values()))
         self.assertEqual(97, len(self.items))
-        self.assertIn("魔法之手｜弱点：火炎", self.items["combat.thebel.11"]["detailZh"])
+        self.assertIn("魔法之手｜弱点：火焰", self.items["combat.thebel.11"]["detailZh"])
         self.assertIn("依存之搭档｜弱点：贯穿", self.items["combat.yabbashah_1.91"]["detailZh"])
 
     def test_all_seven_operation_nights_include_both_november_encounters(self) -> None:
@@ -43,27 +43,27 @@ class CombatCatalogueTest(unittest.TestCase):
         priestess = self.items["combat.thebel.full_moon"]["detailZh"]
         line = next(line for line in priestess.splitlines() if line.startswith("女教皇｜"))
         self.assertIn("弱点：无", line)
-        self.assertIn("火炎伤害×2（不会因此倒地）", line)
+        self.assertIn("火焰伤害×2（不会因此倒地）", line)
         self.assertIn("无效：冰冻", line)
         self.assertNotIn("电击", line)
-        self.assertNotIn("光", line)
-        self.assertNotIn("暗", line)
+        self.assertNotIn("神圣", line)
+        self.assertNotIn("暗黑", line)
         hermit = self.items["combat.yabbashah_2.full_moon"]["detailZh"].splitlines()[0]
-        self.assertIn("无效：电击、疾风、暗", hermit)
-        self.assertNotIn("光", hermit)
+        self.assertIn("无效：电击、疾风、暗黑", hermit)
+        self.assertNotIn("神圣", hermit)
         elizabeth = self.items["combat.ultimate.4p"]["detailZh"]
         self.assertIn("冰冻伤害×2（不会因此倒地）", elizabeth)
 
     def test_changing_weaknesses_and_all_nyx_arcana_phases_are_kept_separate(self) -> None:
         emperor = self.items["combat.arqa_1.full_moon"]["detailZh"]
-        for element in ("电击", "冰冻", "火炎", "疾风"):
+        for element in ("电击", "冰冻", "火焰", "疾风"):
             self.assertIn("弱点：" + element, emperor)
         self.assertIn("变换后重新分析", emperor)
         nyx = self.items["combat.adamah_final.264"]["detailZh"]
         phases = [x for x in nyx.splitlines() if x.startswith("倪克斯化身·")]
         self.assertEqual(14, len(phases))
-        self.assertIn("魔术师｜弱点：无；无效：火炎", nyx)
-        self.assertIn("正义｜弱点：无；无效：火炎、冰冻、电击、疾风、光、暗", nyx)
+        self.assertIn("魔术师｜弱点：无；无效：火焰", nyx)
+        self.assertIn("正义｜弱点：无；无效：火焰、冰冻、电击、疾风、神圣、暗黑", nyx)
         self.assertIn("死神｜弱点：无\n", nyx)
         self.assertNotIn("无效：", phases[-1])
         self.assertLess(len(self.items["combat.adamah_final.264"]["shortZh"]), 100)

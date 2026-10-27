@@ -106,7 +106,7 @@ public class PlanStyleSettingsTest extends UiTestBase {
     public void theExplainPageShowsWhatWasChangedInTheSettingsOnTop() {
         HomeActivity a = homeOn("me");
         Shots.click(a, "规划说明");
-        assertTrue(Shots.has(a, "人格面具：只给目标"));
+        assertTrue(Shots.has(a, "人格面具：目标才带"));
         Shots.click(a, "去规划设置 ›");
         Shots.click(a, "不带");
         Shots.click(a, "尽量多 MAX");
@@ -114,7 +114,7 @@ public class PlanStyleSettingsTest extends UiTestBase {
         Shots.idle();
         assertEquals(1, a.pageDepth());
         assertTrue(Shots.has(a, "人格面具：不带"));
-        assertFalse(Shots.has(a, "人格面具：只给目标"));
+        assertFalse(Shots.has(a, "人格面具：目标才带"));
         assertTrue(Shots.has(a, "尽量多 MAX"));
     }
 
@@ -125,11 +125,11 @@ public class PlanStyleSettingsTest extends UiTestBase {
         api.snap.plan = null;
         HomeActivity a = homeOn("me");
         Shots.click(a, "规划说明");
-        assertTrue(Shots.has(a, "正在安排到1月31日…"));
+        assertTrue(Shots.has(a, "正在排到 1月31日…"));
         api.snap.plan = plan;
         a.reload();
         Shots.idle();
-        assertFalse(Shots.has(a, "正在安排到1月31日…"));
+        assertFalse(Shots.has(a, "正在排到 1月31日…"));
         assertTrue(Shots.has(a, "个社群升到 MAX"));
         assertTrue(Shots.has(a, "目标"));
     }

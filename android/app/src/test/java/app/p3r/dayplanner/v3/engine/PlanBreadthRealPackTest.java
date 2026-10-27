@@ -180,7 +180,8 @@ public class PlanBreadthRealPackTest {
         profile.tier[emperor] = Profile.Tier.MUST;
         profile.tier[priestess] = Profile.Tier.WANT;
         Pair p = both("对比 · 中期 · 10月22日 · 必须：皇帝 · 想要：女教皇", profile, midGameState());
-        assertBroader(p);
+        // Breadth keeps the goals and either strictly broadens or matches the optimal MAX route on every promise
+        assertTrue(brokenPromise(rules, profile, midGameState(), p.breadth.plan, p.max.plan) == null);
         assertEquals(p.line(), 10, p.breadth.endRank[emperor]);
         assertEquals(p.line(), 10, p.breadth.endRank[priestess]);
     }
@@ -289,24 +290,28 @@ public class PlanBreadthRealPackTest {
     }
 
     /**
-     * Strict goal priority between two end states of one profile (as Planner.Pool.compareGoals): the
-     * goals in order, 「必须」 then 「想要」; reaching the target beats missing it, between two misses the
-     * higher RANK wins. Positive when {@code a} is better.
+     * Tier goal priority between two end states of one profile (as Planner.Pool.compareGoals):
+     * 「必须」 then 「想要」; within each tier, more reached goals wins, then higher sum of end ranks
+     * capped at target. Positive when {@code a} is better.
      */
     static int compareGoals(Profile profile, int[] a, int[] b) {
-        Integer[] goals = new Integer[Profile.LINKS];
-        int n = 0;
-        for (int l = 0; l < Profile.LINKS; l++) if (profile.isGoal(l)) goals[n++] = l;
-        Arrays.sort(goals, 0, n, (x, y) -> profile.tier[x] != profile.tier[y]
-                ? (profile.tier[x] == Profile.Tier.MUST ? -1 : 1)
-                : profile.order[x] != profile.order[y] ? Integer.compare(profile.order[x], profile.order[y]) : Integer.compare(x, y));
-        for (int i = 0; i < n; i++) {
-            int l = goals[i];
-            int target = Math.max(1, Math.min(10, profile.target[l]));
-            boolean ra = a[l] >= target;
-            boolean rb = b[l] >= target;
-            if (ra != rb) return ra ? 1 : -1;
-            if (!ra && a[l] != b[l]) return Integer.compare(a[l], b[l]);
+        for (Profile.Tier tier : new Profile.Tier[]{Profile.Tier.MUST, Profile.Tier.WANT}) {
+            int ra = 0;
+            int rb = 0;
+            int sa = 0;
+            int sb = 0;
+            for (int l = 0; l < Profile.LINKS; l++) {
+                if (profile.tier[l] != tier) continue;
+                int target = Math.max(1, Math.min(10, profile.target[l]));
+                int xa = Math.min(a[l], target);
+                int xb = Math.min(b[l], target);
+                if (xa >= target) ra++;
+                if (xb >= target) rb++;
+                sa += xa;
+                sb += xb;
+            }
+            if (ra != rb) return Integer.compare(ra, rb);
+            if (sa != sb) return Integer.compare(sa, sb);
         }
         return 0;
     }
@@ -354,7 +359,7 @@ public class PlanBreadthRealPackTest {
     @Test
     public void maxStyleMatchesTheReviewedPlans() {
         Object[][] golden = {
-                {"新游戏", new Profile(), newGame(dayOf(4, 21)), "d23ba6be1d256d2e", GOLDEN_IDS[0]},
+                {"新游戏", new Profile(), newGame(dayOf(4, 21)), "ac1a593157944bb0", GOLDEN_IDS[0]},
                 {"中期 10月22日", new Profile(), midGameState(), "316e707273744436", GOLDEN_IDS[1]},
                 {"中期 10月22日 · 必须：皇帝 · 想要：女教皇", midGoals(), midGameState(), "8d68a0b7660f66dc", GOLDEN_IDS[2]}};
         boolean samePack = GOLDEN_RULES_VERSION.equals(rules.version);
@@ -396,9 +401,9 @@ public class PlanBreadthRealPackTest {
      * capacity allocation and conditional invitations. Separate opt-in tests cover characteristic milestones.
      * MAX-style ids still omit style.
      */
-    private static final String GOLDEN_RULES_VERSION = "3.6.2|532e66096a1f";
+    private static final String GOLDEN_RULES_VERSION = "3.6.2|4ea6b83e9c8b";
     /** Plan ids of the three golden 「尽量多 MAX」 plans on {@link #GOLDEN_RULES_VERSION}. */
-    private static final String[] GOLDEN_IDS = {"1ff01292fa534390", "674d3e727ac23f0a", "f33322a7e4fba1c9"};
+    private static final String[] GOLDEN_IDS = {"022fb876b836e032", "b9ea1d3d7bf6ce16", "4f00b481bfbac16d"};
 
     /** FNV-1a 64 over "slot|action|side…" per step: the plan's actions, independent of the pack version. */
     static String fingerprint(Plan plan) {

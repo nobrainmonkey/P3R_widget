@@ -60,7 +60,7 @@ final class Planner {
      */
     static final double WASTE_MARGIN = Heuristics.W_OTHER;
     /** For goals: the waste margin is this share of the goal's weight (2.5 slots earlier MAX). */
-    static final double WASTE_GOAL_SHARE = 2.5 * Heuristics.EARLY_PER_SLOT;
+    static final double WASTE_GOAL_SHARE = 0.005;
     /**
      * 「尽量都体验」 keeps a plan only if it wastes at most this many more daytime slots than the
      * 「尽量多 MAX」 plan of the same start ({@link Pool#keepsPromises}).
@@ -279,6 +279,10 @@ final class Planner {
         final int unlocked;
         final int rank5;
         final int rankSum;
+        /** Number of leading entries of {@link #reached} that are 「必须」 goals; the rest are 「想要」. */
+        final int mustCount;
+        /** Target rank of each goal in {@link #reached}. */
+        final int[] goalTargets;
         boolean exhausted;
 
         /** A plan that leaves no rescue to the limit evening ({@link #late} 0). */
@@ -294,6 +298,12 @@ final class Planner {
 
         Candidate(Heuristics h, Heuristics.Tuning tuning, int[] goals, int[] codes, double j, double ownJ, double score, int variant,
                   boolean[] reached, int[] endRank, int[] linkRanks, int waste, int late, int missed) {
+            this(h, tuning, goals, codes, j, ownJ, score, variant, reached, endRank, linkRanks, waste, late, missed,
+                    reached.length, defaultTargets(reached.length));
+        }
+
+        Candidate(Heuristics h, Heuristics.Tuning tuning, int[] goals, int[] codes, double j, double ownJ, double score, int variant,
+                  boolean[] reached, int[] endRank, int[] linkRanks, int waste, int late, int missed, int mustCount, int[] goalTargets) {
             this.h = h;
             this.tuning = tuning;
             this.goals = goals;
@@ -308,6 +318,8 @@ final class Planner {
             this.waste = waste;
             this.late = late;
             this.missed = missed;
+            this.mustCount = mustCount;
+            this.goalTargets = goalTargets;
             int open = 0;
             int high = 0;
             int sum = 0;
@@ -320,11 +332,17 @@ final class Planner {
             this.rank5 = high;
             this.rankSum = sum;
         }
+
+        private static int[] defaultTargets(int n) {
+            int[] out = new int[n];
+            Arrays.fill(out, 10);
+            return out;
+        }
     }
 
     /**
      * Every complete plan of one planning run, all measured with the objective of the whole profile,
-     * and the strict goal priority over them.
+     * and the tier goal priority over them.
      */
     static final class Pool {
         final Model m;
@@ -332,10 +350,14 @@ final class Planner {
         final Plan previous;
         final Engine.Options options;
         final long deadline;
-        /** Base-policy tunings screened for every goal order. */
+        /** Base-policy tunings screened for every goal subset. */
         final Heuristics.Tuning[] portfolio;
-        /** The whole profile's goals in priority order. */
+        /** The whole profile's goals grouped by tier (「必须」 then 「想要」). */
         final int[] goals;
+        /** Number of leading entries in {@link #goals} that are 「必须」 goals. */
+        final int mustCount;
+        /** Target rank of each goal in {@link #goals}. */
+        final int[] goalTargets;
         /** Objective of the whole profile (the same for every tuning). */
         final Heuristics ref;
         /** 安排风格 of the plans this pool makes: {@code false} is 「尽量多 MAX」 (see {@link #addMaxStylePlans}). */
@@ -367,6 +389,13 @@ final class Planner {
             this.breadth = breadth;
             this.reports = reports;
             this.goals = Heuristics.goalOrder(m);
+            int mc = 0;
+            this.goalTargets = new int[goals.length];
+            for (int i = 0; i < goals.length; i++) {
+                if (m.profile.tier[goals[i]] == Profile.Tier.MUST) mc++;
+                this.goalTargets[i] = m.target(goals[i]);
+            }
+            this.mustCount = mc;
             this.ref = heuristics(portfolio[0], null);
             this.margin = wasteMargin(ref);
         }
@@ -409,7 +438,7 @@ final class Planner {
             double own = goalOrder == null ? j : new Search(m, h, options, deadline, 0f, 0f).objectiveOf(start, codes);
             return new Candidate(h, tuning, goalOrder, codes, j, own, j - margin * waste, variant, reached, endRank, linkRanks, waste,
                     ref.lateRescues(reachedAt) + (m.batches == null ? 0 : m.batches.late(st)),
-                    m.batches == null ? 0 : m.batches.missed(st));
+                    m.batches == null ? 0 : m.batches.missed(st), mustCount, goalTargets);
         }
 
         /**
@@ -553,45 +582,103 @@ final class Planner {
         }
 
         /**
-         * Strict goal priority. While the best plan misses a goal (its first missed goal, in
-         * priority order) and a later goal exists, plan once more with only the goals up to the
-         * missed one as goals ("top-k"; the later goals count as 「其余社群」), with the same
-         * fortified strategy coverage as a normal run ({@link #run}). Each k runs at most once.
-         * Then, for every goal the best plan still misses, a base-policy plan with that goal first
-         * is screened, so the notes can say which goal it gave way to. Returns true when the time
-         * budget ran out before a needed run.
+         * Tier goal priority without intra-tier ordering. 「必须」 goals take strict precedence over
+         * 「想要」 goals; within a tier, plans are compared by count of reached goals and total
+         * progress up to each goal's target ({@link #compareGoals}). When a tier still misses goals,
+         * smaller subsets are screened and the best subset is fortified so conflicting same-tier
+         * goals do not starve one another. Finally, each still-missed goal is screened on its own
+         * so {@link #tradedFor} can tell whether it gave way to another goal or simply ran out of calendar.
          */
         boolean prioritise() {
             int n = goals.length;
             if (n < 2) return false;
-            boolean[] tried = new boolean[n + 1];
-            while (true) {
-                Candidate best = best();
-                int f = firstMissed(best);
-                if (f < 0 || f >= n - 1 || tried[f + 1]) break;
-                tried[f + 1] = true;
+            if (mustCount > 0 && mustCount < n && rangeHasMiss(best(), 0, mustCount)) {
                 if (!timeForAnotherFortify()) return true;
-                if (run(Arrays.copyOf(goals, f + 1), true, false)) return true;
+                if (run(Arrays.copyOf(goals, mustCount), true, false)) return true;
+            }
+            if (mustCount >= 2 && rangeHasMiss(best(), 0, mustCount)) {
+                int[] active = Arrays.copyOf(goals, mustCount);
+                for (int round = 0; round < 2 && active.length >= 2 && subsetHasMiss(best(), active); round++) {
+                    int[] bestSub = screenBestDrop(active, null);
+                    if (bestSub == null) break;
+                    if (!timeForAnotherFortify()) return true;
+                    if (run(bestSub, true, false)) return true;
+                    active = bestSub;
+                }
+            } else if (!rangeHasMiss(best(), 0, mustCount) && n - mustCount >= 2 && rangeHasMiss(best(), mustCount, n)) {
+                int[] mustPrefix = Arrays.copyOf(goals, mustCount);
+                int[] wants = Arrays.copyOfRange(goals, mustCount, n);
+                int[] bestSub = screenBestDrop(wants, mustPrefix);
+                if (bestSub != null) {
+                    if (!timeForAnotherFortify()) return true;
+                    if (run(bestSub, true, false)) return true;
+                }
             }
             Candidate best = best();
-            for (int i = 1; i < n; i++) {
+            for (int i = 0; i < n; i++) {
                 if (best.reached[i] || anyReaches(i, best.missed, best.late)) continue;
                 if (cancelled(options) || System.nanoTime() > deadline) return true;
-                int[] promoted = new int[n];
-                promoted[0] = goals[i];
-                for (int a = 0, b = 1; a < n; a++) if (a != i) promoted[b++] = goals[a];
+                int[] solo = new int[]{goals[i]};
                 Heuristics.Tuning tuning = Heuristics.Tuning.DEFAULT.goalFirst();
-                Heuristics h = heuristics(tuning, promoted);
-                add(candidate(h, tuning, promoted, new Search(m, h, options, deadline, 0f, 0f).runBase(start), -1));
+                Heuristics h = heuristics(tuning, solo);
+                add(candidate(h, tuning, solo, new Search(m, h, options, deadline, 0f, 0f).runBase(start), -1));
             }
             return orderedNoteStrategy();
+        }
+
+        private int[] screenBestDrop(int[] tierGoals, int[] fixedPrefix) {
+            Candidate currentBest = best();
+            boolean dropAll = tierGoals.length <= 5;
+            int[] bestSub = null;
+            Candidate bestCand = null;
+            Heuristics.Tuning[] probes = {Heuristics.Tuning.DEFAULT.goalFirst(), Heuristics.Tuning.DEFAULT};
+            int prefixLen = fixedPrefix == null ? 0 : fixedPrefix.length;
+            for (int drop = 0; drop < tierGoals.length; drop++) {
+                if (!dropAll && goalReachedIn(currentBest, tierGoals[drop])) continue;
+                if (cancelled(options) || System.nanoTime() > deadline) break;
+                int[] sub = new int[prefixLen + tierGoals.length - 1];
+                if (prefixLen > 0) System.arraycopy(fixedPrefix, 0, sub, 0, prefixLen);
+                for (int a = 0, b = prefixLen; a < tierGoals.length; a++) {
+                    if (a != drop) sub[b++] = tierGoals[a];
+                }
+                for (Heuristics.Tuning tuning : probes) {
+                    if (cancelled(options) || System.nanoTime() > deadline) break;
+                    Heuristics h = heuristics(tuning, sub);
+                    Candidate c = candidate(h, tuning, sub, new Search(m, h, options, deadline, 0f, 0f).runBase(start), -1);
+                    add(c);
+                    if (bestCand == null || better(c, bestCand)) {
+                        bestCand = c;
+                        bestSub = sub;
+                    }
+                }
+            }
+            return bestSub;
+        }
+
+        private boolean subsetHasMiss(Candidate c, int[] subset) {
+            for (int link : subset) if (!goalReachedIn(c, link)) return true;
+            return false;
+        }
+
+        private boolean goalReachedIn(Candidate c, int link) {
+            for (int i = 0; i < goals.length; i++) {
+                if (goals[i] == link) return c.reached[i];
+            }
+            return true;
+        }
+
+        private static boolean rangeHasMiss(Candidate c, int from, int to) {
+            for (int i = from; i < Math.min(to, c.reached.length); i++) {
+                if (!c.reached[i]) return true;
+            }
+            return false;
         }
 
         /**
          * Once every active goal is open, ordinary stat preparation no longer needs to compete
          * with their notes. Compare an additional route that funds affinity in goal order; this
          * can preserve an extra later-goal rank when the first goal needs several notes in a row.
-         * The normal portfolio and prefix repairs always run first, unchanged.
+         * The normal portfolio and subset repairs always run first.
          */
         private boolean orderedNoteStrategy() {
             if (goals.length < 2 || firstMissed(best()) < 0 || m.note == null
@@ -617,31 +704,40 @@ final class Planner {
             return false;
         }
 
-        /** First goal (place in the priority order) the plan misses, or -1. */
+        /** First goal in {@link #goals} the plan misses, or -1. */
         static int firstMissed(Candidate c) {
             for (int i = 0; i < c.reached.length; i++) if (!c.reached[i]) return i;
             return -1;
         }
 
         /**
-         * Strict goal priority between two plans: the first goal (in priority order) on which they
-         * differ decides; reaching the target beats missing it, and between two misses the higher
-         * end rank wins. Positive when {@code a} is better, 0 when the goals tie.
+         * Tier goal priority between two plans without intra-tier ordering: 「必须」 goals decide
+         * first (count reaching target, then sum of end ranks capped at target), followed by
+         * 「想要」 goals by the same rule. Positive when {@code a} is better, 0 when both tiers tie.
          */
         static int compareGoals(Candidate a, Candidate b) {
-            int d = decidingGoal(a, b);
-            if (d < 0) return 0;
-            if (a.reached[d] != b.reached[d]) return a.reached[d] ? 1 : -1;
-            return Integer.compare(a.endRank[d], b.endRank[d]);
+            int n = Math.min(a.reached.length, b.reached.length);
+            int must = Math.min(a.mustCount, n);
+            int mCmp = compareTier(a, b, 0, must);
+            if (mCmp != 0) return mCmp;
+            return compareTier(a, b, must, n);
         }
 
-        /** Place of the first goal on which {@code a} and {@code b} differ ({@link #compareGoals}), or -1. */
-        static int decidingGoal(Candidate a, Candidate b) {
-            for (int i = 0; i < a.reached.length; i++) {
-                if (a.reached[i] != b.reached[i]) return i;
-                if (!a.reached[i] && a.endRank[i] != b.endRank[i]) return i;
+        private static int compareTier(Candidate a, Candidate b, int from, int to) {
+            int ra = 0;
+            int rb = 0;
+            int sa = 0;
+            int sb = 0;
+            for (int i = from; i < to; i++) {
+                if (a.reached[i]) ra++;
+                if (b.reached[i]) rb++;
+                int ta = i < a.goalTargets.length ? a.goalTargets[i] : 10;
+                int tb = i < b.goalTargets.length ? b.goalTargets[i] : 10;
+                sa += Math.min(a.endRank[i], ta);
+                sb += Math.min(b.endRank[i], tb);
             }
-            return -1;
+            if (ra != rb) return Integer.compare(ra, rb);
+            return Integer.compare(sa, sb);
         }
 
         /**
@@ -840,8 +936,8 @@ final class Planner {
         /**
          * For every goal {@code chosen} misses, the goal it gave way to: among the plans of the pool
          * that reach that goal (and leave no more rescues to the limit evening than {@code chosen}),
-         * the goal on which {@code chosen} beats them ({@link #decidingGoal}), provided {@code chosen}
-         * reaches it; the latest such goal (the closest trade). -1 when no such plan reached the goal
+         * a same-or-higher-tier goal that {@code chosen} reaches and that plan missed (preferring a
+         * 「必须」 goal when explaining a missed 「想要」 goal). -1 when no such plan reached the goal
          * (nothing was traded for it) and for every other link.
          */
         int[] tradedFor(Candidate chosen) {
@@ -849,11 +945,16 @@ final class Planner {
             Arrays.fill(out, -1);
             for (int i = 0; i < goals.length; i++) {
                 if (chosen.reached[i]) continue;
+                int maxTierD = i < mustCount ? mustCount : goals.length;
                 int traded = -1;
                 for (Candidate c : all) {
                     if (!c.reached[i] || c.missed > chosen.missed || c.late > chosen.late) continue;
-                    int d = decidingGoal(chosen, c);
-                    if (d >= 0 && d < i && chosen.reached[d]) traded = Math.max(traded, d);
+                    for (int d = 0; d < maxTierD; d++) {
+                        if (d == i || !chosen.reached[d] || c.reached[d]) continue;
+                        if (traded < 0 || (d < mustCount && traded >= mustCount)) {
+                            traded = d;
+                        }
+                    }
                 }
                 out[goals[i]] = traded < 0 ? -1 : goals[traded];
             }
@@ -1139,7 +1240,7 @@ final class Planner {
                     }
                 } else if (type == Kernel.T_UNLOCK) {
                     if (anyUnlock < 0 || scores[i] > scores[anyUnlock]) anyUnlock = i;
-                    if (h.isAdmittedOrGate(Kernel.target(code)) && betterGateway(i, unlock)) {
+                    if (h.isAdmittedOrGate(Kernel.target(code)) && betterGateway(i, unlock, baseIdx)) {
                         unlock = i;
                     }
                 } else if (type == Kernel.T_ACT) {
@@ -1160,7 +1261,7 @@ final class Planner {
                 if (Heuristics.vetoed(scores[i])) continue;
                 int code = buf[i];
                 if (Kernel.type(code) == Kernel.T_MEET && h.opensGate(Kernel.target(code))
-                        && betterGateway(i, unlock)) {
+                        && betterGateway(i, unlock, baseIdx)) {
                     unlock = i;
                 }
             }
@@ -1208,8 +1309,10 @@ final class Planner {
             return n == 0 ? new int[0] : diverse(state, n, scoreAll(state, n));
         }
 
-        private boolean betterGateway(int candidate, int current) {
+        private boolean betterGateway(int candidate, int current, int baseIdx) {
             if (current < 0) return true;
+            if (candidate == baseIdx) return false;
+            if (current == baseIdx) return true;
             int priority = h.goalPriority(Kernel.target(buf[candidate]));
             int other = h.goalPriority(Kernel.target(buf[current]));
             if (priority != other) {

@@ -52,7 +52,7 @@ public final class CompendiumPage {
     private static volatile Compendium cached;
     private static final int RECIPE_PAGE = 30;
     /** A recipe that would lead back into one of the basket's own Personas (also the basket's). */
-    static final String CYCLE = "这个配方会绕回篮里的目标，换一个吧";
+    static final String CYCLE = "这样合会绕回前面的材料，换个配方吧";
     /** Confirmation after 加入合体篮; the player stays where they are. */
     static final String ADDED = "已加入合体篮";
     /** The same recipe added again: nothing changes. */
@@ -117,7 +117,7 @@ public final class CompendiumPage {
      * once the page has loaded; it shows a dot while any DLC is owned.
      */
     static View dlcPlate(Context context) {
-        TextView plate = CompendiumControls.icon(context, "已购买的 DLC", R.drawable.ui_ic_mask);
+        TextView plate = CompendiumControls.icon(context, "买了哪些 DLC", R.drawable.ui_ic_mask);
         plate.setTag("compendium_dlc");
         plate.setOnClickListener(v -> {
             View page = v.getRootView().findViewWithTag("compendium_page");
@@ -351,7 +351,7 @@ public final class CompendiumPage {
         adapter.setItems(matches, sortByArcana(order));
         count.setText(countText(matches.size()));
         count.setContentDescription(matches.size() + " 个人格面具");
-        empty.setText(favoritesOnly && favoriteIds.isEmpty() ? "还没有收藏" : "没有符合的人格面具");
+        empty.setText(favoritesOnly && favoriteIds.isEmpty() ? "还没有收藏" : "没找到对应的人格面具");
         empty.setVisibility(matches.isEmpty() ? View.VISIBLE : View.GONE);
         list.setVisibility(matches.isEmpty() ? View.GONE : View.VISIBLE);
         CompendiumControls.setToolActive(favoritesButton, favoritesOnly);
@@ -630,7 +630,7 @@ public final class CompendiumPage {
         box.setTag("dlc_prompt_" + persona.id);
         box.setBackground(Ui.card(c).accent(Ui.col(c, R.color.ui_gold), Ui.dp(c, 4)));
         Ui.pad(box, 18, 12, 14, 12);
-        box.addView(Ui.mixed(c, "这是 " + PersonaViews.dlcName(data, persona.dlc) + " 里的人格面具，买了吗？", 15,
+        box.addView(Ui.mixed(c, "它属于 DLC「" + PersonaViews.dlcName(data, persona.dlc) + "」，买这个包了吗？", 15,
             Ui.col(c, R.color.p3r_white), true));
         TextView yes = Ui.primary(c, "买了");
         yes.setTag("dlc_owned_" + persona.id);
@@ -1200,7 +1200,7 @@ public final class CompendiumPage {
             container.addView(dlcPrompt(persona, reload));
             return;
         }
-        TextView loading = Ui.muted(c, "找配方中…");
+        TextView loading = Ui.muted(c, "正在找配方…");
         Ui.pad(loading, 4, 8, 4, 8);
         container.addView(loading);
         FusionCalculator currentCalculator = calculator;
@@ -1422,7 +1422,7 @@ public final class CompendiumPage {
             }
             choices.setItems(matches, false);
             CompendiumControls.setToolActive(favorites, favoriteScope[0]);
-            noMatch.setText(favoriteScope[0] && favoriteIds.isEmpty() ? "还没有收藏" : "没有符合的人格面具");
+            noMatch.setText(favoriteScope[0] && favoriteIds.isEmpty() ? "还没有收藏" : "没找到对应的人格面具");
             noMatch.setVisibility(matches.isEmpty() ? View.VISIBLE : View.GONE);
             results.setSelection(0);
         };

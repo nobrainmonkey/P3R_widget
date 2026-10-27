@@ -158,7 +158,7 @@ public final class AvailableActions {
                     int first = value(state.unlockStep, action.target);
                     long cost = 0;
                     for (int i = first; i <= action.step; i++) cost += Math.max(0, person.unlock.steps.get(i).cost);
-                    if (cost > 0) add(parts, yen(cost) + (state.cashExact && cost > state.cash ? " · 现金不足" : ""));
+                    if (cost > 0) add(parts, yen(cost) + (state.cashExact && cost > state.cash ? " · 钱不够" : ""));
                     detail = join(parts);
                     category = "解锁";
                     link = action.target;
@@ -175,12 +175,12 @@ public final class AvailableActions {
                     if (activity.kind == Rules.ActivityKind.JOB) {
                         add(parts, "报酬 " + yen(activity.payFor(value(state.shifts, activity.idx) + 1)));
                     } else if (activity.cost > 0) {
-                        add(parts, yen(activity.cost) + (state.cashExact && activity.cost > state.cash ? " · 现金不足" : ""));
+                        add(parts, yen(activity.cost) + (state.cashExact && activity.cost > state.cash ? " · 钱不够" : ""));
                     } else {
                         add(parts, "免费");
                     }
                     if (activity.dormActivity()) add(parts, "已做 " + Math.min(3, value(state.used, activity.idx)) + "/3 次");
-                    if (activity.requiresPlantedCrop) add(parts, "需种好作物");
+                    if (activity.requiresPlantedCrop) add(parts, "要先种好菜");
                     detail = join(parts);
                     category = category(activity);
                     break;
@@ -222,8 +222,8 @@ public final class AvailableActions {
         for (PersonaArcade game : PERSONA_ARCADE) {
             if ((game.weekdayMask & (1 << (day.wd - 1))) == 0) continue;
             String detail = "桐叶购物中心 · 电玩大巡游 · " + yen(2000)
-                + (state.cashExact && state.cash < 2000 ? " · 现金不足" : "")
-                + " · 提升当前装备的面具";
+                + (state.cashExact && state.cash < 2000 ? " · 钱不够" : "")
+                + " · 加在当前装备的人格面具上";
             entries.add(new Entry("info:arcade_persona_" + game.id,
                 "人格面具训练 · " + game.statZh + " +3", detail, "电玩城", slot.slot, -1, null));
         }
@@ -239,12 +239,12 @@ public final class AvailableActions {
     }
 
     private static String category(Rules.Activity activity) {
-        if (activity.dormActivity()) return "宿舍";
+        if (activity.dormActivity()) return "宿舍活动";
         if (activity.kind == Rules.ActivityKind.JOB) return "打工";
         if (activity.id.startsWith("group_study_")) return "集体学习";
         if (activity.id.startsWith("arcade_")) return "电玩城";
         if (activity.id.startsWith("study_") || "library".equals(activity.id)) return "学习";
-        return "营业";
+        return "店铺";
     }
 
     /** The first visit's menu-discovery entry already describes the otherwise identical meal. */

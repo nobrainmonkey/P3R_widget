@@ -76,7 +76,7 @@ public class TodayAvailableUiTest extends UiTestBase {
         View directory = activity.getWindow().getDecorView().findViewWithTag("today-available-actions");
         assertNotNull(directory);
         assertFalse(Shots.allText(directory).contains("勇气 +4"));
-        expandCategory(directory, "宿舍");
+        expandCategory(directory, "宿舍活动");
         expandCategory(directory, "电玩城");
         String text = Shots.allText(directory);
         assertTrue(text, text.contains("今天可做"));
@@ -112,7 +112,7 @@ public class TodayAvailableUiTest extends UiTestBase {
         int slot = api.snap.observed.slot;
         Shots.find(directory, "晚上").performClick();
         Shots.idle();
-        expandCategory(directory, "宿舍");
+        expandCategory(directory, "宿舍活动");
         assertTrue(Shots.allText(directory).contains("与顺平阅读"));
         assertEquals(slot, api.snap.observed.slot);
         assertTrue(api.calls.isEmpty());
@@ -123,12 +123,12 @@ public class TodayAvailableUiTest extends UiTestBase {
         addActivities();
         HomeActivity activity = home();
         View directory = activity.getWindow().getDecorView().findViewWithTag("today-available-actions");
-        assertFalse(Shots.allText(directory).contains("提升当前装备的面具"));
+        assertFalse(Shots.allText(directory).contains("加在当前装备的人格面具上"));
         expandCategory(directory, "电玩城");
         expandCategory(directory, "羁绊剧情");
         String today = Shots.allText(directory);
         assertTrue(today, today.contains("人格面具训练 · 力 +3"));
-        assertTrue(today, today.contains("提升当前装备的面具"));
+        assertTrue(today, today.contains("加在当前装备的人格面具上"));
         assertFalse(today, today.contains("人格面具训练 · 魔 +3"));
         assertFalse(today, today.contains("人格面具训练 · 速 +3"));
         assertTrue(today, today.contains("羁绊剧情"));
@@ -164,7 +164,7 @@ public class TodayAvailableUiTest extends UiTestBase {
 
     private static void expandCategory(View root, String title) {
         View header = Shots.clickTarget(Shots.find(root, title));
-        assertEquals("已折叠", header.getStateDescription());
+        assertEquals("已收起", header.getStateDescription());
         assertTrue(header.performClick());
         Shots.idle();
         assertEquals("已展开", header.getStateDescription());
@@ -177,7 +177,7 @@ public class TodayAvailableUiTest extends UiTestBase {
         View directory = activity.getWindow().getDecorView().findViewWithTag("today-available-actions");
         Shots.find(directory, "晚上").performClick();
         Shots.idle();
-        expandCategory(directory, "宿舍");
+        expandCategory(directory, "宿舍活动");
         Shots.clickTarget(Shots.find(directory, "打工")).performClick();
         assertTrue(Shots.allText(directory).contains("报酬"));
         api.snap.planning = true;
@@ -185,7 +185,7 @@ public class TodayAvailableUiTest extends UiTestBase {
         Shots.idle();
         View refreshed = activity.getWindow().getDecorView().findViewWithTag("today-available-actions");
         assertTrue(Shots.find(refreshed, "晚上").isSelected());
-        assertEquals("已展开", Shots.clickTarget(Shots.find(refreshed, "宿舍")).getStateDescription());
+        assertEquals("已展开", Shots.clickTarget(Shots.find(refreshed, "宿舍活动")).getStateDescription());
         assertTrue(Shots.allText(refreshed).contains("与顺平阅读"));
         assertTrue(Shots.allText(refreshed).contains("报酬"));
         assertTrue(api.calls.isEmpty());

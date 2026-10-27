@@ -577,7 +577,7 @@ public class PeriodTipsTest {
         assertTrue(second.detailZh, second.detailZh.contains("先看完第 2 话"));
         assertTrue(second.detailZh, second.detailZh.contains("11月18日"));
         assertTrue(second.detailZh, second.detailZh.contains("12月31日"));
-        assertTrue(second.detailZh, second.detailZh.contains("已看第 2 话，已赴约 1/2 次"));
+        assertTrue(second.detailZh, second.detailZh.contains("已看第 2 话，看了 1/2 次"));
         assertFalse(second.detailZh, second.detailZh.contains("已经看了 1 话"));
         assertEquals(1, observed.episodes[ryoji.idx]);
     }

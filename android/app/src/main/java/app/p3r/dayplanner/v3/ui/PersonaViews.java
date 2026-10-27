@@ -121,7 +121,7 @@ final class PersonaViews {
                 break;
             }
             case "floor":
-                if (persona.unlockFloor > 0) return "塔尔塔罗斯到达 " + persona.unlockFloor + "F";
+                if (persona.unlockFloor > 0) return "塔尔塔罗斯爬到 " + persona.unlockFloor + "F";
                 break;
             default:
                 break;

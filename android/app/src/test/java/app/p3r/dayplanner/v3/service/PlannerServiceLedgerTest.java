@@ -110,12 +110,12 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
 
         PlannerApi.Receipt past = record(MAY12_DAY, "meet:emperor", Outcome.Code.AS_PREDICTED);
         assertEquals("invalid", past.errorCode);
-        assertEquals("这个时段已经记录过了", past.errorZh);
+        assertEquals("这段时间已经记录过了", past.errorZh);
 
         PlannerApi.Receipt gap = record(TestRules.slot(TestRules.MAY_12 + 1, true), "act:study_room", Outcome.Code.AS_PREDICTED);
         assertEquals("gap", gap.errorCode);
         assertEquals(2, gap.missingSlots);
-        assertEquals("前面还有 2 个时段没记，先补上？", gap.errorZh);
+        assertEquals("前面还有 2 个时间没记，先补上？", gap.errorZh);
     }
 
     @Test
@@ -139,11 +139,11 @@ public class PlannerServiceLedgerTest extends ServiceTestBase {
         assertMessage(service.recordTower(id(), rev(), rescue), "没有找到这位失踪者");
 
         Outcome rankUp = Outcome.of(Outcome.Code.RANK_UP);
-        assertMessage(service.recordOutcome(id(), rev(), MAY12_EVE, "act:study_room", rankUp), "只有和社群对象见面才能记录升级");
+        assertMessage(service.recordOutcome(id(), rev(), MAY12_EVE, "act:study_room", rankUp), "只有和社群见面才能记录升级");
         Outcome lv = Outcome.of(Outcome.Code.OTHER);
         lv.statLv = new int[]{7, -1, -1};
         assertMessage(service.recordOutcome(id(), rev(), MAY12_EVE, "act:study_room", lv), "学力、魅力、勇气只能是 Lv.1 到 MAX");
-        assertMessage(record(MAY12_EVE, "meet:nobody", Outcome.Code.AS_PREDICTED), "没认出这一项，重新选一下？");
+        assertMessage(record(MAY12_EVE, "meet:nobody", Outcome.Code.AS_PREDICTED), "没找到这一项，重新选一下？");
         Outcome lower = Outcome.of(Outcome.Code.RANK_UP);
         lower.rank = 6;
         assertMessage(service.recordOutcome(id(), rev(), MAY12_EVE, "meet:emperor", lower), "升级后的 RANK 应该比现在高");

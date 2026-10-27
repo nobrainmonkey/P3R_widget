@@ -484,7 +484,8 @@ final class HistoryPage {
     }
 
     private void confirmUndo(PlannerApi.HistoryItem item) {
-        ConfirmDialog.show(c, UNDO_TITLE, item.summaryZh, "撤销", () -> {
+        String detail = Zh.slot(host.data().rules, item.slot) + " · " + body(item.summaryZh);
+        ConfirmDialog.show(c, UNDO_TITLE, detail, "撤销", () -> {
             long rev = host.data().snap.stateRevision;
             String id = CommandIds.of("void", rev, item.seq);
             Async.run(host.activity(), () -> Api.get(c).voidEvent(id, rev, item.seq), receipt -> {
@@ -527,7 +528,7 @@ final class HistoryPage {
         Async.run(host.activity(), () -> UiPrefs.towerLevel(c), level -> {
             LinearLayout sheet = Ui.column(c);
             Ui.pad(sheet, 20, 12, 20, 20);
-            sheet.addView(SheetChrome.title(c, "修改这次探索"));
+            sheet.addView(SheetChrome.title(c, "修改探索记录"));
             sheet.addView(Ui.mixed(c, said, 13, Ui.col(c, R.color.p3r_ink_muted), false));
             // Prefilled from the record's own values (item.tower: the latest correction, else the
             // original), never from today's floor or cash.

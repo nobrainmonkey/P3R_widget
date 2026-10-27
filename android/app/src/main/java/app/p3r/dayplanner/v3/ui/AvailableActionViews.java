@@ -23,7 +23,7 @@ import app.p3r.dayplanner.v3.service.AvailableActions;
 final class AvailableActionViews {
     static final String TODAY = "今天可做";
     private static final List<String> ORDER = Arrays.asList(
-        "社群", "宿舍", "集体学习", "电玩城", "打工", "营业", "学习", "羁绊剧情", "塔尔塔罗斯", "解锁");
+        "社群", "宿舍活动", "集体学习", "电玩城", "打工", "店铺", "学习", "羁绊剧情", "塔尔塔罗斯", "解锁");
 
     private AvailableActionViews() {}
 
@@ -146,7 +146,7 @@ final class AvailableActionViews {
             shown = true;
         }
         if (!shown) {
-            TextView empty = Ui.muted(c, "这时段没有其他活动");
+            TextView empty = Ui.muted(c, "这段时间没有可做的活动");
             Ui.pad(empty, 2, 12, 2, 10);
             target.addView(empty);
         }
@@ -193,7 +193,7 @@ final class AvailableActionViews {
         rows.setVisibility(initiallyExpanded ? View.VISIBLE : View.GONE);
         summary.setVisibility(initiallyExpanded ? View.GONE : View.VISIBLE);
         arrow.setRotation(initiallyExpanded ? 180f : 0f);
-        head.setContentDescription(title + "，" + entries.size() + "项");
+        head.setContentDescription(title + "，" + entries.size() + " 项");
         head.setClickable(true);
         head.setFocusable(true);
         head.setOnClickListener(v -> {
@@ -202,10 +202,10 @@ final class AvailableActionViews {
             rows.setVisibility(expand ? View.VISIBLE : View.GONE);
             summary.setVisibility(expand ? View.GONE : View.VISIBLE);
             arrow.animate().rotation(expand ? 180f : 0f).setDuration(Ui.animationsEnabled() ? 180 : 0).start();
-            if (android.os.Build.VERSION.SDK_INT >= 30) head.setStateDescription(expand ? "已展开" : "已折叠");
+            if (android.os.Build.VERSION.SDK_INT >= 30) head.setStateDescription(expand ? "已展开" : "已收起");
             if (expand) Motion.cascade(rows);
         });
-        if (android.os.Build.VERSION.SDK_INT >= 30) head.setStateDescription(initiallyExpanded ? "已展开" : "已折叠");
+        if (android.os.Build.VERSION.SDK_INT >= 30) head.setStateDescription(initiallyExpanded ? "已展开" : "已收起");
         group.addView(head);
         group.addView(rows);
         View rule = Ui.fadingRule(c);

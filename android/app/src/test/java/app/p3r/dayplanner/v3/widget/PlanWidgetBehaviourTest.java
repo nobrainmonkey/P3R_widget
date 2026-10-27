@@ -526,7 +526,7 @@ public class PlanWidgetBehaviourTest {
     public void unreachablePlannerShowsAFriendlyMessage() {
         fake.snapshotFailure = new IllegalStateException("db locked");
         refresh();
-        assertEquals("暂时读不到安排", text(R.id.widget_task));
+        assertEquals("记录没读出来", text(R.id.widget_task));
         // One live button instead of a dead 当前/完成 row: it opens the app.
         assertEquals(View.GONE, card().findViewById(R.id.button_spec_current).getVisibility());
         assertTrue(card().findViewById(R.id.button_spec_done).isEnabled());
@@ -552,10 +552,10 @@ public class PlanWidgetBehaviourTest {
     @Test
     public void unreadableRecordsNeverInviteOnboarding() {
         fake.observed = null;
-        fake.planErrorZh = "游戏资料读取失败，请重新打开应用";
+        fake.planErrorZh = "游戏资料没读出来，重开应用试试";
         refresh();
-        assertEquals("暂时读不到安排", text(R.id.widget_task));
-        assertEquals("游戏资料读取失败，请重新打开应用", text(R.id.widget_detail_cue));
+        assertEquals("记录没读出来", text(R.id.widget_task));
+        assertEquals("游戏资料没读出来，重开应用试试", text(R.id.widget_detail_cue));
         // 「请重新打开应用」: the card's button does just that.
         assertEquals("打开应用", text(R.id.button_spec_done_text));
         tap(R.id.button_spec_done);

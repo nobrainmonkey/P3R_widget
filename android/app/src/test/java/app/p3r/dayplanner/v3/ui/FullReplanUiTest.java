@@ -126,7 +126,7 @@ public class FullReplanUiTest extends UiTestBase {
     @Test
     public void whileRunningTodaySaysSoAndOffersToStop() {
         api.snap.fullReplanning = true;
-        api.snap.planErrorZh = "生成安排时出了问题，现在的安排先不变";
+        api.snap.planErrorZh = "新安排没排出来，现在的安排先不变";
         HomeActivity a = home();
         assertTrue(Shots.has(a, RUNNING));
         assertFalse("no error card meanwhile", Shots.allText(a.getWindow().getDecorView()).contains("没排出来"));

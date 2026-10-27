@@ -59,7 +59,7 @@ public class StartupPreferencesTest extends UiTestBase {
         assertTrue(Shots.has(activity, "完成 ✓"));
         activity.selectTab(HomeActivity.TAB_SCHEDULE);
         Shots.capture(activity, false);
-        assertTrue(Shots.find(activity, "网格视图").isSelected());
+        assertTrue(Shots.find(activity, "月历").isSelected());
         assertEquals(before, api.snap.observed.toJson().toString());
         assertTrue(api.calls.isEmpty());
     }
@@ -74,7 +74,7 @@ public class StartupPreferencesTest extends UiTestBase {
         assertTrue(Shots.has(activity, "完成 ✓"));
         activity.selectTab(HomeActivity.TAB_SCHEDULE);
         Shots.capture(activity, false);
-        assertTrue(Shots.find(activity, "网格视图").isSelected());
+        assertTrue(Shots.find(activity, "月历").isSelected());
         assertTrue(UiPrefs.calendarAvailable(activity));
         assertEquals(before, api.snap.observed.toJson().toString());
         assertTrue(api.calls.isEmpty());
@@ -86,7 +86,7 @@ public class StartupPreferencesTest extends UiTestBase {
         ActivityController<HomeActivity> first = Robolectric.buildActivity(HomeActivity.class).setup();
         Shots.idle();
         first.get().selectTab(HomeActivity.TAB_SCHEDULE);
-        Shots.click(first.get(), "网格视图");
+        Shots.click(first.get(), "月历");
         assertTrue(UiPrefs.calendarGrid(first.get(), false));
         first.pause().stop().destroy();
 
@@ -95,7 +95,7 @@ public class StartupPreferencesTest extends UiTestBase {
         assertTrue(Shots.has(second.get(), "完成 ✓"));
         second.get().selectTab(HomeActivity.TAB_SCHEDULE);
         Shots.capture(second.get(), false);
-        assertTrue(Shots.find(second.get(), "网格视图").isSelected());
+        assertTrue(Shots.find(second.get(), "月历").isSelected());
         assertEquals(before, api.snap.observed.toJson().toString());
         assertEquals(revision, api.snap.stateRevision);
         assertTrue(api.calls.isEmpty());
@@ -112,7 +112,7 @@ public class StartupPreferencesTest extends UiTestBase {
         assertTrue(Shots.has(activity, "完成 ✓"));
         activity.selectTab(HomeActivity.TAB_SCHEDULE);
         Shots.capture(activity, false);
-        assertTrue(Shots.find(activity, "列表视图").isSelected());
+        assertTrue(Shots.find(activity, "日程列表").isSelected());
         assertTrue(UiPrefs.calendarAvailable(activity));
         assertEquals(false, UiPrefs.calendarGrid(activity, true));
         assertEquals(before, api.snap.observed.toJson().toString());

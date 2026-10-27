@@ -451,7 +451,7 @@ public class ScheduleHistoryUiTest extends UiTestBase {
 
         // Now recorded as a visit: the panel only asks why it fell through.
         activity = correction(correction.targetSeq);
-        assertTrue(Shots.has(activity, "原来记的是：探索塔尔塔罗斯 · 去了"));
+        assertTrue(Shots.has(activity, "原来记的是：探索塔尔塔罗斯"));
         assertFalse(Shots.has(activity, ResultActivity.WENT_AFTER_ALL));
         Shots.click(activity, Outcomes.SKIP_REASONS.get("story"));
         assertEquals(Outcome.Code.SKIPPED, api.last().outcome.code);

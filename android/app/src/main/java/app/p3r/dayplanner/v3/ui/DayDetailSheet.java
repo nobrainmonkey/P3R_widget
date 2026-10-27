@@ -206,7 +206,7 @@ final class DayDetailSheet {
         int current = d.currentSlot();
         if (d.snap.storyDisplay != null && d.snap.storyDisplay.cursorSlot == step.slot) {
             TextView go = Ui.primary(c, StoryDisplay.CONTINUE_LABEL);
-            go.setContentDescription("剧情结束，继续到下一个时段");
+            go.setContentDescription("剧情过完了，继续");
             go.setOnClickListener(v -> {
                 host.dismissSheet();
                 host.commitDirect(step);
@@ -240,7 +240,7 @@ final class DayDetailSheet {
         row.setBaselineAligned(false);
         if (kind == StepKind.LOCKED) {
             TextView go = Ui.primary(c, "继续");
-            go.setContentDescription("剧情结束，继续到下一个时段");
+            go.setContentDescription("剧情过完了，继续");
             go.setOnClickListener(v -> {
                 host.dismissSheet();
                 host.commitDirect(step);

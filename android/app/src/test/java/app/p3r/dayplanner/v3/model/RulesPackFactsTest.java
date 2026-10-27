@@ -754,7 +754,7 @@ public class RulesPackFactsTest {
             assertFalse("'规划' is only for menu names: " + text, plain.contains("规划"));
         }
         assertEquals("剧情事件", r.lockReasonsZh.get("forced_event"));
-        assertEquals("可能有剧情（先空出）", r.lockReasonsZh.get("reserved"));
+        assertEquals("先空出来", r.lockReasonsZh.get("reserved"));
         assertEquals("看提升学力的电影", r.activity("movie_academics").zh);
         assertEquals("到卡拉OK唱歌", r.activity("karaoke").zh);
         assertEquals("去喷泉广场找末光望美", link("moon").unlock.steps.get(1).zh);
@@ -957,7 +957,7 @@ public class RulesPackFactsTest {
         for (Rules.Reminder x : r.reminders.items) {
             if (!"tv".equals(x.kind)) continue;
             assertTrue(x.id, x.src.contains("gd_mail_order"));
-            assertTrue(x.id, x.detailZh.contains("不会消耗时间") && x.detailZh.contains("同步现状"));
+            assertTrue(x.id, x.detailZh.contains("不会消耗时间") && x.detailZh.contains("修改进度"));
         }
     }
 

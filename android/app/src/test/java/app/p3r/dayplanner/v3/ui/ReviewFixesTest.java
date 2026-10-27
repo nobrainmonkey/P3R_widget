@@ -412,7 +412,7 @@ public class ReviewFixesTest extends UiTestBase {
         LinksPage page = new LinksPage(a);
         page.bind(new UiData(null, snap, null, false, 0));
         assertTrue(Shots.allText(page.view()).contains(LinksPage.RULES_MISSING));
-        assertEquals("游戏资料没读出来，稍后再打开看看", LinksPage.RULES_MISSING);
+        assertEquals("游戏资料没读出来，重开应用试试", LinksPage.RULES_MISSING);
     }
 
     @Test
@@ -519,7 +519,7 @@ public class ReviewFixesTest extends UiTestBase {
         assertEquals(2L, d.build().rescueFailed & 2L);
         assertEquals(0L, d.build().rescued & 2L);
         for (StateDraft.Change c : d.changes()) {
-            assertFalse("an unchanged rescue is not listed", c.labelZh.equals("救出舞子"));
+            assertFalse("an unchanged rescue is not listed", c.labelZh.equals("失踪者 · 舞子"));
         }
         // Only the player's own change replaces it.
         d.setRescue(1, StateDraft.RESCUE_DONE);
@@ -528,7 +528,7 @@ public class ReviewFixesTest extends UiTestBase {
         assertEquals(2L, d.build().rescued & 2L);
         boolean listed = false;
         for (StateDraft.Change c : d.changes()) {
-            if (c.labelZh.equals("救出舞子")) {
+            if (c.labelZh.equals("失踪者 · 舞子")) {
                 listed = true;
                 assertEquals("没救出", c.beforeZh);
                 assertEquals("救出了", c.afterZh);
@@ -666,7 +666,7 @@ public class ReviewFixesTest extends UiTestBase {
         assertTrue(settings.contains("安排结缘网站的字条\n11月11日起 · 每张 3,000 日元"));
         assertTrue(settings.contains(SettingsPage.PERSONA_QUESTION));
         // The persona switch is three short segments; the 目标 reminder is said only while it is chosen.
-        assertEquals(java.util.Arrays.asList("都带", "只给目标", "不带"), java.util.Arrays.asList(SettingsPage.PERSONA_LABELS));
+        assertEquals(java.util.Arrays.asList("都带", "目标才带", "不带"), java.util.Arrays.asList(SettingsPage.PERSONA_LABELS));
         assertEquals(api.snap.profile.effectivePersonaMode() == Profile.PersonaMode.GOALS,
             settings.contains(SettingsPage.PERSONA_GOALS_NOTE));
 
@@ -689,7 +689,7 @@ public class ReviewFixesTest extends UiTestBase {
         // Leaving every goal empty already raises every link: no preset, no planning switch here.
         assertFalse(Shots.has(a, "尽量全部升到 MAX"));
         assertFalse(Shots.has(a, "其余社群也尽量提升"));
-        assertTrue(Shots.has(a, "点一下想要，再点一下必须"));
+        assertTrue(Shots.has(a, "点社群卡片切换：想要 → 必须 → 不选"));
         Shots.click(a, "下一步");
         assertEquals(StateSteps.Page.PERSONA, a.currentPage());
         assertTrue(text(a).contains("见面前提醒带哪个阿尔卡那"));

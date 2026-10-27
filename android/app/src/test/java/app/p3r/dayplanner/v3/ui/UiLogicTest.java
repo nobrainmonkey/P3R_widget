@@ -278,12 +278,10 @@ public class UiLogicTest {
         Profile p = new Profile();
         assertEquals(Profile.Tier.WANT, Goals.cycle(p, 3));
         assertEquals(Profile.Tier.WANT, Goals.cycle(p, 5));
-        assertEquals(1, p.order[5]);
-        assertTrue(Goals.move(p, 5, -1));
         assertEquals(0, p.order[5]);
-        assertEquals(1, p.order[3]);
-        assertFalse(Goals.move(p, 5, -1));
+        assertEquals(0, p.order[3]);
         assertEquals(Profile.Tier.MUST, Goals.cycle(p, 5));
+        assertEquals(0, p.order[5]);
         assertEquals(Profile.Tier.NONE, Goals.cycle(p, 5));
         assertEquals(java.util.Arrays.asList(3), LinkStatus.goalOrder(p));
     }
@@ -361,21 +359,22 @@ public class UiLogicTest {
         assertEquals("时间先给了皇帝", priestess.footZh);
         assertEquals("皇帝", priestess.blocker);
         assertEquals("女教皇 5 → 9", priestess.chipZh);
-        // The advice is one 目标 / 目标顺序 can carry out: they move a goal only within its tier.
-        assertEquals(LinkStatus.Fix.MUST_THEN_REORDER, priestess.fix);
-        assertEquals("时间先给了皇帝。想先冲它，就设成必须，排到皇帝前面",
+        // The advice is one can carry out: set to 必须 when 想要 is traded for 必须 or has shortfall.
+        assertEquals(LinkStatus.Fix.SET_MUST, priestess.fix);
+        assertEquals("时间先给了皇帝。想先冲它，就设成必须",
             LinkStatus.shortfall("MAX", priestess.observed, priestess.projected, priestess.blocker, priestess.fix));
-        assertEquals(LinkStatus.Fix.REORDER, LinkStatus.fix(p, 15, 2));
-        assertEquals("时间先给了女教皇。想先冲它，就排到女教皇前面",
-            LinkStatus.shortfall("MAX", 0, 7, "女教皇", LinkStatus.Fix.REORDER));
-        assertEquals(LinkStatus.Fix.REORDER, LinkStatus.fix(p, 15, -1));
-        assertEquals(LinkStatus.Fix.REORDER, LinkStatus.fix(p, 6, -1));
-        assertEquals("这次排到 RANK 9。想冲 MAX，就把它往前排",
-            LinkStatus.shortfall("MAX", 5, 9, null, LinkStatus.Fix.REORDER));
-        assertEquals("这次没排上。想冲 MAX，就把它往前排", LinkStatus.shortfall("MAX", 5, 5, null, LinkStatus.Fix.REORDER));
-        // First in its tier (皇帝 among 必须, 太阳 among 想要) with no goal ahead of it: nothing to move.
+        assertEquals(LinkStatus.Fix.NONE, LinkStatus.fix(p, 15, 2));
+        assertEquals("时间先给了女教皇",
+            LinkStatus.shortfall("MAX", 0, 7, "女教皇", LinkStatus.Fix.NONE));
+        assertEquals(LinkStatus.Fix.SET_MUST, LinkStatus.fix(p, 15, -1));
+        assertEquals(LinkStatus.Fix.NONE, LinkStatus.fix(p, 6, -1));
+        assertEquals("这次排到 RANK 9。想冲 MAX，就设成必须",
+            LinkStatus.shortfall("MAX", 5, 9, null, LinkStatus.Fix.SET_MUST));
+        assertEquals("这次没排上。想冲 MAX，就设成必须", LinkStatus.shortfall("MAX", 5, 5, null, LinkStatus.Fix.SET_MUST));
+        // 皇帝 is 必须 (cannot be upgraded further): Fix.NONE.
+        // 太阳 is 想要 with no competitor: Fix.SET_MUST.
         assertEquals(LinkStatus.Fix.NONE, LinkStatus.fix(p, 4, -1));
-        assertEquals(LinkStatus.Fix.NONE, LinkStatus.fix(p, 19, -1));
+        assertEquals(LinkStatus.Fix.SET_MUST, LinkStatus.fix(p, 19, -1));
         assertEquals("这次排到 RANK 9", LinkStatus.shortfall("MAX", 5, 9, null, LinkStatus.Fix.NONE));
         assertEquals("这次没排上", LinkStatus.shortfall("MAX", 5, 5, null, LinkStatus.Fix.NONE));
         // A link that is not a goal is never reported as missing a target the player never set.
@@ -459,7 +458,7 @@ public class UiLogicTest {
         assertEquals("救出北村文吉了吗？", hierophant.footZh);
         assertEquals("北村文吉", hierophant.rescue.zh);
         obs.rescueFailed = 1L;
-        assertEquals("没救出失踪者，无法继续", LinkStatus.of(rules, p, obs, plan, 5).footZh);
+        assertEquals("没救出失踪者，没法继续了", LinkStatus.of(rules, p, obs, plan, 5).footZh);
         assertTrue(LinkStatus.of(rules, p, obs, plan, 5).rescueFailed);
     }
 

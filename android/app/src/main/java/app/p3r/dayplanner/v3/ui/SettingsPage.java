@@ -31,7 +31,7 @@ final class SettingsPage {
     static final Profile.PersonaMode[] PERSONA_MODES = {
         Profile.PersonaMode.ALL, Profile.PersonaMode.GOALS, Profile.PersonaMode.NONE};
     /** The 人格面具 segments on this page (in {@link #PERSONA_MODES} order). */
-    static final String[] PERSONA_LABELS = {"都带", "只给目标", "不带"};
+    static final String[] PERSONA_LABELS = {"都带", "目标才带", "不带"};
     static final String PERSONA_QUESTION = "见面时带同阿尔卡那的人格面具吗？";
     /** Under the segments while 只给目标 is chosen. */
     static final String PERSONA_GOALS_NOTE = "见面前会提醒你带哪个阿尔卡那";
@@ -55,10 +55,10 @@ final class SettingsPage {
     static final String MORE = "更多选项";
     static final String CHARM = "魅力 MAX 后点数 ×1.51";
     static final String GOAL_BUFFER = "目标多留一次见面";
-    static final String ANSWERS = "我会照提示选回答";
+    static final String ANSWERS = "升级对话按提示选";
     /** Profile.deepChanges: a longer search for every automatic replan. */
-    static final String DEEP = "仔细重新安排";
-    static final String DEEP_NOTE = "每次更新多等十来秒";
+    static final String DEEP = "排得更细";
+    static final String DEEP_NOTE = "每次更新稍慢一点";
     /** Top of the page while the plan is being made again. */
     static final String BUSY = "重新安排中…";
 

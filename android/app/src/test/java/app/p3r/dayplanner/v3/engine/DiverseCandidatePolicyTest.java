@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+
 import app.p3r.dayplanner.v3.model.Profile;
 import app.p3r.dayplanner.v3.model.Rules;
 
@@ -102,10 +104,8 @@ public class DiverseCandidatePolicyTest {
         Profile profile = new Profile();
         profile.charmBonus = false;
         profile.goalBuffer = false;
-        profile.tier[0] = profile.tier[1] = profile.tier[3] = Profile.Tier.MUST;
-        profile.order[0] = 0;
-        profile.order[1] = 1;
-        profile.order[3] = 2;
+        profile.tier[0] = profile.tier[1] = Profile.Tier.MUST;
+        profile.tier[3] = Profile.Tier.WANT;
         profile.target[3] = 1;
         SimState state = GoalPrerequisitePolicyTest.state(rules);
         state.rank[0] = state.rank[1] = 9;
@@ -143,6 +143,7 @@ public class DiverseCandidatePolicyTest {
     public void reservingAnEarlierGoalsUnlockStillCountsADifferentGreedyUnlockInK() {
         Rules rules = GoalPrerequisitePolicyTest.chain();
         Profile profile = GoalPrerequisitePolicyTest.goals();
+        profile.tier[3] = Profile.Tier.MUST;
         profile.target[3] = 1;
         SimState state = GoalPrerequisitePolicyTest.state(rules);
         state.rank[2] = 2;

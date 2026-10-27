@@ -247,7 +247,7 @@ final class FakePlannerApi implements PlannerApi {
     /** The store's slot rules: exactly the observed slot, never a lock. */
     private Receipt checkSlot(Call call) {
         if (call.slot < snap.observed.slot) {
-            return invalid("这个时段已经记录过了");
+            return invalid("这段时间已经记录过了");
         }
         if (call.slot > snap.observed.slot) {
             Receipt gap = invalid("前面还有时段没有记录");

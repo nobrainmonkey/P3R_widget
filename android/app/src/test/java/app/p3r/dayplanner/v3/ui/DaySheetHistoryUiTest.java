@@ -311,7 +311,7 @@ public class DaySheetHistoryUiTest extends UiTestBase {
         Shots.clickTarget(Shots.find(picker, "下个月")).performClick();
         Shots.render(picker);
         View story = startingWith(picker, "11月4日，");
-        assertTrue(String.valueOf(story.getContentDescription()), story.getContentDescription().toString().endsWith("，剧情占用"));
+        assertTrue(String.valueOf(story.getContentDescription()), story.getContentDescription().toString().endsWith("，剧情"));
         assertFalse("a story day is not picked", story.isClickable());
         assertFalse("no strike-through", hasStrike(story));
         Shots.save(Shots.render(picker), "calendar_picker_november");

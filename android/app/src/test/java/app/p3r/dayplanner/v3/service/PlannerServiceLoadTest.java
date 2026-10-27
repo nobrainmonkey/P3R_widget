@@ -58,14 +58,14 @@ public class PlannerServiceLoadTest extends ServiceTestBase {
         assertNull(s.observed);
         assertNotNull(s.profile);
         assertFalse(s.planning);
-        assertEquals("游戏资料读取失败，请重新打开应用", s.planErrorZh);
+        assertEquals("游戏资料没读出来，重开应用试试", s.planErrorZh);
         assertNull(broken.rules());
 
         PlannerApi.Receipt r = broken.recordOutcome(id(), 0, TestRules.slot(TestRules.MAY_12, false),
                 "meet:emperor", Outcome.of(Outcome.Code.AS_PREDICTED));
         assertFalse(r.ok);
         assertEquals("io", r.errorCode);
-        assertEquals("游戏资料读取失败，请重新打开应用", r.errorZh);
+        assertEquals("游戏资料没读出来，重开应用试试", r.errorZh);
         assertNull(broken.exportBackup());
         assertTrue(broken.history(0).isEmpty());
         assertTrue(broken.alternatives(TestRules.slot(TestRules.MAY_12, false)).isEmpty());

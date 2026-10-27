@@ -290,7 +290,7 @@ public final class AutumnGoalBenchmark {
     private static SimState week(Fixture f, Plan route, boolean deviation) throws Exception {
         SimState state = f.start.copy();
         int end = state.slot + 14;
-        boolean alternativeDone = false, rankFailureDone = false;
+        boolean alternativeDone = false, rankFailureDone = false, rankFailureCandidateSeen = false;
         JSONArray ledger = new JSONArray();
         while (state.slot < end) {
             Plan.Step planned = route.at(state.slot);
@@ -321,9 +321,11 @@ public final class AutumnGoalBenchmark {
             Outcome outcome = Outcome.of(Outcome.Code.AS_PREDICTED);
             outcome.sideKeys = side.applied;
             Engine.Applied forecast = Engine.apply(rules, f.profile, state, actual);
-            if (deviation && !rankFailureDone && actual.type == Action.Type.MEET && f.profile.isGoal(actual.target)
+            boolean rankCandidate = actual.type == Action.Type.MEET && f.profile.isGoal(actual.target)
                     && forecast.predicted.rankUp && !forecast.predicted.certain
-                    && rules.links[actual.target].threshold[state.rank[actual.target] + 1] > 0) {
+                    && rules.links[actual.target].threshold[state.rank[actual.target] + 1] > 0;
+            if (rankCandidate) rankFailureCandidateSeen = true;
+            if (deviation && !rankFailureDone && rankCandidate) {
                 outcome.code = Outcome.Code.NO_RANK_UP;
                 reason = "player completed a point-gated goal meeting but observed no predicted rank-up";
                 rankFailureDone = true;
@@ -363,7 +365,7 @@ public final class AutumnGoalBenchmark {
             if (after.slot != state.slot + 1) throw new AssertionError("record skipped a slot");
             state = after;
         }
-        if (deviation && (!alternativeDone || !rankFailureDone)) {
+        if (deviation && (!alternativeDone || (rankFailureCandidateSeen && !rankFailureDone))) {
             MidgameDeepBenchmark.issues++;
             System.out.println("DEVIATION_INCOMPLETE " + f.id + " alternative=" + alternativeDone + " rankFailure=" + rankFailureDone);
         }

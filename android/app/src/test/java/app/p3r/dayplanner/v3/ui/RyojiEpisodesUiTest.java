@@ -48,10 +48,10 @@ public class RyojiEpisodesUiTest extends UiTestBase {
         intent.putExtra(Intents.EXTRA_TAB, "links");
         HomeActivity activity = home(intent);
         Shots.click(activity, "羁绊剧情");
-        assertTrue(Shots.has(activity, "0/2次"));
+        assertTrue(Shots.has(activity, "0/2 次"));
         Shots.click(activity, "望月绫时 · 需赴约 2 次，已关闭");
         assertTrue(Shots.has(activity, "已经看过哪一话？"));
-        assertTrue(Shots.has(activity, "望月绫时：尚未赴约"));
+        assertTrue(Shots.has(activity, "望月绫时：还没看"));
         assertTrue(Shots.has(activity, "望月绫时：已看第 4 话"));
         assertFalse(Shots.has(activity, "全部 2 话"));
 
@@ -59,7 +59,7 @@ public class RyojiEpisodesUiTest extends UiTestBase {
         assertEquals(1, api.last().state.episodes[ryoji.idx]);
         assertTrue(api.last().profile.wantsEpisodes("ryoji"));
         assertEquals("已记录：羁绊剧情 · 望月绫时 · 已看第 2 话", activity.undoBar().messageText().toString());
-        assertTrue(Shots.has(activity, "1/2次"));
+        assertTrue(Shots.has(activity, "1/2 次"));
     }
 
     @Test public void resultAndHistoryKeepTheGameSceneNumbersForBothMeetings() throws Exception {

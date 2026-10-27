@@ -49,7 +49,7 @@ class RequestTipsTest(unittest.TestCase):
         self.assertIn("交付第 9 号后才有第 11 号", text)
         self.assertIn("用掉一个晚上", text)
         self.assertIn("不能和当晚的主要活动同时做", text)
-        self.assertIn("额外花费不在安排的预计里", text)
+        self.assertIn("额外花费没算进安排", text)
 
     def test_faculty_visits_do_not_pretend_to_track_completion_or_forecast_stats(self) -> None:
         visits = [x for x in self.items.values() if x["id"].endswith(".faculty")]

@@ -88,7 +88,7 @@ public class OutcomeCorrectionTest extends ServiceTestBase {
         assertEquals(1, applier.actions.get(last).target);
         assertEquals(Outcome.Code.AS_PREDICTED, applier.outcomes.get(last).code);
         PlannerApi.HistoryItem fix = service.history(0).stream().filter(x -> x.seq == went.eventSeq).findFirst().get();
-        assertTrue(fix.summaryZh, fix.summaryZh.endsWith("修改了这次结果 · 探索塔尔塔罗斯 · 去了"));
+        assertTrue(fix.summaryZh, fix.summaryZh.endsWith("修改了这次结果 · 探索塔尔塔罗斯"));
         assertTrue(fix.correctable);
     }
 

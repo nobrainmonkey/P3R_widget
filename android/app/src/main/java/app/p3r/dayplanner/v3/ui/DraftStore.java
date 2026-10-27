@@ -69,7 +69,7 @@ public final class DraftStore {
             String tier = prefs.getString(p + "goal." + link.id + ".tier", null);
             if (tier != null) {
                 draft.profile.tier[link.idx] = Profile.Tier.valueOf(tier);
-                draft.profile.order[link.idx] = prefs.getInt(p + "goal." + link.id + ".order", 0);
+                draft.profile.order[link.idx] = 0;
             }
         }
         draft.floor = getInt(p + "tower.floor");
@@ -137,7 +137,7 @@ public final class DraftStore {
             putInt(e, p + "link." + link.id + ".unlock", draft.unlock[link.idx]);
             if (draft.mode == StateDraft.Mode.ONBOARDING) {
                 e.putString(p + "goal." + link.id + ".tier", draft.profile.tier[link.idx].name());
-                e.putInt(p + "goal." + link.id + ".order", draft.profile.order[link.idx]);
+                e.putInt(p + "goal." + link.id + ".order", 0);
             }
         }
         putInt(e, p + "tower.floor", draft.floor);

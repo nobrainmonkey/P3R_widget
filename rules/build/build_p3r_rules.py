@@ -638,7 +638,7 @@ LOCK_REASONS = {
     "full_moon": "满月作战",
     "new_year": "新年参拜",
     "prologue": "序章剧情",
-    "reserved": "可能有剧情（先空出）",
+    "reserved": "先空出来",
     "school_trip": "修学旅行",
     "story": "剧情事件",
     "summer_classes": "暑期补习",
@@ -1196,7 +1196,7 @@ UNLOCKS = {
     "devil": {
         "earliest": "05-16", "stat": {"charm": 4}, "link": {"hermit": 4}, "conf": "conflict",
         "src": ["aqiu_social_events", "ev_multistep_unlock", "ev_social_links", "cn_guide"],
-        "noteZh": "隐者社群的要求按较严格的 RANK 4 计算（也有资料说 RANK 3）。",
+        "noteZh": "需要隐者社群达到 RANK 4。",
         "steps": [
             step("devil.pay1", "在喷泉前把 20,000 日元交给田中社长",
                  "需要魅力 Lv.4 和隐者社群 RANK 4。晚上到桐叶购物中心的喷泉前找田中社长，就是那个穿西装的男人，交给他 20,000 日元。"
@@ -1211,7 +1211,7 @@ UNLOCKS = {
     "tower": {
         "earliest": "05-23", "stat": {"courage": 4}, "link": {"strength": 4}, "conf": "conflict",
         "src": ["aqiu_social_events", "ev_multistep_unlock", "ev_social_links", "cn_guide"],
-        "noteZh": "勇气要求按较严格的 Lv.4 计算（也有资料说 Lv.2 或 Lv.3）。",
+        "noteZh": "需要勇气达到 Lv.4。",
         "steps": [
             step("tower.rumor", "听西胁结子说起奇怪的和尚",
                  "力量社群 RANK 4 以后，放学后和西胁结子聊天，会听到放纵俱乐部里有个奇怪和尚的传闻。" + NO_TIME,
@@ -1266,12 +1266,11 @@ UNLOCKS = {
 LINK_NOTES = {
     "fool": "随主线剧情自动升级，不需要安排。",
     "death": "随主线剧情自动升级，不需要安排。",
-    "judgement": "12月31日解锁，之后随你在塔尔塔罗斯「忧郁之庭 亚达玛」到达的楼层（227F～255F）自动升级；"
-                 "随探索进度推进。",
+    "judgement": "12月31日解锁，之后在塔尔塔罗斯「忧郁之庭 亚达玛」到达对应楼层（227F～255F）时自动升级。",
     "emperor": "11月3日～11月29日小田桐秀利不在学生会，见不到面。",
     "empress": "考试前一周（12月7日～12月12日）她每天放学后都在。",
-    "hierophant": "9月12日北村文吉失踪，期限 10月3日，要到塔尔塔罗斯救出他，否则教皇社群无法继续。",
-    "hanged_man": "10月21日舞子失踪，期限 11月2日，要到塔尔塔罗斯救出她，否则倒悬者社群无法继续。",
+    "hierophant": "9月12日北村文吉失踪，期限 10月3日，要到塔尔塔罗斯救出他，否则教皇社群没法继续了。",
+    "hanged_man": "10月21日舞子失踪，期限 11月2日，要到塔尔塔罗斯救出她，否则倒悬者社群没法继续了。",
     "hermit": "只在星期日和节假日的白天上线。",
     "devil": "解锁之后每次见面都会升级，不用攒点数。",
     "sun": "只在星期日白天见面；解锁之后每次见面都会升级。",
@@ -2759,7 +2758,7 @@ REMINDER_ID = re.compile(r"[a-z]+\.[0-9]{2}-[0-9]{2}(\.[a-z0-9_]+)?")
 SHORT_MAX_CHARS = 16
 SHORT_MAX_HAN = 12
 # Every reminder that gives a stat ends its detail with this sentence (stats are not forecast, DESIGN §10.9).
-TV_DETAIL = "在自己房间看电视就能买，不会消耗时间；最好出门前先买。花的钱不在安排的预计里，买了以后记得在「同步现状」里更新现金。"
+TV_DETAIL = "在自己房间看电视就能买，不会消耗时间；最好出门前先买。这笔钱没算进安排，买完去「修改进度」改一下现金。"
 # The missing people the engine models as rescues (RESCUES), by their name in the aqiu table.
 RESCUE_EN = {"bunkichi": "Bunkichi Kitamura", "maiko": "Maiko Oohashi"}
 # aqiu's tested Reload route: it rescues every missing person, some of them on their limit day.
@@ -3628,7 +3627,7 @@ def request_reminders(ledger: Ledger, people: list[tuple[int, int, str]], sched:
         if batch_tips.get(d):
             detail += "已完成的可以跳过，不必今天全部清空。\n" + "\n".join(batch_tips[d])
         detail += "\n已完成委托的难度星数合计达到 25、60、100、150、185 时，分别查看第 77～81 号外出邀请；后一次还要在前一次外出完成后至少等 3 天。"
-        detail += "额外花费不在安排的预计里，花过钱后记得在「同步现状」更新现金。"
+        detail += "额外花费没算进安排，花完去「修改进度」改一下现金。"
         out.append(reminder(f"request.{md_of(d)}", "request", d, "eve" if evening else "day", "伊莉莎白有新的委托",
                             "伊莉莎白有新委托", detail=detail,
                             conf="verified", src=src + ["ev_request_catalogue"]))
@@ -3904,8 +3903,8 @@ def collectible_reminders(ledger: Ledger, page: AqiuPage, sched: Schedule3dm, gu
         "trip.11-17", "trip", day_of_md("11-17"), "day", "修学旅行：把 2 楼自动贩卖机的 3 种饮料都买下，伊莉莎白的第 96 号委托要用",
         "买齐 3 种饮料（委托用）", label="修学旅行", priority=3,
         detail="住的地方 2 楼有自动贩卖机，3 种饮料每种买一瓶。回学校后在连接走廊把饮料交给一位女学生，再花 "
-               f"{yen(int(oden.group(1)))}向她买关东煮，交给伊莉莎白就能完成第 96 号委托。这笔钱不在安排的预计里，"
-               "买了以后记得在「同步现状」里更新现金。",
+               f"{yen(int(oden.group(1)))}向她买关东煮，交给伊莉莎白就能完成第 96 号委托。这笔钱没算进安排，"
+               "买完去「修改进度」改一下现金。",
         conf="verified", src=["aqiu_overworld", "cn_guide"]))
     # 真宵堂 opens on 7/18 (aqiu Tartarus notes, the CN guide that evening).
     if "Mayoido Antiques opens on 7/18" not in (SOURCES_DIR / "aqiu_gamedata" / "tartarus.md").read_text(encoding="utf-8"):
@@ -4024,7 +4023,7 @@ def combat_catalogue(ledger: Ledger) -> list[dict]:
         path = ROOT / witness.get("path", "")
         if not path.is_file() or not witness.get("text") or witness["text"] not in path.read_text(encoding="utf-8"):
             raise BuildError(f"combat catalogue: changed {field}")
-    damage_names = ("斩击", "打击", "贯穿", "火炎", "冰冻", "电击", "疾风", "光", "暗")
+    damage_names = ("斩击", "打击", "贯穿", "火焰", "冰冻", "电击", "疾风", "神圣", "暗黑")
     out = []
     for entry in entries:
         ident, kind, section = entry.get("id"), entry.get("kind"), entry.get("section")
@@ -4191,7 +4190,7 @@ NOTES_ZH = (
     "【结缘网站的字条】11月11日起，晚上在放纵俱乐部购买（3,000 日元），回宿舍用公用电脑给已解锁、未 MAX 的社群增加好感；预计 +10，不直接升级，占用一个晚上。",
     "【羁绊剧情】可选择安排伊织顺平、真田明彦、虎狼丸、天田乾、荒垣真次郎的剧情；每话占用一个时段，奖励能力值和道具，最后一话解锁人格面具合体。",
     "【当天提醒】课堂与考试答案、保健室、电视购物、委托、黄昏的碎片和救援期限会在当天显示，也可在「提示」中搜索。",
-    "【剧情学力】8月10日～15日暑期补习每天自动学力 +3。课堂提问、上课犯困、保健室和考试名次的收益，完成后在「同步现状」更新。",
+    "【剧情学力】8月10日～15日暑期补习每天自动学力 +3。课堂提问、上课犯困、保健室和考试名次的收益，完成后在「修改进度」改一下。",
 )
 
 
@@ -5212,7 +5211,7 @@ def render_sources(pack: dict) -> list[str]:
 
 
 # Player-facing labels of the app itself (not game text) that appear in 「」 in pack notes.
-APP_LABELS = ("只给目标社群带", "基本都带", "同步现状", "未选", "学力 MAX 就能解锁", "伙伴们")
+APP_LABELS = ("只给目标社群带", "基本都带", "修改进度", "同步现状", "未选", "学力 MAX 就能解锁", "伙伴们")
 
 
 def official_zh_text() -> str:

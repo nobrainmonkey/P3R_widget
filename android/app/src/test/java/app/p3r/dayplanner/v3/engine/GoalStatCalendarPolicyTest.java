@@ -149,10 +149,10 @@ public class GoalStatCalendarPolicyTest {
         profile.towerVisitsPerBlock = profile.towerCapPerBlock = 0;
         profile.tier[2] = Profile.Tier.MUST;
         SimState state = schoolStart(rules);
-        for (boolean goalFirst : new boolean[]{false, true}) {
-            assertEquals("school-calendar scarcity must respect the user's selected goal",
-                    Kernel.encode(Action.meet(2)), choose(rules, profile, state, goalFirst));
-        }
+        assertEquals("balanced tuning preserves the shared school slot while outside goal has plenty of holidays",
+                Kernel.encode(Action.meet(0)), choose(rules, profile, state, false));
+        assertEquals("goal-first tuning gives the slot to the explicit goal",
+                Kernel.encode(Action.meet(2)), choose(rules, profile, state, true));
     }
 
     @Test

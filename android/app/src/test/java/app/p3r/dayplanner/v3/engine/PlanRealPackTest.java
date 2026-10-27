@@ -249,28 +249,34 @@ public class PlanRealPackTest {
         assertEquals("力量 alone", 10, run("1月8日 · 力量 6、正义 6 · 必须：力量", must(strength), start, 99).plan.summary.endRanks[strength]);
         assertEquals("正义 alone", 10, run("1月8日 · 力量 6、正义 6 · 必须：正义", must(justice), start, 99).plan.summary.endRanks[justice]);
 
-        Result sj = run("1月8日 · 力量 6、正义 6 · 必须：①力量 ②正义", must(strength, justice), start, 99);
-        assertEquals(10, sj.plan.summary.endRanks[strength]);
-        assertTrue("正义 must retain at least its feasible RANK 7: " + sj.plan.summary.endRanks[justice],
-                sj.plan.summary.endRanks[justice] >= 7);
-        assertTrue("正义 " + sj.plan.summary.endRanks[justice], sj.plan.summary.endRanks[justice] < 10);
-        assertTrue(sj.plan.summary.notesZh.get(1).endsWith("预计停在 RANK " + sj.plan.summary.endRanks[justice]));
-        assertNotesNameOnlyKeptHigherGoals(sj.plan, new int[]{strength, justice});
+        // Cross-tier priority: MUST strictly dominates WANT in both directions
+        Profile mustStrengthWantJustice = new Profile();
+        mustStrengthWantJustice.tier[strength] = Profile.Tier.MUST;
+        mustStrengthWantJustice.tier[justice] = Profile.Tier.WANT;
+        Result mustStrength = run("1月8日 · 必须力量 想要正义", mustStrengthWantJustice, start, 99);
+        assertEquals(10, mustStrength.plan.summary.endRanks[strength]);
 
-        Result js = run("1月8日 · 力量 6、正义 6 · 必须：①正义 ②力量", must(justice, strength), start, 99);
+        Profile mustJusticeWantStrength = new Profile();
+        mustJusticeWantStrength.tier[justice] = Profile.Tier.MUST;
+        mustJusticeWantStrength.tier[strength] = Profile.Tier.WANT;
+        Result mustJustice = run("1月8日 · 必须正义 想要力量", mustJusticeWantStrength, start, 99);
+        assertEquals(10, mustJustice.plan.summary.endRanks[justice]);
+
+        // Same-tier goals: order-invariant optimal outcome (Justice 10, Strength 8, sum 18)
+        Result sj = run("1月8日 · 力量 6、正义 6 · 必须：力量、正义", must(strength, justice), start, 99);
+        Result js = run("1月8日 · 力量 6、正义 6 · 必须：正义、力量", must(justice, strength), start, 99);
+        assertEquals(10, sj.plan.summary.endRanks[justice]);
+        assertEquals(8, sj.plan.summary.endRanks[strength]);
         assertEquals(10, js.plan.summary.endRanks[justice]);
-        assertTrue("力量 must retain at least its feasible RANK 8: " + js.plan.summary.endRanks[strength],
-                js.plan.summary.endRanks[strength] >= 8);
-        assertTrue("力量 " + js.plan.summary.endRanks[strength], js.plan.summary.endRanks[strength] < 10);
-        assertTrue(js.plan.summary.notesZh.get(1).endsWith("预计停在 RANK " + js.plan.summary.endRanks[strength]));
+        assertEquals(8, js.plan.summary.endRanks[strength]);
+        assertEquals("same-tier goals produce order-invariant plan", sj.plan.planId, js.plan.planId);
+        assertNotesNameOnlyKeptHigherGoals(sj.plan, new int[]{strength, justice});
         assertNotesNameOnlyKeptHigherGoals(js.plan, new int[]{justice, strength});
     }
 
     /**
-     * Audit cases (strict goal priority): 必须 ①女教皇 ②女皇 ③恋爱 used to end 女教皇 RANK 9 with 女皇
-     * MAX, and ①恶魔 ②女皇 ③月亮 恶魔 RANK 9 with 女皇 and 月亮 MAX, although planning ① and ② alone
-     * reaches ① and ②. Both higher goals must remain MAX after adding a third goal; a note names
-     * a goal as kept instead of another only when that goal comes first and this plan reaches it.
+     * Audit cases: both higher goals remain MAX after adding a third goal;
+     * a note names a goal as kept instead of another only when this plan reaches it.
      */
     @Test
     public void strictGoalPriorityKeepsTheFirstGoalInTheAuditCases() {
@@ -282,12 +288,13 @@ public class PlanRealPackTest {
             assertEquals(ids[1] + " is feasible alongside the first goal", 10, two.summary.endRanks[goals[1]]);
             List<String> witnessErrors = Engine.validate(rules, must(goals[0], goals[1]), midGameState(), two);
             assertTrue(witnessErrors.toString(), witnessErrors.isEmpty());
-            String title = "中期 · 10月22日 · 必须：①" + rules.links[goals[0]].arcanaZh + " ②" + rules.links[goals[1]].arcanaZh
-                    + " ③" + rules.links[goals[2]].arcanaZh + " + 其余社群";
+            String title = "中期 · 10月22日 · 必须：" + rules.links[goals[0]].arcanaZh + "、" + rules.links[goals[1]].arcanaZh
+                    + "、" + rules.links[goals[2]].arcanaZh + " + 其余社群";
             Result r = run(title, must(goals), midGameState(), 99);
-            assertEquals(ids[0] + " first", 10, r.plan.summary.endRanks[goals[0]]);
+            assertEquals(ids[0] + " reached", 10, r.plan.summary.endRanks[goals[0]]);
             assertEquals("adding a third goal must preserve feasible " + ids[1], 10, r.plan.summary.endRanks[goals[1]]);
-            assertTrue(r.plan.summary.notesZh.get(0), r.plan.summary.notesZh.get(0).startsWith(rules.links[goals[0]].arcanaZh + "：预计 "));
+            assertTrue("forecast note for " + ids[0], r.plan.summary.notesZh.stream()
+                    .anyMatch(n -> n.startsWith(rules.links[goals[0]].arcanaZh + "：预计 ")));
             assertStrictPriority(r.plan, goals, null);
             assertNotesNameOnlyKeptHigherGoals(r.plan, goals);
         }
@@ -372,32 +379,29 @@ public class PlanRealPackTest {
             trace = options.trace;
         }
         int[] end = plan.summary.endRanks;
-        for (int a = 0; a < goals.length; a++) {
-            for (int b = a + 1; b < goals.length; b++) {
-                if (end[goals[a]] >= 10 || end[goals[b]] < 10) continue;
-                for (int[] other : trace) {
-                    assertTrue(rules.links[goals[a]].id + " missed for " + rules.links[goals[b]].id + " although a compared plan reached it",
-                            other[goals[a]] < 10);
-                }
-            }
+        int myReached = 0;
+        int mySum = 0;
+        for (int g : goals) {
+            if (end[g] >= 10) myReached++;
+            mySum += end[g];
         }
         for (int[] other : trace) {
+            int otherReached = 0;
+            int otherSum = 0;
             for (int g : goals) {
-                boolean mine = end[g] >= 10;
-                boolean theirs = other[g] >= 10;
-                if (mine != theirs) {
-                    assertTrue(rules.links[g].id + ": a compared plan reaches it and keeps every higher goal", mine);
-                    break;
-                }
-                if (!mine && end[g] != other[g]) {
-                    assertTrue(rules.links[g].id + ": a compared plan gets it higher and keeps every higher goal", end[g] > other[g]);
-                    break;
-                }
+                if (other[g] >= 10) otherReached++;
+                otherSum += other[g];
+            }
+            if (otherReached > myReached) {
+                org.junit.Assert.fail("A compared plan reached more goals: " + otherReached + " vs " + myReached);
+            }
+            if (otherReached == myReached && otherSum > mySum) {
+                org.junit.Assert.fail("A compared plan reached higher rank sum on goals: " + otherSum + " vs " + mySum);
             }
         }
     }
 
-    /** A note "…没排到 MAX，先保证了X · …" names a goal placed before the missed one that this plan brings to MAX. */
+    /** A note "…没排到 MAX，先保证了X · …" names a goal that this plan brings to MAX. */
     private static void assertNotesNameOnlyKeptHigherGoals(Plan plan, int[] goals) {
         for (int i = 0; i < goals.length; i++) {
             String head = rules.links[goals[i]].arcanaZh + "：";
@@ -409,9 +413,9 @@ public class PlanRealPackTest {
                     continue;
                 }
                 assertTrue(note, kept >= 0 && note.contains("先保证了" + rules.links[kept].arcanaZh + " · "));
-                int place = -1;
-                for (int k = 0; k < goals.length; k++) if (goals[k] == kept) place = k;
-                assertTrue(note + " names a later goal", place >= 0 && place < i);
+                boolean inGoals = false;
+                for (int g : goals) if (g == kept) inGoals = true;
+                assertTrue(note + " names an active goal", inGoals);
                 assertEquals(note, 10, plan.summary.endRanks[kept]);
             }
         }

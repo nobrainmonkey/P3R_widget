@@ -80,14 +80,14 @@ public final class PlannerService implements PlannerApi {
     static final String ZH_CONFLICT = "这一项刚才已经记过了";
     static final String ZH_IO = "没保存上，再试一次？";
     // The load errors and ZH_PLAN_FAILED_* are also the widget's error cue (Snapshot#planErrorZh).
-    static final String ZH_RULES_MISSING = "游戏资料读取失败，请重新打开应用";
-    static final String ZH_DB_MISSING = "读取记录失败了，请重新打开应用";
+    static final String ZH_RULES_MISSING = "游戏资料没读出来，重开应用试试";
+    static final String ZH_DB_MISSING = "记录没读出来，重开应用试试";
     static final String ZH_COMMAND_ID = "没保存上，再试一次？";
     static final String ZH_OUTCOME_MISSING = "先选一个结果";
     static final String ZH_TOWER_MISSING = "先填好这次探索的结果";
     /** A failed replan with a plan installed (out of date): it stays, as 从头重新安排's 「现在的安排不变」 says. */
-    static final String ZH_PLAN_FAILED_KEPT = "生成安排时出了问题，现在的安排先不变";
-    static final String ZH_PLAN_FAILED_NONE = "生成安排时出了问题，请稍后再试";
+    static final String ZH_PLAN_FAILED_KEPT = "新安排没排出来，现在的安排先不变";
+    static final String ZH_PLAN_FAILED_NONE = "新安排没排出来，稍后再试一次";
     /** Import duplicate with nothing recorded since: the data already is the backup. */
     static final String ZH_IMPORT_ALREADY = "这份备份刚恢复过，现在就是备份里的进度";
     /** Import duplicate after newer records: nothing was replaced. */
@@ -1110,26 +1110,41 @@ public final class PlannerService implements PlannerApi {
     }
 
     /**
-     * The planner's strict goal priority between two plans for the same revisions: the goals in
-     * priority order (「必须」 then 「想要」, each by order) decide, each by its end rank up to its
-     * target (reaching the target ties). Positive when {@code a} is better, negative when {@code b}
-     * is, 0 when the goals tie.
+     * The planner's tier goal priority between two plans for the same revisions: 「必须」 goals decide
+     * first (count reaching target, then sum of end ranks up to target), followed by 「想要」 goals by
+     * the same rule. Positive when {@code a} is better, negative when {@code b} is, 0 when both tie.
      */
     static int compareGoals(Profile profile, Plan a, Plan b) {
+        int mustCmp = compareGoalTier(profile, a, b, Profile.Tier.MUST);
+        if (mustCmp != 0) {
+            return mustCmp;
+        }
+        return compareGoalTier(profile, a, b, Profile.Tier.WANT);
+    }
+
+    private static int compareGoalTier(Profile profile, Plan a, Plan b, Profile.Tier tier) {
         int[] ra = a.summary.endRanks;
         int[] rb = b.summary.endRanks;
-        for (int l : goalOrder(profile)) {
-            if (l >= ra.length || l >= rb.length) {
+        int reachedA = 0;
+        int reachedB = 0;
+        int sumA = 0;
+        int sumB = 0;
+        for (int l = 0; l < profile.tier.length; l++) {
+            if (profile.tier[l] != tier || l >= ra.length || l >= rb.length) {
                 continue;
             }
             int target = profile.target[l] > 0 ? profile.target[l] : 10;
             int x = Math.min(ra[l], target);
             int y = Math.min(rb[l], target);
-            if (x != y) {
-                return Integer.compare(x, y);
-            }
+            if (x >= target) reachedA++;
+            if (y >= target) reachedB++;
+            sumA += x;
+            sumB += y;
         }
-        return 0;
+        if (reachedA != reachedB) {
+            return Integer.compare(reachedA, reachedB);
+        }
+        return Integer.compare(sumA, sumB);
     }
 
     /**
@@ -1222,7 +1237,7 @@ public final class PlannerService implements PlannerApi {
             if (tx != ty) {
                 return Integer.compare(tx, ty);
             }
-            return p.order[x] != p.order[y] ? Integer.compare(p.order[x], p.order[y]) : Integer.compare(x, y);
+            return Integer.compare(x, y);
         });
         return out;
     }

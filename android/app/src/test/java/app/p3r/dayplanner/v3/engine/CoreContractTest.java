@@ -155,7 +155,7 @@ public class CoreContractTest {
             assertEquals("locked", step.kind);
             assertEquals("平安夜约会", step.titleZh);
             assertEquals("这段时间不能自由行动", step.subtitleZh);
-            assertEquals("已经答应了友近健二的平安夜邀约", step.detailZh);
+            assertEquals("已经答应了友近健二的平安夜约会", step.detailZh);
             assertTrue(step.side.isEmpty());
             SimState there = Engine.advanceTo(rules, accepted, start, Rules.slot(eve, evening));
             assertTrue("nothing to do on a taken slot", Engine.legalActions(rules, accepted, there).isEmpty());
@@ -182,7 +182,7 @@ public class CoreContractTest {
         Plan.Step step = new Plan.Step();
         step.slot = RulesFixtures.slot(12, 24, true);
         labels.describeLocked(step, Rules.LOCK_CHRISTMAS);
-        assertEquals("已经答应了平安夜的邀约", step.detailZh);
+        assertEquals("已经答应了平安夜约会", step.detailZh);
     }
 
     // ------------------------------------------------------------------ goal priority
@@ -201,51 +201,56 @@ public class CoreContractTest {
         p.tier[2] = Profile.Tier.WANT;
         p.order[2] = 1;
         Heuristics h = new Heuristics(new Model(rules, p, null), RulesFixtures.newGame(rules, RulesFixtures.slot(4, 21, false)), null);
-        assertEquals(150_000, h.wGoal[4], 1e-9);
-        assertEquals(125_000, h.wGoal[11], 1e-9);
+        assertEquals(100_000, h.wGoal[4], 1e-9);
+        assertEquals(100_000, h.wGoal[11], 1e-9);
         assertEquals(100_000, h.wGoal[8], 1e-9);
-        assertEquals(10_000, h.wGoal[6], 1e-9);
+        assertEquals(8_000, h.wGoal[6], 1e-9);
         assertEquals(8_000, h.wGoal[2], 1e-9);
-        int[] order = {4, 11, 8, 6, 2};
-        for (int i = 0; i + 1 < order.length; i++) {
-            int a = order[i];
-            int b = order[i + 1];
-            assertEquals(i, h.goalRank[a]);
-            // When two goals compete for the last ranks, the earlier goal's MAX outweighs the later one's.
-            double maxA = h.val[a][10] - h.val[a][9];
-            double maxB = h.val[b][10] - h.val[b][9];
-            assertTrue(order[i] + " before " + order[i + 1], maxA > maxB);
+        for (int mLink : musts) {
+            assertEquals(0, h.goalRank[mLink]);
         }
+        assertEquals(1, h.goalRank[6]);
+        assertEquals(1, h.goalRank[2]);
+        // Goals within the same tier carry equal rank and MAX weights; MUST outweighs WANT.
+        assertEquals(h.val[4][10] - h.val[4][9], h.val[8][10] - h.val[8][9], 1e-9);
+        assertEquals(h.val[6][10] - h.val[6][9], h.val[2][10] - h.val[2][9], 1e-9);
         // Every 「必须」 rank outweighs every 「想要」 MAX.
         assertTrue(h.wGoal[8] > h.val[6][10] - h.val[6][9]);
     }
 
-    // ------------------------------------------------------------------ strict goal priority
+    // ------------------------------------------------------------------ tier goal priority (unordered within tier)
 
     private static Planner.Candidate outcome(boolean[] reached, int[] endRank, double score) {
         return new Planner.Candidate(null, null, null, new int[0], score, score, score, 0, reached, endRank, new int[22], 0);
     }
 
+    private static Planner.Candidate tierOutcome(boolean[] reached, int[] endRank, int mustCount, double score) {
+        int[] targets = new int[reached.length];
+        java.util.Arrays.fill(targets, 10);
+        return new Planner.Candidate(null, null, null, new int[0], score, score, score, 0,
+                reached, endRank, new int[22], 0, 0, 0, mustCount, targets);
+    }
+
     @Test
-    public void goalsAreComparedInStrictPriorityOrderBeforeTheObjective() {
-        // ① missed at 9, ② reached — against ① reached, ② never opened: the first goal decides.
-        Planner.Candidate secondOnly = outcome(new boolean[]{false, true, false}, new int[]{9, 10, 3}, 5_000_000);
-        Planner.Candidate firstOnly = outcome(new boolean[]{true, false, false}, new int[]{10, 0, 1}, 1_000);
-        assertTrue(Planner.Pool.compareGoals(firstOnly, secondOnly) > 0);
-        assertTrue(Planner.Pool.compareGoals(secondOnly, firstOnly) < 0);
-        assertEquals(0, Planner.Pool.decidingGoal(firstOnly, secondOnly));
-        // Both reach ①: ② decides, whatever ③ does.
-        Planner.Candidate both = outcome(new boolean[]{true, true, false}, new int[]{10, 10, 0}, 900);
-        assertTrue(Planner.Pool.compareGoals(both, firstOnly) > 0);
-        assertEquals(1, Planner.Pool.decidingGoal(both, firstOnly));
-        // Two misses of the same goal: the higher end rank wins.
-        Planner.Candidate nine = outcome(new boolean[]{false, false, true}, new int[]{9, 2, 10}, 0);
-        Planner.Candidate eight = outcome(new boolean[]{false, true, true}, new int[]{8, 10, 10}, 0);
-        assertTrue(Planner.Pool.compareGoals(nine, eight) > 0);
-        // Equal goals: the objective decides (compareGoals ties).
-        Planner.Candidate same = outcome(new boolean[]{true, true, false}, new int[]{10, 10, 0}, 1_000);
-        assertEquals(0, Planner.Pool.compareGoals(both, same));
-        assertEquals(-1, Planner.Pool.decidingGoal(both, same));
+    public void goalsAreComparedByTierWithoutIntraTierOrderBeforeTheObjective() {
+        // Within MUST: reaching two goals beats reaching one, regardless of which indices reached.
+        Planner.Candidate twoMusts = outcome(new boolean[]{false, true, true}, new int[]{8, 10, 10}, 900);
+        Planner.Candidate oneMust = outcome(new boolean[]{true, false, false}, new int[]{10, 9, 3}, 5_000_000);
+        assertTrue(Planner.Pool.compareGoals(twoMusts, oneMust) > 0);
+        assertTrue(Planner.Pool.compareGoals(oneMust, twoMusts) < 0);
+        // Same count of reached MUST goals: higher total MUST progress wins, symmetric across indices.
+        Planner.Candidate onePlusNine = outcome(new boolean[]{false, true, false}, new int[]{9, 10, 3}, 1_000);
+        Planner.Candidate onePlusEight = outcome(new boolean[]{true, false, false}, new int[]{10, 8, 3}, 5_000_000);
+        assertTrue(Planner.Pool.compareGoals(onePlusNine, onePlusEight) > 0);
+        Planner.Candidate swapped = outcome(new boolean[]{true, false, false}, new int[]{10, 9, 3}, 2_000);
+        assertEquals(0, Planner.Pool.compareGoals(onePlusNine, swapped));
+        // MUST tier strictly dominates WANT tier.
+        Planner.Candidate mustBeatWant = tierOutcome(new boolean[]{true, false, false}, new int[]{10, 2, 2}, 1, 100);
+        Planner.Candidate wantBeatMust = tierOutcome(new boolean[]{false, true, true}, new int[]{9, 10, 10}, 1, 5_000_000);
+        assertTrue(Planner.Pool.compareGoals(mustBeatWant, wantBeatMust) > 0);
+        // Equal tier counts and progress sums: the objective decides (compareGoals ties).
+        Planner.Candidate same = outcome(new boolean[]{false, true, true}, new int[]{8, 10, 10}, 1_000);
+        assertEquals(0, Planner.Pool.compareGoals(twoMusts, same));
     }
 
     @Test

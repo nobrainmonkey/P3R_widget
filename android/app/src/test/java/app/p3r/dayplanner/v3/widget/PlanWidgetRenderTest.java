@@ -141,8 +141,8 @@ public class PlanWidgetRenderTest {
             case "free": fake.observeAt("free"); break;
             case "empty": fake.observed = null; break;
             case "planning": fake.plan = null; fake.planning = true; break;
-            case "error": fake.plan = null; fake.planErrorZh = "生成安排时出了问题，请稍后再试"; break;
-            case "unreadable": fake.observed = null; fake.planErrorZh = "游戏资料读取失败，请重新打开应用"; break;
+            case "error": fake.plan = null; fake.planErrorZh = "新安排没排出来，稍后再试一次"; break;
+            case "unreadable": fake.observed = null; fake.planErrorZh = "游戏资料没读出来，重开应用试试"; break;
             case "finished": fake.observed.slot = FakePlannerApi.FIRST_SLOT + 20; break;
             case "receipt": {
                 fake.observeAt("meet:emperor");
@@ -282,8 +282,8 @@ public class PlanWidgetRenderTest {
     @Test
     public void statusInstructionsWrapInsteadOfBeingCutShort() {
         Map<String, String> cues = new LinkedHashMap<>();
-        cues.put("unreadable", "游戏资料读取失败，请重新打开应用");
-        cues.put("error", "生成安排时出了问题，请稍后再试");
+        cues.put("unreadable", "游戏资料没读出来，重开应用试试");
+        cues.put("error", "新安排没排出来，稍后再试一次");
         cues.put("empty", "填好进度后，每天点「完成」就行");
         for (Map.Entry<String, String> e : cues.entrySet()) {
             for (int[] size : SIZES) {
@@ -540,7 +540,7 @@ public class PlanWidgetRenderTest {
         state("error");
         TextView cue = render(false, 180, 150).findViewById(R.id.widget_detail_cue);
         assertEquals(2, cue.getLineCount());
-        assertEquals("生成安排时出了问题，请稍后再试", CardText.plain(cue.getText().toString()));
+        assertEquals("新安排没排出来，稍后再试一次", CardText.plain(cue.getText().toString()));
     }
 
     /**

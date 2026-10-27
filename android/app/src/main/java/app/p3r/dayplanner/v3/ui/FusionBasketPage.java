@@ -180,7 +180,7 @@ public final class FusionBasketPage {
             status.setCompoundDrawablePadding(Ui.dp(c, 4));
         } else if (node.craftQuantity == 0) {
             // 「不合了，直接召唤」 on the goal's own step: no fusion left, it is found or summoned.
-            status = Ui.text(c, "未登录", 15, color(R.color.p3r_ink_muted), true);
+            status = Ui.text(c, "直接召唤 · 未登录", 15, color(R.color.p3r_ink_muted), true);
         } else {
             status = Ui.mixed(c, "还差 " + remainingSteps(node) + " 步", 15, color(R.color.p3r_cyan_300), true);
         }

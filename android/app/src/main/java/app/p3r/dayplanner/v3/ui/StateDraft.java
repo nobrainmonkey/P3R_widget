@@ -365,7 +365,7 @@ public final class StateDraft {
     /** "还没看" / "已看 2 话" / "全部看完". */
     static String episodesText(Rules.Episode track, int watched) {
         if (track.hasUnplannedScenes()) {
-            return watched <= 0 ? "尚未赴约"
+            return watched <= 0 ? "还没看"
                 : "已看第 " + track.sceneOf(Math.min(track.count, watched)) + " 话";
         }
         if (watched <= 0) {
@@ -750,7 +750,7 @@ public final class StateDraft {
             String c = rescueText(after, i, rescueOpen(i));
             if (!a.equals(c)) {
                 long bit = 1L << i;
-                out.add(new Change("救出" + rules.rescues[i].zh, a, c, "TOWER",
+                out.add(new Change("失踪者 · " + rules.rescues[i].zh, a, c, "TOWER",
                     rescue[i] == null && (shown.rescued & bit) != (base.rescued & bit)));
             }
         }
@@ -836,7 +836,7 @@ public final class StateDraft {
         out.add(new Change("目标", null, goals.isEmpty() ? "没选，所有社群都尽量提升" : goalSummary(goals), "GOALS", false));
         out.add(new Change("人格面具", null, personaShort(profile.effectivePersonaMode()), "PERSONA", false));
         for (int i : rescuesToAsk()) {
-            out.add(new Change("救出" + rules.rescues[i].zh, null, rescueText(after, i, rescueOpen(i)), "TOWER", false));
+            out.add(new Change("失踪者 · " + rules.rescues[i].zh, null, rescueText(after, i, rescueOpen(i)), "TOWER", false));
         }
         for (int track : visibleEpisodeTracks()) {
             Rules.Episode e = rules.episodes[track];

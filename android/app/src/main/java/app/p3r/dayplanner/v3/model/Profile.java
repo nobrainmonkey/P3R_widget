@@ -48,7 +48,7 @@ public final class Profile {
 
     /** Goal tier per link index. */
     public Tier[] tier = new Tier[LINKS];
-    /** Order within tier (lower = more important); only meaningful for WANT/MUST. */
+    /** Legacy intra-tier order slot (always 0; tiers are unordered sets: MUST > WANT). */
     public int[] order = new int[LINKS];
     /** Target rank per link (default 10 = MAX). */
     public int[] target = new int[LINKS];
@@ -218,7 +218,7 @@ public final class Profile {
         for (int i = 0; i < LINKS; i++) {
             JSONObject g = new JSONObject();
             g.put("tier", tier[i].name());
-            g.put("order", order[i]);
+            g.put("order", 0);
             g.put("target", target[i]);
             g.put("route", route[i].name());
             goals.put(g);
@@ -263,7 +263,7 @@ public final class Profile {
             for (int i = 0; i < Math.min(LINKS, goals.length()); i++) {
                 JSONObject g = goals.getJSONObject(i);
                 p.tier[i] = Tier.valueOf(g.optString("tier", "NONE"));
-                p.order[i] = g.optInt("order", 0);
+                p.order[i] = 0;
                 p.target[i] = Math.max(1, Math.min(10, g.optInt("target", 10)));
                 p.route[i] = Route.valueOf(g.optString("route", "UNDECIDED"));
             }

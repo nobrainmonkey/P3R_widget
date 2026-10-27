@@ -159,8 +159,8 @@ public class BreadthObjectiveTest {
     public void maxStyleMatchesTheReviewedSyntheticPlans() {
         Rules rules = RulesFixtures.fullYear();
         Object[][] golden = {
-                {"new game", RulesFixtures.others(), RulesFixtures.slot(4, 21, false), "b1806cc53d0cabc4", "d58c41149de88990"},
-                {"must 4", RulesFixtures.must(4), RulesFixtures.slot(4, 21, false), "0c63ed3424f10d52", "1ab444dab406a8ed"},
+                {"new game", RulesFixtures.others(), RulesFixtures.slot(4, 21, false), "e48b3497bb3df426", "acabfe3dffd1b009"},
+                {"must 4", RulesFixtures.must(4), RulesFixtures.slot(4, 21, false), "54c3f5d5558f50be", "e21a6b2eeeff5669"},
                 {"9/1", RulesFixtures.others(), RulesFixtures.slot(9, 1, false), "cbbfd9b7350a6552", "ef116a5a7a9f7f68"}};
         for (Object[] g : golden) {
             Engine.Options options = new Engine.Options();

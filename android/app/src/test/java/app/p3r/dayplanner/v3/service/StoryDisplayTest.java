@@ -43,7 +43,7 @@ public class StoryDisplayTest {
         StoryDisplay story = StoryDisplay.create(rules, profile, "accepted", first, first + 1, first);
         String subtitle = story.at(first).subtitleZh;
         assertFalse(subtitle, subtitle.contains("null"));
-        assertEquals("已经答应了" + rules.links[0].arcanaZh + "社群的平安夜邀约", subtitle);
+        assertEquals("已经答应了" + rules.links[0].arcanaZh + "社群的平安夜约会", subtitle);
     }
 
     @Test

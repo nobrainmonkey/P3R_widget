@@ -157,7 +157,7 @@ public class HomeRenderTest extends UiTestBase {
         intent.putExtra(Intents.EXTRA_TAB, "links");
         HomeActivity a = home(intent);
         // The tiles start right under the goal strip: no instructions, no goal list above them.
-        assertTrue(Shots.has(a, "调整顺序"));
+        assertFalse(Shots.has(a, "调整顺序"));
         assertFalse(Shots.allText(a.getWindow().getDecorView()).contains("点卡片右上角的标签切换"));
         Shots.shot(a, "home_links");
         findScroll(a.getWindow().getDecorView()).scrollTo(0, 1500);
@@ -234,7 +234,7 @@ public class HomeRenderTest extends UiTestBase {
         api.snap.plan = Fixtures.planMid(api.rules, api.snap.observed);
         HomeActivity a = home();
         assertTrue(Shots.has(a, TodayPage.FINISHED_TITLE));
-        assertFalse(Shots.has(a, "正在安排到1月31日…"));
+        assertFalse(Shots.has(a, "正在排到 1月31日…"));
         Shots.shot(a, "home_today_finished");
     }
 

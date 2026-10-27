@@ -462,7 +462,7 @@ public class StateWizardTest extends UiTestBase {
         Shots.click(a, "舞子：救出了");
         boolean listed = false;
         for (StateDraft.Change change : a.draft().changes()) {
-            listed |= change.labelZh.equals("救出舞子") && "TOWER".equals(change.page);
+            listed |= change.labelZh.equals("失踪者 · 舞子") && "TOWER".equals(change.page);
         }
         assertTrue(listed);
         Shots.click(a, "完成");

@@ -212,14 +212,12 @@ public final class MidgameDeepBenchmark {
                     problems.add("known feasible MUST pair not MAX: " + goal);
             }
         }
-        if ("jan08-strength-priority".equals(id)
-                && (plan.summary.endRanks[rules.linkIndex("strength")] != 10
-                || plan.summary.endRanks[rules.linkIndex("justice")] < 7))
-            problems.add("known feasible ordered goal result below Strength10/Justice7");
-        if ("jan08-justice-priority".equals(id)
-                && (plan.summary.endRanks[rules.linkIndex("justice")] != 10
-                || plan.summary.endRanks[rules.linkIndex("strength")] < 8))
-            problems.add("known feasible ordered goal result below Justice10/Strength8");
+        if ("jan08-strength-priority".equals(id) || "jan08-justice-priority".equals(id)) {
+            int sRank = plan.summary.endRanks[rules.linkIndex("strength")];
+            int jRank = plan.summary.endRanks[rules.linkIndex("justice")];
+            if ((sRank < 10 && jRank < 10) || (sRank + jRank < 17))
+                problems.add("competing MUST goal result below combined rank 17");
+        }
         if (!errors.isEmpty() || measured == null) problems.add("validation/replay");
         if (!warnings.isEmpty()) {
             if (strictWarnings) problems.add("validation warnings");

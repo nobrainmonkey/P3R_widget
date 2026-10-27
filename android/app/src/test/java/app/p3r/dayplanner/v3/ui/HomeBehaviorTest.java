@@ -151,7 +151,7 @@ public class HomeBehaviorTest extends UiTestBase {
         HomeActivity a = home(intent);
         Shots.click(a, "女教皇 · 山岸风花，RANK 5 → 9，时间先给了皇帝");
         assertTrue(a.sheets().isShowing());
-        assertTrue(Shots.has(a, "时间先给了皇帝。想先冲它，就设成必须，排到皇帝前面"));
+        assertTrue(Shots.has(a, "时间先给了皇帝。想先冲它，就设成必须"));
         Shots.click(a, "女教皇 目标：必须");
         assertEquals(Profile.Tier.MUST, api.last().profile.tier[2]);
         Shots.click(a, "女教皇 路线：恋人");
@@ -161,21 +161,11 @@ public class HomeBehaviorTest extends UiTestBase {
     }
 
     @Test
-    public void goalOrderArrowsSwap() {
+    public void goalOrderNotConfigurable() {
         Intent intent = new Intent(org.robolectric.RuntimeEnvironment.getApplication(), HomeActivity.class);
         intent.putExtra(Intents.EXTRA_TAB, "links");
         HomeActivity a = home(intent);
-        Shots.click(a, "调整顺序");
-        assertTrue(a.sheets().isShowing());
-        // A move that is not possible is not offered (皇帝 is first among 必须, 恋爱 last).
-        assertFalse(Shots.has(a, "上移 皇帝"));
-        assertFalse(Shots.has(a, "下移 恋爱"));
-        Shots.click(a, "上移 恋爱");
-        Profile saved = api.last().profile;
-        assertTrue(saved.order[6] < saved.order[4]);
-        // The sheet shows the new order right away.
-        assertTrue(Shots.has(a, "下移 恋爱"));
-        assertFalse(Shots.has(a, "上移 恋爱"));
+        assertFalse(Shots.has(a, "调整顺序"));
     }
 
     @Test
@@ -242,9 +232,9 @@ public class HomeBehaviorTest extends UiTestBase {
         assertEquals(Profile.PersonaMode.ALL, api.last().profile.personaMode);
         assertTrue(api.last().profile.personaBonus);
         assertFalse(Shots.has(a, SettingsPage.PERSONA_GOALS_NOTE));
-        Shots.click(a, "只给目标");
+        Shots.click(a, "目标才带");
         assertEquals(Profile.PersonaMode.GOALS, api.last().profile.effectivePersonaMode());
-        assertTrue("the reminder is said only for 只给目标", Shots.has(a, SettingsPage.PERSONA_GOALS_NOTE));
+        assertTrue("the reminder is said only for 目标才带", Shots.has(a, SettingsPage.PERSONA_GOALS_NOTE));
         Shots.click(a, "不带");
         assertEquals(Profile.PersonaMode.NONE, api.last().profile.effectivePersonaMode());
         assertFalse(api.last().profile.personaBonus);
@@ -642,7 +632,7 @@ public class HomeBehaviorTest extends UiTestBase {
         api.snap.planCurrent = false;
         api.fireChanged();
         Shots.idle();
-        assertTrue(Shots.has(a, "正在安排到1月31日…"));
+        assertTrue(Shots.has(a, "正在排到 1月31日…"));
         assertEquals("one wait, one stripe", 1, stripes(a.getWindow().getDecorView()));
     }
 

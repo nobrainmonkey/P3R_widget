@@ -95,7 +95,9 @@ final class Heuristics {
      * 7–8 while 「尽量多 MAX」 reached 21.
      */
     static final double BREADTH_MAX_BONUS_RANKS = 2;
-    static final double EARLY_PER_SLOT = 0.002;
+    static final double EARLY_PER_SLOT = 0.0001;
+    /** Slack of non-school O opportunities required before a flexible link yields a shared school slot. */
+    static final double SCHOOL_DEFER_SLACK = 2.0;
     /**
      * Share of the earlier-MAX bonus of goals ({@link #EARLY_PER_SLOT}) kept in the objective under
      * 「尽量都体验」: with the whole bonus a goal finished a few days earlier outweighed meetings,
@@ -184,22 +186,20 @@ final class Heuristics {
     static final long FEE_RESERVE = Kernel.FEE_RESERVE;
     private static final int MAX_GATES = 64;
     /**
-     * Weight per RANK of the first 「必须」 goal is {@code MUST_BASE + MUST_STEP·(n−1)} for n
-     * 「必须」 goals, and every later one weighs {@link #MUST_STEP} less, down to {@code MUST_BASE}
-     * for the last: with the MAX bonus (6 ranks' worth) a goal's MAX outweighs the next goal's MAX
-     * by {@code 7·MUST_STEP}, so when two goals compete for the same days the earlier one wins.
-     * 「想要」 goals are spaced the same way far below (at most 50,000 for 22 goals).
+     * Weight per RANK of every 「必须」 goal is {@link #MUST_BASE}, and every 「想要」 goal is
+     * {@link #WANT_BASE}: goals within the same tier have equal priority (no intra-tier ordering),
+     * while every 「必须」 rank outweighs an entire 「想要」 MAX.
      */
     static final double MUST_BASE = 100_000;
-    static final double MUST_STEP = 25_000;
     static final double WANT_BASE = 8_000;
-    static final double WANT_STEP = 2_000;
     /**
      * H of a meeting or unlock step that moves a goal towards its target under a
      * {@link Tuning#goalFirst} tuning: above a rescue visit (200,000), below a mandatory Tartarus
-     * visit ({@link #MANDATORY}); each place in the goal order adds {@link #GOAL_FIRST_STEP}.
+     * visit ({@link #MANDATORY}), with 「必须」 above 「想要」 and monotonic scarcity tie-breaking within each tier.
      */
     static final double GOAL_FIRST = 300_000;
+    static final double GOAL_FIRST_MUST = 390_000;
+    static final double GOAL_FIRST_SPAN = 85_000;
     static final double GOAL_FIRST_STEP = 1_000;
     /** Useful goal preparation stays below a rescue; the tier, never its ordinal, sets the base. */
     static final double GOAL_FIRST_PREPARATION = 150_000;
@@ -420,11 +420,16 @@ final class Heuristics {
     private final boolean[] admitted;
     private final int[] order;
     private final double[] load = new double[2];
-    /** Shared calendar pressure, counting only equal/higher-priority work for an explicit goal. */
+    /** Shared calendar pressure, counting only equal/higher-tier work for an explicit goal. */
     private final double[] calendarLoad;
-    private final double[] schoolGoalNeed;
+    private final double[] usableOutside;
     private double schoolMustNeed;
     private double schoolWantNeed;
+    private double schoolTotalNeed;
+    private boolean onSchoolSlot;
+    private boolean schoolMustToday;
+    private boolean schoolWantToday;
+    private double bestSchoolScoreToday;
     /** Bonus per meeting (or unlock action) of a link for the gates it opens for other links. */
     private final double[] linkBonus;
     /** Best active goal served by this link, including recursively unmet link-rank gates. */
@@ -522,17 +527,13 @@ final class Heuristics {
         this.earlyShare = breadth ? BREADTH_EARLY_SHARE : 1;
         int[] profileOrder = goalOrder(m);
         int[] goalsInOrder = goals == null ? profileOrder : goals;
-        int count = Math.min(goalsInOrder.length, profileOrder.length);
-        int nMust = 0;
-        for (int i = 0; i < count; i++) if (p.tier[profileOrder[i]] == Profile.Tier.MUST) nMust++;
-        int nWant = count - nMust;
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < goalsInOrder.length; i++) {
             int l = goalsInOrder[i];
             if (l < 0 || l >= n || !m.goal[l] || goal[l]) continue;
             goal[l] = true;
-            goalRank[l] = i;
-            boolean must = p.tier[profileOrder[i]] == Profile.Tier.MUST;
-            wGoal[l] = must ? MUST_BASE + MUST_STEP * (nMust - 1 - i) : WANT_BASE + WANT_STEP * (nWant - 1 - (i - nMust));
+            boolean must = p.tier[l] == Profile.Tier.MUST;
+            goalRank[l] = must ? 0 : 1;
+            wGoal[l] = must ? MUST_BASE : WANT_BASE;
         }
         int goalsCounted = 0;
         for (int l = 0; l < n; l++) {
@@ -566,7 +567,7 @@ final class Heuristics {
         schoolRemain = new int[size];
         schoolMeetRemain = new int[n][size];
         calendarLoad = new double[n];
-        schoolGoalNeed = new double[n];
+        usableOutside = new double[n];
         buildSchoolCalendars();
         int ns = t.nStats;
         trainRemain = new int[2][ns][size];
@@ -686,7 +687,7 @@ final class Heuristics {
         linkMult = new double[n];
     }
 
-    /** The profile's goal links in priority order: 「必须」 then 「想要」, each by {@link Profile#order}, ties by index. */
+    /** The profile's goal links grouped by tier: 「必须」 then 「想要」, ties by link index. */
     static int[] goalOrder(Model m) {
         Profile p = m.profile;
         int n = m.t.nLinks;
@@ -697,7 +698,6 @@ final class Heuristics {
             int ta = p.tier[a] == Profile.Tier.MUST ? 0 : 1;
             int tb = p.tier[b] == Profile.Tier.MUST ? 0 : 1;
             if (ta != tb) return Integer.compare(ta, tb);
-            if (p.order[a] != p.order[b]) return Integer.compare(p.order[a], p.order[b]);
             return Integer.compare(a, b);
         });
         int[] out = new int[count];
@@ -1157,6 +1157,35 @@ final class Heuristics {
         for (int i = 0; i < needs; i++) reserve += needYen[i];
         shortfall = Math.max(0, reserve - st.cash);
         linkMeetable = (slot & 1) == 0 && wantedMeetable(st, slot, day);
+        prepareSchoolToday(st, day);
+    }
+
+    private void prepareSchoolToday(SimState st, int day) {
+        int slot = st.slot;
+        onSchoolSlot = (slot & 1) == 0 && schoolRemain[slot] > schoolRemain[slot + 1];
+        schoolMustToday = false;
+        schoolWantToday = false;
+        bestSchoolScoreToday = 0;
+        if (!onSchoolSlot) return;
+        int mask = t.meetMask[slot];
+        for (int s = 0; s < t.nLinks; s++) {
+            if (!schoolOnly[s] || !wanted[s] || demand[s] <= 0 || rules.links[s].kind != Rules.LinkKind.MANUAL) continue;
+            double score = 0;
+            if (st.rank[s] == 0) {
+                if (Kernel.unlockGroup(m, st, s, day, false) >= 0) score = unlockScore(st, s);
+            } else if ((mask & (1 << s)) != 0 && Kernel.meetLegal(m, st, s, day)) {
+                boolean up = Kernel.ranksUp(m, st, s, day);
+                if (up || !Kernel.held(m, st, s, st.rank[s] + 1, day) || st.pts[s] < Kernel.need(m, s, st.rank[s])) {
+                    score = rawMeetScore(st, s, up);
+                }
+            }
+            if (score > 0.1) {
+                bestSchoolScoreToday = Math.max(bestSchoolScoreToday, score);
+                int gp = goalPriority(s);
+                if (gp == 0) schoolMustToday = true;
+                else if (gp == 1) schoolWantToday = true;
+            }
+        }
     }
 
     private int kind(int l) {
@@ -1328,34 +1357,64 @@ final class Heuristics {
     }
 
     /**
-     * Flexible links may use holidays first. Only their demand beyond those actual O dates
-     * competes with school links; school days with no school O cell add no capacity. A lower
-     * goal never makes a higher goal more urgent, while ordinary links see all requested work.
+     * Flexible links may use holidays and summer vacation first. Only their demand beyond usable
+     * non-school O dates competes with school-only links; school days with no school O cell add no
+     * capacity. Lower tiers never make a higher tier more urgent, while ordinary links see all
+     * requested work.
      */
     private void prepareCalendarPressure(SimState st) {
-        Arrays.fill(schoolGoalNeed, 0);
-        schoolMustNeed = schoolWantNeed = 0;
-        double total = 0;
+        Arrays.fill(usableOutside, 0);
+        schoolMustNeed = schoolWantNeed = schoolTotalNeed = 0;
+        double outsideStrictNeed = 0;
+        double outsideFlexMust = 0;
+        double outsideFlexWant = 0;
+        double outsideFlexTotal = 0;
         int slot = st.slot;
         for (int l = 0; l < t.nLinks; l++) {
             if (!wanted[l] || demand[l] <= 0 || rules.links[l].evening) continue;
             int remain = t.meetRemain[l][slot];
-            int outside = remain - schoolMeetRemain[l][slot];
-            double required = Math.max(0, Math.min(demand[l], remain) - outside);
-            total += required;
-            if (goal[l]) {
-                schoolGoalNeed[goalRank[l]] += required;
-                if (st.rank[l] < target[l]) {
-                    if (m.profile.tier[l] == Profile.Tier.MUST) schoolMustNeed += required;
-                    else schoolWantNeed += required;
+            int inSchool = schoolMeetRemain[l][slot];
+            int outside = remain - inSchool;
+            int need = Math.min(demand[l], remain);
+            double required = Math.max(0, need - outside);
+            double useOutside = Math.min(need, outside);
+            schoolTotalNeed += required;
+            if (goal[l] && st.rank[l] < target[l]) {
+                if (m.profile.tier[l] == Profile.Tier.MUST) schoolMustNeed += required;
+                else schoolWantNeed += required;
+            }
+            if (outside > 0) {
+                if (inSchool == 0) {
+                    outsideStrictNeed += useOutside;
+                } else {
+                    outsideFlexTotal += useOutside;
+                    if (goal[l] && st.rank[l] < target[l]) {
+                        if (m.profile.tier[l] == Profile.Tier.MUST) outsideFlexMust += useOutside;
+                        else outsideFlexWant += useOutside;
+                    }
                 }
             }
         }
-        for (int p = 1; p < goalLinks.length; p++) schoolGoalNeed[p] += schoolGoalNeed[p - 1];
         int cap = Math.max(1, schoolRemain[slot]);
+        int nonSchoolCap = Math.max(0, openRemain[0][slot] - schoolRemain[slot]);
         for (int l = 0; l < t.nLinks; l++) {
-            double pressure = schoolOnly[l] ? (goal[l] ? schoolGoalNeed[goalRank[l]] : total) / cap : 0;
-            calendarLoad[l] = pressure;
+            double needed = goal[l]
+                    ? (m.profile.tier[l] == Profile.Tier.MUST ? schoolMustNeed : schoolMustNeed + schoolWantNeed)
+                    : schoolTotalNeed;
+            calendarLoad[l] = schoolOnly[l] ? needed / cap : 0;
+            if (!wanted[l] || demand[l] <= 0 || rules.links[l].evening || schoolOnly[l]) continue;
+            int remain = t.meetRemain[l][slot];
+            int inSchool = schoolMeetRemain[l][slot];
+            int outside = remain - inSchool;
+            if (outside <= 0 || inSchool <= 0) continue;
+            double useOutside = Math.min(Math.min(demand[l], remain), outside);
+            double otherFlex = goal[l] && st.rank[l] < target[l]
+                    ? (m.profile.tier[l] == Profile.Tier.MUST
+                            ? outsideFlexMust - useOutside
+                            : outsideFlexMust + outsideFlexWant - useOutside)
+                    : outsideFlexTotal - useOutside;
+            double freePool = nonSchoolCap - outsideStrictNeed - Math.max(0, otherFlex);
+            usableOutside[l] = Math.max(0.0, Math.min(outside, freePool));
         }
     }
 
@@ -1808,14 +1867,16 @@ final class Heuristics {
         if (type == Kernel.T_NOTE) {
             if (h <= 0 || !goal[l] || st.rank[l] >= target[l] || Kernel.need(m, l, st.rank[l]) - st.pts[l] <= 0) return h;
             if (tuning.orderedNotes) {
-                return GOAL_FIRST_PREPARATION + GOAL_FIRST_STEP * (goalLinks.length - gr)
-                        + Math.min(h, GOAL_FIRST_STEP - 1);
+                double base = gr == 0 ? GOAL_FIRST_PREPARATION + 20_000 : GOAL_FIRST_PREPARATION * (WANT_BASE / MUST_BASE);
+                return base + 15_000 * (h / (h + 50_000.0));
             }
             return goalNotePreparationPriority(st, l);
         }
         if (type == Kernel.T_MEET && !st.ready[l] && Kernel.held(m, st, l, st.rank[l] + 1, st.slot >> 1)
                 && st.pts[l] >= Kernel.need(m, l, st.rank[l])) return h;
-        return GOAL_FIRST + GOAL_FIRST_STEP * (goalLinks.length - gr) + Math.min(h, GOAL_FIRST_STEP - 1);
+        double base = gr == 0 ? GOAL_FIRST_MUST : GOAL_FIRST;
+        double positive = Math.max(0.0, h);
+        return base + GOAL_FIRST_SPAN * (positive / (positive + 150_000.0));
     }
 
     /**
@@ -1977,12 +2038,30 @@ final class Heuristics {
             // Held indefinitely, or nothing left to gain: harmless filler only.
             return up ? 0.5 * wRank(l, st.rank[l] + 1) : 0.02;
         }
+        double raw = rawMeetScore(st, l, up);
+        if (onSchoolSlot && !tuning.goalFirst && !schoolOnly[l] && !rules.links[l].evening
+                && r >= 1 && !opensGate(l) && bestSchoolScoreToday > 0.1
+                && schoolTotalNeed >= 0.35 * Math.max(1, schoolRemain[st.slot])
+                && usableOutside[l] >= demand[l] + SCHOOL_DEFER_SLACK) {
+            return Math.min(raw, 0.85 * bestSchoolScoreToday);
+        }
+        return raw;
+    }
+
+    private double rawMeetScore(SimState st, int l, boolean up) {
         return linkScore(st, l) * (up ? 1.1 : 1.0) + linkBonus[l];
     }
 
     /** Opening a link: like its most urgent meeting, plus the value of opening its calendar early. */
     private double unlockScore(SimState st, int l) {
         return 1.5 * linkScore(st, l) + linkBonus[l];
+    }
+
+    private boolean sameOrHigherSchoolToday(int l) {
+        int gp = goalPriority(l);
+        if (gp == 0) return schoolMustToday;
+        if (gp == 1) return schoolMustToday || schoolWantToday;
+        return bestSchoolScoreToday > 0.1;
     }
 
     /**
@@ -1994,14 +2073,26 @@ final class Heuristics {
     private double linkScore(SimState st, int l) {
         if (demand[l] <= 0) return 0.05;
         int remain = Math.max(1, t.meetRemain[l][st.slot]);
-        double ratio = admitted[l] ? Math.min(1.0, demand[l] / (double) remain) : breadth ? nextRanksShare(l, remain) : 0;
+        double ratio;
+        double schoolDeferFactor = 1.0;
+        if (onSchoolSlot && !schoolOnly[l] && !rules.links[l].evening && usableOutside[l] > 0) {
+            double schoolDemand = Math.max(0.0, demand[l] - Math.max(0.0, usableOutside[l] - 1.0));
+            int inSchool = Math.max(1, schoolMeetRemain[l][st.slot]);
+            ratio = admitted[l] ? Math.min(1.0, schoolDemand / (double) inSchool)
+                    : breadth ? nextRanksShare(l, remain) * (schoolDemand > 0 ? 1.0 : 0.35) : 0;
+            if (schoolDemand <= 0 && !opensGate(l) && st.rank[l] >= 1 && sameOrHigherSchoolToday(l)) {
+                schoolDeferFactor = 0.35;
+            }
+        } else {
+            ratio = admitted[l] ? Math.min(1.0, demand[l] / (double) remain) : breadth ? nextRanksShare(l, remain) : 0;
+        }
         // Holidays cannot repay a school-only meeting. The shared pool is a bounded pressure,
         // not a flat school bonus, and still competes at this link's own objective value.
         // Breadth's ordinary partial-rank scarcity must distinguish long stories from near-MAX
         // ones. Explicit goals still reserve their common school capacity before ordinary links.
         if (schoolOnly[l] && (!breadth || goal[l])) ratio = Math.max(ratio, Math.min(1.0, calendarLoad[l]));
         double contention = Math.sqrt(Math.max(1.0, Math.max(load[kind(l)], calendarLoad[l])));
-        return perMeeting[l] * urgency(ratio) * contention;
+        return perMeeting[l] * urgency(ratio) * contention * schoolDeferFactor;
     }
 
     /** 「尽量都体验」: share of the link's {@code remain} opportunities its next few meetings need (≤ 1). */

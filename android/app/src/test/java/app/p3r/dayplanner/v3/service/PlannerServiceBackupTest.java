@@ -153,16 +153,16 @@ public class PlannerServiceBackupTest extends ServiceTestBase {
         PlannerApi.Receipt notJson = service.importBackup(id(), "这不是备份");
         assertFalse(notJson.ok);
         assertEquals("invalid", notJson.errorCode);
-        assertEquals("这不是 P3R 规划的备份文件，没有做任何更改", notJson.errorZh);
+        assertEquals("这个文件读不出来，现在的记录没动", notJson.errorZh);
 
         JSONObject damaged = new JSONObject(service.exportBackup());
         damaged.getJSONArray("events").getJSONObject(1).getJSONObject("payload").remove("slot");
         PlannerApi.Receipt r = service.importBackup(id(), damaged.toString());
-        assertEquals("备份文件不完整或已损坏，没有做任何更改", r.errorZh);
+        assertEquals("这个文件读不出来，现在的记录没动", r.errorZh);
 
         JSONObject badState = new JSONObject(service.exportBackup());
         badState.getJSONArray("checkpoints").getJSONObject(1).getJSONObject("state").put("cash", -5);
-        assertEquals("备份文件不完整或已损坏，没有做任何更改", service.importBackup(id(), badState.toString()).errorZh);
+        assertEquals("这个文件读不出来，现在的记录没动", service.importBackup(id(), badState.toString()).errorZh);
 
         assertEquals(revision, rev());
         assertEquals(history, summaries(service));

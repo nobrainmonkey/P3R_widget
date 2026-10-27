@@ -14,7 +14,7 @@ import java.util.List;
  */
 public final class Plan {
     /** Bump when planning semantics change without a rule-pack change; old cached plans replan. */
-    public static final int CURRENT_POLICY_VERSION = 5;
+    public static final int CURRENT_POLICY_VERSION = 6;
 
     public String planId = "";
     public long stateRevision;

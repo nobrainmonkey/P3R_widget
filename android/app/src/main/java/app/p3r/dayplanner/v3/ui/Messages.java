@@ -18,8 +18,8 @@ final class Messages {
      */
     static String loadFailed(String errorZh) {
         String reason = errorZh == null || !containsCjk(errorZh) ? "" : errorZh.trim();
-        reason = reason.replaceAll("[，,。；]?\\s*(请重新打开应用|请稍后再试|请再试一次)[。！]?$", "");
-        if (reason.isEmpty() || reason.startsWith("读取记录失败")) {
+        reason = reason.replaceAll("[，,。；]?\\s*(请重新打开应用|请稍后再试|请再试一次|重开应用试试|稍后重开试试|稍后再试一次)[。！]?$", "");
+        if (reason.isEmpty() || reason.startsWith("读取记录失败") || reason.startsWith("记录没读出来")) {
             return "";
         }
         return Zh.sentence(reason);

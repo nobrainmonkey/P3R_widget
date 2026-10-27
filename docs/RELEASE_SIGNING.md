@@ -14,6 +14,14 @@
 
 私有持久备份已上传并回读校验，恢复材料也已验证。
 
+[3.7.0 正式版](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.7.0) 于 2026-10-27 发布，优化社群目标优先级（去除同档内先后顺序、支持两档严格支配与暑假/考前校历压力感知），完成全量 UI/UX 语言检验与自然化润色。沿用上述证书，可覆盖 3.3.0～3.6.3。本地 1,526 项 Android 单元测试、115 项规则测试、release lint 和正式签名构建通过。
+
+最终 `P3R-Planner-3.7.0.apk` 为 **1,220,544 bytes**，SHA-256 为：
+
+`3a2d82625ff5fd1da30cd5cdfb1a635d1fb06a633cfab6d851ff184b57c18185`
+
+包名 `app.p3r.planner`、版本码 47、正式签名、zipalign 及内嵌规则／全书均已核对。策略版本升级为 6。
+
 [3.6.3 正式版](https://github.com/nobrainmonkey/P3R_widget/releases/tag/v3.6.3) 于 2026-10-22 发布，可展开菜单统一默认折叠，手动展开后当前页面刷新保留状态。沿用上述证书，可覆盖 3.3.0～3.6.2。源码 `54c23f6fe5236ac94c1f3d8dfeaf63668cc40906` 的完整 Android CI [39701613899](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39701613899) 已通过；本地 41 项现有 UI 测试、release lint 和正式签名构建通过。经[预构建包发布流程 39703748887](https://github.com/nobrainmonkey/P3R_widget/actions/runs/39703748887) 发布为 latest，非草稿、非预发布。
 
 最终 `P3R-Planner-3.6.3.apk` 为 **1,221,588 bytes**，SHA-256 为：
