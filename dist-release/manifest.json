@@ -1,0 +1,13 @@
+{
+  "schema": "p3r.prebuilt-release.v1",
+  "tag": "v3.7.0",
+  "version": "3.7.0",
+  "versionCode": 47,
+  "packageName": "app.p3r.planner",
+  "apkFile": "P3R-Planner-3.7.0.apk",
+  "certificateSha256": "83d4395bcac9e7b33b20f3bd2b1327c856e56a6f0bd4816c52a42550a2b653ba",
+  "sourceSha": "d998d9c1d8303560f56e2c259fb5cfe6dd661243",
+  "apkSha256": "3a2d82625ff5fd1da30cd5cdfb1a635d1fb06a633cfab6d851ff184b57c18185",
+  "rulesSha256": "4ea6b83e9c8b6d6a83782f92f77a23ca5e3fd743799ac4990c8f255ae0f3d30f",
+  "compendiumSha256": "0b11c1996d0652dfce318c0d1802faaca400e459c9dfdea8164f1147d55e762e"
+}
